@@ -5,6 +5,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize splash screen first (if exists)
+    initSplashScreen();
+
     // Initialize all modules
     initNavbar();
     initScrollAnimations();
@@ -22,6 +25,71 @@ document.addEventListener('DOMContentLoaded', () => {
         initNFLPhaseIndicator();
     }
 });
+
+/**
+ * Splash Screen Functionality
+ * Handles swipe up and scroll to reveal the main site
+ */
+function initSplashScreen() {
+    const splashScreen = document.getElementById('splash-screen');
+    if (!splashScreen) return;
+
+    // Check if already dismissed in this session
+    if (sessionStorage.getItem('splashDismissed') === 'true') {
+        splashScreen.classList.add('hidden');
+        return;
+    }
+
+    // Lock body scrolling
+    document.body.classList.add('splash-active');
+
+    let touchStartY = 0;
+    let touchEndY = 0;
+    const swipeThreshold = 50; // Minimum distance for swipe
+
+    // Touch events for mobile swipe
+    splashScreen.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    splashScreen.addEventListener('touchmove', (e) => {
+        touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    splashScreen.addEventListener('touchend', () => {
+        const swipeDistance = touchStartY - touchEndY;
+        if (swipeDistance > swipeThreshold) {
+            dismissSplash();
+        }
+    });
+
+    // Mouse wheel for desktop
+    splashScreen.addEventListener('wheel', (e) => {
+        if (e.deltaY > 0) { // Scrolling down means swipe up gesture
+            dismissSplash();
+        }
+    });
+
+    // Click to dismiss as fallback
+    splashScreen.addEventListener('click', () => {
+        dismissSplash();
+    });
+
+    // Keyboard support
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'Enter') {
+            if (!splashScreen.classList.contains('hidden')) {
+                dismissSplash();
+            }
+        }
+    });
+
+    function dismissSplash() {
+        splashScreen.classList.add('hidden');
+        document.body.classList.remove('splash-active');
+        sessionStorage.setItem('splashDismissed', 'true');
+    }
+}
 
 /**
  * NFL Calendar API Configuration
