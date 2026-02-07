@@ -58,6 +58,18 @@
         </div>
     </nav>
 
+    <!-- Debug Period Selector (fixed position, always visible) -->
+    <div class="debug-selector debug-period-fixed" id="debug-period-selector">
+        <label for="period-select">🧪 Test Periodo:</label>
+        <select id="period-select">
+            <option value="auto">Auto (Oggi)</option>
+            <option value="PLAYOFFS" selected>Super Bowl Week</option>
+            <option value="POST_SUPER_BOWL">Post-Season</option>
+            <option value="PRE_DRAFT">Pre-Draft</option>
+            <option value="REGULAR_SEASON">Game Week</option>
+        </select>
+    </div>
+
     <!-- Home Section with Parallax -->
     <section id="home" class="home-section">
         <!-- Parallax Layers -->
@@ -74,18 +86,6 @@
         <div class="nfl-phase-indicator" id="nfl-phase-indicator">
             <span class="phase-emoji">🏈</span>
             <span class="phase-label" id="phase-label">Loading...</span>
-        </div>
-
-        <!-- Debug Period Selector (for testing sections) -->
-        <div class="debug-selector" id="debug-period-selector">
-            <label for="period-select">🧪 Test Periodo:</label>
-            <select id="period-select">
-                <option value="auto">Auto (Oggi)</option>
-                <option value="PLAYOFFS" selected>Super Bowl Week</option>
-                <option value="POST_SUPER_BOWL">Post-Season</option>
-                <option value="PRE_DRAFT">Pre-Draft</option>
-                <option value="REGULAR_SEASON">Game Week</option>
-            </select>
         </div>
 
         <!-- Debug Matchup Photo Selector (only visible in Super Bowl Week) -->

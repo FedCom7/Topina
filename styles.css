@@ -505,6 +505,14 @@ body {
     color: var(--text-primary);
 }
 
+/* Fixed position debug selector (stays visible always) */
+.debug-period-fixed {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1001;
+}
+
 /* Content section after parallax */
 .home-content-section {
     background-color: var(--background);
@@ -2024,7 +2032,7 @@ body.splash-active {
    COMING SOON SECTIONS
    ======================================== */
 .coming-soon-section {
-    min-height: 50vh;
+    min-height: 100vh;
     background: #000000;
     display: flex;
     align-items: center;

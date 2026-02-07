@@ -34,12 +34,6 @@ function initSplashScreen() {
     const splashScreen = document.getElementById('splash-screen');
     if (!splashScreen) return;
 
-    // Check if already dismissed in this session
-    if (sessionStorage.getItem('splashDismissed') === 'true') {
-        splashScreen.classList.add('hidden');
-        return;
-    }
-
     // Lock body scrolling
     document.body.classList.add('splash-active');
 
@@ -87,7 +81,6 @@ function initSplashScreen() {
     function dismissSplash() {
         splashScreen.classList.add('hidden');
         document.body.classList.remove('splash-active');
-        sessionStorage.setItem('splashDismissed', 'true');
     }
 }
 
@@ -583,28 +576,32 @@ function initSeasonPeriodWithOverride(period) {
             text: 'Championship Celebration',
             message: 'Congratulations to our Champion!',
             section: 'postseason-section',
-            showPhotoSelector: false
+            showPhotoSelector: false,
+            showHomeSection: false  // Hide stadium for Post-Season
         },
         PLAYOFFS: {
             icon: '🔥',
             text: 'Super Bowl Week',
             message: 'The championship game is here!',
             section: 'superbowl-section',
-            showPhotoSelector: true
+            showPhotoSelector: true,
+            showHomeSection: true  // Show stadium for Super Bowl Week
         },
         REGULAR_SEASON: {
             icon: '🏈',
             text: 'Regular Season',
             message: 'Every game counts. Build your legacy.',
             section: 'gameweek-section',
-            showPhotoSelector: false
+            showPhotoSelector: false,
+            showHomeSection: false  // Hide stadium for Game Week
         },
         PRE_DRAFT: {
             icon: '⏳',
             text: 'Pre-Draft',
             message: 'Prepare your strategy. The draft is coming.',
             section: 'predraft-section',
-            showPhotoSelector: false
+            showPhotoSelector: false,
+            showHomeSection: false  // Hide stadium for Pre-Draft
         }
     };
 
@@ -616,14 +613,34 @@ function initSeasonPeriodWithOverride(period) {
 
     console.log('Using config:', config);
 
-    // Update period badge
+    // Show/hide the home section (stadium) based on period
+    const homeSection = document.getElementById('home');
+    const homeContentSection = document.querySelector('.home-content-section');
+
+    if (homeSection) {
+        if (config.showHomeSection) {
+            homeSection.classList.remove('hidden');
+        } else {
+            homeSection.classList.add('hidden');
+        }
+    }
+
+    if (homeContentSection) {
+        if (config.showHomeSection) {
+            homeContentSection.classList.remove('hidden');
+        } else {
+            homeContentSection.classList.add('hidden');
+        }
+    }
+
+    // Update period badge (only if visible)
     const badge = document.getElementById('period-badge');
     if (badge) {
         badge.querySelector('.period-icon').textContent = config.icon;
         badge.querySelector('.period-text').textContent = config.text;
     }
 
-    // Update message
+    // Update message (only if visible)
     const message = document.getElementById('period-message');
     if (message) {
         message.textContent = config.message;
