@@ -1919,50 +1919,48 @@ body {
 }
 
 .splash-flip {
-    height: 80px;
+    height: 50px;
     overflow: hidden;
-    display: inline-block;
-    vertical-align: bottom;
 }
 
 .splash-flip>div>div {
     color: #fff;
-    padding: 8px 20px;
-    height: 75px;
-    line-height: 59px;
-    margin-bottom: 85px;
+    padding: 4px 12px;
+    height: 45px;
+    margin-bottom: 45px;
     display: inline-block;
-    border-radius: 10px;
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    border-radius: 8px;
+    font-size: clamp(1.2rem, 3vw, 2rem);
 }
 
 .splash-flip div:first-child {
-    animation: splashShow 10s linear infinite;
+    animation: splashShow 8s linear infinite;
 }
 
-/* Animation for 4 items in splash screen */
+/* Animation for 4 items: each slot = 45px height + 45px margin = 90px
+   Positions: -270 (Capi), -180 (Lasers), -90 (Oscurus), 0 (Sommo) */
 @keyframes splashShow {
     0% {
-        margin-top: -480px;
+        margin-top: -270px;
     }
 
-    2% {
-        margin-top: -320px;
+    5% {
+        margin-top: -180px;
     }
 
     25% {
-        margin-top: -320px;
+        margin-top: -180px;
     }
 
-    27% {
-        margin-top: -160px;
+    30% {
+        margin-top: -90px;
     }
 
     50% {
-        margin-top: -160px;
+        margin-top: -90px;
     }
 
-    52% {
+    55% {
         margin-top: 0px;
     }
 
@@ -1970,12 +1968,12 @@ body {
         margin-top: 0px;
     }
 
-    77% {
-        margin-top: -480px;
+    80% {
+        margin-top: -270px;
     }
 
     100% {
-        margin-top: -480px;
+        margin-top: -270px;
     }
 }
 
