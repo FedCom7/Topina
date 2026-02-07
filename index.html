@@ -105,8 +105,8 @@
             </select>
         </div>
 
-        <!-- Topina League Logo at Center -->
-        <div class="parallax-header">
+        <!-- Topina League Logo (hidden during Super Bowl Week) -->
+        <div class="parallax-header" id="parallax-header-normal">
             <div class="home-flip-logo">
                 Topina
                 <div id="flip">
@@ -124,6 +124,21 @@
                     </div>
                 </div>
                 League
+            </div>
+        </div>
+
+        <!-- Super Bowl Matchup Display (visible only during Super Bowl Week) -->
+        <div class="superbowl-matchup-display hidden" id="superbowl-matchup-display">
+            <div class="matchup-team matchup-team-left">
+                <img src="Team Logo/IMG_1065.JPG" alt="Team 1" class="matchup-team-logo" id="matchup-team1-logo">
+                <span class="matchup-team-name" id="matchup-team1-name">Capi dei Pianeti</span>
+            </div>
+            <div class="matchup-trophy">
+                <img src="images/superbowl_vii_logo.png" alt="Super Bowl VII" class="matchup-trophy-img">
+            </div>
+            <div class="matchup-team matchup-team-right">
+                <img src="Team Logo/IMG_4979.JPG" alt="Team 2" class="matchup-team-logo" id="matchup-team2-logo">
+                <span class="matchup-team-name" id="matchup-team2-name">Lasers</span>
             </div>
         </div>
 

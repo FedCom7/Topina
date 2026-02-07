@@ -483,6 +483,14 @@ const TEAM_KEYS = {
     'Sommo': 'sommo'
 };
 
+// Team logo paths
+const TEAM_LOGOS = {
+    'Capi dei Pianeti': 'Team Logo/IMG_1065.JPG',
+    'Lasers': 'Team Logo/IMG_4979.JPG',
+    'Oscurus': 'Team Logo/IMG_8063.JPG',
+    'Sommo': 'Team Logo/IMG_8064.JPG'
+};
+
 /**
  * Get stadium image for a matchup
  */
@@ -672,6 +680,129 @@ function initSeasonPeriodWithOverride(period) {
             photoSelector.style.display = 'none';
         }
     }
+
+    // Toggle between normal header and Super Bowl matchup display
+    const normalHeader = document.getElementById('parallax-header-normal');
+    const matchupDisplay = document.getElementById('superbowl-matchup-display');
+
+    if (period === 'PLAYOFFS') {
+        // Super Bowl Week: show matchup display, hide Topina League
+        if (normalHeader) normalHeader.classList.add('hidden');
+        if (matchupDisplay) matchupDisplay.classList.remove('hidden');
+
+        // Update matchup display with actual finalists
+        const team1Logo = document.getElementById('matchup-team1-logo');
+        const team1Name = document.getElementById('matchup-team1-name');
+        const team2Logo = document.getElementById('matchup-team2-logo');
+        const team2Name = document.getElementById('matchup-team2-name');
+
+        if (team1Logo && TEAM_LOGOS[SUPER_BOWL_FINALISTS.teamTop]) {
+            team1Logo.src = TEAM_LOGOS[SUPER_BOWL_FINALISTS.teamTop];
+            team1Logo.alt = SUPER_BOWL_FINALISTS.teamTop;
+        }
+        if (team1Name) {
+            team1Name.textContent = SUPER_BOWL_FINALISTS.teamTop;
+        }
+        if (team2Logo && TEAM_LOGOS[SUPER_BOWL_FINALISTS.teamBottom]) {
+            team2Logo.src = TEAM_LOGOS[SUPER_BOWL_FINALISTS.teamBottom];
+            team2Logo.alt = SUPER_BOWL_FINALISTS.teamBottom;
+        }
+        if (team2Name) {
+            team2Name.textContent = SUPER_BOWL_FINALISTS.teamBottom;
+        }
+    } else {
+        // Other periods: show Topina League, hide matchup display
+        if (normalHeader) normalHeader.classList.remove('hidden');
+        if (matchupDisplay) matchupDisplay.classList.add('hidden');
+    }
+}
+
+/**
+ * Initialize Super Bowl Countdown Timer
+ * Counts down to NFL Week 17 start (Fantasy Super Bowl)
+ */
+function initSuperBowlCountdown() {
+    // NFL Week 17 2024-2025 season typically starts around late December
+    // Adjust this date based on actual NFL schedule
+    const week17Start = new Date('2024-12-28T13:00:00');
+
+    function updateCountdown() {
+        const now = new Date();
+        const diff = week17Start - now;
+
+        if (diff <= 0) {
+            // Super Bowl is happening!
+            document.getElementById('countdown-days').textContent = '00';
+            document.getElementById('countdown-hours').textContent = '00';
+            document.getElementById('countdown-minutes').textContent = '00';
+            document.getElementById('countdown-seconds').textContent = '00';
+            document.querySelector('.countdown-title').textContent = '🏆 SUPER BOWL TIME! 🏆';
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById('countdown-days').textContent = String(days).padStart(2, '0');
+        document.getElementById('countdown-hours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('countdown-minutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('countdown-seconds').textContent = String(seconds).padStart(2, '0');
+    }
+
+    // Update immediately and then every second
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+}
+
+/**
+ * Initialize Super Bowl Parallax Scroll Effect
+ * Reveals trophy and team logos when scrolling down
+ */
+function initSuperBowlParallax() {
+    const parallaxReveal = document.getElementById('superbowl-parallax-reveal');
+    if (!parallaxReveal) return;
+
+    const homeSection = document.getElementById('home');
+    if (!homeSection) return;
+
+    function handleScroll() {
+        const scrollY = window.scrollY;
+        const homeSectionHeight = homeSection.offsetHeight;
+
+        // Start revealing when scrolled past 100px, fully visible at 300px
+        const scrollThreshold = 100;
+        const scrollMaxEffect = 300;
+
+        if (scrollY > scrollThreshold) {
+            // Calculate progress (0 to 1)
+            const progress = Math.min((scrollY - scrollThreshold) / (scrollMaxEffect - scrollThreshold), 1);
+
+            // Add visible class to trigger CSS transitions
+            parallaxReveal.classList.add('visible');
+
+            // Additional parallax effect on trophy (moves up as you scroll)
+            const trophy = parallaxReveal.querySelector('.parallax-trophy');
+            if (trophy) {
+                trophy.style.transform = `scale(${0.5 + progress * 0.5}) translateY(${50 - progress * 50}px)`;
+                trophy.style.opacity = progress;
+            }
+        } else {
+            parallaxReveal.classList.remove('visible');
+        }
+
+        // Hide parallax when scrolled past home section
+        if (scrollY > homeSectionHeight) {
+            parallaxReveal.style.opacity = '0';
+        } else {
+            parallaxReveal.style.opacity = '';
+        }
+    }
+
+    window.addEventListener('scroll', handleScroll);
+    // Run once on init
+    handleScroll();
 }
 
 /**
