@@ -1929,6 +1929,8 @@ body {
 .splash-flip {
     height: 50px;
     overflow: hidden;
+    vertical-align: middle;
+    margin-bottom: 20px;
 }
 
 .splash-flip>div>div {
@@ -1942,46 +1944,50 @@ body {
 }
 
 .splash-flip div:first-child {
-    animation: splashShow 8s linear infinite;
+    animation: splashShow 10s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
 }
 
-/* Animation for 4 items: each slot = 45px height + 45px margin = 90px
-   Positions: -270 (Capi), -180 (Lasers), -90 (Oscurus), 0 (Sommo) */
+/* Seamless infinite loop with 5 items (4 + 1 duplicate)
+   0px -> -90px -> -180px -> -270px -> -360px (jump to 0) */
 @keyframes splashShow {
     0% {
-        margin-top: -270px;
+        margin-top: 0px;
     }
 
-    5% {
-        margin-top: -180px;
+    15% {
+        margin-top: 0px;
     }
 
-    25% {
-        margin-top: -180px;
-    }
-
-    30% {
+    20% {
         margin-top: -90px;
     }
 
-    50% {
+    35% {
         margin-top: -90px;
+    }
+
+    40% {
+        margin-top: -180px;
     }
 
     55% {
-        margin-top: 0px;
+        margin-top: -180px;
+    }
+
+    60% {
+        margin-top: -270px;
     }
 
     75% {
-        margin-top: 0px;
+        margin-top: -270px;
     }
 
     80% {
-        margin-top: -270px;
+        margin-top: -360px;
     }
 
     100% {
-        margin-top: -270px;
+        margin-top: -360px;
     }
 }
 
