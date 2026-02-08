@@ -145,7 +145,7 @@
             <span class="period-text">Loading...</span>
         </div>
 
-        <!-- Dynamic Message based on period -->
+        <!-- Dynamic Message based on period (hidden during Super Bowl Week) -->
         <div class="period-message animate-on-scroll" data-delay="300" id="period-message">
             <!-- Will be filled by JS -->
         </div>
@@ -155,8 +155,25 @@
             <!-- Will be filled by JS based on period -->
         </div>
 
-        <!-- Quick Stats -->
-        <div class="home-stats animate-on-scroll" data-delay="500">
+        <!-- Super Bowl Matchup Display (shown only during Super Bowl Week) -->
+        <div class="sb-main-matchup hidden" id="sb-main-matchup">
+            <div class="sb-matchup-team">
+                <img src="images/team_capi_transparent.png" alt="Team 1" class="sb-matchup-team-logo"
+                    id="sb-main-team1-logo">
+                <span class="sb-matchup-team-name" id="sb-main-team1-name">Capi dei Pianeti</span>
+            </div>
+            <div class="sb-matchup-trophy">
+                <img src="images/superbowl_vii_logo.png" alt="Super Bowl VII" class="sb-matchup-trophy-img">
+            </div>
+            <div class="sb-matchup-team">
+                <img src="images/team_lasers_transparent.png" alt="Team 2" class="sb-matchup-team-logo"
+                    id="sb-main-team2-logo">
+                <span class="sb-matchup-team-name" id="sb-main-team2-name">Lasers</span>
+            </div>
+        </div>
+
+        <!-- Quick Stats (hidden during Super Bowl Week) -->
+        <div class="home-stats animate-on-scroll" data-delay="500" id="home-stats">
             <div class="home-stat">
                 <span class="stat-number" data-count="12">0</span>
                 <span class="stat-label">Teams</span>
