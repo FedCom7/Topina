@@ -681,85 +681,13 @@ function initSeasonPeriodWithOverride(period) {
         }
     }
 
-    // Toggle between normal header and Super Bowl matchup display
-    const normalHeader = document.getElementById('parallax-header-normal');
-    const matchupDisplay = document.getElementById('superbowl-matchup-display');
-
-    if (period === 'PLAYOFFS') {
-        // Super Bowl Week: hide Topina League header
-        if (normalHeader) normalHeader.classList.add('hidden');
-
-        // Hide period badge ("Super Bowl Week" text)
-        const periodBadge = document.getElementById('period-badge');
-        if (periodBadge) periodBadge.classList.add('hidden');
-
-        // Hide period message ("The championship game is here")
-        const periodMessage = document.getElementById('period-message');
-        if (periodMessage) periodMessage.classList.add('hidden');
-
-        // Hide period content
-        const periodContent = document.getElementById('period-content');
-        if (periodContent) periodContent.classList.add('hidden');
-
-        // Hide stats (Teams, Seasons, Games)
-        const homeStats = document.getElementById('home-stats');
-        if (homeStats) homeStats.classList.add('hidden');
-
-        // Show main matchup display
-        const sbMainMatchup = document.getElementById('sb-main-matchup');
-        if (sbMainMatchup) sbMainMatchup.classList.remove('hidden');
-
-        // Update matchup with actual finalists
-        const team1Logo = document.getElementById('sb-main-team1-logo');
-        const team1Name = document.getElementById('sb-main-team1-name');
-        const team2Logo = document.getElementById('sb-main-team2-logo');
-        const team2Name = document.getElementById('sb-main-team2-name');
-
-        // Use transparent logos
-        const TEAM_LOGOS_TRANSPARENT = {
-            'Capi dei Pianeti': 'images/team_capi_transparent.png',
-            'Lasers': 'images/team_lasers_transparent.png',
-            'Oscurus': 'images/team_oscurus_transparent.png',
-            'Sommo': 'images/team_sommo_transparent.png'
-        };
-
-        if (team1Logo && TEAM_LOGOS_TRANSPARENT[SUPER_BOWL_FINALISTS.teamTop]) {
-            team1Logo.src = TEAM_LOGOS_TRANSPARENT[SUPER_BOWL_FINALISTS.teamTop];
-            team1Logo.alt = SUPER_BOWL_FINALISTS.teamTop;
-        }
-        if (team1Name) {
-            team1Name.textContent = SUPER_BOWL_FINALISTS.teamTop;
-        }
-        if (team2Logo && TEAM_LOGOS_TRANSPARENT[SUPER_BOWL_FINALISTS.teamBottom]) {
-            team2Logo.src = TEAM_LOGOS_TRANSPARENT[SUPER_BOWL_FINALISTS.teamBottom];
-            team2Logo.alt = SUPER_BOWL_FINALISTS.teamBottom;
-        }
-        if (team2Name) {
-            team2Name.textContent = SUPER_BOWL_FINALISTS.teamBottom;
-        }
+    // Use PeriodManager for layout changes
+    if (window.PeriodManager) {
+        window.PeriodManager.apply(period, {
+            finalists: SUPER_BOWL_FINALISTS
+        });
     } else {
-        // Other periods: show Topina League, hide matchup display
-        if (normalHeader) normalHeader.classList.remove('hidden');
-
-        // Show period badge
-        const periodBadge = document.getElementById('period-badge');
-        if (periodBadge) periodBadge.classList.remove('hidden');
-
-        // Show period message
-        const periodMessage = document.getElementById('period-message');
-        if (periodMessage) periodMessage.classList.remove('hidden');
-
-        // Show period content
-        const periodContent = document.getElementById('period-content');
-        if (periodContent) periodContent.classList.remove('hidden');
-
-        // Show stats
-        const homeStats = document.getElementById('home-stats');
-        if (homeStats) homeStats.classList.remove('hidden');
-
-        // Hide main matchup display
-        const sbMainMatchup = document.getElementById('sb-main-matchup');
-        if (sbMainMatchup) sbMainMatchup.classList.add('hidden');
+        console.error('[togglePeriodVisibility] PeriodManager not loaded!');
     }
 }
 
