@@ -2162,3 +2162,67 @@ body.splash-active {
         font-size: 0.9rem;
     }
 }
+
+/* ========================================
+   SUPER BOWL SECTION MATCHUP
+   ======================================== */
+
+.sb-team-logo-img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #C9A227;
+    box-shadow: 0 0 30px rgba(201, 162, 39, 0.5);
+    transition: transform 0.3s ease;
+}
+
+.sb-team-logo-img:hover {
+    transform: scale(1.1);
+}
+
+.sb-trophy-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+}
+
+.sb-trophy-img {
+    max-width: 300px;
+    max-height: 350px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 40px rgba(201, 162, 39, 0.5));
+}
+
+.superbowl-matchup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    padding: 40px 20px;
+}
+
+.sb-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Responsive for section matchup */
+@media (max-width: 768px) {
+    .sb-trophy-img {
+        max-width: 180px;
+    }
+
+    .sb-team-logo-img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .superbowl-matchup {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
