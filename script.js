@@ -689,9 +689,17 @@ function initSeasonPeriodWithOverride(period) {
         // Super Bowl Week: hide Topina League header
         if (normalHeader) normalHeader.classList.add('hidden');
 
+        // Hide period badge ("Super Bowl Week" text)
+        const periodBadge = document.getElementById('period-badge');
+        if (periodBadge) periodBadge.classList.add('hidden');
+
         // Hide period message ("The championship game is here")
         const periodMessage = document.getElementById('period-message');
         if (periodMessage) periodMessage.classList.add('hidden');
+
+        // Hide period content
+        const periodContent = document.getElementById('period-content');
+        if (periodContent) periodContent.classList.add('hidden');
 
         // Hide stats (Teams, Seasons, Games)
         const homeStats = document.getElementById('home-stats');
@@ -733,9 +741,17 @@ function initSeasonPeriodWithOverride(period) {
         // Other periods: show Topina League, hide matchup display
         if (normalHeader) normalHeader.classList.remove('hidden');
 
+        // Show period badge
+        const periodBadge = document.getElementById('period-badge');
+        if (periodBadge) periodBadge.classList.remove('hidden');
+
         // Show period message
         const periodMessage = document.getElementById('period-message');
         if (periodMessage) periodMessage.classList.remove('hidden');
+
+        // Show period content
+        const periodContent = document.getElementById('period-content');
+        if (periodContent) periodContent.classList.remove('hidden');
 
         // Show stats
         const homeStats = document.getElementById('home-stats');
