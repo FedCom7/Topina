@@ -607,21 +607,21 @@ body {
 }
 
 #flip {
-    height: 100px;
+    height: 1.2em;
     overflow: hidden;
     display: inline-block;
-    vertical-align: bottom;
+    vertical-align: baseline;
 }
 
 #flip>div>div {
     color: #fff;
-    padding: 20px 16px;
-    height: 100px;
-    line-height: 60px;
+    padding: 0.1em 0.3em;
+    height: 1.2em;
+    line-height: 1.2em;
     margin-bottom: 0;
     display: inline-block;
     border-radius: 8px;
-    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-size: inherit;
     box-sizing: border-box;
 }
 
@@ -646,43 +646,43 @@ body {
     background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
-/* Animation for 4 items, each slot = 100px (no margin)
-   Container shows 100px, positions: 0, -100, -200, -300 */
+/* Animation for 4 items, each slot = 1.2em
+   Container shows 1.2em, positions: 0, -1.2em, -2.4em, -3.6em */
 @keyframes show {
     0% {
-        margin-top: -300px;
+        margin-top: -3.6em;
     }
 
     5% {
-        margin-top: -200px;
+        margin-top: -2.4em;
     }
 
     25% {
-        margin-top: -200px;
+        margin-top: -2.4em;
     }
 
     30% {
-        margin-top: -100px;
+        margin-top: -1.2em;
     }
 
     50% {
-        margin-top: -100px;
+        margin-top: -1.2em;
     }
 
     55% {
-        margin-top: 0px;
+        margin-top: 0;
     }
 
     75% {
-        margin-top: 0px;
+        margin-top: 0;
     }
 
     80% {
-        margin-top: -300px;
+        margin-top: -3.6em;
     }
 
     100% {
-        margin-top: -300px;
+        margin-top: -3.6em;
     }
 }
 
