@@ -1,0 +1,1469 @@
+{
+  "best-film": [
+    {
+      "name": "Sideways",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "critics": "Y",
+        "afi": "Y",
+        "nbr": "Y",
+        "sag": "Y",
+        "pga": "X",
+        "lafca": "Y",
+        "wga": "Y",
+        "gotham": "Y",
+        "spirit": "Y"
+      },
+      "genre": "Comedy",
+      "posterPath": "/zOsaxYLgvZVU7cJBpPn8CuE0MrP.jpg",
+      "tmdbId": 9675
+    },
+    {
+      "name": "The Aviator",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "critics": "X",
+        "afi": "Y",
+        "bafta": "Y",
+        "nbr": "Y",
+        "sag": "X",
+        "pga": "Y",
+        "adg": "X",
+        "wga": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/lx4kWcZc3o9PaNxlQpEJZM17XUI.jpg",
+      "tmdbId": 2567
+    },
+    {
+      "name": "Million Dollar Baby",
+      "awards": {
+        "gg": "X",
+        "oscar": "Y",
+        "critics": "X",
+        "afi": "Y",
+        "nbr": "Y",
+        "sag": "X",
+        "pga": "X",
+        "lafca": "X",
+        "adg": "X",
+        "wga": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/jcfEqKdWF1zeyvECPqp3mkWLct2.jpg",
+      "tmdbId": 70
+    },
+    {
+      "name": "Eternal Sunshine of the Spotless Mind",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "afi": "Y",
+        "bafta": "X",
+        "adg": "X",
+        "wga": "Y",
+        "gotham": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/5MwkWH9tYHv3mV9OdYTMR5qreIz.jpg",
+      "tmdbId": 38
+    },
+    {
+      "name": "Kinsey",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "afi": "Y",
+        "nbr": "Y",
+        "wga": "X",
+        "spirit": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/cODCjWNRcZkwe4ONQs1GzRqYtRb.jpg",
+      "tmdbId": 11184
+    },
+    {
+      "name": "The Incredibles",
+      "awards": {
+        "gg": "X",
+        "afi": "Y",
+        "annie": "Y",
+        "pga": "X",
+        "adg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/2LqaLgk4Z226KkgPJuiOQ58wvrm.jpg",
+      "tmdbId": 9806
+    },
+    {
+      "name": "Collateral",
+      "awards": {
+        "critics": "X",
+        "afi": "Y",
+        "nbr": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/nV5316WUsVij8sVXLCF1g7TFitg.jpg",
+      "tmdbId": 1538
+    },
+    {
+      "name": "Vera Drake",
+      "awards": {
+        "bafta": "X",
+        "nbr": "Y",
+        "bifa": "Y"
+      },
+      "posterPath": "/556fElboCLlEmP8UULaYosU45Bc.jpg",
+      "tmdbId": 11109
+    },
+    {
+      "name": "Finding Neverland",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "X",
+        "nbr": "Y",
+        "sag": "X",
+        "pga": "X",
+        "adg": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/5JyDPH4qdr0I6pF7Bjh1Qrf1Jhh.jpg",
+      "tmdbId": 866
+    },
+    {
+      "name": "Hotel Rwanda",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "sag": "X",
+        "wga": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/p3pHw85UMZPegfMZBA6dZ06yarm.jpg",
+      "tmdbId": 205
+    },
+    {
+      "name": "Ray",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "sag": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/tSPC7sO2XYNL9QcMmK88tuUALL5.jpg",
+      "tmdbId": 1677
+    },
+    {
+      "name": "Closer",
+      "awards": {
+        "gg": "X",
+        "nbr": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/fGGaokx4k00S0J603VG53Qlr9jz.jpg",
+      "tmdbId": 2288
+    },
+    {
+      "name": "Maria Full of Grace",
+      "awards": {
+        "afi": "Y",
+        "spirit": "X"
+      },
+      "posterPath": "/30CImATfvHWLXy6a3KmHXnYXB6c.jpg",
+      "tmdbId": 436
+    },
+    {
+      "name": "Friday Night Lights",
+      "awards": {
+        "afi": "Y"
+      },
+      "posterPath": "/8HIqpOgqShRc3TAleabnYispDl1.jpg",
+      "tmdbId": 13416
+    },
+    {
+      "name": "Spider-Man 2",
+      "awards": {
+        "afi": "Y"
+      },
+      "posterPath": "/eg8XHjA7jkM3ulBLnfGTczR9ytI.jpg",
+      "tmdbId": 558
+    },
+    {
+      "name": "Fahrenheit 9/11",
+      "awards": {
+        "cannes": "Y"
+      },
+      "note": "Director: Michael Moore",
+      "posterPath": "/1WQgOCJj22zF7Bsr0pIBgGBr71q.jpg",
+      "tmdbId": 1777
+    },
+    {
+      "name": "Il segreto",
+      "awards": {
+        "venice": "Y"
+      },
+      "posterPath": "/g631O1PrivmGT0tpMQXOdvXiq0j.jpg",
+      "tmdbId": 263354
+    },
+    {
+      "name": "The Terminal",
+      "awards": {
+        "adg": "Y"
+      },
+      "posterPath": "/cPB3ZMM4UdsSAhNdS4c7ps5nypY.jpg",
+      "tmdbId": 594
+    },
+    {
+      "name": "Lemony Snicket's A Series of Unfortunate Events",
+      "awards": {
+        "adg": "Y"
+      },
+      "posterPath": "/76Xi8z7Whv5WFIdfzzvC5tKSicd.jpg",
+      "tmdbId": 11774
+    },
+    {
+      "name": "The Lord of the Rings: The Return of the King",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "posterPath": "/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg",
+      "tmdbId": 122
+    },
+    {
+      "name": "The Phantom of the Opera",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "adg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/aTsp2VTaCBiGs8w05OTXfD97FRZ.jpg",
+      "tmdbId": 9833
+    },
+    {
+      "name": "Before Sunset",
+      "awards": {
+        "wga": "X",
+        "gotham": "X"
+      },
+      "screenplay_type": "Adapted",
+      "posterPath": "/gycdE1ARByGQcK4fYR2mgpU6OO.jpg",
+      "tmdbId": 80
+    },
+    {
+      "name": "Primer",
+      "awards": {
+        "gotham": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/xEoq2WmDzpzxhkHEsmOYOg6BPg6.jpg",
+      "tmdbId": 14337
+    },
+    {
+      "name": "The Motorcycle Diaries",
+      "awards": {
+        "bafta": "X"
+      },
+      "posterPath": "/qz2aBYT8CAiJYvX4fRZpJ5G0Oz1.jpg",
+      "tmdbId": 1653
+    },
+    {
+      "name": "Ghost in the Shell 2: Innocence",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/1ZJRbLDVr90KLtKdmTT4WZhT26E.jpg",
+      "tmdbId": 12140
+    },
+    {
+      "name": "Shrek 2",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/2yYP0PQjG8zVqturh1BAqu2Tixl.jpg",
+      "tmdbId": 809
+    },
+    {
+      "name": "The SpongeBob SquarePants Movie",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/pDWYW9v8fmJdA7N0I1MOdQA3ETq.jpg",
+      "tmdbId": 991494
+    },
+    {
+      "name": "The Life Aquatic",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/qZoFLNBC78jzboWeDH6Ha0qavF2.jpg",
+      "tmdbId": 421
+    },
+    {
+      "name": "Mean Girls",
+      "awards": {
+        "wga": "X"
+      },
+      "screenplay_type": "Adapted",
+      "posterPath": "/2ZkuQXvVhh45uSvkBej4S7Ix1NJ.jpg",
+      "tmdbId": 10625
+    },
+    {
+      "name": "The Motorcycle Diaries (Diarios de motocicleta)",
+      "awards": {
+        "wga": "X"
+      },
+      "screenplay_type": "Adapted",
+      "posterPath": "/qz2aBYT8CAiJYvX4fRZpJ5G0Oz1.jpg",
+      "tmdbId": 1653
+    },
+    {
+      "name": "Garden State",
+      "awards": {
+        "wga": "X"
+      },
+      "screenplay_type": "Original",
+      "posterPath": "/h3iqYiGS6F3y7GxaS4AT8nFxZ2i.jpg",
+      "tmdbId": 401
+    },
+    {
+      "name": "I Heart Huckabees",
+      "awards": {
+        "gotham": "X"
+      },
+      "posterPath": "/h27ytqXyOrAB6KmRx2abOp8p2W.jpg",
+      "tmdbId": 1599
+    },
+    {
+      "name": "Baadasssss!",
+      "awards": {
+        "spirit": "X"
+      },
+      "posterPath": "/mMFWMlNMFPSPDbYvKpBH7baDzjp.jpg",
+      "tmdbId": 28219
+    },
+    {
+      "name": "Dead Man's Shoes",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/sCbXlGHmonE3QEOeM7I2PRkG8y6.jpg",
+      "tmdbId": 12877
+    },
+    {
+      "name": "My Summer of Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/47eozMel2wZgEASToUzScsPVpDs.jpg",
+      "tmdbId": 9709
+    },
+    {
+      "name": "Shaun of the Dead",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/dgXPhzNJH8HFTBjXPB177yNx6RI.jpg",
+      "tmdbId": 747
+    },
+    {
+      "name": "Touching the Void",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/fsydA5H8FSDaYlYWddfMpMpDUX.jpg",
+      "tmdbId": 11194
+    }
+  ],
+  "best-director": [
+    {
+      "name": "Clint Eastwood",
+      "awards": {
+        "gg": "Y",
+        "oscar": "Y",
+        "critics": "X",
+        "dga": "Y"
+      },
+      "film": "Million Dollar Baby",
+      "profilePath": "/8TwdCfeOZH7ucRlfLZ6wObxa7cO.jpg",
+      "tmdbId": 190
+    },
+    {
+      "name": "Alexander Payne",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "dga": "X",
+        "lafca": "Y",
+        "spirit": "Y"
+      },
+      "film": "Sideways"
+    },
+    {
+      "name": "Martin Scorsese",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "Y",
+        "bafta": "X",
+        "dga": "X",
+        "lafca": "X"
+      },
+      "film": "The Aviator",
+      "profilePath": "/g3DjfKsgZQWZiw30I20hZVk1oMX.jpg",
+      "tmdbId": 1032
+    },
+    {
+      "name": "Mike Leigh",
+      "film": "Vera Drake",
+      "awards": {
+        "oscar": "X",
+        "bafta": "Y"
+      },
+      "profilePath": "/vicxsud2ejTWcG8u5bU3aiX0ief.jpg",
+      "tmdbId": 65452
+    },
+    {
+      "name": "Michael Mann",
+      "film": "Collateral",
+      "awards": {
+        "bafta": "X",
+        "nbr": "Y"
+      },
+      "profilePath": "/kEYrCk6y6siUOxUlMD2KyFuRBQK.jpg",
+      "tmdbId": 638
+    },
+    {
+      "name": "Tony Gatlif",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Exils",
+      "profilePath": "/6qOy2n3CDi8aho0BJKvVOGGLwI5.jpg",
+      "tmdbId": 41040
+    },
+    {
+      "name": "Kim Ki-duk",
+      "film": "Ferro 3 - La casa vuota",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/jvDwwSEtcPfxcUB1NlLbMHFB5ze.jpg",
+      "tmdbId": 1188
+    },
+    {
+      "name": "Sofia Coppola",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Lost in Translation",
+      "profilePath": "/dzHC2LxmarkBxWLhjp2DRa5oCev.jpg",
+      "tmdbId": 1769
+    },
+    {
+      "name": "Mike Leigh",
+      "film": "Vera Drake \n Kevin Macdonald",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/vicxsud2ejTWcG8u5bU3aiX0ief.jpg",
+      "tmdbId": 65452
+    },
+    {
+      "name": "Marc Forster",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "bafta": "X",
+        "dga": "X"
+      },
+      "film": "Finding Neverland",
+      "profilePath": "/zNg3chtZxhqnx3N5cKn0bRQ0mkr.jpg",
+      "tmdbId": 12995
+    },
+    {
+      "name": "Taylor Hackford",
+      "film": "Ray",
+      "awards": {
+        "oscar": "X",
+        "critics": "X",
+        "dga": "X"
+      },
+      "profilePath": "/aAP9RYT7XxUiC2NZL9Hi2gEdxGB.jpg",
+      "tmdbId": 18596
+    },
+    {
+      "name": "Mike Nichols",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Closer",
+      "profilePath": "/eJgJEVil7iOJ9sTAXLCVRKfeKKM.jpg",
+      "tmdbId": 5342
+    },
+    {
+      "name": "Michel Gondry",
+      "film": "Eternal Sunshine of the Spotless Mind",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/1IAnVsl8JgHpUirBXpsbLlWyS1y.jpg",
+      "tmdbId": 201
+    },
+    {
+      "name": "Shane Carruth",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Primer",
+      "profilePath": "/zytHHEqP385IHKUW7t8JKg85atg.jpg",
+      "tmdbId": 76624
+    },
+    {
+      "name": "Joshua Marston",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Maria Full of Grace",
+      "profilePath": "/opvpMk86A1CIHPTSM0PEMfvPpqk.jpg",
+      "tmdbId": 5872
+    },
+    {
+      "name": "Walter Salles",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Motorcycle Diaries",
+      "profilePath": "/g2ZnolTMK9BCB97bZRBgnMaa3e1.jpg",
+      "tmdbId": 8574
+    },
+    {
+      "name": "Mario Van Peebles",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Baadasssss!",
+      "profilePath": "/fiExKjVttfePRwmfVvMHPjC7F9n.jpg",
+      "tmdbId": 16214
+    },
+    {
+      "name": "Kevin Macdonald",
+      "film": "Touching the Void",
+      "awards": {
+        "bifa": "X"
+      }
+    },
+    {
+      "name": "Shane Meadows",
+      "film": "Dead Man's Shoes",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/qB2l223Yv4636G3xo588asPW99k.jpg",
+      "tmdbId": 70520
+    },
+    {
+      "name": "Roger Michell",
+      "film": "Enduring Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/lZP8wowfwLZ0rIld95KSkmGQd23.jpg",
+      "tmdbId": 7017
+    },
+    {
+      "name": "Paweł Pawlikowski",
+      "film": "My Summer of Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/vzhGoaJpQrJV8arrz2px7J0yMCF.jpg",
+      "tmdbId": 64194
+    }
+  ],
+  "best-actor": [
+    {
+      "name": "Jamie Foxx",
+      "awards": {
+        "gg": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "bafta": "Y",
+        "nbr": "Y",
+        "sag": "Y"
+      },
+      "film": "Ray",
+      "role": "Leading",
+      "profilePath": "/25zzvFA6yx2Q9BYnugsbd4JWDfu.jpg",
+      "tmdbId": 134
+    },
+    {
+      "name": "Thomas Haden Church",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "Y",
+        "sag": "X",
+        "lafca": "Y",
+        "spirit": "Y"
+      },
+      "film": "Sideways",
+      "role": "Leading",
+      "profilePath": "/74NK9HCYvNafMggSp1PAK5Nwkpe.jpg",
+      "tmdbId": 19159
+    },
+    {
+      "name": "Morgan Freeman",
+      "awards": {
+        "gg": "X",
+        "oscar": "Y",
+        "critics": "X",
+        "sag": "Y",
+        "lafca": "X"
+      },
+      "film": "Million Dollar Baby",
+      "role": "Leading",
+      "profilePath": "/jPsLqiYGSofU4s6BjrxnefMfabb.jpg",
+      "tmdbId": 192
+    },
+    {
+      "name": "Clive Owen",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "Y"
+      },
+      "film": "Closer",
+      "role": "Leading",
+      "profilePath": "/xlWpuLgwxMnZEVgV9OID1TkUNtP.jpg",
+      "tmdbId": 2296
+    },
+    {
+      "name": "Leonardo DiCaprio",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "X",
+        "sag": "X"
+      },
+      "film": "The Aviator",
+      "role": "Leading",
+      "profilePath": "/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg",
+      "tmdbId": 6193
+    },
+    {
+      "name": "Paul Giamatti",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "sag": "X",
+        "lafca": "X",
+        "spirit": "Y"
+      },
+      "film": "Sideways",
+      "role": "Leading",
+      "profilePath": "/wbrVVJRr5TwhDZuvijBgOorzcAb.jpg",
+      "tmdbId": 13242
+    },
+    {
+      "name": "Liam Neeson",
+      "awards": {
+        "gg": "X",
+        "lafca": "Y",
+        "spirit": "X"
+      },
+      "film": "Kinsey",
+      "role": "Leading",
+      "profilePath": "/sRLev3wJioBgun3ZoeAUFpkLy0D.jpg",
+      "tmdbId": 3896
+    },
+    {
+      "name": "Phil Davis",
+      "film": "Vera Drake",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "bifa": "Y"
+      },
+      "profilePath": "/sTIz3rn0o3C2Bs0yOmFrWBf6f5q.jpg",
+      "tmdbId": 26854
+    },
+    {
+      "name": "Yūya Yagira",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Nobody Knows",
+      "profilePath": "/7gk7OBP0r51M897sRZseU7n3OMm.jpg",
+      "tmdbId": 25648
+    },
+    {
+      "name": "Javier Bardem",
+      "film": "Mare dentro",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/p5xjCovj1uzvA2SXrWLH78Nh1Jf.jpg",
+      "tmdbId": 3810
+    },
+    {
+      "name": "Bill Murray",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Lost in Translation",
+      "role": "Leading",
+      "profilePath": "/nnCsJc9x3ZiG3AFyiyc3FPehppy.jpg",
+      "tmdbId": 1532
+    },
+    {
+      "name": "Eugene Levy",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "A Mighty Wind",
+      "role": "Supporting",
+      "profilePath": "/y4CexxKSI6qR5A6PDaD8mSrEhYC.jpg",
+      "tmdbId": 26510
+    },
+    {
+      "name": "Eddie Marsan",
+      "film": "Vera Drake",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/9atfOgIxhfOKvv2be8HEp6SzOct.jpg",
+      "tmdbId": 1665
+    },
+    {
+      "name": "Johnny Depp",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "X",
+        "sag": "X"
+      },
+      "film": "Finding Neverland",
+      "role": "Leading",
+      "profilePath": "/drl9qDZoxPHhUbDamYcOQEhlHzW.jpg",
+      "tmdbId": 85
+    },
+    {
+      "name": "Jamie Foxx",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "X",
+        "sag": "X"
+      },
+      "film": "Collateral",
+      "role": "Leading",
+      "profilePath": "/25zzvFA6yx2Q9BYnugsbd4JWDfu.jpg",
+      "tmdbId": 134
+    },
+    {
+      "name": "Don Cheadle",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X"
+      },
+      "film": "Hotel Rwanda",
+      "role": "Leading",
+      "profilePath": "/b1EVJWdFn7a75qVYJgwO87W2TJU.jpg",
+      "tmdbId": 1896
+    },
+    {
+      "name": "Javier Bardem",
+      "awards": {
+        "gg": "X",
+        "critics": "X"
+      },
+      "film": "The Sea Inside",
+      "role": "Leading",
+      "profilePath": "/p5xjCovj1uzvA2SXrWLH78Nh1Jf.jpg",
+      "tmdbId": 3810
+    },
+    {
+      "name": "Jim Carrey",
+      "awards": {
+        "gg": "X",
+        "bafta": "X"
+      },
+      "film": "Eternal Sunshine of the Spotless Mind",
+      "role": "Leading",
+      "profilePath": "/j4QY2GN2ZfObQbgedyV3Lihwrt.jpg",
+      "tmdbId": 206
+    },
+    {
+      "name": "Alan Alda",
+      "film": "The Aviator",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X"
+      },
+      "profilePath": "/6ccCKFhXiMmjLoiFDyJaU4eJaQO.jpg",
+      "tmdbId": 21278
+    },
+    {
+      "name": "Peter Sarsgaard",
+      "film": "Kinsey",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/5UANyM4co2nwYPgSEmGeNlZRm7V.jpg",
+      "tmdbId": 133
+    },
+    {
+      "name": "Kevin Kline",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "De-Lovely",
+      "role": "Leading",
+      "profilePath": "/ArH5dACd9AmWNNMnI6bGEkiFYIM.jpg",
+      "tmdbId": 8945
+    },
+    {
+      "name": "Kevin Spacey",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Beyond the Sea",
+      "role": "Leading",
+      "profilePath": "/nPrUZDEbGQe6jwpVbHKJCXsMd7r.jpg",
+      "tmdbId": 1979
+    },
+    {
+      "name": "David Carradine",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Kill Bill: Volume 2",
+      "role": "Leading",
+      "profilePath": "/1X2GlkMKS9FIG1kGou7o6LRqAjz.jpg",
+      "tmdbId": 141
+    },
+    {
+      "name": "Clint Eastwood",
+      "film": "Million Dollar Baby",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X"
+      },
+      "profilePath": "/8TwdCfeOZH7ucRlfLZ6wObxa7cO.jpg",
+      "tmdbId": 190
+    },
+    {
+      "name": "Gael García Bernal",
+      "film": "The Motorcycle Diaries",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/7uEO29wtdyY9bjt2JN43gVpE6vt.jpg",
+      "tmdbId": 258
+    },
+    {
+      "name": "Rodrigo de la Serna",
+      "film": "The Motorcycle Diaries",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/hArSCSwj92ItqVMni7D8ehInnU5.jpg",
+      "tmdbId": 18478
+    },
+    {
+      "name": "James Garner",
+      "awards": {
+        "sag": "X"
+      },
+      "film": "The Notebook",
+      "role": "Supporting",
+      "profilePath": "/hiPky3VwIOAlmPhJwzRovEsGDrI.jpg",
+      "tmdbId": 16896
+    },
+    {
+      "name": "Freddie Highmore",
+      "awards": {
+        "sag": "X"
+      },
+      "film": "Finding Neverland",
+      "role": "Supporting",
+      "profilePath": "/sRBhrWsGLkudjRuHYJBnFftAkh7.jpg",
+      "tmdbId": 1281
+    },
+    {
+      "name": "Kevin Bacon",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Woodsman",
+      "profilePath": "/rjX2Oz3tCZMfSwOoIAyEhdtXnTE.jpg",
+      "tmdbId": 4724
+    },
+    {
+      "name": "Jeff Bridges",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Door in the Floor",
+      "profilePath": "/6ItMc51AeORUz6iIQxGnX3HEZaB.jpg",
+      "tmdbId": 1229
+    },
+    {
+      "name": "Jamie Foxx",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Redemption",
+      "profilePath": "/25zzvFA6yx2Q9BYnugsbd4JWDfu.jpg",
+      "tmdbId": 134
+    },
+    {
+      "name": "Jon Gries",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Napoleon Dynamite",
+      "profilePath": "/nX69eyOvpmJ0YEpm2Qz2ZISngqw.jpg",
+      "tmdbId": 9629
+    },
+    {
+      "name": "Aidan Quinn",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Cavedweller",
+      "profilePath": "/viUuUmhiGdsfoQh0IpO5N312qNd.jpg",
+      "tmdbId": 18992
+    },
+    {
+      "name": "Roger Robinson",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Brother to Brother"
+    },
+    {
+      "name": "Paddy Considine",
+      "film": "Dead Man's Shoes",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/rui7HJUi2TzqMh2GQJ1bcQzr8M0.jpg",
+      "tmdbId": 14887
+    },
+    {
+      "name": "Daniel Craig",
+      "film": "Enduring Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/iFerDZUmC5Fu26i4qI8xnUVEHc7.jpg",
+      "tmdbId": 8784
+    },
+    {
+      "name": "Ian Hart",
+      "film": "Blind Flight",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/xMC8aPDwhEZcjRHEFcgytSr3BzM.jpg",
+      "tmdbId": 10985
+    },
+    {
+      "name": "Geoffrey Rush",
+      "film": "The Life and Death of Peter Sellers",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/npXFjaFQzBNroCEPllGPTZ5IisA.jpg",
+      "tmdbId": 118
+    },
+    {
+      "name": "Paddy Considine",
+      "film": "My Summer of Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/rui7HJUi2TzqMh2GQJ1bcQzr8M0.jpg",
+      "tmdbId": 14887
+    },
+    {
+      "name": "Romola Garai",
+      "film": "Rory O'Shea Was Here",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/dHBwfU97RyXSbtMzKvXfYV7Q7q4.jpg",
+      "tmdbId": 6979
+    },
+    {
+      "name": "Samantha Morton",
+      "film": "Enduring Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/v84b7MENeD9rwX6xTD7fSdhSOC9.jpg",
+      "tmdbId": 2206
+    },
+    {
+      "name": "Gary Stretch",
+      "film": "Dead Man's Shoes",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/4J4nE44FVP6DMOKcDkWid5kWhO8.jpg",
+      "tmdbId": 20284
+    }
+  ],
+  "best-actress": [
+    {
+      "name": "Hilary Swank",
+      "awards": {
+        "gg": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "sag": "Y"
+      },
+      "film": "Million Dollar Baby",
+      "role": "Leading",
+      "profilePath": "/uin6aAehUGpPCiJCaSjZG8B7M7d.jpg",
+      "tmdbId": 448
+    },
+    {
+      "name": "Imelda Staunton",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "Y",
+        "sag": "X",
+        "lafca": "Y",
+        "bifa": "Y"
+      },
+      "film": "Vera Drake",
+      "role": "Leading",
+      "profilePath": "/96LYLMnUOWZ4DFXEeQPItNsxzEP.jpg",
+      "tmdbId": 11356
+    },
+    {
+      "name": "Cate Blanchett",
+      "awards": {
+        "gg": "X",
+        "oscar": "Y",
+        "critics": "X",
+        "bafta": "Y",
+        "sag": "Y",
+        "lafca": "X"
+      },
+      "film": "The Aviator",
+      "role": "Leading",
+      "profilePath": "/vUuEHiAR0eD3XEJhg2DWIjymUAA.jpg",
+      "tmdbId": 112
+    },
+    {
+      "name": "Virginia Madsen",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "Y",
+        "sag": "X",
+        "lafca": "Y",
+        "spirit": "Y"
+      },
+      "film": "Sideways",
+      "role": "Leading",
+      "profilePath": "/2u72BF7i189nAcX1kEJLjGMsb0c.jpg",
+      "tmdbId": 12519
+    },
+    {
+      "name": "Annette Bening",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X"
+      },
+      "film": "Being Julia",
+      "role": "Leading",
+      "profilePath": "/sBiiRwAVXd0FCRZ87m0I89qGBvy.jpg",
+      "tmdbId": 516
+    },
+    {
+      "name": "Natalie Portman",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "X"
+      },
+      "film": "Closer",
+      "role": "Leading",
+      "profilePath": "/edPU5HxncLWa1YkgRPNkSd68ONG.jpg",
+      "tmdbId": 524
+    },
+    {
+      "name": "Catalina Sandino Moreno",
+      "film": "Maria Full of Grace",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/78V4H40NXJ6dzqFZaEe1fBelw56.jpg",
+      "tmdbId": 5887
+    },
+    {
+      "name": "Annette Bening",
+      "awards": {
+        "nbr": "Y"
+      },
+      "film": "[3]",
+      "profilePath": "/sBiiRwAVXd0FCRZ87m0I89qGBvy.jpg",
+      "tmdbId": 516
+    },
+    {
+      "name": "Maggie Cheung",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Clean",
+      "profilePath": "/thHNJCHSmNwhRI5EQXWwg7RzPd7.jpg",
+      "tmdbId": 1338
+    },
+    {
+      "name": "Imelda Staunton",
+      "film": "Il segreto di Vera Drake",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/96LYLMnUOWZ4DFXEeQPItNsxzEP.jpg",
+      "tmdbId": 11356
+    },
+    {
+      "name": "Hope Davis",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "American Splendor",
+      "role": "Leading",
+      "profilePath": "/dJb76YQDFmfJ6ptlvBvx0ZBP44C.jpg",
+      "tmdbId": 15250
+    },
+    {
+      "name": "Shohreh Aghdashloo",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "House of Sand and Fog",
+      "role": "Supporting",
+      "profilePath": "/7josGC8QO9V6V8AuFdaS2tjUF8W.jpg",
+      "tmdbId": 21041
+    },
+    {
+      "name": "Kate Winslet",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "bafta": "X",
+        "sag": "X"
+      },
+      "film": "Eternal Sunshine of the Spotless Mind",
+      "role": "Leading",
+      "profilePath": "/e3tdop3WhseRnn8KwMVLAV25Ybv.jpg",
+      "tmdbId": 204
+    },
+    {
+      "name": "Laura Linney",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X"
+      },
+      "film": "Kinsey",
+      "role": "Leading",
+      "profilePath": "/yIopIq7l7eIvjoQqnZJkpdQEvds.jpg",
+      "tmdbId": 350
+    },
+    {
+      "name": "Uma Thurman",
+      "awards": {
+        "gg": "X",
+        "critics": "X"
+      },
+      "film": "Kill Bill: Volume 2",
+      "role": "Leading",
+      "profilePath": "/sBgAZWi3o4FsnaTvnTNtK6jpQcF.jpg",
+      "tmdbId": 139
+    },
+    {
+      "name": "Meryl Streep",
+      "awards": {
+        "gg": "X",
+        "bafta": "X"
+      },
+      "film": "The Manchurian Candidate",
+      "role": "Leading",
+      "profilePath": "/emAAzyK1rJ6aiMi0wsWYp51EC3h.jpg",
+      "tmdbId": 5064
+    },
+    {
+      "name": "Sophie Okonedo",
+      "film": "Hotel Rwanda",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "sag": "X"
+      },
+      "profilePath": "/oMZmk0q04ly3ztD8Us4f1yfPyF1.jpg",
+      "tmdbId": 2598
+    },
+    {
+      "name": "Kate Winslet",
+      "film": "Finding Neverland",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X",
+        "bafta": "X"
+      },
+      "profilePath": "/e3tdop3WhseRnn8KwMVLAV25Ybv.jpg",
+      "tmdbId": 204
+    },
+    {
+      "name": "Scarlett Johansson",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "A Love Song for Bobby Long",
+      "role": "Leading",
+      "profilePath": "/sRjg0DbiA5DElSr3g3SSR4EArL8.jpg",
+      "tmdbId": 1245
+    },
+    {
+      "name": "Nicole Kidman",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Birth",
+      "role": "Leading",
+      "profilePath": "/lfW2cDigTcvuoe4k6UfCdGVE1R6.jpg",
+      "tmdbId": 2227
+    },
+    {
+      "name": "Ashley Judd",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "De-Lovely",
+      "role": "Leading",
+      "profilePath": "/5771ZxVIs5rQbI1SV8TOlAFcF15.jpg",
+      "tmdbId": 15852
+    },
+    {
+      "name": "Emmy Rossum",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "The Phantom of the Opera",
+      "role": "Leading",
+      "profilePath": "/rkvOaAeF807wta6zL1qCSqBgP0U.jpg",
+      "tmdbId": 4730
+    },
+    {
+      "name": "Renée Zellweger",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Bridget Jones: The Edge of Reason",
+      "role": "Leading",
+      "profilePath": "/u4wQXVYhN9OOimHn5hbWKefdjjG.jpg",
+      "tmdbId": 9137
+    },
+    {
+      "name": "Charlize Theron",
+      "film": "Monster",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/ie1KbeYFG5E0GVr1QP7tDNuXvga.jpg",
+      "tmdbId": 6885
+    },
+    {
+      "name": "Zhang Ziyi",
+      "film": "House of Flying Daggers",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/sjtAc10h5LaIaKV6Y1LoZoeE7HT.jpg",
+      "tmdbId": 1339
+    },
+    {
+      "name": "Heather Craney",
+      "film": "Vera Drake",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/uLQabaYfREl4M5cO1kUyyRExCsf.jpg",
+      "tmdbId": 209994
+    },
+    {
+      "name": "Julie Christie",
+      "film": "Finding Neverland",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/siAi4XZhDPP8LRgbByzwLqVaLIQ.jpg",
+      "tmdbId": 1666
+    },
+    {
+      "name": "Cloris Leachman",
+      "awards": {
+        "sag": "X"
+      },
+      "film": "Spanglish",
+      "role": "Supporting",
+      "profilePath": "/o8pnV9urjuHZDAR2u4UjPy2CR1u.jpg",
+      "tmdbId": 9599
+    },
+    {
+      "name": "Julie Delpy",
+      "awards": {
+        "lafca": "X"
+      },
+      "film": "Before Sunset",
+      "profilePath": "/rd40f4QpAUUne3hMaUhHrZtcK2c.jpg",
+      "tmdbId": 1146
+    },
+    {
+      "name": "Kimberly Elise",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Woman Thou Art Loosed",
+      "profilePath": "/9Z2xlD8i8NXeT6NipPpmQfL6Mki.jpg",
+      "tmdbId": 55314
+    },
+    {
+      "name": "Vera Farmiga",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Down to the Bone",
+      "profilePath": "/5Vs7huBmTKftwlsc2BPAntyaQYj.jpg",
+      "tmdbId": 21657
+    },
+    {
+      "name": "Judy Marte",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "On the Outs",
+      "profilePath": "/2ssKTCLuB1JxUVYw0nW0T3XqLtA.jpg",
+      "tmdbId": 93821
+    },
+    {
+      "name": "Kyra Sedgwick",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Cavedweller",
+      "profilePath": "/cfpLVZWChElvkKegZopC0xDjEWk.jpg",
+      "tmdbId": 26467
+    },
+    {
+      "name": "Cate Blanchett",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Coffee and Cigarettes",
+      "profilePath": "/vUuEHiAR0eD3XEJhg2DWIjymUAA.jpg",
+      "tmdbId": 112
+    },
+    {
+      "name": "Loretta Devine",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Woman Thou Art Loosed",
+      "profilePath": "/cGTQ0X19bkMWqL6O00JK2t6uJBK.jpg",
+      "tmdbId": 18284
+    },
+    {
+      "name": "Robin Simmons",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Robbing Peter"
+    },
+    {
+      "name": "Yenny Paola Vega",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Maria Full of Grace"
+    },
+    {
+      "name": "Eva Birthistle",
+      "film": "Ae Fond Kiss...",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/sGprPTt1JDeDIyNKggElYlHCPxc.jpg",
+      "tmdbId": 16901
+    },
+    {
+      "name": "Scarlett Johansson",
+      "film": "Girl with a Pearl Earring",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/sRjg0DbiA5DElSr3g3SSR4EArL8.jpg",
+      "tmdbId": 1245
+    },
+    {
+      "name": "Natalie Press",
+      "film": "My Summer of Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/qE9GG6I2tyxIvHwWUW1wOt1Rgt3.jpg",
+      "tmdbId": 37983
+    },
+    {
+      "name": "Anne Reid",
+      "film": "The Mother",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/d9ujsWfh1SfKNaiLs40cFue0CfE.jpg",
+      "tmdbId": 77287
+    }
+  ]
+}

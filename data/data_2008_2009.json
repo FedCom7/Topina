@@ -1,0 +1,1511 @@
+{
+  "best-film": [
+    {
+      "name": "Slumdog Millionaire",
+      "awards": {
+        "oscar": "Y",
+        "bafta": "Y",
+        "gg": "Y",
+        "sag": "Y",
+        "nbr": "Y",
+        "critics": "Y",
+        "pga": "Y",
+        "wga": "Y",
+        "bifa": "Y",
+        "adg": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/5leCCi7ZF0CawAfM5Qo2ECKPprc.jpg",
+      "tmdbId": 12405
+    },
+    {
+      "name": "The Curious Case of Benjamin Button",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "afi": "Y",
+        "sag": "X",
+        "nbr": "Y",
+        "critics": "X",
+        "pga": "X",
+        "wga": "X",
+        "adg": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/26wEWZYt6yJkwRVkjcbwJEFh9IS.jpg",
+      "tmdbId": 4922
+    },
+    {
+      "name": "Milk",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "afi": "Y",
+        "sag": "X",
+        "nbr": "Y",
+        "critics": "X",
+        "pga": "X",
+        "wga": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/ot4ImF4b7QbS6XsTdMH3pWxNmX2.jpg",
+      "tmdbId": 10139
+    },
+    {
+      "name": "The Dark Knight",
+      "awards": {
+        "afi": "Y",
+        "nbr": "Y",
+        "critics": "X",
+        "pga": "X",
+        "lafca": "X",
+        "wga": "X",
+        "adg": "Y"
+      },
+      "posterPath": "/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+      "tmdbId": 155
+    },
+    {
+      "name": "The Wrestler",
+      "awards": {
+        "afi": "Y",
+        "nbr": "Y",
+        "critics": "X",
+        "gotham": "X",
+        "wga": "X",
+        "adg": "X",
+        "spirit": "Y"
+      },
+      "posterPath": "/6OTR8dSoNGjWohJNo3UhIGd3Tj.jpg",
+      "tmdbId": 12163
+    },
+    {
+      "name": "WALL-E",
+      "awards": {
+        "afi": "Y",
+        "nbr": "Y",
+        "critics": "X",
+        "annie": "X",
+        "lafca": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/7x5Fmqd0l01Afir84v9z5lwXwoA.jpg",
+      "tmdbId": 1361358
+    },
+    {
+      "name": "Frost/Nixon",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "afi": "Y",
+        "sag": "X",
+        "nbr": "Y",
+        "critics": "X",
+        "pga": "X",
+        "wga": "X",
+        "adg": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/z4cQ2mJxwPZUwVh97yX9oNsLLZQ.jpg",
+      "tmdbId": 11499
+    },
+    {
+      "name": "Frozen River",
+      "awards": {
+        "afi": "Y",
+        "gotham": "Y",
+        "spirit": "X"
+      },
+      "posterPath": "/gg7lXEUTqnCBnkmlJsBmBaDhEb3.jpg",
+      "tmdbId": 960304
+    },
+    {
+      "name": "Gran Torino",
+      "awards": {
+        "afi": "Y",
+        "nbr": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/zUybYvxWdAJy5hhYovsXtHSWI1l.jpg",
+      "tmdbId": 13223
+    },
+    {
+      "name": "Burn After Reading",
+      "awards": {
+        "gg": "X",
+        "nbr": "Y",
+        "wga": "X",
+        "adg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/jdwSkQu3XirmX18MNj8CqFWsCk.jpg",
+      "tmdbId": 4944
+    },
+    {
+      "name": "Changeling",
+      "awards": {
+        "nbr": "Y",
+        "critics": "X",
+        "adg": "X"
+      },
+      "posterPath": "/y9Qi39dL3PceGCH8afyC7QrhbhI.jpg",
+      "tmdbId": 3580
+    },
+    {
+      "name": "Vicky Cristina Barcelona",
+      "awards": {
+        "gg": "Y",
+        "wga": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/ekAIg0GSbbHTH7y1GPgWj0brLTW.jpg",
+      "tmdbId": 5038
+    },
+    {
+      "name": "Iron Man",
+      "awards": {
+        "afi": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/78lPtwv72eTNqFW9COBYI0dWDJa.jpg",
+      "tmdbId": 1726
+    },
+    {
+      "name": "Wendy and Lucy",
+      "awards": {
+        "afi": "Y",
+        "spirit": "X"
+      },
+      "posterPath": "/cVtF8SW4zMbculTXD52RDvmQAAR.jpg",
+      "tmdbId": 8942
+    },
+    {
+      "name": "Defiance",
+      "awards": {
+        "nbr": "Y"
+      },
+      "posterPath": "/60tQXho1pIxH4tCfArJ80u6I82h.jpg",
+      "tmdbId": 179798
+    },
+    {
+      "name": "a The Wrestler",
+      "awards": {
+        "venice": "Y"
+      },
+      "posterPath": "/awXiQSoc3Cjp21GPDO7iewegMP4.jpg",
+      "tmdbId": 642673
+    },
+    {
+      "name": "Palme d'Or",
+      "awards": {
+        "cannes": "Y"
+      },
+      "note": "Director: Laurent Cantet",
+      "posterPath": "/nXLVbWPax4xGWMM4HxYyEfmKFZc.jpg",
+      "tmdbId": 1477765
+    },
+    {
+      "name": "Kung Fu Panda",
+      "awards": {
+        "annie": "Y"
+      },
+      "posterPath": "/wWt4JYXTg5Wr3xBW2phBrMKgp3x.jpg",
+      "tmdbId": 9502
+    },
+    {
+      "name": "No Country for Old Men",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "posterPath": "/6d5XOczc226jECq0LIX0siKtgHR.jpg",
+      "tmdbId": 6977
+    },
+    {
+      "name": "The Reader",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "critics": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/r0WURbmnhgKeBpHcpDULBgRedQM.jpg",
+      "tmdbId": 8055
+    },
+    {
+      "name": "Doubt",
+      "awards": {
+        "sag": "X",
+        "critics": "X",
+        "wga": "X",
+        "adg": "X"
+      },
+      "posterPath": "/9lypT2ghNuUPYVJf66oe4fKvUqI.jpg",
+      "tmdbId": 14359
+    },
+    {
+      "name": "In Bruges",
+      "awards": {
+        "gg": "X",
+        "bifa": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/vz3Vd6nfq9YZrVvyYx5RHFaYKV3.jpg",
+      "tmdbId": 8321
+    },
+    {
+      "name": "Ballast",
+      "awards": {
+        "gotham": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/rjMhIWlNRiAJ5ie88PwuvdRmbs9.jpg"
+    },
+    {
+      "name": "The Visitor",
+      "awards": {
+        "gotham": "X",
+        "wga": "X"
+      },
+      "posterPath": "/i9XJG3iSUpAO3YAzlejNGLNzfdl.jpg",
+      "tmdbId": 231690
+    },
+    {
+      "name": "Revolutionary Road",
+      "awards": {
+        "gg": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/cvkD3yiVXLg3as8EAG3LaTycONQ.jpg",
+      "tmdbId": 4148
+    },
+    {
+      "name": "Happy-Go-Lucky",
+      "awards": {
+        "gg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/kKMFum83Lf6upDBr74dCclHJlOY.jpg",
+      "tmdbId": 649523
+    },
+    {
+      "name": "Mamma Mia!",
+      "awards": {
+        "gg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/zdUA4FNHbXPadzVOJiU0Rgn6cHR.jpg",
+      "tmdbId": 11631
+    },
+    {
+      "name": "Bolt",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/v5aC4nrzXFGJDWY4JO1eengXzqk.jpg",
+      "tmdbId": 13053
+    },
+    {
+      "name": "$9.99",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/nX4pmuluKq4MqgrmgfIpOr8Orgo.jpg",
+      "tmdbId": 19311
+    },
+    {
+      "name": "Waltz with Bashir",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/zQaCv7lKwHsh0YSHkt1QNjIOZ1c.jpg",
+      "tmdbId": 8885
+    },
+    {
+      "name": "Synecdoche, New York",
+      "awards": {
+        "gotham": "X"
+      },
+      "posterPath": "/5UwdhrjXhUgsiDhe1dpS9z4yj7q.jpg",
+      "tmdbId": 4960
+    },
+    {
+      "name": "Hunger",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/c90ogtGY5k90D38ynTUBu3KWWMp.jpg",
+      "tmdbId": 173672
+    },
+    {
+      "name": "Man on Wire",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/1mS4rhIgHZcHIvf1beP9Av0Ui33.jpg",
+      "tmdbId": 14048
+    },
+    {
+      "name": "Somers Town",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/kr5B00hkWbdMTOe43coJZ1yVhI2.jpg",
+      "tmdbId": 14298
+    },
+    {
+      "name": "Quantum of Solace",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/e3DXXLJHGqMx9yYpXsql1XNljmM.jpg",
+      "tmdbId": 10764
+    },
+    {
+      "name": "Indiana Jones and the Kingdom of the Crystal Skull",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/56As6XEM1flWvprX4LgkPl8ii4K.jpg",
+      "tmdbId": 217
+    },
+    {
+      "name": "The Spiderwick Chronicles",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/uN7MUMaCXfa8DbMMp61A8iXEcEG.jpg",
+      "tmdbId": 8204
+    },
+    {
+      "name": "Rachel Getting Married",
+      "awards": {
+        "spirit": "X"
+      },
+      "posterPath": "/bumaq3lqe4YSsq6LlYoge7e9ABk.jpg",
+      "tmdbId": 14976
+    }
+  ],
+  "best-director": [
+    {
+      "name": "Danny Boyle",
+      "film": "Slumdog Millionaire",
+      "awards": {
+        "oscar": "Y",
+        "bafta": "Y",
+        "gg": "Y",
+        "critics": "Y",
+        "lafca": "Y",
+        "bifa": "Y"
+      },
+      "profilePath": "/b5qQpFHmgNyvV1t81ou17Jt2fRj.jpg",
+      "tmdbId": 2034
+    },
+    {
+      "name": "David Fincher",
+      "film": "The Curious Case of Benjamin Button",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "nbr": "Y",
+        "critics": "X"
+      },
+      "profilePath": "/wlyTYR3KNKQ3NtVojtbO8QIXSSS.jpg",
+      "tmdbId": 7467
+    },
+    {
+      "name": "Aleksej Alekseevič German",
+      "film": "Bumažnyj soldat",
+      "awards": {
+        "venice": "Y"
+      }
+    },
+    {
+      "name": "Nuri Bilge Ceylan",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Three Monkeys",
+      "profilePath": "/32Xm1HyO2GuwoefCoTJchPsXV7L.jpg",
+      "tmdbId": 56214
+    },
+    {
+      "name": "Daniel Boyle",
+      "film": "Slumdog Millionaire",
+      "awards": {
+        "dga": "Y"
+      }
+    },
+    {
+      "name": "Joel Coen and Ethan Coen",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "No Country for Old Men"
+    },
+    {
+      "name": "Tom McCarthy",
+      "awards": {
+        "spirit": "Y"
+      },
+      "film": "The Visitor"
+    },
+    {
+      "name": "Ron Howard",
+      "film": "Frost/Nixon",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "dga": "X",
+        "critics": "X"
+      },
+      "profilePath": "/g3n8qduLaPO2l4kJZsV6xNMXozn.jpg",
+      "tmdbId": 6159
+    },
+    {
+      "name": "Gus Van Sant",
+      "film": "Milk",
+      "awards": {
+        "oscar": "X",
+        "dga": "X",
+        "critics": "X"
+      },
+      "profilePath": "/kICHgrSh4eiICjz8piy9fTXIgph.jpg",
+      "tmdbId": 5216
+    },
+    {
+      "name": "Stephen Daldry",
+      "film": "The Reader",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X"
+      },
+      "profilePath": "/jJSZVEOIyZnT70lUILjS9YVv0pb.jpg",
+      "tmdbId": 468
+    },
+    {
+      "name": "Christopher Nolan",
+      "film": "The Dark Knight",
+      "awards": {
+        "dga": "X",
+        "critics": "X",
+        "lafca": "X"
+      },
+      "profilePath": "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg",
+      "tmdbId": 525
+    },
+    {
+      "name": "Clint Eastwood",
+      "film": "Changeling",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/8TwdCfeOZH7ucRlfLZ6wObxa7cO.jpg",
+      "tmdbId": 190
+    },
+    {
+      "name": "Sam Mendes",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Revolutionary Road",
+      "profilePath": "/5z89X9rB76JDblqMQ52fviwXxAN.jpg",
+      "tmdbId": 39
+    },
+    {
+      "name": "David Fincher",
+      "film": "Curious Case Of Benjamin Button, The",
+      "awards": {
+        "dga": "X"
+      },
+      "profilePath": "/wlyTYR3KNKQ3NtVojtbO8QIXSSS.jpg",
+      "tmdbId": 7467
+    },
+    {
+      "name": "Steve McQueen",
+      "film": "Hunger",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/if4tLIZJ0EJtyhlJaSzSwMQU5Yz.jpg",
+      "tmdbId": 72757
+    },
+    {
+      "name": "Shane Meadows",
+      "film": "Somers Town",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/qB2l223Yv4636G3xo588asPW99k.jpg",
+      "tmdbId": 70520
+    },
+    {
+      "name": "Garth Jennings",
+      "film": "Son of Rambow",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/zl6ZWijGySSIYJRFalleAiGkxyQ.jpg",
+      "tmdbId": 52842
+    },
+    {
+      "name": "Mark Herman",
+      "film": "The Boy",
+      "awards": {
+        "bifa": "X"
+      }
+    },
+    {
+      "name": "Ramin Bahrani",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Chop Shop",
+      "profilePath": "/9VlwD6zulF8VgZK3i3S6eRkrrtI.jpg",
+      "tmdbId": 45730
+    },
+    {
+      "name": "Jonathan Demme",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Rachel Getting Married",
+      "profilePath": "/w9Lw3xTEFQUYELkl9AH5i3p5OhJ.jpg",
+      "tmdbId": 16294
+    },
+    {
+      "name": "Lance Hammer",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Ballast",
+      "profilePath": "/rbFEDhLJbKASzp8eCoKoUX2UumK.jpg",
+      "tmdbId": 93184
+    },
+    {
+      "name": "Courtney Hunt",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Frozen River",
+      "profilePath": "/1hGksjRgQyYPv8G1CFJ8mrN6AfQ.jpg",
+      "tmdbId": 64131
+    }
+  ],
+  "best-actor": [
+    {
+      "name": "Heath Ledger",
+      "film": "The Dark Knight",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "Y",
+        "bafta": "Y",
+        "gg": "Y",
+        "sag": "Y",
+        "critics": "Y",
+        "lafca": "Y"
+      },
+      "profilePath": "/p2z2bURSg7nuMsN9P2s61e2RvNz.jpg",
+      "tmdbId": 1810
+    },
+    {
+      "name": "Sean Penn",
+      "film": "Milk",
+      "role": "Leading",
+      "awards": {
+        "oscar": "Y",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "Y",
+        "critics": "Y",
+        "lafca": "Y",
+        "spirit": "X"
+      },
+      "profilePath": "/9glqNTVpFpdN1nFklKaHPUyCwR6.jpg",
+      "tmdbId": 2228
+    },
+    {
+      "name": "Mickey Rourke",
+      "film": "The Wrestler",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "bafta": "Y",
+        "gg": "Y",
+        "sag": "X",
+        "critics": "X",
+        "lafca": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/i6vXukUwRsJa7S9yhZgoKt9xLDv.jpg",
+      "tmdbId": 2295
+    },
+    {
+      "name": "Colin Farrell",
+      "awards": {
+        "gg": "Y",
+        "bifa": "X"
+      },
+      "film": "In Bruges",
+      "role": "Leading",
+      "profilePath": "/oyQVfpowL9eSudYhwoPGkd9WxS7.jpg",
+      "tmdbId": 72466
+    },
+    {
+      "name": "Clint Eastwood",
+      "awards": {
+        "nbr": "Y",
+        "critics": "X"
+      },
+      "film": "Gran Torino",
+      "role": "Leading",
+      "profilePath": "/8TwdCfeOZH7ucRlfLZ6wObxa7cO.jpg",
+      "tmdbId": 190
+    },
+    {
+      "name": "James Franco",
+      "film": "Milk",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/bjmAntHGiibLZixH8nTNVBzaFQn.jpg",
+      "tmdbId": 17051
+    },
+    {
+      "name": "Silvio Orlando",
+      "film": "Il papà di Giovanna [ 1 ]",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/5mPRxBR3yqjHnbHXIKINgAAHDeH.jpg",
+      "tmdbId": 108900
+    },
+    {
+      "name": "Benicio del Toro",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Che",
+      "profilePath": "/aYomJWx0B2B8ra6Rmgt8lr0XCrw.jpg",
+      "tmdbId": 1121
+    },
+    {
+      "name": "Daniel Day-Lewis",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "There Will Be Blood",
+      "role": "Leading",
+      "profilePath": "/3kNA9VcmymoEwT0btQ4bvMYxzcP.jpg",
+      "tmdbId": 11856
+    },
+    {
+      "name": "Javier Bardem",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "No Country for Old Men",
+      "role": "Supporting",
+      "profilePath": "/p5xjCovj1uzvA2SXrWLH78Nh1Jf.jpg",
+      "tmdbId": 3810
+    },
+    {
+      "name": "Michael Fassbender",
+      "film": "Hunger",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/xvbnUiB2ZBR3QIt595OzNy657Vw.jpg",
+      "tmdbId": 17288
+    },
+    {
+      "name": "Eddie Marsan",
+      "film": "Happy",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/9atfOgIxhfOKvv2be8HEp6SzOct.jpg",
+      "tmdbId": 1665
+    },
+    {
+      "name": "Frank Langella",
+      "film": "Frost/Nixon",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/86DEo3sBguyc1l46606yVKD28T4.jpg",
+      "tmdbId": 8924
+    },
+    {
+      "name": "Brad Pitt",
+      "film": "The Curious Case of Benjamin Button",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/cckcYc2v0yh1tc9QjRelptcOBko.jpg",
+      "tmdbId": 287
+    },
+    {
+      "name": "Robert Downey Jr.",
+      "film": "Tropic Thunder",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/5qHNjhtjMD4YWH3UP0rm4tKwxCL.jpg",
+      "tmdbId": 3223
+    },
+    {
+      "name": "Philip Seymour Hoffman",
+      "film": "Doubt",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/50rqDkmvXwjwVhFH7q6ph2Rkw7S.jpg",
+      "tmdbId": 1233
+    },
+    {
+      "name": "Richard Jenkins",
+      "film": "The Visitor",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/muT3RZG9hiKaKojD751RcQ5tGEy.jpg",
+      "tmdbId": 28633
+    },
+    {
+      "name": "Josh Brolin",
+      "film": "Milk",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/sX2etBbIkxRaCsATyw5ZpOVMPTD.jpg",
+      "tmdbId": 16851
+    },
+    {
+      "name": "Brendan Gleeson",
+      "film": "In Bruges",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "bifa": "X"
+      },
+      "profilePath": "/ctPPJu5ZYDZr1IPmzoNpezczrm0.jpg",
+      "tmdbId": 2039
+    },
+    {
+      "name": "Dev Patel",
+      "film": "Slumdog Millionaire",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "sag": "X"
+      },
+      "profilePath": "/1g07SUVwZHvKgM1Z7H4RYIEOXcm.jpg",
+      "tmdbId": 76788
+    },
+    {
+      "name": "Javier Bardem",
+      "awards": {
+        "gg": "X",
+        "spirit": "X"
+      },
+      "film": "Vicky Cristina Barcelona",
+      "role": "Leading",
+      "profilePath": "/p5xjCovj1uzvA2SXrWLH78Nh1Jf.jpg",
+      "tmdbId": 3810
+    },
+    {
+      "name": "Ralph Fiennes",
+      "awards": {
+        "gg": "X",
+        "bifa": "X"
+      },
+      "film": "The Duchess",
+      "role": "Supporting",
+      "profilePath": "/u29BOqiV5GCQ8k8WUJM50i9xlBf.jpg",
+      "tmdbId": 5469
+    },
+    {
+      "name": "Michael Shannon",
+      "film": "Revolutionary Road",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X"
+      },
+      "profilePath": "/6mMczfjM8CiS1WuBOgo5Xom1TcR.jpg",
+      "tmdbId": 335
+    },
+    {
+      "name": "Brad Pitt",
+      "film": "Burn After Reading",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/cckcYc2v0yh1tc9QjRelptcOBko.jpg",
+      "tmdbId": 287
+    },
+    {
+      "name": "Leonardo DiCaprio",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Revolutionary Road",
+      "role": "Leading",
+      "profilePath": "/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg",
+      "tmdbId": 6193
+    },
+    {
+      "name": "James Franco",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Pineapple Express",
+      "role": "Leading",
+      "profilePath": "/bjmAntHGiibLZixH8nTNVBzaFQn.jpg",
+      "tmdbId": 17051
+    },
+    {
+      "name": "Dustin Hoffman",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Last Chance Harvey",
+      "role": "Leading",
+      "profilePath": "/yxNGnTiou25c3zjppT5dW2eWAve.jpg",
+      "tmdbId": 4483
+    },
+    {
+      "name": "Tom Cruise",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Tropic Thunder",
+      "role": "Supporting",
+      "profilePath": "/maf8PhSvDCdEwjEMbYfGpojR5RP.jpg",
+      "tmdbId": 500
+    },
+    {
+      "name": "Eddie Marsan",
+      "awards": {
+        "lafca": "X"
+      },
+      "film": "Happy-Go-Lucky",
+      "profilePath": "/9atfOgIxhfOKvv2be8HEp6SzOct.jpg",
+      "tmdbId": 1665
+    },
+    {
+      "name": "Riz Ahmed",
+      "film": "Shifty",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/1uP9RaX7BGVx7XGTEmwObBJJzsC.jpg",
+      "tmdbId": 53240
+    },
+    {
+      "name": "Thomas Turgoose",
+      "film": "Somers Town",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/3PsCUvclNzVrjDGg69Q3blw83ei.jpg",
+      "tmdbId": 70517
+    },
+    {
+      "name": "Liam Cunningham",
+      "film": "Hunger",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/ljmFT9zYqh4k2bmEcNU6rxoE7fW.jpg",
+      "tmdbId": 15498
+    },
+    {
+      "name": "Ralph Fiennes",
+      "film": "In Bruges",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/u29BOqiV5GCQ8k8WUJM50i9xlBf.jpg",
+      "tmdbId": 5469
+    },
+    {
+      "name": "Daniel Mays",
+      "film": "Shifty",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/2qmA5mXnhA7Nelu2BTbJTvzq35u.jpg",
+      "tmdbId": 1670
+    },
+    {
+      "name": "Jeremy Renner",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Hurt Locker",
+      "profilePath": "/yB84D1neTYXfWBaV0QOE9RF2VCu.jpg",
+      "tmdbId": 17604
+    },
+    {
+      "name": "Anthony Mackie",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Hurt Locker",
+      "profilePath": "/kfTwOYr3iUucmYz8kPjhYy07G2Z.jpg",
+      "tmdbId": 53650
+    },
+    {
+      "name": "Charlie McDermott",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Frozen River",
+      "profilePath": "/7kQgcZkQ88cZOQBpjFzzqheoGT9.jpg",
+      "tmdbId": 64135
+    },
+    {
+      "name": "Jim Myron Ross",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Ballast"
+    },
+    {
+      "name": "Haaz Sleiman",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Visitor",
+      "profilePath": "/vhNbQ8BTP6wK2jArwv2bwbuN31t.jpg",
+      "tmdbId": 82103
+    }
+  ],
+  "best-actress": [
+    {
+      "name": "Kate Winslet",
+      "film": "The Reader",
+      "role": "Leading",
+      "awards": {
+        "oscar": "Y",
+        "bafta": "Y",
+        "gg": "Y",
+        "sag": "Y",
+        "critics": "Y"
+      },
+      "profilePath": "/e3tdop3WhseRnn8KwMVLAV25Ybv.jpg",
+      "tmdbId": 204
+    },
+    {
+      "name": "Penélope Cruz",
+      "film": "Vicky Cristina Barcelona",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "Y",
+        "bafta": "Y",
+        "gg": "X",
+        "sag": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/2Lbc8QXgHik1D1saPqQ5qEWwUEh.jpg",
+      "tmdbId": 955
+    },
+    {
+      "name": "Anne Hathaway",
+      "film": "Rachel Getting Married",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "gg": "X",
+        "sag": "X",
+        "nbr": "Y",
+        "critics": "Y",
+        "spirit": "X"
+      },
+      "profilePath": "/nbccV2pMoyLTCeg5DQip24Eq0Jp.jpg",
+      "tmdbId": 1813
+    },
+    {
+      "name": "Meryl Streep",
+      "film": "Doubt",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "Y",
+        "critics": "Y"
+      },
+      "profilePath": "/emAAzyK1rJ6aiMi0wsWYp51EC3h.jpg",
+      "tmdbId": 5064
+    },
+    {
+      "name": "Sally Hawkins",
+      "awards": {
+        "gg": "Y",
+        "lafca": "Y"
+      },
+      "film": "Happy-Go-Lucky",
+      "role": "Leading",
+      "profilePath": "/1dtDq82dM2YQ17lBL4ZKPJo5LKw.jpg",
+      "tmdbId": 39658
+    },
+    {
+      "name": "Melissa Leo",
+      "film": "Frozen River",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "lafca": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/tKNTvhmuO7FZMYYgRrZB6k8FT5K.jpg",
+      "tmdbId": 6832
+    },
+    {
+      "name": "Kate Winslet",
+      "film": "Revolutionary Road",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "Y",
+        "sag": "X"
+      },
+      "profilePath": "/e3tdop3WhseRnn8KwMVLAV25Ybv.jpg",
+      "tmdbId": 204
+    },
+    {
+      "name": "Dominique Blanc",
+      "film": "L'Autre",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/y2HdZG6BMpNk1yosiTw7aP9AXmy.jpg",
+      "tmdbId": 38243
+    },
+    {
+      "name": "Sandra Corveloni",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Linha de Passe",
+      "profilePath": "/rZcME5ssclnRXa25GSaEDGRARbo.jpg",
+      "tmdbId": 930309
+    },
+    {
+      "name": "Penélope Cruz",
+      "awards": {
+        "lafca": "Y"
+      },
+      "film": "Elegy",
+      "profilePath": "/2Lbc8QXgHik1D1saPqQ5qEWwUEh.jpg",
+      "tmdbId": 955
+    },
+    {
+      "name": "Julie Christie",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Away from Her",
+      "role": "Leading",
+      "profilePath": "/siAi4XZhDPP8LRgbByzwLqVaLIQ.jpg",
+      "tmdbId": 1666
+    },
+    {
+      "name": "Amy Ryan",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Gone Baby Gone",
+      "role": "Supporting",
+      "profilePath": "/bItqd1QUNpdegjBXNaVuFFPEZU4.jpg",
+      "tmdbId": 39388
+    },
+    {
+      "name": "Vera Farmiga",
+      "film": "The Boy",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/5Vs7huBmTKftwlsc2BPAntyaQYj.jpg",
+      "tmdbId": 21657
+    },
+    {
+      "name": "Alexis Zegerman",
+      "film": "Happy",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/fxEhggKYX4PfaiqOg5efGzRTlkL.jpg",
+      "tmdbId": 65444
+    },
+    {
+      "name": "Angelina Jolie",
+      "film": "Changeling",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/nXA9vMvskmIDB5NqHCkTQPmemep.jpg",
+      "tmdbId": 11701
+    },
+    {
+      "name": "Amy Adams",
+      "film": "Doubt",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X"
+      },
+      "profilePath": "/oee226QNLDmiwo5730gq3j7tydw.jpg",
+      "tmdbId": 9273
+    },
+    {
+      "name": "Marisa Tomei",
+      "film": "The Wrestler",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "bafta": "X",
+        "gg": "X",
+        "critics": "X"
+      },
+      "profilePath": "/6oTYtorOH3mwoLOuo2IA75yFUcF.jpg",
+      "tmdbId": 3141
+    },
+    {
+      "name": "Viola Davis",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X",
+        "lafca": "X"
+      },
+      "film": "Doubt",
+      "role": "Supporting",
+      "profilePath": "/xDssw6vpYNRjsybvMPRE30e0dPN.jpg",
+      "tmdbId": 19492
+    },
+    {
+      "name": "Taraji P. Henson",
+      "film": "The Curious Case of Benjamin Button",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/jUU2X9mDwJaAniEmJOfvImBS9qb.jpg",
+      "tmdbId": 40036
+    },
+    {
+      "name": "Viola Davis",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X"
+      },
+      "profilePath": "/xDssw6vpYNRjsybvMPRE30e0dPN.jpg",
+      "tmdbId": 19492
+    },
+    {
+      "name": "Kristin Scott Thomas",
+      "film": "I've Loved You So Long",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/axksw0vAjBPSW02ZqpcC0V8rPD7.jpg",
+      "tmdbId": 5470
+    },
+    {
+      "name": "Freida Pinto",
+      "film": "Slumdog Millionaire",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/dKsiD6142P59FQsC8L8qXOVx8LQ.jpg",
+      "tmdbId": 76792
+    },
+    {
+      "name": "Tilda Swinton",
+      "film": "Burn After Reading",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/dzjT4LKgs7eOma84GsPy78DsGNH.jpg",
+      "tmdbId": 3063
+    },
+    {
+      "name": "Kristin Scott Thomas",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "I've Loved You So Long (Il y a longtemps que je t'aime)",
+      "role": "Leading",
+      "profilePath": "/axksw0vAjBPSW02ZqpcC0V8rPD7.jpg",
+      "tmdbId": 5470
+    },
+    {
+      "name": "Rebecca Hall",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Vicky Cristina Barcelona",
+      "role": "Leading",
+      "profilePath": "/u1Q7HF01llNzx0yx0A8g2W0Xj9L.jpg",
+      "tmdbId": 15556
+    },
+    {
+      "name": "Frances McDormand",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Burn After Reading",
+      "role": "Leading",
+      "profilePath": "/r0A7hZsM1zuavTr0jN7bwmBcliR.jpg",
+      "tmdbId": 3910
+    },
+    {
+      "name": "Meryl Streep",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Mamma Mia!",
+      "role": "Leading",
+      "profilePath": "/emAAzyK1rJ6aiMi0wsWYp51EC3h.jpg",
+      "tmdbId": 5064
+    },
+    {
+      "name": "Emma Thompson",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Last Chance Harvey",
+      "role": "Leading",
+      "profilePath": "/xVrrH7dAoeotune3TWjv5Tr3F3U.jpg",
+      "tmdbId": 7056
+    },
+    {
+      "name": "Cate Blanchett",
+      "film": "The Curious Case of Benjamin Button",
+      "role": "Leading",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/vUuEHiAR0eD3XEJhg2DWIjymUAA.jpg",
+      "tmdbId": 112
+    },
+    {
+      "name": "Kate Beckinsale",
+      "film": "Nothing but the Truth",
+      "role": "Leading",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/nUZuC2chd5PVw2tLxePZ6uaLbhx.jpg",
+      "tmdbId": 3967
+    },
+    {
+      "name": "Penelope Cruz",
+      "film": "Vicky Cristina Barcelona",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/2Lbc8QXgHik1D1saPqQ5qEWwUEh.jpg",
+      "tmdbId": 955
+    },
+    {
+      "name": "Vera Farmiga",
+      "film": "Nothing but the Truth",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/5Vs7huBmTKftwlsc2BPAntyaQYj.jpg",
+      "tmdbId": 21657
+    },
+    {
+      "name": "Kelly Reilly",
+      "film": "Eden Lake",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/gof8bWW9E7MH30GpvA97PwGiIuu.jpg",
+      "tmdbId": 17521
+    },
+    {
+      "name": "Sally Hawkins",
+      "film": "Happy",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/1dtDq82dM2YQ17lBL4ZKPJo5LKw.jpg",
+      "tmdbId": 39658
+    },
+    {
+      "name": "Samantha Morton",
+      "film": "The Daisy Chain",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/v84b7MENeD9rwX6xTD7fSdhSOC9.jpg",
+      "tmdbId": 2206
+    },
+    {
+      "name": "Keira Knightley",
+      "film": "The Duchess",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/bRC1B2VwV0wK3ElciFAK6QZf2wD.jpg",
+      "tmdbId": 116
+    },
+    {
+      "name": "Emma Thompson",
+      "film": "Brideshead Revisited",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/xVrrH7dAoeotune3TWjv5Tr3F3U.jpg",
+      "tmdbId": 7056
+    },
+    {
+      "name": "Kristin Scott Thomas",
+      "film": "Easy Virtue",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/axksw0vAjBPSW02ZqpcC0V8rPD7.jpg",
+      "tmdbId": 5470
+    },
+    {
+      "name": "Hayley Atwell",
+      "film": "The Duchess",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/x57wXHexIjD2ywly9cRA4rov7cu.jpg",
+      "tmdbId": 39459
+    },
+    {
+      "name": "Sienna Miller",
+      "film": "The Edge of Love",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/ygv1xVsgLlfCG1DJD0cuRmZqM1V.jpg",
+      "tmdbId": 23459
+    },
+    {
+      "name": "Summer Bishil",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Towelhead",
+      "profilePath": "/TAN5tk54w5JDtz03gg3BWwOR1C.jpg",
+      "tmdbId": 73336
+    },
+    {
+      "name": "Tarra Riggs",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Ballast",
+      "profilePath": "/pL4UPHl6xkoFR9lzV7EYWkZ07K4.jpg",
+      "tmdbId": 93181
+    },
+    {
+      "name": "Michelle Williams",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Wendy and Lucy",
+      "profilePath": "/jn3BVMVbIptz2gc6Fhxo1qwJVvW.jpg",
+      "tmdbId": 1812
+    },
+    {
+      "name": "Rosemarie DeWitt",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Rachel Getting Married",
+      "profilePath": "/44sxIdGtYN24R14OmnZbCpcd8J8.jpg",
+      "tmdbId": 14892
+    },
+    {
+      "name": "Rosie Perez",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Take",
+      "profilePath": "/gITXAn0inTa9wELgvbONxiw1PWz.jpg",
+      "tmdbId": 4810
+    },
+    {
+      "name": "Misty Upham",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Frozen River",
+      "profilePath": "/yvr78I7rkKDQAAZy0XquyPWrFSv.jpg",
+      "tmdbId": 64136
+    },
+    {
+      "name": "Debra Winger",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Rachel Getting Married",
+      "profilePath": "/iHZ2mZHEaNYFhEpnSguk043SKVE.jpg",
+      "tmdbId": 26513
+    }
+  ]
+}

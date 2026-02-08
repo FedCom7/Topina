@@ -1,0 +1,1609 @@
+{
+  "best-film": [
+    {
+      "name": "Anora",
+      "genre": "Comedy",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "Y",
+        "afi": "Y",
+        "critics": "Y",
+        "sag": "X",
+        "nbr": "Y",
+        "cannes": "Y",
+        "pga": "Y",
+        "wga": "Y",
+        "astra": "X",
+        "spirit": "Y",
+        "gotham": "X",
+        "lafca": "Y"
+      },
+      "posterPath": "/cgXk2tNYhJZLXdBDO5DidAVzQ82.jpg",
+      "tmdbId": 1064213
+    },
+    {
+      "name": "Conclave",
+      "genre": "Drama",
+      "awards": {
+        "gg": "X",
+        "bafta": "Y",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "sag": "Y",
+        "nbr": "Y",
+        "pga": "X",
+        "adg": "Y",
+        "astra": "X"
+      },
+      "posterPath": "/vYEyxF1UT779RiEalpMjUT6kfdf.jpg",
+      "tmdbId": 974576
+    },
+    {
+      "name": "Wicked",
+      "genre": "Comedy",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "sag": "X",
+        "nbr": "Y",
+        "pga": "X",
+        "wga": "X",
+        "adg": "Y",
+        "astra": "Y"
+      },
+      "posterPath": "/xDGbZ0JJ3mYaGKy4Nzd9Kph6M9L.jpg",
+      "tmdbId": 402431
+    },
+    {
+      "name": "A Complete Unknown",
+      "genre": "Drama",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "sag": "X",
+        "nbr": "Y",
+        "pga": "X",
+        "wga": "X",
+        "adg": "X"
+      },
+      "posterPath": "/llWl3GtNoXosbvYboelmoT459NM.jpg",
+      "tmdbId": 661539
+    },
+    {
+      "name": "The Brutalist",
+      "genre": "Drama",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "pga": "X",
+        "adg": "X",
+        "astra": "X",
+        "lafca": "X"
+      },
+      "posterPath": "/vP7Yd6couiAaw9jgMd5cjMRj3hQ.jpg",
+      "tmdbId": 549509
+    },
+    {
+      "name": "Emilia Pérez",
+      "genre": "Comedy",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "sag": "X",
+        "pga": "X",
+        "adg": "X",
+        "astra": "X"
+      },
+      "posterPath": "/dRlzWIUljlcaWMvVdHlVkK4HrKj.jpg",
+      "tmdbId": 974950
+    },
+    {
+      "name": "Nickel Boys",
+      "genre": "Drama",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "wga": "Y",
+        "spirit": "X",
+        "gotham": "X"
+      },
+      "posterPath": "/lu2vmmtStmTNMmSZl2LgrrQpLZo.jpg",
+      "tmdbId": 1028196
+    },
+    {
+      "name": "A Real Pain",
+      "genre": "Comedy",
+      "awards": {
+        "gg": "X",
+        "afi": "Y",
+        "nbr": "Y",
+        "pga": "X",
+        "wga": "X",
+        "astra": "X"
+      },
+      "posterPath": "/67xRIXm5TxXRT4nV2V4AEJ9yq2d.jpg",
+      "tmdbId": 1013850
+    },
+    {
+      "name": "Sing Sing",
+      "awards": {
+        "afi": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "astra": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/s0TPyI8QlMiktEiq3JVhea0zFhM.jpg",
+      "tmdbId": 1155828
+    },
+    {
+      "name": "Dune: Part Two",
+      "genre": "Drama",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "afi": "Y",
+        "critics": "X",
+        "pga": "X",
+        "wga": "X",
+        "adg": "X",
+        "astra": "X"
+      },
+      "posterPath": "/6izwz7rsy95ARzTR3poZ8H6c5pp.jpg",
+      "tmdbId": 693134
+    },
+    {
+      "name": "Babygirl",
+      "awards": {
+        "nbr": "Y",
+        "gotham": "X"
+      },
+      "posterPath": "/ilwO6elz3mLV9CToT7C8pjVeKX0.jpg",
+      "tmdbId": 1097549
+    },
+    {
+      "name": "Furiosa: A Mad Max Saga",
+      "awards": {
+        "nbr": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/iADOJ8Zymht2JPMoy3R7xceZprc.jpg",
+      "tmdbId": 786892
+    },
+    {
+      "name": "Gladiator II",
+      "awards": {
+        "nbr": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg",
+      "tmdbId": 558449
+    },
+    {
+      "name": "Baby Reindeer",
+      "awards": {
+        "afi": "Y"
+      },
+      "note": "AFI Special Award",
+      "posterPath": "/fsUnySgQ6IBuK6Qxbp4HLnG7xD7.jpg",
+      "tmdbId": 780411
+    },
+    {
+      "name": "Juror #2",
+      "awards": {
+        "nbr": "Y"
+      },
+      "posterPath": "/ugQkpGajKFQ8eyOEhGheR0HfWQ.jpg",
+      "tmdbId": 1106739
+    },
+    {
+      "name": "Queer",
+      "awards": {
+        "nbr": "Y"
+      },
+      "posterPath": "/xe4b2TMciLKA1C0JlhWxb4ENLln.jpg",
+      "tmdbId": 1059128
+    },
+    {
+      "name": "La stanza accanto ( The Room Next Door )",
+      "awards": {
+        "venice": "Y"
+      },
+      "posterPath": "/oESLBZVSmHQJHxCNKOtpH49MmKn.jpg",
+      "tmdbId": 160882
+    },
+    {
+      "name": "The Wild Robot",
+      "awards": {
+        "annie": "Y"
+      },
+      "posterPath": "/wTnV3PCVW5O92JMrFvvrRcV39RU.jpg",
+      "tmdbId": 1184918
+    },
+    {
+      "name": "Killers of the Flower Moon",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "posterPath": "/dB6Krk806zeqd0YNp2ngQ9zXteH.jpg",
+      "tmdbId": 466420
+    },
+    {
+      "name": "Nosferatu",
+      "awards": {
+        "adg": "Y"
+      },
+      "posterPath": "/5qGIxdEO841C0tdY8vOdLoRVrr0.jpg",
+      "tmdbId": 426063
+    },
+    {
+      "name": "All We Imagine as Light",
+      "awards": {},
+      "posterPath": "/ruImrzB4POsrgwCMozmOBV67zs5.jpg",
+      "tmdbId": 927547
+    },
+    {
+      "name": "Kneecap",
+      "awards": {
+        "bifa": "Y"
+      },
+      "posterPath": "/gEbQi5QWUg3CQ9R5dwvPBvbOX17.jpg",
+      "tmdbId": 1180629
+    },
+    {
+      "name": "A Different Man",
+      "awards": {
+        "gotham": "Y"
+      },
+      "posterPath": "/lZZKTEvo92u1J5pm7QoEA5yN3du.jpg",
+      "tmdbId": 989662
+    },
+    {
+      "name": "The Substance",
+      "genre": "Comedy",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "pga": "X",
+        "adg": "X",
+        "astra": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/lqoMzCcZYEFK729d6qzt349fB4o.jpg",
+      "tmdbId": 933260
+    },
+    {
+      "name": "Challengers",
+      "genre": "Comedy",
+      "awards": {
+        "gg": "X",
+        "wga": "X",
+        "astra": "X",
+        "gotham": "X"
+      },
+      "posterPath": "/H6vke7zGiuLsz4v4RPeReb9rsv.jpg",
+      "tmdbId": 937287
+    },
+    {
+      "name": "September 5",
+      "genre": "Drama",
+      "awards": {
+        "gg": "X",
+        "pga": "X"
+      },
+      "posterPath": "/3kcQOLwYKGPwyjiynFsvP8vHvRn.jpg",
+      "tmdbId": 1211472
+    },
+    {
+      "name": "Civil War",
+      "awards": {
+        "wga": "X",
+        "adg": "X"
+      },
+      "screenplay_type": "original",
+      "posterPath": "/sh7Rg8Er3tFcN9BpKIPOMvALgZd.jpg",
+      "tmdbId": 929590
+    },
+    {
+      "name": "I'm Still Here",
+      "awards": {
+        "oscar": "X"
+      },
+      "posterPath": "/gZnsMbhCvhzAQlKaVpeFRHYjGyb.jpg",
+      "tmdbId": 1000837
+    },
+    {
+      "name": "Inside Out 2",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg",
+      "tmdbId": 1022789
+    },
+    {
+      "name": "Kung Fu Panda 4",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg",
+      "tmdbId": 1011985
+    },
+    {
+      "name": "That Christmas",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/uR3uhztTAxGGK7Co0yyxVy4Gc7H.jpg",
+      "tmdbId": 645757
+    },
+    {
+      "name": "Ultraman: Rising",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/j886YEkIUsiImY53px5VHKD4lRa.jpg",
+      "tmdbId": 829402
+    },
+    {
+      "name": "Wallace & Gromit: Vengeance Most Fowl",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/jUWFSBxTOiCinPdTOh3IDUXVemZ.jpg",
+      "tmdbId": 929204
+    },
+    {
+      "name": "My Old Ass",
+      "awards": {
+        "wga": "X"
+      },
+      "screenplay_type": "original",
+      "posterPath": "/yUs4Sw9AyTg2sA1qWBkNpD2mGSj.jpg",
+      "tmdbId": 947891
+    },
+    {
+      "name": "Hit Man",
+      "awards": {
+        "wga": "X"
+      },
+      "screenplay_type": "adapted",
+      "posterPath": "/oil3EZwKFp3CWxZnfGfGglesvm9.jpg",
+      "tmdbId": 974635
+    },
+    {
+      "name": "Twisters",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/pjnD08FlMAIXsfOLKQbvmO0f0MD.jpg",
+      "tmdbId": 718821
+    },
+    {
+      "name": "Saturday Night",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/dQrNM5Vsr9CK8o6lmofav9Dueq9.jpg",
+      "tmdbId": 962194
+    },
+    {
+      "name": "Alien: Romulus",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/2uSWRTtCG336nuBiG8jOTEUKSy8.jpg",
+      "tmdbId": 945961
+    },
+    {
+      "name": "Beetlejuice Beetlejuice",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/kKgQzkUCnQmeTPkyIwHly2t6ZFI.jpg",
+      "tmdbId": 917496
+    },
+    {
+      "name": "The Seed of the Sacred Fig",
+      "awards": {},
+      "posterPath": "/ifOazNzv2cNJ5CQjMV7cPXG2Lmy.jpg",
+      "tmdbId": 1278263
+    },
+    {
+      "name": "Love Lies Bleeding",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/xImj8RLe39YK0lyVu9kXv7ApN8p.jpg",
+      "tmdbId": 948549
+    },
+    {
+      "name": "On Becoming a Guinea Fowl",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/6lMOpD8XVLKaB5uCsJXt1Fo7XNh.jpg",
+      "tmdbId": 1082938
+    },
+    {
+      "name": "The Outrun",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/zfRR2CkbvYrLuOPQFm8vBaENyMy.jpg",
+      "tmdbId": 785542
+    },
+    {
+      "name": "Santosh",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/fMx9y9DyjhDyKxjSiDvYKcpRnnk.jpg",
+      "tmdbId": 1233208
+    },
+    {
+      "name": "I Saw the TV Glow",
+      "awards": {
+        "spirit": "X"
+      },
+      "posterPath": "/hS4GYkYpN1rfl4GIxyc02sCyfAj.jpg",
+      "tmdbId": 858017
+    }
+  ],
+  "best-director": [
+    {
+      "name": "Brady Corbet",
+      "film": "The Brutalist",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "oscar": "X",
+        "critics": "X",
+        "venice": "Y",
+        "dga": "X",
+        "astra": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/o5RVawgYeKSzMt8o0VLg38ulHZX.jpg",
+      "tmdbId": 55493
+    },
+    {
+      "name": "Jon M. Chu",
+      "film": "Wicked",
+      "awards": {
+        "critics": "Y",
+        "nbr": "Y",
+        "astra": "Y"
+      },
+      "profilePath": "/85kOxm7w4nGRwyhquj9wtUM8KUW.jpg",
+      "tmdbId": 54507
+    },
+    {
+      "name": "Sean Baker",
+      "film": "Anora",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "Y",
+        "critics": "X",
+        "dga": "Y",
+        "astra": "X",
+        "gotham": "X"
+      },
+      "profilePath": "/wKfNgfRvPhLHMrwuweSwLOmhRzT.jpg",
+      "tmdbId": 118415
+    },
+    {
+      "name": "RaMell Ross",
+      "film": "Nickel Boys",
+      "awards": {
+        "critics": "X",
+        "gotham": "Y"
+      },
+      "profilePath": "/clwUM9KmTmSGuyL7amwApi3H4SP.jpg",
+      "tmdbId": 1934875
+    },
+    {
+      "name": "Miguel Gomes",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Grand Tour"
+    },
+    {
+      "name": "Christopher Nolan",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Oppenheimer",
+      "profilePath": "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg",
+      "tmdbId": 525
+    },
+    {
+      "name": "Mohammad Rasoulof",
+      "awards": {
+        "lafca": "Y"
+      },
+      "film": "The Seed of the Sacred Fig",
+      "profilePath": "/6cjSAHG0cjy3wVgW4Wr7Qz1imF3.jpg",
+      "tmdbId": 935123
+    },
+    {
+      "name": "Rungano Nyoni",
+      "film": "On Becoming a Guinea Fowl \n Andrea Arnold",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/wliVrt4xI7iLMUxJxVEz97FPPeI.jpg",
+      "tmdbId": 557100
+    },
+    {
+      "name": "Sean Baker",
+      "awards": {
+        "spirit": "Y",
+        "lafca": "X"
+      },
+      "film": "Anora \n Ali Abbasi",
+      "profilePath": "/wKfNgfRvPhLHMrwuweSwLOmhRzT.jpg",
+      "tmdbId": 118415
+    },
+    {
+      "name": "Jacques Audiard",
+      "film": "Emilia Pérez",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "dga": "X",
+        "astra": "X"
+      },
+      "profilePath": "/cODcsQRkKSEiZlEQvdKwnDm136l.jpg",
+      "tmdbId": 17496
+    },
+    {
+      "name": "Coralie Fargeat",
+      "film": "The Substance",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "astra": "X"
+      },
+      "profilePath": "/weElmtGXU0eqSDyJxh32ZBgIpqw.jpg",
+      "tmdbId": 1607016
+    },
+    {
+      "name": "Edward Berger",
+      "film": "Conclave",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "critics": "X",
+        "dga": "X"
+      }
+    },
+    {
+      "name": "Denis Villeneuve",
+      "film": "Dune: Part Two",
+      "awards": {
+        "bafta": "X",
+        "critics": "X",
+        "astra": "X"
+      },
+      "profilePath": "/zdDx9Xs93UIrJFWYApYR28J8M6b.jpg",
+      "tmdbId": 137427
+    },
+    {
+      "name": "James Mangold",
+      "film": "A Complete Unknown",
+      "awards": {
+        "oscar": "X",
+        "dga": "X"
+      },
+      "profilePath": "/pk0GDjn99crNwR4qgCCEokDYd71.jpg",
+      "tmdbId": 366
+    },
+    {
+      "name": "Jane Schoenbrun",
+      "awards": {
+        "spirit": "X",
+        "gotham": "X"
+      },
+      "film": "I Saw the TV Glow",
+      "profilePath": "/6jnbWbxcnRooyqc4LmYZt1AA2yu.jpg",
+      "tmdbId": 1827119
+    },
+    {
+      "name": "Payal Kapadia",
+      "film": "All We Imagine as Light",
+      "awards": {
+        "gg": "X"
+      },
+      "profilePath": "/nBH3sKTMMghVcmf58AdKumB3RBW.jpg",
+      "tmdbId": 1467320
+    },
+    {
+      "name": "Andrea Arnold",
+      "film": "Bird",
+      "awards": {
+        "bifa": "X"
+      }
+    },
+    {
+      "name": "Nora Fingscheidt",
+      "film": "The Outrun",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/wjf96BGhggmdxiZVxOVJzWWVoq0.jpg",
+      "tmdbId": 1304847
+    },
+    {
+      "name": "Rose Glass",
+      "film": "Love Lies Bleeding",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/7cKh7iWFMD77CMz9rP0pdyXMPCK.jpg",
+      "tmdbId": 2219327
+    },
+    {
+      "name": "Rich Peppiatt",
+      "film": "Kneecap",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/bcqtGSm2CsVTD6fN3UXwIH8utrm.jpg",
+      "tmdbId": 1382853
+    },
+    {
+      "name": "Ali Abbasi",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Apprentice",
+      "profilePath": "/1mwdpvwjAG1NkvUwpdBMEMJnjK2.jpg",
+      "tmdbId": 1574550
+    },
+    {
+      "name": "Alonso Ruizpalacios",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "La cocina",
+      "profilePath": "/aCBWcK4P3yCmovYUVZ9Pcl8RhUP.jpg",
+      "tmdbId": 1305360
+    },
+    {
+      "name": "Payal Kapadia",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "All We Imagine",
+      "profilePath": "/nBH3sKTMMghVcmf58AdKumB3RBW.jpg",
+      "tmdbId": 1467320
+    },
+    {
+      "name": "Guan Hu",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "Black Dog",
+      "profilePath": "/plI2TWjFcoP8Exjs2p5oNFqbrqM.jpg",
+      "tmdbId": 131301
+    }
+  ],
+  "best-actor": [
+    {
+      "name": "Kieran Culkin",
+      "film": "A Real Pain",
+      "role": "Supporting",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "sag": "Y",
+        "astra": "Y",
+        "spirit": "Y",
+        "gotham": "X",
+        "lafca": "Y"
+      },
+      "profilePath": "/b5EC4nziLhBRX4GOcYx2BdS3FTt.jpg",
+      "tmdbId": 18793
+    },
+    {
+      "name": "Adrien Brody",
+      "film": "The Brutalist",
+      "role": "Leading",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "sag": "X",
+        "astra": "X",
+        "gotham": "X"
+      },
+      "profilePath": "/qBc7ahQrpVpcllaZ5hkivsOEb3C.jpg",
+      "tmdbId": 3490
+    },
+    {
+      "name": "Timothée Chalamet",
+      "film": "A Complete Unknown",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "Y",
+        "astra": "Y"
+      },
+      "profilePath": "/dFxpwRpmzpVfP1zjluH68DeQhyj.jpg",
+      "tmdbId": 1190668
+    },
+    {
+      "name": "Yura Borisov",
+      "film": "Anora",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "astra": "X",
+        "spirit": "X",
+        "gotham": "X",
+        "lafca": "Y"
+      },
+      "profilePath": "/zLcD2UmXJG6m3qOQhNZs13SQRIp.jpg",
+      "tmdbId": 1266686
+    },
+    {
+      "name": "Colman Domingo",
+      "film": "Sing Sing",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "astra": "X",
+        "spirit": "X",
+        "gotham": "Y"
+      },
+      "profilePath": "/2tu6T9ugnf82qIMGVKWSb0dvvq5.jpg",
+      "tmdbId": 91671
+    },
+    {
+      "name": "Clarence Maclin",
+      "film": "Sing Sing",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "critics": "X",
+        "astra": "X",
+        "spirit": "X",
+        "gotham": "Y",
+        "lafca": "X"
+      },
+      "profilePath": "/1nRVnEo3fICl9yhRyemn8PgrJ4q.jpg",
+      "tmdbId": 4178063
+    },
+    {
+      "name": "Daniel Craig",
+      "film": "Queer",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "sag": "X",
+        "nbr": "Y"
+      },
+      "profilePath": "/iFerDZUmC5Fu26i4qI8xnUVEHc7.jpg",
+      "tmdbId": 8784
+    },
+    {
+      "name": "Jesse Plemons",
+      "film": "Kinds of Kindness",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "cannes": "Y"
+      },
+      "profilePath": "/og4I51GsuwohdPgoELOHVMMqMre.jpg",
+      "tmdbId": 88124
+    },
+    {
+      "name": "Sebastian Stan",
+      "film": "A Different Man",
+      "role": "Leading",
+      "awards": {
+        "gg": "Y"
+      },
+      "profilePath": "/v20RLWst39klatsqUgSrwHxhwee.jpg",
+      "tmdbId": 60898
+    },
+    {
+      "name": "Vincent Lindon",
+      "film": "Noi e loro",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/tjRKMKfsIH7MrqtN7cMPIZubSXa.jpg",
+      "tmdbId": 5443
+    },
+    {
+      "name": "Franz Rogowski",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Passages",
+      "role": "Leading",
+      "profilePath": "/mXehrpUeS4aXvDZPB0PyofqwSAi.jpg",
+      "tmdbId": 1285450
+    },
+    {
+      "name": "Charles Melton",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "May December",
+      "role": "Supporting",
+      "profilePath": "/sxWslNRZdiBcPgwdVqoj7nSclr6.jpg",
+      "tmdbId": 1907002
+    },
+    {
+      "name": "Franz Rogowski",
+      "film": "Bird",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/mXehrpUeS4aXvDZPB0PyofqwSAi.jpg",
+      "tmdbId": 1285450
+    },
+    {
+      "name": "Ralph Fiennes",
+      "film": "Conclave",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "astra": "X"
+      },
+      "profilePath": "/u29BOqiV5GCQ8k8WUJM50i9xlBf.jpg",
+      "tmdbId": 5469
+    },
+    {
+      "name": "Guy Pearce",
+      "film": "The Brutalist",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "astra": "X",
+        "gotham": "X"
+      },
+      "profilePath": "/vTqk6Nh3WgqPubkS23eOlMAwmwa.jpg",
+      "tmdbId": 529
+    },
+    {
+      "name": "Edward Norton",
+      "film": "A Complete Unknown",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X"
+      },
+      "profilePath": "/8nytsqL59SFJTVYVrN72k6qkGgJ.jpg",
+      "tmdbId": 819
+    },
+    {
+      "name": "Sebastian Stan",
+      "film": "The Apprentice",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/v20RLWst39klatsqUgSrwHxhwee.jpg",
+      "tmdbId": 60898
+    },
+    {
+      "name": "Jeremy Strong",
+      "film": "The Apprentice",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "sag": "X"
+      },
+      "profilePath": "/jcMhXWICSi4QjQttJVhFSiKVvpF.jpg",
+      "tmdbId": 239271
+    },
+    {
+      "name": "Hugh Grant",
+      "film": "Heretic",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "critics": "X"
+      },
+      "profilePath": "/dvV843fOuzsEPXHtFvdzsHpy1rC.jpg",
+      "tmdbId": 3291
+    },
+    {
+      "name": "Denzel Washington",
+      "film": "Gladiator II",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "astra": "X"
+      },
+      "profilePath": "/jj2Gcobpopokal0YstuCQW0ldJ4.jpg",
+      "tmdbId": 5292
+    },
+    {
+      "name": "Adam Pearson",
+      "awards": {
+        "spirit": "X",
+        "gotham": "X",
+        "lafca": "X"
+      },
+      "role": "Supporting",
+      "film": "A Different Man",
+      "profilePath": "/xRDaT60nU48yBDD20A2hSmSALZX.jpg",
+      "tmdbId": 1675188
+    },
+    {
+      "name": "Jesse Eisenberg",
+      "film": "A Real Pain",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "astra": "X"
+      },
+      "profilePath": "/yYhwWRcxDHTn63gSEF1vnDAD7cD.jpg",
+      "tmdbId": 44735
+    },
+    {
+      "name": "Glen Powell",
+      "film": "Hit Man",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "astra": "X"
+      },
+      "profilePath": "/fUnIaJkdgvQTztyR1nLeUceSzly.jpg",
+      "tmdbId": 83271
+    },
+    {
+      "name": "Jonathan Bailey",
+      "film": "Wicked",
+      "role": "Supporting",
+      "awards": {
+        "sag": "X",
+        "astra": "X"
+      },
+      "profilePath": "/i9m6JsYKQot3kbMMFsvbEuFarvq.jpg",
+      "tmdbId": 80860
+    },
+    {
+      "name": "Keith Kupferer",
+      "awards": {
+        "spirit": "X",
+        "gotham": "X"
+      },
+      "film": "Ghostlight",
+      "profilePath": "/8iYC1mkinpTGXF39FiKRYLlkwtQ.jpg",
+      "tmdbId": 1313093
+    },
+    {
+      "name": "Justice Smith",
+      "awards": {
+        "spirit": "X",
+        "gotham": "X"
+      },
+      "film": "I Saw the TV Glow",
+      "profilePath": "/htJrcOzYkLVcnF4ExT4O1bDN5e5.jpg",
+      "tmdbId": 1029934
+    },
+    {
+      "name": "Jack Haven",
+      "awards": {
+        "spirit": "X",
+        "gotham": "X"
+      },
+      "film": "I Saw the TV Glow",
+      "profilePath": "/gnf88fDvg0FI9lbWvcNsdA9NBDH.jpg",
+      "tmdbId": 1637781
+    },
+    {
+      "name": "Gabriel LaBelle",
+      "film": "Saturday Night",
+      "role": "Leading",
+      "awards": {
+        "gg": "X"
+      },
+      "profilePath": "/rHVSkVovxmmUPVlaJeMAklbamuv.jpg",
+      "tmdbId": 1476330
+    },
+    {
+      "name": "Elliot Page",
+      "film": "Close to You",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/nXO8DE4biVXY4UDYP0NdIY1zvXS.jpg",
+      "tmdbId": 27578
+    },
+    {
+      "name": "Michele Austin",
+      "film": "Hard Truths",
+      "awards": {
+        "bifa": "X"
+      }
+    },
+    {
+      "name": "Barry Keoghan",
+      "film": "Bird",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/ngoitknM6hw8fffLywyvjzy6Iti.jpg",
+      "tmdbId": 1290466
+    },
+    {
+      "name": "Jack O'Connell",
+      "film": "Back to Black",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/9RrqnB1BRaWWHEjlWVVAna0sdBB.jpg",
+      "tmdbId": 85065
+    },
+    {
+      "name": "Karren Karagulian",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Anora",
+      "profilePath": "/rxyx8OFgShe0Kolptm5LpbsOUJj.jpg",
+      "tmdbId": 966306
+    },
+    {
+      "name": "Brian Tyree Henry",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "The Fire Inside",
+      "profilePath": "/1UgDnFt3OteCJQPiUelWzIR5bvT.jpg",
+      "tmdbId": 226366
+    }
+  ],
+  "best-actress": [
+    {
+      "name": "Zoe Saldaña",
+      "film": "Emilia Pérez",
+      "role": "Supporting",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "sag": "Y",
+        "cannes": "Y",
+        "astra": "Y"
+      },
+      "profilePath": "/vQBwmsSOAd0JDaEcZ5p43J9xzsY.jpg",
+      "tmdbId": 8691
+    },
+    {
+      "name": "Mikey Madison",
+      "film": "Anora",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "Y",
+        "oscar": "Y",
+        "critics": "X",
+        "sag": "X",
+        "astra": "X",
+        "spirit": "Y",
+        "gotham": "X",
+        "lafca": "Y"
+      },
+      "profilePath": "/nsWQNYBTBYE2TCzGpyXTpA0TTEz.jpg",
+      "tmdbId": 1640439
+    },
+    {
+      "name": "Demi Moore",
+      "film": "The Substance",
+      "role": "Leading",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "Y",
+        "sag": "Y",
+        "astra": "X",
+        "spirit": "X",
+        "gotham": "X",
+        "lafca": "X"
+      },
+      "profilePath": "/wApParZYBDi4yxekjfxjKEifJYh.jpg",
+      "tmdbId": 3416
+    },
+    {
+      "name": "Nicole Kidman",
+      "film": "Babygirl",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "nbr": "Y",
+        "venice": "Y",
+        "gotham": "X"
+      },
+      "profilePath": "/lfW2cDigTcvuoe4k6UfCdGVE1R6.jpg",
+      "tmdbId": 2227
+    },
+    {
+      "name": "Karla Sofía Gascón",
+      "film": "Emilia Pérez",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "cannes": "Y",
+        "astra": "X"
+      },
+      "profilePath": "/vmg6gqpaXnoRFP7NWdSTrsr1CED.jpg",
+      "tmdbId": 1505938
+    },
+    {
+      "name": "Cynthia Erivo",
+      "film": "Wicked",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "astra": "Y"
+      },
+      "profilePath": "/gIAXqZwZCBqkh2ppfAV4xcnMxki.jpg",
+      "tmdbId": 1765068
+    },
+    {
+      "name": "Ariana Grande",
+      "film": "Wicked",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "sag": "X",
+        "astra": "Y"
+      },
+      "profilePath": "/pwawoyEc6XK7IBKwWHwMO5WfBED.jpg",
+      "tmdbId": 226001
+    },
+    {
+      "name": "Marianne Jean-Baptiste",
+      "film": "Hard Truths",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "critics": "X",
+        "gotham": "X",
+        "lafca": "Y"
+      },
+      "profilePath": "/bJ6p32cswcp0xvqiZC7S5tiwa2K.jpg",
+      "tmdbId": 17352
+    },
+    {
+      "name": "Fernanda Torres",
+      "film": "I'm Still Here",
+      "role": "Leading",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "lafca": "X"
+      },
+      "profilePath": "/dkxdADNwbM7ZLQK5YBNeKBqVJNM.jpg",
+      "tmdbId": 87335
+    },
+    {
+      "name": "Selena Gomez",
+      "film": "Emilia Pérez",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "cannes": "Y",
+        "astra": "X"
+      },
+      "profilePath": "/kEGPpTVNBFD25cgyEEsoOZSmaMv.jpg",
+      "tmdbId": 77948
+    },
+    {
+      "name": "Adriana Paz",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Emilia Pérez",
+      "profilePath": "/aUBNKmudV1CCMUHskWemg58vc3n.jpg",
+      "tmdbId": 983710
+    },
+    {
+      "name": "Lily Gladstone",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Killers of the Flower Moon",
+      "role": "Leading",
+      "profilePath": "/zYAN84WqZv2sbVE2JDkcWoXGoF7.jpg",
+      "tmdbId": 1183917
+    },
+    {
+      "name": "Da'Vine Joy Randolph",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "The Holdovers",
+      "role": "Supporting",
+      "profilePath": "/7RuYeGxTwFRt2q8fkT8nuEz1nIC.jpg",
+      "tmdbId": 1180099
+    },
+    {
+      "name": "Marianne Jean",
+      "film": "Baptiste",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/bJ6p32cswcp0xvqiZC7S5tiwa2K.jpg",
+      "tmdbId": 17352
+    },
+    {
+      "name": "Danielle Deadwyler",
+      "film": "The Piano Lesson",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X",
+        "sag": "X",
+        "astra": "X",
+        "spirit": "X",
+        "gotham": "X"
+      },
+      "profilePath": "/ifQcCBM5B4dIJdz4B0laO4yQuzU.jpg",
+      "tmdbId": 1853909
+    },
+    {
+      "name": "Isabella Rossellini",
+      "film": "Conclave",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X"
+      },
+      "profilePath": "/z0zojT6nwDxi35HMcXlVpBfuBAU.jpg",
+      "tmdbId": 6588
+    },
+    {
+      "name": "Pamela Anderson",
+      "film": "The Last Showgirl",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "gotham": "X"
+      },
+      "profilePath": "/sk15ch2IQ6k6vWu07Jr77yw4oj5.jpg",
+      "tmdbId": 6736
+    },
+    {
+      "name": "Angelina Jolie",
+      "film": "Maria",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "astra": "X"
+      },
+      "profilePath": "/nXA9vMvskmIDB5NqHCkTQPmemep.jpg",
+      "tmdbId": 11701
+    },
+    {
+      "name": "Felicity Jones",
+      "film": "The Brutalist",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X"
+      },
+      "profilePath": "/fyhWRmxpTEYl5d8DnkIo6i8RdWJ.jpg",
+      "tmdbId": 72855
+    },
+    {
+      "name": "Margaret Qualley",
+      "film": "The Substance",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "astra": "X"
+      },
+      "profilePath": "/jStNyMj3acpLuH48awLVLqqlyaV.jpg",
+      "tmdbId": 1392137
+    },
+    {
+      "name": "Saoirse Ronan",
+      "film": "The Outrun",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "bifa": "X",
+        "gotham": "X"
+      },
+      "profilePath": "/w88uhQ5f8CXw9pQx5HtDrDpzQ4x.jpg",
+      "tmdbId": 36592
+    },
+    {
+      "name": "Amy Adams",
+      "film": "Nightbitch",
+      "role": "Leading",
+      "awards": {
+        "gg": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/oee226QNLDmiwo5730gq3j7tydw.jpg",
+      "tmdbId": 9273
+    },
+    {
+      "name": "Jamie Lee Curtis",
+      "film": "The Last Showgirl",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "sag": "X"
+      },
+      "profilePath": "/eb0lIt32WwrjtCULe5z6l9eBf06.jpg",
+      "tmdbId": 8944
+    },
+    {
+      "name": "Monica Barbaro",
+      "film": "A Complete Unknown",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "sag": "X"
+      },
+      "profilePath": "/fcujBTiKyZgJzaDenhv5ryo9SyB.jpg",
+      "tmdbId": 1525043
+    },
+    {
+      "name": "Tilda Swinton",
+      "film": "The Room Next Door",
+      "role": "Leading",
+      "awards": {
+        "gg": "X"
+      },
+      "profilePath": "/dzjT4LKgs7eOma84GsPy78DsGNH.jpg",
+      "tmdbId": 3063
+    },
+    {
+      "name": "Kate Winslet",
+      "film": "Lee",
+      "role": "Leading",
+      "awards": {
+        "gg": "X"
+      },
+      "profilePath": "/e3tdop3WhseRnn8KwMVLAV25Ybv.jpg",
+      "tmdbId": 204
+    },
+    {
+      "name": "Zendaya",
+      "film": "Challengers",
+      "role": "Leading",
+      "awards": {
+        "gg": "X"
+      },
+      "profilePath": "/3WdOloHpjtjL96uVOhFRRCcYSwq.jpg",
+      "tmdbId": 505710
+    },
+    {
+      "name": "Selena Gomez",
+      "role": "Supporting",
+      "awards": {
+        "gg": "X"
+      },
+      "profilePath": "/kEGPpTVNBFD25cgyEEsoOZSmaMv.jpg",
+      "tmdbId": 77948
+    },
+    {
+      "name": "Aunjanue Ellis-Taylor",
+      "film": "Nickel Boys",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/e54DfgDyS67xdtomYODFule6Ofa.jpg",
+      "tmdbId": 53923
+    },
+    {
+      "name": "Naomi Scott",
+      "awards": {
+        "astra": "X"
+      },
+      "film": "Smile 2",
+      "profilePath": "/knSGMaEaH6CZaYw7GQpvxyJcsz7.jpg",
+      "tmdbId": 240724
+    },
+    {
+      "name": "Aunjanue Ellis",
+      "awards": {
+        "astra": "X"
+      },
+      "film": "Taylor",
+      "profilePath": "/e54DfgDyS67xdtomYODFule6Ofa.jpg",
+      "tmdbId": 53923
+    },
+    {
+      "name": "Radhika Apte",
+      "film": "Sister Midnight",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/wKPybRcSYcbgDiJZwELudrRNf0r.jpg",
+      "tmdbId": 223167
+    },
+    {
+      "name": "Susan Chardy",
+      "film": "On Becoming a Guinea Fowl",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/1IAWjFG17nBE92IywWgJdfMYLCB.jpg",
+      "tmdbId": 4685243
+    },
+    {
+      "name": "Alicia Vikander",
+      "film": "The Assessment",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/9pmHTbXeRxUF51jJKthmHI49u9z.jpg",
+      "tmdbId": 227454
+    },
+    {
+      "name": "Elizabeth Chisela",
+      "film": "On Becoming a Guinea Fowl",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/nMsiZtOC7HgMdiAXNdbb55gxUnz.jpg",
+      "tmdbId": 4685247
+    },
+    {
+      "name": "Hayley Squires",
+      "film": "Hoard",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/nBchYkC2f1boBqJlYny5OVsxgFQ.jpg",
+      "tmdbId": 1182598
+    },
+    {
+      "name": "Ryan Destiny",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Fire Inside",
+      "profilePath": "/hyonGsa5L44MyEjN4AfrujW5R3h.jpg",
+      "tmdbId": 1711828
+    },
+    {
+      "name": "Hunter Schafer",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Cuckoo",
+      "profilePath": "/6ZDieLlbm2m3jbYaxsHFo7cWWzJ.jpg",
+      "tmdbId": 2340180
+    },
+    {
+      "name": "June Squibb",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Thelma",
+      "profilePath": "/a7vkoLhc8JGkdvDbHvpgKKHUPHH.jpg",
+      "tmdbId": 35515
+    },
+    {
+      "name": "Joan Chen",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Dìdi",
+      "profilePath": "/yV8glhrxb5m9Uwz4n63JPdVjWvj.jpg",
+      "tmdbId": 6720
+    },
+    {
+      "name": "Carol Kane",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Between the Temples",
+      "profilePath": "/3EOZ7B148lRwJcl3CmQhfpgubYQ.jpg",
+      "tmdbId": 10556
+    },
+    {
+      "name": "Kani Kusruti",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Girls Will Be Girls",
+      "profilePath": "/8WCuR3HcPYBeS2tQusFTEl596hM.jpg",
+      "tmdbId": 1399177
+    },
+    {
+      "name": "Natasha Lyonne",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "His Three Daughters",
+      "profilePath": "/2QJoTBEIeYyjGSDot9qxv2ayPH3.jpg",
+      "tmdbId": 10871
+    },
+    {
+      "name": "Katy O'Brian",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "Love Lies Bleeding",
+      "profilePath": "/lEz7WmJPrBGSsIkEiAA10t5nDDM.jpg",
+      "tmdbId": 2252989
+    }
+  ]
+}

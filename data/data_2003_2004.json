@@ -1,0 +1,1482 @@
+{
+  "best-film": [
+    {
+      "name": "The Lord of the Rings: The Return of the King",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "sag": "Y",
+        "afi": "Y",
+        "critics": "Y",
+        "oscar": "Y",
+        "pga": "Y",
+        "wga": "X",
+        "adg": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg",
+      "tmdbId": 122
+    },
+    {
+      "name": "Lost in Translation",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "afi": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "oscar": "X",
+        "lafca": "X",
+        "wga": "Y",
+        "spirit": "Y",
+        "adg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/3jCLmYDIIiSMPujbwygNpqdpM8N.jpg",
+      "tmdbId": 153
+    },
+    {
+      "name": "American Splendor",
+      "awards": {
+        "afi": "Y",
+        "lafca": "Y",
+        "wga": "Y",
+        "spirit": "X"
+      },
+      "posterPath": "/rPLMxuk82AiqDiwEUVJ6E7WpjYs.jpg",
+      "tmdbId": 2771
+    },
+    {
+      "name": "Mystic River",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "afi": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "oscar": "X",
+        "pga": "X",
+        "wga": "X",
+        "adg": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/hCHVDbo6XJGj3r2i4hVjKhE0GKF.jpg",
+      "tmdbId": 322
+    },
+    {
+      "name": "Master and Commander: The Far Side of the World",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "afi": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "oscar": "X",
+        "pga": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/s1cVTQEZYn4nSjZLnFbzLP0j8y2.jpg",
+      "tmdbId": 8619
+    },
+    {
+      "name": "In America",
+      "awards": {
+        "sag": "X",
+        "afi": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "wga": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/cUhMjWQyyApA0pFinogCsE2wy8g.jpg",
+      "tmdbId": 10511
+    },
+    {
+      "name": "Finding Nemo",
+      "awards": {
+        "gg": "X",
+        "afi": "Y",
+        "critics": "X",
+        "annie": "Y"
+      },
+      "genre": "Comedy",
+      "posterPath": "/eHuGQ10FUzK1mdOY69wF5pGgEf5.jpg",
+      "tmdbId": 12
+    },
+    {
+      "name": "The Last Samurai",
+      "awards": {
+        "afi": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "pga": "X",
+        "adg": "X"
+      },
+      "posterPath": "/a8jmJPs5eZBARmnuEEvZwbjwyz4.jpg",
+      "tmdbId": 616
+    },
+    {
+      "name": "Seabiscuit",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "oscar": "X",
+        "pga": "X",
+        "wga": "X",
+        "adg": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/5m7NfZvxYsSm2YBCJ2VPQf8ziKr.jpg",
+      "tmdbId": 4464
+    },
+    {
+      "name": "Cold Mountain",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "pga": "X",
+        "wga": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/j0AJeeR5CQPDFh0otyWyCWREHO8.jpg",
+      "tmdbId": 2289
+    },
+    {
+      "name": "The Station Agent",
+      "awards": {
+        "sag": "X",
+        "nbr": "Y",
+        "wga": "X"
+      },
+      "posterPath": "/kjJg6eJa9I9flfHaJG67ecEv8YX.jpg",
+      "tmdbId": 2056
+    },
+    {
+      "name": "Dirty Pretty Things",
+      "awards": {
+        "wga": "X",
+        "bifa": "Y"
+      },
+      "screenplay_type": "Original",
+      "posterPath": "/nWpXOqB1STDq8ji3rQawcg1fGS9.jpg",
+      "tmdbId": 3472
+    },
+    {
+      "name": "The Human Stain",
+      "awards": {
+        "afi": "Y"
+      },
+      "posterPath": "/fWbnGCEj2QkY7z0DTQUVjsCJkkh.jpg",
+      "tmdbId": 10922
+    },
+    {
+      "name": "Monster",
+      "awards": {
+        "afi": "Y"
+      },
+      "posterPath": "/OsWKxswXx2TOx87ZRxdOciu0uB.jpg",
+      "tmdbId": 1203484
+    },
+    {
+      "name": "Angels in America",
+      "awards": {
+        "nbr": "Y"
+      },
+      "posterPath": "/qZBp3rgQEE4sGBJkDySIOKcwq2O.jpg",
+      "tmdbId": 904703
+    },
+    {
+      "name": "21 Grams",
+      "awards": {
+        "nbr": "Y"
+      },
+      "posterPath": "/wZ0l6or5juuVWqDkLEgaghs4f9l.jpg",
+      "tmdbId": 470
+    },
+    {
+      "name": "House of Sand and Fog",
+      "awards": {
+        "nbr": "Y"
+      },
+      "posterPath": "/hLxSOukLfC4j5pNbdE7lqaw8KgL.jpg",
+      "tmdbId": 11093
+    },
+    {
+      "name": "Il ritorno ( Vozvraščenie )",
+      "awards": {
+        "venice": "Y"
+      }
+    },
+    {
+      "name": "Elephant",
+      "awards": {
+        "cannes": "Y"
+      },
+      "note": "Director: Gus Van Sant",
+      "posterPath": "/wvRbUiOuqedyDmwToErkp7wuFCv.jpg",
+      "tmdbId": 665135
+    },
+    {
+      "name": "Far from Heaven",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "posterPath": "/9gQuvFDRPLx39smUvyafm36tp0d.jpg",
+      "tmdbId": 10712
+    },
+    {
+      "name": "Big Fish",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "critics": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/tjK063yCgaBAluVU72rZ6PKPH2l.jpg",
+      "tmdbId": 587
+    },
+    {
+      "name": "Bend It Like Beckham",
+      "awards": {
+        "gg": "X",
+        "wga": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/2dzSBmFWWqt8NbnubJKIWU21Y86.jpg",
+      "tmdbId": 455
+    },
+    {
+      "name": "Love Actually",
+      "awards": {
+        "gg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/7QPeVsr9rcFU9Gl90yg0gTOTpVv.jpg",
+      "tmdbId": 508
+    },
+    {
+      "name": "Brother Bear",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/otptPbEY0vBostmo95xwiiumMJm.jpg",
+      "tmdbId": 10009
+    },
+    {
+      "name": "Looney Tunes: Back in Action",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/q0kntpdsHA0QdYjpQdNBqrVTdQq.jpg",
+      "tmdbId": 10715
+    },
+    {
+      "name": "Millennium Actress",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/p44UXOFBCY5xbpCKEsWpi4filCD.jpg",
+      "tmdbId": 33320
+    },
+    {
+      "name": "The Triplets of Belleville",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/enw6C4fDw88g0nOQgIJXjgH3NHi.jpg",
+      "tmdbId": 9662
+    },
+    {
+      "name": "Raising Victor Vargas",
+      "awards": {
+        "spirit": "X"
+      },
+      "posterPath": "/cMHMtMBca8VNxjYICc1WHK1Qqe5.jpg",
+      "tmdbId": 25461
+    },
+    {
+      "name": "Shattered Glass",
+      "awards": {
+        "spirit": "X"
+      },
+      "posterPath": "/1KHHNkrf8t15sXXF9d9TGq1T9jv.jpg",
+      "tmdbId": 13537
+    },
+    {
+      "name": "28 Days Later",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/sQckQRt17VaWbo39GIu0TMOiszq.jpg",
+      "tmdbId": 170
+    },
+    {
+      "name": "Buffalo Soldiers",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/qNl4T8xxC0xDeX8JFJVCBzH4Kg8.jpg",
+      "tmdbId": 9104
+    },
+    {
+      "name": "The Magdalene Sisters",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/akOnyPsfzcDvCwP3lzY35i2NIha.jpg",
+      "tmdbId": 8094
+    },
+    {
+      "name": "Young Adam",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/rU5GJ5r4tQbSx9C2ENKbPkD6nr9.jpg",
+      "tmdbId": 237
+    },
+    {
+      "name": "Girl with a Pearl Earring",
+      "awards": {
+        "adg": "X"
+      }
+    },
+    {
+      "name": "Pirates of the Caribbean: The Curse of the Black Pearl",
+      "awards": {
+        "adg": "X"
+      }
+    },
+    {
+      "name": "Kill Bill: Vol. 1",
+      "awards": {
+        "adg": "X"
+      }
+    },
+    {
+      "name": "Something's Gotta Give",
+      "awards": {
+        "adg": "X"
+      }
+    },
+    {
+      "name": "Under the Tuscan Sun",
+      "awards": {
+        "adg": "X"
+      }
+    }
+  ],
+  "best-director": [
+    {
+      "name": "Peter Jackson",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "critics": "Y",
+        "dga": "Y",
+        "oscar": "Y",
+        "lafca": "Y"
+      },
+      "film": "The Lord of the Rings: The Return of the King",
+      "profilePath": "/bNc908d59Ba8VDNr4eCcm4G1cR.jpg",
+      "tmdbId": 108
+    },
+    {
+      "name": "Sofia Coppola",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "critics": "X",
+        "dga": "X",
+        "oscar": "X",
+        "spirit": "Y"
+      },
+      "film": "Lost in Translation",
+      "profilePath": "/dzHC2LxmarkBxWLhjp2DRa5oCev.jpg",
+      "tmdbId": 1769
+    },
+    {
+      "name": "Peter Weir",
+      "awards": {
+        "gg": "X",
+        "bafta": "Y",
+        "dga": "X",
+        "oscar": "X"
+      },
+      "film": "Master and Commander: The Far Side of the World",
+      "profilePath": "/4GxIZX5gtbMpW4ZgHwvGmLSIHOE.jpg",
+      "tmdbId": 2690
+    },
+    {
+      "name": "Gus Van Sant",
+      "awards": {
+        "cannes": "Y",
+        "spirit": "X"
+      },
+      "film": "Elephant",
+      "profilePath": "/kICHgrSh4eiICjz8piy9fTXIgph.jpg",
+      "tmdbId": 5216
+    },
+    {
+      "name": "Edward Zwick",
+      "awards": {
+        "nbr": "Y"
+      },
+      "film": "The Last Samurai",
+      "profilePath": "/RzRjOpqfob68smXTj5RPjankKr.jpg",
+      "tmdbId": 9181
+    },
+    {
+      "name": "Takeshi Kitano",
+      "film": "Zatoichi",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/6pnXXkCx8wkCHvOrcWjaY58KA7k.jpg",
+      "tmdbId": 3317
+    },
+    {
+      "name": "Todd Haynes",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Far from Heaven",
+      "profilePath": "/wBDazO2j49uoquoHTEDxcniyGGC.jpg",
+      "tmdbId": 16863
+    },
+    {
+      "name": "Stephen Frears",
+      "film": "Dirty Pretty Things \n Danny Boyle",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/6VPZp1rJKU4Jq6yx4Xo224BWr0I.jpg",
+      "tmdbId": 3224
+    },
+    {
+      "name": "Clint Eastwood",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "dga": "X",
+        "oscar": "X",
+        "lafca": "X"
+      },
+      "film": "Mystic River",
+      "profilePath": "/8TwdCfeOZH7ucRlfLZ6wObxa7cO.jpg",
+      "tmdbId": 190
+    },
+    {
+      "name": "Jim Sheridan",
+      "film": "In America",
+      "awards": {
+        "critics": "X",
+        "spirit": "X",
+        "bifa": "X"
+      },
+      "profilePath": "/aWTmBt44TyUCb0t50avtFsPdTPp.jpg",
+      "tmdbId": 53334
+    },
+    {
+      "name": "Anthony Minghella",
+      "awards": {
+        "gg": "X",
+        "bafta": "X"
+      },
+      "film": "Cold Mountain",
+      "profilePath": "/3zNlCjH6Ddh5pn2UrNWd6SAKGKg.jpg",
+      "tmdbId": 2239
+    },
+    {
+      "name": "Tim Burton",
+      "film": "Big Fish",
+      "awards": {
+        "bafta": "X",
+        "critics": "X"
+      },
+      "profilePath": "/wcjuY5vD1nlfwWNbvvTGg5dGoRR.jpg",
+      "tmdbId": 510
+    },
+    {
+      "name": "Gary Ross",
+      "film": "Seabiscuit",
+      "awards": {
+        "dga": "X"
+      }
+    },
+    {
+      "name": "Fernando Meirelles",
+      "film": "City of God",
+      "awards": {
+        "oscar": "X"
+      },
+      "profilePath": "/usc1zwBXEHN4A6rkvJcmgWpc7rS.jpg",
+      "tmdbId": 8557
+    },
+    {
+      "name": "Shari Springer Berman and Robert Pulcini",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "American Splendor"
+    },
+    {
+      "name": "Peter Sollett",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Raising Victor Vargas",
+      "profilePath": "/kl4ZBGmT6bEuD009nvZZbKZEIDv.jpg",
+      "tmdbId": 71548
+    },
+    {
+      "name": "Danny Boyle",
+      "film": "28 Days Later",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/b5qQpFHmgNyvV1t81ou17Jt2fRj.jpg",
+      "tmdbId": 2034
+    },
+    {
+      "name": "David Mackenzie",
+      "film": "Young Adam",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/ik6YTYOWdgmou40xRyPlCP4tyGC.jpg",
+      "tmdbId": 3055
+    },
+    {
+      "name": "Michael Winterbottom",
+      "film": "In This World",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/r4cpuukDMG3xLS8tEaTV7X2IxnO.jpg",
+      "tmdbId": 172
+    }
+  ],
+  "best-actor": [
+    {
+      "name": "Bill Murray",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X",
+        "lafca": "Y",
+        "spirit": "Y"
+      },
+      "film": "Lost in Translation",
+      "role": "Leading",
+      "profilePath": "/nnCsJc9x3ZiG3AFyiyc3FPehppy.jpg",
+      "tmdbId": 1532
+    },
+    {
+      "name": "Tim Robbins",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "sag": "Y",
+        "critics": "Y",
+        "oscar": "Y"
+      },
+      "film": "Mystic River",
+      "role": "Leading",
+      "profilePath": "/3FfJMIVwXgsIXbAT8ECBSZJAncR.jpg",
+      "tmdbId": 504
+    },
+    {
+      "name": "Sean Penn",
+      "awards": {
+        "gg": "Y",
+        "bafta": "X",
+        "sag": "X",
+        "critics": "Y",
+        "oscar": "Y"
+      },
+      "film": "Mystic River",
+      "role": "Leading",
+      "profilePath": "/9glqNTVpFpdN1nFklKaHPUyCwR6.jpg",
+      "tmdbId": 2228
+    },
+    {
+      "name": "Johnny Depp",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "sag": "Y",
+        "critics": "X",
+        "oscar": "X"
+      },
+      "film": "Pirates of the Caribbean: The Curse of the Black Pearl",
+      "role": "Leading",
+      "profilePath": "/drl9qDZoxPHhUbDamYcOQEhlHzW.jpg",
+      "tmdbId": 85
+    },
+    {
+      "name": "Sean Penn",
+      "film": "21 Grams",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "nbr": "Y",
+        "lafca": "X"
+      },
+      "profilePath": "/9glqNTVpFpdN1nFklKaHPUyCwR6.jpg",
+      "tmdbId": 2228
+    },
+    {
+      "name": "Djimon Hounsou",
+      "film": "In America",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/tpvtxxvCx2Mb5DV632hmuYlHoiY.jpg",
+      "tmdbId": 938
+    },
+    {
+      "name": "Bill Nighy",
+      "film": "Love Actually",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "Y"
+      },
+      "profilePath": "/ixFI2YCGNGJfwlpI8iyhvVZRg8C.jpg",
+      "tmdbId": 2440
+    },
+    {
+      "name": "Sean Penn",
+      "film": "21 grammi",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/9glqNTVpFpdN1nFklKaHPUyCwR6.jpg",
+      "tmdbId": 2228
+    },
+    {
+      "name": "Muzaffer Özdemir",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Uzak",
+      "profilePath": "/6BCDhq5dxRCTLTB1i6YP6JQ44JK.jpg",
+      "tmdbId": 107521
+    },
+    {
+      "name": "Emin Toprak",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Uzak",
+      "profilePath": "/7SXN3BfVv5aVQxp9gvdShIDPCvo.jpg",
+      "tmdbId": 107522
+    },
+    {
+      "name": "Bill Nighy",
+      "awards": {
+        "lafca": "Y"
+      },
+      "film": "AKA",
+      "profilePath": "/ixFI2YCGNGJfwlpI8iyhvVZRg8C.jpg",
+      "tmdbId": 2440
+    },
+    {
+      "name": "Daniel Day-Lewis",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Gangs of New York",
+      "role": "Leading",
+      "profilePath": "/3kNA9VcmymoEwT0btQ4bvMYxzcP.jpg",
+      "tmdbId": 11856
+    },
+    {
+      "name": "Dennis Quaid",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Far from Heaven",
+      "role": "Supporting",
+      "profilePath": "/lMaDAJHzsKH7U3dln2B3kY3rOhE.jpg",
+      "tmdbId": 6065
+    },
+    {
+      "name": "Chiwetel Ejiofor",
+      "film": "Dirty Pretty Things",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/kq5DDnqqofoRI0t6ddtRlsJnNPT.jpg",
+      "tmdbId": 5294
+    },
+    {
+      "name": "Susan Lynch",
+      "film": "16 Years of Alcohol",
+      "awards": {
+        "bifa": "Y"
+      }
+    },
+    {
+      "name": "Ben Kingsley",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X",
+        "spirit": "X"
+      },
+      "film": "House of Sand and Fog",
+      "role": "Leading",
+      "profilePath": "/vQtBqpF2HDdzbfXHDzR4u37i1Ac.jpg",
+      "tmdbId": 2282
+    },
+    {
+      "name": "Benicio del Toro",
+      "film": "21 Grams",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X",
+        "lafca": "X"
+      },
+      "profilePath": "/aYomJWx0B2B8ra6Rmgt8lr0XCrw.jpg",
+      "tmdbId": 1121
+    },
+    {
+      "name": "Alec Baldwin",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X"
+      },
+      "film": "The Cooler",
+      "role": "Leading",
+      "profilePath": "/hzKy7x574eeUS3wt1R3yvWBRpeR.jpg",
+      "tmdbId": 7447
+    },
+    {
+      "name": "Ken Watanabe",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X"
+      },
+      "film": "The Last Samurai",
+      "role": "Leading"
+    },
+    {
+      "name": "Jude Law",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "oscar": "X"
+      },
+      "film": "Cold Mountain",
+      "role": "Leading",
+      "profilePath": "/1rTmD8B1YAE1MrrBJs4krIiIvNM.jpg",
+      "tmdbId": 9642
+    },
+    {
+      "name": "Russell Crowe",
+      "awards": {
+        "gg": "X",
+        "critics": "X"
+      },
+      "film": "Master and Commander: The Far Side of the World",
+      "role": "Leading",
+      "profilePath": "/uxiXuVH4vNWrKlJMVVPG1sxAJFe.jpg",
+      "tmdbId": 934
+    },
+    {
+      "name": "Albert Finney",
+      "awards": {
+        "gg": "X",
+        "bafta": "X"
+      },
+      "film": "Big Fish",
+      "role": "Leading",
+      "profilePath": "/a2qJxu55s97ySRdjsy2ywIXJvhf.jpg",
+      "tmdbId": 3926
+    },
+    {
+      "name": "Peter Sarsgaard",
+      "awards": {
+        "gg": "X",
+        "spirit": "X"
+      },
+      "film": "Shattered Glass",
+      "role": "Leading",
+      "profilePath": "/5UANyM4co2nwYPgSEmGeNlZRm7V.jpg",
+      "tmdbId": 133
+    },
+    {
+      "name": "Paul Bettany",
+      "film": "Master and Commander: The Far Side of the World",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "critics": "X"
+      },
+      "profilePath": "/vcAVrAOZrpqmi37qjFdztRAv1u9.jpg",
+      "tmdbId": 6162
+    },
+    {
+      "name": "Peter Dinklage",
+      "awards": {
+        "sag": "X",
+        "spirit": "X"
+      },
+      "film": "The Station Agent",
+      "role": "Leading",
+      "profilePath": "/9CAd7wr8QZyIN0E7nm8v1B6WkGn.jpg",
+      "tmdbId": 22970
+    },
+    {
+      "name": "Tom Cruise",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "The Last Samurai",
+      "role": "Leading",
+      "profilePath": "/maf8PhSvDCdEwjEMbYfGpojR5RP.jpg",
+      "tmdbId": 500
+    },
+    {
+      "name": "Jack Black",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "School of Rock",
+      "role": "Leading",
+      "profilePath": "/59IhgCtiWI5yTfzPhsjzg7GjCjm.jpg",
+      "tmdbId": 70851
+    },
+    {
+      "name": "Jack Nicholson",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Something's Gotta Give",
+      "role": "Leading",
+      "profilePath": "/hBHcQIEa6P48HQAlLZkh0eKSSkG.jpg",
+      "tmdbId": 514
+    },
+    {
+      "name": "Billy Bob Thornton",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Bad Santa",
+      "role": "Leading",
+      "profilePath": "/i5EKWHuXokznIDMy2prTXzRmklI.jpg",
+      "tmdbId": 879
+    },
+    {
+      "name": "William H. Macy",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Seabiscuit",
+      "role": "Leading",
+      "profilePath": "/hdVEGSrP8qWlJnt0v5vSVcGOjy7.jpg",
+      "tmdbId": 3905
+    },
+    {
+      "name": "Ian McKellen",
+      "film": "The Lord of the Rings: The Return of the King",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/coWjgMEYJjk2OrNddlXCBm8EIr3.jpg",
+      "tmdbId": 1327
+    },
+    {
+      "name": "Chris Cooper",
+      "awards": {
+        "sag": "X"
+      },
+      "film": "Seabiscuit",
+      "role": "Supporting",
+      "profilePath": "/j0sQDzaDlnNAdaYhy6HRRAFi22.jpg",
+      "tmdbId": 2955
+    },
+    {
+      "name": "Paul Giamatti",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "American Splendor",
+      "profilePath": "/wbrVVJRr5TwhDZuvijBgOorzcAb.jpg",
+      "tmdbId": 13242
+    },
+    {
+      "name": "Lee Pace",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Soldier's Girl",
+      "profilePath": "/hePfTi5HwU9X0eX2sOmHj9I1Ryp.jpg",
+      "tmdbId": 72095
+    },
+    {
+      "name": "Judah Friedlander",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "American Splendor",
+      "profilePath": "/bwg3rqSxlHAUhpmRreSpECs0YZf.jpg",
+      "tmdbId": 52860
+    },
+    {
+      "name": "Troy Garity",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Soldier's Girl",
+      "profilePath": "/eNK78vBECYQbug1h7jFVo8OeHr0.jpg",
+      "tmdbId": 31711
+    },
+    {
+      "name": "Alessandro Nivola",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Laurel Canyon",
+      "profilePath": "/53wfpjSwPTMwhfuOSdgGgojMI8m.jpg",
+      "tmdbId": 4941
+    },
+    {
+      "name": "Paddy Considine",
+      "film": "In America",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/rui7HJUi2TzqMh2GQJ1bcQzr8M0.jpg",
+      "tmdbId": 14887
+    },
+    {
+      "name": "Ewan McGregor",
+      "film": "Young Adam",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/q2UDxfwWnmXTB7khOUF3J9puBVP.jpg",
+      "tmdbId": 3061
+    },
+    {
+      "name": "Kevin McKidd",
+      "film": "16 Years of Alcohol",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/KtmEKOSehmQ35JfGjEjpqlypbP.jpg",
+      "tmdbId": 9013
+    },
+    {
+      "name": "Joaquin Phoenix",
+      "film": "Buffalo Soldiers",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/u38k3hQBDwNX0VA22aQceDp9Iyv.jpg",
+      "tmdbId": 73421
+    },
+    {
+      "name": "Shirley Henderson",
+      "film": "Wilbur Wants to Kill Himself",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/dxVvLjGNKVMl5lDXXInJ7xWpCvl.jpg",
+      "tmdbId": 1834
+    },
+    {
+      "name": "Sophie Okonedo",
+      "film": "Dirty Pretty Things",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/oMZmk0q04ly3ztD8Us4f1yfPyF1.jpg",
+      "tmdbId": 2598
+    },
+    {
+      "name": "Adrian Rawlins",
+      "film": "Wilbur Wants to Kill Himself",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/G0PGZqTjenuVTAQiib4ScU7vAI.jpg",
+      "tmdbId": 1643
+    },
+    {
+      "name": "Benedict Wong",
+      "film": "Dirty Pretty Things",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/yYfLyrC2CE6vBWSJfkpuVKL2POM.jpg",
+      "tmdbId": 30082
+    }
+  ],
+  "best-actress": [
+    {
+      "name": "Charlize Theron",
+      "awards": {
+        "gg": "Y",
+        "sag": "Y",
+        "critics": "Y",
+        "oscar": "Y",
+        "lafca": "X",
+        "spirit": "Y"
+      },
+      "film": "Monster",
+      "role": "Leading",
+      "profilePath": "/ie1KbeYFG5E0GVr1QP7tDNuXvga.jpg",
+      "tmdbId": 6885
+    },
+    {
+      "name": "Renée Zellweger",
+      "awards": {
+        "gg": "Y",
+        "bafta": "Y",
+        "sag": "Y",
+        "critics": "Y",
+        "oscar": "Y"
+      },
+      "film": "Cold Mountain",
+      "role": "Leading",
+      "profilePath": "/u4wQXVYhN9OOimHn5hbWKefdjjG.jpg",
+      "tmdbId": 9137
+    },
+    {
+      "name": "Diane Keaton",
+      "awards": {
+        "gg": "Y",
+        "sag": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "oscar": "X"
+      },
+      "film": "Something's Gotta Give",
+      "role": "Leading",
+      "profilePath": "/A8B3BsFgbmw2WEmJuQX38qeU9eR.jpg",
+      "tmdbId": 3092
+    },
+    {
+      "name": "Shohreh Aghdashloo",
+      "film": "House of Sand and Fog",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "lafca": "Y",
+        "spirit": "Y"
+      },
+      "profilePath": "/7josGC8QO9V6V8AuFdaS2tjUF8W.jpg",
+      "tmdbId": 21041
+    },
+    {
+      "name": "Naomi Watts",
+      "film": "21 Grams",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X",
+        "lafca": "Y"
+      },
+      "profilePath": "/5s6UE6VjYx5TBDvyFk4vfOdS9GR.jpg",
+      "tmdbId": 3489
+    },
+    {
+      "name": "Scarlett Johansson",
+      "awards": {
+        "gg": "X",
+        "bafta": "Y",
+        "critics": "X"
+      },
+      "film": "Lost in Translation",
+      "role": "Leading",
+      "profilePath": "/sRjg0DbiA5DElSr3g3SSR4EArL8.jpg",
+      "tmdbId": 1245
+    },
+    {
+      "name": "Katja Riemann",
+      "film": "Rosenstrasse",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/waayy0jpNbxLDQ8JO1uRDng8SLF.jpg",
+      "tmdbId": 1874
+    },
+    {
+      "name": "Marie-Josée Croze",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "The Barbarian Invasions",
+      "profilePath": "/d7sRQCDFijXaSnyiZpURknJAQFi.jpg",
+      "tmdbId": 8791
+    },
+    {
+      "name": "Diane Lane",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Unfaithful",
+      "role": "Leading",
+      "profilePath": "/6OfP3vFMuCL51zamFKgb8aS74hs.jpg",
+      "tmdbId": 2882
+    },
+    {
+      "name": "Patricia Clarkson",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Far from Heaven",
+      "role": "Supporting",
+      "profilePath": "/rHHM9G83fpBAcFathbSyV4Tot5j.jpg",
+      "tmdbId": 1276
+    },
+    {
+      "name": "Olivia Williams",
+      "film": "The Heart of Me",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/94bnuQXo3LoxNvcFXeAoVvIIm3N.jpg",
+      "tmdbId": 11616
+    },
+    {
+      "name": "Patricia Clarkson",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X",
+        "spirit": "X"
+      },
+      "film": "Pieces of April",
+      "role": "Leading",
+      "profilePath": "/rHHM9G83fpBAcFathbSyV4Tot5j.jpg",
+      "tmdbId": 1276
+    },
+    {
+      "name": "Holly Hunter",
+      "awards": {
+        "gg": "X",
+        "bafta": "X",
+        "sag": "X",
+        "critics": "X",
+        "oscar": "X"
+      },
+      "film": "Thirteen",
+      "role": "Leading",
+      "profilePath": "/kC7KX03VAWvogOCuwKbMo4V6TuU.jpg",
+      "tmdbId": 18686
+    },
+    {
+      "name": "Samantha Morton",
+      "film": "In America",
+      "role": "Leading",
+      "awards": {
+        "critics": "X",
+        "oscar": "X",
+        "spirit": "X",
+        "bifa": "X"
+      },
+      "profilePath": "/v84b7MENeD9rwX6xTD7fSdhSOC9.jpg",
+      "tmdbId": 2206
+    },
+    {
+      "name": "Scarlett Johansson",
+      "awards": {
+        "gg": "X",
+        "bafta": "X"
+      },
+      "film": "Girl with a Pearl Earring",
+      "role": "Leading",
+      "profilePath": "/sRjg0DbiA5DElSr3g3SSR4EArL8.jpg",
+      "tmdbId": 1245
+    },
+    {
+      "name": "Nicole Kidman",
+      "awards": {
+        "gg": "X",
+        "critics": "X"
+      },
+      "film": "Cold Mountain",
+      "role": "Leading",
+      "profilePath": "/lfW2cDigTcvuoe4k6UfCdGVE1R6.jpg",
+      "tmdbId": 2227
+    },
+    {
+      "name": "Uma Thurman",
+      "awards": {
+        "gg": "X",
+        "bafta": "X"
+      },
+      "film": "Kill Bill: Volume 1",
+      "role": "Leading",
+      "profilePath": "/sBgAZWi3o4FsnaTvnTNtK6jpQcF.jpg",
+      "tmdbId": 139
+    },
+    {
+      "name": "Evan Rachel Wood",
+      "awards": {
+        "gg": "X",
+        "sag": "X"
+      },
+      "film": "Thirteen",
+      "role": "Leading",
+      "profilePath": "/ksXTb2bvqt60bCGRwBlWrNbZHnr.jpg",
+      "tmdbId": 38940
+    },
+    {
+      "name": "Maria Bello",
+      "awards": {
+        "gg": "X",
+        "sag": "X"
+      },
+      "film": "The Cooler",
+      "role": "Leading",
+      "profilePath": "/it1f5mxiGIWO0DzTBfwtLTjphZb.jpg",
+      "tmdbId": 49
+    },
+    {
+      "name": "Keisha Castle-Hughes",
+      "awards": {
+        "sag": "X",
+        "oscar": "X"
+      },
+      "film": "Whale Rider",
+      "role": "Supporting",
+      "profilePath": "/9lBukGiFVV0pKNwndaNhRQVnNmt.jpg",
+      "tmdbId": 15293
+    },
+    {
+      "name": "Marcia Gay Harden",
+      "film": "Mystic River",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X",
+        "oscar": "X"
+      },
+      "profilePath": "/5vxcHIHABJxqhweAsTiXVOhT4SE.jpg",
+      "tmdbId": 4726
+    },
+    {
+      "name": "Cate Blanchett",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Veronica Guerin",
+      "role": "Leading",
+      "profilePath": "/vUuEHiAR0eD3XEJhg2DWIjymUAA.jpg",
+      "tmdbId": 112
+    },
+    {
+      "name": "Jamie Lee Curtis",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Freaky Friday",
+      "role": "Leading",
+      "profilePath": "/eb0lIt32WwrjtCULe5z6l9eBf06.jpg",
+      "tmdbId": 8944
+    },
+    {
+      "name": "Diane Lane",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Under the Tuscan Sun",
+      "role": "Leading",
+      "profilePath": "/6OfP3vFMuCL51zamFKgb8aS74hs.jpg",
+      "tmdbId": 2882
+    },
+    {
+      "name": "Helen Mirren",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Calendar Girls",
+      "role": "Leading",
+      "profilePath": "/1reKRrsdsHXJaRVHVyOEg4oPTcZ.jpg",
+      "tmdbId": 15735
+    },
+    {
+      "name": "Hope Davis",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "American Splendor",
+      "role": "Leading",
+      "profilePath": "/dJb76YQDFmfJ6ptlvBvx0ZBP44C.jpg",
+      "tmdbId": 15250
+    },
+    {
+      "name": "Anne Reid",
+      "film": "The Mother",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/d9ujsWfh1SfKNaiLs40cFue0CfE.jpg",
+      "tmdbId": 77287
+    },
+    {
+      "name": "Emma Thompson",
+      "film": "Love Actually",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/xVrrH7dAoeotune3TWjv5Tr3F3U.jpg",
+      "tmdbId": 7056
+    },
+    {
+      "name": "Judy Parfitt",
+      "film": "Girl with a Pearl Earring",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/c0kgdslVSweFnUqJDn7Yyu6mi24.jpg",
+      "tmdbId": 33448
+    },
+    {
+      "name": "Laura Linney",
+      "film": "Mystic River",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/yIopIq7l7eIvjoQqnZJkpdQEvds.jpg",
+      "tmdbId": 350
+    },
+    {
+      "name": "Patricia Clarkson",
+      "awards": {
+        "sag": "X"
+      },
+      "film": "The Station Agent",
+      "role": "Leading",
+      "profilePath": "/rHHM9G83fpBAcFathbSyV4Tot5j.jpg",
+      "tmdbId": 1276
+    },
+    {
+      "name": "Jennifer Connelly",
+      "film": "House of Sand and Fog",
+      "role": "Leading",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/wdmcJagSRJ65AuJ4IUCzuHAdvgy.jpg",
+      "tmdbId": 6161
+    },
+    {
+      "name": "Melissa Leo",
+      "awards": {
+        "lafca": "X"
+      },
+      "film": "21 Grams",
+      "profilePath": "/tKNTvhmuO7FZMYYgRrZB6k8FT5K.jpg",
+      "tmdbId": 6832
+    },
+    {
+      "name": "Agnes Bruckner",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Blue Car",
+      "profilePath": "/n9bglCZa1Qv9cYbP8f7hg32YciH.jpg",
+      "tmdbId": 51536
+    },
+    {
+      "name": "Zooey Deschanel",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "All the Real Girls",
+      "profilePath": "/30KQyjsXfrdm4Dcori7bDFTg9Le.jpg",
+      "tmdbId": 11664
+    },
+    {
+      "name": "Elisabeth Moss",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Virgin",
+      "profilePath": "/vZDe22EtLtcHvPr28l4ZM0b7qjG.jpg",
+      "tmdbId": 32798
+    },
+    {
+      "name": "Sarah Bolger",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "In America",
+      "profilePath": "/A3K2l5kkqTMQHtAkctzICqtbZMY.jpg",
+      "tmdbId": 33397
+    },
+    {
+      "name": "Hope Davis",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "The Secret Lives of Dentists",
+      "profilePath": "/dJb76YQDFmfJ6ptlvBvx0ZBP44C.jpg",
+      "tmdbId": 15250
+    },
+    {
+      "name": "Frances McDormand",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Laurel Canyon",
+      "profilePath": "/r0A7hZsM1zuavTr0jN7bwmBcliR.jpg",
+      "tmdbId": 3910
+    },
+    {
+      "name": "Kate Ashfield",
+      "film": "This Little Life",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/rtuYpo9W4AsCvI1I6brIdHe7qi.jpg",
+      "tmdbId": 11110
+    },
+    {
+      "name": "Helena Bonham Carter",
+      "film": "The Heart of Me",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/hJMbNSPJ2PCahsP3rNEU39C8GWU.jpg",
+      "tmdbId": 1283
+    },
+    {
+      "name": "Tilda Swinton",
+      "film": "Young Adam",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/dzjT4LKgs7eOma84GsPy78DsGNH.jpg",
+      "tmdbId": 3063
+    }
+  ]
+}

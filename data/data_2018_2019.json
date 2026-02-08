@@ -1,0 +1,1518 @@
+{
+  "best-film": [
+    {
+      "name": "Roma",
+      "awards": {
+        "bafta": "Y",
+        "oscar": "X",
+        "critics": "Y",
+        "nbr": "Y",
+        "afi": "Y",
+        "venice": "Y",
+        "pga": "X",
+        "lafca": "Y",
+        "wga": "X",
+        "adg": "X"
+      },
+      "posterPath": "/rqK75R3tTz2iWU0AQ6tLz3KMOU1.jpg",
+      "tmdbId": 11035
+    },
+    {
+      "name": "Green Book",
+      "awards": {
+        "bafta": "X",
+        "gg": "Y",
+        "oscar": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "afi": "Y",
+        "pga": "Y",
+        "wga": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/7BsvSuDQuoqhWmU2fL7W2GOcZHU.jpg",
+      "tmdbId": 490132
+    },
+    {
+      "name": "Black Panther",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "sag": "Y",
+        "critics": "X",
+        "nbr": "Y",
+        "afi": "Y",
+        "pga": "X",
+        "wga": "X",
+        "adg": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/uxzzxijgPIY7slzFvMotPv8wjKA.jpg",
+      "tmdbId": 284054
+    },
+    {
+      "name": "The Favourite",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "afi": "Y",
+        "pga": "X",
+        "adg": "Y",
+        "gotham": "X",
+        "bifa": "Y"
+      },
+      "genre": "Comedy",
+      "posterPath": "/cwBq0onfmeilU5xgqNNjJAMPfpw.jpg",
+      "tmdbId": 375262
+    },
+    {
+      "name": "If Beale Street Could Talk",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "afi": "Y",
+        "wga": "X",
+        "gotham": "X",
+        "spirit": "Y"
+      },
+      "genre": "Drama",
+      "posterPath": "/76NfwnaZI43gOQove0LU9O23Qjz.jpg",
+      "tmdbId": 465914
+    },
+    {
+      "name": "Eighth Grade",
+      "awards": {
+        "nbr": "Y",
+        "afi": "Y",
+        "wga": "Y",
+        "spirit": "X"
+      },
+      "posterPath": "/xTa9cLhGHfQ7084UvoPQ2bBXKqd.jpg",
+      "tmdbId": 489925
+    },
+    {
+      "name": "A Star Is Born",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "afi": "Y",
+        "pga": "X",
+        "wga": "X",
+        "adg": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/wrFpXMNBRj2PBiN4Z5kix51XaIZ.jpg",
+      "tmdbId": 332562
+    },
+    {
+      "name": "Mary Poppins Returns",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "afi": "Y",
+        "adg": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/uTVGku4LibMGyKgQvjBtv3OYfAX.jpg",
+      "tmdbId": 400650
+    },
+    {
+      "name": "A Quiet Place",
+      "awards": {
+        "nbr": "Y",
+        "afi": "Y",
+        "pga": "X",
+        "wga": "X",
+        "adg": "X"
+      },
+      "posterPath": "/nAU74GmpUk7t5iklEp3bufwDq4n.jpg",
+      "tmdbId": 447332
+    },
+    {
+      "name": "First Reformed",
+      "awards": {
+        "nbr": "Y",
+        "afi": "Y",
+        "gotham": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/8HKA3Hwf8jQWy8TCYWr7C8Wft23.jpg",
+      "tmdbId": 458737
+    },
+    {
+      "name": "Can You Ever Forgive Me?",
+      "awards": {
+        "nbr": "Y",
+        "wga": "Y"
+      },
+      "posterPath": "/y9pDvBdvU8Z5QjQ6Y4oF0Cq7p5j.jpg",
+      "tmdbId": 401847
+    },
+    {
+      "name": "BlacKkKlansman",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "afi": "Y",
+        "pga": "X",
+        "wga": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/8jxqAvSDoneSKRczaK8v9X5gqBp.jpg",
+      "tmdbId": 487558
+    },
+    {
+      "name": "Bohemian Rhapsody",
+      "awards": {
+        "gg": "Y",
+        "oscar": "X",
+        "sag": "X",
+        "pga": "X",
+        "adg": "X"
+      },
+      "genre": "Drama",
+      "posterPath": "/lHu1wtNaczFPGFDTrjCSzeLPTKN.jpg",
+      "tmdbId": 424694
+    },
+    {
+      "name": "Crazy Rich Asians",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "pga": "X",
+        "adg": "Y"
+      },
+      "genre": "Comedy",
+      "posterPath": "/1XxL4LJ5WHdrcYcihEZUCgNCpAW.jpg",
+      "tmdbId": 455207
+    },
+    {
+      "name": "The Ballad of Buster Scruggs",
+      "awards": {
+        "nbr": "Y",
+        "adg": "X"
+      },
+      "posterPath": "/voxl654m7p36y8FLu8oQD7dfwwK.jpg",
+      "tmdbId": 537996
+    },
+    {
+      "name": "Spider-Man: Into the Spider-Verse —",
+      "awards": {
+        "annie": "Y"
+      },
+      "posterPath": "/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg",
+      "tmdbId": 324857
+    },
+    {
+      "name": "Shoplifters",
+      "awards": {
+        "cannes": "Y"
+      },
+      "note": "Director: Hirokazu Kore-eda",
+      "posterPath": "/xRv3FbRpbaRm7xW4JGVZEXxmHTv.jpg",
+      "tmdbId": 1391581
+    },
+    {
+      "name": "The Image Book",
+      "awards": {
+        "cannes": "Y"
+      },
+      "note": "Director: Jean-Luc Godard",
+      "posterPath": "/5y1mTTYPVvaPeKIVqy3DymE6osv.jpg",
+      "tmdbId": 414030
+    },
+    {
+      "name": "Lady Bird",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "posterPath": "/gl66K7zRdtNYGrxyS2YDUP5ASZd.jpg",
+      "tmdbId": 391713
+    },
+    {
+      "name": "The Rider",
+      "awards": {
+        "gotham": "Y"
+      },
+      "posterPath": "/cFsrA0Is5xode2INrPj1VJcQ18n.jpg",
+      "tmdbId": 453278
+    },
+    {
+      "name": "Vice",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "pga": "X",
+        "wga": "X"
+      },
+      "genre": "Comedy",
+      "posterPath": "/cBwZIq1QFasmsC9Wi3HvyEljfYN.jpg",
+      "tmdbId": 307663
+    },
+    {
+      "name": "First Man",
+      "awards": {
+        "critics": "X",
+        "adg": "X"
+      },
+      "posterPath": "/i91mfvFcPPlaegcbOyjGgiWfZzh.jpg",
+      "tmdbId": 369972
+    },
+    {
+      "name": "You Were Never Really Here",
+      "awards": {
+        "bifa": "X",
+        "spirit": "X"
+      },
+      "posterPath": "/nx4lUyQNEzJowcF55VAP0TQEaX0.jpg",
+      "tmdbId": 398181
+    },
+    {
+      "name": "Early Man —",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/esR5SuORqZPezKERZPTeSVStluF.jpg",
+      "tmdbId": 498394
+    },
+    {
+      "name": "Incredibles 2",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/9lFKBtaVIhP7E2Pk0IY1CwTKTMZ.jpg",
+      "tmdbId": 260513
+    },
+    {
+      "name": "Isle of Dogs —",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/c0nUX6Q1ZB0P2t1Jo6EeFSVnOGQ.jpg",
+      "tmdbId": 399174
+    },
+    {
+      "name": "Ralph Breaks the Internet",
+      "awards": {
+        "annie": "X"
+      },
+      "posterPath": "/iVCrhBcpDaHGvv7CLYbK6PuXZo1.jpg",
+      "tmdbId": 404368
+    },
+    {
+      "name": "Burning",
+      "awards": {
+        "lafca": "X"
+      },
+      "posterPath": "/pdEgV6PckeiVcnComUw8bOirrpC.jpg",
+      "tmdbId": 858058
+    },
+    {
+      "name": "Fantastic Beasts: The Crimes of Grindelwald",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/fMMrl8fD9gRCFJvsx0SuFwkEOop.jpg",
+      "tmdbId": 338952
+    },
+    {
+      "name": "The House with a Clock in Its Walls",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/qM66Hv4ByAxnilr0jaqCA9uOD4Y.jpg",
+      "tmdbId": 463821
+    },
+    {
+      "name": "Ready Player One",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/pU1ULUq8D3iRxl1fdX2lZIzdHuI.jpg",
+      "tmdbId": 333339
+    },
+    {
+      "name": "Mission: Impossible – Fallout",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/AkJQpZp9WoNdj7pLYSj1L0RcMMN.jpg",
+      "tmdbId": 353081
+    },
+    {
+      "name": "Welcome to Marwen",
+      "awards": {
+        "adg": "X"
+      },
+      "posterPath": "/dOULsxYQFsOR0cEBBB20xnjJkPD.jpg",
+      "tmdbId": 351044
+    },
+    {
+      "name": "Madeline's Madeline",
+      "awards": {
+        "gotham": "X"
+      },
+      "posterPath": "/8PcvYO5SHmPUFzdXpI2kzj3JtXN.jpg",
+      "tmdbId": 468735
+    },
+    {
+      "name": "American Animals",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/aLbdKxgxuOPvs6CTlmzoOQ4Yg3j.jpg",
+      "tmdbId": 489931
+    },
+    {
+      "name": "Beast",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/uqgpZPhZzHIZAPyCQWeQcwebVp7.jpg",
+      "tmdbId": 1017178
+    },
+    {
+      "name": "Disobedience",
+      "awards": {
+        "bifa": "X"
+      },
+      "posterPath": "/skPT4ffWhlmmDOMNEdxOiP6Emfz.jpg",
+      "tmdbId": 419743
+    },
+    {
+      "name": "Leave No Trace",
+      "awards": {
+        "spirit": "X"
+      },
+      "posterPath": "/sygnLx3sZV5P8M2dyaGRegHdEL1.jpg",
+      "tmdbId": 443463
+    }
+  ],
+  "best-director": [
+    {
+      "name": "Alfonso Cuarón",
+      "film": "Roma",
+      "awards": {
+        "bafta": "Y",
+        "gg": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "dga": "Y",
+        "lafca": "X"
+      },
+      "profilePath": "/eoCHiXaQzGgx9RiwXnt3k239FLc.jpg",
+      "tmdbId": 11218
+    },
+    {
+      "name": "Bradley Cooper",
+      "film": "A Star Is Born",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "critics": "X",
+        "nbr": "Y",
+        "dga": "X"
+      },
+      "profilePath": "/sQq0nft6YZmJ7EMQwPcbaxym3AL.jpg",
+      "tmdbId": 51329
+    },
+    {
+      "name": "Yorgos Lanthimos",
+      "film": "The Favourite",
+      "awards": {
+        "bafta": "X",
+        "oscar": "X",
+        "critics": "X",
+        "bifa": "Y"
+      },
+      "profilePath": "/dvtv8eV1O8Fl385ctOu3sqO2PbD.jpg",
+      "tmdbId": 122423
+    },
+    {
+      "name": "Paweł Pawlikowski",
+      "film": "Cold War",
+      "awards": {
+        "bafta": "X",
+        "oscar": "X",
+        "cannes": "Y"
+      },
+      "profilePath": "/vzhGoaJpQrJV8arrz2px7J0yMCF.jpg",
+      "tmdbId": 64194
+    },
+    {
+      "name": "Debra Granik",
+      "awards": {
+        "lafca": "Y",
+        "spirit": "X"
+      },
+      "film": "Leave No Trace",
+      "profilePath": "/fgV1v014IAKTKJWLigH5IhxKisU.jpg",
+      "tmdbId": 121873
+    },
+    {
+      "name": "Jacques Audiard",
+      "film": "I fratelli Sisters ( The Sisters Brothers ) [ 15 ]",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/cODcsQRkKSEiZlEQvdKwnDm136l.jpg",
+      "tmdbId": 17496
+    },
+    {
+      "name": "Sean Baker",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "The Florida Project",
+      "profilePath": "/wKfNgfRvPhLHMrwuweSwLOmhRzT.jpg",
+      "tmdbId": 118415
+    },
+    {
+      "name": "Barry Jenkins",
+      "awards": {
+        "spirit": "Y"
+      },
+      "film": "If Beale Street Could Talk",
+      "profilePath": "/6nld5eQwiJmuLmyesk4EUeCaoo3.jpg",
+      "tmdbId": 92784
+    },
+    {
+      "name": "Spike Lee",
+      "film": "BlacKkKlansman",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "dga": "X"
+      },
+      "profilePath": "/2KOHXgk2uoRXl6u7V9xpAIo3uay.jpg",
+      "tmdbId": 5281
+    },
+    {
+      "name": "Adam McKay",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X",
+        "dga": "X"
+      },
+      "film": "Vice",
+      "profilePath": "/vOyZXNJq7Oo01LPtSD5AZHjctgH.jpg",
+      "tmdbId": 55710
+    },
+    {
+      "name": "Peter Farrelly",
+      "awards": {
+        "gg": "X",
+        "critics": "X",
+        "dga": "X"
+      },
+      "film": "Green Book",
+      "profilePath": "/3PDYOFfk5NLmNcEz6SFZmdmqVZr.jpg",
+      "tmdbId": 7396
+    },
+    {
+      "name": "Lynne Ramsay",
+      "film": "You Were Never Really Here",
+      "awards": {
+        "bifa": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/d9Of8NacDwAcC9hnc6YAUmHcg9L.jpg",
+      "tmdbId": 83287
+    },
+    {
+      "name": "Damien Chazelle",
+      "film": "First Man",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/14kRZ3XxNMyBv717YQSXr3wCucy.jpg",
+      "tmdbId": 136495
+    },
+    {
+      "name": "Andrew Haigh",
+      "film": "Lean on Pete",
+      "awards": {
+        "bifa": "X"
+      }
+    },
+    {
+      "name": "Bart Layton",
+      "film": "American Animals",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/zAc9d3PUZmgls9Xu0lRF9Etw1Mc.jpg",
+      "tmdbId": 859754
+    },
+    {
+      "name": "Michael Pearce",
+      "film": "Beast",
+      "awards": {
+        "bifa": "X"
+      }
+    },
+    {
+      "name": "Tamara Jenkins",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Private Life",
+      "profilePath": "/oPnE0FiniJFX333Am6F6cDsT6gy.jpg",
+      "tmdbId": 54240
+    },
+    {
+      "name": "Paul Schrader",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "First Reformed",
+      "profilePath": "/ctRxgCUSRFudwFaPG2AanL71Y3V.jpg",
+      "tmdbId": 1035
+    }
+  ],
+  "best-actor": [
+    {
+      "name": "Mahershala Ali",
+      "film": "Green Book",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "Y",
+        "gg": "Y",
+        "oscar": "Y",
+        "sag": "Y",
+        "critics": "Y"
+      },
+      "profilePath": "/9ZmSejm5lnUVY5IJ1iNx2QEjnHb.jpg",
+      "tmdbId": 932967
+    },
+    {
+      "name": "Rami Malek",
+      "film": "Bohemian Rhapsody",
+      "role": "Leading",
+      "awards": {
+        "bafta": "Y",
+        "gg": "Y",
+        "oscar": "Y",
+        "sag": "Y",
+        "critics": "X"
+      },
+      "profilePath": "/zvBCjFmedqXRqa45jlLf6vBd9Nt.jpg",
+      "tmdbId": 17838
+    },
+    {
+      "name": "Ethan Hawke",
+      "film": "First Reformed",
+      "role": "Leading",
+      "awards": {
+        "critics": "X",
+        "lafca": "Y",
+        "gotham": "Y",
+        "spirit": "Y"
+      },
+      "profilePath": "/2LoTr6x0TEM7L5em4kSx1VmGDgG.jpg",
+      "tmdbId": 569
+    },
+    {
+      "name": "Christian Bale",
+      "film": "Vice",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "Y",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "Y"
+      },
+      "profilePath": "/7Pxez9J8fuPd2Mn9kex13YALrCQ.jpg",
+      "tmdbId": 3894
+    },
+    {
+      "name": "Richard E. Grant",
+      "film": "Can You Ever Forgive Me?",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "gotham": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/6UXv8E4WWvRCKMQx1FQ0FJVyu0a.jpg",
+      "tmdbId": 20766
+    },
+    {
+      "name": "Viggo Mortensen",
+      "film": "Green Book",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "nbr": "Y"
+      },
+      "profilePath": "/vH5gVSpHAMhDaFWfh0Q7BG61O1y.jpg",
+      "tmdbId": 110
+    },
+    {
+      "name": "Willem Dafoe",
+      "film": "Van Gogh - Sulla soglia dell'eternità",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/ui8e4sgZAwMPi3hzEO53jyBJF9B.jpg",
+      "tmdbId": 5293
+    },
+    {
+      "name": "Marcello Fonte",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Dogman",
+      "profilePath": "/ebh2JpmwGghbFC55nsHpxY6R2QL.jpg",
+      "tmdbId": 1699129
+    },
+    {
+      "name": "Steven Yeun",
+      "awards": {
+        "lafca": "Y"
+      },
+      "film": "Burning",
+      "profilePath": "/fOMFO2Xx4duzpNgS9Q5ytO44yGb.jpg",
+      "tmdbId": 215055
+    },
+    {
+      "name": "Timothée Chalamet",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Call Me by Your Name",
+      "role": "Leading",
+      "profilePath": "/dFxpwRpmzpVfP1zjluH68DeQhyj.jpg",
+      "tmdbId": 1190668
+    },
+    {
+      "name": "Willem Dafoe",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "The Florida Project",
+      "role": "Supporting",
+      "profilePath": "/ui8e4sgZAwMPi3hzEO53jyBJF9B.jpg",
+      "tmdbId": 5293
+    },
+    {
+      "name": "Joe Cole",
+      "film": "A Prayer Before Dawn",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/tJ4g1Zit0IqAhKiImTwAQrHHKuA.jpg",
+      "tmdbId": 1081875
+    },
+    {
+      "name": "Alessandro Nivola",
+      "film": "Disobedience",
+      "awards": {
+        "bifa": "Y"
+      },
+      "profilePath": "/53wfpjSwPTMwhfuOSdgGgojMI8m.jpg",
+      "tmdbId": 4941
+    },
+    {
+      "name": "Adam Driver",
+      "film": "BlacKkKlansman",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "gotham": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/me7eifBie8S7gFwhZfkF3jROL99.jpg",
+      "tmdbId": 1023139
+    },
+    {
+      "name": "Bradley Cooper",
+      "film": "A Star Is Born",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/sQq0nft6YZmJ7EMQwPcbaxym3AL.jpg",
+      "tmdbId": 51329
+    },
+    {
+      "name": "Timothée Chalamet",
+      "film": "Beautiful Boy",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/dFxpwRpmzpVfP1zjluH68DeQhyj.jpg",
+      "tmdbId": 1190668
+    },
+    {
+      "name": "Sam Rockwell",
+      "film": "Vice",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X"
+      },
+      "profilePath": "/afYhNpLwpa65Yy0Q0g00FNFhzx5.jpg",
+      "tmdbId": 6807
+    },
+    {
+      "name": "Willem Dafoe",
+      "awards": {
+        "gg": "X",
+        "oscar": "X",
+        "critics": "X"
+      },
+      "film": "At Eternity's Gate",
+      "role": "Leading",
+      "profilePath": "/ui8e4sgZAwMPi3hzEO53jyBJF9B.jpg",
+      "tmdbId": 5293
+    },
+    {
+      "name": "Sam Elliott",
+      "film": "A Star Is Born",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/1K2IvGXFbKsgkExuUsRvy4F0c9e.jpg",
+      "tmdbId": 16431
+    },
+    {
+      "name": "Steve Coogan",
+      "film": "Stan & Ollie",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "bifa": "X"
+      },
+      "profilePath": "/tT7OXc2qA6hlREHXdwGLp0XihzA.jpg",
+      "tmdbId": 4581
+    },
+    {
+      "name": "John David Washington",
+      "awards": {
+        "gg": "X",
+        "sag": "X"
+      },
+      "film": "BlacKkKlansman",
+      "role": "Leading",
+      "profilePath": "/27C77ni5XmlgkJVbomXPC4tHWVd.jpg",
+      "tmdbId": 1117313
+    },
+    {
+      "name": "Ben Foster",
+      "awards": {
+        "lafca": "X",
+        "gotham": "X"
+      },
+      "film": "Leave No Trace",
+      "profilePath": "/keBl3i2uHuowNdap0EgdxWxjWmm.jpg",
+      "tmdbId": 11107
+    },
+    {
+      "name": "Joaquin Phoenix",
+      "film": "You Were Never Really Here",
+      "awards": {
+        "bifa": "X",
+        "spirit": "X"
+      },
+      "profilePath": "/u38k3hQBDwNX0VA22aQceDp9Iyv.jpg",
+      "tmdbId": 73421
+    },
+    {
+      "name": "Lucas Hedges",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Boy Erased",
+      "role": "Leading",
+      "profilePath": "/8WP1uXUwm6Z1vzrMaIiKj89M6kX.jpg",
+      "tmdbId": 1105079
+    },
+    {
+      "name": "Lin-Manuel Miranda",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Mary Poppins Returns",
+      "role": "Leading",
+      "profilePath": "/r0wFwPa041pZ1QM66yJWuQXCkqx.jpg",
+      "tmdbId": 1179651
+    },
+    {
+      "name": "Robert Redford",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "The Old Man & the Gun",
+      "role": "Leading",
+      "profilePath": "/tCcg8rXzYIM4ota9grCCHc881bo.jpg",
+      "tmdbId": 4135
+    },
+    {
+      "name": "John C. Reilly",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Stan & Ollie",
+      "role": "Leading"
+    },
+    {
+      "name": "Ryan Gosling",
+      "film": "First Man",
+      "role": "Leading",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/asoKC7CLCqpZKZDL6iovNurQUdf.jpg",
+      "tmdbId": 30614
+    },
+    {
+      "name": "Michael B. Jordan",
+      "film": "Black Panther",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/515xNvaMC6xOEOlo0sFqW69ZqUH.jpg",
+      "tmdbId": 135651
+    },
+    {
+      "name": "Hugh Grant",
+      "awards": {
+        "lafca": "X"
+      },
+      "film": "Paddington 2",
+      "profilePath": "/dvV843fOuzsEPXHtFvdzsHpy1rC.jpg",
+      "tmdbId": 3291
+    },
+    {
+      "name": "Lakeith Stanfield",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "Sorry to Bother You",
+      "profilePath": "/x3k0HCpMNqEtVf2VKQrSCol1ia2.jpg",
+      "tmdbId": 1200864
+    },
+    {
+      "name": "Rupert Everett",
+      "film": "The Happy Prince",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/g0kqfIxf9eIV7rOMQcbebsgMS9Z.jpg",
+      "tmdbId": 4757
+    },
+    {
+      "name": "Charlie Plummer",
+      "film": "Lean on Pete",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/u2ig0kkgxq36BMbFQ4DEWfu5G3A.jpg",
+      "tmdbId": 1440574
+    },
+    {
+      "name": "Steve Buscemi",
+      "film": "Lean on Pete",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/kFzw4U5pExnLKZWhR48VSzL8Fre.jpg",
+      "tmdbId": 884
+    },
+    {
+      "name": "Barry Keoghan",
+      "film": "American Animals",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/ngoitknM6hw8fffLywyvjzy6Iti.jpg",
+      "tmdbId": 1290466
+    },
+    {
+      "name": "Evan Peters",
+      "film": "American Animals",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/n4yb5deDWPsvSQ9KLm0WR2Q2elC.jpg",
+      "tmdbId": 55089
+    },
+    {
+      "name": "Dominic West",
+      "film": "Colette",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/6y2M3EWslBPwPlugEFg8XDHfSJ0.jpg",
+      "tmdbId": 17287
+    },
+    {
+      "name": "John Cho",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Searching",
+      "profilePath": "/4Lar4uy8gk78cEocq6ERPRFWt3e.jpg",
+      "tmdbId": 68842
+    },
+    {
+      "name": "Daveed Diggs",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Blindspotting",
+      "profilePath": "/codalhZzB4LvJTSGOnOyrTEsqsF.jpg",
+      "tmdbId": 1652371
+    },
+    {
+      "name": "Christian Malheiros",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Sócrates",
+      "profilePath": "/xbeqS1H5z7GLKLnXQ6rwp2NOw2o.jpg",
+      "tmdbId": 2172524
+    },
+    {
+      "name": "Raúl Castillo",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "We the Animals",
+      "profilePath": "/wyxl5HtyjeJRXkE89LtsItQhPHN.jpg",
+      "tmdbId": 557579
+    },
+    {
+      "name": "Josh Hamilton",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Eighth Grade",
+      "profilePath": "/7nuAUPd7E8iOE5lhUcNpogS2akP.jpg",
+      "tmdbId": 52419
+    },
+    {
+      "name": "John David Washington",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Monsters and Men",
+      "profilePath": "/27C77ni5XmlgkJVbomXPC4tHWVd.jpg",
+      "tmdbId": 1117313
+    }
+  ],
+  "best-actress": [
+    {
+      "name": "Olivia Colman",
+      "film": "The Favourite",
+      "role": "Leading",
+      "awards": {
+        "bafta": "Y",
+        "gg": "Y",
+        "oscar": "Y",
+        "sag": "X",
+        "critics": "X",
+        "lafca": "Y",
+        "bifa": "Y"
+      },
+      "profilePath": "/lawJUdbLb1YW0niaYjiVGR9IBG8.jpg",
+      "tmdbId": 39187
+    },
+    {
+      "name": "Regina King",
+      "awards": {
+        "gg": "Y",
+        "oscar": "Y",
+        "critics": "Y",
+        "lafca": "Y",
+        "spirit": "Y"
+      },
+      "film": "If Beale Street Could Talk",
+      "role": "Supporting",
+      "profilePath": "/fEIz0ljk9CBrp3AitM5nwjfoGVu.jpg",
+      "tmdbId": 9788
+    },
+    {
+      "name": "Glenn Close",
+      "film": "The Wife",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "Y",
+        "oscar": "X",
+        "sag": "Y",
+        "critics": "Y",
+        "gotham": "X",
+        "spirit": "Y"
+      },
+      "profilePath": "/4VHZ1GfLwN7MUgApy0LCBzdDF9L.jpg",
+      "tmdbId": 515
+    },
+    {
+      "name": "Lady Gaga",
+      "film": "A Star Is Born",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "Y",
+        "nbr": "Y"
+      },
+      "profilePath": "/9Y4Pz7AEXhB9qNar2tMsx5EVXML.jpg",
+      "tmdbId": 237405
+    },
+    {
+      "name": "Rachel Weisz",
+      "film": "The Favourite",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "Y",
+        "gg": "X",
+        "sag": "X",
+        "bifa": "Y"
+      },
+      "profilePath": "/58czHc8QU1L4H0N45T0UML8efgS.jpg",
+      "tmdbId": 3293
+    },
+    {
+      "name": "Toni Collette",
+      "film": "Hereditary",
+      "role": "Leading",
+      "awards": {
+        "critics": "X",
+        "lafca": "X",
+        "gotham": "Y",
+        "spirit": "X"
+      },
+      "profilePath": "/lzXRh16qe4HHeBN6tMyw0DHvaMn.jpg",
+      "tmdbId": 3051
+    },
+    {
+      "name": "Emily Blunt",
+      "awards": {
+        "sag": "Y"
+      },
+      "film": "A Quiet Place",
+      "role": "Supporting",
+      "profilePath": "/5nCSG5TL1bP1geD8aaBfaLnLLCD.jpg",
+      "tmdbId": 5081
+    },
+    {
+      "name": "Olivia Colman",
+      "film": "La favorita",
+      "awards": {
+        "venice": "Y"
+      },
+      "profilePath": "/lawJUdbLb1YW0niaYjiVGR9IBG8.jpg",
+      "tmdbId": 39187
+    },
+    {
+      "name": "Samal Yeslyamova",
+      "awards": {
+        "cannes": "Y"
+      },
+      "film": "Ayka",
+      "profilePath": "/rm8nS4t5jICfHq0fp3K9P9FqKer.jpg",
+      "tmdbId": 584306
+    },
+    {
+      "name": "Saoirse Ronan",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Lady Bird",
+      "role": "Leading",
+      "profilePath": "/w88uhQ5f8CXw9pQx5HtDrDpzQ4x.jpg",
+      "tmdbId": 36592
+    },
+    {
+      "name": "Tiffany Haddish",
+      "awards": {
+        "nyfcc": "Y"
+      },
+      "film": "Girls Trip",
+      "role": "Supporting",
+      "profilePath": "/pvAYqQD4LXavzDkBqCrC4IgVBur.jpg",
+      "tmdbId": 1230868
+    },
+    {
+      "name": "Emma Stone",
+      "film": "The Favourite",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X",
+        "bifa": "X"
+      },
+      "profilePath": "/8NwSfyYWIIUE1cI9Xhz92b0w7WD.jpg",
+      "tmdbId": 54693
+    },
+    {
+      "name": "Melissa McCarthy",
+      "film": "Can You Ever Forgive Me?",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/yl0qva0O4u92fvtItakdvKmKrW9.jpg",
+      "tmdbId": 55536
+    },
+    {
+      "name": "Amy Adams",
+      "film": "Vice",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "oscar": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "profilePath": "/oee226QNLDmiwo5730gq3j7tydw.jpg",
+      "tmdbId": 9273
+    },
+    {
+      "name": "Claire Foy",
+      "film": "First Man",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "gg": "X",
+        "critics": "X"
+      },
+      "profilePath": "/a7ws0h1TQeoC97lBo0unFolNe4q.jpg",
+      "tmdbId": 120932
+    },
+    {
+      "name": "Emily Blunt",
+      "awards": {
+        "gg": "X",
+        "sag": "X",
+        "critics": "X"
+      },
+      "film": "Mary Poppins Returns",
+      "role": "Leading",
+      "profilePath": "/5nCSG5TL1bP1geD8aaBfaLnLLCD.jpg",
+      "tmdbId": 5081
+    },
+    {
+      "name": "Margot Robbie",
+      "film": "Mary Queen of Scots",
+      "role": "Supporting",
+      "awards": {
+        "bafta": "X",
+        "sag": "X"
+      },
+      "profilePath": "/8LqG2N6j98lFGMpuYsRUAhOunSd.jpg",
+      "tmdbId": 234352
+    },
+    {
+      "name": "Elsie Fisher",
+      "awards": {
+        "gg": "X",
+        "spirit": "X"
+      },
+      "film": "Eighth Grade",
+      "role": "Leading",
+      "profilePath": "/lSmrN828nMMXHvwr7IgO1qlYPSa.jpg",
+      "tmdbId": 122851
+    },
+    {
+      "name": "Yalitza Aparicio",
+      "film": "Roma",
+      "role": "Leading",
+      "awards": {
+        "oscar": "X",
+        "critics": "X"
+      },
+      "profilePath": "/wiZEyqNTNkevCT768bKvvOJvCHb.jpg",
+      "tmdbId": 1775557
+    },
+    {
+      "name": "Rachel Weisz",
+      "film": "Sarah Churchill",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X",
+        "critics": "X"
+      },
+      "profilePath": "/58czHc8QU1L4H0N45T0UML8efgS.jpg",
+      "tmdbId": 3293
+    },
+    {
+      "name": "Regina Hall",
+      "awards": {
+        "gotham": "X",
+        "spirit": "X"
+      },
+      "film": "Support the Girls",
+      "profilePath": "/jiFZ4xNrvUUZLBHnJu71CvdN4kj.jpg",
+      "tmdbId": 35705
+    },
+    {
+      "name": "Viola Davis",
+      "film": "Widows",
+      "role": "Leading",
+      "awards": {
+        "bafta": "X"
+      },
+      "profilePath": "/xDssw6vpYNRjsybvMPRE30e0dPN.jpg",
+      "tmdbId": 19492
+    },
+    {
+      "name": "Nicole Kidman",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Destroyer",
+      "role": "Leading",
+      "profilePath": "/lfW2cDigTcvuoe4k6UfCdGVE1R6.jpg",
+      "tmdbId": 2227
+    },
+    {
+      "name": "Rosamund Pike",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "A Private War",
+      "role": "Leading",
+      "profilePath": "/s9i4XoHTgtskbralOtnraEueU2M.jpg",
+      "tmdbId": 10882
+    },
+    {
+      "name": "Charlize Theron",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Tully",
+      "role": "Leading",
+      "profilePath": "/ie1KbeYFG5E0GVr1QP7tDNuXvga.jpg",
+      "tmdbId": 6885
+    },
+    {
+      "name": "Constance Wu",
+      "awards": {
+        "gg": "X"
+      },
+      "film": "Crazy Rich Asians",
+      "role": "Leading",
+      "profilePath": "/7nT6QsetU2RCUwopPmq2NFSnLDL.jpg",
+      "tmdbId": 206444
+    },
+    {
+      "name": "Marina de Tavira",
+      "film": "Roma",
+      "role": "Supporting",
+      "awards": {
+        "oscar": "X"
+      },
+      "profilePath": "/rGGjW1UnUL1Q4TGlfRL3W5yuyq1.jpg",
+      "tmdbId": 78883
+    },
+    {
+      "name": "Nicole Kidman",
+      "film": "Boy Erased",
+      "role": "Supporting",
+      "awards": {
+        "critics": "X"
+      },
+      "profilePath": "/lfW2cDigTcvuoe4k6UfCdGVE1R6.jpg",
+      "tmdbId": 2227
+    },
+    {
+      "name": "Elizabeth Debicki",
+      "awards": {
+        "lafca": "X"
+      },
+      "film": "Widows",
+      "profilePath": "/nTTnQVTn13Ve4ifjRY9v8kVc99w.jpg",
+      "tmdbId": 1133349
+    },
+    {
+      "name": "Kathryn Hahn",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "Private Life",
+      "profilePath": "/9sVllAKfEls3SJD3GoPm2JEZoa5.jpg",
+      "tmdbId": 17696
+    },
+    {
+      "name": "Michelle Pfeiffer",
+      "awards": {
+        "gotham": "X"
+      },
+      "film": "Where Is Kyra?",
+      "profilePath": "/oGUmQBU87QXAsnaGleYaAjAXSlj.jpg",
+      "tmdbId": 1160
+    },
+    {
+      "name": "Gemma Arterton",
+      "film": "The Escape",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/mg0CNOrCgI6MYCDcLNxTxQ9iwUI.jpg",
+      "tmdbId": 59620
+    },
+    {
+      "name": "Jessie Buckley",
+      "film": "Beast",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/i8IlkFbZqKUgkypZKpdhrw00uqw.jpg",
+      "tmdbId": 1498158
+    },
+    {
+      "name": "Maxine Peake",
+      "film": "Funny Cow",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/uChlrL5WyeXhvGFaNvbzw1KqMgP.jpg",
+      "tmdbId": 76944
+    },
+    {
+      "name": "Rachel Weisz",
+      "film": "Disobedience",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/58czHc8QU1L4H0N45T0UML8efgS.jpg",
+      "tmdbId": 3293
+    },
+    {
+      "name": "Nina Arianda",
+      "film": "Stan & Ollie",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/5vGdet2Gg7XPRgs0OvCrSwAk8QX.jpg",
+      "tmdbId": 971329
+    },
+    {
+      "name": "Rachel McAdams",
+      "film": "Disobedience",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/dYPtBI2i6LdHzpqof3BJlm7PoQr.jpg",
+      "tmdbId": 53714
+    },
+    {
+      "name": "Molly Wright",
+      "film": "Apostasy",
+      "awards": {
+        "bifa": "X"
+      },
+      "profilePath": "/k4ff4JwjsGl3b6vVpNv0NtWlJ9r.jpg",
+      "tmdbId": 1677040
+    },
+    {
+      "name": "Helena Howard",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Madeline's Madeline",
+      "profilePath": "/pbjQTgmc2WjnfyWCG3aIqXMMl82.jpg",
+      "tmdbId": 1932292
+    },
+    {
+      "name": "Carey Mulligan",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Wildlife",
+      "profilePath": "/iwVHhqoz5b62FR0SDpZ7wfsuTBI.jpg",
+      "tmdbId": 36662
+    },
+    {
+      "name": "Kayli Carter",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Private Life",
+      "profilePath": "/xYJICGKaFzlvBMrVoSa9SHzhhC.jpg",
+      "tmdbId": 1731341
+    },
+    {
+      "name": "Tyne Daly",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "A Bread Factory",
+      "profilePath": "/uR0nx2bniih1Kdhst5R3LH59smk.jpg",
+      "tmdbId": 66221
+    },
+    {
+      "name": "Thomasin McKenzie",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Leave No Trace",
+      "profilePath": "/WOpnEFG5Q8LWxP81MtUrskmVox.jpg",
+      "tmdbId": 1356758
+    },
+    {
+      "name": "J. Smith-Cameron",
+      "awards": {
+        "spirit": "X"
+      },
+      "film": "Nancy",
+      "profilePath": "/7DlYGLX5oywXpyvCsDZpOsWYpbg.jpg",
+      "tmdbId": 52475
+    }
+  ]
+}
