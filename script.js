@@ -641,14 +641,30 @@ function initSeasonPeriodWithOverride(period) {
         }
     }
 
-    // Update period badge (only if visible)
+    // Use PeriodManager for layout changes FIRST
+    // This must happen before showing sections so PeriodManager can control visibility
+    if (window.PeriodManager) {
+        window.PeriodManager.apply(period, {
+            finalists: SUPER_BOWL_FINALISTS
+        });
+    } else {
+        console.error('[togglePeriodVisibility] PeriodManager not loaded!');
+    }
+
+    // For PLAYOFFS period, PeriodManager handles everything - skip standard logic
+    if (period === 'PLAYOFFS') {
+        console.log('[togglePeriodVisibility] Super Bowl Week - PeriodManager handles layout');
+        return; // Exit early, PeriodManager has full control
+    }
+
+    // Update period badge (only for non-Super Bowl periods)
     const badge = document.getElementById('period-badge');
     if (badge) {
         badge.querySelector('.period-icon').textContent = config.icon;
         badge.querySelector('.period-text').textContent = config.text;
     }
 
-    // Update message (only if visible)
+    // Update message (only for non-Super Bowl periods)
     const message = document.getElementById('period-message');
     if (message) {
         message.textContent = config.message;
@@ -659,7 +675,7 @@ function initSeasonPeriodWithOverride(period) {
         section.classList.add('hidden');
     });
 
-    // Show the appropriate section
+    // Show the appropriate section (only for non-Super Bowl periods)
     const targetSection = document.getElementById(config.section);
     console.log('Target section:', config.section, 'Element:', targetSection);
 
@@ -679,15 +695,6 @@ function initSeasonPeriodWithOverride(period) {
         } else {
             photoSelector.style.display = 'none';
         }
-    }
-
-    // Use PeriodManager for layout changes
-    if (window.PeriodManager) {
-        window.PeriodManager.apply(period, {
-            finalists: SUPER_BOWL_FINALISTS
-        });
-    } else {
-        console.error('[togglePeriodVisibility] PeriodManager not loaded!');
     }
 }
 
