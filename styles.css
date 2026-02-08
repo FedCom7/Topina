@@ -607,7 +607,7 @@ body {
 }
 
 #flip {
-    height: 100px;
+    height: 80px;
     overflow: hidden;
     display: inline-block;
     vertical-align: bottom;
@@ -615,13 +615,14 @@ body {
 
 #flip>div>div {
     color: #fff;
-    padding: 12px 16px;
-    height: 90px;
-    line-height: 66px;
-    margin-bottom: 100px;
+    padding: 15px 16px;
+    height: 80px;
+    line-height: 50px;
+    margin-bottom: 40px;
     display: inline-block;
     border-radius: 8px;
     font-size: clamp(1.2rem, 3vw, 2rem);
+    box-sizing: border-box;
 }
 
 #flip div:first-child {
@@ -647,12 +648,14 @@ body {
 
 /* Animation for 4 items: each item = 120px (55px height + 65px margin) */
 /* Total = 480px. Positions: 0, -120, -240, -360 */
+/* 4 items, each slot = 120px (80px height + 40px margin)
+   Positions: 0 (item 4), -120 (item 3), -240 (item 2), -360 (item 1) */
 @keyframes show {
     0% {
         margin-top: -360px;
     }
 
-    2% {
+    5% {
         margin-top: -240px;
     }
 
@@ -660,7 +663,7 @@ body {
         margin-top: -240px;
     }
 
-    27% {
+    30% {
         margin-top: -120px;
     }
 
@@ -668,7 +671,7 @@ body {
         margin-top: -120px;
     }
 
-    52% {
+    55% {
         margin-top: 0px;
     }
 
@@ -676,7 +679,7 @@ body {
         margin-top: 0px;
     }
 
-    77% {
+    80% {
         margin-top: -360px;
     }
 
