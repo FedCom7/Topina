@@ -607,7 +607,7 @@ body {
 }
 
 #flip {
-    height: 80px;
+    height: 100px;
     overflow: hidden;
     display: inline-block;
     vertical-align: bottom;
@@ -615,10 +615,10 @@ body {
 
 #flip>div>div {
     color: #fff;
-    padding: 10px 16px;
-    height: 70px;
-    line-height: 50px;
-    margin-bottom: 80px;
+    padding: 12px 16px;
+    height: 90px;
+    line-height: 66px;
+    margin-bottom: 100px;
     display: inline-block;
     border-radius: 8px;
     font-size: clamp(1.2rem, 3vw, 2rem);
