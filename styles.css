@@ -607,7 +607,7 @@ body {
 }
 
 #flip {
-    height: 1.2em;
+    height: 1.3em;
     overflow: hidden;
     display: inline-block;
     vertical-align: baseline;
@@ -615,18 +615,17 @@ body {
 
 #flip>div>div {
     color: #fff;
-    padding: 0.1em 0.3em;
-    height: 1.2em;
-    line-height: 1.2em;
-    margin-bottom: 0;
-    display: inline-block;
+    padding: 0.15em 0.3em;
+    height: 1.3em;
+    line-height: 1em;
+    display: block;
     border-radius: 8px;
     font-size: inherit;
     box-sizing: border-box;
 }
 
 #flip div:first-child {
-    animation: show 10s linear infinite;
+    animation: show 10s step-end infinite;
 }
 
 /* Player colors */
@@ -646,43 +645,27 @@ body {
     background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
-/* Animation for 4 items, each slot = 1.2em
-   Container shows 1.2em, positions: 0, -1.2em, -2.4em, -3.6em */
+/* Step animation - instant transitions between items */
 @keyframes show {
-    0% {
-        margin-top: -3.6em;
-    }
 
-    5% {
-        margin-top: -2.4em;
-    }
-
+    0%,
     25% {
-        margin-top: -2.4em;
+        transform: translateY(-300%);
     }
 
-    30% {
-        margin-top: -1.2em;
-    }
-
+    25.01%,
     50% {
-        margin-top: -1.2em;
+        transform: translateY(-200%);
     }
 
-    55% {
-        margin-top: 0;
-    }
-
+    50.01%,
     75% {
-        margin-top: 0;
+        transform: translateY(-100%);
     }
 
-    80% {
-        margin-top: -3.6em;
-    }
-
+    75.01%,
     100% {
-        margin-top: -3.6em;
+        transform: translateY(0);
     }
 }
 
