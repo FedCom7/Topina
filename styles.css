@@ -607,7 +607,7 @@ body {
 }
 
 #flip {
-    height: 80px;
+    height: 100px;
     overflow: hidden;
     display: inline-block;
     vertical-align: bottom;
@@ -615,10 +615,10 @@ body {
 
 #flip>div>div {
     color: #fff;
-    padding: 15px 16px;
-    height: 80px;
-    line-height: 50px;
-    margin-bottom: 40px;
+    padding: 20px 16px;
+    height: 100px;
+    line-height: 60px;
+    margin-bottom: 0;
     display: inline-block;
     border-radius: 8px;
     font-size: clamp(1.2rem, 3vw, 2rem);
@@ -646,29 +646,27 @@ body {
     background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
-/* Animation for 4 items: each item = 120px (55px height + 65px margin) */
-/* Total = 480px. Positions: 0, -120, -240, -360 */
-/* 4 items, each slot = 120px (80px height + 40px margin)
-   Positions: 0 (item 4), -120 (item 3), -240 (item 2), -360 (item 1) */
+/* Animation for 4 items, each slot = 100px (no margin)
+   Container shows 100px, positions: 0, -100, -200, -300 */
 @keyframes show {
     0% {
-        margin-top: -360px;
+        margin-top: -300px;
     }
 
     5% {
-        margin-top: -240px;
+        margin-top: -200px;
     }
 
     25% {
-        margin-top: -240px;
+        margin-top: -200px;
     }
 
     30% {
-        margin-top: -120px;
+        margin-top: -100px;
     }
 
     50% {
-        margin-top: -120px;
+        margin-top: -100px;
     }
 
     55% {
@@ -680,11 +678,11 @@ body {
     }
 
     80% {
-        margin-top: -360px;
+        margin-top: -300px;
     }
 
     100% {
-        margin-top: -360px;
+        margin-top: -300px;
     }
 }
 
