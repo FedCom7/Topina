@@ -1,0 +1,14 @@
+{
+    "name": "topina-league",
+    "version": "1.0.0",
+    "description": "Topina League Fantasy Football",
+    "main": "script.js",
+    "scripts": {
+        "upload-data": "node scripts/upload-data.js"
+    },
+    "dependencies": {
+        "firebase-admin": "^12.0.0"
+    },
+    "author": "",
+    "license": "ISC"
+}

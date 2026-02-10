@@ -1247,33 +1247,200 @@ function triggerConfetti() {
 // Expose to global for testing
 window.triggerConfetti = triggerConfetti;
 
-// Console easter egg
-console.log('%c🏈 TOPINA LEAGUE', 'font-size: 24px; font-weight: bold; color: #ffffff;');
-console.log('%cWhere Champions Are Made', 'font-size: 14px; color: #888888;');
+import { db } from './js/firebase-config.js';
+import { collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 /**
  * ========================================
- * NFL FANTASY DATA LOADING
+ * NFL FANTASY DATA LOADING (FIREBASE)
  * ========================================
  */
 
-const LEAGUE_DATA_URL = 'data/league-data.json';
+// Current active season for the frontend
+const CURRENT_SEASON = '2024';
 
 /**
- * Load league data from JSON file
+ * Fetch draft data from Firestore
  */
-async function loadLeagueData() {
+async function fetchDraftData(season = CURRENT_SEASON) {
     try {
-        const response = await fetch(LEAGUE_DATA_URL);
-        if (!response.ok) {
-            throw new Error(`Failed to load data: ${response.status}`);
+        const docRef = doc(db, "draft", `draft_data_${season}`);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            console.log("No draft data found for season:", season);
+            return null;
         }
-        return await response.json();
     } catch (error) {
-        console.warn('Could not load league data:', error);
+        console.error("Error getting draft document:", error);
         return null;
     }
 }
+
+/**
+ * Fetch fantasy data from Firestore
+ */
+async function fetchFantasyData(season = CURRENT_SEASON) {
+    try {
+        const docRef = doc(db, "fantasy", `fantasy_data_${season}`);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            console.log("No fantasy data found for season:", season);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting fantasy document:", error);
+        return null;
+    }
+}
+
+/**
+ * Convert structured draft data (by team) into a flat array for the grid
+ */
+function flattenDraftData(draftData) {
+    if (!draftData || !draftData.teams) return [];
+
+    const flatPicks = [];
+
+    // Iterate over each team
+    Object.entries(draftData.teams).forEach(([fantasyTeam, picks]) => {
+        picks.forEach(pick => {
+            flatPicks.push({
+                pick: pick.pick,
+                round: Math.ceil(pick.pick / 4), // Assuming 4 teams? Need to check league size or calculate from pick
+                playerName: pick.name,
+                position: pick.position,
+                nflTeam: pick.nfl_team,
+                fantasyTeam: fantasyTeam
+            });
+        });
+    });
+
+    // Validating round calculation: using standard snake draft logic if needed, 
+    // but the simple math above might be wrong if league size isn't 4.
+    // Let's infer round from pick number if not present, or better yet, rely on the fact 
+    // that we want to sort by pick number anyway.
+    // *Correction*: The prompt's JSON had "pick": 1, 8, 9 for first team.
+    // If it's a 4 team league:
+    // R1: 1-4, R2: 5-8, R3: 9-12. 
+    // Pick 8 is R2. Pick 9 is R3. 
+    // Math.ceil(8/4) = 2. Math.ceil(9/4) = 3. 
+    // Matches 4 teams logic. Topina seems to be 4 teams (Capi, Lasers, Oscurus, FedCom/Sommo?).
+    // Let's determine league size dynamically or hardcode if known.
+    // Based on `js/periods/superbowl-week.js` finalists, we saw 4 teams.
+    const leagueSize = Object.keys(draftData.teams).length || 4;
+
+    flatPicks.forEach(p => {
+        p.round = Math.ceil(p.pick / leagueSize);
+    });
+
+    // Sort by pick number
+    return flatPicks.sort((a, b) => a.pick - b.pick);
+}
+
+/**
+ * Process fantasy data to calculate standings
+ */
+function processFantasyData(fantasyData) {
+    if (!fantasyData || !fantasyData.weeks) return [];
+
+    const teams = {};
+
+    // Helper to init team stats
+    const initTeam = (name) => {
+        if (!teams[name]) {
+            teams[name] = {
+                teamName: name,
+                wins: 0,
+                losses: 0,
+                ties: 0,
+                pointsFor: 0,
+                pointsAgainst: 0,
+                streak: [] // Will store 'W', 'L', 'T' to calculate current streak
+            };
+        }
+    };
+
+    // Iterate through weeks
+    Object.values(fantasyData.weeks).forEach(week => {
+        if (!week.matchups) return;
+
+        week.matchups.forEach(matchup => {
+            // Check if matchup has team1 and team2 (sometimes bye weeks exist, but assuming full matchups)
+            if (matchup.team1 && matchup.team2) {
+                const t1 = matchup.team1;
+                const t2 = matchup.team2;
+
+                initTeam(t1.name);
+                initTeam(t2.name);
+
+                const s1 = parseFloat(t1.score);
+                const s2 = parseFloat(t2.score);
+
+                // Update points
+                teams[t1.name].pointsFor += s1;
+                teams[t1.name].pointsAgainst += s2;
+                teams[t2.name].pointsFor += s2;
+                teams[t2.name].pointsAgainst += s1;
+
+                // Update records
+                if (s1 > s2) {
+                    teams[t1.name].wins++;
+                    teams[t2.name].losses++;
+                    teams[t1.name].streak.push('W');
+                    teams[t2.name].streak.push('L');
+                } else if (s2 > s1) {
+                    teams[t2.name].wins++;
+                    teams[t1.name].losses++;
+                    teams[t2.name].streak.push('W');
+                    teams[t1.name].streak.push('L');
+                } else {
+                    teams[t1.name].ties++;
+                    teams[t2.name].ties++;
+                    teams[t1.name].streak.push('T');
+                    teams[t2.name].streak.push('T');
+                }
+            }
+        });
+    });
+
+    // Format standings array
+    const standings = Object.values(teams).map(team => {
+        // Calculate current streak string (e.g., "W3", "L1")
+        let currentStreak = '';
+        if (team.streak.length > 0) {
+            let count = 0;
+            const type = team.streak[team.streak.length - 1];
+            for (let i = team.streak.length - 1; i >= 0; i--) {
+                if (team.streak[i] === type) count++;
+                else break;
+            }
+            currentStreak = `${type}${count}`;
+        } else {
+            currentStreak = '-';
+        }
+
+        return {
+            ...team,
+            streak: currentStreak,
+            // Format points to 2 decimal places for display consistency
+            pointsFor: parseFloat(team.pointsFor.toFixed(2)),
+            pointsAgainst: parseFloat(team.pointsAgainst.toFixed(2))
+        };
+    });
+
+    // Sort: Wins desc, then PF desc
+    return standings.sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        return b.pointsFor - a.pointsFor;
+    });
+}
+
 
 /**
  * Render standings table with data
@@ -1329,7 +1496,7 @@ function renderDraft(draftPicks, round = 'all') {
         : draftPicks.filter(pick => pick.round === parseInt(round));
 
     filteredPicks.forEach((pick, index) => {
-        const posClass = pick.position.toLowerCase();
+        const posClass = pick.position ? pick.position.toLowerCase() : '';
         const delay = (index % 8) * 50;
 
         const card = document.createElement('div');
@@ -1360,8 +1527,10 @@ function renderDraft(draftPicks, round = 'all') {
  */
 function updateWeekInfo(data) {
     const subtitle = document.querySelector('.page-subtitle');
-    if (subtitle && data.lastUpdated) {
-        const updateDate = new Date(data.lastUpdated);
+    // If data comes from Firestore, we might not have 'lastUpdated' unless we store it.
+    // For now, we can use the 'scraped_at' field if available in the doc
+    if (subtitle && data && data.scraped_at) {
+        const updateDate = new Date(data.scraped_at);
         const formattedDate = updateDate.toLocaleDateString('it-IT', {
             day: 'numeric',
             month: 'short',
@@ -1372,38 +1541,169 @@ function updateWeekInfo(data) {
 }
 
 /**
+ * Fetch all-time stats from Firestore
+ */
+async function fetchAllTimeStats() {
+    try {
+        const docRef = doc(db, "stats", "all_time");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            console.log("No all-time stats found");
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting stats document:", error);
+        return null;
+    }
+}
+
+/**
+ * Render Home Page Quick Stats
+ */
+function renderHomeStats(stats) {
+    const container = document.getElementById('home-stats');
+    if (!container || !stats) return;
+
+    // Helper to animate numbers
+    const animateValue = (obj, start, end, duration) => {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    };
+
+    // Update values
+    const statItems = container.querySelectorAll('.home-stat');
+    if (statItems.length >= 3) {
+        // Teams - Assuming 12 or fetching? Stats doesn't have team count but we can approximate or use static
+        // stats.seasons_count is available
+        // stats.total_games is available
+
+        // Update Seasons
+        const seasonEl = statItems[1].querySelector('.stat-number');
+        if (seasonEl) {
+            animateValue(seasonEl, 0, stats.seasons_count || 5, 2000);
+        }
+
+        // Update Games
+        const gamesEl = statItems[2].querySelector('.stat-number');
+        if (gamesEl) {
+            animateValue(gamesEl, 0, stats.total_games || 0, 2000);
+        }
+    }
+}
+
+/**
+ * Render Stats Page
+ */
+function renderStatsPage(stats) {
+    if (!document.getElementById('home-stats') && !document.querySelector('.stats-grid')) return; // Check if we are on stats page or comparable
+
+    // 1. Top Stats Grid
+    const scoreEl = document.querySelector('.extensions-view-score'); // Placeholder logic, looking for specific elements
+
+    // Mapping keys to DOM elements based on stats.html structure
+    // Total Points
+    const totalPointsEl = document.querySelector('.stat-value[data-count="48750"]'); // Selecting by initial attribute or class is better, but let's assume order or class
+    // actually, let's select by context.
+    const statCards = document.querySelectorAll('.stat-card .stat-value');
+    if (statCards.length >= 4) {
+        // 0: Championships (Skip for now)
+        // 1: Total Points
+        if (stats.total_points) statCards[1].textContent = formatNumber(stats.total_points);
+        // 2: Highest Weekly Score
+        if (stats.highest_score) statCards[2].textContent = stats.highest_score.value;
+        // 3: Avg Points/Game
+        if (stats.total_points && stats.total_games) {
+            statCards[3].textContent = (stats.total_points / stats.total_games).toFixed(1);
+        }
+    }
+
+    // 2. Records Section
+    const recordCards = document.querySelectorAll('.record-card');
+    if (recordCards.length >= 6) {
+        // 0: Highest Score
+        if (stats.highest_score) {
+            recordCards[0].querySelector('.record-value').textContent = stats.highest_score.value;
+            recordCards[0].querySelector('.record-holder').textContent = stats.highest_score.team;
+            recordCards[0].querySelector('.record-date').textContent = `Week ${stats.highest_score.week}, ${stats.highest_score.season}`;
+        }
+
+        // 1: Lowest Score
+        if (stats.lowest_score) {
+            recordCards[1].querySelector('.record-value').textContent = stats.lowest_score.value;
+            recordCards[1].querySelector('.record-holder').textContent = stats.lowest_score.team;
+            recordCards[1].querySelector('.record-date').textContent = `Week ${stats.lowest_score.week}, ${stats.lowest_score.season}`;
+        }
+
+        // 4: Season Points
+        if (stats.most_points_season) {
+            recordCards[4].querySelector('.record-value').textContent = formatNumber(stats.most_points_season.value);
+            recordCards[4].querySelector('.record-holder').textContent = stats.most_points_season.team;
+            recordCards[4].querySelector('.record-date').textContent = `${stats.most_points_season.season} Season`;
+        }
+
+        // 5: Largest Margin
+        if (stats.largest_margin) {
+            recordCards[5].querySelector('.record-value').textContent = stats.largest_margin.value;
+            recordCards[5].querySelector('.record-holder').textContent = `${stats.largest_margin.winner} def. ${stats.largest_margin.loser}`;
+            recordCards[5].querySelector('.record-date').textContent = `Week ${stats.largest_margin.week}, ${stats.largest_margin.season}`;
+        }
+    }
+}
+
+/**
  * Initialize data loading on page load
  */
 async function initDataLoading() {
-    const data = await loadLeagueData();
-    if (!data) return;
+    console.log("🚀 Initializing Data Loading from Firebase...");
 
     // Update standings page
     if (document.querySelector('.standings-table')) {
-        renderStandings(data.standings);
-        updateWeekInfo(data);
+        const fantasyData = await fetchFantasyData(CURRENT_SEASON);
+        if (fantasyData) {
+            const standings = processFantasyData(fantasyData);
+            renderStandings(standings);
+            updateWeekInfo(fantasyData);
+        }
     }
 
     // Update draft page
     if (document.querySelector('.draft-grid')) {
-        renderDraft(data.draft);
+        const draftDoc = await fetchDraftData(CURRENT_SEASON);
+        if (draftDoc) {
+            const flatPicks = flattenDraftData(draftDoc);
+            renderDraft(flatPicks);
 
-        // Hook up round selector with real data
-        const roundBtns = document.querySelectorAll('.round-btn');
-        roundBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                roundBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                renderDraft(data.draft, btn.dataset.round);
+            // Hook up round selector with real data
+            const roundBtns = document.querySelectorAll('.round-btn');
+            roundBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    roundBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderDraft(flatPicks, btn.dataset.round);
+                });
             });
-        });
+        }
     }
 
-    console.log('📊 League data loaded:', {
-        teams: data.standings?.length,
-        draftPicks: data.draft?.length,
-        lastUpdated: data.lastUpdated
-    });
+    // Update Home Page Stats and Stats Page
+    if (document.getElementById('home-stats') || document.querySelector('.stats-grid')) {
+        const allTimeStats = await fetchAllTimeStats();
+        if (allTimeStats) {
+            renderHomeStats(allTimeStats);
+            renderStatsPage(allTimeStats);
+        }
+    }
 }
 
 // Initialize data loading after DOM is ready
