@@ -7,12 +7,13 @@ const path = require('path');
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://topina-9cd75-default-rtdb.firebaseio.com/" // User provided URL
 });
 
-const db = admin.firestore();
+const db = admin.database();
 
-async function uploadCollection(directory, collectionName) {
+async function uploadCollection(directory, nodeName) {
     const dirPath = path.join(__dirname, '..', directory);
 
     if (!fs.existsSync(dirPath)) {
@@ -22,21 +23,21 @@ async function uploadCollection(directory, collectionName) {
 
     const files = fs.readdirSync(dirPath).filter(file => file.endsWith('.json'));
 
-    console.log(`Uploading ${files.length} files from ${directory} to collection ${collectionName}...`);
+    console.log(`Uploading ${files.length} files from ${directory} to node ${nodeName}...`);
 
     for (const file of files) {
         const filePath = path.join(dirPath, file);
         const fileContent = fs.readFileSync(filePath, 'utf8');
         const data = JSON.parse(fileContent);
 
-        // Use filename without extension as document ID (e.g., 'draft_data_2023')
-        const docId = path.basename(file, '.json');
+        // Use filename without extension as child key (e.g., 'draft_data_2023')
+        const childKey = path.basename(file, '.json');
 
         try {
-            await db.collection(collectionName).doc(docId).set(data);
-            console.log(`Successfully uploaded ${docId}`);
+            await db.ref(nodeName).child(childKey).set(data);
+            console.log(`Successfully uploaded ${childKey} to ${nodeName}`);
         } catch (error) {
-            console.error(`Error uploading ${docId}:`, error);
+            console.error(`Error uploading ${childKey}:`, error);
         }
     }
 }
@@ -146,7 +147,7 @@ async function calculateAndUploadStats() {
     stats.total_points = parseFloat(stats.total_points.toFixed(2));
 
     try {
-        await db.collection('stats').doc('all_time').set(stats);
+        await db.ref('stats/all_time').set(stats);
         console.log('Successfully uploaded all-time stats.');
     } catch (error) {
         console.error('Error uploading stats:', error);
@@ -159,6 +160,7 @@ async function main() {
         await uploadCollection('data/fantasy', 'fantasy');
         await calculateAndUploadStats();
         console.log('Data upload complete.');
+        process.exit(0);
     } catch (error) {
         console.error('Data upload failed:', error);
         process.exit(1);

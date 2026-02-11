@@ -8,6 +8,9 @@
     <title>Stats | Topina League</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -46,86 +49,20 @@
         </div>
         <div class="container">
             <!-- Main Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card animate-on-scroll" data-delay="0">
-                    <div class="stat-icon">🏆</div>
-                    <div class="stat-value" data-count="5">0</div>
-                    <div class="stat-name">Championships</div>
-                </div>
-                <div class="stat-card animate-on-scroll" data-delay="100">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-value" data-count="48750">0</div>
-                    <div class="stat-name">Total Points Scored</div>
-                </div>
-                <div class="stat-card animate-on-scroll" data-delay="200">
-                    <div class="stat-icon">🎯</div>
-                    <div class="stat-value" data-count="312">0</div>
-                    <div class="stat-name">Highest Weekly Score</div>
-                </div>
-                <div class="stat-card animate-on-scroll" data-delay="300">
-                    <div class="stat-icon">📈</div>
-                    <div class="stat-value" data-count="156">0</div>
-                    <div class="stat-name">Avg Points/Game</div>
+            <div class="stats-grid" id="stats-grid-loading">
+                <div class="stat-card">
+                    <div class="stat-value">...</div>
+                    <div class="stat-name">Loading Stats...</div>
                 </div>
             </div>
 
             <!-- Records Section -->
             <div class="records-section">
                 <h2 class="records-title animate-on-scroll">All-Time Records</h2>
-                <div class="records-grid">
-                    <div class="record-card animate-on-scroll" data-delay="0">
-                        <div class="record-header">
-                            <span class="record-icon">⬆️</span>
-                            <span class="record-type">Highest Score</span>
-                        </div>
-                        <div class="record-value">312.4</div>
-                        <div class="record-holder">Fire Dragons</div>
-                        <div class="record-date">Week 8, 2023</div>
-                    </div>
-                    <div class="record-card animate-on-scroll" data-delay="100">
-                        <div class="record-header">
-                            <span class="record-icon">⬇️</span>
-                            <span class="record-type">Lowest Score</span>
-                        </div>
-                        <div class="record-value">67.2</div>
-                        <div class="record-holder">Slow Turtles</div>
-                        <div class="record-date">Week 3, 2021</div>
-                    </div>
-                    <div class="record-card animate-on-scroll" data-delay="200">
-                        <div class="record-header">
-                            <span class="record-icon">🔥</span>
-                            <span class="record-type">Win Streak</span>
-                        </div>
-                        <div class="record-value">12</div>
-                        <div class="record-holder">Night Wolves</div>
-                        <div class="record-date">2022 Season</div>
-                    </div>
-                    <div class="record-card animate-on-scroll" data-delay="300">
-                        <div class="record-header">
-                            <span class="record-icon">💀</span>
-                            <span class="record-type">Loss Streak</span>
-                        </div>
-                        <div class="record-value">9</div>
-                        <div class="record-holder">Bay Crabs</div>
-                        <div class="record-date">2020 Season</div>
-                    </div>
-                    <div class="record-card animate-on-scroll" data-delay="400">
-                        <div class="record-header">
-                            <span class="record-icon">📅</span>
-                            <span class="record-type">Season Points</span>
-                        </div>
-                        <div class="record-value">2,456</div>
-                        <div class="record-holder">Thunder Hawks</div>
-                        <div class="record-date">2023 Season</div>
-                    </div>
-                    <div class="record-card animate-on-scroll" data-delay="500">
-                        <div class="record-header">
-                            <span class="record-icon">⚔️</span>
-                            <span class="record-type">Largest Margin</span>
-                        </div>
-                        <div class="record-value">124.8</div>
-                        <div class="record-holder">Storm Riders</div>
-                        <div class="record-date">Week 11, 2022</div>
+                <div class="records-grid" id="records-grid-loading">
+                    <div class="record-card">
+                        <div class="record-value">...</div>
+                        <div class="record-holder">Loading Records...</div>
                     </div>
                 </div>
             </div>
@@ -159,7 +96,7 @@
         </div>
     </footer>
 
-    <script type="module" src="script.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 
 </html>
