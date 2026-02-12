@@ -3,6 +3,7 @@
  * Year + Week selectors → matchup cards with expandable rosters
  */
 import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, PLAYOFF_WEEK, SUPERBOWL_WEEK } from '../data.js';
+import { TEAM_LOGOS } from '../data/team-config.js';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -83,22 +84,39 @@ function renderMatchups() {
         return;
     }
 
-    grid.innerHTML = weekData.matchups.map((m, i) => {
+    // Sort Super Bowl week: Final (highest score?) first
+    let matchups = [...weekData.matchups];
+    if (currentWeek === SUPERBOWL_WEEK) {
+        matchups.sort((a, b) => {
+            const totalA = parseFloat(a.team1.score) + parseFloat(a.team2.score);
+            const totalB = parseFloat(b.team1.score) + parseFloat(b.team2.score);
+            return totalB - totalA; // Descending
+        });
+    }
+
+    grid.innerHTML = matchups.map((m, i) => {
         const s1 = parseFloat(m.team1.score);
         const s2 = parseFloat(m.team2.score);
         const w1 = s1 >= s2;
 
+        const logo1 = TEAM_LOGOS[displayName(m.team1.name)] || 'images/nfl_logo.png';
+        const logo2 = TEAM_LOGOS[displayName(m.team2.name)] || 'images/nfl_logo.png';
+
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${i}">
-            <div class="matchup-main">
-                <div class="matchup-team">
-                    <span class="matchup-team-name">${displayName(m.team1.name)}</span>
-                    <span class="matchup-score ${w1 ? 'winner' : 'loser'}">${m.team1.score}</span>
+            <div class="matchup-main fox-scoreboard">
+                <div class="score-team left">
+                    <img src="${logo1}" alt="${m.team1.name}" class="fox-logo left">
+                    <span class="fox-name">${displayName(m.team1.name)}</span>
+                    <span class="fox-score ${w1 ? 'winner' : ''}">${m.team1.score}</span>
                 </div>
-                <span class="matchup-vs">VS</span>
-                <div class="matchup-team right">
-                    <span class="matchup-score ${!w1 ? 'winner' : 'loser'}">${m.team2.score}</span>
-                    <span class="matchup-team-name">${displayName(m.team2.name)}</span>
+                <div class="score-center">
+                    <span class="matchup-vs">VS</span>
+                </div>
+                <div class="score-team right">
+                    <span class="fox-score ${!w1 ? 'winner' : ''}">${m.team2.score}</span>
+                    <span class="fox-name">${displayName(m.team2.name)}</span>
+                    <img src="${logo2}" alt="${m.team2.name}" class="fox-logo right">
                 </div>
             </div>
             <div class="matchup-roster">

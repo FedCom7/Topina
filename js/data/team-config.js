@@ -35,10 +35,10 @@ export const TEAM_KEYS = {
 
 // Team logo paths
 export const TEAM_LOGOS = {
-    'Capi dei Pianeti': 'Team Logo/IMG_1065.JPG',
-    'Lasers': 'Team Logo/IMG_4979.JPG',
-    'Oscurus': 'Team Logo/IMG_8063.JPG',
-    'Sommo': 'Team Logo/IMG_8064.JPG'
+    'Capi dei Pianeti': 'Team Logo/team_capi_transparent.png',
+    'Lasers': 'Team Logo/team_lasers_transparent.png',
+    'Oscurus': 'Team Logo/team_oscurus_transparent.png',
+    'Sommo': 'Team Logo/team_sommo_transparent.png'
 };
 
 // Stadium background images for Super Bowl matchups

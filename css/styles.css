@@ -476,53 +476,81 @@ img {
     box-shadow: var(--shadow-card);
 }
 
-.matchup-main {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+/* FOX-style Scoreboard */
+.matchup-main.fox-scoreboard {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    gap: 16px;
+    padding: 15px 20px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.matchup-team {
+.score-team {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    gap: 15px;
+    flex: 1;
 }
 
-.matchup-team.right {
-    justify-content: center;
-    text-align: right;
+.score-team.left {
+    justify-content: flex-start;
 }
 
-.matchup-team-name {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--text-primary);
+.score-team.right {
+    justify-content: flex-end;
 }
 
-.matchup-score {
-    font-size: 1.4rem;
+.fox-logo {
+    height: 55px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.matchup-card:hover .fox-logo {
+    transform: scale(1.1);
+}
+
+.fox-name {
     font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-primary);
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    color: #e2e8f0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.matchup-score.winner {
-    color: var(--accent-green);
+.fox-score {
+    font-size: 2.2rem;
+    font-weight: 900;
+    font-family: 'Outfit', sans-serif;
+    /* Ensure using the heavy font */
+    color: #fff;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    min-width: 80px;
+    text-align: center;
 }
 
-.matchup-score.loser {
-    color: var(--text-muted);
+.fox-score.winner {
+    color: #4ade80;
+    text-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+}
+
+.score-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    opacity: 0.4;
 }
 
 .matchup-vs {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-size: 0.9rem;
+    font-weight: 900;
+    font-style: italic;
 }
 
 /* Roster always visible */
