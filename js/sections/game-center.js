@@ -105,29 +105,37 @@ function renderMatchups() {
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${i}">
             <div class="matchup-main fox-scoreboard">
-                <div class="score-team left">
-                    <img src="${logo1}" alt="${m.team1.name}" class="fox-logo left">
-                    <span class="fox-name">${displayName(m.team1.name)}</span>
+                <div class="logo-3d logo-3d-left">
+                    <img src="${logo1}" alt="${m.team1.name}" class="fox-logo">
+                </div>
+                <span class="fox-name">${displayName(m.team1.name)}</span>
+                <div class="score-block">
                     <span class="fox-score ${w1 ? 'winner' : ''}">${m.team1.score}</span>
-                </div>
-                <div class="score-center">
-                    <span class="matchup-vs">VS</span>
-                </div>
-                <div class="score-team right">
+                    <span class="fox-vs">vs</span>
                     <span class="fox-score ${!w1 ? 'winner' : ''}">${m.team2.score}</span>
-                    <span class="fox-name">${displayName(m.team2.name)}</span>
-                    <img src="${logo2}" alt="${m.team2.name}" class="fox-logo right">
+                </div>
+                <span class="fox-name">${displayName(m.team2.name)}</span>
+                <div class="logo-3d logo-3d-right">
+                    <img src="${logo2}" alt="${m.team2.name}" class="fox-logo">
                 </div>
             </div>
-            <div class="matchup-roster">
-                <div class="roster-grid">
-                    <div class="roster-side">
-                        <h4>${displayName(m.team1.name)}</h4>
-                        ${renderRoster(m.team1)}
+            <div class="matchup-field-horizontal">
+                <img src="Wallpapers/GameCenterHorizontal.PNG" class="field-bg" alt="">
+                <div class="field-overlay">
+                    <div class="formations-area">
+                        <div class="team-formation left">
+                            ${renderRoster(m.team1, 'left')}
+                        </div>
+                        <div class="scrimmage-center"></div>
+                        <div class="team-formation right">
+                            ${renderRoster(m.team2, 'right')}
+                        </div>
                     </div>
-                    <div class="roster-side">
-                        <h4>${displayName(m.team2.name)}</h4>
-                        ${renderRoster(m.team2)}
+                    <div class="field-bottom-row">
+                        <div class="endzone-corner endzone-left">${renderSpecial(m.team1)}</div>
+                        <div class="bench-half bench-left">${renderBench(m.team1)}</div>
+                        <div class="bench-half bench-right">${renderBench(m.team2)}</div>
+                        <div class="endzone-corner endzone-right">${renderSpecial(m.team2)}</div>
                     </div>
                 </div>
             </div>
@@ -135,9 +143,20 @@ function renderMatchups() {
     }).join('');
 }
 
-function renderRoster(team) {
+/** DEF + K for bottom corners */
+function renderSpecial(team) {
     const starters = team.starters || [];
-    const bench = team.bench || [];
+    const byPos = (pos) => {
+        for (const p of starters) {
+            if ((p.position || '').toUpperCase() === pos) return p;
+        }
+        return null;
+    };
+    return slotCard(byPos('DEF')) + slotCard(byPos('K'));
+}
+
+function renderRoster(team, side) {
+    const starters = team.starters || [];
 
     const byPos = (pos, nth = 0) => {
         let count = 0;
@@ -151,81 +170,46 @@ function renderRoster(team) {
         return null;
     };
 
-    // American football — Trips Right formation (top-down view)
-    //
-    //              [DEF]           [K]  ← defensive side, K top-right
-    //  ═══════ LINE OF SCRIMMAGE ═══════
-    //  WR  TE [X X X X X]  W/R  WR    ← offensive line
-    //              [QB]                 ← under center
-    //           [RB]  [RB]              ← backfield
-
-    // Row 0: DEF centered + K in top-right corner
-    const defRow =
-        `<div class="formation-row row-def">` +
-        slotCard(byPos('DEF', 0)) +
-        slotCard(byPos('K', 0)) +
-        `</div>`;
-
-    // Scrimmage line divider
-    const scrimmage = `<div class="scrimmage-line"></div>`;
-
-    // Row 1: Line of scrimmage — WR (left) + TE + 5 OL + FLEX + WR (right)
-    const lineRow =
-        `<div class="formation-row row-line">` +
-        slotCard(byPos('WR', 0)) +
-        slotCard(byPos('TE', 0)) +
-        olineX() + olineX() + olineX() + olineX() + olineX() +
-        slotCard(byPos('FLEX', 0)) +
-        slotCard(byPos('WR', 1)) +
-        `</div>`;
-
-    // Row 2: QB under center
-    const qbRow =
-        `<div class="formation-row row-qb">` +
+    // Column: QB
+    const qbCol =
+        `<div class="formation-col col-qb">` +
         slotCard(byPos('QB', 0)) +
         `</div>`;
 
-    // Row 3: RBs in the backfield
-    const rbRow =
-        `<div class="formation-row row-rb">` +
+    // Column: RBs (behind QB, further from scrimmage)
+    const rbCol =
+        `<div class="formation-col col-rb">` +
         slotCard(byPos('RB', 0)) +
         slotCard(byPos('RB', 1)) +
         `</div>`;
 
-    const fieldHtml = defRow + scrimmage + lineRow + qbRow + rbRow;
+    // Column: Line of scrimmage
+    const lineCol =
+        `<div class="formation-col col-line">` +
+        slotCard(byPos('WR', 0)) +
+        slotCard(byPos('TE', 0)) +
+        olineSlot() + olineSlot() + olineSlot() + olineSlot() + olineSlot() +
+        slotCard(byPos('FLEX', 0)) +
+        slotCard(byPos('WR', 1)) +
+        `</div>`;
 
-    const benchHtml = bench.map(p => slotCard(p, true)).join('');
-
-    return `<div class="formation-container">
-        <div class="formation-field">
-            ${fieldMarkings()}
-            ${fieldHtml}
-        </div>
-        ${bench.length ? `<div class="formation-bench">
-            <div class="bench-title">Panchina</div>${benchHtml}
-        </div>` : ''}
-    </div>`;
+    // Left team: RBs → QB → Line (faces right →)
+    // Right team: Line → QB → RBs (faces left ←)
+    if (side === 'left') {
+        return rbCol + qbCol + lineCol;
+    } else {
+        return lineCol + qbCol + rbCol;
+    }
 }
 
-/** Football field yard-line overlay (watermark) */
-function fieldMarkings() {
-    // Yard numbers mirrored: 10 20 30 40 50 40 30 20 10
-    const yards = [10, 20, 30, 40, 50, 40, 30, 20, 10];
-    // Position each line evenly from 8% to 92% of the field height
-    const lines = yards.map((y, i) => {
-        const top = 8 + i * (84 / (yards.length - 1));   // 8% … 92%
-        return `<div class="yard-line" style="top:${top.toFixed(1)}%">
-            <span class="yard-num yl">${y}</span>
-            <span class="yard-hash yhl"></span>
-            <span class="yard-hash yhr"></span>
-            <span class="yard-num yr">${y}</span>
-        </div>`;
-    }).join('');
-    return `<div class="field-markings">${lines}</div>`;
+function renderBench(team) {
+    const bench = team.bench || [];
+    if (!bench.length) return '';
+    return bench.map(p => slotCard(p, true)).join('');
 }
 
-/** Transparent offensive lineman marker */
-function olineX() {
+/** OL marker — small, transparent with dark border and X */
+function olineSlot() {
     return `<div class="formation-slot oline-x">✕</div>`;
 }
 
@@ -240,3 +224,4 @@ function slotCard(p, isBench = false) {
         <span class="slot-pts">${p.fantasy_points}</span>
     </div>`;
 }
+
