@@ -131,11 +131,14 @@ function renderMatchups() {
                             ${renderRoster(m.team2, 'right')}
                         </div>
                     </div>
+                    
+                    <!-- ABSOLUTE POSITIONED DEF/K -->
+                    ${renderDefK(m.team1, 'left')}
+                    ${renderDefK(m.team2, 'right')}
+
                     <div class="field-bottom-row">
-                        <div class="endzone-corner endzone-left">${renderSpecial(m.team1)}</div>
                         <div class="bench-half bench-left">${renderBench(m.team1)}</div>
                         <div class="bench-half bench-right">${renderBench(m.team2)}</div>
-                        <div class="endzone-corner endzone-right">${renderSpecial(m.team2)}</div>
                     </div>
                 </div>
             </div>
@@ -143,16 +146,37 @@ function renderMatchups() {
     }).join('');
 }
 
-/** DEF + K for bottom corners */
-function renderSpecial(team) {
+/** DEF + K positioned absolutely on field */
+function renderDefK(team, side) {
     const starters = team.starters || [];
-    const byPos = (pos) => {
-        for (const p of starters) {
-            if ((p.position || '').toUpperCase() === pos) return p;
-        }
-        return null;
-    };
-    return slotCard(byPos('DEF')) + slotCard(byPos('K'));
+    const getP = (pos) => starters.find(p => (p.position || '').toUpperCase() === pos);
+
+    const def = getP('DEF');
+    const k = getP('K');
+
+    // Return HTML with specific classes for positioning
+    // We'll use specific classes: .special-slot.left-def, .special-slot.left-k, etc.
+    let html = '';
+    if (def) html += specialSlot(def, side, 'DEF');
+    if (k) html += specialSlot(k, side, 'K');
+    return html;
+}
+
+function specialSlot(p, side, type) {
+    // type is 'DEF' or 'K'
+    // side is 'left' or 'right'
+    return `<div class="formation-slot special-slot ${side}-${type.toLowerCase()}">
+        ${slotContent(p)}
+    </div>`;
+}
+
+function slotContent(p) {
+    const raw = (p.position || 'BN').toUpperCase();
+    const pos = raw === 'W/R' ? 'FLEX' : raw;
+    const posLower = pos.toLowerCase();
+    return `<span class="slot-pos pos-${posLower}">${raw}</span>
+            <span class="slot-name">${p.name}</span>
+            <span class="slot-pts">${p.fantasy_points}</span>`;
 }
 
 function renderRoster(team, side) {
@@ -215,13 +239,8 @@ function olineSlot() {
 
 function slotCard(p, isBench = false) {
     if (!p) return '';
-    const raw = (p.position || 'BN').toUpperCase();
-    const pos = raw === 'W/R' ? 'FLEX' : raw;
-    const posLower = pos.toLowerCase();
     return `<div class="formation-slot${isBench ? ' bench-slot' : ''}">
-        <span class="slot-pos pos-${posLower}">${raw}</span>
-        <span class="slot-name">${p.name}</span>
-        <span class="slot-pts">${p.fantasy_points}</span>
+        ${slotContent(p)}
     </div>`;
 }
 

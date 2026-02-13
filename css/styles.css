@@ -565,6 +565,16 @@ img {
     transform: scale(1.06) translateY(-3px);
 }
 
+/* Specific fix for Sommo logo appearing small */
+.fox-logo[src*="sommo"] {
+    transform: scale(1.35);
+    /* Enlarge Sommo logo significantly */
+}
+
+.fox-logo[src*="sommo"]:hover {
+    transform: scale(1.45) translateY(-3px);
+}
+
 .fox-name {
     font-family: 'Oswald', 'Impact', sans-serif;
     font-weight: 700;
@@ -620,6 +630,8 @@ img {
     width: 100%;
     height: auto;
     border-radius: 14px;
+    /* Ensure it scales properly */
+    object-fit: contain;
 }
 
 .field-overlay {
@@ -631,12 +643,19 @@ img {
 
 /* ---- Main formations area ---- */
 .formations-area {
-    flex: 1;
+    position: absolute;
+    /* Take out of flow to prevent pushing bottom row? */
+    /* Wait, we want it to fill the field EXCEPT the bottom area */
+    top: 15%;
+    left: 0;
+    right: 0;
+    bottom: 20%;
+    /* Increased space for bench (was 20%) */
+    /* Leave space for DEF/K/Bench */
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 4%;
-    min-height: 0;
+    padding: 0 4%;
 }
 
 .team-formation {
@@ -668,7 +687,8 @@ img {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 2px;
+    gap: 8px;
+    /* Increased gap to fill vertical space */
 }
 
 /* DEF/K column at endzone (5-yard line) */
@@ -681,13 +701,18 @@ img {
 
 .formation-col.col-qb {
     justify-content: center;
-    min-width: 58px;
+    min-width: 55px;
+    width: 9.5vw;
+    max-width: 115px;
 }
 
 .formation-col.col-rb {
     justify-content: center;
-    gap: 4px;
-    min-width: 58px;
+    gap: 6px;
+    /* reduced gap */
+    min-width: 55px;
+    width: 9.5vw;
+    max-width: 115px;
 }
 
 .formation-col.col-line {
@@ -695,17 +720,23 @@ img {
     gap: 1px;
 }
 
-/* ---- Slot card (player) — enlarged ---- */
+/* ---- Slot card (player) — RESPONSIVE ---- */
 .formation-slot {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1px;
-    padding: 3px 5px 2px;
+    padding: 0.25em 0.4em;
     border-radius: 6px;
     background: rgba(0, 0, 0, 0.65);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    min-width: 56px;
+
+    /* Responsive sizing */
+    min-width: 55px;
+    /* reduced for mobile */
+    max-width: 115px;
+    width: 9.5vw;
+
     text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s;
     animation: slideInField 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
@@ -715,43 +746,89 @@ img {
 .formation-slot:hover {
     transform: scale(1.15);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-    z-index: 10;
+    z-index: 100;
     border-color: #fbbf24;
 }
 
+/* SPECIAL SLOTS (DEF/K) - Absolute Positioning */
+.special-slot {
+    position: absolute;
+    /* Visually near 20-yard line, but high enough to avoid bench overlapping */
+    bottom: 15%;
+    z-index: 5;
+}
+
+/* 
+   Standard field: 
+   Endzones are ~10% width each.
+   Goal lines are at 10% and 90%.
+   10-yard line at ~18%.
+   20-yard line at ~26%.
+   
+   User wants DEF/K "left of the 20".
+   So around 22-24% from left/right edge.
+*/
+
+/* Move closer to center (50-yard line) */
+.left-def {
+    left: 36%;
+    /* Reduced from 42% to avoid overlap */
+}
+
+.left-k {
+    left: 24%;
+    /* Adjusted accordingly */
+}
+
+.right-def {
+    right: 36%;
+}
+
+.right-k {
+    right: 24%;
+}
+
 .slot-pos {
-    font-size: 0.6rem;
-    padding: 1px 5px;
+    font-size: clamp(0.5rem, 0.8vw, 0.65rem);
+    padding: 1px 4px;
     border-radius: 3px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    line-height: 1.4;
+    line-height: 1.2;
 }
 
 .slot-name {
-    font-size: 0.68rem;
+    font-size: clamp(0.7rem, 1.2vw, 0.95rem);
+    /* Increased size */
     color: #f8fafc;
-    font-weight: 600;
+    font-weight: 700;
+    /* Bolder */
     white-space: nowrap;
-    line-height: 1.3;
+    /* Removed max-width restriction on name itself to allow using full card width */
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .slot-pts {
-    font-size: 0.72rem;
+    font-size: clamp(0.6rem, 0.9vw, 0.75rem);
     color: #4ade80;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 /* OL X markers — small, transparent, dark border & X */
 .formation-slot.oline-x {
-    background: transparent;
-    border: 1px solid rgba(71, 85, 105, 0.5);
-    color: rgba(71, 85, 105, 0.7);
-    font-size: 0.75rem;
-    font-weight: 700;
+    background: rgba(0, 0, 0, 0.15);
+    /* Slight dark bg for contrast */
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    /* Bright white border */
+    color: rgba(255, 255, 255, 1);
+    /* Bright white X */
+    font-size: 0.85rem;
+    font-weight: 900;
     min-width: 22px;
     max-width: 22px;
     padding: 4px 0;
@@ -761,15 +838,29 @@ img {
     pointer-events: none;
     user-select: none;
     backdrop-filter: none;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    /* Shadow to pop against any grass color */
 }
 
-/* ---- Bottom row: DEF/K corners + bench ---- */
+/* ---- Bottom row: Bench ---- */
 .field-bottom-row {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
     display: flex;
     align-items: flex-end;
     padding: 4px 1%;
     gap: 4px;
-    flex-shrink: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+    pointer-events: none;
+    /* Let clicks pass through if empty areas */
+}
+
+/* Allow pointer events on children */
+.field-bottom-row>* {
+    pointer-events: auto;
 }
 
 .endzone-corner {
@@ -779,13 +870,15 @@ img {
     flex-shrink: 0;
 }
 
+/* Fix bench wrapping */
 .bench-half {
     flex: 1;
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    max-height: 60px;
-    overflow: hidden;
+    /* max-height removed to allow expansion */
+    padding-bottom: 4px;
+    /* separation from field edge if needed */
 }
 
 .bench-half.bench-left {
@@ -798,28 +891,46 @@ img {
 
 .formation-slot.bench-slot {
     flex-direction: row;
-    gap: 5px;
-    padding: 3px 7px;
-    min-width: 90px;
     width: auto;
-    background: rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    /* Reset fixed width */
+    min-width: 0;
+    max-width: none;
+    padding: 3px 8px;
+    gap: 6px;
 }
 
 .formation-slot.bench-slot .slot-pos {
-    font-size: 0.55rem;
+    font-size: 0.65rem;
+}
+
+.formation-slot.bench-slot .slot-name {
+    font-size: 0.75rem;
+}
+
+.formation-slot.bench-slot .slot-pts {
+    font-size: 0.75rem;
+}
+
+
+
+.formation-slot.bench-slot .slot-pos {
+    font-size: 0.75rem;
+    /* Increased from 0.55rem */
 }
 
 .formation-slot.bench-slot .slot-name {
     flex: 1;
     text-align: left;
-    font-size: 0.62rem;
+    font-size: 0.9rem;
+    /* Increased from 0.62rem */
+    font-weight: 700;
 }
 
 .formation-slot.bench-slot .slot-pts {
     color: #94a3b8;
-    font-weight: 600;
-    font-size: 0.62rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    /* Increased from 0.62rem */
 }
 
 /* Mobile Game Center */
