@@ -1,7 +1,7 @@
 {
   "league_id": "7951746",
   "season": "2021",
-  "scraped_at": "2026-02-08T13:49:10.224327",
+  "scraped_at": "2026-02-14T10:33:31.939183",
   "weeks": {
     "1": {
       "matchups": [
@@ -10073,6 +10073,604 @@
                 "opponent": "DEN",
                 "status": "Win, 34-13",
                 "fantasy_points": "17.68"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "18": {
+      "matchups": [
+        {
+          "team1": {
+            "name": "riccardo97com",
+            "score": "127.38",
+            "starters": [
+              {
+                "position": "QB",
+                "name": "A. Rodgers",
+                "position_in_team": "QB",
+                "nfl_team": "GB",
+                "opponent": "@DET",
+                "status": "Loss, 30-37",
+                "fantasy_points": "14.22"
+              },
+              {
+                "position": "RB",
+                "name": "A. Ekeler",
+                "position_in_team": "RB",
+                "nfl_team": "LAC",
+                "opponent": "@LV",
+                "status": "Loss, 32-35",
+                "fantasy_points": "28.90"
+              },
+              {
+                "position": "RB",
+                "name": "S. Michel",
+                "position_in_team": "RB",
+                "nfl_team": "LA",
+                "opponent": "SF",
+                "status": "Loss, 24-27",
+                "fantasy_points": "5.90"
+              },
+              {
+                "position": "WR",
+                "name": "D. Adams",
+                "position_in_team": "WR",
+                "nfl_team": "LV",
+                "opponent": "LAC",
+                "status": "Win, 35-32",
+                "fantasy_points": "11.50"
+              },
+              {
+                "position": "WR",
+                "name": "D. Samuel",
+                "position_in_team": "WR",
+                "nfl_team": "SF",
+                "opponent": "@LAR",
+                "status": "Win, 27-24",
+                "fantasy_points": "28.96"
+              },
+              {
+                "position": "TE",
+                "name": "R. Gronkowski",
+                "position_in_team": "TE",
+                "nfl_team": "TB",
+                "opponent": "CAR",
+                "status": "Win, 41-17",
+                "fantasy_points": "20.70"
+              },
+              {
+                "position": "W/R",
+                "name": "T. Hill",
+                "position_in_team": "WR",
+                "nfl_team": "MIA",
+                "opponent": "NE",
+                "status": "Win, 33-24",
+                "fantasy_points": "1.20"
+              },
+              {
+                "position": "K",
+                "name": "R. Succop",
+                "position_in_team": "K",
+                "nfl_team": "TB",
+                "opponent": "CAR",
+                "status": "Win, 41-17",
+                "fantasy_points": "11.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Cowboys",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@PHI",
+                "status": "Win, 51-26",
+                "fantasy_points": "5.00"
+              }
+            ],
+            "bench": [
+              {
+                "position": "BN",
+                "name": "O. Beckham",
+                "position_in_team": "WR",
+                "nfl_team": "LA",
+                "opponent": "SF",
+                "status": "Loss, 24-27",
+                "fantasy_points": "3.80"
+              },
+              {
+                "position": "BN",
+                "name": "C. McCaffrey",
+                "position_in_team": "RB",
+                "nfl_team": "CAR",
+                "opponent": "@TB",
+                "status": "Loss, 17-41",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "BN",
+                "name": "D. Harris",
+                "position_in_team": "RB",
+                "nfl_team": "NE",
+                "opponent": "@MIA",
+                "status": "Loss, 24-33",
+                "fantasy_points": "17.30"
+              },
+              {
+                "position": "BN",
+                "name": "D. Montgomery",
+                "position_in_team": "RB",
+                "nfl_team": "CHI",
+                "opponent": "@MIN",
+                "status": "Loss, 17-31",
+                "fantasy_points": "9.90"
+              },
+              {
+                "position": "BN",
+                "name": "D. Singletary",
+                "position_in_team": "RB",
+                "nfl_team": "BUF",
+                "opponent": "NYJ",
+                "status": "Win, 27-10",
+                "fantasy_points": "25.20"
+              },
+              {
+                "position": "BN",
+                "name": "Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@MIA",
+                "status": "Loss, 24-33",
+                "fantasy_points": "1.00"
+              },
+              {
+                "position": "RES",
+                "name": "J. Mixon",
+                "position_in_team": "RB",
+                "nfl_team": "CIN",
+                "opponent": "@CLE",
+                "status": "Loss, 16-21",
+                "fantasy_points": "0.00"
+              }
+            ]
+          },
+          "team2": {
+            "name": "Capi dei Pianeti",
+            "score": "144.42",
+            "starters": [
+              {
+                "position": "QB",
+                "name": "J. Herbert",
+                "position_in_team": "QB",
+                "nfl_team": "LAC",
+                "opponent": "@LV",
+                "status": "Loss, 32-35",
+                "fantasy_points": "27.42"
+              },
+              {
+                "position": "RB",
+                "name": "A. Kamara",
+                "position_in_team": "RB",
+                "nfl_team": "NO",
+                "opponent": "@ATL",
+                "status": "Win, 30-20",
+                "fantasy_points": "18.20"
+              },
+              {
+                "position": "RB",
+                "name": "N. Chubb",
+                "position_in_team": "RB",
+                "nfl_team": "CLE",
+                "opponent": "CIN",
+                "status": "Win, 21-16",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "WR",
+                "name": "C. Kupp",
+                "position_in_team": "WR",
+                "nfl_team": "LA",
+                "opponent": "SF",
+                "status": "Loss, 24-27",
+                "fantasy_points": "26.60"
+              },
+              {
+                "position": "WR",
+                "name": "J. Jefferson",
+                "position_in_team": "WR",
+                "nfl_team": "MIN",
+                "opponent": "CHI",
+                "status": "Win, 31-17",
+                "fantasy_points": "22.10"
+              },
+              {
+                "position": "TE",
+                "name": "G. Kittle",
+                "position_in_team": "TE",
+                "nfl_team": "SF",
+                "opponent": "@LAR",
+                "status": "Win, 27-24",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "W/R",
+                "name": "S. Diggs",
+                "position_in_team": "WR",
+                "nfl_team": "BUF",
+                "opponent": "NYJ",
+                "status": "Win, 27-10",
+                "fantasy_points": "23.10"
+              },
+              {
+                "position": "K",
+                "name": "J. Tucker",
+                "position_in_team": "K",
+                "nfl_team": "BAL",
+                "opponent": "PIT",
+                "status": "Loss, 13-16",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Buccaneers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "CAR",
+                "status": "Win, 41-17",
+                "fantasy_points": "7.00"
+              }
+            ],
+            "bench": [
+              {
+                "position": "BN",
+                "name": "T. Kelce",
+                "position_in_team": "TE",
+                "nfl_team": "KC",
+                "opponent": "@DEN",
+                "status": "Win, 28-24",
+                "fantasy_points": "13.40"
+              },
+              {
+                "position": "BN",
+                "name": "L. Fournette",
+                "position_in_team": "RB",
+                "nfl_team": "TB",
+                "opponent": "CAR",
+                "status": "Win, 41-17",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "BN",
+                "name": "A. Jones",
+                "position_in_team": "RB",
+                "nfl_team": "GB",
+                "opponent": "@DET",
+                "status": "Loss, 30-37",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "BN",
+                "name": "S. Barkley",
+                "position_in_team": "RB",
+                "nfl_team": "NYG",
+                "opponent": "WAS",
+                "status": "Loss, 7-22",
+                "fantasy_points": "7.90"
+              },
+              {
+                "position": "BN",
+                "name": "H. Renfrow",
+                "position_in_team": "WR",
+                "nfl_team": "LV",
+                "opponent": "LAC",
+                "status": "Win, 35-32",
+                "fantasy_points": "16.90"
+              },
+              {
+                "position": "BN",
+                "name": "J. Hurts",
+                "position_in_team": "QB",
+                "nfl_team": "PHI",
+                "opponent": "DAL",
+                "status": "Loss, 26-51",
+                "fantasy_points": "0.00"
+              }
+            ]
+          }
+        },
+        {
+          "team1": {
+            "name": "lasers",
+            "score": "132.80",
+            "starters": [
+              {
+                "position": "QB",
+                "name": "P. Mahomes",
+                "position_in_team": "QB",
+                "nfl_team": "KC",
+                "opponent": "@DEN",
+                "status": "Win, 28-24",
+                "fantasy_points": "26.20"
+              },
+              {
+                "position": "RB",
+                "name": "J. Jacobs",
+                "position_in_team": "RB",
+                "nfl_team": "LV",
+                "opponent": "LAC",
+                "status": "Win, 35-32",
+                "fantasy_points": "22.40"
+              },
+              {
+                "position": "RB",
+                "name": "J. Taylor",
+                "position_in_team": "RB",
+                "nfl_team": "IND",
+                "opponent": "@JAX",
+                "status": "Loss, 11-26",
+                "fantasy_points": "12.50"
+              },
+              {
+                "position": "WR",
+                "name": "D. Metcalf",
+                "position_in_team": "WR",
+                "nfl_team": "SEA",
+                "opponent": "@ARI",
+                "status": "Win, 38-30",
+                "fantasy_points": "10.80"
+              },
+              {
+                "position": "WR",
+                "name": "M. Pittman",
+                "position_in_team": "WR",
+                "nfl_team": "IND",
+                "opponent": "@JAX",
+                "status": "Loss, 11-26",
+                "fantasy_points": "20.40"
+              },
+              {
+                "position": "TE",
+                "name": "M. Andrews",
+                "position_in_team": "TE",
+                "nfl_team": "BAL",
+                "opponent": "PIT",
+                "status": "Loss, 13-16",
+                "fantasy_points": "16.50"
+              },
+              {
+                "position": "W/R",
+                "name": "E. Elliott",
+                "position_in_team": "RB",
+                "nfl_team": "DAL",
+                "opponent": "@PHI",
+                "status": "Win, 51-26",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "K",
+                "name": "G. Joseph",
+                "position_in_team": "K",
+                "nfl_team": "MIN",
+                "opponent": "CHI",
+                "status": "Win, 31-17",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Cardinals",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "SEA",
+                "status": "Loss, 30-38",
+                "fantasy_points": "7.00"
+              }
+            ],
+            "bench": [
+              {
+                "position": "BN",
+                "name": "T. Brady",
+                "position_in_team": "QB",
+                "nfl_team": "TB",
+                "opponent": "CAR",
+                "status": "Win, 41-17",
+                "fantasy_points": "25.04"
+              },
+              {
+                "position": "BN",
+                "name": "A. Brown",
+                "position_in_team": "WR",
+                "nfl_team": "",
+                "opponent": "Bye",
+                "status": "",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "BN",
+                "name": "D. Hopkins",
+                "position_in_team": "WR",
+                "nfl_team": "ARI",
+                "opponent": "SEA",
+                "status": "Loss, 30-38",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "BN",
+                "name": "A. Thielen",
+                "position_in_team": "WR",
+                "nfl_team": "MIN",
+                "opponent": "CHI",
+                "status": "Win, 31-17",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "BN",
+                "name": "J. Conner",
+                "position_in_team": "RB",
+                "nfl_team": "ARI",
+                "opponent": "SEA",
+                "status": "Loss, 30-38",
+                "fantasy_points": "27.30"
+              },
+              {
+                "position": "BN",
+                "name": "A. Gibson",
+                "position_in_team": "RB",
+                "nfl_team": "WAS",
+                "opponent": "@NYG",
+                "status": "Win, 22-7",
+                "fantasy_points": "22.10"
+              }
+            ]
+          },
+          "team2": {
+            "name": "FedCom",
+            "score": "110.46",
+            "starters": [
+              {
+                "position": "QB",
+                "name": "J. Allen",
+                "position_in_team": "QB",
+                "nfl_team": "BUF",
+                "opponent": "NYJ",
+                "status": "Win, 27-10",
+                "fantasy_points": "23.86"
+              },
+              {
+                "position": "RB",
+                "name": "D. Cook",
+                "position_in_team": "RB",
+                "nfl_team": "MIN",
+                "opponent": "CHI",
+                "status": "Win, 31-17",
+                "fantasy_points": "9.20"
+              },
+              {
+                "position": "RB",
+                "name": "N. Harris",
+                "position_in_team": "RB",
+                "nfl_team": "PIT",
+                "opponent": "@BAL",
+                "status": "Win, 16-13",
+                "fantasy_points": "9.50"
+              },
+              {
+                "position": "WR",
+                "name": "D. Johnson",
+                "position_in_team": "WR",
+                "nfl_team": "PIT",
+                "opponent": "@BAL",
+                "status": "Win, 16-13",
+                "fantasy_points": "12.10"
+              },
+              {
+                "position": "WR",
+                "name": "J. Chase",
+                "position_in_team": "WR",
+                "nfl_team": "CIN",
+                "opponent": "@CLE",
+                "status": "Loss, 16-21",
+                "fantasy_points": "4.60"
+              },
+              {
+                "position": "TE",
+                "name": "Z. Ertz",
+                "position_in_team": "TE",
+                "nfl_team": "ARI",
+                "opponent": "SEA",
+                "status": "Loss, 30-38",
+                "fantasy_points": "15.40"
+              },
+              {
+                "position": "W/R",
+                "name": "A. Brown",
+                "position_in_team": "WR",
+                "nfl_team": "PHI",
+                "opponent": "DAL",
+                "status": "Loss, 26-51",
+                "fantasy_points": "16.80"
+              },
+              {
+                "position": "K",
+                "name": "N. Folk",
+                "position_in_team": "K",
+                "nfl_team": "NE",
+                "opponent": "@MIA",
+                "status": "Loss, 24-33",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Bills",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NYJ",
+                "status": "Win, 27-10",
+                "fantasy_points": "13.00"
+              }
+            ],
+            "bench": [
+              {
+                "position": "BN",
+                "name": "M. Evans",
+                "position_in_team": "WR",
+                "nfl_team": "TB",
+                "opponent": "CAR",
+                "status": "Win, 41-17",
+                "fantasy_points": "26.90"
+              },
+              {
+                "position": "BN",
+                "name": "D. Waller",
+                "position_in_team": "TE",
+                "nfl_team": "LV",
+                "opponent": "LAC",
+                "status": "Win, 35-32",
+                "fantasy_points": "4.20"
+              },
+              {
+                "position": "BN",
+                "name": "K. Murray",
+                "position_in_team": "QB",
+                "nfl_team": "ARI",
+                "opponent": "SEA",
+                "status": "Loss, 30-38",
+                "fantasy_points": "17.10"
+              },
+              {
+                "position": "BN",
+                "name": "D. Swift",
+                "position_in_team": "RB",
+                "nfl_team": "DET",
+                "opponent": "GB",
+                "status": "Win, 37-30",
+                "fantasy_points": "14.60"
+              },
+              {
+                "position": "BN",
+                "name": "A. St. Brown",
+                "position_in_team": "WR",
+                "nfl_team": "DET",
+                "opponent": "GB",
+                "status": "Win, 37-30",
+                "fantasy_points": "26.10"
+              },
+              {
+                "position": "BN",
+                "name": "J. Waddle",
+                "position_in_team": "WR",
+                "nfl_team": "MIA",
+                "opponent": "NE",
+                "status": "Win, 33-24",
+                "fantasy_points": "13.70"
+              },
+              {
+                "position": "RES",
+                "name": "D. Henry",
+                "position_in_team": "RB",
+                "nfl_team": "TEN",
+                "opponent": "@HOU",
+                "status": "Win, 28-25",
+                "fantasy_points": "0.00"
               }
             ]
           }

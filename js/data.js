@@ -53,6 +53,19 @@ export async function fetchAllTimeStats() {
     }
 }
 
+export async function fetchAllSeasonsData() {
+    const promises = SEASONS.map(season => fetchFantasyData(season));
+    const results = await Promise.all(promises);
+
+    const data = {};
+    SEASONS.forEach((season, index) => {
+        if (results[index]) {
+            data[season] = results[index];
+        }
+    });
+    return data;
+}
+
 // ─── Processing functions ───
 
 // Week 16 = Playoffs, Week 17 = Super Bowl

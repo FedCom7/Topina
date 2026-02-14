@@ -229,6 +229,17 @@ img {
     font-weight: 400;
 }
 
+/* ========================================
+   HEAD TO HEAD (H2H) SECTION
+   ======================================== */
+.records-section {
+    margin-top: 100px;
+}
+
+.h2h-section {
+    margin-top: 80px;
+}
+
 /* ================================
    HERO (HOME)
    ================================ */
@@ -1591,4 +1602,28 @@ img {
         height: 32px;
         font-size: 0.7rem;
     }
+}
+
+/* ========================================
+   HEAD TO HEAD (H2H) SECTION
+   ======================================== */
+.records-section {
+    margin-top: 100px;
+}
+
+.h2h-section {
+    margin-top: 80px;
+}
+
+.h2h-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    transition: var(--transition);
+}
+
+.h2h-card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-4px);
 }

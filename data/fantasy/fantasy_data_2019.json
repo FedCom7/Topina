@@ -1,7 +1,7 @@
 {
   "league_id": "7951746",
   "season": "2019",
-  "scraped_at": "2026-02-08T12:30:55.979764",
+  "scraped_at": "2026-02-14T10:45:41.539863",
   "weeks": {
     "1": {
       "matchups": [
@@ -74,6 +74,26 @@
                 "fantasy_points": "4.80"
               },
               {
+                "position": "K",
+                "name": "Stephen Gostkowski",
+                "position_in_team": "K",
+                "nfl_team": "NE",
+                "opponent": "PIT",
+                "status": "Win, 33-3",
+                "fantasy_points": "15.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "GB",
+                "status": "Loss, 3-10",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Aaron Rodgers",
                 "position_in_team": "QB",
@@ -126,27 +146,8 @@
                 "opponent": "PIT",
                 "status": "Win, 33-3",
                 "fantasy_points": "1.40"
-              },
-              {
-                "position": "K",
-                "name": "Stephen Gostkowski",
-                "position_in_team": "K",
-                "nfl_team": "NE",
-                "opponent": "PIT",
-                "status": "Win, 33-3",
-                "fantasy_points": "15.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "GB",
-                "status": "Loss, 3-10",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "lasers",
@@ -216,6 +217,26 @@
                 "fantasy_points": "14.10"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "HOU",
+                "status": "Win, 30-28",
+                "fantasy_points": "14.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CAR",
+                "status": "Win, 30-27",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -268,27 +289,8 @@
                 "opponent": "@SEA",
                 "status": "Loss, 20-21",
                 "fantasy_points": "3.70"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "HOU",
-                "status": "Win, 30-28",
-                "fantasy_points": "14.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CAR",
-                "status": "Win, 30-27",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -360,6 +362,26 @@
                 "fantasy_points": "4.10"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "@CAR",
+                "status": "Win, 30-27",
+                "fantasy_points": "14.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Seattle Seahawks",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "CIN",
+                "status": "Win, 21-20",
+                "fantasy_points": "12.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Drew Brees",
                 "position_in_team": "QB",
@@ -405,24 +427,6 @@
                 "fantasy_points": "11.60"
               },
               {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "@CAR",
-                "status": "Win, 30-27",
-                "fantasy_points": "14.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Seattle Seahawks",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "CIN",
-                "status": "Win, 21-20",
-                "fantasy_points": "12.00"
-              },
-              {
                 "position": "BN",
                 "name": "Jacksonville Jaguars",
                 "position_in_team": "DEF",
@@ -431,8 +435,7 @@
                 "status": "Loss, 26-40",
                 "fantasy_points": "-4.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -502,6 +505,26 @@
                 "fantasy_points": "5.90"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@JAX",
+                "status": "Win, 40-26",
+                "fantasy_points": "16.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Denver Broncos",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@LV",
+                "status": "Loss, 16-24",
+                "fantasy_points": "0.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Matt Ryan",
                 "position_in_team": "QB",
@@ -554,27 +577,8 @@
                 "opponent": "@NE",
                 "status": "Loss, 3-33",
                 "fantasy_points": "10.50"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@JAX",
-                "status": "Win, 40-26",
-                "fantasy_points": "16.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Denver Broncos",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@LV",
-                "status": "Loss, 16-24",
-                "fantasy_points": "0.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -650,6 +654,26 @@
                 "fantasy_points": "23.30"
               },
               {
+                "position": "K",
+                "name": "Stephen Gostkowski",
+                "position_in_team": "K",
+                "nfl_team": "NE",
+                "opponent": "@MIA",
+                "status": "Win, 43-0",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@DEN",
+                "status": "Win, 16-14",
+                "fantasy_points": "5.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Aaron Rodgers",
                 "position_in_team": "QB",
@@ -702,27 +726,8 @@
                 "opponent": "KC",
                 "status": "Loss, 10-28",
                 "fantasy_points": "9.90"
-              },
-              {
-                "position": "K",
-                "name": "Stephen Gostkowski",
-                "position_in_team": "K",
-                "nfl_team": "NE",
-                "opponent": "@MIA",
-                "status": "Win, 43-0",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@DEN",
-                "status": "Win, 16-14",
-                "fantasy_points": "5.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -792,6 +797,26 @@
                 "fantasy_points": "10.90"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "NO",
+                "status": "Win, 27-9",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Houston Texans",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "JAX",
+                "status": "Win, 13-12",
+                "fantasy_points": "10.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Todd Gurley",
                 "position_in_team": "RB",
@@ -844,27 +869,8 @@
                 "opponent": "@NYJ",
                 "status": "Win, 23-3",
                 "fantasy_points": "15.00"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "NO",
-                "status": "Win, 27-9",
-                "fantasy_points": "9.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Houston Texans",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "JAX",
-                "status": "Win, 13-12",
-                "fantasy_points": "10.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -936,6 +942,26 @@
                 "fantasy_points": "28.10"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@LAR",
+                "status": "Loss, 9-27",
+                "fantasy_points": "11.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NO",
+                "status": "Win, 27-9",
+                "fantasy_points": "8.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -979,27 +1005,8 @@
                 "opponent": "@GB",
                 "status": "Loss, 16-21",
                 "fantasy_points": "9.90"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@LAR",
-                "status": "Loss, 9-27",
-                "fantasy_points": "11.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "NO",
-                "status": "Win, 27-9",
-                "fantasy_points": "8.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -1069,6 +1076,26 @@
                 "fantasy_points": "16.60"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@LV",
+                "status": "Win, 28-10",
+                "fantasy_points": "4.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@MIA",
+                "status": "Win, 43-0",
+                "fantasy_points": "37.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Jared Cook",
                 "position_in_team": "TE",
@@ -1121,27 +1148,8 @@
                 "opponent": "SEA",
                 "status": "Loss, 26-28",
                 "fantasy_points": "13.50"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@LV",
-                "status": "Win, 28-10",
-                "fantasy_points": "4.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@MIA",
-                "status": "Win, 43-0",
-                "fantasy_points": "37.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -1217,6 +1225,26 @@
                 "fantasy_points": "10.30"
               },
               {
+                "position": "K",
+                "name": "Stephen Gostkowski",
+                "position_in_team": "K",
+                "nfl_team": "NE",
+                "opponent": "NYJ",
+                "status": "Win, 30-14",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@WAS",
+                "status": "Win, 31-15",
+                "fantasy_points": "21.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -1269,27 +1297,8 @@
                 "opponent": "@MIN",
                 "status": "Loss, 14-34",
                 "fantasy_points": "4.40"
-              },
-              {
-                "position": "K",
-                "name": "Stephen Gostkowski",
-                "position_in_team": "K",
-                "nfl_team": "NE",
-                "opponent": "NYJ",
-                "status": "Win, 30-14",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@WAS",
-                "status": "Win, 31-15",
-                "fantasy_points": "21.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -1359,6 +1368,26 @@
                 "fantasy_points": "26.80"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "BAL",
+                "status": "Win, 33-28",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NYJ",
+                "status": "Win, 30-14",
+                "fantasy_points": "14.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Jared Cook",
                 "position_in_team": "TE",
@@ -1411,27 +1440,8 @@
                 "opponent": "@SF",
                 "status": "Loss, 20-24",
                 "fantasy_points": "7.70"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "BAL",
-                "status": "Win, 33-28",
-                "fantasy_points": "9.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "NYJ",
-                "status": "Win, 30-14",
-                "fantasy_points": "14.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -1503,6 +1513,26 @@
                 "fantasy_points": "26.80"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@SEA",
+                "status": "Win, 33-27",
+                "fantasy_points": "3.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CLE",
+                "status": "Win, 20-13",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -1555,27 +1585,8 @@
                 "opponent": "@LAC",
                 "status": "Win, 27-20",
                 "fantasy_points": "25.84"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@SEA",
-                "status": "Win, 33-27",
-                "fantasy_points": "3.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CLE",
-                "status": "Win, 20-13",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -1645,6 +1656,26 @@
                 "fantasy_points": "11.40"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "@CLE",
+                "status": "Win, 20-13",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Dallas Cowboys",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "MIA",
+                "status": "Win, 31-6",
+                "fantasy_points": "12.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Emmanuel Sanders",
                 "position_in_team": "WR",
@@ -1697,27 +1728,8 @@
                 "opponent": "LAR",
                 "status": "Loss, 13-20",
                 "fantasy_points": "9.70"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "@CLE",
-                "status": "Win, 20-13",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Dallas Cowboys",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "MIA",
-                "status": "Win, 31-6",
-                "fantasy_points": "12.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -1793,6 +1805,26 @@
                 "fantasy_points": "6.30"
               },
               {
+                "position": "K",
+                "name": "Stephen Gostkowski",
+                "position_in_team": "K",
+                "nfl_team": "NE",
+                "opponent": "@BUF",
+                "status": "Win, 16-10",
+                "fantasy_points": "4.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "MIN",
+                "status": "Win, 16-6",
+                "fantasy_points": "17.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -1845,27 +1877,8 @@
                 "opponent": "@NYG",
                 "status": "Loss, 3-24",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Stephen Gostkowski",
-                "position_in_team": "K",
-                "nfl_team": "NE",
-                "opponent": "@BUF",
-                "status": "Win, 16-10",
-                "fantasy_points": "4.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "MIN",
-                "status": "Win, 16-6",
-                "fantasy_points": "17.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "lasers",
@@ -1935,6 +1948,26 @@
                 "fantasy_points": "4.00"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "DAL",
+                "status": "Win, 12-10",
+                "fantasy_points": "12.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "TB",
+                "status": "Loss, 40-55",
+                "fantasy_points": "6.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Julio Jones",
                 "position_in_team": "WR",
@@ -1987,27 +2020,8 @@
                 "opponent": "CAR",
                 "status": "Loss, 10-16",
                 "fantasy_points": "11.60"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "DAL",
-                "status": "Win, 12-10",
-                "fantasy_points": "12.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "TB",
-                "status": "Loss, 40-55",
-                "fantasy_points": "6.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -2079,6 +2093,26 @@
                 "fantasy_points": "6.40"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "TB",
+                "status": "Loss, 40-55",
+                "fantasy_points": "12.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Chargers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@MIA",
+                "status": "Win, 30-10",
+                "fantasy_points": "11.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Todd Gurley",
                 "position_in_team": "RB",
@@ -2131,27 +2165,8 @@
                 "opponent": "@BAL",
                 "status": "Win, 40-25",
                 "fantasy_points": "39.30"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "TB",
-                "status": "Loss, 40-55",
-                "fantasy_points": "12.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Chargers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@MIA",
-                "status": "Win, 30-10",
-                "fantasy_points": "11.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -2221,6 +2236,26 @@
                 "fantasy_points": "6.20"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@DET",
+                "status": "Win, 34-30",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@BUF",
+                "status": "Win, 16-10",
+                "fantasy_points": "23.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Brandin Cooks",
                 "position_in_team": "WR",
@@ -2273,27 +2308,8 @@
                 "opponent": "WAS",
                 "status": "Win, 24-3",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@DET",
-                "status": "Win, 34-30",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@BUF",
-                "status": "Win, 16-10",
-                "fantasy_points": "23.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -2369,6 +2385,26 @@
                 "fantasy_points": "22.30"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "JAX",
+                "status": "Win, 34-27",
+                "fantasy_points": "4.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@LV",
+                "status": "Loss, 21-24",
+                "fantasy_points": "4.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Aaron Rodgers",
                 "position_in_team": "QB",
@@ -2421,27 +2457,8 @@
                 "opponent": "@CAR",
                 "status": "Loss, 27-34",
                 "fantasy_points": "36.40"
-              },
-              {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "JAX",
-                "status": "Win, 34-27",
-                "fantasy_points": "4.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@LV",
-                "status": "Loss, 21-24",
-                "fantasy_points": "4.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -2511,6 +2528,26 @@
                 "fantasy_points": "10.90"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "@SEA",
+                "status": "Loss, 29-30",
+                "fantasy_points": "11.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Philadelphia Eagles",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NYJ",
+                "status": "Win, 31-6",
+                "fantasy_points": "35.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mark Ingram",
                 "position_in_team": "RB",
@@ -2563,27 +2600,8 @@
                 "opponent": "@SF",
                 "status": "Loss, 3-31",
                 "fantasy_points": "-2.00"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "@SEA",
-                "status": "Loss, 29-30",
-                "fantasy_points": "11.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Philadelphia Eagles",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "NYJ",
-                "status": "Win, 31-6",
-                "fantasy_points": "35.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -2655,6 +2673,26 @@
                 "fantasy_points": "5.00"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "TB",
+                "status": "Win, 31-24",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@SEA",
+                "status": "Loss, 29-30",
+                "fantasy_points": "2.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Antonio Brown",
                 "position_in_team": "WR",
@@ -2707,27 +2745,8 @@
                 "opponent": "@CAR",
                 "status": "Loss, 27-34",
                 "fantasy_points": "23.70"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "TB",
-                "status": "Win, 31-24",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@SEA",
-                "status": "Loss, 29-30",
-                "fantasy_points": "2.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -2797,6 +2816,26 @@
                 "fantasy_points": "19.30"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "IND",
+                "status": "Loss, 13-19",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@WAS",
+                "status": "Win, 33-7",
+                "fantasy_points": "14.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Brandin Cooks",
                 "position_in_team": "WR",
@@ -2849,27 +2888,8 @@
                 "opponent": "@PIT",
                 "status": "Win, 26-23",
                 "fantasy_points": "11.20"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "IND",
-                "status": "Loss, 13-19",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@WAS",
-                "status": "Win, 33-7",
-                "fantasy_points": "14.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -2945,6 +2965,26 @@
                 "fantasy_points": "5.80"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "@TB",
+                "status": "Win, 37-26",
+                "fantasy_points": "13.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Dallas Cowboys",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@NYJ",
+                "status": "Loss, 22-24",
+                "fantasy_points": "4.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -2990,24 +3030,6 @@
                 "fantasy_points": "7.30"
               },
               {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "@TB",
-                "status": "Win, 37-26",
-                "fantasy_points": "13.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Dallas Cowboys",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@NYJ",
-                "status": "Loss, 22-24",
-                "fantasy_points": "4.00"
-              },
-              {
                 "position": "BN",
                 "name": "Chicago Bears",
                 "position_in_team": "DEF",
@@ -3016,8 +3038,7 @@
                 "status": "",
                 "fantasy_points": "0.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -3087,6 +3108,26 @@
                 "fantasy_points": "17.70"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "HOU",
+                "status": "Loss, 24-31",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NYG",
+                "status": "Win, 35-14",
+                "fantasy_points": "25.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Brandin Cooks",
                 "position_in_team": "WR",
@@ -3139,27 +3180,8 @@
                 "opponent": "@NE",
                 "status": "Loss, 14-35",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "HOU",
-                "status": "Loss, 24-31",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "NYG",
-                "status": "Win, 35-14",
-                "fantasy_points": "25.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -3231,6 +3253,26 @@
                 "fantasy_points": "13.40"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@JAX",
+                "status": "Win, 13-6",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "SF",
+                "status": "Loss, 7-20",
+                "fantasy_points": "7.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Antonio Brown",
                 "position_in_team": "WR",
@@ -3283,27 +3325,8 @@
                 "opponent": "@NE",
                 "status": "Loss, 14-35",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@JAX",
-                "status": "Win, 13-6",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "SF",
-                "status": "Loss, 7-20",
-                "fantasy_points": "7.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -3373,6 +3396,26 @@
                 "fantasy_points": "4.00"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "SF",
+                "status": "Loss, 7-20",
+                "fantasy_points": "1.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Chargers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "PIT",
+                "status": "Loss, 17-24",
+                "fantasy_points": "3.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Davante Adams",
                 "position_in_team": "WR",
@@ -3425,27 +3468,8 @@
                 "opponent": "SEA",
                 "status": "Loss, 28-32",
                 "fantasy_points": "19.46"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "SF",
-                "status": "Loss, 7-20",
-                "fantasy_points": "1.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Chargers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "PIT",
-                "status": "Loss, 17-24",
-                "fantasy_points": "3.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -3521,6 +3545,26 @@
                 "fantasy_points": "10.30"
               },
               {
+                "position": "K",
+                "name": "Zane Gonzalez",
+                "position_in_team": "K",
+                "nfl_team": "ARI",
+                "opponent": "@NYG",
+                "status": "Win, 27-21",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NO",
+                "status": "Loss, 25-36",
+                "fantasy_points": "6.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -3573,27 +3617,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Zane Gonzalez",
-                "position_in_team": "K",
-                "nfl_team": "ARI",
-                "opponent": "@NYG",
-                "status": "Win, 27-21",
-                "fantasy_points": "9.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "NO",
-                "status": "Loss, 25-36",
-                "fantasy_points": "6.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "lasers",
@@ -3663,6 +3688,26 @@
                 "fantasy_points": "27.90"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@CHI",
+                "status": "Win, 36-25",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Buffalo Bills",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "MIA",
+                "status": "Win, 31-21",
+                "fantasy_points": "11.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "DeAndre Hopkins",
                 "position_in_team": "WR",
@@ -3708,24 +3753,6 @@
                 "fantasy_points": "15.52"
               },
               {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@CHI",
-                "status": "Win, 36-25",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Buffalo Bills",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "MIA",
-                "status": "Win, 31-21",
-                "fantasy_points": "11.00"
-              },
-              {
                 "position": "BN",
                 "name": "Los Angeles Rams",
                 "position_in_team": "DEF",
@@ -3734,8 +3761,7 @@
                 "status": "Win, 37-10",
                 "fantasy_points": "21.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -3807,6 +3833,26 @@
                 "fantasy_points": "16.40"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "@ATL",
+                "status": "Win, 37-10",
+                "fantasy_points": "15.00"
+              },
+              {
+                "position": "DEF",
+                "name": "San Francisco 49ers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@WAS",
+                "status": "Win, 9-0",
+                "fantasy_points": "15.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mark Ingram",
                 "position_in_team": "RB",
@@ -3859,27 +3905,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "@ATL",
-                "status": "Win, 37-10",
-                "fantasy_points": "15.00"
-              },
-              {
-                "position": "DEF",
-                "name": "San Francisco 49ers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@WAS",
-                "status": "Win, 9-0",
-                "fantasy_points": "15.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -3949,6 +3976,26 @@
                 "fantasy_points": "15.60"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@DEN",
+                "status": "Win, 30-6",
+                "fantasy_points": "12.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@NYJ",
+                "status": "Win, 33-0",
+                "fantasy_points": "25.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Matt Ryan",
                 "position_in_team": "QB",
@@ -4001,27 +4048,8 @@
                 "opponent": "LV",
                 "status": "Win, 42-24",
                 "fantasy_points": "18.30"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@DEN",
-                "status": "Win, 30-6",
-                "fantasy_points": "12.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@NYJ",
-                "status": "Win, 33-0",
-                "fantasy_points": "25.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -4097,6 +4125,26 @@
                 "fantasy_points": "27.50"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "@SF",
+                "status": "Loss, 13-51",
+                "fantasy_points": "3.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Chicago Bears",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "LAC",
+                "status": "Loss, 16-17",
+                "fantasy_points": "4.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Travis Kelce",
                 "position_in_team": "TE",
@@ -4149,27 +4197,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "@SF",
-                "status": "Loss, 13-51",
-                "fantasy_points": "3.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Chicago Bears",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "LAC",
-                "status": "Loss, 16-17",
-                "fantasy_points": "4.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -4239,6 +4268,26 @@
                 "fantasy_points": "10.80"
               },
               {
+                "position": "K",
+                "name": "Greg Zuerlein",
+                "position_in_team": "K",
+                "nfl_team": "LA",
+                "opponent": "CIN",
+                "status": "Win, 24-10",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Seattle Seahawks",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@ATL",
+                "status": "Win, 27-20",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mohamed Sanu",
                 "position_in_team": "WR",
@@ -4291,27 +4340,8 @@
                 "opponent": "@NE",
                 "status": "Loss, 13-27",
                 "fantasy_points": "11.56"
-              },
-              {
-                "position": "K",
-                "name": "Greg Zuerlein",
-                "position_in_team": "K",
-                "nfl_team": "LA",
-                "opponent": "CIN",
-                "status": "Win, 24-10",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Seattle Seahawks",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@ATL",
-                "status": "Win, 27-20",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -4383,6 +4413,26 @@
                 "fantasy_points": "21.90"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "ARI",
+                "status": "Win, 31-9",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Los Angeles Rams",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "CIN",
+                "status": "Win, 24-10",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -4435,27 +4485,8 @@
                 "opponent": "LV",
                 "status": "Win, 27-24",
                 "fantasy_points": "27.76"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "ARI",
-                "status": "Win, 31-9",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Los Angeles Rams",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "CIN",
-                "status": "Win, 24-10",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -4525,6 +4556,26 @@
                 "fantasy_points": "41.60"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "GB",
+                "status": "Loss, 24-31",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "CLE",
+                "status": "Win, 27-13",
+                "fantasy_points": "21.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Adam Thielen",
                 "position_in_team": "WR",
@@ -4577,27 +4628,8 @@
                 "opponent": "NYJ",
                 "status": "Win, 29-15",
                 "fantasy_points": "23.96"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "GB",
-                "status": "Loss, 24-31",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "CLE",
-                "status": "Win, 27-13",
-                "fantasy_points": "21.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -4673,6 +4705,26 @@
                 "fantasy_points": "7.20"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "TEN",
+                "status": "Win, 30-20",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "San Francisco 49ers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@ARI",
+                "status": "Win, 28-25",
+                "fantasy_points": "3.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -4725,27 +4777,8 @@
                 "opponent": "NE",
                 "status": "Win, 37-20",
                 "fantasy_points": "28.62"
-              },
-              {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "TEN",
-                "status": "Win, 30-20",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "San Francisco 49ers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@ARI",
-                "status": "Win, 28-25",
-                "fantasy_points": "3.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -4815,6 +4848,26 @@
                 "fantasy_points": "18.00"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "MIN",
+                "status": "Win, 26-23",
+                "fantasy_points": "16.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@BAL",
+                "status": "Loss, 20-37",
+                "fantasy_points": "4.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Aaron Rodgers",
                 "position_in_team": "QB",
@@ -4867,27 +4920,8 @@
                 "opponent": "TB",
                 "status": "Win, 40-34",
                 "fantasy_points": "13.30"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "MIN",
-                "status": "Win, 26-23",
-                "fantasy_points": "16.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@BAL",
-                "status": "Loss, 20-37",
-                "fantasy_points": "4.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -4959,6 +4993,26 @@
                 "fantasy_points": "12.20"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "Bye",
+                "status": "",
+                "fantasy_points": "0.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Carolina Panthers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "TEN",
+                "status": "Win, 30-20",
+                "fantasy_points": "11.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Julio Jones",
                 "position_in_team": "WR",
@@ -5004,24 +5058,6 @@
                 "fantasy_points": "19.74"
               },
               {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "Bye",
-                "status": "",
-                "fantasy_points": "0.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Carolina Panthers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "TEN",
-                "status": "Win, 30-20",
-                "fantasy_points": "11.00"
-              },
-              {
                 "position": "BN",
                 "name": "Los Angeles Rams",
                 "position_in_team": "DEF",
@@ -5030,8 +5066,7 @@
                 "status": "",
                 "fantasy_points": "0.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -5101,6 +5136,26 @@
                 "fantasy_points": "7.00"
               },
               {
+                "position": "K",
+                "name": "Zane Gonzalez",
+                "position_in_team": "K",
+                "nfl_team": "ARI",
+                "opponent": "SF",
+                "status": "Loss, 25-28",
+                "fantasy_points": "5.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Seattle Seahawks",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "TB",
+                "status": "Win, 40-34",
+                "fantasy_points": "3.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mohamed Sanu",
                 "position_in_team": "WR",
@@ -5153,27 +5208,8 @@
                 "opponent": "@DEN",
                 "status": "Loss, 19-24",
                 "fantasy_points": "17.12"
-              },
-              {
-                "position": "K",
-                "name": "Zane Gonzalez",
-                "position_in_team": "K",
-                "nfl_team": "ARI",
-                "opponent": "SF",
-                "status": "Loss, 25-28",
-                "fantasy_points": "5.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Seattle Seahawks",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "TB",
-                "status": "Win, 40-34",
-                "fantasy_points": "3.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -5249,6 +5285,26 @@
                 "fantasy_points": "15.40"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "@GB",
+                "status": "Loss, 16-24",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "San Francisco 49ers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "SEA",
+                "status": "Loss, 24-27",
+                "fantasy_points": "19.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Julian Edelman",
                 "position_in_team": "WR",
@@ -5301,27 +5357,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "@GB",
-                "status": "Loss, 16-24",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "San Francisco 49ers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "SEA",
-                "status": "Loss, 24-27",
-                "fantasy_points": "19.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "lasers",
@@ -5391,6 +5428,26 @@
                 "fantasy_points": "10.70"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "ATL",
+                "status": "Loss, 9-26",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Carolina Panthers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@GB",
+                "status": "Loss, 16-24",
+                "fantasy_points": "2.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -5443,27 +5500,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "ATL",
-                "status": "Loss, 9-26",
-                "fantasy_points": "9.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Carolina Panthers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@GB",
-                "status": "Loss, 16-24",
-                "fantasy_points": "2.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -5535,6 +5573,26 @@
                 "fantasy_points": "18.80"
               },
               {
+                "position": "K",
+                "name": "Zane Gonzalez",
+                "position_in_team": "K",
+                "nfl_team": "ARI",
+                "opponent": "@TB",
+                "status": "Loss, 27-30",
+                "fantasy_points": "11.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Baltimore Ravens",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CIN",
+                "status": "Win, 49-13",
+                "fantasy_points": "24.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Aaron Rodgers",
                 "position_in_team": "QB",
@@ -5587,27 +5645,8 @@
                 "opponent": "BUF",
                 "status": "Win, 19-16",
                 "fantasy_points": "17.62"
-              },
-              {
-                "position": "K",
-                "name": "Zane Gonzalez",
-                "position_in_team": "K",
-                "nfl_team": "ARI",
-                "opponent": "@TB",
-                "status": "Loss, 27-30",
-                "fantasy_points": "11.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Baltimore Ravens",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CIN",
-                "status": "Win, 49-13",
-                "fantasy_points": "24.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -5677,6 +5716,26 @@
                 "fantasy_points": "31.70"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@TEN",
+                "status": "Loss, 32-35",
+                "fantasy_points": "14.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New Orleans Saints",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "ATL",
+                "status": "Loss, 9-26",
+                "fantasy_points": "3.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "DeAndre Hopkins",
                 "position_in_team": "WR",
@@ -5722,24 +5781,6 @@
                 "fantasy_points": "19.10"
               },
               {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@TEN",
-                "status": "Loss, 32-35",
-                "fantasy_points": "14.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New Orleans Saints",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "ATL",
-                "status": "Loss, 9-26",
-                "fantasy_points": "3.00"
-              },
-              {
                 "position": "BN",
                 "name": "New England Patriots",
                 "position_in_team": "DEF",
@@ -5748,8 +5789,7 @@
                 "status": "",
                 "fantasy_points": "0.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -5825,6 +5865,26 @@
                 "fantasy_points": "14.90"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "ATL",
+                "status": "Loss, 3-29",
+                "fantasy_points": "3.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Pittsburgh Steelers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CLE",
+                "status": "Loss, 7-21",
+                "fantasy_points": "1.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -5870,24 +5930,6 @@
                 "fantasy_points": "30.40"
               },
               {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "ATL",
-                "status": "Loss, 3-29",
-                "fantasy_points": "3.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Pittsburgh Steelers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CLE",
-                "status": "Loss, 7-21",
-                "fantasy_points": "1.00"
-              },
-              {
                 "position": "BN",
                 "name": "San Francisco 49ers",
                 "position_in_team": "DEF",
@@ -5896,8 +5938,7 @@
                 "status": "Win, 36-26",
                 "fantasy_points": "14.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -5967,6 +6008,26 @@
                 "fantasy_points": "21.10"
               },
               {
+                "position": "K",
+                "name": "Zane Gonzalez",
+                "position_in_team": "K",
+                "nfl_team": "ARI",
+                "opponent": "@SF",
+                "status": "Loss, 26-36",
+                "fantasy_points": "8.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Las Vegas Raiders",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "CIN",
+                "status": "Win, 17-10",
+                "fantasy_points": "13.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Aaron Rodgers",
                 "position_in_team": "QB",
@@ -6019,27 +6080,8 @@
                 "opponent": "CHI",
                 "status": "Win, 17-7",
                 "fantasy_points": "20.30"
-              },
-              {
-                "position": "K",
-                "name": "Zane Gonzalez",
-                "position_in_team": "K",
-                "nfl_team": "ARI",
-                "opponent": "@SF",
-                "status": "Loss, 26-36",
-                "fantasy_points": "8.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Las Vegas Raiders",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "CIN",
-                "status": "Win, 17-10",
-                "fantasy_points": "13.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -6111,6 +6153,26 @@
                 "fantasy_points": "12.70"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@TB",
+                "status": "Win, 34-17",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Carolina Panthers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "ATL",
+                "status": "Loss, 3-29",
+                "fantasy_points": "2.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -6163,27 +6225,8 @@
                 "opponent": "@IND",
                 "status": "Loss, 13-33",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@TB",
-                "status": "Win, 34-17",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Carolina Panthers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "ATL",
-                "status": "Loss, 3-29",
-                "fantasy_points": "2.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -6253,6 +6296,26 @@
                 "fantasy_points": "15.00"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@LAC",
+                "status": "Win, 24-17",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@PHI",
+                "status": "Win, 17-10",
+                "fantasy_points": "11.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Drew Brees",
                 "position_in_team": "QB",
@@ -6305,27 +6368,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@LAC",
-                "status": "Win, 24-17",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@PHI",
-                "status": "Win, 17-10",
-                "fantasy_points": "11.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -6401,6 +6445,26 @@
                 "fantasy_points": "17.30"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "@NO",
+                "status": "Loss, 31-34",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Pittsburgh Steelers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CIN",
+                "status": "Win, 16-10",
+                "fantasy_points": "12.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -6446,24 +6510,6 @@
                 "fantasy_points": "10.80"
               },
               {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "@NO",
-                "status": "Loss, 31-34",
-                "fantasy_points": "9.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Pittsburgh Steelers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CIN",
-                "status": "Win, 16-10",
-                "fantasy_points": "12.00"
-              },
-              {
                 "position": "BN",
                 "name": "San Francisco 49ers",
                 "position_in_team": "DEF",
@@ -6472,8 +6518,7 @@
                 "status": "Win, 37-8",
                 "fantasy_points": "11.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -6543,6 +6588,26 @@
                 "fantasy_points": "27.40"
               },
               {
+                "position": "K",
+                "name": "Justin Tucker",
+                "position_in_team": "K",
+                "nfl_team": "BAL",
+                "opponent": "@LAR",
+                "status": "Win, 45-6",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "DAL",
+                "status": "Win, 13-9",
+                "fantasy_points": "6.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Darren Waller",
                 "position_in_team": "TE",
@@ -6588,15 +6653,6 @@
                 "fantasy_points": "9.70"
               },
               {
-                "position": "K",
-                "name": "Justin Tucker",
-                "position_in_team": "K",
-                "nfl_team": "BAL",
-                "opponent": "@LAR",
-                "status": "Win, 45-6",
-                "fantasy_points": "9.00"
-              },
-              {
                 "position": "BN",
                 "name": "Harrison Butker",
                 "position_in_team": "K",
@@ -6604,18 +6660,8 @@
                 "opponent": "Bye",
                 "status": "",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "DAL",
-                "status": "Win, 13-9",
-                "fantasy_points": "6.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -6687,6 +6733,26 @@
                 "fantasy_points": "11.80"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "CAR",
+                "status": "Win, 34-31",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Carolina Panthers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@NO",
+                "status": "Loss, 31-34",
+                "fantasy_points": "3.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -6739,27 +6805,8 @@
                 "opponent": "@TEN",
                 "status": "Loss, 20-42",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "CAR",
-                "status": "Win, 34-31",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Carolina Panthers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@NO",
-                "status": "Loss, 31-34",
-                "fantasy_points": "3.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -6829,6 +6876,26 @@
                 "fantasy_points": "25.40"
               },
               {
+                "position": "K",
+                "name": "Nick Folk",
+                "position_in_team": "K",
+                "nfl_team": "NE",
+                "opponent": "DAL",
+                "status": "Win, 13-9",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Detroit Lions",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@WAS",
+                "status": "Loss, 16-19",
+                "fantasy_points": "8.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mohamed Sanu",
                 "position_in_team": "WR",
@@ -6881,27 +6948,8 @@
                 "opponent": "MIA",
                 "status": "Win, 41-24",
                 "fantasy_points": "23.58"
-              },
-              {
-                "position": "K",
-                "name": "Nick Folk",
-                "position_in_team": "K",
-                "nfl_team": "NE",
-                "opponent": "DAL",
-                "status": "Win, 13-9",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Detroit Lions",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@WAS",
-                "status": "Loss, 16-19",
-                "fantasy_points": "8.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -6977,6 +7025,26 @@
                 "fantasy_points": "9.30"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "WAS",
+                "status": "Loss, 21-29",
+                "fantasy_points": "3.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Pittsburgh Steelers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "CLE",
+                "status": "Win, 20-13",
+                "fantasy_points": "13.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Julian Edelman",
                 "position_in_team": "WR",
@@ -7022,24 +7090,6 @@
                 "fantasy_points": "16.70"
               },
               {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "WAS",
-                "status": "Loss, 21-29",
-                "fantasy_points": "3.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Pittsburgh Steelers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "CLE",
-                "status": "Win, 20-13",
-                "fantasy_points": "13.00"
-              },
-              {
                 "position": "BN",
                 "name": "San Francisco 49ers",
                 "position_in_team": "DEF",
@@ -7048,8 +7098,7 @@
                 "status": "Loss, 17-20",
                 "fantasy_points": "4.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "lasers",
@@ -7119,6 +7168,26 @@
                 "fantasy_points": "20.70"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@ATL",
+                "status": "Win, 26-18",
+                "fantasy_points": "14.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Carolina Panthers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "WAS",
+                "status": "Loss, 21-29",
+                "fantasy_points": "4.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -7171,27 +7240,8 @@
                 "opponent": "TB",
                 "status": "Loss, 11-28",
                 "fantasy_points": "10.68"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@ATL",
-                "status": "Win, 26-18",
-                "fantasy_points": "14.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Carolina Panthers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "WAS",
-                "status": "Loss, 21-29",
-                "fantasy_points": "4.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -7263,6 +7313,26 @@
                 "fantasy_points": "18.50"
               },
               {
+                "position": "K",
+                "name": "Aldrick Rosas",
+                "position_in_team": "K",
+                "nfl_team": "NYG",
+                "opponent": "GB",
+                "status": "Loss, 13-31",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Philadelphia Eagles",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@MIA",
+                "status": "Loss, 31-37",
+                "fantasy_points": "1.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mohamed Sanu",
                 "position_in_team": "WR",
@@ -7315,27 +7385,8 @@
                 "opponent": "MIN",
                 "status": "Win, 37-30",
                 "fantasy_points": "26.70"
-              },
-              {
-                "position": "K",
-                "name": "Aldrick Rosas",
-                "position_in_team": "K",
-                "nfl_team": "NYG",
-                "opponent": "GB",
-                "status": "Loss, 13-31",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Philadelphia Eagles",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@MIA",
-                "status": "Loss, 31-37",
-                "fantasy_points": "1.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -7405,6 +7456,26 @@
                 "fantasy_points": "10.40"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "LV",
+                "status": "Win, 40-9",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@HOU",
+                "status": "Loss, 22-28",
+                "fantasy_points": "2.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Drew Brees",
                 "position_in_team": "QB",
@@ -7457,27 +7528,8 @@
                 "opponent": "MIN",
                 "status": "Win, 37-30",
                 "fantasy_points": "17.90"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "LV",
-                "status": "Win, 40-9",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@HOU",
-                "status": "Loss, 22-28",
-                "fantasy_points": "2.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -7553,6 +7605,26 @@
                 "fantasy_points": "13.10"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "@ATL",
+                "status": "Loss, 20-40",
+                "fantasy_points": "8.00"
+              },
+              {
+                "position": "DEF",
+                "name": "San Francisco 49ers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@NO",
+                "status": "Win, 48-46",
+                "fantasy_points": "-2.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Mark Ingram",
                 "position_in_team": "RB",
@@ -7598,24 +7670,6 @@
                 "fantasy_points": "16.50"
               },
               {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "@ATL",
-                "status": "Loss, 20-40",
-                "fantasy_points": "8.00"
-              },
-              {
-                "position": "DEF",
-                "name": "San Francisco 49ers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@NO",
-                "status": "Win, 48-46",
-                "fantasy_points": "-2.00"
-              },
-              {
                 "position": "BN",
                 "name": "Pittsburgh Steelers",
                 "position_in_team": "DEF",
@@ -7624,8 +7678,7 @@
                 "status": "Win, 23-17",
                 "fantasy_points": "18.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -7695,6 +7748,26 @@
                 "fantasy_points": "8.10"
               },
               {
+                "position": "K",
+                "name": "Aldrick Rosas",
+                "position_in_team": "K",
+                "nfl_team": "NYG",
+                "opponent": "@PHI",
+                "status": "Loss, 17-23",
+                "fantasy_points": "5.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Green Bay Packers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "WAS",
+                "status": "Win, 20-15",
+                "fantasy_points": "7.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Keenan Allen",
                 "position_in_team": "WR",
@@ -7747,27 +7820,8 @@
                 "opponent": "@LAR",
                 "status": "Loss, 12-28",
                 "fantasy_points": "2.60"
-              },
-              {
-                "position": "K",
-                "name": "Aldrick Rosas",
-                "position_in_team": "K",
-                "nfl_team": "NYG",
-                "opponent": "@PHI",
-                "status": "Loss, 17-23",
-                "fantasy_points": "5.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Green Bay Packers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "WAS",
-                "status": "Win, 20-15",
-                "fantasy_points": "7.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -7839,6 +7893,26 @@
                 "fantasy_points": "23.30"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "SF",
+                "status": "Loss, 46-48",
+                "fantasy_points": "12.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Philadelphia Eagles",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "NYG",
+                "status": "Win, 23-17",
+                "fantasy_points": "3.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -7891,27 +7965,8 @@
                 "opponent": "LAC",
                 "status": "Loss, 10-45",
                 "fantasy_points": "13.58"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "SF",
-                "status": "Loss, 46-48",
-                "fantasy_points": "12.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Philadelphia Eagles",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "NYG",
-                "status": "Win, 23-17",
-                "fantasy_points": "3.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -7981,6 +8036,26 @@
                 "fantasy_points": "31.20"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@NE",
+                "status": "Win, 23-16",
+                "fantasy_points": "11.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Baltimore Ravens",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@BUF",
+                "status": "Win, 24-17",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tyler Lockett",
                 "position_in_team": "WR",
@@ -8026,24 +8101,6 @@
                 "fantasy_points": "0.00"
               },
               {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@NE",
-                "status": "Win, 23-16",
-                "fantasy_points": "11.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Baltimore Ravens",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@BUF",
-                "status": "Win, 24-17",
-                "fantasy_points": "9.00"
-              },
-              {
                 "position": "BN",
                 "name": "New England Patriots",
                 "position_in_team": "DEF",
@@ -8052,8 +8109,7 @@
                 "status": "Loss, 16-23",
                 "fantasy_points": "5.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -8129,6 +8185,26 @@
                 "fantasy_points": "2.90"
               },
               {
+                "position": "K",
+                "name": "Joey Slye",
+                "position_in_team": "K",
+                "nfl_team": "CAR",
+                "opponent": "SEA",
+                "status": "Loss, 24-30",
+                "fantasy_points": "8.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Pittsburgh Steelers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "BUF",
+                "status": "Loss, 10-17",
+                "fantasy_points": "6.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Tom Brady",
                 "position_in_team": "QB",
@@ -8174,24 +8250,6 @@
                 "fantasy_points": "0.00"
               },
               {
-                "position": "K",
-                "name": "Joey Slye",
-                "position_in_team": "K",
-                "nfl_team": "CAR",
-                "opponent": "SEA",
-                "status": "Loss, 24-30",
-                "fantasy_points": "8.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Pittsburgh Steelers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "BUF",
-                "status": "Loss, 10-17",
-                "fantasy_points": "6.00"
-              },
-              {
                 "position": "BN",
                 "name": "San Francisco 49ers",
                 "position_in_team": "DEF",
@@ -8200,8 +8258,7 @@
                 "status": "Loss, 22-29",
                 "fantasy_points": "4.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -8271,6 +8328,26 @@
                 "fantasy_points": "26.70"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "DEN",
+                "status": "Win, 23-3",
+                "fantasy_points": "9.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CIN",
+                "status": "Win, 34-13",
+                "fantasy_points": "20.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Darren Waller",
                 "position_in_team": "TE",
@@ -8323,27 +8400,8 @@
                 "opponent": "JAX",
                 "status": "Loss, 16-20",
                 "fantasy_points": "12.90"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "DEN",
-                "status": "Win, 23-3",
-                "fantasy_points": "9.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CIN",
-                "status": "Win, 34-13",
-                "fantasy_points": "20.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -8415,6 +8473,26 @@
                 "fantasy_points": "31.00"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "IND",
+                "status": "Win, 34-7",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Philadelphia Eagles",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@WAS",
+                "status": "Win, 37-27",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -8467,27 +8545,8 @@
                 "opponent": "@LV",
                 "status": "Win, 20-16",
                 "fantasy_points": "18.74"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "IND",
-                "status": "Win, 34-7",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Philadelphia Eagles",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@WAS",
-                "status": "Win, 37-27",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -8557,6 +8616,26 @@
                 "fantasy_points": "20.30"
               },
               {
+                "position": "K",
+                "name": "Aldrick Rosas",
+                "position_in_team": "K",
+                "nfl_team": "NYG",
+                "opponent": "MIA",
+                "status": "Win, 36-20",
+                "fantasy_points": "4.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Seattle Seahawks",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@CAR",
+                "status": "Win, 30-24",
+                "fantasy_points": "7.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Keenan Allen",
                 "position_in_team": "WR",
@@ -8609,27 +8688,8 @@
                 "opponent": "@ARI",
                 "status": "Loss, 24-38",
                 "fantasy_points": "23.80"
-              },
-              {
-                "position": "K",
-                "name": "Aldrick Rosas",
-                "position_in_team": "K",
-                "nfl_team": "NYG",
-                "opponent": "MIA",
-                "status": "Win, 36-20",
-                "fantasy_points": "4.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Seattle Seahawks",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@CAR",
-                "status": "Win, 30-24",
-                "fantasy_points": "7.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -8705,6 +8765,26 @@
                 "fantasy_points": "33.80"
               },
               {
+                "position": "K",
+                "name": "Younghoe Koo",
+                "position_in_team": "K",
+                "nfl_team": "ATL",
+                "opponent": "JAX",
+                "status": "Win, 24-12",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Pittsburgh Steelers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@NYJ",
+                "status": "Loss, 10-16",
+                "fantasy_points": "5.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Julian Edelman",
                 "position_in_team": "WR",
@@ -8750,24 +8830,6 @@
                 "fantasy_points": "15.30"
               },
               {
-                "position": "K",
-                "name": "Younghoe Koo",
-                "position_in_team": "K",
-                "nfl_team": "ATL",
-                "opponent": "JAX",
-                "status": "Win, 24-12",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Pittsburgh Steelers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@NYJ",
-                "status": "Loss, 10-16",
-                "fantasy_points": "5.00"
-              },
-              {
                 "position": "BN",
                 "name": "San Francisco 49ers",
                 "position_in_team": "DEF",
@@ -8776,8 +8838,7 @@
                 "status": "Win, 34-31",
                 "fantasy_points": "7.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -8847,6 +8908,26 @@
                 "fantasy_points": "28.00"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "@CHI",
+                "status": "Win, 26-3",
+                "fantasy_points": "10.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "BUF",
+                "status": "Win, 24-17",
+                "fantasy_points": "5.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Drew Brees",
                 "position_in_team": "QB",
@@ -8899,27 +8980,8 @@
                 "opponent": "@LAC",
                 "status": "Win, 24-17",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "@CHI",
-                "status": "Win, 26-3",
-                "fantasy_points": "10.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "BUF",
-                "status": "Win, 24-17",
-                "fantasy_points": "5.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -8991,6 +9053,26 @@
                 "fantasy_points": "5.60"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@TEN",
+                "status": "Win, 38-28",
+                "fantasy_points": "8.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Philadelphia Eagles",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "DAL",
+                "status": "Win, 17-9",
+                "fantasy_points": "8.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Odell Beckham",
                 "position_in_team": "WR",
@@ -9043,27 +9125,8 @@
                 "opponent": "@ATL",
                 "status": "Loss, 12-24",
                 "fantasy_points": "14.84"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@TEN",
-                "status": "Win, 38-28",
-                "fantasy_points": "8.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Philadelphia Eagles",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "DAL",
-                "status": "Win, 17-9",
-                "fantasy_points": "8.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -9133,6 +9196,26 @@
                 "fantasy_points": "22.60"
               },
               {
+                "position": "K",
+                "name": "Aldrick Rosas",
+                "position_in_team": "K",
+                "nfl_team": "NYG",
+                "opponent": "@WAS",
+                "status": "Win, 41-35",
+                "fantasy_points": "5.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Denver Broncos",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "DET",
+                "status": "Win, 27-17",
+                "fantasy_points": "5.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Keenan Allen",
                 "position_in_team": "WR",
@@ -9185,27 +9268,8 @@
                 "opponent": "BAL",
                 "status": "Loss, 15-31",
                 "fantasy_points": "4.50"
-              },
-              {
-                "position": "K",
-                "name": "Aldrick Rosas",
-                "position_in_team": "K",
-                "nfl_team": "NYG",
-                "opponent": "@WAS",
-                "status": "Win, 41-35",
-                "fantasy_points": "5.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Denver Broncos",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "DET",
-                "status": "Win, 27-17",
-                "fantasy_points": "5.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
@@ -9281,6 +9345,26 @@
                 "fantasy_points": "17.90"
               },
               {
+                "position": "K",
+                "name": "Younghoe Koo",
+                "position_in_team": "K",
+                "nfl_team": "ATL",
+                "opponent": "@TB",
+                "status": "Win, 28-22",
+                "fantasy_points": "16.00"
+              },
+              {
+                "position": "DEF",
+                "name": "San Francisco 49ers",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@SEA",
+                "status": "Win, 26-21",
+                "fantasy_points": "1.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Travis Kelce",
                 "position_in_team": "TE",
@@ -9326,24 +9410,6 @@
                 "fantasy_points": "7.40"
               },
               {
-                "position": "K",
-                "name": "Younghoe Koo",
-                "position_in_team": "K",
-                "nfl_team": "ATL",
-                "opponent": "@TB",
-                "status": "Win, 28-22",
-                "fantasy_points": "16.00"
-              },
-              {
-                "position": "DEF",
-                "name": "San Francisco 49ers",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@SEA",
-                "status": "Win, 26-21",
-                "fantasy_points": "1.00"
-              },
-              {
                 "position": "BN",
                 "name": "Kansas City Chiefs",
                 "position_in_team": "DEF",
@@ -9352,8 +9418,7 @@
                 "status": "Win, 31-21",
                 "fantasy_points": "13.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "FedCom",
@@ -9423,6 +9488,26 @@
                 "fantasy_points": "10.70"
               },
               {
+                "position": "K",
+                "name": "Aldrick Rosas",
+                "position_in_team": "K",
+                "nfl_team": "NYG",
+                "opponent": "PHI",
+                "status": "Loss, 17-34",
+                "fantasy_points": "5.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Denver Broncos",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "LV",
+                "status": "Win, 16-15",
+                "fantasy_points": "5.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Keenan Allen",
                 "position_in_team": "WR",
@@ -9475,27 +9560,8 @@
                 "opponent": "NO",
                 "status": "Loss, 10-42",
                 "fantasy_points": "0.00"
-              },
-              {
-                "position": "K",
-                "name": "Aldrick Rosas",
-                "position_in_team": "K",
-                "nfl_team": "NYG",
-                "opponent": "PHI",
-                "status": "Loss, 17-34",
-                "fantasy_points": "5.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Denver Broncos",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "LV",
-                "status": "Win, 16-15",
-                "fantasy_points": "5.00"
               }
-            ],
-            "bench": []
+            ]
           }
         },
         {
@@ -9567,6 +9633,26 @@
                 "fantasy_points": "0.00"
               },
               {
+                "position": "K",
+                "name": "Wil Lutz",
+                "position_in_team": "K",
+                "nfl_team": "NO",
+                "opponent": "@CAR",
+                "status": "Win, 42-10",
+                "fantasy_points": "6.00"
+              },
+              {
+                "position": "DEF",
+                "name": "Philadelphia Eagles",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "@NYG",
+                "status": "Win, 34-17",
+                "fantasy_points": "9.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "T.Y. Hilton",
                 "position_in_team": "WR",
@@ -9619,27 +9705,8 @@
                 "opponent": "IND",
                 "status": "Win, 38-20",
                 "fantasy_points": "24.50"
-              },
-              {
-                "position": "K",
-                "name": "Wil Lutz",
-                "position_in_team": "K",
-                "nfl_team": "NO",
-                "opponent": "@CAR",
-                "status": "Win, 42-10",
-                "fantasy_points": "6.00"
-              },
-              {
-                "position": "DEF",
-                "name": "Philadelphia Eagles",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "@NYG",
-                "status": "Win, 34-17",
-                "fantasy_points": "9.00"
               }
-            ],
-            "bench": []
+            ]
           },
           "team2": {
             "name": "Capi dei Pianeti",
@@ -9709,6 +9776,26 @@
                 "fantasy_points": "8.10"
               },
               {
+                "position": "K",
+                "name": "Harrison Butker",
+                "position_in_team": "K",
+                "nfl_team": "KC",
+                "opponent": "LAC",
+                "status": "Win, 31-21",
+                "fantasy_points": "7.00"
+              },
+              {
+                "position": "DEF",
+                "name": "New England Patriots",
+                "position_in_team": "DEF",
+                "nfl_team": "",
+                "opponent": "MIA",
+                "status": "Loss, 24-27",
+                "fantasy_points": "2.00"
+              }
+            ],
+            "bench": [
+              {
                 "position": "BN",
                 "name": "Drew Brees",
                 "position_in_team": "QB",
@@ -9761,27 +9848,8 @@
                 "opponent": "CLE",
                 "status": "Win, 33-23",
                 "fantasy_points": "30.60"
-              },
-              {
-                "position": "K",
-                "name": "Harrison Butker",
-                "position_in_team": "K",
-                "nfl_team": "KC",
-                "opponent": "LAC",
-                "status": "Win, 31-21",
-                "fantasy_points": "7.00"
-              },
-              {
-                "position": "DEF",
-                "name": "New England Patriots",
-                "position_in_team": "DEF",
-                "nfl_team": "",
-                "opponent": "MIA",
-                "status": "Loss, 24-27",
-                "fantasy_points": "2.00"
               }
-            ],
-            "bench": []
+            ]
           }
         }
       ]
