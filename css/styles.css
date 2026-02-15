@@ -229,6 +229,17 @@ img {
     font-weight: 400;
 }
 
+/* ========================================
+   HEAD TO HEAD (H2H) SECTION
+   ======================================== */
+.records-section {
+    margin-top: 100px;
+}
+
+.h2h-section {
+    margin-top: 80px;
+}
+
 /* ================================
    HERO (HOME)
    ================================ */
@@ -1593,6 +1604,7 @@ img {
     }
 }
 
+
 /* ================================
    DRAFT SECTION REDESIGN
    ================================ */
@@ -1919,4 +1931,20 @@ img {
 .draft-card {
     /* Reinforce black background */
     background-color: #090909 !important;
+
+    /* ========================================
+       HEAD TO HEAD (H2H) SECTION - NEW STYLES
+       ======================================== */
+    .h2h-card {
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--card-radius);
+        padding: 24px;
+        transition: all 0.3s var(--ease);
+    }
+
+    .h2h-card:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-4px);
+    }
 }

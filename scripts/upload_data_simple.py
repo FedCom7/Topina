@@ -13,15 +13,15 @@ def upload_to_firebase(path, data):
         req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), method='PUT')
         with urllib.request.urlopen(req) as context:
             if 200 <= context.status < 300:
-                print(f"✓ Uploaded: {path}")
+                print(f"[OK] Uploaded: {path}")
             else:
-                print(f"✗ Failed to upload {path}: Status {context.status}")
+                print(f"[ERROR] Failed to upload {path}: Status {context.status}")
     except urllib.error.HTTPError as e:
-        print(f"✗ Error uploading {path}: {e}")
+        print(f"[ERROR] Error uploading {path}: {e}")
         if e.code == 401 or e.code == 403:
             print("  ! Permission Denied. creating 'serviceAccountKey.json' and using upload_data.py is required if rules are locked.")
     except Exception as e:
-        print(f"✗ Error: {e}")
+        print(f"[ERROR] Error: {e}")
 
 def main():
     print("Starting simpler upload to Realtime Database...")
