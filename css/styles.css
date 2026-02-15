@@ -1172,7 +1172,7 @@ img {
 
 .draft-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
 }
 
@@ -1610,26 +1610,347 @@ img {
     }
 }
 
-/* ========================================
-   HEAD TO HEAD (H2H) SECTION
-   ======================================== */
-.records-section {
-    margin-top: 100px;
+
+/* ================================
+   DRAFT SECTION REDESIGN
+   ================================ */
+
+.draft-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    width: 100%;
+    margin-top: 24px;
 }
 
-.h2h-section {
-    margin-top: 80px;
+@media (max-width: 1024px) {
+    .draft-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
-.h2h-card {
-    background: var(--bg-card);
+@media (max-width: 768px) {
+    .draft-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .draft-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.draft-card {
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    /* Vertical Layout: Image Top, Info Bottom */
+    height: 320px;
+    /* Fixed height for uniformity */
+    animation: fadeUp 0.5s ease both;
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius);
-    padding: 24px;
-    transition: var(--transition);
 }
 
-.h2h-card:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-4px);
+.draft-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    z-index: 5;
+}
+
+/* ---- Card Backgrounds per Team (Light Pastel) ---- */
+.bg-team-capi {
+    background: linear-gradient(to bottom, #e0f2f1, #b2dfdb);
+    /* Teal Light */
+    color: #004d40;
+}
+
+.bg-team-lasers {
+    background: linear-gradient(to bottom, #ffebee, #ffcdd2);
+    /* Red Light */
+    color: #b71c1c;
+}
+
+.bg-team-oscurus {
+    background: linear-gradient(to bottom, #f3e5f5, #e1bee7);
+    /* Purple Light */
+    color: #4a148c;
+}
+
+.bg-team-sommo {
+    background: linear-gradient(to bottom, #fff8e1, #ffecb3);
+    /* Amber Light */
+    color: #ff6f00;
+}
+
+.bg-team-default {
+    background: linear-gradient(to bottom, #f5f5f5, #e0e0e0);
+    /* Grey Light */
+    color: #212121;
+}
+
+/* ---- Card Image Section (Top Half) ---- */
+.draft-card-image {
+    flex: 1;
+    /* Takes up available space */
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.2);
+    /* Subtle separation */
+}
+
+.draft-headshot {
+    height: 105%;
+    /* Slight overlap to crop */
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+    transition: transform 0.3s ease;
+}
+
+.draft-card:hover .draft-headshot {
+    transform: scale(1.08);
+    /* Zoom effect */
+}
+
+.draft-pick-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Card Info Section (Bottom Half) ---- */
+.draft-card-info {
+    padding: 16px;
+    /* Background removed as requested */
+    /* Background and border removed */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.draft-player-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.draft-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.draft-nfl-team {
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+}
+
+.draft-fantasy-team {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.draft-fantasy-team .label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    opacity: 0.6;
+    font-weight: 700;
+}
+
+.draft-fantasy-team .team-name {
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+/* =========================================
+   DRAFT SECTION REFINEMENTS (Black Theme)
+   ========================================= */
+
+/* Override previous draft card styles for Black Theme */
+.draft-card {
+    background: #090909 !important;
+    /* Deep black/grey */
+    border: 1px solid #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    /* Remove gradient backgrounds but keep a colored bottom border for team hint? */
+    border-bottom: 3px solid transparent;
+}
+
+/* Team color accents on bottom border instead of full background */
+.draft-card.bg-team-capi {
+    border-bottom-color: #4db6ac;
+}
+
+/* Teal */
+.draft-card.bg-team-lasers {
+    border-bottom-color: #e57373;
+}
+
+/* Red */
+.draft-card.bg-team-oscurus {
+    border-bottom-color: #ba68c8;
+}
+
+/* Purple */
+.draft-card.bg-team-sommo {
+    border-bottom-color: #ffd54f;
+}
+
+/* Amber */
+
+/* Text color needs to be white/light on black background */
+.draft-card-info,
+.draft-player-name,
+.draft-meta-row,
+.draft-fantasy-team {
+    color: #e0e0e0;
+}
+
+.draft-nfl-team {
+    color: #aaa;
+}
+
+.draft-fantasy-team .label {
+    color: #888;
+}
+
+.draft-fantasy-team .team-name {
+    color: #fff;
+}
+
+/* Pick Badge - Clean Number Style */
+.draft-pick-badge {
+    background: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-family: 'Oswald', sans-serif;
+    font-size: 2.5rem;
+    /* Large number */
+    font-weight: 700;
+    top: -4px;
+    left: 8px;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.3;
+    /* Subtle watermark style */
+    z-index: 1;
+}
+
+/* Draft Image - Ensure Cutout Look */
+.draft-headshot {
+    /* If images are cutouts, this helps */
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+    /* Pop from black bg */
+}
+
+/* Squeeze cards - reduce max width or gap */
+.draft-grid {
+    gap: 16px;
+    /* Slightly tighter gap */
+    max-width: 900px;
+    margin: 24px auto;
+    /* Center grid */
+}
+
+/* Make Team Name colored based on team */
+.bg-team-capi .draft-fantasy-team .team-name {
+    color: #80cbc4;
+}
+
+.bg-team-lasers .draft-fantasy-team .team-name {
+    color: #ef9a9a;
+}
+
+.bg-team-oscurus .draft-fantasy-team .team-name {
+    color: #ce93d8;
+}
+
+.bg-team-sommo .draft-fantasy-team .team-name {
+    color: #ffe082;
+}
+
+/* Pick Number Color Accent */
+.bg-team-capi .draft-pick-badge {
+    color: #80cbc4 !important;
+    opacity: 0.2;
+}
+
+.bg-team-lasers .draft-pick-badge {
+    color: #ef9a9a !important;
+    opacity: 0.2;
+}
+
+.bg-team-oscurus .draft-pick-badge {
+    color: #ce93d8 !important;
+    opacity: 0.2;
+}
+
+.bg-team-sommo .draft-pick-badge {
+    color: #ffe082 !important;
+    opacity: 0.2;
+}
+
+/* =========================================
+   DRAFT SECTION V4 (Uniform Black)
+   ========================================= */
+
+/* Ensure the image container has NO background color */
+.draft-card-image {
+    background: transparent !important;
+    /* Optional: maintain the gradient mask for the cutout look */
+    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+.draft-card {
+    /* Reinforce black background */
+    background-color: #090909 !important;
+
+    /* ========================================
+       HEAD TO HEAD (H2H) SECTION - NEW STYLES
+       ======================================== */
+    .h2h-card {
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--card-radius);
+        padding: 24px;
+        transition: all 0.3s var(--ease);
+    }
+
+    .h2h-card:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-4px);
+    }
 }

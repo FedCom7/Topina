@@ -1,7 +1,3 @@
-/**
- * Game Center Section
- * Year + Week selectors → matchup cards with expandable rosters
- */
 import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=5';
 import { TEAM_LOGOS } from '../data/team-config.js?v=5';
 

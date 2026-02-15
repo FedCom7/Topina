@@ -3,9 +3,13 @@
  * Year selector + Round filter → draft pick cards
  */
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js';
+import { TEAM_KEYS } from '../data/team-config.js';
+import { playerImageService } from '../services/player-image-service.js?v=4';
+import { db } from '../firebase-config.js';
 
 let loaded = false;
 let currentPicks = [];
+let currentYear = null;
 
 export async function initDraft() {
     if (loaded) return;
@@ -29,25 +33,32 @@ function renderYearSelector() {
 }
 
 async function loadYear(year) {
+    currentYear = year; // Update global
     const grid = document.getElementById('draft-grid');
     grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento draft ${year}...</p></div>`;
 
-    const data = await fetchDraftData(year);
-    if (!data) {
-        grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun draft per il ${year}</p></div>`;
-        document.getElementById('dr-round-selector').innerHTML = '';
-        return;
-    }
+    try {
+        const data = await fetchDraftData(year);
+        if (!data) {
+            grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun draft per il ${year}</p></div>`;
+            document.getElementById('dr-round-selector').innerHTML = '';
+            return;
+        }
 
-    currentPicks = flattenDraft(data);
-    if (!currentPicks.length) {
-        grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><p class="empty-state-text">Dati draft non disponibili</p></div>`;
-        return;
-    }
+        currentPicks = flattenDraft(data);
 
-    const maxRound = Math.max(...currentPicks.map(p => p.round));
-    renderRoundSelector(maxRound);
-    renderCards('all');
+        if (!currentPicks.length) {
+            grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><p class="empty-state-text">Dati draft non disponibili</p></div>`;
+            return;
+        }
+
+        const maxRound = Math.max(...currentPicks.map(p => p.round));
+        renderRoundSelector(maxRound);
+        renderCards('all');
+    } catch (e) {
+        console.error(`[Draft] Error loading year ${year}:`, e);
+        grid.innerHTML = `<div class="error-state"><p>Errore nel caricamento: ${e.message}</p></div>`;
+    }
 }
 
 function renderRoundSelector(maxRound) {
@@ -72,16 +83,57 @@ function renderCards(round) {
 
     grid.innerHTML = picks.map((p, i) => {
         const posClass = `pos-${(p.pos || '').toLowerCase().replace('/', '')}`;
+        const teamKey = TEAM_KEYS[displayName(p.team)] || 'default';
+        const fallback = 'images/fallback-player.svg';
+
         return `
-        <div class="draft-card" style="animation-delay:${(i % 12) * 40}ms">
-            <div class="draft-pick-num">#${p.pick}</div>
-            <div class="draft-info">
-                <div class="draft-player">${p.player}</div>
-                <div class="draft-meta">
-                    <span class="player-pos ${posClass}" style="display:inline-block;margin-right:6px;">${p.pos}</span>
-                    ${p.nfl} → <strong>${displayName(p.team)}</strong>
+        <div class="draft-card bg-team-${teamKey}" style="animation-delay:${(i % 12) * 40}ms">
+            <div class="draft-card-image">
+                 <img src="${fallback}" class="draft-headshot" data-player-name="${p.player}" data-team="${p.nfl}" data-pos="${p.pos}" alt="${p.player}">
+                 <div class="draft-pick-badge">#${p.pick}</div>
+            </div>
+            <div class="draft-card-info">
+                <div class="draft-player-name">${p.player}</div>
+                <div class="draft-meta-row">
+                    <span class="player-pos ${posClass}">${p.pos}</span>
+                    <span class="draft-nfl-team">${p.nfl}</span>
+                </div>
+                <div class="draft-fantasy-team">
+                    <span class="label">Drafted by</span>
+                    <span class="team-name">${displayName(p.team)}</span>
                 </div>
             </div>
         </div>`;
     }).join('');
+
+    // Load images asynchronously
+    updateDraftImages(currentYear);
+}
+
+/** Update src for all player headshots */
+function updateDraftImages(year) {
+    const images = document.querySelectorAll('.draft-headshot'); images.forEach(async (img) => {
+        const name = img.dataset.playerName;
+        const team = img.dataset.team;
+        const pos = img.dataset.pos;
+
+        // Setup error handler for 404s
+        img.onerror = () => {
+            if (img.src !== 'images/fallback-player.svg') {
+                img.src = 'images/fallback-player.svg';
+            }
+        };
+
+        if (name) {
+            try {
+                // Pass Team and Position to the service!
+                // Pass YEAR to avoid searching current rosters for old players
+                const url = await playerImageService.getPlayerImageUrl(name, team, pos, year);
+                img.src = url;
+            } catch (e) {
+                console.warn('Failed to load image for', name);
+                img.src = 'images/fallback-player.svg';
+            }
+        }
+    });
 }
