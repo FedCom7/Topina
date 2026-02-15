@@ -2,7 +2,7 @@
  * Standings Section
  * Year selector → full standings table
  */
-import { fetchFantasyData, processStandings, displayName, SEASONS, CURRENT_SEASON } from '../data.js';
+import { fetchFantasyData, processStandings, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=5';
 
 let loaded = false;
 
@@ -37,7 +37,7 @@ async function loadYear(year) {
         return;
     }
 
-    const standings = processStandings(data);
+    const standings = processStandings(data, year);
     if (!standings.length) {
         wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun risultato</p></div>`;
         return;

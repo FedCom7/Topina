@@ -2,8 +2,8 @@
  * Game Center Section
  * Year + Week selectors → matchup cards with expandable rosters
  */
-import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, PLAYOFF_WEEK, SUPERBOWL_WEEK } from '../data.js';
-import { TEAM_LOGOS } from '../data/team-config.js';
+import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=5';
+import { TEAM_LOGOS } from '../data/team-config.js?v=5';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -51,12 +51,14 @@ async function loadYear(year) {
 
 function renderWeekSelector(maxWeek) {
     const container = document.getElementById('gc-week-selector');
+    const config = getSeasonConfig(currentYear);
+
     let html = '';
     for (let w = 1; w <= maxWeek; w++) {
         let label = String(w);
         let extraClass = '';
-        if (w === PLAYOFF_WEEK) { label = '🏈 Playoffs'; extraClass = ' playoff-pill'; }
-        else if (w === SUPERBOWL_WEEK) { label = '🏆 Super Bowl'; extraClass = ' sb-pill'; }
+        if (w === config.playoffWeek) { label = '🏈 Playoffs'; extraClass = ' playoff-pill'; }
+        else if (w === config.superBowlWeek) { label = '🏆 Super Bowl'; extraClass = ' sb-pill'; }
         html += `<button class="week-pill${w === 1 ? ' active' : ''}${extraClass}" data-week="${w}">${label}</button>`;
     }
     container.innerHTML = html;
@@ -71,8 +73,9 @@ function renderWeekSelector(maxWeek) {
 }
 
 function weekLabel(w) {
-    if (w === PLAYOFF_WEEK) return 'Playoffs';
-    if (w === SUPERBOWL_WEEK) return 'Super Bowl';
+    const config = getSeasonConfig(currentYear);
+    if (w === config.playoffWeek) return 'Playoffs';
+    if (w === config.superBowlWeek) return 'Super Bowl';
     return `Week ${w}`;
 }
 
@@ -86,7 +89,7 @@ function renderMatchups() {
 
     // Sort Super Bowl week: Final (highest score?) first
     let matchups = [...weekData.matchups];
-    if (currentWeek === SUPERBOWL_WEEK) {
+    if (currentWeek === getSeasonConfig(currentYear).superBowlWeek) {
         matchups.sort((a, b) => {
             const totalA = parseFloat(a.team1.score) + parseFloat(a.team2.score);
             const totalB = parseFloat(b.team1.score) + parseFloat(b.team2.score);
@@ -120,7 +123,7 @@ function renderMatchups() {
                 </div>
             </div>
             <div class="matchup-field-horizontal">
-                <img src="Wallpapers/GameCenterHorizontal.PNG" class="field-bg" alt="">
+                <img src="Wallpapers/GameCenterHorizontal.PNG?v=2" class="field-bg" alt="">
                 <div class="field-overlay">
                     <div class="formations-area">
                         <div class="team-formation left">

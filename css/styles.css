@@ -5,17 +5,18 @@
    ================================ */
 
 :root {
-    /* Colors — field palette: teal-green, red, cream-white */
-    --bg-primary: #466b63;
-    --bg-secondary: #3d5f57;
-    --bg-card: rgba(60, 90, 83, 0.7);
-    --bg-card-hover: rgba(70, 107, 99, 0.85);
+    /* Colors - PITCH BLACK THEME */
+    --bg-primary: #000000;
+    --bg-secondary: #050505;
+    --bg-tertiary: #0a0a0a;
+    --bg-card: rgba(20, 20, 20, 0.9);
+    --bg-card-hover: rgba(40, 40, 40, 0.85);
     --bg-glass: rgba(255, 255, 255, 0.06);
     --bg-glass-border: rgba(255, 255, 255, 0.12);
 
     --text-primary: #f5f0e8;
-    --text-secondary: #c4d4cc;
-    --text-muted: #7a9a8e;
+    --text-secondary: #cccccc;
+    --text-muted: #888888;
 
     --accent-blue: #4f8cff;
     --accent-purple: #a855f7;
@@ -60,7 +61,7 @@ html {
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg-primary);
+    background: #000000;
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
@@ -1493,8 +1494,13 @@ img {
     margin-bottom: 12px;
 }
 
-.empty-state-text {
-    font-size: 0.95rem;
+
+.records-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
 }
 
 /* ================================

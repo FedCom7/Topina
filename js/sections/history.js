@@ -5,7 +5,7 @@
  *  - Super Bowl final (last week matchup)
  *  - Champion
  */
-import { fetchFantasyData, processStandings, getSuperBowlMatchup, displayName, SEASONS } from '../data.js';
+import { fetchFantasyData, processStandings, getSuperBowlMatchup, displayName, SEASONS } from '../data.js?v=5';
 
 let loaded = false;
 
@@ -21,8 +21,8 @@ export async function initHistory() {
         SEASONS.map(async (year) => {
             const data = await fetchFantasyData(year);
             if (!data) return null;
-            const standings = processStandings(data);
-            const sbMatchup = getSuperBowlMatchup(data);
+            const standings = processStandings(data, year);
+            const sbMatchup = getSuperBowlMatchup(data, year);
             return { year, standings, sbMatchup };
         })
     );

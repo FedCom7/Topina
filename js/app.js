@@ -1,12 +1,12 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js';
-import { initGameCenter } from './sections/game-center.js';
-import { initStandings } from './sections/standings.js';
-import { initDraft } from './sections/draft.js';
-import { initStats } from './sections/stats.js';
-import { initHistory } from './sections/history.js';
+import { initHome } from './sections/home.js?v=21';
+import { initGameCenter } from './sections/game-center.js?v=21';
+import { initStandings } from './sections/standings.js?v=21';
+import { initDraft } from './sections/draft.js?v=21';
+import { initStats } from './sections/stats.js?v=21';
+import { initHistory } from './sections/history.js?v=21';
 
 const SECTIONS = {
     'home': initHome,

@@ -25,10 +25,13 @@ export function displayName(raw) {
 
 export async function fetchFantasyData(season) {
     try {
-        const snap = await get(child(ref(db), `fantasy/fantasy_data_${season}`));
+        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 10000));
+        const dbRef = ref(db);
+        const fetchPromise = get(child(dbRef, `fantasy/fantasy_data_${season}`));
+        const snap = await Promise.race([fetchPromise, timeout]);
         return snap.exists() ? snap.val() : null;
     } catch (e) {
-        console.error('fetchFantasyData error:', e);
+        console.error(`fetchFantasyData error for ${season}:`, e);
         return null;
     }
 }
@@ -54,8 +57,15 @@ export async function fetchAllTimeStats() {
 }
 
 export async function fetchAllSeasonsData() {
-    const promises = SEASONS.map(season => fetchFantasyData(season));
+    console.log('fetchAllSeasonsData starting...');
+    const promises = SEASONS.map(async season => {
+        console.log(`Fetching fantasy data for ${season}...`);
+        const data = await fetchFantasyData(season);
+        console.log(`Fetched fantasy data for ${season}:`, data ? 'OK' : 'NULL');
+        return data;
+    });
     const results = await Promise.all(promises);
+    console.log('fetchAllSeasonsData finished');
 
     const data = {};
     SEASONS.forEach((season, index) => {
@@ -68,25 +78,48 @@ export async function fetchAllSeasonsData() {
 
 // ─── Processing functions ───
 
-// Week 16 = Playoffs, Week 17 = Super Bowl
-export const PLAYOFF_WEEK = 16;
-export const SUPERBOWL_WEEK = 17;
-export const REGULAR_SEASON_WEEKS = 15; // weeks 1–15
+// ─── Processing functions ───
+
+export function getSeasonConfig(year) {
+    // 2021 had 18 weeks (17 regular + 1 playoff + 1 superfine/SB?)
+    // Actually user said: "2021 ci sono 18 giornate quindi playoffs e supoerbowl devono essere la week 17 e 18"
+    // So:
+    // 2021: Total 18. Playoffs = 17, SB = 18. Regular = 16.
+
+    // Standard (2019, 2020, 2022+ ?)
+    // Previous constants: PLAYOFF = 16, SB = 17, Regular = 15.
+
+    if (String(year) === '2021') {
+        return {
+            regularSeasonWeeks: 16,
+            playoffWeek: 17,
+            superBowlWeek: 18
+        };
+    }
+
+    // Default / Standard
+    return {
+        regularSeasonWeeks: 15,
+        playoffWeek: 16,
+        superBowlWeek: 17
+    };
+}
 
 /**
  * Process fantasy data into standings array sorted by wins then PF.
- * Only counts regular-season weeks (1–15). Playoffs & SB are excluded.
+ * Only counts regular-season weeks. Playoffs & SB are excluded.
  */
-export function processStandings(fantasyData) {
+export function processStandings(fantasyData, year) {
     if (!fantasyData?.weeks) return [];
 
+    const config = getSeasonConfig(year);
     const teams = {};
     const init = (n) => {
         if (!teams[n]) teams[n] = { name: n, w: 0, l: 0, pf: 0, pa: 0, streak: [] };
     };
 
-    // Only iterate regular-season weeks (1 .. REGULAR_SEASON_WEEKS)
-    for (let w = 1; w <= REGULAR_SEASON_WEEKS; w++) {
+    // Only iterate regular-season weeks
+    for (let w = 1; w <= config.regularSeasonWeeks; w++) {
         const week = fantasyData.weeks[String(w)];
         if (!week?.matchups) continue;
         week.matchups.forEach(m => {
@@ -159,16 +192,15 @@ export function getWeekCount(fantasyData) {
 }
 
 /**
- * Get the Super Bowl matchup (Week 17).
- * Week 17 has two games: the SB final (between week-16 winners) and
- * a consolation game (between week-16 losers). We identify the real
- * SB by finding the matchup whose teams are both week-16 winners.
+ * Get the Super Bowl matchup.
  */
-export function getSuperBowlMatchup(fantasyData) {
+export function getSuperBowlMatchup(fantasyData, year) {
     if (!fantasyData?.weeks) return null;
 
-    // 1. Find the two winners of week 16 (playoffs)
-    const poWeek = fantasyData.weeks[String(PLAYOFF_WEEK)];
+    const config = getSeasonConfig(year);
+
+    // 1. Find the two winners of playoffs week
+    const poWeek = fantasyData.weeks[String(config.playoffWeek)];
     if (!poWeek?.matchups?.length) return null;
 
     const playoffWinners = new Set();
@@ -179,8 +211,8 @@ export function getSuperBowlMatchup(fantasyData) {
         playoffWinners.add(s1 >= s2 ? m.team1.name : m.team2.name);
     });
 
-    // 2. In week 17, find the matchup between the two playoff winners
-    const sbWeek = fantasyData.weeks[String(SUPERBOWL_WEEK)];
+    // 2. In SB week, find the matchup between the two playoff winners
+    const sbWeek = fantasyData.weeks[String(config.superBowlWeek)];
     if (!sbWeek?.matchups?.length) return null;
 
     const sbMatchup = sbWeek.matchups.find(m =>
@@ -192,11 +224,12 @@ export function getSuperBowlMatchup(fantasyData) {
 }
 
 /**
- * Get the Playoff matchups (Week 16)
+ * Get the Playoff matchups
  */
-export function getPlayoffMatchups(fantasyData) {
+export function getPlayoffMatchups(fantasyData, year) {
     if (!fantasyData?.weeks) return null;
-    const poWeek = fantasyData.weeks[String(PLAYOFF_WEEK)];
+    const config = getSeasonConfig(year);
+    const poWeek = fantasyData.weeks[String(config.playoffWeek)];
     if (!poWeek?.matchups) return null;
     return poWeek.matchups;
 }
