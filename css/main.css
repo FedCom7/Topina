@@ -1698,7 +1698,7 @@ img {
 
 .history-mini-row {
     display: grid;
-    grid-template-columns: 28px 32px 1fr 50px 50px 70px;
+    grid-template-columns: 28px 32px 1fr 60px 60px;
     align-items: center;
     gap: 8px;
     padding: 8px 14px;
@@ -1798,12 +1798,7 @@ img {
     width: 100%;
 }
 
-.mini-pts {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
+
 
 /* ---- History SB Scoreboard (Game Center style) ---- */
 .history-sb-scoreboard {

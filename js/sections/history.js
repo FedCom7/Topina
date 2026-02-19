@@ -229,7 +229,6 @@ function renderSeasonCard({ year, standings, sbMatchup }, index) {
                     <span class="mini-team">${displayName(t.name)}</span>
                     <span class="mini-record">${t.w}-${t.l}</span>
                     <span class="mini-pct">${winPct}%</span>
-                    <span class="mini-pts">${t.pf.toLocaleString()} PF</span>
                 </div>`;
     }).join('')}
         </div>
