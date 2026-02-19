@@ -247,17 +247,19 @@ img {
 
 .hero-section {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: calc(100vh - var(--nav-height));
     position: relative;
     overflow: hidden;
+    gap: 10px;
 }
 
 .hero-content {
     text-align: center;
     position: relative;
-    z-index: 1;
+    z-index: 3;
     animation: fadeUp 0.8s var(--ease);
 }
 
@@ -295,26 +297,316 @@ img {
     font-size: 1.15rem;
     color: var(--text-secondary);
     max-width: 500px;
-    margin: 0 auto 40px;
+    margin: 0 auto 20px;
     line-height: 1.7;
-}
-
-.hero-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
 }
 
 .hero-glow {
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: 700px;
+    height: 700px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(79, 140, 255, 0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(184, 67, 58, 0.06) 0%, rgba(79, 140, 255, 0.04) 40%, transparent 70%);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
+}
+
+/* ================================
+   HERO — Layered Card Composition
+   ================================ */
+
+.hero-stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+    margin-top: 10px;
+}
+
+/* ---- Large overlapping title text ---- */
+.hero-text-top,
+.hero-text-bottom {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    text-align: center;
+    user-select: none;
+    pointer-events: none;
+}
+
+.hero-text-top {
+    color: var(--text-primary);
+    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+.hero-text-bottom {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-text-top {
+    font-size: clamp(4rem, 12vw, 8rem);
+    position: relative;
+    z-index: 10;
+    margin-bottom: -30px;
+}
+
+.hero-text-bottom {
+    font-size: clamp(4rem, 12vw, 8rem);
+    position: relative;
+    z-index: 10;
+    margin-top: -30px;
+    filter: drop-shadow(0 4px 20px rgba(184, 67, 58, 0.3));
+}
+
+/* ---- Team Cards Row ---- */
+.team-cards-row {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    align-items: stretch;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    padding: 0 16px;
+}
+
+/* Individual team card */
+.team-card {
+    width: 160px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px 14px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: cardSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: var(--delay);
+}
+
+@keyframes cardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+
+.team-card:hover {
+    transform: translateY(-8px) scale(1.05);
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Team-specific hover glow */
+.team-card[data-team="capi"]:hover {
+    box-shadow: 0 16px 48px rgba(255, 120, 50, 0.25), 0 0 40px rgba(255, 120, 50, 0.15);
+}
+
+.team-card[data-team="lasers"]:hover {
+    box-shadow: 0 16px 48px rgba(200, 200, 0, 0.25), 0 0 40px rgba(200, 200, 0, 0.15);
+}
+
+.team-card[data-team="oscurus"]:hover {
+    box-shadow: 0 16px 48px rgba(184, 67, 58, 0.3), 0 0 40px rgba(184, 67, 58, 0.15);
+}
+
+.team-card[data-team="sommo"]:hover {
+    box-shadow: 0 16px 48px rgba(120, 160, 100, 0.25), 0 0 40px rgba(120, 160, 100, 0.15);
+}
+
+.team-card img {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    user-select: none;
+}
+
+/* Sommo logo slightly bigger */
+.team-card[data-team="sommo"] img {
+    width: 120px;
+    height: 120px;
+}
+
+.team-card:hover img {
+    transform: scale(1.1);
+}
+
+.team-card-name {
+    font-family: 'Oswald', 'Impact', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* ---- Champion Card (Gold) ---- */
+.champion-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 32px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1a1507 0%, #2a2008 40%, #1a1507 100%);
+    border: 1px solid rgba(255, 200, 50, 0.25);
+    box-shadow:
+        0 8px 32px rgba(255, 180, 0, 0.1),
+        0 0 60px rgba(255, 180, 0, 0.05),
+        inset 0 1px 0 rgba(255, 200, 50, 0.15);
+    position: relative;
+    z-index: 2;
+    margin-top: 16px;
+    animation: cardSlideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s backwards;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.champion-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 200, 50, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.champion-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 200, 50, 0.06), transparent);
+    transform: skewX(-25deg);
+    animation: goldShine 6s infinite 2s;
+    pointer-events: none;
+}
+
+@keyframes goldShine {
+
+    0%,
+    40% {
+        left: -100%;
+    }
+
+    50% {
+        left: 200%;
+    }
+
+    100% {
+        left: 200%;
+    }
+}
+
+.champion-card:hover {
+    border-color: rgba(255, 200, 50, 0.4);
+    box-shadow:
+        0 12px 40px rgba(255, 180, 0, 0.18),
+        0 0 80px rgba(255, 180, 0, 0.08),
+        inset 0 1px 0 rgba(255, 200, 50, 0.2);
+}
+
+.champion-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.champion-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 200, 50, 0.6);
+}
+
+.champion-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ffd666;
+    text-shadow: 0 0 20px rgba(255, 200, 50, 0.2);
+}
+
+.champion-season {
+    font-size: 0.7rem;
+    color: rgba(255, 200, 50, 0.4);
+    font-weight: 500;
+}
+
+/* ---- Responsive cards ---- */
+@media (max-width: 650px) {
+    .team-cards-row {
+        gap: 10px;
+    }
+
+    .team-card {
+        width: 120px;
+        height: 155px;
+        padding: 14px 8px;
+    }
+
+    .team-card img {
+        width: 65px;
+        height: 65px;
+    }
+
+    .team-card[data-team="sommo"] img {
+        width: 72px;
+        height: 72px;
+    }
+
+    .hero-text-top,
+    .hero-text-bottom {
+        font-size: clamp(2.5rem, 12vw, 4rem);
+    }
+
+    .hero-text-top {
+        margin-bottom: -18px;
+    }
+
+    .hero-text-bottom {
+        margin-top: -18px;
+    }
+
+    .champion-card {
+        padding: 12px 20px;
+    }
+
+    .champion-name {
+        font-size: 1.1rem;
+    }
 }
 
 /* ================================
@@ -1302,7 +1594,7 @@ img {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
 }
 
 .history-season-card {
@@ -1312,152 +1604,276 @@ img {
     overflow: hidden;
     animation: fadeUp 0.4s var(--ease) both;
     transition: all 0.3s var(--ease);
+    border-left: 3px solid transparent;
 }
 
 .history-season-card:hover {
+    border-left-color: var(--accent-primary);
     border-color: rgba(79, 140, 255, 0.15);
+    transform: translateX(4px);
 }
 
 .history-year-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px;
-    background: rgba(79, 140, 255, 0.04);
+    padding: 18px 24px;
+    background: rgba(79, 140, 255, 0.03);
     border-bottom: 1px solid var(--border-subtle);
 }
 
 .history-year-badge {
-    font-size: 1.8rem;
+    font-family: 'Oswald', sans-serif;
+    font-size: 2rem;
     font-weight: 900;
     background: var(--accent-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.02em;
 }
 
 .history-champion {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
     font-weight: 700;
-    color: var(--accent-amber);
+    font-size: 0.9rem;
 }
 
-.history-champion .trophy {
-    font-size: 1.2rem;
+.champion-label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.champion-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--accent-amber);
+    letter-spacing: -0.01em;
 }
 
 .history-body {
-    padding: 20px 24px;
+    padding: 16px 24px 20px;
 }
 
 .history-sub-title {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     color: var(--text-muted);
     margin-bottom: 10px;
-    margin-top: 16px;
+    margin-top: 18px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .history-sub-title:first-child {
     margin-top: 0;
 }
 
+.history-recap {
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-left: 3px solid rgba(79, 140, 255, 0.3);
+    background: rgba(79, 140, 255, 0.03);
+    border-radius: 0 8px 8px 0;
+}
+
 .history-mini-standings {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     margin-bottom: 4px;
 }
 
 .history-mini-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 10px;
-    border-radius: 8px;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 10px;
     font-size: 0.85rem;
-    background: var(--bg-glass);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    transition: all 0.25s ease;
+}
+
+.history-mini-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
 }
 
 .history-mini-row.champion {
     background: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.06);
+}
+
+.history-mini-row.champion:hover {
+    background: rgba(245, 158, 11, 0.14);
 }
 
 .mini-rank {
+    font-family: 'Oswald', sans-serif;
     font-weight: 800;
     color: var(--text-muted);
-    min-width: 22px;
-    text-align: center;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
 }
 
-.history-mini-row.champion .mini-rank {
+.mini-rank.rank-1 {
+    background: rgba(245, 158, 11, 0.2);
     color: var(--accent-amber);
 }
 
+.mini-rank.rank-2 {
+    background: rgba(192, 192, 192, 0.15);
+    color: #c0c0c0;
+}
+
+.mini-rank.rank-3 {
+    background: rgba(205, 127, 50, 0.15);
+    color: #cd7f32;
+}
+
+.history-mini-row.champion .mini-rank {
+    background: rgba(245, 158, 11, 0.3);
+    color: var(--accent-amber);
+}
+
+.mini-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    flex-shrink: 0;
+}
+
 .mini-team {
+    font-family: 'Oswald', sans-serif;
     font-weight: 600;
+    font-size: 0.9rem;
     color: var(--text-primary);
     flex: 1;
+    letter-spacing: 0.02em;
 }
 
 .mini-record {
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
     font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.mini-pct {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    background: rgba(79, 140, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
 }
 
 .mini-pts {
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
 }
 
-.history-final {
+/* ---- History SB Scoreboard (Game Center style) ---- */
+.history-sb-scoreboard {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 6px 20px;
+    margin-top: 12px;
     border-radius: 12px;
-    background: rgba(79, 140, 255, 0.06);
-    border: 1px solid rgba(79, 140, 255, 0.1);
-    margin-top: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    overflow: visible;
+    position: relative;
 }
 
-.final-team {
+.history-sb-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.history-sb-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+    margin-top: -30px;
+    margin-bottom: -20px;
+    transition: transform 0.3s ease;
+}
+
+.history-sb-logo:hover {
+    transform: scale(1.08) translateY(-3px);
+}
+
+.history-sb-name {
+    font-family: 'Oswald', 'Impact', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.history-sb-scores {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.history-sb-score {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    min-width: 50px;
     text-align: center;
 }
 
-.final-team-name {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-primary);
+.history-sb-score.winner {
+    color: #B8433A;
+    text-shadow: 0 0 10px rgba(184, 67, 58, 0.25);
 }
 
-.final-team-score {
-    font-size: 1.3rem;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-}
-
-.final-team.winner .final-team-score {
-    color: var(--accent-green);
-}
-
-.final-team.loser .final-team-score {
+.history-sb-score.loser {
     color: var(--text-muted);
 }
 
-.final-vs {
-    font-size: 0.75rem;
-    font-weight: 800;
+.history-sb-vs {
+    font-size: 0.6rem;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
+    letter-spacing: 0.12em;
 }
 
 /* ================================

@@ -8,7 +8,8 @@
     <title>Topina League</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css?v=21">
 </head>
@@ -39,13 +40,39 @@
     <!-- ====== HOME ====== -->
     <section class="page-section active" id="home">
         <div class="section-inner hero-section">
-            <div class="hero-content">
-                <span class="hero-badge">Fantasy NFL League</span>
-                <h1 class="hero-title">Topina<br><span class="gradient-text">League</span></h1>
-                <p class="hero-subtitle">Dal 2019 — dove ogni pick conta e ogni punto fa la differenza.</p>
-                <div class="hero-actions">
-                    <a href="#game-center" class="btn btn-primary">Game Center</a>
-                    <a href="#standings" class="btn btn-outline">Standings</a>
+            <!-- Layered Hero Composition -->
+            <div class="hero-stack">
+                <!-- "TOPINA" text — overlaps from above -->
+                <div class="hero-text-top" aria-hidden="true">TOPINA</div>
+                <!-- 4 Team Cards -->
+                <div class="team-cards-row" id="team-cards-row">
+                    <div class="team-card" data-team="capi" style="--delay: 0s">
+                        <img src="Team Logo/team_capi_transparent.png" alt="Capi dei Pianeti" draggable="false">
+                        <span class="team-card-name">Capi dei Pianeti</span>
+                    </div>
+                    <div class="team-card" data-team="lasers" style="--delay: 0.08s">
+                        <img src="Team Logo/team_lasers_transparent.png" alt="Lasers" draggable="false">
+                        <span class="team-card-name">Lasers</span>
+                    </div>
+                    <div class="team-card" data-team="oscurus" style="--delay: 0.16s">
+                        <img src="Team Logo/team_oscurus_transparent.png" alt="Oscurus" draggable="false">
+                        <span class="team-card-name">Oscurus</span>
+                    </div>
+                    <div class="team-card" data-team="sommo" style="--delay: 0.24s">
+                        <img src="Team Logo/team_sommo_transparent.png" alt="Sommo" draggable="false">
+                        <span class="team-card-name">Sommo</span>
+                    </div>
+                </div>
+                <!-- "LEAGUE" text — overlaps from below -->
+                <div class="hero-text-bottom" aria-hidden="true">LEAGUE</div>
+            </div>
+            <p class="hero-subtitle">Dal 2019</p>
+            <!-- Champion Card (gold) -->
+            <div class="champion-card" id="champion-card">
+                <div class="champion-info">
+                    <span class="champion-label">Campione in carica</span>
+                    <span class="champion-name" id="champion-name">—</span>
+                    <span class="champion-season" id="champion-season"></span>
                 </div>
             </div>
             <div class="hero-glow"></div>
