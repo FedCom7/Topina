@@ -1697,9 +1697,10 @@ img {
 }
 
 .history-mini-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 28px 32px 1fr 50px 50px 70px;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 8px 14px;
     border-radius: 10px;
     font-size: 0.85rem;
@@ -1727,7 +1728,7 @@ img {
     font-family: 'Oswald', sans-serif;
     font-weight: 800;
     color: var(--text-muted);
-    min-width: 24px;
+    width: 24px;
     height: 24px;
     display: flex;
     align-items: center;
@@ -1763,6 +1764,7 @@ img {
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
     flex-shrink: 0;
+    margin: 0 auto;
 }
 
 .mini-team {
@@ -1770,8 +1772,10 @@ img {
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--text-primary);
-    flex: 1;
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mini-record {
@@ -1779,6 +1783,7 @@ img {
     font-variant-numeric: tabular-nums;
     font-size: 0.8rem;
     font-weight: 600;
+    text-align: center;
 }
 
 .mini-pct {
@@ -1786,15 +1791,18 @@ img {
     font-weight: 700;
     color: var(--accent-primary);
     background: rgba(79, 140, 255, 0.1);
-    padding: 2px 6px;
+    padding: 2px 0;
     border-radius: 4px;
     font-variant-numeric: tabular-nums;
+    text-align: center;
+    width: 100%;
 }
 
 .mini-pts {
     color: var(--text-muted);
     font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 /* ---- History SB Scoreboard (Game Center style) ---- */
