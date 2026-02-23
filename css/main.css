@@ -799,34 +799,7 @@ img {
     border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-.matchup-main.fox-scoreboard::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-    transform: skewX(-25deg);
-    animation: shine 8s infinite;
-    pointer-events: none;
-}
-
-@keyframes shine {
-
-    0%,
-    40% {
-        left: -100%;
-    }
-
-    50% {
-        left: 200%;
-    }
-
-    100% {
-        left: 200%;
-    }
-}
+/* Shine effect removed */
 
 @keyframes slideInField {
     from {
@@ -1237,13 +1210,55 @@ img {
     /* Increased from 0.62rem */
 }
 
-/* Mobile Game Center */
+/* Team labels — hidden on desktop */
+.field-team-label,
+.bench-label {
+    display: none;
+}
+
+/* Mobile Game Center — vertical field */
 @media (max-width: 768px) {
+
+    /* Team name labels inside the field image */
+    .field-team-label {
+        display: block;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 4px 16px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 6px;
+        z-index: 5;
+        white-space: nowrap;
+    }
+
+    .field-team-label-top {
+        top: 6px;
+    }
+
+    .field-team-label-bottom {
+        bottom: 6px;
+    }
+
+    .bench-label {
+        display: block;
+    }
+
     .matchup-main.fox-scoreboard {
         padding: 3px 6px;
         margin: 0 5%;
         gap: 4px;
+        overflow: visible;
+        z-index: 12;
     }
+
+
 
     .fox-logo {
         height: 70px;
@@ -1261,11 +1276,174 @@ img {
     }
 
     .matchup-card {
-        overflow-x: auto;
+        overflow: visible;
     }
 
+    /* ---- Vertical field on mobile ---- */
     .matchup-field-horizontal {
-        min-width: 600px;
+        min-width: 0;
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        aspect-ratio: 9 / 16;
+    }
+
+    /* Show the img tag with rotation for vertical field */
+    .matchup-field-horizontal .field-bg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: auto;
+        transform: translate(-50%, -50%) rotate(90deg) scale(1.78);
+        transform-origin: center center;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .field-overlay {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Order DEF/K: team1(left) at top, formations middle, team2(right) at bottom */
+    .formations-area {
+        order: 0;
+    }
+
+    .left-def,
+    .left-k {
+        order: -2;
+    }
+
+    .right-def,
+    .right-k {
+        order: 2;
+    }
+
+    /* Formations area: vertical stack, compact to fit 9:16 */
+    .formations-area {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        padding: 4px 2px;
+        flex: 0;
+    }
+
+    .team-formation {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center !important;
+        padding: 0 !important;
+        gap: 2px;
+    }
+
+    /* Scrimmage line becomes horizontal */
+    .scrimmage-center {
+        width: 80%;
+        height: 2px;
+        margin: 4px auto;
+        align-self: center;
+    }
+
+    /* Formation columns become horizontal rows */
+    .formation-col {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2px;
+    }
+
+    /* Player slots — compact for mobile */
+    .formation-slot {
+        min-width: 44px;
+        max-width: 68px;
+        width: auto;
+        padding: 1px 3px;
+        font-size: 0.65rem;
+        gap: 0;
+    }
+
+    .formation-slot.oline-x {
+        min-width: 16px;
+        max-width: 16px;
+        padding: 1px 0;
+        font-size: 0.6rem;
+    }
+
+    /* DEF/K: flow in layout (no absolute positioning on mobile) */
+    .special-slot {
+        position: relative;
+        bottom: auto;
+        left: auto !important;
+        right: auto !important;
+        align-self: flex-start;
+        margin: 2px 0;
+    }
+
+    .left-def,
+    .left-k,
+    .right-def,
+    .right-k {
+        left: auto;
+        right: auto;
+    }
+
+    /* Bench: outside the field, side by side with team labels */
+    .field-bottom-row {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        padding: 10px 4px;
+        margin-top: 0;
+    }
+
+    .bench-half {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: stretch;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 6px;
+    }
+
+    .bench-label {
+        display: block;
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .bench-half .bench-slot {
+        width: 100%;
+        max-width: none;
+    }
+
+    .formation-slot.bench-slot .slot-name {
+        font-size: 0.65rem;
+    }
+
+    .formation-slot.bench-slot .slot-pts {
+        font-size: 0.65rem;
     }
 }
 

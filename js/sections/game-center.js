@@ -6,6 +6,24 @@ let currentYear = CURRENT_SEASON;
 let currentWeek = 1;
 let loaded = false;
 
+// Mapping display names → image filename abbreviations
+const TEAM_FIELD_KEYS = {
+    'Oscurus': 'OSCURUS',
+    'Lasers': 'LASERS',
+    'Sommo': 'SOMMO',
+    'Capi dei Pianeti': 'C.D.P'
+};
+
+/** Build the correct field image path for a matchup */
+function getFieldImage(team1Name, team2Name) {
+    const k1 = TEAM_FIELD_KEYS[displayName(team1Name)];
+    const k2 = TEAM_FIELD_KEYS[displayName(team2Name)];
+    if (k1 && k2) {
+        return `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png`;
+    }
+    return 'Wallpapers/GameCenterHorizontal.PNG';
+}
+
 export async function initGameCenter() {
     if (loaded) return;
     loaded = true;
@@ -53,8 +71,8 @@ function renderWeekSelector(maxWeek) {
     for (let w = 1; w <= maxWeek; w++) {
         let label = String(w);
         let extraClass = '';
-        if (w === config.playoffWeek) { label = '🏈 Playoffs'; extraClass = ' playoff-pill'; }
-        else if (w === config.superBowlWeek) { label = '🏆 Super Bowl'; extraClass = ' sb-pill'; }
+        if (w === config.playoffWeek) { label = 'Playoffs'; extraClass = ' playoff-pill'; }
+        else if (w === config.superBowlWeek) { label = 'Super Bowl'; extraClass = ' sb-pill'; }
         html += `<button class="week-pill${w === 1 ? ' active' : ''}${extraClass}" data-week="${w}">${label}</button>`;
     }
     container.innerHTML = html;
@@ -100,6 +118,7 @@ function renderMatchups() {
 
         const logo1 = TEAM_LOGOS[displayName(m.team1.name)] || 'images/nfl_logo.png';
         const logo2 = TEAM_LOGOS[displayName(m.team2.name)] || 'images/nfl_logo.png';
+        const fieldImg = getFieldImage(m.team1.name, m.team2.name);
 
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${i}">
@@ -119,7 +138,8 @@ function renderMatchups() {
                 </div>
             </div>
             <div class="matchup-field-horizontal">
-                <img src="Wallpapers/GameCenterHorizontal.PNG?v=2" class="field-bg" alt="">
+                <span class="field-team-label field-team-label-top">${displayName(m.team1.name)}</span>
+                <img src="${fieldImg}" class="field-bg" alt="">
                 <div class="field-overlay">
                     <div class="formations-area">
                         <div class="team-formation left">
@@ -131,14 +151,20 @@ function renderMatchups() {
                         </div>
                     </div>
                     
-                    <!-- ABSOLUTE POSITIONED DEF/K -->
+                    <!-- DEF/K positioned by CSS -->
                     ${renderDefK(m.team1, 'left')}
                     ${renderDefK(m.team2, 'right')}
-
-                    <div class="field-bottom-row">
-                        <div class="bench-half bench-left">${renderBench(m.team1)}</div>
-                        <div class="bench-half bench-right">${renderBench(m.team2)}</div>
-                    </div>
+                </div>
+                <span class="field-team-label field-team-label-bottom">${displayName(m.team2.name)}</span>
+            </div>
+            <div class="field-bottom-row">
+                <div class="bench-half bench-left">
+                    <span class="bench-label">${displayName(m.team1.name)}</span>
+                    ${renderBench(m.team1)}
+                </div>
+                <div class="bench-half bench-right">
+                    <span class="bench-label">${displayName(m.team2.name)}</span>
+                    ${renderBench(m.team2)}
                 </div>
             </div>
         </div>`;
