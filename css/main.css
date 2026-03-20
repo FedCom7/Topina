@@ -110,12 +110,12 @@ img {
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 0 24px;
 }
 
 .nav-logo {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 8px;
     font-weight: 800;
@@ -2545,9 +2545,194 @@ img {
         padding: 24px;
         transition: all 0.3s var(--ease);
     }
+}
 
-    .h2h-card:hover {
-        border-color: rgba(255, 255, 255, 0.3);
-        transform: translateY(-4px);
+/* ========================================
+   PLAYOFF PICTURE (SPECIFIC 4x4 GRID)
+   ======================================== */
+.playoff-picture-container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 4px 4px 60px;
+}
+
+/* Specific Grid from User Request */
+.playoff-grid-explicit {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    grid-column-gap: 3px;
+    grid-row-gap: 3px;
+    /* Ensure rows have height */
+    min-height: 526px;
+    position: relative;
+}
+
+.sb-logo-overlay {
+    position: absolute;
+    bottom: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    z-index: 10;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+/* Grid Areas Mapping */
+.pos-1 {
+    grid-area: 1 / 1 / 3 / 2;
+}
+
+/* Top Left (Seed 1) */
+.pos-2 {
+    grid-area: 3 / 1 / 5 / 2;
+}
+
+/* Bottom Left (Seed 4) */
+.pos-3 {
+    grid-area: 1 / 2 / 5 / 3;
+}
+
+/* Mid Left (Winner 1v4) */
+.pos-4 {
+    grid-area: 1 / 3 / 5 / 4;
+}
+
+/* Mid Right (Winner 2v3) */
+.pos-5 {
+    grid-area: 1 / 4 / 3 / 5;
+}
+
+/* Top Right (Seed 2) */
+.pos-6 {
+    grid-area: 3 / 4 / 5 / 5;
+}
+
+/* Bottom Right (Seed 3) */
+
+/* Card Base */
+.playoff-card {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+    height: 100%;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.playoff-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Loser: grayscale */
+.playoff-card.loser .playoff-logo {
+    filter: grayscale(100%) brightness(0.6);
+}
+
+/* Champion: golden glow */
+.playoff-card.champion {
+    box-shadow: 0 0 24px rgba(255, 215, 0, 0.5);
+}
+
+/* Seed badge */
+.playoff-seed {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.9);
+    z-index: 2;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    line-height: 1;
+}
+
+/* --- Team Colors --- */
+:root {
+    --team-oscurus: #800020;
+    /* Rosso Porpora */
+    --team-lasers: #D4AF37;
+    /* Oro */
+    --team-sommo: #1c4750;
+    /* Verde Eagles (User specified) */
+    --team-capi: #FF6600;
+    /* Arancione */
+}
+
+/* Team Backgrounds */
+.team-oscurus {
+    background-color: var(--team-oscurus) !important;
+    color: white;
+}
+
+.team-lasers {
+    background-color: var(--team-lasers) !important;
+    color: black;
+}
+
+/* Gold needs dark text */
+.team-sommo {
+    background-color: var(--team-sommo) !important;
+    color: white;
+}
+
+.team-capi-dei-pianeti {
+    background-color: var(--team-capi) !important;
+    color: white;
+}
+
+.playoff-logo {
+    width: 145%;
+    height: 145%;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.playoff-card:hover .playoff-logo {
+    transform: scale(1.05);
+}
+
+/* Remove tall variant sizing so all are equal */
+.playoff-card.tall .playoff-logo {
+    width: 145%;
+    height: 145%;
+}
+
+.playoff-name {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+.playoff-card.tall .playoff-name {
+    font-size: 1.6rem;
+}
+
+.playoff-card.empty .playoff-name {
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Mobile Fallback */
+@media (max-width: 900px) {
+    .playoff-grid-explicit {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .playoff-card {
+        min-height: 100px;
     }
 }
