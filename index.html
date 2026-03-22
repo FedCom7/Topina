@@ -24,16 +24,34 @@
                 <span class="logo-text">Topina</span>
             </a>
             <ul class="nav-links">
-                <li><a href="#home" class="nav-link active" data-section="home">Home</a></li>
-                <li><a href="#game-center" class="nav-link" data-section="game-center">Game Center</a></li>
-                <li><a href="#standings" class="nav-link" data-section="standings">Standings</a></li>
-                <li><a href="#draft" class="nav-link" data-section="draft">Draft</a></li>
-                <li><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
-                <li><a href="#history" class="nav-link" data-section="history">History</a></li>
+                <li class="nav-item"><a href="#home" class="nav-link active" data-section="home">Home</a></li>
+                <li class="nav-item has-dropdown" data-dropdown="game-center">
+                    <a href="#game-center" class="nav-link" data-section="game-center">Game Center</a>
+                </li>
+                <li class="nav-item has-dropdown" data-dropdown="standings">
+                    <a href="#standings" class="nav-link" data-section="standings">Standings</a>
+                </li>
+                <li class="nav-item"><a href="#draft" class="nav-link" data-section="draft">Draft</a></li>
+                <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
+                <li class="nav-item"><a href="#history" class="nav-link" data-section="history">History</a></li>
             </ul>
             <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu">
                 <span></span><span></span><span></span>
             </button>
+        </div>
+        <!-- Dropdown panels — direct children of .navbar for CSS :has() expansion -->
+        <div class="nav-dropdown-panel" data-panel="game-center">
+            <a href="#game-center" class="nav-dp-item nav-dp-header" data-section="game-center">Game Center</a>
+            <div class="nav-dp-sep"></div>
+            <a href="#magazine" class="nav-dp-item" data-section="magazine">Magazine</a>
+        </div>
+        <div class="nav-dropdown-panel" data-panel="standings">
+            <a href="#standings" class="nav-dp-item nav-dp-header" data-section="standings">Current Season Standing</a>
+            <div class="nav-dp-sep"></div>
+            <a href="#team-capi" class="nav-dp-item">Capi dei Pianeti</a>
+            <a href="#team-lasers" class="nav-dp-item">Lasers</a>
+            <a href="#team-oscurus" class="nav-dp-item">Oscurus</a>
+            <a href="#team-sommo" class="nav-dp-item">Sommo</a>
         </div>
     </nav>
 
@@ -92,6 +110,18 @@
                 <div class="loading-state">
                     <div class="spinner"></div>
                     <p>Caricamento matchup...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== MAGAZINE ====== -->
+    <section class="page-section" id="magazine">
+        <div class="section-inner">
+            <div id="magazine-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Caricamento magazine...</p>
                 </div>
             </div>
         </div>
@@ -166,8 +196,13 @@
         </div>
     </section>
 
+    <!-- ====== TEAM ====== -->
+    <section class="page-section" id="team">
+        <!-- Contenuto iniettato da js/sections/team.js -->
+    </section>
+
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=29"></script>
+    <script type="module" src="js/app.js?v=30"></script>
 </body>
 
 </html>

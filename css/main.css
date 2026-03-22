@@ -107,7 +107,8 @@ img {
 .nav-inner {
     max-width: 1200px;
     margin: 0 auto;
-    height: 100%;
+    height: var(--nav-height);
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -170,6 +171,77 @@ img {
     height: 2px;
     background: var(--accent-gradient);
     border-radius: 2px;
+}
+
+/* --------------------------------
+   Dropdown Menu — Apple style
+   La navbar si espande verso il basso; il panel è dentro .navbar
+   -------------------------------- */
+.nav-item {
+    position: relative;
+}
+
+/* Navbar expansion on dropdown hover */
+.navbar {
+    transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        background 0.3s var(--ease);
+    overflow: hidden;
+}
+
+.navbar.dropdown-active {
+    height: calc(var(--nav-height) + 56px);
+}
+
+/* Full-width panel, sits below the nav-inner row */
+.nav-dropdown-panel {
+    position: absolute;
+    top: var(--nav-height);
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 24px;
+    height: 56px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+
+.nav-dropdown-panel.panel-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Panel items */
+.nav-dp-item {
+    padding: 7px 14px;
+    border-radius: var(--pill-radius);
+    font-size: 0.84rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.nav-dp-item:hover {
+    background: var(--bg-glass);
+    color: var(--text-primary);
+}
+
+.nav-dp-header {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.84rem;
+}
+
+.nav-dp-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border-subtle);
+    margin: 0 6px;
+    flex-shrink: 0;
 }
 
 /* Hamburger */
@@ -2150,6 +2222,15 @@ img {
         display: flex;
     }
 
+    /* Dropdown panel nascosto su mobile (il menu hamburger ha già le voci) */
+    .nav-dropdown-panel {
+        display: none;
+    }
+
+    .navbar.dropdown-active {
+        height: var(--nav-height);
+    }
+
     .hero-title {
         font-size: clamp(2.5rem, 12vw, 4rem);
     }
@@ -2651,7 +2732,7 @@ img {
     font-weight: 800;
     color: rgba(255, 255, 255, 0.9);
     z-index: 2;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     line-height: 1;
 }
 
@@ -2735,4 +2816,1070 @@ img {
     .playoff-card {
         min-height: 100px;
     }
+}
+
+/* ================================
+   TEAM PAGE
+   ================================ */
+
+/* ── Movie-style Hero ── */
+.team-movie-hero {
+    position: relative;
+    width: 100%;
+    height: 68vh;
+    min-height: 500px;
+    overflow: visible;
+    /* consente al team-hero-id di sforare */
+    flex-shrink: 0;
+}
+
+.team-hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 90% 100% at 50% 60%,
+            color-mix(in srgb, var(--team-color) 22%, transparent),
+            transparent 70%),
+        var(--bg-primary);
+    overflow: hidden;
+}
+
+/* Area dove vivono i banner SB — centrata verticalmente nel hero */
+.team-sb-stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 2;
+    padding-bottom: 60px;
+    /* spazio per l'identity bar */
+}
+
+/* Vignette: fade a nero in basso */
+.team-hero-vignette {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+            transparent 30%,
+            color-mix(in srgb, var(--bg-primary) 55%, transparent) 72%,
+            var(--bg-primary) 100%);
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* Identity bar — logo + nome, sovrapposta al fondo del hero */
+.team-hero-id {
+    position: absolute;
+    bottom: -44px;
+    /* fuoriesce dal hero */
+    left: 0;
+    right: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+.team-id-logo {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter:
+        drop-shadow(0 0 28px color-mix(in srgb, var(--team-color) 60%, transparent)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.team-id-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.team-id-league {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.team-id-name {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.8rem, 7vw, 6rem);
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7);
+    letter-spacing: -0.01em;
+}
+
+/* ── SB Banner Cards ── */
+.team-sb-banner {
+    width: 155px;
+    aspect-ratio: 1 / 1.94;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 14px 12px 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    background: linear-gradient(175deg,
+            color-mix(in srgb, var(--team-color) 80%, white 20%),
+            color-mix(in srgb, var(--team-color) 45%, black 55%));
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: default;
+    position: relative;
+}
+
+.team-sb-banner:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+/* Cornice interna offset */
+.team-sb-banner::before {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Logo team — vicino al bordo superiore */
+.sbb-team-logo {
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+    flex-shrink: 0;
+}
+
+/* Nome team — subito sotto il logo, stretto */
+.sbb-team-name {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.2;
+    margin-top: 5px;
+    margin-bottom: 2px;
+    width: 100%;
+}
+
+/* Area logo SB — si espande per riempire lo spazio centrale */
+.sbb-sb-logo-wrap {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+    min-height: 0;
+}
+
+.sbb-sb-logo {
+    max-width: 90%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* "WORLD" / "CHAMPIONS" — centrati, proporzionati al banner */
+.sbb-wc-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 0;
+    margin-bottom: 2px;
+}
+
+.sbb-wc-text span {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.92);
+    text-align: center;
+    line-height: 1.15;
+}
+
+/* Anno — grande, dominante, come nel reference NFL */
+.sbb-year {
+    font-family: 'Cinzel', serif;
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Spazio extra sotto il hero per l'identity bar che fuoriesce */
+.team-page-body {
+    padding-top: 92px;
+}
+
+/* ── Intro: bio + uniform affiancati ── */
+.team-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 48px;
+    margin-bottom: 52px;
+}
+
+.team-bio {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    font-style: italic;
+    flex: 1 1 50%;
+    margin: 0;
+    border-left: 3px solid var(--team-color, var(--accent));
+    padding-left: 20px;
+}
+
+.team-uniform {
+    flex: 1 1 50%;
+    min-width: 0;
+}
+
+.team-uniform-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4));
+}
+
+/* ── Block ── */
+.team-block {
+    margin-bottom: 52px;
+}
+
+.team-block-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+
+.team-block-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+/* ── Badges ── */
+.team-badges {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.team-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 156px;
+    padding: 22px 16px 18px;
+    border-radius: 18px;
+    border: 1px solid var(--border-subtle);
+    text-align: center;
+}
+
+.team-badge-active {
+    background: color-mix(in srgb, var(--team-color) 10%, transparent);
+    border-color: color-mix(in srgb, var(--team-color) 35%, transparent);
+}
+
+.team-badge-empty {
+    background: var(--bg-glass);
+    opacity: 0.38;
+}
+
+.team-badge-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.team-badge-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    line-height: 1.35;
+}
+
+.team-badge-count {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--team-color);
+}
+
+.team-badge-none {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* ── Franchise Players ── */
+.team-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.team-flag-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    min-width: 240px;
+    flex: 1;
+    max-width: 360px;
+    transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.team-flag-card:hover {
+    border-color: color-mix(in srgb, var(--team-color) 45%, transparent);
+    background: color-mix(in srgb, var(--team-color) 7%, transparent);
+}
+
+.team-flag-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.team-flag-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.team-flag-years {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.team-flag-count {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--team-color);
+    flex-shrink: 0;
+}
+
+/* ── Wallpaper hero ── */
+
+/* Hero altezza automatica: la governa la foto */
+.has-wallpaper {
+    height: auto;
+    min-height: unset;
+}
+
+/* Wrapper per il crop dell'immagine in cima */
+.team-hero-photo-wrap {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Foto: larghezza piena, altezza proporzionale — margine negativo per tagliare in cima */
+.team-hero-photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-top: -18%;
+    position: relative;
+    z-index: 1;
+}
+
+/* Il bg gradient sparisce — c'è la foto */
+.has-wallpaper .team-hero-bg {
+    background: none;
+}
+
+/* Vignette sulla foto: dal 60% in giù sfuma a nero */
+.has-wallpaper .team-hero-vignette {
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            transparent 45%,
+            rgba(6, 8, 15, 0.55) 72%,
+            var(--bg-primary) 100%);
+    z-index: 2;
+}
+
+/* Stage banners: copre tutto il photo-wrap, i singoli banner sono posizionati assolutamente */
+.has-wallpaper .team-sb-stage {
+    inset: 0;
+    display: block;
+    padding-bottom: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* Identity bar ancorata in fondo alla foto */
+.has-wallpaper .team-hero-id {
+    bottom: -44px;
+    z-index: 4;
+}
+
+/* Logo con ombra forte sulla foto */
+.has-wallpaper .team-id-logo {
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.9));
+}
+
+/* Banner sulla foto: logo e nome più grandi, proporzionali al banner */
+.has-wallpaper .team-sb-banner {
+    container-type: inline-size;
+}
+
+.has-wallpaper .sbb-team-logo {
+    width: 50%;
+    height: auto;
+    margin-top: -8cqi;
+}
+
+.has-wallpaper .sbb-sb-logo-wrap {
+    flex: 3;
+}
+
+.has-wallpaper .sbb-sb-logo {
+    width: 100%;
+    max-width: unset;
+    max-height: unset;
+}
+
+.has-wallpaper .sbb-team-name {
+    font-size: 12cqi;
+    margin-top: -8cqi;
+}
+
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .team-movie-hero {
+        height: 55vh;
+        min-height: 400px;
+    }
+
+    .team-hero-id {
+        padding: 0 20px;
+        bottom: -36px;
+        gap: 16px;
+    }
+
+    .team-id-logo {
+        width: 72px;
+        height: 72px;
+    }
+
+    .team-sb-banner {
+        width: 120px;
+        min-height: 240px;
+    }
+
+    .sbb-sb-logo-wrap {
+        width: 64px;
+        height: 64px;
+    }
+
+    .team-page-body {
+        padding-top: 40px;
+    }
+
+    .team-intro {
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .team-uniform {
+        width: 160px;
+    }
+
+    .team-badge {
+        width: 140px;
+    }
+
+    .team-flag-card {
+        min-width: 100%;
+        max-width: 100%;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════
+   MAGAZINE — NEWSPAPER LAYOUT
+   (converted from SCSS — github.com/analizapandac)
+   ═══════════════════════════════════════════════ */
+
+#magazine .section-inner {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.mag-wrapper {
+    background: #000;
+    padding: 1rem;
+    font-family: serif;
+}
+
+/* Utility */
+.text--uppercase        { text-transform: uppercase; }
+.display--block         { display: block; }
+.text--vertical         { -webkit-writing-mode: vertical-rl; writing-mode: vertical-rl; }
+.text--lowercase        { text-transform: lowercase; }
+.text_shadow--hot       { text-shadow: 3px 0 0 #fbb03b; }
+.text_shadow--cold      { text-shadow: 3px 0 0 #82d1ff; }
+.text--capitalize-first:first-letter {
+    color: #000;
+    float: left;
+    font-size: 3.75rem;
+    font-weight: bold;
+    line-height: 50px;
+    padding-right: 8px;
+    padding-left: 3px;
+    text-shadow: 3px 0 0 #fbb03b;
+}
+
+/* Reset box-sizing to match CodePen default (content-box) */
+.news-page,
+.news-page * {
+    box-sizing: content-box;
+}
+
+/* news-page wrapper */
+.news-page {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    margin: 0 auto;
+    background: #fff8ed;
+    min-height: 100vh;
+    max-width: 64em;
+    border-radius: 15px;
+    padding: 1.4rem 1rem 0.5rem;
+    color: #000;
+    font-family: serif;
+    line-height: normal;
+}
+.news-page p {
+    margin: 1em 0;
+}
+.news-page p:first-child { margin-top: 0; }
+.news-page p:last-child  { margin-bottom: 0; }
+
+/* ── Publisher ── */
+.news-page .publisher {
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    min-height: 125px;
+    margin-top: 1.15rem;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+}
+.news-page .publisher::before,
+.news-page .publisher::after {
+    content: "";
+    height: 1px;
+    flex-basis: 100%;
+    background: #000;
+    margin-top: 2px;
+}
+.news-page .publisher::after {
+    align-self: flex-end;
+    margin-top: 0;
+    margin-bottom: 2px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+.news-page .logo-shield {
+    text-align: center;
+    margin-right: 7px;
+    margin-top: -20px;
+}
+.news-page .logo-shield img {
+    height: auto;
+    width: 135px;
+    margin: 0 auto;
+}
+.news-page .publisher_name {
+    flex: 4;
+    margin-top: -35px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+}
+.news-page .publisher_name img {
+    margin: 0 auto;
+    max-width: 100%;
+}
+.news-page .publisher_name .tagline {
+    font-weight: bold;
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: 0.5rem;
+}
+.news-page .publisher_name .tagline::before,
+.news-page .publisher_name .tagline::after {
+    content: "*";
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
+/* ── Exclusive story ── */
+.news-page .exclusive-story {
+    display: flex;
+    flex-direction: row;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.news-page .exclusive-story__marker {
+    flex: 1;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    text-transform: uppercase;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 0 1rem;
+}
+.news-page .exclusive-story__preview {
+    flex: 4;
+    border: 1px solid #000;
+    display: flex;
+}
+.news-page .preview-title {
+    flex: 1;
+    align-self: center;
+    font-size: 1.75rem;
+    padding: 0.2rem;
+    font-weight: bold;
+    margin-right: 5px;
+}
+.news-page .preview-content-wrapper {
+    flex: 2;
+    flex-direction: column;
+    display: flex;
+}
+.news-page .preview-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 0.25rem;
+}
+.news-page .preview-content--left,
+.news-page .preview-content--right {
+    flex: 1;
+    font-style: italic;
+    font-size: 0.85rem;
+    padding-right: 0.25rem;
+}
+.news-page .preview-content--left  { margin-right: 1rem; }
+.news-page .preview-content--link  {
+    text-align: right;
+    background: #000;
+    color: #fff;
+    padding: 1px 0.25rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-top: 3px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-grow: 1;
+}
+
+/* ── Stories ── */
+.news-page .stories {
+    border: 1px solid #000;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+}
+.news-page .story           { display: flex; }
+.news-page .story--main     { flex-wrap: wrap; }
+.news-page .column          { padding: 0 0.5rem; }
+.news-page .column--left    { flex: 3; }
+.news-page .column--right   { flex: 1; padding: 0.1rem; }
+
+/* Story title */
+.news-page .story-title {
+    display: flex;
+    flex-wrap: wrap;
+    text-transform: uppercase;
+    flex-direction: column;
+}
+.news-page .story-title--first-line  { display: flex; }
+.news-page .title-text.text--vertical {
+    -webkit-transform: rotate(-180deg);
+    transform: rotate(-180deg);
+    align-self: center;
+    font-size: 0.5rem;
+}
+.news-page .title-text.text--normal {
+    letter-spacing: -5px;
+    font-size: 4.75rem;
+}
+
+/* Paragraphs */
+.news-page .paragraph            { font-size: 0.9rem; flex-wrap: wrap; }
+.news-page .paragraph p:not(.text--capitalize-first) { text-indent: 1rem; }
+.news-page .paragraph.first      { font-weight: 700; }
+.news-page .paragraph.first p    { text-indent: 0; }
+
+/* Story content */
+.news-page .story-content { display: flex; flex-wrap: wrap; }
+.news-page .story-column.column--first        { flex: 1; margin-right: 10px; }
+.news-page .story-column.column--second-third { flex: 2; }
+.news-page .story-featured-photo              { margin-bottom: 0.5rem; }
+.news-page .story-featured-photo img          { width: 100%; }
+
+/* Blockquote */
+.news-page .blockquote-title {
+    display: flex;
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    position: relative;
+    flex-wrap: wrap;
+    text-transform: uppercase;
+}
+.news-page .blockquote-title::before,
+.news-page .blockquote-title::after {
+    content: "";
+    height: 1px;
+    flex-basis: 100%;
+    background: #000;
+    margin-top: 2px;
+}
+.news-page .blockquote-title::after { align-self: flex-end; margin-top: 0; margin-bottom: 2px; }
+.news-page .text--superscript {
+    background: #000;
+    color: #fff;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    display: flex;
+    align-self: flex-start;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+.news-page .blockquote-title .text--normal {
+    font-size: 2rem;
+    flex: 4;
+    display: flex;
+    justify-content: center;
+}
+.news-page .blockquote-content {
+    font-style: italic;
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+    font-weight: bold;
+    position: relative;
+}
+.news-page .blockquote-content::before {
+    content: "\201C";
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    font-size: 1.5rem;
+}
+
+/* Inner columns wrapper */
+.news-page .columns-wrapper          { display: flex; flex-direction: row; }
+.news-page .story-content .column   { flex: 1; }
+.news-page .story-content .column.first { margin-right: 10px; }
+
+/* Right author column */
+.news-page .column--right            { flex: 1; padding: 0.1rem; }
+.news-page .author {
+    background: #000;
+    color: #fff;
+    text-align: center;
+    padding: 0.2rem 0.5rem;
+    position: relative;
+}
+.news-page .author::after {
+    content: "";
+    height: 1px;
+    background: #000;
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    right: 0;
+}
+.news-page .author .name     { text-transform: uppercase; font-weight: bold; font-size: 1.75rem; }
+.news-page .author .footnote { font-style: italic; opacity: 0.85; font-size: 0.75rem; }
+.news-page .column--right .paragraph { padding: 0 0.5rem; }
+
+/* Story divider */
+.news-page .story-divider { height: 1px; background: #000; flex-basis: 100%; margin: 0 0.5rem; }
+
+/* Secondary story */
+.news-page .story--secondary                  { margin: 0.5rem 0; }
+.news-page .story--secondary .columns-wrapper { display: flex; flex: 1; flex-direction: row; flex-wrap: wrap; }
+.news-page .story--secondary .column          { flex: 1; }
+.news-page .story--secondary .column.first    { border-right: 1px solid #000; flex: 1; }
+.news-page .story--secondary .column.second   { padding: 0.5rem; }
+.news-page .story-title--secondary {
+    text-transform: uppercase;
+    font-size: 1.45rem;
+    margin-bottom: 0;
+    text-align: justify;
+    font-weight: 700;
+    margin-top: 2px;
+}
+.news-page .story--secondary .story-featured-photo { overflow: hidden; }
+.news-page .story--secondary .story-featured-photo img {
+    object-fit: cover;
+    width: 100%;
+    height: 340px;
+}
+.news-page .caption             { display: flex; flex-direction: row; padding: 0.25rem 0; }
+.news-page .caption_content     { font-weight: 700; text-transform: uppercase; margin-right: 10px; }
+.news-page .page-number {
+    flex: 1;
+    background: #000;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 0.2rem;
+    align-items: center;
+}
+.news-page .story-title--third               { display: flex; flex-direction: row; }
+.news-page .story-title--third .first-part {
+    flex: 1;
+    text-transform: uppercase;
+    font-size: 3.5rem;
+    font-weight: bold;
+    letter-spacing: -3px;
+    margin-right: 15px;
+}
+.news-page .story-title--third .first-part small {
+    font-weight: normal;
+    display: block;
+    font-size: 1rem;
+    letter-spacing: normal;
+}
+.news-page .story-title--third .second-part {
+    flex: 1;
+    font-size: 2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.news-page .story-title--third .second-part small {
+    display: block;
+    font-weight: bold;
+    font-size: 0.85rem;
+    text-transform: none;
+}
+.news-page .story-content--third img {
+    border-radius: 100%;
+    float: left;
+    margin-right: 20px;
+}
+
+/* ── Weather section ── */
+.news-page_section.weather { margin-top: 1rem; }
+.news-page_section.weather .section-divider {
+    position: relative;
+    text-align: center;
+    height: 3px;
+    background: #000;
+    margin-bottom: 1rem;
+}
+.news-page_section.weather .section-divider::before {
+    content: "";
+    height: 1px;
+    background: #000;
+    margin-top: 5px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+}
+.news-page_section.weather .section-divider::after {
+    content: "Weather";
+    position: absolute;
+    top: -5px;
+    left: 0;
+    right: 0;
+    background: #fff8ed;
+    padding: 0 0.5rem;
+    text-transform: uppercase;
+    margin: 0 auto;
+    width: fit-content;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+.news-page_section.weather .column--weathers { display: flex; flex-direction: row; flex-wrap: wrap; }
+.news-page_section.weather .column--weather  { flex: 1; text-align: center; margin: 0 8px; }
+.news-page_section.weather .weather_value {
+    font-size: 3rem;
+    position: relative;
+    display: inline;
+    font-weight: bold;
+}
+.news-page_section.weather .weater_value_measurement {
+    position: absolute;
+    top: 0.5rem;
+    right: -1rem;
+    font-size: 0.75rem;
+}
+.news-page_section.weather .weather_city {
+    text-transform: uppercase;
+    font-weight: bold;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 0.3rem 0;
+}
+
+/* ── Footer story ── */
+.news-page_section.story--footer {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    min-height: 80px;
+    background: #fff;
+    position: relative;
+}
+.news-page_section.story--footer .story-title--footer {
+    text-transform: uppercase;
+    font-size: 2.75rem;
+    font-weight: bold;
+    background: #000;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    padding-right: 3rem;
+}
+.news-page_section.story--footer .story_excerpt_and_number {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    flex: 2;
+    padding-left: 5em;
+}
+.news-page_section.story--footer .story_excerpt {
+    display: flex;
+    align-items: center;
+    align-content: center;
+    flex-wrap: wrap;
+    font-weight: bold;
+}
+.news-page_section.story--footer .story_excerpt div             { flex-basis: 100%; text-align: left; }
+.news-page_section.story--footer .story_excerpt div:first-of-type {
+    text-transform: uppercase;
+    font-size: 1.5rem;
+}
+.news-page_section.story--footer .story_page_number {
+    border-radius: 100%;
+    border: 2px solid #000;
+    min-width: 90px;
+    min-height: 90px;
+    max-width: 90px;
+    max-height: 90px;
+    display: flex;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    background: #fff;
+    position: absolute;
+    left: -30px;
+    top: -7px;
+}
+.news-page_section.story--footer .story_page_number::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #000;
+    border-radius: 100%;
+    width: 96%;
+    height: 96%;
+}
+.news-page_section.story--footer .story_page_number .number {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-top: -10px;
+}
+
+/* ── Topics ── */
+.news-page_section.news-topics {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #000;
+    margin: 0.5rem 0;
+}
+.news-page_section.news-topics .columns-wrapper { display: flex; flex-direction: row; flex-wrap: wrap; }
+.news-page_section.news-topics .column_topic {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.8rem;
+    margin: 0 5px;
+    align-items: center;
+}
+.news-page_section.news-topics .topic        { display: flex; align-items: center; margin-right: 1rem; }
+.news-page_section.news-topics .badge_number {
+    width: 20px;
+    height: 20px;
+    background: #000;
+    color: #fff;
+    border-radius: 100%;
+    text-align: center;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
