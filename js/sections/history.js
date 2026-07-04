@@ -7,7 +7,7 @@
  *  - Dynamic season recap narratives
  */
 import { fetchFantasyData, processStandings, getSuperBowlMatchup, displayName, SEASONS } from '../data.js?v=5';
-import { TEAM_LOGOS } from '../data/team-config.js?v=5';
+import { TEAM_LOGOS } from '../data/team-config.js?v=6';
 
 let loaded = false;
 
@@ -215,27 +215,27 @@ function renderSeasonCard({ year, standings, sbMatchup }, index) {
     const recap = generateRecap({ year, standings, sbMatchup });
     const recapHtml = recap ? `<div class="history-recap">${recap}</div>` : '';
 
-    // Regular season mini-standings
+    // Regular season standings — editorial rows, no card background
     const standingsHtml = standings.length ? `
         <div class="history-sub-title">Regular Season</div>
-        <div class="history-mini-standings">
+        <div class="history-standings-list">
             ${standings.map((t, i) => {
         const logo = TEAM_LOGOS[displayName(t.name)] || 'images/nfl_logo.png';
         const winPct = ((t.w / (t.w + t.l)) * 100).toFixed(0);
         return `
-                <div class="history-mini-row${t.name === champion ? ' champion' : ''}" data-rank="${i + 1}">
-                    <span class="mini-rank rank-${i + 1}">${i + 1}</span>
-                    <img src="${logo}" alt="${displayName(t.name)}" class="mini-logo">
-                    <span class="mini-team">${displayName(t.name)}</span>
-                    <span class="mini-record">${t.w}-${t.l}</span>
-                    <span class="mini-pct">${winPct}%</span>
+                <div class="history-standing-row${t.name === champion ? ' champion' : ''}" data-rank="${i + 1}">
+                    <span class="standing-rank rank-${i + 1}">${i + 1}</span>
+                    <img src="${logo}" alt="${displayName(t.name)}" class="standing-logo">
+                    <span class="standing-team">${displayName(t.name)}</span>
+                    <span class="standing-record">${t.w}-${t.l}</span>
+                    <span class="standing-pct">${winPct}%</span>
                 </div>`;
     }).join('')}
         </div>
     ` : '';
 
     return `
-    <div class="history-season-card" style="animation-delay:${index * 100}ms">
+    <div class="history-season-block" style="animation-delay:${index * 100}ms">
         <div class="history-year-header">
             <span class="history-year-badge">${year}</span>
             ${champion ? `<span class="history-champion"><span class="champion-label">SB Champion:</span> <span class="champion-name">${displayName(champion)}</span></span>` : ''}

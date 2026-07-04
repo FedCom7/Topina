@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=23">
+    <link rel="stylesheet" href="css/main.css?v=27">
 </head>
 
 <body>
@@ -167,16 +167,16 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">All-Time Stats</h1>
-                <p class="section-subtitle">I record della lega dal 2019</p>
+                <p class="section-subtitle">Numbers, records and rivalries since 2019</p>
             </div>
-            <div class="stats-grid" id="stats-grid">
+            <div class="stats-summary" id="stats-summary">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento statistiche...</p>
+                    <p>Loading stats...</p>
                 </div>
             </div>
-            <!-- Container for All-Time Records & H2H (rendered by JS) -->
-            <div class="records-section" id="records-grid-loading"></div>
+            <div class="records-block" id="records-block"></div>
+            <div class="teams-alltime-block" id="teams-alltime-block"></div>
         </div>
     </section>
 
@@ -202,7 +202,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=30"></script>
+    <script type="module" src="js/app.js?v=34"></script>
 </body>
 
 </html>
