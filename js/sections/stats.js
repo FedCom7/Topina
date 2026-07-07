@@ -49,6 +49,15 @@ function calculateStats(allSeasons) {
     let maxWinStreak = { value: 0, team: '', start: '', end: '' };
     let maxLossStreak = { value: 0, team: '', start: '', end: '' };
 
+    // Single-season player/defense records (from new per-player stat data)
+    let mostRushYardsSeason = { value: 0, player: '', team: '', season: '' };
+    let mostRushTDSeason = { value: 0, player: '', team: '', season: '' };
+    let mostPassYardsSeason = { value: 0, player: '', team: '', season: '' };
+    let mostPassTDSeason = { value: 0, player: '', team: '', season: '' };
+    let mostSacksSeason = { value: 0, player: '', team: '', season: '' };
+    let mostDefTurnoversSeason = { value: 0, player: '', team: '', season: '' };
+    let mostDefTDSeason = { value: 0, player: '', team: '', season: '' };
+
     // Team aggregated stats
     const teamRecords = {}; // { name: { w, l, t, pf, pa, games } }
     const headToHead = {};  // { teamA: { teamB: { w, l, t } } }
@@ -101,6 +110,7 @@ function calculateStats(allSeasons) {
         const config = getSeasonConfig ? getSeasonConfig(season) : (season === '2021' ? { regularSeasonWeeks: 16, playoffWeek: 17, superBowlWeek: 18 } : { regularSeasonWeeks: 15, playoffWeek: 16, superBowlWeek: 17 });
 
         const seasonPoints = {}; // Track points for this season
+        const playerSeasonStats = {}; // `${team}||${player}` -> aggregated season stat totals
 
         // Identify the actual Super Bowl matchup for this season
         const sbMatchup = getSuperBowlMatchup(data, season);
@@ -187,6 +197,40 @@ function calculateStats(allSeasons) {
                     // High/Low Score Checks
                     checkHighLowScore(t1, s1, wNum, season, highestScore, lowestScore);
                     checkHighLowScore(t2, s2, wNum, season, highestScore, lowestScore);
+
+                    // Per-player stat aggregation (rush/pass yards+TD, defense) — both rosters
+                    [[t1, m.team1], [t2, m.team2]].forEach(([teamName, side]) => {
+                        const allPlayers = [...(side.starters || []), ...(side.bench || [])];
+                        allPlayers.forEach(p => {
+                            if (!p?.name || !p.stats) return;
+                            const key = `${teamName}||${p.name}`;
+                            if (!playerSeasonStats[key]) {
+                                playerSeasonStats[key] = { rushYds: 0, rushTd: 0, passYds: 0, passTd: 0, sacks: 0, defTo: 0, defTd: 0 };
+                            }
+                            const acc = playerSeasonStats[key];
+                            acc.rushYds += Number(p.stats.rush_yds) || 0;
+                            acc.rushTd += Number(p.stats.rush_td) || 0;
+                            acc.passYds += Number(p.stats.pass_yds) || 0;
+                            acc.passTd += Number(p.stats.pass_td) || 0;
+                            acc.sacks += Number(p.stats.sack) || 0;
+                            acc.defTo += (Number(p.stats.def_int) || 0) + (Number(p.stats.fum_rec) || 0);
+                            acc.defTd += Number(p.stats.def_td) || 0;
+
+                            // All-time team TD totals (regular season only, matches PF/PA scope)
+                            const rec = teamRecords[teamName];
+                            rec.rushTD = (rec.rushTD || 0) + (Number(p.stats.rush_td) || 0);
+                            rec.passTD = (rec.passTD || 0) + (Number(p.stats.pass_td) || 0);
+                            rec.recTD = (rec.recTD || 0) + (Number(p.stats.rec_td) || 0);
+                            rec.defTD = (rec.defTD || 0) + (Number(p.stats.def_td) || 0);
+
+                            // Receiving-TD breakdown by position
+                            if (!rec.recTDByPos) rec.recTDByPos = { WR: 0, RB: 0, TE: 0 };
+                            const posKey = p.position_in_team || p.position;
+                            if (posKey === 'WR' || posKey === 'RB' || posKey === 'TE') {
+                                rec.recTDByPos[posKey] += Number(p.stats.rec_td) || 0;
+                            }
+                        });
+                    });
                 }
 
                 // === PLAYOFFS (Semi-Finals) ===
@@ -256,6 +300,18 @@ function calculateStats(allSeasons) {
                 fewestPointsSeason = { value: points.toFixed(2), team, season };
             }
         });
+
+        // End of Season: Check single-season player/defense records
+        Object.entries(playerSeasonStats).forEach(([key, acc]) => {
+            const [team, player] = key.split('||');
+            if (acc.rushYds > mostRushYardsSeason.value) mostRushYardsSeason = { value: acc.rushYds, player, team, season };
+            if (acc.rushTd > mostRushTDSeason.value) mostRushTDSeason = { value: acc.rushTd, player, team, season };
+            if (acc.passYds > mostPassYardsSeason.value) mostPassYardsSeason = { value: acc.passYds, player, team, season };
+            if (acc.passTd > mostPassTDSeason.value) mostPassTDSeason = { value: acc.passTd, player, team, season };
+            if (acc.sacks > mostSacksSeason.value) mostSacksSeason = { value: acc.sacks, player, team, season };
+            if (acc.defTo > mostDefTurnoversSeason.value) mostDefTurnoversSeason = { value: acc.defTo, player, team, season };
+            if (acc.defTd > mostDefTDSeason.value) mostDefTDSeason = { value: acc.defTd, player, team, season };
+        });
     });
 
     return {
@@ -270,6 +326,13 @@ function calculateStats(allSeasons) {
         fewestPointsSeason,
         maxWinStreak,
         maxLossStreak,
+        mostRushYardsSeason,
+        mostRushTDSeason,
+        mostPassYardsSeason,
+        mostPassTDSeason,
+        mostSacksSeason,
+        mostDefTurnoversSeason,
+        mostDefTDSeason,
         teamRecords,
         headToHead
     };
@@ -360,6 +423,14 @@ function renderRecords(stats) {
     const titles = extremesBy(stats.teamRecords, 'sbWins');
     const wins = extremesBy(stats.teamRecords, 'w');
 
+    const ry = stats.mostRushYardsSeason;
+    const rt = stats.mostRushTDSeason;
+    const py = stats.mostPassYardsSeason;
+    const pt = stats.mostPassTDSeason;
+    const sk = stats.mostSacksSeason;
+    const dto = stats.mostDefTurnoversSeason;
+    const dtd = stats.mostDefTDSeason;
+
     const tiles = [
         recordTile(h.value, 'Highest Score', `${displayName(h.team)} — W${h.week}, ${h.season}`),
         recordTile(l.value, 'Lowest Score', `${displayName(l.team)} — W${l.week}, ${l.season}`),
@@ -372,7 +443,14 @@ function renderRecords(stats) {
         titles ? recordTile(titles.max.value, 'Most Championships', titles.max.teams) : '',
         titles ? recordTile(titles.min.value, 'Fewest Championships', titles.min.teams) : '',
         wins ? recordTile(wins.max.value, 'Most Wins All-Time', wins.max.teams) : '',
-        wins ? recordTile(wins.min.value, 'Fewest Wins All-Time', wins.min.teams) : ''
+        wins ? recordTile(wins.min.value, 'Fewest Wins All-Time', wins.min.teams) : '',
+        ry.value ? recordTile(ry.value.toLocaleString('en-US'), 'Most Rush Yards (Season)', `${ry.player} — ${displayName(ry.team)}, ${ry.season}`) : '',
+        rt.value ? recordTile(rt.value, 'Most Rush TDs (Season)', `${rt.player} — ${displayName(rt.team)}, ${rt.season}`) : '',
+        py.value ? recordTile(py.value.toLocaleString('en-US'), 'Most Pass Yards (Season)', `${py.player} — ${displayName(py.team)}, ${py.season}`) : '',
+        pt.value ? recordTile(pt.value, 'Most Pass TDs (Season)', `${pt.player} — ${displayName(pt.team)}, ${pt.season}`) : '',
+        sk.value ? recordTile(sk.value, 'Most Sacks (Season)', `${sk.player} — ${displayName(sk.team)}, ${sk.season}`) : '',
+        dto.value ? recordTile(dto.value, 'Most Turnovers Forced (Season)', `${dto.player} — ${displayName(dto.team)}, ${dto.season}`) : '',
+        dtd.value ? recordTile(dtd.value, 'Most Defensive TDs (Season)', `${dtd.player} — ${displayName(dtd.team)}, ${dtd.season}`) : ''
     ];
 
     el.innerHTML = `
@@ -406,7 +484,11 @@ function renderTeamPanels(stats) {
         playoffWins: Math.max(...entries.map(([, r]) => r.playoffWins || 0)),
         sbApps: Math.max(...entries.map(([, r]) => r.sbApps || 0)),
         sbWins: Math.max(...entries.map(([, r]) => r.sbWins || 0)),
-        pct: Math.max(...entries.map(([, r]) => r.w / (r.w + r.l || 1)))
+        pct: Math.max(...entries.map(([, r]) => r.w / (r.w + r.l || 1))),
+        rushTD: Math.max(...entries.map(([, r]) => r.rushTD || 0)),
+        passTD: Math.max(...entries.map(([, r]) => r.passTD || 0)),
+        recTD: Math.max(...entries.map(([, r]) => r.recTD || 0)),
+        defTD: Math.max(...entries.map(([, r]) => r.defTD || 0))
     };
 
     const panels = entries.map(([name, r], i) => {
@@ -443,6 +525,13 @@ function renderTeamPanels(stats) {
                 ${ministat(r.sbApps || 0, 'SB Apps', (r.sbApps || 0) === best.sbApps && best.sbApps > 0)}
                 ${ministat(r.sbWins || 0, 'Titles', (r.sbWins || 0) === best.sbWins && best.sbWins > 0)}
             </div>
+            <div class="team-alltime-ministats team-alltime-ministats--td">
+                ${ministat(r.rushTD || 0, 'Rush TDs', (r.rushTD || 0) === best.rushTD && best.rushTD > 0)}
+                ${ministat(r.passTD || 0, 'Pass TDs', (r.passTD || 0) === best.passTD && best.passTD > 0)}
+                ${ministat(r.recTD || 0, 'Rec TDs', (r.recTD || 0) === best.recTD && best.recTD > 0)}
+                ${ministat(r.defTD || 0, 'Def TDs', (r.defTD || 0) === best.defTD && best.defTD > 0)}
+            </div>
+            ${recTdSplit(r.recTDByPos)}
             <div class="team-h2h-row">${pills}</div>
         </div>`;
     }).join('');
@@ -458,5 +547,32 @@ function ministat(value, label, isBest) {
     <div class="ministat">
         <div class="ministat-value${isBest ? ' stat-best' : ''}">${value}</div>
         <div class="ministat-label">${label}</div>
+    </div>`;
+}
+
+function recTdSplit(byPos) {
+    const wr = byPos?.WR || 0;
+    const rb = byPos?.RB || 0;
+    const te = byPos?.TE || 0;
+    const total = wr + rb + te;
+    if (total === 0) return '';
+
+    const wrPct = (wr / total) * 100;
+    const rbPct = (rb / total) * 100;
+    const tePct = (te / total) * 100;
+
+    return `
+    <div class="team-tdsplit">
+        <div class="team-tdsplit-label">Receiving TDs by Position</div>
+        <div class="team-tdsplit-bar">
+            <span class="team-tdsplit-wr" style="width:${wrPct.toFixed(1)}%"></span>
+            <span class="team-tdsplit-rb" style="width:${rbPct.toFixed(1)}%"></span>
+            <span class="team-tdsplit-te" style="width:${tePct.toFixed(1)}%"></span>
+        </div>
+        <div class="team-tdsplit-legend">
+            <span><i class="team-tdsplit-dot team-tdsplit-dot--wr"></i>WR ${wrPct.toFixed(0)}%</span>
+            <span><i class="team-tdsplit-dot team-tdsplit-dot--rb"></i>RB ${rbPct.toFixed(0)}%</span>
+            <span><i class="team-tdsplit-dot team-tdsplit-dot--te"></i>TE ${tePct.toFixed(0)}%</span>
+        </div>
     </div>`;
 }

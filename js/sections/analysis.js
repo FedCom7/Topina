@@ -21,6 +21,7 @@ const TABS = [
     { id: 'draft', label: 'Draft' },
     { id: 'market', label: 'Mercato' },
     { id: 'lineup', label: 'Formazione' },
+    { id: 'compare', label: 'Confronto' },
 ];
 
 // Slot reali dei lineup nei matchup
@@ -336,6 +337,52 @@ function posBadge(position) {
     return `<span class="player-pos ${posClass}">${position || '—'}</span>`;
 }
 
+// Rank (1-3) di ogni giocatore all'interno del proprio ruolo, per punti totali stagionali
+// in TUTTA la lega (non per singolo team): il Top1 di un ruolo è unico per anno,
+// indipendentemente da quale team lo abbia in roster.
+function leaguePositionRanks(model) {
+    const totals = new Map(); // name -> { position, pts }
+    for (const rec of model.players.values()) {
+        let pts = 0;
+        for (const w of Object.values(rec.weeks)) pts += w.pts;
+        if (pts > 0) totals.set(rec.name, { position: rec.position, pts });
+    }
+    const byPos = {};
+    for (const [name, t] of totals) {
+        if (!byPos[t.position]) byPos[t.position] = [];
+        byPos[t.position].push({ name, pts: t.pts });
+    }
+    const ranks = new Map();
+    for (const pos in byPos) {
+        const sorted = byPos[pos].sort((a, b) => b.pts - a.pts);
+        sorted.slice(0, 3).forEach((r, i) => ranks.set(r.name, i + 1));
+    }
+    return ranks;
+}
+
+function topBadge(name, ranks) {
+    const rank = ranks.get(name);
+    if (!rank) return '';
+    return `<span class="an-badge an-badge-top an-badge-top${rank}">Top ${rank}</span>`;
+}
+
+// Round di draft (snake) per ogni pick del team
+function draftRoundLookup(model, teamKey) {
+    const raw = rawFromTeamKey(model.draft?.teams, teamKey);
+    const map = new Map();
+    if (!raw) return map;
+    const numTeams = Object.keys(model.draft.teams).length || 1;
+    for (const p of model.draft.teams[raw] || []) {
+        map.set(p.name, Math.ceil(p.pick / numTeams));
+    }
+    return map;
+}
+
+function roundBadge(round) {
+    if (!round) return '';
+    return `<span class="an-badge an-badge-round">R${round}</span>`;
+}
+
 /* ============================================================
    RENDER
    ============================================================ */
@@ -361,7 +408,7 @@ async function load() {
     render(model);
 }
 
-function render(model) {
+async function render(model) {
     const wrap = document.getElementById('analysis-content');
 
     if (currentTeam === 'all') {
@@ -377,16 +424,35 @@ function render(model) {
             ${TABS.map(t => `<button class="year-pill an-tab${t.id === currentTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>`;
 
+    wrap.innerHTML = renderKpi(kpi) + tabsHtml + `<div class="an-view" id="an-view"><div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div></div>`;
+
     let viewHtml = '';
     switch (currentTab) {
         case 'season': viewHtml = renderSeasonTab(model); break;
         case 'draft': viewHtml = renderDraftTab(model); break;
         case 'market': viewHtml = renderMarketTab(model); break;
         case 'lineup': viewHtml = renderLineupTab(model); break;
+        case 'compare': {
+            const prevModel = await getPreviousModel(currentYear);
+            viewHtml = renderCompareTab(model, prevModel);
+            break;
+        }
     }
 
-    wrap.innerHTML = renderKpi(kpi) + tabsHtml + `<div class="an-view">${viewHtml}</div>`;
+    const viewEl = document.getElementById('an-view');
+    if (viewEl) viewEl.innerHTML = viewHtml;
     hydrateImages();
+}
+
+async function getPreviousModel(year) {
+    const prevYear = String(Number(year) - 1);
+    if (!SEASONS.includes(prevYear)) return null;
+    try {
+        return await buildSeasonModel(prevYear);
+    } catch (e) {
+        console.error('Errore caricamento anno precedente:', e);
+        return null;
+    }
 }
 
 function renderKpi(kpi) {
@@ -424,12 +490,18 @@ function renderSeasonTab(model) {
     const raw = rawFromTeamKey(model.draft?.teams, currentTeam);
     if (raw) for (const p of model.draft.teams[raw] || []) draftedNames.add(p.name);
 
+    const rounds = draftRoundLookup(model, currentTeam);
+    const ranks = leaguePositionRanks(model);
+
     return `
     <div class="an-list-head">
         <span></span><span>Giocatore</span><span>G</span><span>Punti</span><span>Media</span><span class="an-head-stats">Statistiche</span><span></span>
     </div>
     ${rows.map(({ rec, agg }) => {
         const badges = [];
+        // Round di draft, se questo giocatore è stato draftato dal team
+        const round = rounds.get(rec.name);
+        if (round) badges.push(roundBadge(round));
         // "Preso": innesto in-season (non draftato) o comunque arrivato dopo W1
         if (raw && !draftedNames.has(rec.name)) {
             badges.push(`<span class="an-badge an-badge-in">Preso W${agg.firstWeek}</span>`);
@@ -444,6 +516,7 @@ function renderSeasonTab(model) {
                 : `Svincolato dopo W${agg.lastWeekOn}`;
             badges.push(`<span class="an-badge an-badge-drop">${label}</span>`);
         }
+        badges.push(topBadge(rec.name, ranks));
         return playerRow(rec, agg, badges.join(' '));
     }).join('')}`;
 }
@@ -466,6 +539,8 @@ function renderDraftTab(model) {
     const picks = draftView(model, currentTeam);
     if (!picks) return emptyState(`Dati draft non disponibili per il ${currentYear}`);
 
+    const ranks = leaguePositionRanks(model);
+
     return `
     <div class="an-list-head">
         <span></span><span>Pick · Giocatore</span><span>G</span><span>Punti</span><span>Media</span><span class="an-head-stats">Statistiche</span><span></span>
@@ -482,12 +557,13 @@ function renderDraftTab(model) {
         }
         const dropped = model.seasonOver && agg.lastWeekOn < model.lastWeek;
         const badge = dropped ? `<span class="an-badge an-badge-drop">Svincolato dopo W${agg.lastWeekOn}</span>` : '';
-        return playerRow(rec, agg, `<span class="an-pick-num">#${pick.pick}</span> ${badge}`);
+        return playerRow(rec, agg, `<span class="an-pick-num">#${pick.pick}</span> ${badge} ${topBadge(rec.name, ranks)}`);
     }).join('')}`;
 }
 
 function renderMarketTab(model) {
     const { finalRoster, additions, hasDraft } = marketView(model, currentTeam);
+    const ranks = leaguePositionRanks(model);
 
     const additionsHtml = additions.length ? `
         <h3 class="an-sub-title">Innesti in stagione${hasDraft ? '' : ' (draft non disponibile)'}</h3>
@@ -497,7 +573,7 @@ function renderMarketTab(model) {
         ${additions.map(({ rec, agg, elsewhere, onFinal }) => `
         <div class="an-player-row" data-player="${encodeURIComponent(rec.name)}">
             ${headshotImg(rec)}
-            <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${onFinal ? '<span class="an-badge an-badge-start">In roster finale</span>' : ''}</span>
+            <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${topBadge(rec.name, ranks)} ${onFinal ? '<span class="an-badge an-badge-start">In roster finale</span>' : ''}</span>
             <span class="an-cell">W${agg.firstWeek}</span>
             <span class="an-cell">${agg.games}</span>
             <span class="an-cell an-pts an-split-here">${fmt(agg.pts, 2)}</span>
@@ -524,6 +600,7 @@ function renderMarketTab(model) {
 
 function renderLineupTab(model) {
     const slots = lineupView(model, currentTeam);
+    const ranks = leaguePositionRanks(model);
     return `
     <h3 class="an-sub-title">Miglior formazione ${currentYear} — chi ha reso di più per slot</h3>
     <div class="an-lineup-grid">
@@ -539,12 +616,53 @@ function renderLineupTab(model) {
                 ${headshotImg(rec, 'an-lineup-headshot')}
             </div>
             <div class="an-lineup-name">${rec.name}</div>
-            <div class="an-lineup-meta">${posBadge(rec.position)} <span class="an-lineup-nfl">${rec.nflTeam || ''}</span></div>
+            <div class="an-lineup-meta">${posBadge(rec.position)} ${topBadge(rec.name, ranks)} <span class="an-lineup-nfl">${rec.nflTeam || ''}</span></div>
             <div class="an-lineup-pts">${fmt(agg.pts, 2)} <span>pt</span></div>
             <div class="an-lineup-avg">${fmt(agg.games ? agg.pts / agg.games : 0, 1)} di media · ${agg.games} G</div>
         </div>`;
     }).join('')}
     </div>`;
+}
+
+function renderCompareTab(model, prevModel) {
+    const prevYear = Number(currentYear) - 1;
+    if (!prevModel) {
+        return emptyState(`Nessun dato disponibile per il ${prevYear} (probabilmente la prima stagione della lega)`);
+    }
+
+    const ranks = leaguePositionRanks(model);
+    const rows = seasonView(model, currentTeam).map(({ rec, agg }) => {
+        const prevRec = prevModel.players.get(rec.name);
+        let prevPts = null;
+        if (prevRec) {
+            prevPts = 0;
+            for (const w of Object.values(prevRec.weeks)) prevPts += w.pts;
+        }
+        return { rec, agg, prevPts };
+    });
+    if (!rows.length) return emptyState('Nessun giocatore trovato per questo team');
+
+    return `
+    <div class="an-list-head an-list-head-compare">
+        <span></span><span>Giocatore</span><span>Punti ${currentYear}</span><span>Punti ${prevYear}</span><span>Δ</span><span></span>
+    </div>
+    ${rows.map(r => compareRow(r, ranks)).join('')}`;
+}
+
+function compareRow({ rec, agg, prevPts }, ranks) {
+    const delta = prevPts !== null ? agg.pts - prevPts : null;
+    const deltaClass = delta === null ? '' : delta >= 0 ? 'an-delta-up' : 'an-delta-down';
+    const deltaText = delta === null ? 'Rookie/N.D.' : `${delta >= 0 ? '+' : ''}${fmt(delta, 1)}`;
+    return `
+    <div class="an-player-row" data-player="${encodeURIComponent(rec.name)}">
+        ${headshotImg(rec)}
+        <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${topBadge(rec.name, ranks)}</span>
+        <span class="an-cell an-pts">${fmt(agg.pts, 2)}</span>
+        <span class="an-cell">${prevPts !== null ? fmt(prevPts, 2) : '—'}</span>
+        <span class="an-cell ${deltaClass}">${deltaText}</span>
+        <span class="an-chevron">›</span>
+    </div>
+    <div class="an-week-drill" data-drill="${encodeURIComponent(rec.name)}" hidden></div>`;
 }
 
 function emptyState(text) {
@@ -578,10 +696,25 @@ function bindContentEvents() {
         const expanded = row.classList.toggle('expanded');
         drill.hidden = !expanded;
         if (expanded && !drill.dataset.loaded) {
-            drill.innerHTML = weekDrillHtml(decodeURIComponent(name));
+            drill.innerHTML = currentTab === 'compare'
+                ? compareWeekDrillHtml(decodeURIComponent(name))
+                : weekDrillHtml(decodeURIComponent(name));
             drill.dataset.loaded = '1';
         }
     });
+}
+
+function drillRow(rec, w, withTeam = false) {
+    const teamCell = withTeam ? `<span class="an-drill-team">${TEAMS[w.teamKey]?.name || ''}</span>` : '';
+    return `
+        <div class="an-drill-row${withTeam ? ' an-drill-row--team' : ''}">
+            <span class="an-drill-week">W${w.wk}</span>
+            <span class="an-drill-opp">${w.opponent || '—'}</span>
+            ${teamCell}
+            <span class="an-drill-pts">${fmt(w.pts, 2)}</span>
+            <span class="an-drill-stats">${keyStatLine(rec.position, w.stats)}</span>
+            <span class="an-badge ${w.started ? 'an-badge-start' : 'an-badge-bench'}">${w.started ? 'Titolare' : 'Panchina'}</span>
+        </div>`;
 }
 
 function weekDrillHtml(playerName) {
@@ -594,14 +727,48 @@ function weekDrillHtml(playerName) {
         .filter(w => w.teamKey === currentTeam)
         .sort((a, b) => a.wk - b.wk);
 
-    return weeks.map(w => `
-        <div class="an-drill-row">
-            <span class="an-drill-week">W${w.wk}</span>
-            <span class="an-drill-opp">${w.opponent || '—'}</span>
-            <span class="an-drill-pts">${fmt(w.pts, 2)}</span>
-            <span class="an-drill-stats">${keyStatLine(rec.position, w.stats)}</span>
-            <span class="an-badge ${w.started ? 'an-badge-start' : 'an-badge-bench'}">${w.started ? 'Titolare' : 'Panchina'}</span>
-        </div>`).join('');
+    return weeks.map(w => drillRow(rec, w)).join('');
+}
+
+// Drill-down della tab Confronto: settimane dell'anno corrente affiancate a quelle dell'anno precedente
+function compareWeekDrillHtml(playerName) {
+    const model = modelCache[currentYear];
+    const prevYear = String(Number(currentYear) - 1);
+    const prevModel = modelCache[prevYear];
+    const rec = model?.players.get(playerName);
+    if (!rec) return '';
+
+    const curWeeks = Object.entries(rec.weeks)
+        .map(([wk, w]) => ({ wk: Number(wk), ...w }))
+        .filter(w => w.teamKey === currentTeam)
+        .sort((a, b) => a.wk - b.wk);
+
+    const curBlock = `
+        <div class="an-drill-season-label">${currentYear}</div>
+        ${curWeeks.length ? curWeeks.map(w => drillRow(rec, w)).join('') : `<p class="an-footnote">Nessuna settimana in questo team.</p>`}`;
+
+    let prevBlock;
+    if (!prevModel) {
+        prevBlock = `<div class="an-drill-season-label">${prevYear}</div><p class="an-footnote">Dati non disponibili.</p>`;
+    } else {
+        const prevRec = prevModel.players.get(playerName);
+        if (!prevRec) {
+            prevBlock = `<div class="an-drill-season-label">${prevYear}</div><p class="an-footnote">Non presente nei dati fantasy di quell'anno.</p>`;
+        } else {
+            const prevWeeks = Object.entries(prevRec.weeks)
+                .map(([wk, w]) => ({ wk: Number(wk), ...w }))
+                .sort((a, b) => a.wk - b.wk);
+            prevBlock = `
+                <div class="an-drill-season-label">${prevYear}</div>
+                ${prevWeeks.map(w => drillRow(prevRec, w, true)).join('')}`;
+        }
+    }
+
+    return `
+    <div class="an-drill-compare">
+        <div class="an-drill-season">${curBlock}</div>
+        <div class="an-drill-season">${prevBlock}</div>
+    </div>`;
 }
 
 function hydrateImages() {
@@ -684,6 +851,47 @@ function leagueRankings(model) {
     };
 }
 
+function scoreDistribution(model) {
+    return Object.values(TEAMS).map(t => {
+        const scores = Object.values(model.teamWeeks[t.key] || {}).map(tw => tw.score);
+        if (!scores.length) return null;
+        const sorted = [...scores].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', min: sorted[0], median, max: sorted[sorted.length - 1] };
+    }).filter(Boolean);
+}
+
+function draftValueScatter(model) {
+    const points = [];
+    for (const t of Object.values(TEAMS)) {
+        const raw = rawFromTeamKey(model.draft?.teams, t.key);
+        if (!raw) continue;
+        for (const pick of model.draft.teams[raw] || []) {
+            const rec = model.players.get(pick.name);
+            const agg = rec ? aggregateOnTeam(rec, t.key) : null;
+            points.push({
+                pick: pick.pick, name: pick.name, position: pick.position,
+                teamKey: t.key, teamName: t.name, color: CHART_COLORS[t.key] || '#888',
+                pts: agg ? agg.pts : 0,
+            });
+        }
+    }
+    return points.sort((a, b) => a.pick - b.pick);
+}
+
+function topPerformances(model, limit = 10) {
+    const rows = [];
+    for (const rec of model.players.values()) {
+        for (const [wkStr, w] of Object.entries(rec.weeks)) {
+            if (!w.started) continue;
+            rows.push({ name: rec.name, position: rec.position, teamKey: w.teamKey, wk: Number(wkStr), pts: w.pts });
+        }
+    }
+    rows.sort((a, b) => b.pts - a.pts);
+    return rows.slice(0, limit);
+}
+
 function renderLeagueView(model) {
     const series = weeklyScores(model);
     if (!series.length) return emptyState(`Nessun dato per la stagione ${currentYear}`);
@@ -739,7 +947,43 @@ function renderLeagueView(model) {
         ${rankingBlock('Miglior Draft', rk.draft, r => r.drafted, () => null, 'win')}
         ${rankingBlock('Migliori Innesti', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
         ${rankingBlock('Punti Lasciati in Panchina', rk.bench, r => r.benchLost, r => r.worstMiss ? `Peggior svista: ${r.worstMiss.name}, ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
-    </div>`;
+    </div>
+
+    <h3 class="an-sub-title">Costanza dei Punteggi</h3>
+    ${buildDistributionChart(scoreDistribution(model))}
+
+    <h3 class="an-sub-title">Draft: Value per Pick</h3>
+    ${legend}
+    ${buildDraftScatterSection(draftValueScatter(model))}
+
+    ${rankingBlockPerf('Top 10 Performance della Stagione', topPerformances(model))}`;
+}
+
+function buildDistributionChart(rows) {
+    if (!rows.length) return emptyState('Nessun dato di punteggio disponibile');
+    const maxVal = Math.max(...rows.map(r => r.max), 1);
+    return `
+    <div class="an-dist-chart">
+        ${rows.map(r => `
+        <div class="an-dist-row">
+            <span class="an-dist-name">${r.name}</span>
+            <span class="an-dist-track">
+                <span class="an-dist-range" style="left:${(r.min / maxVal * 100).toFixed(1)}%; width:${((r.max - r.min) / maxVal * 100).toFixed(1)}%; background:${r.color}"></span>
+                <span class="an-dist-median" style="left:${(r.median / maxVal * 100).toFixed(1)}%"></span>
+            </span>
+            <span class="an-dist-values">
+                <span class="an-dist-min">${fmt(r.min, 1)}</span>
+                <span class="an-dist-med">${fmt(r.median, 1)}</span>
+                <span class="an-dist-max">${fmt(r.max, 1)}</span>
+            </span>
+        </div>`).join('')}
+    </div>
+    <p class="an-footnote">Barra = intervallo min–max dei punteggi settimanali; il segno verticale è la mediana.</p>`;
+}
+
+function buildDraftScatterSection(points) {
+    if (!points.length) return emptyState(`Dati draft non disponibili per il ${currentYear}`);
+    return `<div class="an-chart" id="an-scatter-chart">${buildDraftScatter(points)}<div class="an-chart-tooltip" hidden></div></div>`;
 }
 
 function rankingBlock(title, rows, valueFn, noteFn, highlightMode) {
@@ -759,6 +1003,26 @@ function rankingBlock(title, rows, valueFn, noteFn, highlightMode) {
             <span class="an-rank-name">${r.name}${note ? `<span class="an-rank-note">${note}</span>` : ''}</span>
             <span class="an-rank-bar"><span style="width:${((val || 0) / max * 100).toFixed(1)}%; background:${r.color}"></span></span>
             <span class="an-rank-val">${val !== null && val !== undefined ? fmt(val, 0) : '—'}</span>
+        </div>`;
+    }).join('')}
+    </div>`;
+}
+
+function rankingBlockPerf(title, rows) {
+    if (!rows.length) return `<h3 class="an-sub-title">${title}</h3>${emptyState('Nessuna prestazione disponibile')}`;
+    const max = Math.max(...rows.map(r => r.pts), 1);
+    return `
+    <div class="an-ranking">
+        <h3 class="an-sub-title">${title}</h3>
+        ${rows.map((r, i) => {
+        const team = TEAMS[r.teamKey];
+        return `
+        <div class="an-rank-row${i === 0 ? ' an-rank-row--win' : ''}">
+            <span class="an-rank-pos">${i + 1}</span>
+            <img src="${team ? team.logo : 'images/fallback-player.svg'}" alt="" class="an-rank-logo">
+            <span class="an-rank-name">${r.name} ${posBadge(r.position)}<span class="an-rank-note">${team ? team.name : ''} — W${r.wk}</span></span>
+            <span class="an-rank-bar"><span style="width:${(r.pts / max * 100).toFixed(1)}%; background:${CHART_COLORS[r.teamKey] || '#888'}"></span></span>
+            <span class="an-rank-val">${fmt(r.pts, 1)}</span>
         </div>`;
     }).join('')}
     </div>`;
@@ -878,6 +1142,82 @@ function buildRoleChart(teams) {
     </svg>`;
 }
 
+/* ---------- Scatter chart (SVG) ---------- */
+
+const SC = { w: 800, h: 320, l: 48, r: 12, t: 16, b: 34 };
+
+function buildDraftScatter(points) {
+    const maxPick = Math.max(...points.map(p => p.pick), 1);
+    const maxPts = Math.max(...points.map(p => p.pts), 1);
+    const yTicks = niceTicks(0, maxPts);
+    const yMax = yTicks[yTicks.length - 1];
+
+    const plotW = SC.w - SC.l - SC.r;
+    const plotH = SC.h - SC.t - SC.b;
+    const x = pick => SC.l + ((pick - 1) / Math.max(maxPick - 1, 1)) * plotW;
+    const y = pts => SC.t + (1 - pts / yMax) * plotH;
+
+    const grid = yTicks.map(v => `
+        <line x1="${SC.l}" y1="${y(v)}" x2="${SC.l + plotW}" y2="${y(v)}" class="an-gridline"/>
+        <text x="${SC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${fmt(v)}</text>`).join('');
+
+    const xTickStep = maxPick > 20 ? 4 : 2;
+    const xTicks = [];
+    for (let p = 1; p <= maxPick; p += xTickStep) {
+        xTicks.push(`<text x="${x(p)}" y="${SC.h - 10}" class="an-tick" text-anchor="middle">${p}</text>`);
+    }
+
+    // Outlier di rilievo: miglior affare (pick tardiva, punti alti) e peggior bust (pick precoce, punti bassi)
+    const lateHalf = points.filter(p => p.pick > maxPick / 2);
+    const earlyHalf = points.filter(p => p.pick <= maxPick / 2);
+    const bestSteal = lateHalf.length ? lateHalf.reduce((a, b) => (b.pts > a.pts ? b : a)) : null;
+    const worstBust = earlyHalf.length ? earlyHalf.reduce((a, b) => (b.pts < a.pts ? b : a)) : null;
+    const labeled = new Set([bestSteal, worstBust].filter(Boolean).map(p => p.pick));
+
+    const dots = points.map(p => {
+        const cx = x(p.pick), cy = y(p.pts);
+        const label = labeled.has(p.pick) ? `<text x="${cx}" y="${cy - 10}" class="an-endlabel" text-anchor="middle">${p.name}</text>` : '';
+        return `${label}<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5" fill="${p.color}" stroke="#000" stroke-width="2"
+            class="an-dot" data-name="${p.name}" data-pick="${p.pick}" data-team="${p.teamName}" data-pos="${p.position || ''}" data-pts="${p.pts.toFixed(1)}"/>`;
+    }).join('');
+
+    return `
+    <svg viewBox="0 0 ${SC.w} ${SC.h}" class="an-svg">
+        ${grid}${xTicks.join('')}${dots}
+        <text x="${SC.l + plotW / 2}" y="${SC.h - 2}" class="an-tick" text-anchor="middle" opacity="0">Pick</text>
+    </svg>`;
+}
+
+function bindDraftScatter(container) {
+    const svg = container.querySelector('svg');
+    const tooltip = container.querySelector('.an-chart-tooltip');
+
+    svg.addEventListener('pointermove', (e) => {
+        const dot = e.target.closest('.an-dot');
+        if (!dot) { tooltip.hidden = true; return; }
+        tooltip.replaceChildren();
+        const title = document.createElement('div');
+        title.className = 'an-tt-title';
+        title.textContent = `Pick #${dot.dataset.pick}`;
+        const row = document.createElement('div');
+        row.className = 'an-tt-row';
+        const key = document.createElement('span');
+        key.className = 'an-tt-key';
+        key.style.background = dot.getAttribute('fill');
+        const val = document.createElement('b');
+        val.textContent = fmt(Number(dot.dataset.pts), 1);
+        const name = document.createElement('span');
+        name.className = 'an-tt-name';
+        name.textContent = `${dot.dataset.name} (${dot.dataset.pos}) — ${dot.dataset.team}`;
+        row.append(key, val, name);
+        tooltip.append(title, row);
+        tooltip.hidden = false;
+        positionTooltip(container, tooltip, e);
+    });
+
+    svg.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+}
+
 /* ---------- Hover layer ---------- */
 
 function bindCharts(wrap) {
@@ -885,6 +1225,8 @@ function bindCharts(wrap) {
     if (lineChart) bindLineChart(lineChart);
     const roleChart = wrap.querySelector('#an-role-chart');
     if (roleChart) bindBarChart(roleChart);
+    const scatterChart = wrap.querySelector('#an-scatter-chart');
+    if (scatterChart) bindDraftScatter(scatterChart);
 }
 
 function bindLineChart(container) {
