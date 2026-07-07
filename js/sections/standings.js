@@ -1,28 +1,24 @@
 /**
  * Standings Section
- * Standard Standings + Playoff Picture
+ * Ranking a card (stile teams page, numeri giganti sporgenti) + Playoff bracket.
+ * Ordine dinamico: regular season → ranking sopra; dai playoff in poi → bracket sopra.
  */
-import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=5';
+import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=5';
+import { TEAMS } from './team.js?v=12';
 
 let loaded = false;
 
-// Map team names to transparent logo filenames
-const TEAM_LOGOS = {
-    'riccardo97com': 'Team%20Logo/team_oscurus_transparent.png',
-    'FedCom': 'Team%20Logo/team_sommo_transparent.png',
-    'lasers': 'Team%20Logo/team_lasers_transparent.png',
-    'Capi dei Pianeti': 'Team%20Logo/team_capi_transparent.png'
-};
-
-function getLogoPath(teamName) {
-    return TEAM_LOGOS[teamName] || 'images/fallback-player.svg';
+// Team info (colore + logo) dal display name
+function teamInfo(rawName) {
+    const dn = displayName(rawName);
+    return Object.values(TEAMS).find(t => t.name === dn) || { name: dn, color: '#888', logo: 'images/nfl_logo.png' };
 }
 
 export async function initStandings() {
     if (loaded) return;
     loaded = true;
 
-    // Remove year selector if it exists in DOM (cleanup)
+    // Year selector non usato in questa pagina
     const selector = document.getElementById('st-year-selector');
     if (selector) selector.style.display = 'none';
 
@@ -41,17 +37,68 @@ async function loadStandings() {
     }
 
     const standings = processStandings(data, CURRENT_SEASON);
-    const playoffPictureHTML = generatePlayoffPicture(standings, data);
-    const standingsTableHTML = generateStandingsTable(standings);
+    const config = getSeasonConfig(CURRENT_SEASON);
+    const maxWeek = Math.max(...Object.keys(data.weeks || {}).map(Number), 0);
+    const playoffsStarted = maxWeek >= config.playoffWeek;
 
-    wrap.innerHTML = `
-        ${playoffPictureHTML}
-        <h3 class="section-title" style="margin-top: 48px; margin-bottom: 20px;">Regular Season Standings</h3>
-        ${standingsTableHTML}
-    `;
+    const bracketHTML = generateBracket(standings, data, config, playoffsStarted);
+    const rankingHTML = generateRankingCards(standings);
+
+    const bracketBlock = `
+        <h3 class="st-block-title">Playoff Picture</h3>
+        ${bracketHTML}`;
+    const rankingBlock = `
+        <h3 class="st-block-title">Regular Season</h3>
+        ${rankingHTML}`;
+
+    wrap.innerHTML = playoffsStarted
+        ? bracketBlock + rankingBlock
+        : rankingBlock + bracketBlock;
 }
 
-function generatePlayoffPicture(standings, fantasyData) {
+/* ============================================================
+   RANKING — card stile teams con numero gigante sporgente
+   ============================================================ */
+
+function generateRankingCards(standings) {
+    if (!standings.length) return '';
+
+    return `
+    <div class="st-ranking">
+        ${standings.map((t, i) => {
+        const rank = i + 1;
+        const info = teamInfo(t.name);
+        const side = rank % 2 === 1 ? 'left' : 'right'; // 1 sx, 2 dx, 3 sx, 4 dx
+        const streakType = t.streak.startsWith('W') ? 'w' : t.streak.startsWith('L') ? 'l' : 't';
+
+        return `
+        <div class="st-rank-wrap st-rank-wrap--${side}" style="--team-color:${info.color}; --card-i:${i}">
+            <span class="st-rank-number" aria-hidden="true">${rank}</span>
+            <a href="#team-${info.key || ''}" class="st-rank-card">
+                <img class="st-rank-watermark" src="${info.logo}" alt="" aria-hidden="true" onerror="this.style.display='none'">
+                <div class="st-rank-body">
+                    <div class="st-rank-info">
+                        <span class="st-rank-kicker">Seed #${rank}</span>
+                        <h2 class="st-rank-name">${info.name}</h2>
+                        <div class="st-rank-stats">
+                            <span class="st-rank-stat"><strong>${t.w}–${t.l}</strong> Record</span>
+                            <span class="st-rank-stat"><strong>${t.pf.toLocaleString('it-IT')}</strong> PF</span>
+                            <span class="st-rank-stat"><strong>${t.pa.toLocaleString('it-IT')}</strong> PA</span>
+                            <span class="streak-badge streak-${streakType}">${t.streak}</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>`;
+    }).join('')}
+    </div>`;
+}
+
+/* ============================================================
+   PLAYOFF PICTURE — griglia esplicita (1v4 sx, finalisti centro, 2v3 dx)
+   ============================================================ */
+
+function generateBracket(standings, fantasyData, config, playoffsStarted) {
     if (standings.length < 4) return '';
 
     const seed1 = standings[0];
@@ -105,20 +152,24 @@ function generatePlayoffPicture(standings, fantasyData) {
             <div class="playoff-card ${posClass} empty ${isTall ? 'tall' : ''}"></div>`;
 
         const name = team.name ?? team;
-        const teamClass = `team-${displayName(name).toLowerCase().replace(/\s+/g, '-')}`;
+        const info = teamInfo(name);
         const loserClass = isLoser ? 'loser' : '';
         const champClass = isChampion ? 'champion' : '';
         const seedBadge = seed !== null ? `<span class="playoff-seed">#${seed}</span>` : '';
 
         return `
-            <div class="playoff-card ${posClass} ${teamClass} ${isTall ? 'tall' : ''} ${loserClass} ${champClass}">
+            <div class="playoff-card ${posClass} ${isTall ? 'tall' : ''} ${loserClass} ${champClass}" style="--team-color:${info.color}">
                 ${seedBadge}
-                <img src="${getLogoPath(name)}" alt="${name}" class="playoff-logo">
+                <img src="${info.logo}" alt="${info.name}" class="playoff-logo">
             </div>
         `;
     };
 
     const nameOf = (t) => t?.name ?? t;
+
+    const projectionNote = !playoffsStarted
+        ? `<p class="st-bracket-note">Proiezione basata sulla classifica attuale — i playoff iniziano alla W${config.playoffWeek}</p>`
+        : '';
 
     return `
     <div class="playoff-picture-container">
@@ -140,42 +191,7 @@ function generatePlayoffPicture(standings, fantasyData) {
             <!-- SUPER BOWL LOGO OVERLAY -->
             <img src="Wallpapers/superbowl_vii_logo.png" alt="Super Bowl VII" class="sb-logo-overlay">
         </div>
+        ${projectionNote}
     </div>
     `;
-}
-
-function generateStandingsTable(standings) {
-    if (!standings.length) return '';
-
-    return `
-    <table class="standings-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Team</th>
-                <th>W</th>
-                <th>L</th>
-                <th>PF</th>
-                <th>PA</th>
-                <th>Streak</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${standings.map((t, i) => {
-        const rank = i + 1;
-        const rankClass = rank <= 3 ? ` rank-${rank}` : '';
-        const streakType = t.streak.startsWith('W') ? 'w' : t.streak.startsWith('L') ? 'l' : 't';
-        return `
-                <tr class="standings-row" style="animation-delay:${i * 60}ms">
-                    <td><span class="rank-badge${rankClass}">${rank}</span></td>
-                    <td class="team-name-cell">${displayName(t.name)}</td>
-                    <td class="stat-cell">${t.w}</td>
-                    <td class="stat-cell">${t.l}</td>
-                    <td class="stat-cell">${t.pf.toLocaleString()}</td>
-                    <td class="stat-cell">${t.pa.toLocaleString()}</td>
-                    <td><span class="streak-badge streak-${streakType}">${t.streak}</span></td>
-                </tr>`;
-    }).join('')}
-        </tbody>
-    </table>`;
 }
