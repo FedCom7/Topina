@@ -1,22 +1,32 @@
 /**
- * Home — vetrina dinamica.
- * La home è un recap del sito che cambia in base al momento della lega,
- * ricavato dai dati Firebase (non da date hardcoded):
- *   REGULAR_SEASON → recap ultima week, classifica, corsa all'MVP
- *   PLAYOFFS       → semifinali, honors "sigillati"
- *   SB_WEEK        → finale + Topina Honors svelati
- *   OFFSEASON      → campione, premiati, all-pro, countdown nuova stagione
+ * Home — mosaico dinamico di card (stile Apple).
+ *
+ * La home è una griglia di card in stile "All Teams" che si rivelano allo
+ * scroll (IntersectionObserver) con leggeri effetti parallax ([data-depth]).
+ * Il CONTENUTO del mosaico dipende dal momento della lega, rilevato dai
+ * dati Firebase — non da date hardcoded:
+ *
+ *   REGULAR_SEASON → risultati week, classifica, rail top performance
+ *   PLAYOFFS       → semifinali, honors sigillati, rail corsa MVP
+ *   SB_WEEK        → finale, rail premiati, all-pro
+ *   OFFSEASON      → campione, premiati, rail albo d'oro, countdown
+ *
+ * Per aggiungere una fase (es. PRE_DRAFT, POST_DRAFT): aggiungere il caso
+ * in detectPhase() e una entry nel registro MOSAIC qui sotto. Le card sono
+ * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { getSeasonConfig, displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=5';
+import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=5';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=1';
 import { getHonorsBundle } from '../data/honors.js?v=1';
 import { TEAMS } from './team.js?v=12';
+import { teamsCardsHTML } from './teams.js?v=2';
 
 let initialized = false;
 
-const fmtPts = (n) => Math.round(n).toLocaleString('it-IT');
+const fmtInt = (n) => Math.round(n).toLocaleString('it-IT');
 const fmtScore = (n) => (+n).toFixed(2);
+const fmtPts = (n) => n.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export async function initHome() {
     if (initialized) return;
@@ -31,37 +41,13 @@ export async function initHome() {
             Object.values(s.perTeam).some(t => t.games.length));
         const bundle = await getHonorsBundle(season.year);
         const phase = detectPhase(season, bundle);
+        const ctx = { league, season, bundle, phase };
 
-        const blocks = [heroHTML(phase, season, league)];
-        switch (phase.type) {
-            case 'REGULAR_SEASON':
-                blocks.push(blockLastWeek(season, phase.week));
-                blocks.push(blockStandings(season));
-                if (bundle) blocks.push(blockMvpRace(bundle, season.year));
-                blocks.push(blockAllTime(league));
-                break;
-            case 'PLAYOFFS':
-                blocks.push(await blockPlayoffs(season));
-                blocks.push(blockHonorsSealed(season.year));
-                blocks.push(blockAllTime(league));
-                break;
-            case 'SB_WEEK':
-                blocks.push(await blockSuperBowl(season));
-                if (bundle) blocks.push(blockHonorsRecap(bundle, season.year));
-                blocks.push(blockAllProTeaser(bundle, season.year));
-                break;
-            case 'OFFSEASON':
-            default:
-                blocks.push(blockChampion(season, league));
-                if (bundle?.revealed) blocks.push(blockHonorsRecap(bundle, season.year));
-                if (bundle?.revealed) blocks.push(blockAllProTeaser(bundle, season.year));
-                blocks.push(blockAllTime(league));
-                blocks.push(blockNextSeason(season.year));
-                break;
-        }
+        const builder = MOSAIC[phase.type] || MOSAIC.OFFSEASON;
+        const cards = (await Promise.all(builder(ctx))).filter(Boolean);
 
-        wrap.innerHTML = blocks.filter(Boolean).map((html, i) =>
-            html.replace('--blk-i:@', `--blk-i:${i}`)).join('');
+        wrap.innerHTML = `<div class="mosaic">${cards.join('')}</div>`;
+        initScrollFX(wrap);
     } catch (e) {
         console.error('Home load error:', e);
         wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Impossibile caricare i dati della lega</p></div>`;
@@ -79,7 +65,7 @@ function detectPhase(season, bundle) {
     return { type: 'REGULAR_SEASON', week };
 }
 
-function phaseLabel(phase, season) {
+function phaseLabel({ phase, season }) {
     switch (phase.type) {
         case 'REGULAR_SEASON': return `🏈 Stagione ${season.year} · Week ${phase.week}`;
         case 'PLAYOFFS': return `🔥 Playoffs ${season.year}`;
@@ -88,224 +74,334 @@ function phaseLabel(phase, season) {
             const days = daysToKickoff(season.year);
             return days > 0
                 ? `⏳ Offseason · Kickoff ${+season.year + 1} tra ${days} giorni`
-                : `⏳ Offseason`;
+                : '⏳ Offseason';
         }
     }
 }
 
 /** Giorni al primo giovedì di settembre della prossima stagione */
 function daysToKickoff(latestYear) {
-    const y = +latestYear + 1;
-    const d = new Date(y, 8, 1);
-    d.setDate(1 + ((4 - d.getDay() + 7) % 7)); // primo giovedì
+    const d = new Date(+latestYear + 1, 8, 1);
+    d.setDate(1 + ((4 - d.getDay() + 7) % 7));
     return Math.ceil((d - new Date()) / 86400000);
 }
 
-// ─── Hero: identità della lega, ripensata ────────────────────────
+// ─── Registro del mosaico: una sequenza di card per fase ─────────
 
-function heroHTML(phase, season, league) {
-    const championKey = [...league.seasons].reverse()
-        .find(s => s.sbWinnerKey)?.sbWinnerKey;
+const MOSAIC = {
+    OFFSEASON: (ctx) => [
+        cardHero(ctx),
+        cardChampion(ctx),
+        cardHonors(ctx),
+        cardTeams(ctx),
+        railChampions(ctx),
+        cardAllPro(ctx),
+        cardNumbers(ctx),
+        cardCountdown(ctx),
+    ],
+    REGULAR_SEASON: (ctx) => [
+        cardHero(ctx),
+        cardLastWeek(ctx),
+        cardStandings(ctx),
+        railTopPerformances(ctx),
+        cardTeams(ctx),
+        cardMvpRace(ctx),
+        cardNumbers(ctx),
+    ],
+    PLAYOFFS: (ctx) => [
+        cardHero(ctx),
+        cardPlayoffs(ctx),
+        cardHonorsSealed(ctx),
+        cardStandings(ctx),
+        railMvpRace(ctx),
+        cardTeams(ctx),
+    ],
+    SB_WEEK: (ctx) => [
+        cardHero(ctx),
+        cardSuperBowl(ctx),
+        railHonors(ctx),
+        cardAllPro(ctx),
+        cardTeams(ctx),
+        cardNumbers(ctx),
+    ],
+};
 
-    const crests = TEAM_KEY_LIST.map((key, i) => {
-        const t = TEAMS[key];
-        return `
-        <a href="#team-${key}" class="hs-crest${key === championKey ? ' hs-crest--champ' : ''}"
-           style="--team-color:${t.color};--crest-i:${i}">
-            <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
-            <span>${t.name}</span>
-            ${key === championKey ? '<span class="hs-crest-crown">👑</span>' : ''}
-        </a>`;
-    }).join('');
+// ─── Scaffolding card ────────────────────────────────────────────
 
+/** Card standard del mosaico. span: 'hero' | 'wide' | 'half' */
+function card({ span = 'half', glow, kicker, title, body, cta, href, cls = '', parallax = false }) {
     return `
-    <header class="hs-hero">
-        <div class="hs-hero-bg"><div class="hs-hero-glow"></div><div class="hs-hero-grid"></div></div>
-        <span class="hs-phase-pill">${phaseLabel(phase, season)}</span>
-        <h1 class="hs-wordmark">
-            <span class="hs-word hs-word--outline">Topina</span>
-            <span class="hs-word hs-word--fill">League</span>
-        </h1>
-        <p class="hs-tagline">Quattro franchise. Una corona. Dal 2019.</p>
-        <div class="hs-crests">${crests}</div>
-    </header>`;
+    <article class="mosaic-card mc-${span} ${cls}" ${parallax ? 'data-parallax' : ''}
+             ${glow ? `style="--card-glow:${glow}"` : ''}>
+        ${kicker ? `<span class="mc-kicker">${kicker}</span>` : ''}
+        ${title ? `<h2 class="mc-title">${title}</h2>` : ''}
+        <div class="mc-body">${body}</div>
+        ${cta ? `<a class="mc-cta" href="${href}">${cta} <span aria-hidden="true">→</span></a>` : ''}
+    </article>`;
 }
 
-// ─── Blocchi vetrina ─────────────────────────────────────────────
-
-function block({ kicker, title, body, cta, href, mod = '' }) {
+/** Rail a scorrimento orizzontale (stile Apple TV) */
+function rail({ kicker, title, cards, cta, href }) {
     return `
-    <section class="hs-block ${mod}" style="--blk-i:@">
-        <span class="hs-block-kicker">${kicker}</span>
-        <h2 class="hs-block-title">${title}</h2>
-        <div class="hs-block-body">${body}</div>
-        ${cta ? `<a class="hs-block-cta" href="${href}">${cta} <span aria-hidden="true">→</span></a>` : ''}
-    </section>`;
+    <div class="mc-rail">
+        <header class="mc-rail-head">
+            <div>
+                <span class="mc-kicker">${kicker}</span>
+                <h2 class="mc-title">${title}</h2>
+            </div>
+            ${cta ? `<a class="mc-cta" href="${href}">${cta} <span aria-hidden="true">→</span></a>` : ''}
+        </header>
+        <div class="mc-rail-track">${cards.join('')}</div>
+    </div>`;
 }
 
-function teamLabel(key) {
+function railCard({ glow, top, media, title, sub }) {
+    return `
+    <div class="mc-rail-card" ${glow ? `style="--card-glow:${glow}"` : ''}>
+        ${top ? `<span class="mc-rail-top">${top}</span>` : ''}
+        ${media || ''}
+        <span class="mc-rail-title">${title}</span>
+        ${sub ? `<span class="mc-rail-sub">${sub}</span>` : ''}
+    </div>`;
+}
+
+function teamChip(key) {
     const t = TEAMS[key];
-    return t ? `<span class="hs-team" style="--team-color:${t.color}">
+    return t ? `<span class="mc-team" style="--team-color:${t.color}">
         <img src="${t.logo}" alt="" onerror="this.style.display='none'">${t.name}</span>` : key;
 }
 
-function blockChampion(season, league) {
+function keyOf(rawName) {
+    return TEAM_KEY_LIST.find(k => TEAMS[k].name === displayName(rawName)) || null;
+}
+
+// ─── Card comuni ─────────────────────────────────────────────────
+
+function cardHero(ctx) {
+    return `
+    <article class="mosaic-card mc-hero" data-parallax>
+        <div class="mc-hero-glow" data-depth="0.22"></div>
+        <div class="mc-hero-grid"></div>
+        <div class="mc-hero-content" data-depth="0.06">
+            <span class="mc-pill">${phaseLabel(ctx)}</span>
+            <h1 class="mc-wordmark">
+                <span class="mc-word mc-word--outline">Topina</span>
+                <span class="mc-word mc-word--fill">League</span>
+            </h1>
+            <p class="mc-tagline">Quattro franchise. Una corona. Dal 2019.</p>
+        </div>
+    </article>`;
+}
+
+function cardTeams({ league }) {
+    // Card identiche alla pagina All Teams (stessa funzione di render)
+    return `
+    <div class="mc-rail mc-teams-block">
+        <header class="mc-rail-head">
+            <div>
+                <span class="mc-kicker">I franchise</span>
+                <h2 class="mc-title">Quattro contendenti</h2>
+            </div>
+            <a class="mc-cta" href="#teams">Tutti i franchise <span aria-hidden="true">→</span></a>
+        </header>
+        <div class="teams-index">${teamsCardsHTML(league)}</div>
+    </div>`;
+}
+
+function cardNumbers({ league }) {
+    const totalGames = TEAM_KEY_LIST.reduce((s, k) => s + league.allTime[k].games, 0) / 2;
+    const totalPts = TEAM_KEY_LIST.reduce((s, k) => s + league.allTime[k].pf, 0);
+    const most = TEAM_KEY_LIST.map(k => ({ k, n: league.allTime[k].sbWins.length }))
+        .sort((a, b) => b.n - a.n)[0];
+    const tiles = [
+        [league.seasons.length, 'Stagioni'],
+        [fmtInt(totalGames), 'Partite'],
+        [fmtInt(totalPts), 'Punti totali'],
+        [`${TEAMS[most.k].name} (${most.n})`, 'Più titoli'],
+    ].map(([v, l]) => `
+        <div class="mc-num"><span class="mc-num-value">${v}</span><span class="mc-num-label">${l}</span></div>`).join('');
+    return card({
+        kicker: 'Dal 2019',
+        title: 'La lega in numeri',
+        body: `<div class="mc-nums">${tiles}</div>`,
+        cta: 'Record e statistiche', href: '#stats',
+    });
+}
+
+// ─── Card di fase ────────────────────────────────────────────────
+
+function cardChampion({ season, league }) {
     const key = season.sbWinnerKey;
     if (!key) return '';
     const t = TEAMS[key];
     const titles = league.allTime[key]?.sbWins.length || 1;
-    return block({
-        mod: 'hs-block--champion',
+    return card({
+        glow: t.color, parallax: true,
         kicker: `Super Bowl · Stagione ${season.year}`,
         title: `${t.name} sul trono`,
         body: `
-        <div class="hs-champion" style="--team-color:${t.color}">
-            <img class="hs-champion-logo" src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
-            <div class="hs-champion-info">
-                <span class="hs-champion-line">Campioni in carica della Topina League</span>
-                <span class="hs-champion-titles">${titles}° titolo del franchise</span>
+        <div class="mc-champion" style="--team-color:${t.color}">
+            <img class="mc-champion-logo" src="${t.logo}" alt="${t.name}" data-depth="0.1"
+                 onerror="this.style.display='none'">
+            <div class="mc-champion-info">
+                <span>Campioni in carica della Topina League</span>
+                <span class="mc-champion-titles">${titles}° titolo del franchise</span>
             </div>
         </div>`,
         cta: 'La pagina del franchise', href: `#team-${key}`,
     });
 }
 
-function blockHonorsRecap(bundle, year) {
-    const wanted = ['mvp', 'dpoy', 'coach'];
-    const cards = bundle.awards
-        .filter(a => wanted.includes(a.id) && a.winner)
-        .map(a => {
-            const name = a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name;
-            return `
-            <div class="hs-mini-award">
-                <span class="hs-mini-award-icon">${a.icon}</span>
-                <span class="hs-mini-award-label">${a.id.toUpperCase() === 'COACH' ? 'Coach of the Year' : a.id.toUpperCase()}</span>
-                <span class="hs-mini-award-name">${name}</span>
-            </div>`;
-        }).join('');
-    return block({
-        kicker: `Topina Honors ${year}`,
+function cardHonors({ bundle, season }) {
+    if (!bundle?.revealed) return '';
+    const wanted = { mvp: 'MVP', dpoy: 'DPOY', coach: 'Coach of the Year' };
+    const minis = bundle.awards
+        .filter(a => wanted[a.id] && a.winner)
+        .map(a => `
+        <div class="mc-mini-award">
+            <span class="mc-mini-award-icon">${a.icon}</span>
+            <span class="mc-mini-award-label">${wanted[a.id]}</span>
+            <span class="mc-mini-award-name">${a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name}</span>
+        </div>`).join('');
+    return card({
+        kicker: `Topina Honors ${season.year}`,
         title: 'I premiati della stagione',
-        body: `<div class="hs-mini-awards">${cards}</div>`,
+        body: `<div class="mc-mini-awards">${minis}</div>`,
         cta: 'Tutti i premi', href: '#honors',
     });
 }
 
-function blockHonorsSealed(year) {
-    return block({
-        kicker: `Topina Honors ${year}`,
+function cardHonorsSealed({ season }) {
+    return card({
+        glow: 'var(--accent-amber)',
+        kicker: `Topina Honors ${season.year}`,
         title: 'Le buste sono sigillate',
-        body: `<p class="hs-block-text">Regular season in archivio: MVP, premi di posizione e All-Pro Team sono decisi. Si svelano alla vigilia del Super Bowl.</p>`,
+        body: `<p class="mc-text">Regular season in archivio: i premi sono decisi e si svelano alla vigilia del Super Bowl.</p>`,
         cta: 'Guarda i finalisti', href: '#honors',
     });
 }
 
-function blockAllProTeaser(bundle, year) {
+function cardAllPro({ bundle, season }) {
     if (!bundle?.allPro) return '';
-    const top = bundle.allPro.first
+    const rows = bundle.allPro.first
         .filter(s => ['QB', 'RB', 'WR'].includes(s.slot) && s.player)
         .slice(0, 3)
         .map(({ slot, player }) => `
-        <div class="hs-allpro-row">
+        <div class="mc-row">
             <span class="allpro-pos pos-${slot.toLowerCase()}">${slot}</span>
-            <span class="hs-allpro-name">${player.name}</span>
-            <span class="hs-allpro-pts">${player.total.toLocaleString('it-IT', { maximumFractionDigits: 1 })} pt</span>
+            <span class="mc-row-name">${player.name}</span>
+            <span class="mc-row-value">${fmtPts(player.total)} pt</span>
         </div>`).join('');
-    return block({
-        kicker: `All-Pro Team ${year}`,
+    return card({
+        kicker: `All-Pro Team ${season.year}`,
         title: 'La formazione ideale',
-        body: `<div class="hs-allpro">${top}</div>`,
-        cta: 'First e Second Team completi', href: '#allpro',
+        body: `<div class="mc-rows">${rows}</div>`,
+        cta: 'First e Second Team', href: '#allpro',
     });
 }
 
-function blockLastWeek(season, week) {
+function cardCountdown({ season }) {
+    const days = daysToKickoff(season.year);
+    if (days <= 0) return '';
+    return card({
+        span: 'wide', cls: 'mc-center', parallax: true,
+        kicker: 'Prossimo capitolo',
+        title: `Stagione ${+season.year + 1}`,
+        body: `
+        <div class="mc-countdown" data-depth="0.08">
+            <span class="mc-countdown-days">${days}</span>
+            <span class="mc-countdown-label">giorni al kickoff</span>
+        </div>`,
+        cta: 'Ripassa i draft del passato', href: '#draft',
+    });
+}
+
+function cardLastWeek({ season, phase }) {
     const seen = new Set();
     const rows = [];
     TEAM_KEY_LIST.forEach(key => {
         if (seen.has(key)) return;
-        const g = season.perTeam[key]?.games.find(x => x.week === week);
+        const g = season.perTeam[key]?.games.find(x => x.week === phase.week);
         if (!g || !g.opp) return;
         seen.add(key); seen.add(g.opp);
-        const won1 = g.won;
         rows.push(`
-        <div class="hs-score-row">
-            ${teamLabel(key)}
-            <span class="hs-score"><b class="${won1 ? 'w' : ''}">${fmtScore(g.pts)}</b> – <b class="${!won1 ? 'w' : ''}">${fmtScore(g.oppPts)}</b></span>
-            ${teamLabel(g.opp)}
+        <div class="mc-score-row">
+            ${teamChip(key)}
+            <span class="mc-score"><b class="${g.won ? 'w' : ''}">${fmtScore(g.pts)}</b> – <b class="${!g.won ? 'w' : ''}">${fmtScore(g.oppPts)}</b></span>
+            ${teamChip(g.opp)}
         </div>`);
     });
     if (!rows.length) return '';
-    return block({
-        kicker: `Week ${week}`,
+    return card({
+        kicker: `Week ${phase.week}`,
         title: 'Gli ultimi risultati',
-        body: `<div class="hs-scores">${rows.join('')}</div>`,
-        cta: 'Tutti i matchup nel Game Center', href: '#game-center',
+        body: `<div class="mc-rows">${rows.join('')}</div>`,
+        cta: 'Game Center', href: '#game-center',
     });
 }
 
-function blockStandings(season) {
+function cardStandings({ season }) {
     const rows = season.standings.slice(0, 4).map((s, i) => {
-        const key = TEAM_KEY_LIST.find(k => TEAMS[k].name === displayName(s.name));
+        const key = keyOf(s.name);
         return `
-        <div class="hs-standing-row">
-            <span class="hs-standing-rank">${i + 1}</span>
-            ${key ? teamLabel(key) : displayName(s.name)}
-            <span class="hs-standing-rec">${s.w}–${s.l}${s.t ? `–${s.t}` : ''}</span>
+        <div class="mc-row">
+            <span class="mc-rank">${i + 1}</span>
+            ${key ? teamChip(key) : displayName(s.name)}
+            <span class="mc-row-value">${s.w}–${s.l}${s.t ? `–${s.t}` : ''}</span>
         </div>`;
     }).join('');
-    return block({
+    return card({
         kicker: `Stagione ${season.year}`,
         title: 'La corsa ai playoff',
-        body: `<div class="hs-standings">${rows}</div>`,
-        cta: 'Classifica e playoff picture', href: '#standings',
+        body: `<div class="mc-rows">${rows}</div>`,
+        cta: 'Classifica completa', href: '#standings',
     });
 }
 
-function blockMvpRace(bundle, year) {
+function cardMvpRace({ bundle, season }) {
+    if (!bundle) return '';
     const race = Object.values(bundle.players)
         .filter(p => p.pos !== 'DEF')
         .sort((a, b) => b.total - a.total)
         .slice(0, 3);
     if (!race.length) return '';
     const rows = race.map((p, i) => `
-        <div class="hs-allpro-row">
-            <span class="hs-standing-rank">${i + 1}</span>
-            <span class="hs-allpro-name">${p.name} <small>${p.pos}</small></span>
-            <span class="hs-allpro-pts">${p.total.toLocaleString('it-IT', { maximumFractionDigits: 1 })} pt</span>
+        <div class="mc-row">
+            <span class="mc-rank">${i + 1}</span>
+            <span class="mc-row-name">${p.name} <small>${p.pos}</small></span>
+            <span class="mc-row-value">${fmtPts(p.total)} pt</span>
         </div>`).join('');
-    return block({
-        kicker: `Topina Honors ${year}`,
+    return card({
+        kicker: `Topina Honors ${season.year}`,
         title: 'La corsa all’MVP',
-        body: `<div class="hs-allpro">${rows}</div>`,
-        cta: 'La situazione di tutti i premi', href: '#honors',
+        body: `<div class="mc-rows">${rows}</div>`,
+        cta: 'Tutti i premi', href: '#honors',
     });
 }
 
-async function blockPlayoffs(season) {
+async function cardPlayoffs({ season }) {
     const data = await fetchFantasyData(season.year);
     const matchups = data ? getPlayoffMatchups(data, season.year) : null;
     const s = season.standings;
-    const pair = (a, b) => `
-        <div class="hs-score-row">
-            ${teamName(a)}<span class="hs-score">vs</span>${teamName(b)}
-        </div>`;
-    const teamName = (t) => {
-        const key = TEAM_KEY_LIST.find(k => TEAMS[k].name === displayName(t.name));
-        return key ? teamLabel(key) : displayName(t.name);
+    const side = (t) => {
+        const key = keyOf(t.name);
+        return key ? teamChip(key) : displayName(t.name);
     };
+    const pair = (a, b) => `
+        <div class="mc-score-row">${side(a)}<span class="mc-score">vs</span>${side(b)}</div>`;
     const body = matchups?.length
         ? matchups.map(m => pair(m.team1, m.team2)).join('')
         : (s.length >= 4 ? pair(s[0], s[3]) + pair(s[1], s[2]) : '');
-    return block({
+    return card({
+        span: 'wide',
         kicker: `Playoffs ${season.year}`,
         title: 'Semifinali: dentro o fuori',
-        body: `<div class="hs-scores">${body}</div>`,
+        body: `<div class="mc-rows">${body}</div>`,
         cta: 'La playoff picture', href: '#standings',
     });
 }
 
-async function blockSuperBowl(season) {
+async function cardSuperBowl({ season }) {
     const data = await fetchFantasyData(season.year);
     const sb = data ? getSuperBowlMatchup(data, season.year) : null;
     const playoffs = data ? getPlayoffMatchups(data, season.year) : null;
@@ -316,57 +412,157 @@ async function blockSuperBowl(season) {
     }
     if (!t1 || !t2) return '';
     const chip = (t) => {
-        const key = TEAM_KEY_LIST.find(k => TEAMS[k].name === displayName(t.name));
+        const key = keyOf(t.name);
         const team = key ? TEAMS[key] : null;
         return `
-        <div class="hs-sb-side" style="--team-color:${team?.color || 'var(--accent-red)'}">
-            ${team ? `<img src="${team.logo}" alt="" onerror="this.style.display='none'">` : ''}
+        <div class="mc-sb-side" style="--team-color:${team?.color || 'var(--accent-red)'}">
+            ${team ? `<img src="${team.logo}" alt="" data-depth="0.1" onerror="this.style.display='none'">` : ''}
             <span>${displayName(t.name)}</span>
         </div>`;
     };
-    return block({
-        mod: 'hs-block--sb',
+    return card({
+        span: 'wide', cls: 'mc-center', parallax: true,
         kicker: `Super Bowl · Stagione ${season.year}`,
         title: 'Tutto in una notte',
-        body: `<div class="hs-sb">${chip(t1)}<span class="hs-sb-vs">VS</span>${chip(t2)}</div>`,
+        body: `<div class="mc-sb">${chip(t1)}<span class="mc-sb-vs">VS</span>${chip(t2)}</div>`,
         cta: 'Segui nel Game Center', href: '#game-center',
     });
 }
 
-function blockAllTime(league) {
-    const totalGames = TEAM_KEY_LIST.reduce((s, k) => s + league.allTime[k].games, 0) / 2;
-    const totalPts = TEAM_KEY_LIST.reduce((s, k) => s + league.allTime[k].pf, 0);
-    const most = TEAM_KEY_LIST.map(k => ({ k, n: league.allTime[k].sbWins.length }))
-        .sort((a, b) => b.n - a.n)[0];
-    const tiles = [
-        [league.seasons.length, 'Stagioni'],
-        [fmtPts(totalGames), 'Partite'],
-        [fmtPts(totalPts), 'Punti totali'],
-        [`${TEAMS[most.k].name} (${most.n})`, 'Più titoli'],
-    ].map(([v, l]) => `
-        <div class="hs-num"><span class="hs-num-value">${v}</span><span class="hs-num-label">${l}</span></div>`).join('');
-    return block({
-        kicker: 'Dal 2019',
-        title: 'La lega in numeri',
-        body: `<div class="hs-nums">${tiles}</div>`,
-        cta: 'Record e statistiche all-time', href: '#stats',
+// ─── Rail per fase ───────────────────────────────────────────────
+
+function railChampions({ league }) {
+    const cards = [...league.seasons]
+        .filter(s => s.sbWinnerKey)
+        .reverse()
+        .map(s => {
+            const t = TEAMS[s.sbWinnerKey];
+            const rec = s.perTeam[s.sbWinnerKey];
+            return railCard({
+                glow: t.color,
+                top: s.year,
+                media: `<img class="mc-rail-logo" src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">`,
+                title: t.name,
+                sub: rec ? `${rec.w}–${rec.l}${rec.t ? `–${rec.t}` : ''} · 🏆 Champion` : '🏆 Champion',
+            });
+        });
+    return rail({
+        kicker: 'Albo d\'oro',
+        title: 'Tutti i campioni',
+        cards,
+        cta: 'La storia completa', href: '#history',
     });
 }
 
-function blockNextSeason(latestYear) {
-    const days = daysToKickoff(latestYear);
-    if (days <= 0) return '';
-    const y = +latestYear + 1;
-    return block({
-        mod: 'hs-block--next',
-        kicker: 'Prossimo capitolo',
-        title: `Stagione ${y}`,
-        body: `
-        <div class="hs-countdown">
-            <span class="hs-countdown-days">${days}</span>
-            <span class="hs-countdown-label">giorni al kickoff</span>
-        </div>
-        <p class="hs-block-text">Nuovo draft, nuovi roster, stessa corona in palio.</p>`,
-        cta: 'Ripassa i draft del passato', href: '#draft',
+async function railTopPerformances({ season, phase }) {
+    const data = await fetchFantasyData(season.year);
+    const week = data?.weeks?.[String(phase.week)];
+    if (!week?.matchups) return '';
+    const perf = [];
+    week.matchups.forEach(m => [m.team1, m.team2].forEach(team => {
+        if (!team) return;
+        const key = keyOf(team.name);
+        (team.starters || []).forEach(p => perf.push({
+            name: p.name,
+            pos: (p.position_in_team || p.position || '').toUpperCase(),
+            pts: parseFloat(p.fantasy_points) || 0,
+            key,
+        }));
+    }));
+    const cards = perf.sort((a, b) => b.pts - a.pts).slice(0, 8).map(p => railCard({
+        glow: TEAMS[p.key]?.color,
+        top: `${p.pos}${TEAMS[p.key] ? ` · ${TEAMS[p.key].name}` : ''}`,
+        media: `<span class="mc-rail-big">${fmtPts(p.pts)}</span>`,
+        title: p.name,
+        sub: 'punti fantasy',
+    }));
+    return rail({
+        kicker: `Week ${phase.week}`,
+        title: 'Top performance',
+        cards,
+        cta: 'Game Center', href: '#game-center',
     });
+}
+
+function railMvpRace({ bundle }) {
+    if (!bundle) return '';
+    const cards = Object.values(bundle.players)
+        .filter(p => p.pos !== 'DEF')
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 8)
+        .map((p, i) => railCard({
+            glow: TEAMS[p.teamKey]?.color,
+            top: `#${i + 1} · ${p.pos}`,
+            media: `<span class="mc-rail-big">${fmtPts(p.total)}</span>`,
+            title: p.name,
+            sub: 'punti in stagione',
+        }));
+    return rail({
+        kicker: 'Topina Honors',
+        title: 'La corsa all\'MVP',
+        cards,
+        cta: 'I finalisti', href: '#honors',
+    });
+}
+
+function railHonors({ bundle }) {
+    if (!bundle?.revealed) return '';
+    const cards = bundle.awards
+        .filter(a => a.winner)
+        .map(a => railCard({
+            glow: TEAMS[a.winner.teamKey]?.color,
+            top: a.name,
+            media: `<span class="mc-rail-emoji">${a.icon}</span>`,
+            title: a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name,
+            sub: a.kind === 'player' && a.winner.pos ? `${a.winner.pos} · ${fmtPts(a.winner.total)} pt` : '',
+        }));
+    return rail({
+        kicker: 'Topina Honors',
+        title: 'I premiati',
+        cards,
+        cta: 'La cerimonia completa', href: '#honors',
+    });
+}
+
+// ─── Effetti scroll: reveal + parallax ───────────────────────────
+
+function initScrollFX(wrap) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cards = wrap.querySelectorAll('.mosaic-card, .mc-rail');
+
+    if (reduced || !('IntersectionObserver' in window)) {
+        cards.forEach(c => c.classList.add('mc-in'));
+        return;
+    }
+
+    // Reveal progressivo allo scroll
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('mc-in');
+                io.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    cards.forEach(c => io.observe(c));
+
+    // Parallax leggero sugli elementi [data-depth]
+    const els = [...wrap.querySelectorAll('[data-depth]')];
+    if (!els.length) return;
+    let ticking = false;
+    const update = () => {
+        ticking = false;
+        const vh = window.innerHeight;
+        els.forEach(el => {
+            const host = el.closest('.mosaic-card') || el;
+            const r = host.getBoundingClientRect();
+            if (r.bottom < -100 || r.top > vh + 100) return;
+            const p = (r.top + r.height / 2 - vh / 2) / vh;
+            el.style.transform = `translate3d(0, ${(-p * parseFloat(el.dataset.depth) * 120).toFixed(1)}px, 0)`;
+        });
+    };
+    window.addEventListener('scroll', () => {
+        if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
 }

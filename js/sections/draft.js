@@ -4,6 +4,7 @@
  */
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js';
 import { TEAM_KEYS } from '../data/team-config.js';
+import { TEAMS } from './team.js?v=12';
 import { playerImageService } from '../services/player-image-service.js?v=4';
 import { db } from '../firebase-config.js';
 
@@ -83,14 +84,15 @@ function renderCards(round) {
 
     grid.innerHTML = picks.map((p, i) => {
         const posClass = `pos-${(p.pos || '').toLowerCase().replace('/', '')}`;
-        const teamKey = TEAM_KEYS[displayName(p.team)] || 'default';
+        const teamKey = TEAM_KEYS[displayName(p.team)] || null;
+        const team = TEAMS[teamKey] || null;
         const fallback = 'images/fallback-player.svg';
 
         return `
-        <div class="draft-card bg-team-${teamKey}" style="animation-delay:${(i % 12) * 40}ms">
+        <div class="draft-card" style="--team-color:${team?.color || 'var(--accent-red)'};animation-delay:${(i % 12) * 40}ms">
+            <div class="draft-pick-badge">#${p.pick}</div>
             <div class="draft-card-image">
                  <img src="${fallback}" class="draft-headshot" data-player-name="${p.player}" data-team="${p.nfl}" data-pos="${p.pos}" alt="${p.player}">
-                 <div class="draft-pick-badge">#${p.pick}</div>
             </div>
             <div class="draft-card-info">
                 <div class="draft-player-name">${p.player}</div>
@@ -100,7 +102,10 @@ function renderCards(round) {
                 </div>
                 <div class="draft-fantasy-team">
                     <span class="label">Drafted by</span>
-                    <span class="team-name">${displayName(p.team)}</span>
+                    <span class="draft-fantasy-team-row">
+                        ${team ? `<img class="draft-team-logo" src="${team.logo}" alt="" onerror="this.style.display='none'">` : ''}
+                        <span class="team-name">${team?.name || displayName(p.team)}</span>
+                    </span>
                 </div>
             </div>
         </div>`;
