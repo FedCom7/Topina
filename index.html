@@ -9,9 +9,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@400;500;600;700;800;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=27">
+    <link rel="stylesheet" href="css/main.css?v=41">
 </head>
 
 <body>
@@ -28,8 +28,10 @@
                 <li class="nav-item has-dropdown" data-dropdown="game-center">
                     <a href="#game-center" class="nav-link" data-section="game-center">Game Center</a>
                 </li>
-                <li class="nav-item has-dropdown" data-dropdown="standings">
-                    <a href="#standings" class="nav-link" data-section="standings">Standings</a>
+                <li class="nav-item"><a href="#standings" class="nav-link" data-section="standings">Standings</a>
+                </li>
+                <li class="nav-item has-dropdown" data-dropdown="teams">
+                    <a href="#teams" class="nav-link" data-section="teams">Teams</a>
                 </li>
                 <li class="nav-item"><a href="#draft" class="nav-link" data-section="draft">Draft</a></li>
                 <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
@@ -45,8 +47,8 @@
             <div class="nav-dp-sep"></div>
             <a href="#magazine" class="nav-dp-item" data-section="magazine">Magazine</a>
         </div>
-        <div class="nav-dropdown-panel" data-panel="standings">
-            <a href="#standings" class="nav-dp-item nav-dp-header" data-section="standings">Current Season Standing</a>
+        <div class="nav-dropdown-panel" data-panel="teams">
+            <a href="#teams" class="nav-dp-item nav-dp-header" data-section="teams">All Teams</a>
             <div class="nav-dp-sep"></div>
             <a href="#team-capi" class="nav-dp-item">Capi dei Pianeti</a>
             <a href="#team-lasers" class="nav-dp-item">Lasers</a>
@@ -144,6 +146,22 @@
         </div>
     </section>
 
+    <!-- ====== TEAMS (indice franchise) ====== -->
+    <section class="page-section" id="teams">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Teams</h1>
+                <p class="section-subtitle">I quattro franchise della Topina League</p>
+            </div>
+            <div class="teams-index" id="teams-index">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Caricamento teams...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== DRAFT ====== -->
     <section class="page-section" id="draft">
         <div class="section-inner">
@@ -202,7 +220,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=34"></script>
+    <script type="module" src="js/app.js?v=45"></script>
 </body>
 
 </html>

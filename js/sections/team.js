@@ -1,39 +1,34 @@
 /**
- * Team Page Section
+ * Team Page Section — Franchise page
  * Attivata via hash #team-capi | #team-lasers | #team-oscurus | #team-sommo
- * Un'unica sezione che si ricostruisce al cambio di team.
+ * Hero grafico (niente foto) + bento grid: badge wall, stats, storia,
+ * identità, franchise players, rivalità, divisa.
  */
 
-import { fetchFantasyData, fetchDraftData, processStandings, getSuperBowlMatchup, flattenDraft, displayName, SEASONS } from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
+import { CURRENT_SEASON } from '../data.js?v=5';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=1';
+import { computeTeamBadges } from '../data/badges.js?v=1';
+import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=8';
 
-// Converte numero in romano minuscolo per il nome file
+// Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {
-    const vals = [[10,'x'],[9,'ix'],[5,'v'],[4,'iv'],[1,'i']];
+    const vals = [[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
     let r = '';
     for (const [v, s] of vals) { while (n >= v) { r += s; n -= v; } }
     return r;
 }
 
-// Restituisce il path del logo SB dato l'anno (stagione 2019 = I, 2020 = II, …)
-function _sbLogoPath(year) {
-    const num = parseInt(year) - 2018;
-    if (num < 1) return '';
-    return `Superbowl-logo/superbowl_${_toRoman(num)}_logo.png`;
+function _sbRoman(year) {
+    return _toRoman(parseInt(year) - 2018);
 }
 
-// Posizioni esatte dei portoni nell'immagine (px originali 1264×841) — uguale per tutti i team
-const PHOTO_FRAME = { imgW: 1264, imgH: 841, cropTopFrac: 0.18, firstX: 236, firstY: 509, bW: 118, bH: 183, gap: 23 };
-
-const TEAMS = {
+export const TEAMS = {
     capi: {
         key: 'capi',
         name: 'Capi dei Pianeti',
         color: '#FF6600',
         logo: 'Team%20Logo/team_capi_transparent.png',
-        wallpaper: 'Wallpapers/capi_profile_wallpapaper.PNG',
         uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        photoFrame: PHOTO_FRAME,
         bio: `Fondati nel 2019 con la visione di chi guarda lontano, i Capi dei Pianeti hanno sempre operato su una scala diversa. Il loro arancione brucia come il sole di un sistema solare lontano: impossibile ignorarlo, impossibile non riconoscerlo. Ogni draft è stato un'invasione pianificata, ogni stagione una conquista. Non giocano in una lega — governano un universo.`,
     },
     lasers: {
@@ -41,9 +36,7 @@ const TEAMS = {
         name: 'Lasers',
         color: '#D4AF37',
         logo: 'Team%20Logo/team_lasers_transparent.png',
-        wallpaper: 'Wallpapers/lasers_profile_wallpapaper.PNG',
         uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        photoFrame: PHOTO_FRAME,
         bio: `I Lasers non gridano. Tagliano. Dal 2019, questo franchise ha costruito la propria identità sulla precisione assoluta: ogni scelta di draft una mossa calcolata, ogni lineup una formula perfetta. L'oro del loro simbolo non è ornamento — è la firma di chi non sbaglia. Quando i Lasers accendono il raggio, la partita è già decisa.`,
     },
     oscurus: {
@@ -51,9 +44,7 @@ const TEAMS = {
         name: 'Oscurus',
         color: '#800020',
         logo: 'Team%20Logo/team_oscurus_transparent.png',
-        wallpaper: 'Wallpapers/oscurus_profile_wallpapaper.PNG',
         uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        photoFrame: PHOTO_FRAME,
         bio: `Dal buio nascono i dominatori. Oscurus esiste dal 2019 come una forza silenziosa che cresce nell'ombra fino a quando è troppo tardi per fermarla. Il bordeaux scuro del loro stemma parla di sangue versato in ogni week, di difese infrante e di vittorie costruite col ferro. Non cercano l'amore della folla — cercano l'anello. E quando lo trovano, nessuno è sorpreso.`,
     },
     sommo: {
@@ -61,234 +52,473 @@ const TEAMS = {
         name: 'Sommo',
         color: '#1c4750',
         logo: 'Team%20Logo/team_sommo_transparent.png',
-        wallpaper: 'Wallpapers/sommo_profile_wallpapaper.PNG',
         uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        photoFrame: PHOTO_FRAME,
         bio: `Il nome non mente. Sommo è, fin dal 2019, il franchise che ha scelto la strada della strategia dove altri sceglievano l'istinto. Il verde profondo del loro colore è quello degli oceani inesplorati, dei piani a lungo termine, delle decisioni che si capiscono solo con il senno di poi. Non serve urlare quando sei già il più forte nella stanza.`,
     },
 };
 
-// Cleanup del parallax listener al cambio pagina
-let _parallaxCleanup = null;
+let _badgesByTile = null; // badge correnti indicizzati per il popover
 
 export function initTeam() {
-    if (_parallaxCleanup) { _parallaxCleanup(); _parallaxCleanup = null; }
-
     const hash = location.hash.slice(1); // es. 'team-capi'
     const teamKey = hash.replace('team-', '');
     const team = TEAMS[teamKey];
     if (!team) return;
 
     const section = document.getElementById('team');
-    // Imposta il colore del team come CSS var sulla sezione intera
     section.style.setProperty('--team-color', team.color);
 
-    const heroClass = team.wallpaper ? 'team-movie-hero has-wallpaper' : 'team-movie-hero';
-
+    const spinner = '<div class="loading-state"><div class="spinner"></div></div>';
     section.innerHTML = `
-        <div class="${heroClass}" style="opacity:0;transition:opacity 0.5s ease;">
-            <div class="team-hero-bg"></div>
-            ${team.wallpaper
-                ? `<div class="team-hero-photo-wrap">
-                       <img src="${team.wallpaper}" class="team-hero-photo" alt="${team.name} stadium">
-                       <div class="team-sb-stage" id="team-sb-stage"></div>
-                   </div>`
-                : `<div class="team-sb-stage" id="team-sb-stage">
-                       <div class="loading-state"><div class="spinner"></div></div>
-                   </div>`
-            }
-            <div class="team-hero-vignette"></div>
-            <div class="team-hero-id">
-                <div class="team-id-text">
-                    <span class="team-id-league">Topina League · Dal 2019</span>
-                    <h1 class="team-id-name">${team.name}</h1>
-                </div>
+        <header class="team-hero">
+            <div class="th-bg">
+                <div class="th-glow th-glow-a"></div>
+                <div class="th-glow th-glow-b"></div>
+                <div class="th-grid"></div>
             </div>
-        </div>
-        <div class="section-inner team-page-body">
-            <div class="team-intro">
+            <img class="th-watermark" src="${team.logo}" alt="" aria-hidden="true"
+                 onerror="this.style.display='none'">
+            <div class="th-sb-stickers" id="team-sb-stickers"></div>
+            <div class="sticker-field" id="team-stickers"></div>
+            <div class="th-content section-inner">
+                <span class="th-kicker">Topina League · Est. 2019</span>
+                <h1 class="th-name">${team.name}</h1>
+                <div class="th-quickstats" id="team-quickstats"></div>
+                <div class="badge-pop" id="badge-pop" hidden></div>
+            </div>
+            <div class="th-fade"></div>
+        </header>
+        <div class="section-inner team-bento" id="team-bento">
+            <div class="bento-cell cell-history" style="--cell-i:0">
+                <div class="bento-cell-head"><h2 class="bento-cell-title">Storia</h2></div>
+                <div id="team-history">${spinner}</div>
+            </div>
+            <div class="bento-cell cell-stats" style="--cell-i:1">
+                <div class="bento-cell-head"><h2 class="bento-cell-title">All-Time</h2></div>
+                <div id="team-alltime">${spinner}</div>
+            </div>
+            <div class="bento-cell cell-identity" style="--cell-i:2">
+                <div class="team-identity-head">
+                    <img src="${team.logo}" alt="${team.name}" class="team-identity-logo"
+                         onerror="this.style.display='none'">
+                    <div>
+                        <h2 class="bento-cell-title">Il Franchise</h2>
+                        <span class="team-identity-sub">Dal 2019</span>
+                    </div>
+                </div>
                 <p class="team-bio">${team.bio}</p>
-                ${team.uniform ? `<div class="team-uniform"><img src="${team.uniform}" alt="${team.name} Uniform" class="team-uniform-img"></div>` : ''}
             </div>
-
-            <div class="team-block">
-                <h2 class="team-block-title">Badge</h2>
-                <div class="team-badges" id="team-badges">
-                    <div class="loading-state"><div class="spinner"></div></div>
-                </div>
+            <div class="bento-cell cell-h2h" style="--cell-i:3">
+                <div class="bento-cell-head"><h2 class="bento-cell-title">Rivalità</h2></div>
+                <div id="team-h2h">${spinner}</div>
             </div>
-
-            <div class="team-block">
-                <h2 class="team-block-title">Franchise Players</h2>
-                <p class="team-block-sub">Giocatori scelti in 2 o più stagioni di draft</p>
-                <div class="team-flags" id="team-flags">
-                    <div class="loading-state"><div class="spinner"></div></div>
+            <div class="bento-cell cell-uniform" style="--cell-i:4">
+                <div class="bento-cell-head"><h2 class="bento-cell-title">Divisa</h2></div>
+                <img src="${team.uniform}" alt="${team.name} Uniform" class="team-uniform-img"
+                     onerror="this.style.display='none'">
+            </div>
+            <div class="bento-cell cell-players" style="--cell-i:5">
+                <div class="bento-cell-head">
+                    <h2 class="bento-cell-title">Franchise Players</h2>
+                    <span class="bento-cell-sub">Draftati in 2+ stagioni</span>
                 </div>
+                <div class="team-flags" id="team-flags">${spinner}</div>
             </div>
         </div>
     `;
 
-    _parallaxCleanup = _startParallax();
-    loadTeamData(team);
-}
-
-function _showHero() {
-    const hero = document.querySelector('.team-movie-hero');
-    if (hero) hero.style.opacity = '1';
-}
-
-function _startParallax() {
-    const hero = document.querySelector('.team-movie-hero');
-    const img = hero?.querySelector('.team-hero-photo');
-    const stage = hero?.querySelector('.team-sb-stage');
-    if (!img) return null;
-
-    const onScroll = () => {
-        const scrollY = window.scrollY;
-        if (scrollY > hero.offsetHeight) return;
-        const tx = `translateY(${scrollY * -0.4}px)`;
-        img.style.transform = tx;
-        if (stage) stage.style.transform = tx;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-}
-
-async function loadTeamData(team) {
-    const [seasonResults, draftResults] = await Promise.all([
-        Promise.all(SEASONS.map(async year => {
-            const data = await fetchFantasyData(year);
-            if (!data) return null;
-            const standings = processStandings(data, year);
-            const sbMatchup = getSuperBowlMatchup(data, year);
-            return { year, standings, sbMatchup };
-        })),
-        Promise.all(SEASONS.map(async year => {
-            const data = await fetchDraftData(year);
-            if (!data) return null;
-            return { year, picks: flattenDraft(data) };
-        }))
-    ]);
-
-    // --- Trofei ---
-    const trophies = { champion: [], regularSeason: [] };
-    seasonResults.filter(Boolean).forEach(({ year, standings, sbMatchup }) => {
-        if (sbMatchup) {
-            const s1 = parseFloat(sbMatchup.team1.score);
-            const s2 = parseFloat(sbMatchup.team2.score);
-            const winner = s1 >= s2 ? sbMatchup.team1 : sbMatchup.team2;
-            if (TEAM_KEYS[displayName(winner.name)] === team.key) {
-                trophies.champion.push(year);
-            }
-        }
-        if (standings.length > 0) {
-            if (TEAM_KEYS[displayName(standings[0].name)] === team.key) {
-                trophies.regularSeason.push(year);
-            }
-        }
+    getLeagueData().then(league => {
+        // Se nel frattempo l'utente ha cambiato pagina, non renderizzare
+        if (!location.hash.includes(team.key)) return;
+        const at = league.allTime[team.key];
+        const lastComplete = [...league.seasons].reverse().find(s => s.complete);
+        const isReigningChamp = lastComplete?.sbWinnerKey === team.key;
+        renderSBStickers(at.sbWins);
+        renderQuickStats(at);
+        renderStickers(computeTeamBadges(league, team.key), isReigningChamp, lastComplete?.year);
+        renderAllTime(at);
+        renderHistory(league, team.key);
+        renderH2H(at, team.key);
+        renderFlags(league.franchisePlayers[team.key] || []);
+        bindStickerPop(section);
+    }).catch(e => {
+        console.error('Team page load error:', e);
     });
-
-    // --- Franchise Players (2+ draft) ---
-    const playerMap = {};
-    draftResults.filter(Boolean).forEach(({ year, picks }) => {
-        const teamPicks = picks.filter(p => TEAM_KEYS[displayName(p.team)] === team.key);
-        const seenThisYear = new Set();
-        teamPicks.forEach(p => {
-            if (seenThisYear.has(p.player)) return;
-            seenThisYear.add(p.player);
-            if (!playerMap[p.player]) playerMap[p.player] = { name: p.player, pos: p.pos, seasons: [] };
-            playerMap[p.player].seasons.push(year);
-        });
-    });
-    const franchisePlayers = Object.values(playerMap)
-        .filter(p => p.seasons.length >= 2)
-        .sort((a, b) => b.seasons.length - a.seasons.length);
-
-    renderSBStage(team, trophies);
-    renderBadges(trophies);
-    renderFlags(franchisePlayers);
 }
 
-function renderSBStage(team, trophies) {
-    const stage = document.getElementById('team-sb-stage');
-    const years = trophies.champion;
+// ─── Hero: sticker Super Bowl (in alto a destra, uno per titolo) ──
 
-    if (!years.length) {
-        stage.innerHTML = '';
-        const wallpaperImg = document.querySelector('.team-hero-photo');
-        if (!wallpaperImg || wallpaperImg.complete) {
-            _showHero();
-        } else {
-            wallpaperImg.addEventListener('load', _showHero, { once: true });
-            wallpaperImg.addEventListener('error', _showHero, { once: true });
-        }
-        return;
-    }
-
-    const makeBanner = (year, extraStyle = '') => {
-        const sbLogo = _sbLogoPath(year);
-        const sbLogoHtml = sbLogo
-            ? `<img src="${sbLogo}" alt="Super Bowl ${year}" class="sbb-sb-logo" onerror="this.style.display='none'">`
-            : '';
-        return `
-        <div class="team-sb-banner"${extraStyle ? ` style="${extraStyle}"` : ''}>
-            <img src="${team.logo}" alt="${team.name}" class="sbb-team-logo"
-                 onerror="this.style.opacity='0'">
-            <div class="sbb-team-name">${team.name}</div>
-            <div class="sbb-sb-logo-wrap">${sbLogoHtml}</div>
-            <div class="sbb-wc-text">
-                <span>World</span>
-                <span>Champions</span>
-            </div>
-            <div class="sbb-year">${year}</div>
-        </div>`;
-    };
-
-    if (team.photoFrame) {
-        const { imgW, imgH, cropTopFrac, firstX, firstY, bW, gap } = team.photoFrame;
-        const cropPx  = cropTopFrac * imgW;
-        const visibleH = imgH - cropPx;
-        const step    = bW + gap;
-        const topPct  = ((firstY - cropPx) / visibleH * 100).toFixed(2);
-        const wPct    = (bW / imgW * 100).toFixed(2);
-
-        stage.innerHTML = years.map((year, i) => {
-            const leftPct = ((firstX + i * step) / imgW * 100).toFixed(2);
-            const style = `position:absolute;left:${leftPct}%;top:${topPct}%;width:${wPct}%;aspect-ratio:1/1.94;`;
-            return makeBanner(year, style);
-        }).join('');
-    } else {
-        stage.innerHTML = years.map(year => makeBanner(year)).join('');
-    }
-
-    // Fade-in hero: aspetta che il wallpaper sia caricato prima di mostrare tutto
-    const wallpaperImg = document.querySelector('.team-hero-photo');
-    if (!wallpaperImg || wallpaperImg.complete) {
-        _showHero();
-    } else {
-        wallpaperImg.addEventListener('load', _showHero, { once: true });
-        wallpaperImg.addEventListener('error', _showHero, { once: true });
-    }
-}
-
-function renderBadges(trophies) {
-    const container = document.getElementById('team-badges');
-    const badges = [
-        { label: 'Topina Champions',         icon: '🏆', count: trophies.champion.length },
-        { label: 'Regular Season Champions', icon: '🥇', count: trophies.regularSeason.length },
-    ];
-
-    container.innerHTML = badges.map(b => `
-        <div class="team-badge ${b.count > 0 ? 'team-badge-active' : 'team-badge-empty'}">
-            <div class="team-badge-icon">${b.icon}</div>
-            <div class="team-badge-label">${b.label}</div>
-            ${b.count > 0 ? `<div class="team-badge-count">×${b.count}</div>` : `<div class="team-badge-none">—</div>`}
+function renderSBStickers(years) {
+    const el = document.getElementById('team-sb-stickers');
+    if (!el) return;
+    if (!years.length) { el.innerHTML = ''; return; }
+    el.innerHTML = years.map((year, i) => `
+        <div class="sb-sticker" style="--stk-i:${i}" title="Super Bowl ${_sbRoman(year)} — ${year}">
+            ${sbStickerSVG(_sbRoman(year), year)}
         </div>
     `).join('');
 }
 
+function renderQuickStats(at) {
+    const el = document.getElementById('team-quickstats');
+    if (!el) return;
+    const winPct = at.games ? (at.w / at.games * 100) : 0;
+    const chips = [
+        { label: 'Record', value: `${at.w}–${at.l}${at.t ? `–${at.t}` : ''}` },
+        { label: 'Win %', value: `${winPct.toFixed(1)}%`, count: winPct, decimals: 1, suffix: '%' },
+        { label: 'Titoli', value: String(at.sbWins.length), count: at.sbWins.length, decimals: 0 },
+        { label: 'Punti fatti', value: fmtPts(at.pf), count: at.pf, decimals: 0 },
+    ];
+    el.innerHTML = chips.map((c, i) => `
+        <div class="th-chip" style="--chip-i:${i}">
+            <span class="th-chip-value" ${c.count != null ? `data-count="${c.count}" data-decimals="${c.decimals}" data-suffix="${c.suffix || ''}"` : ''}>${c.value}</span>
+            <span class="th-chip-label">${c.label}</span>
+        </div>
+    `).join('');
+    el.querySelectorAll('[data-count]').forEach(_countUp);
+}
+
+function _countUp(el) {
+    const target = parseFloat(el.dataset.count);
+    const decimals = parseInt(el.dataset.decimals) || 0;
+    const suffix = el.dataset.suffix || '';
+    const dur = 900;
+    const fmt = (v) => decimals ? v.toFixed(decimals) : Math.round(v).toLocaleString('it-IT');
+    const start = performance.now();
+    const tick = (now) => {
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = fmt(target * eased) + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+}
+
+function fmtPts(n) {
+    return Math.round(n).toLocaleString('it-IT');
+}
+
+// ─── Hero: sticker wall (solo badge sbloccati) ───────────────────
+
+let _lastStickerArgs = null; // per ricalcolare il layout al resize
+
+// Le misure del titolo sono affidabili solo a layout stabile: rimanda di
+// due frame il primo calcolo (font e reflow del contenuto appena iniettato)
+function renderStickers(...args) {
+    requestAnimationFrame(() => requestAnimationFrame(() => _renderStickers(...args)));
+}
+
+function _renderStickers(badges, isReigningChamp, champYear) {
+    _lastStickerArgs = [badges, isReigningChamp, champYear];
+    const field = document.getElementById('team-stickers');
+    const nameEl = document.querySelector('#team .th-name');
+    if (!field || !nameEl) return;
+
+    _badgesByTile = {};
+    const jitter = (i, freq, amp) => Math.sin((i + 1) * freq) * amp;
+
+    // Lista sticker: UNO per ogni conquista (come sul casco: ogni volta
+    // che lo vinci, un nuovo adesivo) + campione in carica al centro
+    const items = [];
+    badges.filter(b => b.earned).forEach(b => {
+        b.instances.forEach((inst, k) => {
+            const tileId = `${b.id}-${k}`;
+            _badgesByTile[tileId] = { badge: b, instance: inst };
+            // Dentro l'ovale: il milestone per wins-club, l'anno per il resto
+            const text = b.id === 'wins-club' ? inst.iconText : (inst.season || null);
+            items.push({ id: tileId, name: b.name, svg: stickerSVG({ icon: b.icon, text }), champ: false });
+        });
+    });
+    if (isReigningChamp) {
+        _badgesByTile['reigning-champ'] = {
+            badge: {
+                name: 'Campione in carica',
+                description: `Detentore del titolo Topina League ${champYear}.`,
+                instances: [{ season: champYear, detail: 'Regna finché qualcuno non lo detronizza' }],
+            },
+        };
+        // Al CENTRO della rosa: è il primo della spirale
+        items.unshift({
+            id: 'reigning-champ', name: 'Campione in carica', svg: champStickerSVG(), champ: true,
+        });
+    }
+
+    const kickerEl = document.querySelector('#team .th-kicker');
+    const fw0 = field.getBoundingClientRect().width;
+    const isMobile = fw0 < 640;
+    const w = isMobile ? 58 : 96;
+    const h = w * 56 / 96;
+    const GAP = 4; // sticker quasi attaccati, come sul foglio reale
+
+    // Assicura abbastanza spazio sopra il titolo per TUTTI gli sticker:
+    // adatta il padding-top dell'hero al numero di badge (contando anche
+    // le celle occupate dal campione e dagli sticker Super Bowl)
+    const contentEl = document.querySelector('#team .th-content');
+    if (contentEl) {
+        const cols = Math.max(3, Math.floor((fw0 * 0.96) / (w + GAP)));
+        const rowsNeeded = Math.ceil((items.length + 6) / cols);
+        const basePad = isMobile ? 196 : 248;
+        const sbSpace = isMobile ? 66 : 96;
+        contentEl.style.paddingTop = Math.max(basePad, sbSpace + rowsNeeded * (h + GAP) + 24) + 'px';
+    }
+
+    const fieldRect = field.getBoundingClientRect();
+    const nameRect = nameEl.getBoundingClientRect();
+    const fw = fieldRect.width;
+    const fh = fieldRect.height;
+
+    const boundY = ((kickerEl || nameEl).getBoundingClientRect().top) - fieldRect.top; // inizio fascia titolo
+    const nameLeft = nameRect.left - fieldRect.left;
+    const nameRight = nameLeft + nameRect.width;
+    const nameCx = (nameLeft + nameRight) / 2;
+    const nameBottom = (nameRect.top - fieldRect.top) + nameRect.height;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
+
+    const cx = clamp(nameCx, w * 1.6, fw - w * 1.6);          // sopra il nome
+    const cy = Math.max(boundY - 14 - h / 2, h / 2 + 4);      // riga base appena sopra il titolo
+
+    // Griglia esagonale di celle disgiunte (zero sovrapposizioni per
+    // costruzione), riempita in ordine di distanza dal centro dello spazio
+    // vuoto: prima a cerchio, poi in orizzontale; le celle sulla fascia del
+    // titolo vengono saltate, così il surplus scivola ai lati del nome.
+    const cellW = w + GAP;
+    const cellH = h + GAP;
+    const cells = [];
+    for (let j = -3; j <= 12; j++) {
+        for (let i = -10; i <= 10; i++) {
+            const x = cx + (i + (j % 2 ? 0.5 : 0)) * cellW;
+            const y = cy - j * cellH; // j>0 = righe sopra, j<0 = fianchi del nome
+            // ordina: cerchio dal centro (la distanza verticale pesa un po' di più,
+            // così si allarga in orizzontale quando lo spazio sopra finisce)
+            cells.push({ x, y, d: Math.hypot(x - cx, (y - cy) * 1.2) });
+        }
+    }
+    cells.sort((a, b) => a.d - b.d);
+
+    const title = { left: nameLeft - 6, right: nameRight + 6, top: boundY - 6, bottom: nameBottom + 6 };
+    const boxes = []; // già piazzati
+    // Gli sticker Super Bowl (in alto a dx) sono zona occupata
+    const sbEl = document.getElementById('team-sb-stickers');
+    if (sbEl?.children.length) {
+        const r = sbEl.getBoundingClientRect();
+        boxes.push({
+            l: r.left - fieldRect.left - 4, t: r.top - fieldRect.top - 4,
+            r: r.right - fieldRect.left + 4, b: r.bottom - fieldRect.top + 4,
+        });
+    }
+    const collides = (l, t, r, btm) =>
+        (r > title.left && l < title.right && btm > title.top && t < title.bottom)
+        || boxes.some(bx => r > bx.l && l < bx.r && btm > bx.t && t < bx.b);
+
+    const nodes = items.map(it => {
+        const iw = it.champ ? w * 0.78 : w;
+        const ih = it.champ ? iw * 522 / 395 : h; // proporzioni di SB-Champ-sticker.png
+        if (it.champ) {
+            // Campione in carica: al centro, a cavallo delle righe,
+            // col fondo allineato alla riga base (come il CFP sul casco)
+            const x = cx;
+            const y = Math.max(cy + (h - ih) / 2, ih / 2 + 2);
+            boxes.push({ l: x - iw / 2, t: y - ih / 2, r: x + iw / 2, b: y + ih / 2 });
+            // Celle "hug" appiccicate ai bordi del campione: gli altri
+            // sticker lo circondano da vicino invece di lasciare vuoto
+            const hx = iw / 2 + GAP / 2 + w / 2;
+            const hugs = [
+                { x: x - hx, y: y + ih / 2 - h / 2 },       // sx in basso
+                { x: x + hx, y: y + ih / 2 - h / 2 },       // dx in basso
+                { x: x - hx, y: y + ih / 2 - h * 1.5 - GAP }, // sx in alto
+                { x: x + hx, y: y + ih / 2 - h * 1.5 - GAP }, // dx in alto
+                { x, y: y - ih / 2 - GAP / 2 - h / 2 },     // sopra, centrato
+            ];
+            cells.unshift(...hugs.map(c => ({ ...c, d: -1 })));
+            return { it, iw, ih, x, y };
+        }
+        for (const c of cells) {
+            const l = c.x - iw / 2, r = c.x + iw / 2;
+            const t = c.y - ih / 2, btm = c.y + ih / 2;
+            // mai sotto il fondo del nome (zona chips) né fuori dal campo
+            if (t < 2 || btm > nameBottom + 6 || l < 2 || r > fw - 2) continue;
+            if (collides(l - 2, t - 2, r + 2, btm + 2)) continue;
+            boxes.push({ l, t, r, b: btm });
+            return { it, iw, ih, x: c.x, y: c.y };
+        }
+        return { it, iw, ih, x: cx, y: cy }; // fallback (non dovrebbe accadere)
+    });
+
+    field.innerHTML = nodes.map((nd, i) => {
+        const rot = (nd.it.champ ? -3 : jitter(i, 4.7, 7)).toFixed(1);
+        const left = nd.x - nd.iw / 2 + jitter(i, 12.9898, 1.5);
+        const top = nd.y - nd.ih / 2 + jitter(i, 78.233, 1.5);
+        return `
+        <button type="button" class="sticker${nd.it.champ ? ' sticker--champ' : ''}" data-tile="${nd.it.id}" aria-label="${nd.it.name}"
+                style="--stk-i:${i};--rot:${rot}deg;left:${left.toFixed(0)}px;top:${top.toFixed(0)}px;width:${nd.iw.toFixed(0)}px">
+            ${nd.it.svg}
+        </button>`;
+    }).join('');
+
+    if (!_resizeBound) {
+        _resizeBound = true;
+        let t = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(t);
+            t = setTimeout(() => {
+                if (_lastStickerArgs && document.getElementById('team-stickers')) {
+                    renderStickers(..._lastStickerArgs);
+                }
+            }, 150);
+        });
+    }
+    // Il primo render può avvenire prima che il font display sia caricato: le misure
+    // del nome cambiano col font → ricalcola il layout quando i font sono pronti
+    if (!_fontsBound && document.fonts?.ready) {
+        _fontsBound = true;
+        document.fonts.ready.then(() => {
+            if (_lastStickerArgs && document.getElementById('team-stickers')) {
+                renderStickers(..._lastStickerArgs);
+            }
+        });
+    }
+}
+let _resizeBound = false;
+let _fontsBound = false;
+
+function bindStickerPop(section) {
+    const wall = section.querySelector('.team-hero');
+    const pop = document.getElementById('badge-pop');
+    if (!wall || !pop) return;
+
+    const show = (tile) => {
+        const data = _badgesByTile?.[tile.dataset.tile];
+        if (!data) return;
+        const { badge, instance } = data;
+        const instances = instance ? [instance] : badge.instances;
+        const list = instances.length
+            ? `<ul class="badge-pop-list">${instances.map(i =>
+                `<li>${i.season ? `<strong>${i.season}</strong> · ` : ''}${i.detail || ''}</li>`).join('')}</ul>`
+            : '<p class="badge-pop-locked">Non ancora sbloccato</p>';
+        pop.innerHTML = `
+            <div class="badge-pop-name">${badge.name}</div>
+            <div class="badge-pop-desc">${badge.description}</div>
+            ${list}`;
+        pop.hidden = false;
+        // Posiziona vicino al tile, dentro la cella
+        const cell = pop.parentElement;
+        const cellRect = cell.getBoundingClientRect();
+        const tileRect = tile.getBoundingClientRect();
+        const popW = Math.min(280, cellRect.width - 24);
+        pop.style.width = popW + 'px';
+        let left = tileRect.left - cellRect.left + tileRect.width / 2 - popW / 2;
+        left = Math.max(12, Math.min(left, cellRect.width - popW - 12));
+        pop.style.left = left + 'px';
+        pop.style.top = (tileRect.bottom - cellRect.top + 8) + 'px';
+    };
+    const hide = () => { pop.hidden = true; };
+
+    wall.addEventListener('click', (e) => {
+        const tile = e.target.closest('.sticker');
+        if (!tile) return;
+        pop.dataset.tile = tile.dataset.tile;
+        show(tile);
+    });
+    wall.addEventListener('mouseover', (e) => {
+        const tile = e.target.closest('.sticker');
+        if (tile) { pop.dataset.tile = tile.dataset.tile; show(tile); }
+    });
+    wall.addEventListener('mouseleave', hide);
+    section.addEventListener('click', (e) => {
+        if (!e.target.closest('.sticker') && !e.target.closest('.badge-pop')) hide();
+    });
+    if (!_escBound) {
+        _escBound = true;
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const p = document.getElementById('badge-pop');
+                if (p) p.hidden = true;
+            }
+        });
+    }
+}
+let _escBound = false;
+
+// ─── Celle bento ─────────────────────────────────────────────────
+
+function renderAllTime(at) {
+    const el = document.getElementById('team-alltime');
+    if (!el) return;
+    const winPct = at.games ? (at.w / at.games * 100) : 0;
+    el.innerHTML = `
+        <div class="at-record">${at.w}<span class="at-record-sep">–</span>${at.l}${at.t ? `<span class="at-record-sep">–</span>${at.t}` : ''}</div>
+        <div class="at-record-label">Record all-time</div>
+        <div class="at-winbar"><div class="at-winbar-fill" style="width:${winPct.toFixed(1)}%"></div></div>
+        <div class="at-winbar-label">${winPct.toFixed(1)}% vittorie</div>
+        <div class="at-ministats">
+            <div class="at-ministat"><span class="at-ms-value">${fmtPts(at.pf)}</span><span class="at-ms-label">Punti fatti</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${fmtPts(at.pa)}</span><span class="at-ms-label">Punti subiti</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.sbApps.length}</span><span class="at-ms-label">Finali giocate</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.bestStreak.len || '—'}</span><span class="at-ms-label">Streak max</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.highGame ? fmtScore(at.highGame.pts) : '—'}</span><span class="at-ms-label">Miglior gara${at.highGame ? ` · ${at.highGame.season}` : ''}</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.games ? fmtScore(at.pf / at.games) : '—'}</span><span class="at-ms-label">Media punti</span></div>
+        </div>
+    `;
+}
+
+function fmtScore(n) {
+    return (+n).toFixed(1).replace('.', ',');
+}
+
+function renderHistory(league, teamKey) {
+    const el = document.getElementById('team-history');
+    if (!el) return;
+    const rows = [...league.seasons].reverse().map(s => {
+        const t = s.perTeam[teamKey];
+        if (!t || !t.games.length) return '';
+        let chip;
+        if (!s.complete) {
+            chip = '<span class="hist-chip hist-chip--live">In corso</span>';
+        } else if (t.sbWin) {
+            chip = '<span class="hist-chip hist-chip--champ">🏆 Champion</span>';
+        } else if (t.sbAppearance) {
+            chip = '<span class="hist-chip hist-chip--runnerup">Runner-up</span>';
+        } else if (t.rsTitle) {
+            chip = '<span class="hist-chip hist-chip--rs">RS Champ</span>';
+        } else {
+            chip = `<span class="hist-chip">#${t.rank || '—'}</span>`;
+        }
+        return `
+        <div class="hist-row${s.year === CURRENT_SEASON ? ' hist-row--current' : ''}">
+            <span class="hist-year">${s.year}</span>
+            <span class="hist-record">${t.w}–${t.l}${t.t ? `–${t.t}` : ''}</span>
+            <span class="hist-pf">${fmtPts(t.pf)} pt</span>
+            ${chip}
+        </div>`;
+    }).join('');
+    el.innerHTML = rows || '<p class="empty-state-text">Nessuna stagione disputata.</p>';
+}
+
+function renderH2H(at, teamKey) {
+    const el = document.getElementById('team-h2h');
+    if (!el) return;
+    const rows = TEAM_KEY_LIST.filter(k => k !== teamKey).map(opp => {
+        const r = at.vs[opp] || { w: 0, l: 0, t: 0 };
+        const games = r.w + r.l + r.t;
+        const pct = games ? (r.w / games * 100) : 0;
+        const oppTeam = TEAMS[opp];
+        return `
+        <div class="h2h-row">
+            <img src="${oppTeam.logo}" alt="${oppTeam.name}" class="h2h-logo" onerror="this.style.display='none'">
+            <div class="h2h-info">
+                <div class="h2h-name">vs ${oppTeam.name}</div>
+                <div class="h2h-bar"><div class="h2h-bar-fill" style="width:${pct.toFixed(0)}%"></div></div>
+            </div>
+            <span class="h2h-record">${r.w}–${r.l}${r.t ? `–${r.t}` : ''}</span>
+        </div>`;
+    }).join('');
+    el.innerHTML = rows;
+}
+
 function renderFlags(players) {
     const container = document.getElementById('team-flags');
+    if (!container) return;
     if (!players.length) {
         container.innerHTML = `<p class="empty-state-text">Nessun giocatore ripescato in più stagioni.</p>`;
         return;
