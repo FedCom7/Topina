@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=42">
+    <link rel="stylesheet" href="css/main.css?v=45">
 </head>
 
 <body>
@@ -33,6 +33,7 @@
                 <li class="nav-item has-dropdown" data-dropdown="teams">
                     <a href="#teams" class="nav-link" data-section="teams">Teams</a>
                 </li>
+                <li class="nav-item"><a href="#analysis" class="nav-link" data-section="analysis">Analysis</a></li>
                 <li class="nav-item"><a href="#draft" class="nav-link" data-section="draft">Draft</a></li>
                 <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="history">
@@ -224,13 +225,31 @@
         </div>
     </section>
 
+    <!-- ====== ANALYSIS ====== -->
+    <section class="page-section" id="analysis">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Analysis</h1>
+                <p class="section-subtitle">Roster, draft e mercato sotto la lente</p>
+            </div>
+            <div class="year-selector" id="an-year-selector"></div>
+            <div class="an-team-selector" id="an-team-selector"></div>
+            <div id="analysis-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Caricamento analisi...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== TEAM ====== -->
     <section class="page-section" id="team">
         <!-- Contenuto iniettato da js/sections/team.js -->
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=46"></script>
+    <script type="module" src="js/app.js?v=50"></script>
 </body>
 
 </html>

@@ -11,6 +11,7 @@ import { initHonors } from './sections/honors.js?v=1';
 import { initAllPro } from './sections/allpro.js?v=1';
 import { initTeam } from './sections/team.js?v=12';
 import { initTeams } from './sections/teams.js?v=1';
+import { initAnalysis } from './sections/analysis.js?v=4';
 import { initMagazine } from './sections/magazine.js';
 import { initNavbar } from './ui/navbar.js';
 
@@ -19,6 +20,7 @@ const SECTIONS = {
     'game-center': initGameCenter,
     'standings': initStandings,
     'teams': initTeams,
+    'analysis': initAnalysis,
     'draft': initDraft,
     'stats': initStats,
     'history': initHistory,
