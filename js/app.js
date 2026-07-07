@@ -1,12 +1,14 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=21';
+import { initHome } from './sections/home.js?v=22';
 import { initGameCenter } from './sections/game-center.js?v=28';
 import { initStandings } from './sections/standings.js?v=25';
 import { initDraft } from './sections/draft.js?v=21';
 import { initStats } from './sections/stats.js?v=24';
 import { initHistory } from './sections/history.js?v=22';
+import { initHonors } from './sections/honors.js?v=1';
+import { initAllPro } from './sections/allpro.js?v=1';
 import { initTeam } from './sections/team.js?v=12';
 import { initTeams } from './sections/teams.js?v=1';
 import { initMagazine } from './sections/magazine.js';
@@ -20,7 +22,16 @@ const SECTIONS = {
     'draft': initDraft,
     'stats': initStats,
     'history': initHistory,
+    'honors': initHonors,
+    'allpro': initAllPro,
     'magazine': initMagazine,
+};
+
+// Sezioni raggiungibili solo dai dropdown: nel nav si evidenzia la voce madre
+const NAV_PARENT = {
+    'honors': 'history',
+    'allpro': 'history',
+    'magazine': 'game-center',
 };
 
 const TEAM_KEYS_NAV = new Set(['team-capi', 'team-lasers', 'team-oscurus', 'team-sommo']);
@@ -41,9 +52,10 @@ function navigate() {
     const section = document.getElementById(sectionId);
     if (section) section.classList.add('active');
 
-    // Update nav — team pages mantengono "Teams" evidenziato
+    // Update nav — team pages mantengono "Teams" evidenziato,
+    // le voci da dropdown evidenziano la voce madre
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    const navTarget = isTeam ? 'teams' : active;
+    const navTarget = isTeam ? 'teams' : (NAV_PARENT[active] || active);
     document.querySelector(`.nav-link[data-section="${navTarget}"]`)?.classList.add('active');
 
     // Close mobile menu

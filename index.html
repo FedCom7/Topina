@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=41">
+    <link rel="stylesheet" href="css/main.css?v=42">
 </head>
 
 <body>
@@ -35,7 +35,9 @@
                 </li>
                 <li class="nav-item"><a href="#draft" class="nav-link" data-section="draft">Draft</a></li>
                 <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
-                <li class="nav-item"><a href="#history" class="nav-link" data-section="history">History</a></li>
+                <li class="nav-item has-dropdown" data-dropdown="history">
+                    <a href="#history" class="nav-link" data-section="history">History</a>
+                </li>
             </ul>
             <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu">
                 <span></span><span></span><span></span>
@@ -55,47 +57,21 @@
             <a href="#team-oscurus" class="nav-dp-item">Oscurus</a>
             <a href="#team-sommo" class="nav-dp-item">Sommo</a>
         </div>
+        <div class="nav-dropdown-panel" data-panel="history">
+            <a href="#history" class="nav-dp-item nav-dp-header" data-section="history">League History</a>
+            <div class="nav-dp-sep"></div>
+            <a href="#honors" class="nav-dp-item" data-section="honors">Topina Honors</a>
+            <a href="#allpro" class="nav-dp-item" data-section="allpro">All-Pro Team</a>
+        </div>
     </nav>
 
-    <!-- ====== HOME ====== -->
+    <!-- ====== HOME (vetrina dinamica, renderizzata da home.js) ====== -->
     <section class="page-section active" id="home">
-        <div class="section-inner hero-section">
-            <!-- Layered Hero Composition -->
-            <div class="hero-stack">
-                <!-- "TOPINA" text — overlaps from above -->
-                <div class="hero-text-top" aria-hidden="true">TOPINA</div>
-                <!-- 4 Team Cards -->
-                <div class="team-cards-row" id="team-cards-row">
-                    <div class="team-card" data-team="capi" style="--delay: 0s">
-                        <img src="Team%20Logo/team_capi_transparent.png" alt="Capi dei Pianeti" draggable="false">
-                        <span class="team-card-name">Capi dei Pianeti</span>
-                    </div>
-                    <div class="team-card" data-team="lasers" style="--delay: 0.08s">
-                        <img src="Team%20Logo/team_lasers_transparent.png" alt="Lasers" draggable="false">
-                        <span class="team-card-name">Lasers</span>
-                    </div>
-                    <div class="team-card" data-team="oscurus" style="--delay: 0.16s">
-                        <img src="Team%20Logo/team_oscurus_transparent.png" alt="Oscurus" draggable="false">
-                        <span class="team-card-name">Oscurus</span>
-                    </div>
-                    <div class="team-card" data-team="sommo" style="--delay: 0.24s">
-                        <img src="Team%20Logo/team_sommo_transparent.png" alt="Sommo" draggable="false">
-                        <span class="team-card-name">Sommo</span>
-                    </div>
-                </div>
-                <!-- "LEAGUE" text — overlaps from below -->
-                <div class="hero-text-bottom" aria-hidden="true">LEAGUE</div>
+        <div id="home-showcase">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Caricamento...</p>
             </div>
-            <p class="hero-subtitle">Dal 2019</p>
-            <!-- Champion Card (gold) -->
-            <div class="champion-card" id="champion-card">
-                <div class="champion-info">
-                    <span class="champion-label">Campione in carica</span>
-                    <span class="champion-name" id="champion-name">—</span>
-                    <span class="champion-season" id="champion-season"></span>
-                </div>
-            </div>
-            <div class="hero-glow"></div>
         </div>
     </section>
 
@@ -214,13 +190,47 @@
         </div>
     </section>
 
+    <!-- ====== TOPINA HONORS ====== -->
+    <section class="page-section" id="honors">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Topina Honors</h1>
+                <p class="section-subtitle">I premi della stagione</p>
+            </div>
+            <div class="year-selector" id="hn-year-selector"></div>
+            <div id="honors-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Caricamento premi...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== ALL-PRO TEAM ====== -->
+    <section class="page-section" id="allpro">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">All-Pro Team</h1>
+                <p class="section-subtitle">La formazione ideale dell'anno</p>
+            </div>
+            <div class="year-selector" id="ap-year-selector"></div>
+            <div id="allpro-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Caricamento All-Pro...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== TEAM ====== -->
     <section class="page-section" id="team">
         <!-- Contenuto iniettato da js/sections/team.js -->
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=45"></script>
+    <script type="module" src="js/app.js?v=46"></script>
 </body>
 
 </html>
