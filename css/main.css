@@ -578,26 +578,130 @@ img {
     margin-bottom: 30px;
 }
 
-/* ---- Scoreboard — compact, white frosted glass, fully rounded ---- */
-.matchup-main.fox-scoreboard {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 16px;
-    background: rgba(255, 255, 255, 0.35);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
+/* ---- Banner matchup — stile unificato All Teams, cliccabile → analisi ---- */
+.gc-banner {
     position: relative;
-    z-index: 12;
-    overflow: visible;
-    margin: 0 12%;
-    margin-bottom: -14px;
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    display: block;
+    overflow: hidden;
+    margin-bottom: 14px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
 }
 
-/* Shine effect removed */
+.gc-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 55% 130% at 0% 50%,
+            color-mix(in srgb, var(--tc1) 30%, transparent) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 130% at 100% 50%,
+            color-mix(in srgb, var(--tc2) 30%, transparent) 0%, transparent 65%);
+    opacity: 0.7;
+    transition: opacity var(--dur-med) var(--ease);
+    pointer-events: none;
+}
+
+.gc-banner:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-card);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+.gc-banner:hover::before {
+    opacity: 1;
+}
+
+.gc-banner-wm {
+    position: absolute;
+    top: 50%;
+    height: 210%;
+    transform: translateY(-50%);
+    opacity: 0.14;
+    pointer-events: none;
+    user-select: none;
+}
+
+.gc-banner-wm-l {
+    left: -2%;
+    filter: drop-shadow(0 0 30px var(--tc1));
+}
+
+.gc-banner-wm-r {
+    right: -2%;
+    filter: drop-shadow(0 0 30px var(--tc2));
+}
+
+.gc-banner-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 16px 24px;
+}
+
+.gc-banner-side {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.gc-banner-side-r {
+    justify-content: flex-start;
+}
+
+.gc-banner-name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gc-banner-score {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.gc-banner-score.winner {
+    color: var(--text-primary);
+}
+
+.gc-banner-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.gc-banner-vs {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+.gc-banner-cta {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-red);
+    white-space: nowrap;
+}
 
 @keyframes slideInField {
     from {
@@ -609,87 +713,6 @@ img {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
-}
-
-/* ---- 3D Logo wrapper — extra large ---- */
-.logo-3d {
-    position: relative;
-    z-index: 20;
-    flex-shrink: 0;
-}
-
-.logo-3d-left {
-    margin-left: -20px;
-}
-
-.logo-3d-right {
-    margin-right: -20px;
-}
-
-.fox-logo {
-    height: 130px;
-    width: 130px;
-    object-fit: contain;
-    filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.8)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
-    margin-top: -55px;
-    margin-bottom: -20px;
-    transition: transform 0.3s ease;
-}
-
-.fox-logo:hover {
-    transform: scale(1.06) translateY(-3px);
-}
-
-/* Specific fix for Sommo logo appearing small */
-.fox-logo[src*="sommo"] {
-    transform: scale(1.35);
-    /* Enlarge Sommo logo significantly */
-}
-
-.fox-logo[src*="sommo"]:hover {
-    transform: scale(1.45) translateY(-3px);
-}
-
-.fox-name {
-    font-family: var(--font-display);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 1.4rem;
-    letter-spacing: 0.06em;
-    color: #1a1a2e;
-    line-height: 1;
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.2);
-    white-space: nowrap;
-}
-
-.score-block {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.fox-score {
-    font-size: 2rem;
-    font-weight: 900;
-    font-family: var(--font-display);
-    color: #1a1a2e;
-    text-shadow: none;
-    min-width: 44px;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-
-.fox-score.winner {
-    color: #B8433A;
-    text-shadow: 0 0 10px rgba(184, 67, 58, 0.25);
-}
-
-.fox-vs {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: rgba(26, 26, 46, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
 }
 
 /* ---- Horizontal Field ---- */
@@ -1048,29 +1071,21 @@ img {
         display: block;
     }
 
-    .matchup-main.fox-scoreboard {
-        padding: 3px 6px;
-        margin: 0 5%;
-        gap: 4px;
-        overflow: visible;
-        z-index: 12;
+    .gc-banner-inner {
+        gap: 10px;
+        padding: 12px 14px;
     }
 
-
-
-    .fox-logo {
-        height: 70px;
-        width: 70px;
-        margin-top: -30px;
+    .gc-banner-name {
+        font-size: 0.95rem;
     }
 
-    .fox-name {
-        font-size: 0.6rem;
+    .gc-banner-score {
+        font-size: 1.55rem;
     }
 
-    .fox-score {
-        font-size: 1rem;
-        min-width: 28px;
+    .gc-banner-cta {
+        font-size: 0.62rem;
     }
 
     .matchup-card {
@@ -6058,4 +6073,609 @@ img {
     .an-kpi {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* ================================
+   GAME ANALYSIS (pagina #game/{year}/{week}/{idx})
+   ================================ */
+
+.gb-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.gb-back {
+    width: fit-content;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: color var(--dur-fast) var(--ease);
+}
+
+.gb-back:hover {
+    color: var(--text-primary);
+}
+
+/* le card della pagina riusano .mosaic-card: qui niente altezza minima */
+.gb-card {
+    min-height: 0;
+    grid-column: auto;
+}
+
+/* ── Score bug ── */
+.gb-scorebug {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+}
+
+.gb-scorebug::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 55% 150% at 0% 50%,
+            color-mix(in srgb, var(--tc1) 34%, transparent) 0%, transparent 62%),
+        radial-gradient(ellipse 55% 150% at 100% 50%,
+            color-mix(in srgb, var(--tc2) 34%, transparent) 0%, transparent 62%);
+    pointer-events: none;
+}
+
+.gb-bug-wm {
+    position: absolute;
+    top: 50%;
+    height: 230%;
+    transform: translateY(-50%);
+    opacity: 0.13;
+    pointer-events: none;
+}
+
+.gb-bug-wm-l { left: -3%; }
+.gb-bug-wm-r { right: -3%; }
+
+.gb-bug-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 26px 28px;
+}
+
+.gb-bug-side {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.gb-bug-side:last-child {
+    flex-direction: row-reverse;
+}
+
+.gb-bug-name {
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 2.8vw, 2rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.05;
+}
+
+.gb-bug-score {
+    font-family: var(--font-display);
+    font-size: clamp(2.1rem, 5vw, 3.6rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.gb-bug-score.winner {
+    color: var(--text-primary);
+}
+
+.gb-bug-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
+}
+
+.gb-bug-final {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+}
+
+.gb-bug-week {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* ── Tabella punti per ruolo ── */
+.gb-role-scroll {
+    overflow-x: auto;
+}
+
+.gb-role-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    min-width: 640px;
+}
+
+.gb-role-table thead th {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-role-row td {
+    padding: 12px 10px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-role-team {
+    text-align: left !important;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: color-mix(in srgb, var(--tc) 65%, white 30%);
+    white-space: nowrap;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-role-row .gb-role-win {
+    color: var(--text-primary);
+    font-weight: 800;
+    background: color-mix(in srgb, var(--tc) 12%, transparent);
+    border-radius: var(--radius-xs);
+}
+
+.gb-role-total {
+    font-weight: 800 !important;
+    color: color-mix(in srgb, var(--tc) 60%, white 35%) !important;
+}
+
+/* ── Grafico temporale ── */
+.gbc-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.gbc-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.gbc-legend-item i {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.gbc-legend-hint {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.gbc-wrap {
+    overflow-x: auto;
+}
+
+.gbc-svg {
+    width: 100%;
+    min-width: 640px;
+    height: auto;
+    display: block;
+}
+
+.gbc-grid {
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-dasharray: 3 5;
+}
+
+.gbc-tickline {
+    stroke: rgba(255, 255, 255, 0.05);
+}
+
+.gbc-ylabel {
+    fill: var(--text-muted);
+    font-size: 11px;
+    font-family: var(--font-body);
+}
+
+.gbc-xlabel {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-family: var(--font-body);
+    text-anchor: middle;
+}
+
+.gbc-xday {
+    fill: var(--text-secondary);
+    font-weight: 600;
+}
+
+.gbc-dot {
+    cursor: help;
+}
+
+/* ── Articolo + outcome ── */
+.gb-article-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 16px;
+    align-items: start;
+}
+
+.gb-article-headline {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3.2vw, 2.3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    margin: 4px 0 8px;
+}
+
+.gb-article-p {
+    position: relative;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    margin-bottom: 14px;
+}
+
+.gb-article-p:first-of-type::first-letter {
+    font-family: var(--font-display);
+    font-size: 2.6em;
+    font-weight: 800;
+    float: left;
+    line-height: 0.85;
+    padding-right: 8px;
+    color: var(--accent-red);
+}
+
+/* outcome */
+.gb-out-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 10px 2px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-out-rows {
+    display: flex;
+    flex-direction: column;
+}
+
+.gb-out-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-out-row .allpro-pos {
+    width: 40px;
+    font-size: 0.6rem;
+}
+
+.gb-out-player {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.gb-out-player:last-child {
+    text-align: right;
+}
+
+.gb-out-name {
+    font-weight: 600;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gb-out-meta {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gb-out-pts {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.gb-out-pts.win {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+/* ── Metà affiancate (stats squadre + difference maker) ── */
+.gb-halves {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+/* barre stats */
+.gb-statbars {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.gb-statbar-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.gb-statbar-track {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+}
+
+.gb-statbar-fill {
+    height: 10px;
+    border-radius: var(--pill-radius);
+    min-width: 3px;
+    transition: width 0.6s var(--ease);
+}
+
+.gb-statbar-track span {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+/* difference maker */
+.gb-dm {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.gb-dm-side {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--tc) 25%, transparent);
+    background: color-mix(in srgb, var(--tc) 7%, transparent);
+}
+
+.gb-headshot {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-glass);
+    border: 2px solid color-mix(in srgb, var(--tc, var(--accent-red)) 45%, transparent);
+}
+
+.gb-dm-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.gb-dm-meta {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.gb-dm-pts {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--tc) 60%, white 35%);
+}
+
+.gb-dm-pts small {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.gb-dm-comment {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+/* player notes */
+.gb-notes {
+    display: flex;
+    flex-direction: column;
+}
+
+.gb-note {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px 2px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-note:last-child {
+    border-bottom: none;
+}
+
+.gb-headshot-sm {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-color: var(--border-card);
+}
+
+.gb-note-body {
+    min-width: 0;
+}
+
+.gb-note-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.gb-note-name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.gb-note-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.gb-note-team {
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: var(--pill-radius);
+    border: 1px solid color-mix(in srgb, var(--tc) 40%, transparent);
+    color: color-mix(in srgb, var(--tc) 60%, white 35%);
+}
+
+.gb-note-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* ── Mobile ── */
+@media (max-width: 900px) {
+    .gb-article-grid,
+    .gb-halves,
+    .gb-dm {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .gb-bug-inner {
+        gap: 10px;
+        padding: 18px 14px;
+    }
+
+    .gb-bug-side {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        text-align: right;
+    }
+
+    .gb-bug-side:last-child {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .gb-bug-name {
+        white-space: normal;
+        font-size: 0.68rem;
+        max-width: 84px;
+    }
+
+    .gb-out-row {
+        grid-template-columns: 36px 1fr auto auto 1fr;
+        gap: 5px;
+    }
+}
+
+/* ================================
+   MAGAZINE — accento dinamico (ADDITIVO: solo colori, zero layout)
+   L'edizione Super Bowl si tinge del colore del campione
+   ================================ */
+
+.news-page.mag-accented {
+    background: color-mix(in srgb, var(--mag-accent, #B8433A) 8%, #fff8ed);
+}
+
+.mag-accented .text_shadow--hot,
+.mag-accented .text--capitalize-first:first-letter {
+    text-shadow: 3px 0 0 color-mix(in srgb, var(--mag-accent, #B8433A) 70%, #fff8ed);
+}
+
+/* Su schermi stretti il giornale mantiene l'impaginazione da broadsheet
+   e scorre nel suo contenitore: la pagina del sito non sborda (additivo) */
+@media (max-width: 700px) {
+    .mag-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mag-wrapper .news-page {
+        min-width: 620px;
+    }
+}
+
+/* Foto giocatore nel giornale: dimensione fissa per il ritratto rotondo
+   già previsto dal template (border-radius/float ereditati) */
+.news-page .story-content--third img.mg-headshot {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    object-position: top;
+    background: #e8e0d2;
+    border: 2px solid #000;
 }

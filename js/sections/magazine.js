@@ -1,8 +1,65 @@
 /**
- * Magazine — Newspaper front page
+ * Magazine — "Topina Weekly", prima pagina del settimanale della lega.
+ * ATTENZIONE: la struttura DOM del giornale (template newspaper) è fragile
+ * e va mantenuta IDENTICA — qui cambiano solo testi, immagini e, in modo
+ * additivo, l'accento colore (edizione Super Bowl a tema campione).
+ *
+ * Ogni testo è generato dai dati, in prosa da quotidiano sportivo:
+ * recap prolissi dei due matchup, rivalità (H2H stagionale/all-time e
+ * strisce nello scontro diretto), interviste al veleno dei coach,
+ * gossip sui flop, mercato raccontato waiver per waiver (con storia del
+ * giocatore: da quanto era in rosa, chi l'aveva scaricato, punti fatti),
+ * anteprima della giornata dopo, numeri della week, edizioni dedicate
+ * per playoff e Super Bowl. Le "voci" vivono in data/magazine-voices.js.
  */
 
+import {
+    fetchFantasyData, displayName, SEASONS, CURRENT_SEASON,
+    getSeasonConfig, getWeekCount, getSuperBowlMatchup,
+} from '../data.js?v=5';
+import { TEAM_KEYS } from '../data/team-config.js?v=5';
+import { TEAMS } from './team.js?v=12';
+import { getLeagueData } from '../data/league-data.js?v=1';
+import { getHonorsBundle } from '../data/honors.js?v=1';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg } from '../data/matchup-analysis.js?v=1';
+import {
+    pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
+    LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
+    TOP_PLAYER_PHRASES, NOTE_LEADS, CLOSERS,
+    PLAYER_QUOTES_WIN, PLAYER_QUOTES_LOSS, BENCH_RAGE,
+} from '../data/magazine-voices.js?v=2';
+import { playerImageService } from '../services/player-image-service.js?v=4';
+
 let initialized = false;
+let currentYear = CURRENT_SEASON;
+let currentWeek = 1;
+const _cache = {};
+const _timelines = {};
+
+const P = (v) => parseFloat(v) || 0;
+const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const teamOf = (raw) => TEAMS[TEAM_KEYS[displayName(raw)]] || null;
+const nameOf = (raw) => teamOf(raw)?.name || displayName(raw);
+const keyOf = (raw) => TEAM_KEYS[displayName(raw)] || null;
+
+// Mapping nomi → chiavi wallpaper campo (come in game-center)
+const FIELD_KEYS = { 'Oscurus': 'OSCURUS', 'Lasers': 'LASERS', 'Sommo': 'SOMMO', 'Capi dei Pianeti': 'C.D.P' };
+function fieldImage(m) {
+    const k1 = FIELD_KEYS[displayName(m.team1.name)];
+    const k2 = FIELD_KEYS[displayName(m.team2.name)];
+    return (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
+}
+
+// ─── Testata: SVG inline (niente asset esterni) ──────────────────
+
+const MASTHEAD_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 74"><text x="320" y="56" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="58" letter-spacing="2" fill="#000">Topina Weekly</text></svg>`);
+
+const SHIELD_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130"><path d="M60 4 108 22v42c0 34-22 52-48 62C34 116 12 98 12 64V22Z" fill="none" stroke="#000" stroke-width="5"/><text x="60" y="82" text-anchor="middle" font-size="52">🏈</text></svg>`);
+
+// ─── Init & navigazione ──────────────────────────────────────────
 
 export function initMagazine() {
     if (initialized) return;
@@ -12,35 +69,584 @@ export function initMagazine() {
     if (!container) return;
 
     container.innerHTML = `
+        <div class="year-selector" id="mg-year-selector"></div>
+        <div class="week-selector" id="mg-week-selector"></div>
+        <div id="mg-paper"><div class="loading-state"><div class="spinner"></div><p>In stampa...</p></div></div>`;
+
+    document.getElementById('mg-year-selector').innerHTML = SEASONS.map(y =>
+        `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`).join('');
+    document.getElementById('mg-year-selector').addEventListener('click', (e) => {
+        const btn = e.target.closest('.year-pill');
+        if (!btn) return;
+        document.querySelectorAll('#mg-year-selector .year-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadYear(btn.dataset.year);
+    });
+
+    loadYear(currentYear);
+}
+
+async function loadYear(year) {
+    currentYear = year;
+    const paper = document.getElementById('mg-paper');
+    paper.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>In stampa l'edizione ${year}...</p></div>`;
+
+    if (!_cache[year]) _cache[year] = await fetchFantasyData(year);
+    const data = _cache[year];
+    if (!data?.weeks) {
+        paper.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗞️</div><p class="empty-state-text">Nessuna edizione per il ${year}</p></div>`;
+        document.getElementById('mg-week-selector').innerHTML = '';
+        return;
+    }
+
+    // week giocate (con punteggi reali)
+    const played = [];
+    for (let w = 1; w <= getWeekCount(data); w++) {
+        const wk = data.weeks[String(w)];
+        if (wk?.matchups?.some(m => m.team1 && m.team2 && (P(m.team1.score) > 0 || P(m.team2.score) > 0))) played.push(w);
+    }
+    if (!played.length) {
+        paper.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗞️</div><p class="empty-state-text">Stagione ${year} non ancora iniziata</p></div>`;
+        document.getElementById('mg-week-selector').innerHTML = '';
+        return;
+    }
+
+    currentWeek = played[played.length - 1]; // ultima edizione = ultima week giocata
+    const config = getSeasonConfig(year);
+    const sel = document.getElementById('mg-week-selector');
+    sel.innerHTML = played.map(w => {
+        let label = String(w), cls = '';
+        if (w === config.playoffWeek) { label = 'Playoffs'; cls = ' playoff-pill'; }
+        else if (w === config.superBowlWeek) { label = 'Super Bowl'; cls = ' sb-pill'; }
+        return `<button class="week-pill${w === currentWeek ? ' active' : ''}${cls}" data-week="${w}">${label}</button>`;
+    }).join('');
+    sel.onclick = (e) => {
+        const btn = e.target.closest('.week-pill');
+        if (!btn) return;
+        sel.querySelectorAll('.week-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentWeek = parseInt(btn.dataset.week);
+        renderEdition();
+    };
+
+    renderEdition();
+}
+
+// ─── L'edizione ──────────────────────────────────────────────────
+
+async function renderEdition() {
+    const paper = document.getElementById('mg-paper');
+    const year = currentYear, week = currentWeek;
+    const data = _cache[year];
+    const weekData = data.weeks[String(week)];
+    const config = getSeasonConfig(year);
+    const isPlayoff = week === config.playoffWeek;
+    const isSB = week === config.superBowlWeek;
+
+    const [bundle, league] = await Promise.all([getHonorsBundle(year), getLeagueData()]);
+    if (currentYear !== year || currentWeek !== week) return; // l'utente ha già cambiato edizione
+    const ranks = weekPosRanks(weekData);
+    const season = league.seasons.find(s => s.year === year);
+    const standings = standingsAsOf(season, week, config);
+
+    // scelta partite: principale = margine più tirato (in SB week: la finale)
+    let matchups = (weekData.matchups || []).filter(m => m.team1 && m.team2);
+    let main, second;
+    if (isSB) {
+        main = getSuperBowlMatchup(data, year) || matchups[0];
+        second = matchups.find(m => m !== main && !sameMatchup(m, main)) || null;
+    } else {
+        const sorted = [...matchups].sort((a, b) => marginOf(a) - marginOf(b));
+        main = sorted[0];
+        second = sorted[1] || null;
+    }
+    if (!main) {
+        paper.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗞️</div><p class="empty-state-text">Nessuna partita in questa week</p></div>`;
+        return;
+    }
+
+    const seed = (+year) * 37 + week;
+    const moves = week >= 2 && !isSB ? waiverStories(data, year, week) : [];
+    const champion = isSB ? teamOf(winnerOf(main).name) : null;
+
+    paper.innerHTML = newspaperHTML({
+        year, week, config, isPlayoff, isSB, seed,
+        data, weekData, bundle, ranks, standings,
+        main, second, moves, champion, season, league,
+        h2hMain: h2hFor(league, main, year, week),
+        h2hSecond: second ? h2hFor(league, second, year, week) : null,
+    });
+
+    loadHeadshots(paper, year);
+}
+
+/** Foto giocatori nel giornale (stesso servizio di draft/analisi) */
+function loadHeadshots(paper, year) {
+    paper.querySelectorAll('.mg-headshot[data-player-name]').forEach(async (img) => {
+        if (!img.dataset.playerName) return;
+        img.onerror = () => {
+            if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg';
+        };
+        try {
+            const url = await playerImageService.getPlayerImageUrl(
+                img.dataset.playerName, img.dataset.team, img.dataset.pos, year);
+            if (url) img.src = url;
+        } catch { /* resta il fallback */ }
+    });
+}
+
+// ─── Helpers dati ────────────────────────────────────────────────
+
+const marginOf = (m) => Math.abs(P(m.team1.score) - P(m.team2.score));
+const winnerOf = (m) => P(m.team1.score) >= P(m.team2.score) ? m.team1 : m.team2;
+const loserOf = (m) => P(m.team1.score) >= P(m.team2.score) ? m.team2 : m.team1;
+const sameMatchup = (a, b) => displayName(a.team1.name) === displayName(b.team1.name) && displayName(a.team2.name) === displayName(b.team2.name);
+
+/** Classifica "alla week W" (regular season) */
+function standingsAsOf(season, week, config) {
+    if (!season) return [];
+    const upTo = Math.min(week, config.regularSeasonWeeks);
+    return Object.entries(season.perTeam).map(([key, t]) => {
+        const games = t.games.filter(g => g.week <= upTo);
+        return {
+            key, name: TEAMS[key]?.name || key,
+            w: games.filter(g => g.won).length,
+            l: games.filter(g => !g.won && g.pts !== g.oppPts).length,
+            pf: games.reduce((s, g) => s + g.pts, 0),
+        };
+    }).sort((a, b) => b.w - a.w || b.pf - a.pf);
+}
+
+/**
+ * Head-to-head tra le due squadre di un matchup, contando SOLO le partite
+ * di regular season precedenti a quella raccontata (cronologicamente,
+ * attraverso tutte le stagioni). Dal punto di vista del VINCITORE di oggi:
+ * { allTime: {w,l,t}, season: {w,l}, streak: {holderKey, len} }
+ */
+function h2hFor(league, m, year, week) {
+    const wKey = keyOf(winnerOf(m).name);
+    const lKey = keyOf(loserOf(m).name);
+    if (!wKey || !lKey) return null;
+
+    const games = []; // in ordine cronologico, dal punto di vista del vincitore
+    league.seasons.forEach(s => {
+        if (+s.year > +year) return;
+        (s.perTeam[wKey]?.games || [])
+            .filter(g => g.opp === lKey && (+s.year < +year || g.week < week))
+            .sort((a, b) => a.week - b.week)
+            .forEach(g => games.push({ year: s.year, won: g.won, tie: g.pts === g.oppPts }));
+    });
+
+    const allTime = { w: 0, l: 0, t: 0 };
+    games.forEach(g => g.tie ? allTime.t++ : g.won ? allTime.w++ : allTime.l++);
+    const seasonGames = games.filter(g => g.year === year);
+    const season = { w: seasonGames.filter(g => g.won).length, l: seasonGames.filter(g => !g.won && !g.tie).length };
+
+    let streak = { holderKey: null, len: 0 };
+    for (let i = games.length - 1; i >= 0; i--) {
+        if (games[i].tie) break;
+        const holder = games[i].won ? wKey : lKey;
+        if (!streak.holderKey) { streak.holderKey = holder; streak.len = 1; }
+        else if (streak.holderKey === holder) streak.len++;
+        else break;
+    }
+    return { wKey, lKey, allTime, season, streak, played: games.length };
+}
+
+/** Timeline roster della stagione: nome → [{week, teamKey, pts}] */
+function rosterTimeline(year, data) {
+    if (_timelines[year]) return _timelines[year];
+    const byPlayer = new Map();
+    for (let w = 1; w <= getWeekCount(data); w++) {
+        (data.weeks[String(w)]?.matchups || []).forEach(m => [m.team1, m.team2].forEach(t => {
+            if (!t) return;
+            const key = keyOf(t.name);
+            [...(t.starters || []), ...(t.bench || [])].forEach(p => {
+                if (!byPlayer.has(p.name)) byPlayer.set(p.name, []);
+                byPlayer.get(p.name).push({ week: w, teamKey: key, pts: P(p.fantasy_points) });
+            });
+        }));
+    }
+    _timelines[year] = byPlayer;
+    return byPlayer;
+}
+
+/**
+ * Il mercato della week, raccontato: per ogni squadra le entrate (con
+ * eventuale ex proprietario e punti stagionali) e le uscite (durata dello
+ * stint e punti prodotti). → array di frasi complete.
+ */
+function waiverStories(data, year, week) {
+    const timeline = rosterTimeline(year, data);
+    const rosterMap = (wk) => {
+        const map = {};
+        (data.weeks[String(wk)]?.matchups || []).forEach(m => [m.team1, m.team2].forEach(t => {
+            if (!t) return;
+            const key = keyOf(t.name);
+            if (key) map[key] = new Set([...(t.starters || []), ...(t.bench || [])].map(p => p.name));
+        }));
+        return map;
+    };
+    const prev = rosterMap(week - 1);
+    const curr = rosterMap(week);
+    const stories = [];
+
+    Object.keys(curr).forEach(key => {
+        if (!prev[key]) return;
+        const team = TEAMS[key]?.name || key;
+        const adds = [...curr[key]].filter(n => !prev[key].has(n));
+        const drops = [...prev[key]].filter(n => !curr[key].has(n));
+        if (!adds.length && !drops.length) return;
+
+        const addTxt = adds.map(n => {
+            const hist = (timeline.get(n) || []).filter(e => e.week < week);
+            const seasonPts = hist.reduce((s, e) => s + e.pts, 0);
+            const prevStint = hist[hist.length - 1];
+            if (!prevStint) return `${n}, pescato dal mercato dei liberi`;
+            const exTeam = TEAMS[prevStint.teamKey]?.name || 'un rivale';
+            return `${n} — scaricato da ${exTeam} dopo la week ${prevStint.week}, riparte da qui con ${fmt1(seasonPts)} punti stagionali già a referto`;
+        });
+
+        const dropTxt = drops.map(n => {
+            const hist = (timeline.get(n) || []).filter(e => e.week < week && e.teamKey === key);
+            let start = week - 1;
+            for (let w = week - 1; w >= 1; w--) {
+                if (hist.some(e => e.week === w)) start = w; else break;
+            }
+            const stintWeeks = week - start;
+            const stintPts = hist.filter(e => e.week >= start).reduce((s, e) => s + e.pts, 0);
+            return `${n}, salutato dopo ${stintWeeks} settiman${stintWeeks === 1 ? 'a' : 'e'} in rosa e ${fmt1(stintPts)} punti prodotti`;
+        });
+
+        let txt = `Colpo di scena in casa ${team}: `;
+        if (addTxt.length && dropTxt.length) txt += `dentro ${addTxt.join('; ')}. Fuori ${dropTxt.join('; ')}: la pazienza, evidentemente, era finita.`;
+        else if (addTxt.length) txt += `firmato ${addTxt.join('; ')}. Il taccuino promuove il coraggio, il campo giudicherà.`;
+        else txt += `via ${dropTxt.join('; ')}. Roster più corto, idee — si spera — più chiare.`;
+        stories.push(txt);
+    });
+    return stories;
+}
+
+/** Il flop di giornata: peggior scostamento dalla media stagionale */
+function flopOf(m, bundle) {
+    let worst = null;
+    [m.team1, m.team2].forEach(t => (t.starters || []).forEach(p => {
+        const avg = seasonAvg(bundle, p.name);
+        if (!avg || avg < 6) return;
+        const v = P(p.fantasy_points);
+        const delta = (v - avg) / avg;
+        if (delta <= -0.35 && (!worst || delta < worst.delta)) worst = { p, v, avg, delta, teamRaw: t.name };
+    }));
+    return worst;
+}
+
+/** Scelta deterministica tra varianti (stessa edizione → stessa frase) */
+const pick = pickSeeded;
+
+// ─── Generatori di testo ─────────────────────────────────────────
+
+function mainHeadline({ main, isPlayoff, isSB, week }) {
+    const w = nameOf(winnerOf(main).name), l = nameOf(loserOf(main).name);
+    const margin = marginOf(main);
+    const dm = diffMakers(main);
+    const topP = winnerOf(main) === main.team1 ? dm.a : dm.b;
+    if (isSB) return { vertical: 'finale', l1: `${w} Campione!`, l2: `Il Super Bowl è suo` };
+    if (isPlayoff) return { vertical: 'playoff', l1: `${w} vola in finale,`, l2: `${l} eliminata` };
+    if (margin < 5) return { vertical: `week ${week}`, l1: `Thriller ${nameOf(main.team1.name)}-${nameOf(main.team2.name)}:`, l2: `la spunta ${w}` };
+    if (margin >= 20) return { vertical: `week ${week}`, l1: `${topP?.name || w} show,`, l2: `${w} travolge ${l}` };
+    return { vertical: `week ${week}`, l1: `${w} fa la voce grossa,`, l2: `${l} resta al palo` };
+}
+
+/** Intervista al coach vincente — zizzania garantita, striscia rinfacciata */
+function coachQuote(main, seed, h2h) {
+    const w = nameOf(winnerOf(main).name), l = nameOf(loserOf(main).name);
+    const dm = diffMakers(main);
+    const top = winnerOf(main) === main.team1 ? dm.a : dm.b;
+    const ctx = {
+        winner: w, loser: l,
+        topName: top?.name || 'la squadra',
+        topPts: fmt(P(top?.fantasy_points)),
+        margin: fmt(marginOf(main)),
+    };
+    let quote = pick(TRASH_TALK, seed)(ctx);
+    // se il vincitore dominava già lo scontro diretto, il coach non se lo tiene
+    if (h2h?.streak?.holderKey === h2h?.wKey && h2h.streak.len >= 2) {
+        quote += pick(STREAK_JABS, seed + 3)(h2h.streak.len + 1, l);
+    }
+    const titles = [
+        { sup: `Il coach di ${w}`, main: 'non fa prigionieri' },
+        { sup: `Dallo spogliatoio di ${w}`, main: 'volano frecciate' },
+        { sup: `Il coach di ${w}`, main: 'accende la rivalità' },
+        { sup: `Microfoni aperti:`, main: `${w} ruggisce` },
+    ];
+    return { quote, title: pick(titles, seed) };
+}
+
+/** I 3 paragrafi prolissi del pezzo principale */
+function mainParagraphs({ main, bundle, seed, h2h, standings, isSB, isPlayoff, year, league }) {
+    const wT = winnerOf(main), lT = loserOf(main);
+    const w = nameOf(wT.name), l = nameOf(lT.name);
+    const sW = fmt(Math.max(P(main.team1.score), P(main.team2.score)));
+    const sL = fmt(Math.min(P(main.team1.score), P(main.team2.score)));
+    const margin = marginOf(main);
+    const dm = diffMakers(main);
+    const top = wT === main.team1 ? dm.a : dm.b;
+
+    // P1 — il lede scenografico
+    const marginBank = margin < 5 ? MARGIN_THRILLER : margin >= 20 ? MARGIN_BLOWOUT : MARGIN_NORMAL;
+    const marginTxt = pick(marginBank, seed).replaceAll('{margin}', fmt(margin)).replaceAll('{loser}', l);
+    const topTxt = pick(TOP_PLAYER_PHRASES, seed + 1)
+        .replaceAll('{top}', top?.name || w)
+        .replaceAll('{pts}', fmt(P(top?.fantasy_points)))
+        .replaceAll('{stat}', statLine(top) || 'una prova totale, di quelle che non hanno bisogno di note a margine');
+    const stakes = isSB ? ` E stavolta non era una domenica qualsiasi: in palio c'era il titolo della Topina League ${year}.`
+        : isPlayoff ? ` Con un posto nel Super Bowl in palio, il peso specifico di ogni snap valeva doppio.` : '';
+    const p1 = `${pick(LEDE_OPENERS, seed)}${w} ha piegato ${l} con il punteggio di ${sW} a ${sL}.${stakes} ${marginTxt} ${topTxt}`;
+
+    // P2 — il flop e il gossip
+    const flop = flopOf(main, bundle);
+    let p2;
+    if (flop) {
+        const flopTeam = nameOf(flop.teamRaw);
+        p2 = `Dall'altra parte della moviola, la serata da incubo porta il nome di ${flop.p.name}: appena ${fmt(flop.v)} punti a referto contro una media stagionale di ${fmt1(flop.avg)}, un buco nel lineup che ${flopTeam} ha pagato a prezzo pieno e senza sconti. E qui la cronaca sconfina nel gossip, perché dalla redazione filtrano indiscrezioni su ${pick(GOSSIP_EXCUSES, seed + flop.p.name.length)}. Il diretto interessato smentisce con fermezza, l'entourage minimizza, ma i punti — quelli — purtroppo restano a referto.`;
+    } else {
+        const secondBest = [...(wT.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[1];
+        p2 = `In casa ${l} non ci sono veri colpevoli, e forse è questa la notizia peggiore: quando perdi senza che nessuno tradisca le attese, il problema è il soffitto, non il pavimento. ${secondBest ? `Sul fronte opposto, oltre al solito protagonista, anche ${secondBest.name} ha portato mattoni pesanti alla causa con ${fmt(P(secondBest.fantasy_points))} punti: quando i comprimari girano così, per gli avversari il conto si fa salato.` : ''}`;
+    }
+
+    // P3 — rivalità, strisce e classifica
+    const parts = [];
+    if (h2h && h2h.played > 0) {
+        const at = h2h.allTime;
+        parts.push(`E poi c'è il capitolo rivalità, che da queste parti non passa mai di moda: con il successo di oggi il bilancio all-time dello scontro diretto si aggiorna sul ${at.w + 1}-${at.l}${at.t ? ` (più ${at.t} pareggi)` : ''} in favore di ${w}.`);
+        if (h2h.season.w + h2h.season.l > 0) {
+            parts.push(`In stagione la serie dice ora ${h2h.season.w + 1}-${h2h.season.l} per ${w}.`);
+        }
+        if (h2h.streak.holderKey === h2h.wKey && h2h.streak.len >= 2) {
+            parts.push(`Soprattutto, con questa fanno ${h2h.streak.len + 1} vittorie consecutive di ${w} nel confronto diretto: dalle parti di ${l} questo derby è diventato ufficialmente materia da psicologo sportivo.`);
+        } else if (h2h.streak.holderKey === h2h.lKey && h2h.streak.len >= 2) {
+            parts.push(`Vittoria che vale doppio anche per la storia recente: si interrompe la serie di ${h2h.streak.len} successi consecutivi di ${l} nello scontro diretto. La maledizione, se mai è esistita, è archiviata.`);
+        }
+    }
+    if (!isSB && !isPlayoff) {
+        const lead = standings[0];
+        if (lead) parts.push(`Alla voce classifica, comanda ${lead.name} con ${lead.w} vittorie: tutte le altre sono avvisate.`);
+    } else if (isSB) {
+        const key = keyOf(wT.name);
+        const titles = league.allTime[key]?.sbWins?.length || 1;
+        parts.push(`Per il franchise è il titolo numero ${titles}: l'albo d'oro si aggiorna e il resto della lega può iniziare il conto alla rovescia verso il prossimo draft, con una missione sola.`);
+    }
+    parts.push(pick(CLOSERS, seed + 2));
+    const p3 = parts.join(' ');
+
+    return [p1, p2, p3];
+}
+
+/**
+ * Interviste dagli spogliatoi: riempiono gli spazi vuoti del giornale.
+ * I panchinari con tanti punti attaccano l'allenatore; poi un vincitore
+ * che gongola e uno sconfitto che mastica amaro.
+ */
+function lockerRoomQuotes({ weekData, main, seed }) {
+    const quotes = [];
+
+    // panchinari d'oro di tutta la week: puntano il dito contro il coach
+    const benched = [];
+    (weekData.matchups || []).forEach(m => [m.team1, m.team2].forEach(t => {
+        (t?.bench || []).forEach(p => {
+            const v = P(p.fantasy_points);
+            if (v >= 11) benched.push({ p, v, teamRaw: t.name });
+        });
+    }));
+    benched.sort((a, b) => b.v - a.v).slice(0, 2).forEach(({ p, v, teamRaw }, i) => {
+        const team = nameOf(teamRaw);
+        const q = pick(BENCH_RAGE, seed + i * 5 + p.name.length)({ name: p.name, pts: fmt(v), team });
+        quotes.push(`Il caso della settimana scoppia in casa ${team}: ${p.name}, autore di ${fmt(v)} punti rimasti a marcire in panchina, non usa giri di parole. ${q}`);
+    });
+
+    // il vincitore gongola (la seconda voce del match clou)
+    const wT = winnerOf(main), lT = loserOf(main);
+    const wStarters = [...(wT.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points));
+    const speaker = wStarters[1] || wStarters[0];
+    if (speaker) {
+        const q = pick(PLAYER_QUOTES_WIN, seed + speaker.name.length)({
+            name: speaker.name, pts: fmt(P(speaker.fantasy_points)),
+            team: nameOf(wT.name), opp: nameOf(lT.name),
+        });
+        quotes.push(`Dagli spogliatoi di ${nameOf(wT.name)}, ${speaker.name} gongola davanti ai microfoni: ${q}`);
+    }
+
+    // lo sconfitto mastica amaro (il migliore dei suoi)
+    const lBest = [...(lT.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[0];
+    if (lBest) {
+        const q = pick(PLAYER_QUOTES_LOSS, seed + 2 + lBest.name.length)({
+            name: lBest.name, pts: fmt(P(lBest.fantasy_points)),
+            team: nameOf(lT.name), opp: nameOf(wT.name),
+        });
+        quotes.push(`Di tutt'altro umore ${lBest.name}, che in zona mista mastica amarissimo: ${q}`);
+    }
+    return quotes;
+}
+
+/** Colonna di destra: il Taccuino — mercato raccontato + classifica */
+function notebookParas({ standings, moves, isPlayoff, isSB, main, bundle, season, league, week, config }, fillers = []) {
+    const paras = [];
+    if (isSB) {
+        const champ = teamOf(winnerOf(main).name);
+        const key = keyOf(winnerOf(main).name);
+        const titles = league.allTime[key]?.sbWins?.length || 1;
+        const rec = season?.perTeam?.[key];
+        paras.push(`Il trionfo di ${champ?.name} è il capitolo finale di una stagione da ${rec ? `${rec.w} vittorie e ${Math.round(rec.pf)} punti totali` : 'assoluta protagonista'}: per il franchise è il titolo numero ${titles}, e in bacheca lo spazio non manca mai.`);
+        const mvp = bundle?.awards?.find(a => a.id === 'mvp')?.winner;
+        if (mvp) paras.push(`Ai Topina Honors, intanto, la corona di MVP è andata a ${mvp.name}: ${fmt(mvp.total)} punti in regular season, un dominio che questo giornale ha raccontato edizione dopo edizione, senza mai stancarsi.`);
+        paras.push(`E ora? Il mercato si ferma, i rancori no: le altre tre contendenti hanno già acceso le lavagne tattiche in vista del draft, con una sola parola d'ordine — detronizzare il campione.`);
+        paras.push(`L'appuntamento con il Topina Weekly è alla prossima stagione: si riparte dal via, ma i conti in sospeso restano tutti aperti.`);
+    } else {
+        const lead = standings[0];
+        if (lead) {
+            const chaser = standings[1];
+            const gap = chaser ? lead.w - chaser.w : 0;
+            paras.push(`La classifica, dopo l'ultimo turno, parla chiaro: comanda ${lead.name} con ${lead.w} vittorie e ${Math.round(lead.pf)} punti totali all'attivo. ${chaser ? (gap === 0 ? `${chaser.name} è lì, appaiata in vetta: la volata è apertissima e ogni singolo punto fatto può diventare oro colato.` : `${chaser.name} insegue a ${gap} lunghezz${gap === 1 ? 'a' : 'e'}: margine vero, ma non ancora un'ipoteca.`) : ''}`);
+        }
+        if (moves.length) {
+            // massimo 3 paragrafi di mercato: se le mosse sono di più, si accorpano
+            const packed = moves.length <= 3 ? moves : [moves[0], moves[1], moves.slice(2).join(' ')];
+            packed.forEach(txt => paras.push(txt));
+        } else {
+            paras.push(`Mercato immobile questa settimana: nessuna mossa in waiver, nessuno squillo. Segno che i roster convincono i rispettivi manager... oppure che qualcuno si è semplicemente dimenticato la scadenza. Ai posteri — e alla prossima week — l'ardua sentenza.`);
+        }
+        if (isPlayoff) {
+            paras.push(`Domenica notte sapremo tutto: chi festeggia il pass per la finale e chi passerà l'inverno a rimuginare su un lineup sbagliato. Il Taccuino, come sempre, sarà in prima fila.`);
+        } else {
+            const left = config.regularSeasonWeeks - week;
+            paras.push(left > 0
+                ? `Il calendario intanto scorre: al termine della regular season mancano ${left} giornat${left === 1 ? 'a' : 'e'}, e la matematica comincia a bussare alla porta di tutti. Ogni punto fatto oggi è un mattone sulla casa dei playoff.`
+                : `Regular season in archivio: da qui in poi si fa sul serio, benvenuti ai playoff. Il Taccuino consiglia: niente esperimenti, dentro i titolarissimi.`);
+        }
+    }
+    // gli spazi rimasti si riempiono con le interviste dagli spogliatoi
+    while (paras.length < 5 && fillers.length) paras.push(fillers.shift());
+    while (paras.length < 5) paras.push('');
+    return paras.slice(0, 5);
+}
+
+/** Striscia "exclusive": anteprima / annuncio SB / celebrazione */
+function exclusiveStrip({ data, week, config, isPlayoff, isSB, main, weekData, standings, bundle }) {
+    if (isSB) {
+        const w = nameOf(winnerOf(main).name);
+        const mvp = bundle?.awards?.find(a => a.id === 'mvp')?.winner;
+        return {
+            marker: 'campioni',
+            t1: 'il trono è di', t2: w.toUpperCase(),
+            left: `La corsa è finita: ${w} mette le mani sul titolo della Topina League e si prende la copertina, i cori e il diritto — sancito dal regolamento non scritto — di sfottere chiunque fino a settembre.`,
+            right: `Nella notte dei campioni brillano anche i Topina Honors${mvp ? `: l'MVP ${mvp.name} chiude una stagione irripetibile` : ''}. L'albo d'oro ha un nuovo nome inciso, e c'è già chi giura vendetta.`,
+            link: 'Rivivi la finale nel Game Center.',
+        };
+    }
+    if (isPlayoff) {
+        const winners = (weekData.matchups || []).filter(m => m.team1 && m.team2).map(m => nameOf(winnerOf(m).name));
+        return {
+            marker: 'super bowl',
+            t1: winners[0] ? `sarà ${winners[0]}` : 'la finale', t2: winners[1] ? `contro ${winners[1]}` : 'è servita',
+            left: `Le semifinali hanno emesso il loro verdetto: il Super Bowl è apparecchiato e le due contendenti hanno già iniziato a studiarsi. Sette giorni di sfottò, dichiarazioni al vetriolo e formazioni segretissime: poi, finalmente, parlerà il campo.`,
+            right: `Chi alzerà il trofeo? Le quote della redazione si spaccano a metà, e forse è giusto così: servirà la partita perfetta, il lineup perfetto e — diciamolo — anche quel pizzico di follia che le finali pretendono sempre.`,
+            link: 'La playoff picture completa in Standings.',
+        };
+    }
+    const next = data.weeks[String(week + 1)];
+    const nextMatchups = (next?.matchups || []).filter(m => m.team1 && m.team2);
+    if (nextMatchups.length && week + 1 <= config.regularSeasonWeeks) {
+        const recOf = (raw) => {
+            const s = standings.find(x => x.key === keyOf(raw));
+            return s ? `${s.w}-${s.l}` : '';
+        };
+        const [a, b] = nextMatchups;
+        return {
+            marker: 'anteprima',
+            t1: `la week ${week + 1}`, t2: 'è dietro l\'angolo',
+            left: a ? `${nameOf(a.team1.name)} (${recOf(a.team1.name)}) sfida ${nameOf(a.team2.name)} (${recOf(a.team2.name)}): i precedenti promettono scintille e nessuna delle due può permettersi di guardare altrove.` : '',
+            right: b ? `Nell'altra sfida ${nameOf(b.team1.name)} (${recOf(b.team1.name)}) incrocia ${nameOf(b.team2.name)} (${recOf(b.team2.name)}). Occhio alle scelte di lineup e al mercato di martedì: la classifica non perdona i distratti.` : '',
+            link: 'Tutti i matchup nel Game Center.',
+        };
+    }
+    // ultima week di RS → annuncio playoff
+    const seeds = standings.slice(0, 4);
+    return {
+        marker: 'playoffs',
+        t1: 'si fa sul serio:', t2: 'ecco i playoff',
+        left: seeds.length >= 4 ? `La regular season va in archivio: ${seeds[0].name} (testa di serie) pesca ${seeds[3].name}, mentre ${seeds[1].name} incrocia ${seeds[2].name}. Due semifinali, quattro destini, zero margine d'errore.` : 'La regular season va in archivio: le semifinali sono pronte e nessuno vuole fare da comparsa.',
+        right: `Da qui in avanti si azzera tutto: un weekend storto e la stagione finisce nel cassetto dei rimpianti. La redazione consiglia: niente esperimenti, dentro i titolarissimi, e che vinca il migliore.`,
+        link: 'La playoff picture in Standings.',
+    };
+}
+
+// ─── Il giornale (STRUTTURA INVARIATA — cambiano solo i contenuti) ──
+
+function newspaperHTML(ctx) {
+    const { year, week, isSB, main, second, standings, bundle, ranks, champion, league, seed, h2hMain, h2hSecond } = ctx;
+    const head = mainHeadline(ctx);
+    const cq = coachQuote(main, seed, h2hMain);
+    const paras = mainParagraphs({ ...ctx, h2h: h2hMain });
+    const locker = lockerRoomQuotes(ctx);
+    const notebook = notebookParas(ctx, locker);
+    const strip = exclusiveStrip(ctx);
+
+    // player notes del match clou → trafiletti colonne (con attacchi variati)
+    const notesTexts = [main.team1, main.team2].flatMap(t =>
+        (t.starters || []).map(p => ({ p, v: P(p.fantasy_points) })))
+        .sort((a, b) => b.v - a.v).slice(1, 5)
+        .map(({ p }, i) => `${pick(NOTE_LEADS, seed + i)} ${p.name} — ${playerComment(p, bundle, ranks)}`);
+    // eventuali trafiletti rimasti vuoti → altre voci dagli spogliatoi
+    while (notesTexts.length < 4 && locker.length) notesTexts.push(locker.shift());
+
+    // numeri della week (al posto del meteo)
+    const weather = weatherSlots(ctx);
+
+    // storia secondaria: seconda partita, o Honors nell'edizione SB
+    const recap2 = second ? recapArticle(second, bundle, ranks, {
+        year, weekNum: week, weekLabel: `Week ${week}`, isPlayoff: ctx.isPlayoff, isSB,
+        seriesGames: [], teamName: nameOf,
+    }) : null;
+    const secondary = second && !isSB
+        ? secondaryGame(second, recap2, week, bundle, seed, h2hSecond, standings)
+        : secondaryHonors(bundle, champion) || (second ? secondaryGame(second, recap2, week, bundle, seed, h2hSecond, standings) : null);
+
+    const foot = footerStory(ctx);
+    const topics = topicsRow(ctx);
+
+    const paperClass = champion ? 'news-page mag-accented' : 'news-page';
+    const paperStyle = champion ? ` style="--mag-accent:${champion.color}"` : '';
+
+    return `
 <div class="mag-wrapper">
-<div class="news-page">
+<div class="${paperClass}"${paperStyle}>
   <div class="news-page__section publisher">
     <div class="logo-shield">
-      <img src="http://redonion.se/cssgrid/images/logo-shield155.png" alt="">
+      <img src="${SHIELD_SVG}" alt="">
     </div>
     <div class="publisher_name">
-      <img src="http://redonion.se/cssgrid/images/logo-cleanup.svg" alt="">
-      <div class="tagline">THE WIZARD WORLD'S BEGUILING BROADSHEET OF CHOICE</div>
+      <img src="${MASTHEAD_SVG}" alt="Topina Weekly">
+      <div class="tagline">IL SETTIMANALE UFFICIALE DELLA TOPINA LEAGUE · DAL 2019</div>
     </div>
   </div>
   <div class="news-page__section exclusive-story">
-    <div class="exclusive-story__marker">exclusive</div>
+    <div class="exclusive-story__marker">${strip.marker}</div>
     <div class="exclusive-story__preview">
       <div class="preview-title">
-        <span class="text--uppercase display--block">inside the mind</span>
-        <span>of a MUGGLER</span>
+        <span class="text--uppercase display--block">${strip.t1}</span>
+        <span>${strip.t2}</span>
       </div>
       <div class="preview-content-wrapper">
         <div class="preview-content">
           <div class="preview-content--left">
-            What are mugglers really like? Do mugglers dream of electric sheep? These and many more questions are discussed with the top authoroties in the field of
+            ${strip.left}
           </div>
           <div class="preview-content--right">
-            modern muggler studies. Is it possible that mugglers are not too different from ourselves? Can we in fact learn from the fate of our underdeveloped cousins?
+            ${strip.right}
           </div>
         </div>
         <div class="preview-content--link">
-            Read the Full story on Page 6.
+            ${strip.link}
           </div>
       </div>
     </div>
@@ -50,53 +656,51 @@ export function initMagazine() {
       <div class="column column--left">
         <div class="story-title">
           <div class="story-title--first-line">
-            <div class="title-text text--vertical">hurricane</div>
-            <div class="title-text text--normal">Maria Threatens</div>
+            <div class="title-text text--vertical">${head.vertical}</div>
+            <div class="title-text text--normal">${head.l1}</div>
           </div>
           <div class="story-title--second-line">
-            <div class="title-text text--normal">Quidditch Playoffs</div>
+            <div class="title-text text--normal">${head.l2}</div>
           </div>
         </div>
         <div class="story-content">
           <div class="story-column column--first">
             <div class="paragraph first">
-              <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati.</p>
+              <p>${paras[0]}</p>
             </div>
             <div class="paragraph">
-              <p class="text--capitalize-first">Cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque
-                nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.</p>
+              <p class="text--capitalize-first">${paras[1]}</p>
             </div>
             <div class="paragraph">
-              <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores
-                alias consequatur aut perferendis doloribus asperiores repellat.</p>
+              <p>${paras[2]}</p>
             </div>
           </div>
           <div class="story-column column--second-third">
-            <p class="story-featured-photo"><img src="http://redonion.se/cssgrid/images/tornado508.jpg" alt=""></p>
+            <p class="story-featured-photo"><img src="${fieldImage(main)}" onerror="this.src='Wallpapers/GameCenterHorizontal.PNG'" alt=""></p>
             <div class="blockquote-wrapper">
               <div class="blockquote-title">
-                <div class="text--superscript">Captain Oliver</div>
-                <div class="text--normal">Wood not worried</div>
+                <div class="text--superscript">${cq.title.sup}</div>
+                <div class="text--normal">${cq.title.main}</div>
               </div>
               <div class="blockquote-content">
-                We're prepared for anything. Dealing with bad weather is not a problem. Quidditch is an outdoor sport, and as such, Nature is a part of the game. Playing in rough conditions is in fact something me and my crew are used to.
+                ${cq.quote}
               </div>
             </div>
             <div class="columns-wrapper">
               <div class="column first">
                 <div class="paragraph">
-                  <p>Veteran Captain Oliver Wood did not seem too anxious about the hurricane threat as he and some of his fellow crew met reporters in the lobby at player hotel this morning. At vero eos et accusamus et iusto.</p>
+                  <p>${notesTexts[0] || ''}</p>
                 </div>
                 <div class="paragraph">
-                  <p>Ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui.</p>
+                  <p>${notesTexts[1] || ''}</p>
                 </div>
               </div>
               <div class="column">
                 <div class="paragraph">
-                  <p>Harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.</p>
+                  <p>${notesTexts[2] || ''}</p>
                 </div>
                 <div class="paragraph">
-                  <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et.</p>
+                  <p>${notesTexts[3] || ''}</p>
                 </div>
               </div>
             </div>
@@ -105,26 +709,23 @@ export function initMagazine() {
       </div>
       <div class="column column--right">
         <div class="author">
-          <div class="name">Rita Skeeter</div>
-          <div class="footnote">reports</div>
+          <div class="name">Il Taccuino Topino</div>
+          <div class="footnote">mercato &amp; classifica</div>
         </div>
         <div class="paragraph">
-          <p class="text--capitalize-first">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+          <p class="text--capitalize-first">${notebook[0] || ''}</p>
         </div>
         <div class="paragraph">
-          <p>Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id
-            quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.</p>
+          <p>${notebook[1] || ''}</p>
         </div>
         <div class="paragraph">
-          <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores
-            alias consequatur aut perferendis doloribus asperiores repellat.</p>
+          <p>${notebook[2] || ''}</p>
         </div>
         <div class="paragraph">
-          <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci
-            velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+          <p>${notebook[3] || ''}</p>
         </div>
         <div class="paragraph">
-          <p>Corrupti quos dolores.</p>
+          <p>${notebook[4] || ''}</p>
         </div>
       </div>
     </div>
@@ -133,35 +734,35 @@ export function initMagazine() {
       <div class="columns-wrapper">
         <div class="column first">
           <p class="story-title--secondary">
-            Ministry Secretary Denies Job Crisis
+            ${secondary.title}
           </p>
           <div class="story-featured-photo">
-            <img src="http://redonion.se/cssgrid/images/mics500.jpg" alt="">
+            <img src="${secondary.photo}" onerror="this.src='Wallpapers/GameCenterHorizontal.PNG'" alt="">
           </div>
           <div class="caption">
-            <div class="caption_content">"THERE IS ENOUGH MAGIC FOR ALL"</div>
-            <div class="page-number">page 12</div>
+            <div class="caption_content">${secondary.caption}</div>
+            <div class="page-number">${secondary.page}</div>
           </div>
         </div>
         <div class="column second">
           <div class="story-title--third">
             <div class="first-part">
-              <small>ALBUS SEVERUS POTTER</small> Scandal
+              <small>${secondary.smallName}</small> ${secondary.bigWord}
             </div>
             <div class="second-part">
-              In Polyjuice
-              <small>Potter was discovered trying to enter girls dorm under the influence of polyjuice.</small>
+              ${secondary.subTitle}
+              <small>${secondary.subText}</small>
             </div>
           </div>
           <div class="story-content--third">
-            <img src="http://redonion.se/cssgrid/images/potions200.jpg" alt="">
+            <img class="mg-headshot" src="${secondary.sideImg}"
+                 data-player-name="${secondary.imgPlayer || ''}" data-team="${secondary.imgTeam || ''}" data-pos="${secondary.imgPos || ''}"
+                 onerror="this.src='images/fallback-player.svg'" alt="">
             <div class="paragraph">
-              <p class="text--capitalize-first">A Hogwarts spokesperson says the incident will not be taken lightly, since it was only a few months ago young Potter was involved in a similar incident. Parents of the Hufflepuff girls are now putting preassure on the school to assure the
-                safety of their children.</p>
+              <p class="text--capitalize-first">${secondary.p1}</p>
             </div>
             <div class="paragraph">
-              <p>An anonymous source says the Potter boy has been harassing girls and bullying his fellow students since he started at Hogwarts. The source also says that because of his family name, professors and staff are too scared to act. Neither one
-                of the boy's parents wanted to comment the event.</p>
+              <p>${secondary.p2}</p>
             </div>
           </div>
         </div>
@@ -170,85 +771,172 @@ export function initMagazine() {
   </div>
 
   <div class="news-page_section weather">
-    <div class="section-divider" title="Weather"></div>
+    <div class="section-divider" title="I numeri della week"></div>
     <div class="columns-wrapper column--weathers">
+      ${weather.map(w => `
       <div class="column column--weather">
-        <div class="weather_value text_shadow--hot">27 <span class="weater_value_measurement">*C</span></div>
-        <div class="weather_city">Adua</div>
-      </div>
-      <div class="column column--weather">
-        <div class="weather_value">19 <span class="weater_value_measurement">*C</span></div>
-        <div class="weather_city">Hogsmeade</div>
-      </div>
-      <div class="column column--weather">
-        <div class="weather_value">18 <span class="weater_value_measurement">*C</span></div>
-        <div class="weather_city">Idris</div>
-      </div>
-      <div class="column column--weather">
-        <div class="weather_value text_shadow--hot">24 <span class="weater_value_measurement">*C</span></div>
-        <div class="weather_city">King's Landing</div>
-      </div>
-      <div class="column column--weather">
-        <div class="weather_value text_shadow--cold">-84 <span class="weater_value_measurement">*C</span></div>
-        <div class="weather_city">Luna</div>
-      </div>
-      <div class="column column--weather">
-        <div class="weather_value">12 <span class="weater_value_measurement">*C</span></div>
-        <div class="weather_city">Stormwind</div>
-      </div>
+        <div class="weather_value${w.mod}">${w.value} <span class="weater_value_measurement">${w.unit}</span></div>
+        <div class="weather_city">${w.label}</div>
+      </div>`).join('')}
     </div>
   </div>
 
   <div class="news-page_section story--footer">
-    <div class="story-title--footer">AURORS OUT OF CONTROL?</div>
+    <div class="story-title--footer">${foot.title}</div>
     <div class="story_excerpt_and_number">
       <div class="story_page_number">
-        <div>page</div>
-        <div class="number">7</div>
+        <div>week</div>
+        <div class="number">${week}</div>
       </div>
       <div class="story_excerpt">
-        <div>THE FULL STORY</div>
-        <div class="text--lowercase">violence investigated</div>
+        <div>${foot.line1}</div>
+        <div class="text--lowercase">${foot.line2}</div>
       </div>
     </div>
   </div>
 
   <div class="news-page_section news-topics">
     <div class="columns-wrapper">
+      ${topics.map(t => `
       <div class="column column_topic">
-        <div class="topic">World</div>
-        <div class="badge_number">7</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Ministry</div>
-        <div class="badge_number">12</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Sport</div>
-        <div class="badge_number">4</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Business</div>
-        <div class="badge_number">2</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Amusements</div>
-        <div class="badge_number">3</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Magic</div>
-        <div class="badge_number">6</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Jobs</div>
-        <div class="badge_number">13</div>
-      </div>
-      <div class="column column_topic">
-        <div class="topic">Adventure</div>
-        <div class="badge_number">14</div>
-      </div>
+        <div class="topic">${t.label}</div>
+        <div class="badge_number">${t.n}</div>
+      </div>`).join('')}
     </div>
   </div>
 </div>
 </div>`;
+}
+
+// ─── Sezioni derivate ────────────────────────────────────────────
+
+function secondaryGame(m, recap, week, bundle, seed, h2h, standings) {
+    const w = winnerOf(m), l = loserOf(m);
+    const dm = diffMakers(m);
+    const top = w === m.team1 ? dm.a : dm.b;
+    const runnerUp = [...(w.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[1];
+    const sW = fmt(Math.max(P(m.team1.score), P(m.team2.score)));
+    const sL = fmt(Math.min(P(m.team1.score), P(m.team2.score)));
+
+    // p1: mini-lede prolisso + spalla del vincitore
+    let p1 = `Nell'altra sfida di giornata ${nameOf(w.name)} ha avuto ragione di ${nameOf(l.name)} per ${sW} a ${sL}, al termine di una partita che ha vissuto sui ${top ? `${fmt(P(top.fantasy_points))} punti di ${top.name}` : 'dettagli'}: ${statLine(top) || 'prestazione da copertina'}. ${marginOf(m) < 5 ? 'Un epilogo al fotofinish, di quelli che lasciano strascichi negli spogliatoi e munizioni infinite nel gruppo della lega.' : 'Un verdetto più netto di quanto la vigilia lasciasse immaginare, maturato senza mai davvero far intravedere una rimonta.'}`;
+    if (runnerUp) {
+        p1 += ` Nel giorno del suo protagonista, applausi anche per ${runnerUp.name}, che di punti ne ha messi a referto ${fmt(P(runnerUp.fantasy_points))}: quando le seconde linee producono così, allenare diventa un mestiere semplice.`;
+    }
+
+    // p2: gossip sul flop di QUESTA partita + rivalità + classifica
+    const flop = flopOf(m, bundle);
+    const parts = [];
+    if (flop) {
+        parts.push(`Serata storta invece per ${flop.p.name}, fermo a ${fmt(flop.v)} punti contro una media stagionale di ${fmt1(flop.avg)}: dalla redazione filtrano indiscrezioni su ${pick(GOSSIP_EXCUSES, seed + 7 + flop.p.name.length)}. Smentite di rito dall'entourage, punti veri a referto.`);
+    }
+    if (h2h && h2h.played > 0) {
+        parts.push(`Il confronto diretto all-time si aggiorna sul ${h2h.allTime.w + 1}-${h2h.allTime.l} per ${nameOf(w.name)}${h2h.streak.holderKey === h2h.wKey && h2h.streak.len >= 2 ? `, la ${h2h.streak.len + 1}ª di fila in questo incrocio: a ${nameOf(l.name)} servirà un esorcista, o quantomeno un lineup migliore` : ''}.`);
+    }
+    const lRec = standings?.find(s => s.key === keyOf(l.name));
+    parts.push(lRec
+        ? `${nameOf(l.name)} scivola così a ${lRec.w}-${lRec.l} in stagione: niente di irreparabile, ma il calendario non aspetta nessuno e il mercato di martedì potrebbe raccontare qualcosa sul suo umore.`
+        : `${nameOf(l.name)} esce ridimensionata dal weekend: la classifica adesso fa meno sorridere e il mercato di martedì potrebbe dire qualcosa sul suo umore.`);
+    const p2 = parts.join(' ');
+
+    return {
+        title: recap?.headline || `${nameOf(w.name)} batte ${nameOf(l.name)}`,
+        photo: fieldImage(m),
+        caption: `"FINALE: ${fmt(P(m.team1.score))} – ${fmt(P(m.team2.score))}"`,
+        page: `week ${week}`,
+        smallName: (top?.name || '').toUpperCase(),
+        bigWord: 'Show',
+        subTitle: `Da ${top ? fmt(P(top.fantasy_points)) : '—'} punti`,
+        subText: `${statLine(top) || 'prestazione da copertina'} — il migliore in campo della seconda sfida di giornata.`,
+        sideImg: 'images/fallback-player.svg',
+        imgPlayer: top?.name || '',
+        imgTeam: top?.nfl_team || '',
+        imgPos: top?.position_in_team || top?.position || '',
+        p1, p2,
+    };
+}
+
+function secondaryHonors(bundle, champion) {
+    if (!bundle?.revealed) return null;
+    const get = (id) => bundle.awards.find(a => a.id === id)?.winner;
+    const mvp = get('mvp'), dpoy = get('dpoy'), opoy = get('opoy');
+    const coach = bundle.awards.find(a => a.id === 'coach')?.winner;
+    if (!mvp) return null;
+    const mvpTeam = TEAMS[mvp.teamKey]?.name;
+    return {
+        title: 'Topina Honors: la notte delle stelle',
+        photo: 'Logos/SB-Champ.png',
+        caption: '"I PREMI DELLA STAGIONE"',
+        page: 'honors',
+        smallName: mvp.name.toUpperCase(),
+        bigWord: 'MVP',
+        subTitle: 'Re della stagione',
+        subText: `${fmt(mvp.total)} punti in regular season${mvpTeam ? ` con la maglia di ${mvpTeam}` : ''}: nessuno come lui.`,
+        sideImg: 'images/fallback-player.svg',
+        imgPlayer: mvp.name,
+        imgTeam: mvp.nfl || '',
+        imgPos: mvp.pos || '',
+        p1: [
+            dpoy ? `Sul fronte difensivo il premio va a ${dpoy.name}: ${fmt(dpoy.total)} punti che valgono il titolo di Defensive Player of the Year, in una stagione in cui ogni stop pesava come un macigno.` : '',
+            opoy && opoy.name !== mvp.name ? `Offensive Player of the Year è invece ${opoy.name} (${fmt(opoy.total)} punti), premiato per la costanza con cui ha spostato gli equilibri domenica dopo domenica.` : '',
+        ].filter(Boolean).join(' '),
+        p2: coach ? `Coach of the Year è ${TEAMS[coach.teamKey]?.name}: ${coach.efficiency.toFixed(1)}% di lineup efficiency, il manager che ha sbagliato meno di tutti quando c'era da scegliere chi mandare in campo. Il resto dei premi — dal miglior QB al re delle waiver — è in bella mostra nella pagina Topina Honors, che vale una visita e più di un rosicamento.` : 'Il resto dei premi è in bella mostra nella pagina Topina Honors, che vale una visita e più di un rosicamento.',
+    };
+}
+
+function weatherSlots({ weekData, main, second, isSB }) {
+    const slots = [];
+    const played = [main, second].filter(Boolean);
+    let minScore = Infinity, minName = '';
+    played.forEach(m => [m.team1, m.team2].forEach(t => {
+        const s = P(t.score);
+        if (s < minScore) { minScore = s; minName = displayName(t.name); }
+    }));
+    played.forEach(m => [m.team1, m.team2].forEach(t => {
+        const won = winnerOf(m) === t;
+        slots.push({
+            value: Math.round(P(t.score)),
+            unit: 'pt',
+            label: nameOf(t.name),
+            mod: won ? ' text_shadow--hot' : (displayName(t.name) === minName ? ' text_shadow--cold' : ''),
+        });
+    }));
+    // top scorer della week
+    let top = null;
+    (weekData.matchups || []).forEach(m => [m.team1, m.team2].forEach(t =>
+        (t?.starters || []).forEach(p => {
+            if (!top || P(p.fantasy_points) > P(top.fantasy_points)) top = p;
+        })));
+    if (top) slots.push({ value: Math.round(P(top.fantasy_points)), unit: 'pt', label: top.name.split(' ').pop(), mod: ' text_shadow--hot' });
+    const totalPts = slots.slice(0, 4).reduce((s, x) => s + x.value, 0);
+    slots.push({ value: totalPts, unit: 'pt', label: isSB ? 'Finale totale' : 'Totale week', mod: '' });
+    return slots.slice(0, 6);
+}
+
+function footerStory({ standings, isPlayoff, isSB, main, config, week, league }) {
+    if (isSB) {
+        const key = keyOf(winnerOf(main).name);
+        const titles = league.allTime[key]?.sbWins?.length || 1;
+        return { title: `DINASTIA ${nameOf(winnerOf(main).name).toUpperCase()}?`, line1: `TITOLO NUMERO ${titles}`, line2: 'l\'albo d\'oro si aggiorna' };
+    }
+    if (isPlayoff) return { title: 'CHI ALZERÀ IL TROFEO?', line1: 'IL SUPER BOWL', line2: 'è a una sola partita di distanza' };
+    const left = config.regularSeasonWeeks - week;
+    if (left <= 3) {
+        const bubble = standings[2];
+        return { title: 'CORSA PLAYOFF INFUOCATA', line1: 'OGNI PUNTO PESA', line2: bubble ? `${bubble.name.toLowerCase()} in bilico sul filo dei playoff` : 'volata finale in vista' };
+    }
+    const lead = standings[0];
+    return { title: 'OCCHIO ALLA CLASSIFICA', line1: lead ? lead.name.toUpperCase() : 'LA CAPOLISTA', line2: 'detta il passo, le altre inseguono' };
+}
+
+function topicsRow({ standings, league }) {
+    const topics = standings.map(s => ({ label: s.name.split(' ')[0], n: s.w }));
+    while (topics.length < 4) topics.push({ label: '—', n: 0 });
+    topics.push(
+        { label: 'Honors', n: 10 },
+        { label: 'All-Pro', n: 18 },
+        { label: 'Draft', n: 60 },
+        { label: 'Stagioni', n: league.seasons.length },
+    );
+    return topics.slice(0, 8);
 }

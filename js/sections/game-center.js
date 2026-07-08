@@ -1,5 +1,6 @@
 import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=5';
-import { TEAM_LOGOS } from '../data/team-config.js?v=5';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=5';
+import { TEAMS } from './team.js?v=12';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -101,42 +102,49 @@ function renderMatchups() {
         return;
     }
 
-    // Sort Super Bowl week: Final (highest score?) first
-    let matchups = [...weekData.matchups];
+    // Sort Super Bowl week: Final (highest score?) first — conservando
+    // l'indice originale, usato dalla route #game/{year}/{week}/{idx}
+    let matchups = weekData.matchups.map((m, idx) => ({ m, idx }));
     if (currentWeek === getSeasonConfig(currentYear).superBowlWeek) {
         matchups.sort((a, b) => {
-            const totalA = parseFloat(a.team1.score) + parseFloat(a.team2.score);
-            const totalB = parseFloat(b.team1.score) + parseFloat(b.team2.score);
+            const totalA = parseFloat(a.m.team1.score) + parseFloat(a.m.team2.score);
+            const totalB = parseFloat(b.m.team1.score) + parseFloat(b.m.team2.score);
             return totalB - totalA; // Descending
         });
     }
 
-    grid.innerHTML = matchups.map((m, i) => {
+    grid.innerHTML = matchups.map(({ m, idx }, i) => {
         const s1 = parseFloat(m.team1.score);
         const s2 = parseFloat(m.team2.score);
         const w1 = s1 >= s2;
 
         const logo1 = TEAM_LOGOS[displayName(m.team1.name)] || 'images/nfl_logo.png';
         const logo2 = TEAM_LOGOS[displayName(m.team2.name)] || 'images/nfl_logo.png';
+        const c1 = TEAMS[TEAM_KEYS[displayName(m.team1.name)]]?.color || 'var(--accent-red)';
+        const c2 = TEAMS[TEAM_KEYS[displayName(m.team2.name)]]?.color || 'var(--accent-blue)';
         const fieldImg = getFieldImage(m.team1.name, m.team2.name);
 
         return `
-        <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${i}">
-            <div class="matchup-main fox-scoreboard">
-                <div class="logo-3d logo-3d-left">
-                    <img src="${logo1}" alt="${m.team1.name}" class="fox-logo">
+        <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${idx}">
+            <a class="gc-banner" href="#game/${currentYear}/${currentWeek}/${idx}"
+               style="--tc1:${c1};--tc2:${c2}" title="Apri l'analisi della partita">
+                <img class="gc-banner-wm gc-banner-wm-l" src="${logo1}" alt="" aria-hidden="true">
+                <img class="gc-banner-wm gc-banner-wm-r" src="${logo2}" alt="" aria-hidden="true">
+                <div class="gc-banner-inner">
+                    <div class="gc-banner-side">
+                        <span class="gc-banner-name">${displayName(m.team1.name)}</span>
+                    </div>
+                    <span class="gc-banner-score${w1 ? ' winner' : ''}">${m.team1.score}</span>
+                    <div class="gc-banner-mid">
+                        <span class="gc-banner-vs">vs</span>
+                        <span class="gc-banner-cta">Analisi <span aria-hidden="true">→</span></span>
+                    </div>
+                    <span class="gc-banner-score${!w1 ? ' winner' : ''}">${m.team2.score}</span>
+                    <div class="gc-banner-side gc-banner-side-r">
+                        <span class="gc-banner-name">${displayName(m.team2.name)}</span>
+                    </div>
                 </div>
-                <span class="fox-name">${displayName(m.team1.name)}</span>
-                <div class="score-block">
-                    <span class="fox-score ${w1 ? 'winner' : ''}">${m.team1.score}</span>
-                    <span class="fox-vs">vs</span>
-                    <span class="fox-score ${!w1 ? 'winner' : ''}">${m.team2.score}</span>
-                </div>
-                <span class="fox-name">${displayName(m.team2.name)}</span>
-                <div class="logo-3d logo-3d-right">
-                    <img src="${logo2}" alt="${m.team2.name}" class="fox-logo">
-                </div>
-            </div>
+            </a>
             <div class="matchup-field-horizontal">
                 <span class="field-team-label field-team-label-top">${displayName(m.team1.name)}</span>
                 <img src="${fieldImg}" class="field-bg" alt="">
