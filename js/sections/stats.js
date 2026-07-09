@@ -1,5 +1,5 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=21';
-import { TEAM_LOGOS } from '../data/team-config.js?v=21';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=21';
 
 let loaded = false;
 
@@ -67,6 +67,12 @@ function calculateStats(allSeasons) {
     // Tracking current streaks during iteration
     const currentStreaks = {}; // { teamName: { type: 'W'|'L'|'T', count: 0 } }
 
+    // Chart data (per-season trends, playoffs included)
+    const chartTeamPoints = {};   // season -> { rawTeamName: pts }
+    const chartPlayerTotals = {}; // season -> total fantasy points by all players (starters+bench)
+    const chartRolePoints = {};   // season -> { role: pts }
+    const chartGiornate = {};     // season -> giornate effettivamente giocate (matchup presenti)
+
     const initTeam = (name) => {
         if (!teamRecords[name]) teamRecords[name] = { w: 0, l: 0, t: 0, pf: 0, pa: 0, games: 0, sbWins: 0, sbApps: 0, playoffWins: 0 };
         if (!headToHead[name]) headToHead[name] = {};
@@ -113,6 +119,10 @@ function calculateStats(allSeasons) {
 
         const seasonPoints = {}; // Track points for this season
         const playerSeasonStats = {}; // `${team}||${player}` -> aggregated season stat totals
+        const chartSeasonTeamPts = {}; // team -> pts (tutte le settimane, playoff inclusi)
+        const seasonRolePoints = {}; // role -> fantasy points (all players, playoff inclusi)
+        let seasonPlayerTotal = 0;
+        let playedWeeks = 0;
 
         // Identify the actual Super Bowl matchup for this season
         const sbMatchup = getSuperBowlMatchup(data, season);
@@ -129,6 +139,7 @@ function calculateStats(allSeasons) {
             const wNum = parseInt(weekNum);
             const weekData = data.weeks[weekNum];
             if (!weekData.matchups) return;
+            if (weekData.matchups.length > 0) playedWeeks++;
 
             // Track who played this week
             const teamsPlayed = new Set();
@@ -145,6 +156,21 @@ function calculateStats(allSeasons) {
                 initTeam(t1);
                 initTeam(t2);
                 initH2H(t1, t2);
+
+                // Chart accumulation — tutte le settimane, playoff e SB inclusi
+                chartSeasonTeamPts[t1] = (chartSeasonTeamPts[t1] || 0) + s1;
+                chartSeasonTeamPts[t2] = (chartSeasonTeamPts[t2] || 0) + s2;
+                for (const side of [m.team1, m.team2]) {
+                    for (const list of [side.starters, side.bench]) {
+                        for (const p of list || []) {
+                            if (!p?.name) continue;
+                            const pPts = parseFloat(p.fantasy_points || 0);
+                            seasonPlayerTotal += pPts;
+                            const role = p.position_in_team || p.position;
+                            if (role) seasonRolePoints[role] = (seasonRolePoints[role] || 0) + pPts;
+                        }
+                    }
+                }
                 // === REGULAR SEASON Stats ===
                 if (wNum <= config.regularSeasonWeeks) {
                     // Global totals
@@ -236,6 +262,7 @@ function calculateStats(allSeasons) {
                             if (posKey === 'WR' || posKey === 'RB' || posKey === 'TE') {
                                 rec.recTDByPos[posKey] += Number(p.stats.rec_td) || 0;
                             }
+
                         });
                     });
                 }
@@ -308,6 +335,12 @@ function calculateStats(allSeasons) {
             }
         });
 
+        // End of Season: store chart trends (playoff inclusi)
+        chartTeamPoints[season] = { ...chartSeasonTeamPts };
+        chartPlayerTotals[season] = seasonPlayerTotal;
+        chartRolePoints[season] = seasonRolePoints;
+        chartGiornate[season] = playedWeeks;
+
         // End of Season: Check single-season player/defense records
         Object.entries(playerSeasonStats).forEach(([key, acc]) => {
             const [team, player] = key.split('||');
@@ -341,6 +374,12 @@ function calculateStats(allSeasons) {
         mostPassTDSeason,
         mostRecYardsSeason,
         mostRecTDSeason,
+        chartData: {
+            teamPoints: chartTeamPoints,
+            playerTotals: chartPlayerTotals,
+            rolePoints: chartRolePoints,
+            giornate: chartGiornate,
+        },
         mostSacksSeason,
         mostDefTurnoversSeason,
         mostDefTDSeason,
@@ -394,6 +433,7 @@ function renderStats(stats) {
     renderSummary(stats);
     renderRecords(stats);
     renderTeamPanels(stats);
+    renderCharts(stats);
 }
 
 function renderSummary(stats) {
@@ -598,4 +638,230 @@ function recTdSplit(byPos) {
             <span><i class="team-tdsplit-dot team-tdsplit-dot--te"></i>TE ${tePct.toFixed(0)}%</span>
         </div>
     </div>`;
+}
+
+/* ============================================================
+   TRENDS — grafici per stagione (riusa le classi chart an-*)
+   ============================================================ */
+
+// Colori serie: identità team schiarite per il fondo nero (come in Analysis)
+const CHART_COLORS_BY_KEY = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', sommo: '#4fa3b8' };
+// Colori ruolo (6 serie: direct labels + legenda obbligatorie)
+const ROLE_COLORS = { QB: '#f87171', RB: '#4f8cff', WR: '#22c55e', TE: '#f59e0b', K: '#a855f7', DEF: '#9ca3af' };
+
+function teamChartColor(rawName) {
+    const key = TEAM_KEYS[displayName(rawName)];
+    return CHART_COLORS_BY_KEY[key] || '#888';
+}
+
+function renderCharts(stats) {
+    const el = document.getElementById('charts-block');
+    if (!el || !stats.chartData) return;
+
+    const { teamPoints, playerTotals, rolePoints, giornate } = stats.chartData;
+    const seasons = Object.keys(teamPoints).sort();
+    if (seasons.length < 2) { el.innerHTML = ''; return; }
+
+    // Marker verticali dove cambia il numero di giornate giocate (playoff inclusi)
+    const markers = [];
+    for (let i = 1; i < seasons.length; i++) {
+        const prev = giornate[seasons[i - 1]] || 0;
+        const cur = giornate[seasons[i]] || 0;
+        const diff = cur - prev;
+        if (diff !== 0) {
+            markers.push({
+                x: seasons[i],
+                label: `${diff > 0 ? '+' : '−'}${Math.abs(diff)} giornat${Math.abs(diff) === 1 ? 'a' : 'e'}`,
+            });
+        }
+    }
+
+    // 1) Punti totali per team nelle stagioni
+    const teamNames = [...new Set(seasons.flatMap(s => Object.keys(teamPoints[s])))];
+    const teamSeries = teamNames.map(raw => ({
+        name: displayName(raw),
+        color: teamChartColor(raw),
+        values: seasons.filter(s => teamPoints[s][raw] !== undefined)
+            .map(s => ({ x: s, y: teamPoints[s][raw] })),
+    })).filter(s => s.values.length > 0);
+
+    // 2) Produzione totale di tutti i giocatori
+    const prodSeries = [{
+        name: 'All Players',
+        color: '#d4665e',
+        values: seasons.map(s => ({ x: s, y: playerTotals[s] || 0 })),
+    }];
+
+    // 3) Produzione per ruolo
+    const roles = Object.keys(ROLE_COLORS).filter(r => seasons.some(s => (rolePoints[s] || {})[r] > 0));
+    const roleSeries = roles.map(role => ({
+        name: role,
+        color: ROLE_COLORS[role],
+        values: seasons.map(s => ({ x: s, y: (rolePoints[s] || {})[role] || 0 })),
+    }));
+
+    const legendOf = (series) => `
+    <div class="an-chart-legend">
+        ${series.map(s => `<span class="an-legend-item"><span class="an-legend-key" style="background:${s.color}"></span>${s.name}</span>`).join('')}
+    </div>`;
+
+    el.innerHTML = `
+        <h2 class="records-title">Trends</h2>
+
+        <h3 class="an-sub-title">Team Points by Season</h3>
+        ${legendOf(teamSeries)}
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(teamSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <h3 class="an-sub-title">Total Player Production by Season</h3>
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(prodSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <h3 class="an-sub-title">Player Production by Role</h3>
+        ${legendOf(roleSeries)}
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <p class="an-footnote">Playoffs and Super Bowl included. Player production includes bench points; team points are actual matchup scores. Dashed lines mark seasons where the number of giornate changed.</p>
+    `;
+
+    el.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+}
+
+/* ---------- Line chart per stagioni (SVG, x categorico = anni) ---------- */
+
+const SLC = { w: 800, h: 300, l: 56, r: 96, t: 16, b: 30 };
+
+function chartNiceTicks(min, max, count = 4) {
+    const span = max - min || 1;
+    const step = Math.pow(10, Math.floor(Math.log10(span / count)));
+    const err = span / count / step;
+    const mult = err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1;
+    const s = mult * step;
+    const lo = Math.floor(min / s) * s;
+    const hi = Math.ceil(max / s) * s;
+    const ticks = [];
+    for (let v = lo; v <= hi + 1e-9; v += s) ticks.push(v);
+    return ticks;
+}
+
+function buildSeasonLineChart(series, markers = []) {
+    const xs = [...new Set(series.flatMap(s => s.values.map(v => v.x)))].sort();
+    const ys = series.flatMap(s => s.values.map(v => v.y));
+    const ticks = chartNiceTicks(Math.min(...ys), Math.max(...ys));
+    const yMin = ticks[0], yMax = ticks[ticks.length - 1];
+
+    const plotW = SLC.w - SLC.l - SLC.r;
+    const plotH = SLC.h - SLC.t - SLC.b;
+    const x = (xv) => SLC.l + (xs.length > 1 ? (xs.indexOf(xv) / (xs.length - 1)) * plotW : plotW / 2);
+    const y = (v) => SLC.t + (1 - (v - yMin) / (yMax - yMin || 1)) * plotH;
+
+    const grid = ticks.map(v => `
+        <line x1="${SLC.l}" y1="${y(v)}" x2="${SLC.l + plotW}" y2="${y(v)}" class="an-gridline"/>
+        <text x="${SLC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${parseInt(v).toLocaleString('en-US')}</text>`).join('');
+
+    const xTicks = xs.map(xv =>
+        `<text x="${x(xv)}" y="${SLC.h - 8}" class="an-tick" text-anchor="middle">${xv}</text>`).join('');
+
+    // Linee verticali tratteggiate dove cambia il numero di giornate
+    const vRules = markers.filter(mk => xs.includes(mk.x)).map(mk => `
+        <line x1="${x(mk.x)}" y1="${SLC.t}" x2="${x(mk.x)}" y2="${SLC.t + plotH}" class="an-vrule"/>
+        <text x="${x(mk.x) + 5}" y="${SLC.t + 10}" class="an-vrule-label">${mk.label}</text>`).join('');
+
+    // Etichette di fine linea con anti-collisione verticale
+    const ends = series.map(s => {
+        const last = s.values[s.values.length - 1];
+        return { s, lx: x(last.x), ly: y(last.y), labelY: y(last.y) };
+    }).sort((a, b) => a.ly - b.ly);
+    const MIN_GAP = 14;
+    for (let i = 1; i < ends.length; i++) {
+        if (ends[i].labelY - ends[i - 1].labelY < MIN_GAP) ends[i].labelY = ends[i - 1].labelY + MIN_GAP;
+    }
+
+    const lines = series.map(s => {
+        const pts = s.values.map(v => `${x(v.x).toFixed(1)},${y(v.y).toFixed(1)}`).join(' ');
+        return `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }).join('');
+
+    // Marker su ogni punto dati (ring color superficie per leggibilità sugli incroci)
+    const pointDots = series.map(s =>
+        s.values.map(v =>
+            `<circle cx="${x(v.x).toFixed(1)}" cy="${y(v.y).toFixed(1)}" r="3.5" fill="${s.color}" stroke="#000" stroke-width="1.5"/>`
+        ).join('')
+    ).join('');
+
+    const endDots = ends.map(({ s, lx, ly, labelY }) => `
+        ${Math.abs(labelY - ly) > 2 ? `<line x1="${lx + 5}" y1="${ly}" x2="${lx + 12}" y2="${labelY}" class="an-leader"/>` : ''}
+        <circle cx="${lx}" cy="${ly}" r="4.5" fill="${s.color}" stroke="#000" stroke-width="2"/>
+        ${series.length > 1 ? `<text x="${lx + 14}" y="${labelY + 3.5}" class="an-endlabel">${s.name}</text>` : ''}`).join('');
+
+    const data = { xs, series: series.map(s => ({ name: s.name, color: s.color, values: s.values })) };
+    const dataAttr = JSON.stringify(data).replace(/'/g, '&#39;');
+
+    return `
+    <svg viewBox="0 0 ${SLC.w} ${SLC.h}" class="an-svg" data-series='${dataAttr}'>
+        ${grid}${xTicks}${vRules}${lines}${pointDots}${endDots}
+        <line class="an-crosshair" x1="0" y1="${SLC.t}" x2="0" y2="${SLC.t + plotH}" visibility="hidden"/>
+        <rect class="an-hit" x="${SLC.l}" y="${SLC.t}" width="${plotW}" height="${plotH}" fill="transparent"/>
+    </svg>`;
+}
+
+function bindSeasonChart(container) {
+    const svg = container.querySelector('svg');
+    const tooltip = container.querySelector('.an-chart-tooltip');
+    const crosshair = svg.querySelector('.an-crosshair');
+    const hit = svg.querySelector('.an-hit');
+    const data = JSON.parse(svg.dataset.series);
+    const plotW = SLC.w - SLC.l - SLC.r;
+
+    const xFor = (xv) => SLC.l + (data.xs.length > 1 ? (data.xs.indexOf(xv) / (data.xs.length - 1)) * plotW : plotW / 2);
+
+    hit.addEventListener('pointermove', (e) => {
+        const rect = svg.getBoundingClientRect();
+        const scale = SLC.w / rect.width;
+        const px = (e.clientX - rect.left) * scale;
+        let nearest = data.xs[0], best = Infinity;
+        for (const xv of data.xs) {
+            const d = Math.abs(xFor(xv) - px);
+            if (d < best) { best = d; nearest = xv; }
+        }
+        const cx = xFor(nearest);
+        crosshair.setAttribute('x1', cx);
+        crosshair.setAttribute('x2', cx);
+        crosshair.setAttribute('visibility', 'visible');
+
+        tooltip.replaceChildren();
+        const title = document.createElement('div');
+        title.className = 'an-tt-title';
+        title.textContent = `Season ${nearest}`;
+        tooltip.appendChild(title);
+        const rows = data.series
+            .map(s => ({ s, v: s.values.find(v => v.x === nearest) }))
+            .filter(r => r.v)
+            .sort((a, b) => b.v.y - a.v.y);
+        for (const { s, v } of rows) {
+            const row = document.createElement('div');
+            row.className = 'an-tt-row';
+            const key = document.createElement('span');
+            key.className = 'an-tt-key';
+            key.style.background = s.color;
+            const val = document.createElement('b');
+            val.textContent = Math.round(v.y).toLocaleString('en-US');
+            const name = document.createElement('span');
+            name.className = 'an-tt-name';
+            name.textContent = s.name;
+            row.append(key, val, name);
+            tooltip.appendChild(row);
+        }
+        tooltip.hidden = false;
+
+        const crect = container.getBoundingClientRect();
+        let tx = e.clientX - crect.left + 14;
+        const tw = tooltip.offsetWidth || 140;
+        if (tx + tw > crect.width - 4) tx = e.clientX - crect.left - tw - 14;
+        tooltip.style.left = `${tx}px`;
+        tooltip.style.top = `${e.clientY - crect.top - 10}px`;
+    });
+
+    hit.addEventListener('pointerleave', () => {
+        crosshair.setAttribute('visibility', 'hidden');
+        tooltip.hidden = true;
+    });
 }

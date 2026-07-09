@@ -1694,83 +1694,60 @@ img {
 
 
 
-/* ---- History SB Scoreboard (Game Center style) ---- */
-.history-sb-scoreboard {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 6px 20px;
-    margin-top: 12px;
-    border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    overflow: visible;
-    position: relative;
+/* ---- History: SB banner (riusa .gc-banner) + highlights ---- */
+.history-sb-banner {
+    margin-top: 4px;
+    margin-bottom: 0;
 }
 
-.history-sb-team {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.history-sb-logo {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
-    margin-top: -30px;
-    margin-bottom: -20px;
-    transition: transform 0.3s ease;
-}
-
-.history-sb-logo:hover {
-    transform: scale(1.08) translateY(-3px);
-}
-
-.history-sb-name {
-    font-family: var(--font-display);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.95rem;
-    letter-spacing: 0.04em;
-    color: var(--text-primary);
-    white-space: nowrap;
-}
-
-.history-sb-scores {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.history-sb-score {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-    min-width: 50px;
-    text-align: center;
-}
-
-.history-sb-score.winner {
-    color: #B8433A;
-    text-shadow: 0 0 10px rgba(184, 67, 58, 0.25);
-}
-
-.history-sb-score.loser {
+.history-sb-mvp {
+    font-size: 0.78rem;
     color: var(--text-muted);
+    margin-top: 10px;
 }
 
-.history-sb-vs {
-    font-size: 0.6rem;
+.history-sb-mvp b {
+    color: var(--accent-amber);
     font-weight: 700;
-    color: var(--text-muted);
+}
+
+/* Chips highlights (MVP stagione, miglior prova) */
+.history-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 14px 0 6px;
+}
+
+.hh-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md, 12px);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.03);
+    min-width: 150px;
+}
+
+.hh-chip-label {
+    font-size: 0.58rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
+    color: var(--accent-red);
+}
+
+.hh-chip-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.hh-chip-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
 }
 
 /* ================================
@@ -2126,16 +2103,15 @@ img {
    STANDINGS REDESIGN
    ======================================== */
 
-/* Titoletto in stile section-title (gradient) ma orizzontale */
+/* Titoletto in stile filigrana Standings (display uppercase) ma orizzontale e rosso */
 .st-block-title {
     font-family: var(--font-display);
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(2rem, 5vw, 2.7rem);
     font-weight: 800;
-    letter-spacing: -0.03em;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--accent-red);
     margin: 56px 0 28px;
 }
 
@@ -4015,6 +3991,15 @@ img {
     margin-top: 90px;
 }
 
+.charts-block {
+    margin-top: 90px;
+}
+
+.charts-block .records-title {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
 .team-alltime-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -5813,6 +5798,21 @@ img {
     stroke: rgba(255, 255, 255, 0.3);
     stroke-width: 1;
     pointer-events: none;
+}
+
+/* Riga verticale tratteggiata: cambio di formato stagione (giornate) */
+.an-vrule {
+    stroke: rgba(255, 255, 255, 0.28);
+    stroke-width: 1;
+    stroke-dasharray: 5 5;
+    pointer-events: none;
+}
+
+.an-vrule-label {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-style: italic;
 }
 
 .an-bar {

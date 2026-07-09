@@ -2,12 +2,13 @@
  * History Section
  * Per-year recap built entirely from Firebase data:
  *  - Regular season standings
- *  - Super Bowl final (last week matchup)
- *  - Champion
+ *  - Super Bowl final (banner stile Game Center, cliccabile → analisi partita)
+ *  - Champion + highlights per-giocatore (MVP stagione, miglior prova, MVP del SB)
  *  - Dynamic season recap narratives
  */
-import { fetchFantasyData, processStandings, getSuperBowlMatchup, displayName, SEASONS } from '../data.js?v=5';
-import { TEAM_LOGOS } from '../data/team-config.js?v=6';
+import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=5';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=6';
+import { TEAMS } from './team.js?v=12';
 
 let loaded = false;
 
@@ -25,7 +26,12 @@ export async function initHistory() {
             if (!data) return null;
             const standings = processStandings(data, year);
             const sbMatchup = getSuperBowlMatchup(data, year);
-            return { year, standings, sbMatchup };
+            const highlights = seasonHighlights(data, sbMatchup);
+            // Indice del SB nella sua settimana, per il link #game/{year}/{week}/{idx}
+            const config = getSeasonConfig(year);
+            const sbWeekMatchups = data.weeks?.[String(config.superBowlWeek)]?.matchups || [];
+            const sbIdx = sbWeekMatchups.indexOf(sbMatchup);
+            return { year, standings, sbMatchup, highlights, sbWeek: config.superBowlWeek, sbIdx };
         })
     );
 
@@ -38,6 +44,59 @@ export async function initHistory() {
     }
 
     container.innerHTML = seasons.map((s, i) => renderSeasonCard(s, i)).join('');
+}
+
+/**
+ * Highlights per-giocatore della stagione (dai dati stats settimanali):
+ * MVP (più punti totali, DEF escluse), miglior prova singola da titolare,
+ * MVP del Super Bowl (miglior titolare della finale).
+ */
+function seasonHighlights(data, sbMatchup) {
+    const totals = new Map(); // name -> { pos, pts }
+    let bestGame = null;
+
+    for (const [wkStr, wkData] of Object.entries(data.weeks || {})) {
+        for (const m of wkData.matchups || []) {
+            for (const side of [m.team1, m.team2]) {
+                if (!side) continue;
+                for (const [list, started] of [[side.starters, true], [side.bench, false]]) {
+                    for (const p of list || []) {
+                        if (!p?.name) continue;
+                        const pos = p.position_in_team || p.position;
+                        const pts = parseFloat(p.fantasy_points || 0);
+                        const t = totals.get(p.name) || { pos, pts: 0 };
+                        t.pts += pts;
+                        t.pos = pos;
+                        totals.set(p.name, t);
+                        if (started && pos !== 'DEF' && (!bestGame || pts > bestGame.pts)) {
+                            bestGame = { name: p.name, pos, wk: Number(wkStr), pts };
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mvp = null;
+    for (const [name, t] of totals) {
+        if (t.pos === 'DEF') continue;
+        if (!mvp || t.pts > mvp.pts) mvp = { name, pos: t.pos, pts: t.pts };
+    }
+
+    let sbMvp = null;
+    if (sbMatchup) {
+        for (const side of [sbMatchup.team1, sbMatchup.team2]) {
+            for (const p of side?.starters || []) {
+                if (!p?.name) continue;
+                const pts = parseFloat(p.fantasy_points || 0);
+                if (!sbMvp || pts > sbMvp.pts) {
+                    sbMvp = { name: p.name, pos: p.position_in_team || p.position, pts, team: displayName(side.name) };
+                }
+            }
+        }
+    }
+
+    return { mvp, bestGame, sbMvp };
 }
 
 /**
@@ -175,7 +234,7 @@ function generateRecap({ year, standings, sbMatchup }) {
     return parts.join(' ');
 }
 
-function renderSeasonCard({ year, standings, sbMatchup }, index) {
+function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbIdx }, index) {
     // Determine champion from SB matchup
     let champion = null;
     let sbHtml = '';
@@ -183,37 +242,54 @@ function renderSeasonCard({ year, standings, sbMatchup }, index) {
     if (sbMatchup) {
         const s1 = parseFloat(sbMatchup.team1.score);
         const s2 = parseFloat(sbMatchup.team2.score);
-        const winner = s1 >= s2 ? sbMatchup.team1 : sbMatchup.team2;
-        const loser = s1 >= s2 ? sbMatchup.team2 : sbMatchup.team1;
-        const ws = s1 >= s2 ? s1 : s2;
-        const ls = s1 >= s2 ? s2 : s1;
-        champion = winner.name;
+        const w1 = s1 >= s2;
+        champion = w1 ? sbMatchup.team1.name : sbMatchup.team2.name;
 
-        const logo1 = TEAM_LOGOS[displayName(winner.name)] || 'images/nfl_logo.png';
-        const logo2 = TEAM_LOGOS[displayName(loser.name)] || 'images/nfl_logo.png';
+        const n1 = displayName(sbMatchup.team1.name);
+        const n2 = displayName(sbMatchup.team2.name);
+        const logo1 = TEAM_LOGOS[n1] || 'images/nfl_logo.png';
+        const logo2 = TEAM_LOGOS[n2] || 'images/nfl_logo.png';
+        const c1 = TEAMS[TEAM_KEYS[n1]]?.color || 'var(--accent-red)';
+        const c2 = TEAMS[TEAM_KEYS[n2]]?.color || 'var(--accent-blue)';
+
+        // Banner stile Game Center; cliccabile → analisi partita se conosciamo l'indice
+        const href = sbIdx >= 0 ? ` href="#game/${year}/${sbWeek}/${sbIdx}"` : '';
+        const tag = sbIdx >= 0 ? 'a' : 'div';
+        const sbMvp = highlights?.sbMvp;
 
         sbHtml = `
         <div class="history-sub-title">Super Bowl Final</div>
-        <div class="history-sb-scoreboard">
-            <div class="history-sb-team">
-                <img src="${logo1}" alt="${displayName(winner.name)}" class="history-sb-logo">
-                <span class="history-sb-name">${displayName(winner.name)}</span>
+        <${tag} class="gc-banner history-sb-banner"${href} style="--tc1:${c1};--tc2:${c2}" title="Apri l'analisi della finale">
+            <img class="gc-banner-wm gc-banner-wm-l" src="${logo1}" alt="" aria-hidden="true">
+            <img class="gc-banner-wm gc-banner-wm-r" src="${logo2}" alt="" aria-hidden="true">
+            <div class="gc-banner-inner">
+                <div class="gc-banner-side">
+                    <span class="gc-banner-name">${n1}</span>
+                </div>
+                <span class="gc-banner-score${w1 ? ' winner' : ''}">${s1.toFixed(2)}</span>
+                <div class="gc-banner-mid">
+                    <span class="gc-banner-vs">vs</span>
+                    ${sbIdx >= 0 ? '<span class="gc-banner-cta">Analisi <span aria-hidden="true">→</span></span>' : ''}
+                </div>
+                <span class="gc-banner-score${!w1 ? ' winner' : ''}">${s2.toFixed(2)}</span>
+                <div class="gc-banner-side gc-banner-side-r">
+                    <span class="gc-banner-name">${n2}</span>
+                </div>
             </div>
-            <div class="history-sb-scores">
-                <span class="history-sb-score winner">${ws.toFixed(2)}</span>
-                <span class="history-sb-vs">vs</span>
-                <span class="history-sb-score loser">${ls.toFixed(2)}</span>
-            </div>
-            <div class="history-sb-team">
-                <span class="history-sb-name">${displayName(loser.name)}</span>
-                <img src="${logo2}" alt="${displayName(loser.name)}" class="history-sb-logo">
-            </div>
-        </div>`;
+        </${tag}>
+        ${sbMvp ? `<div class="history-sb-mvp">🏆 MVP del Super Bowl: <b>${sbMvp.name}</b> (${sbMvp.pos} · ${sbMvp.team}) — ${sbMvp.pts.toFixed(2)} pt</div>` : ''}`;
     }
 
     // Season recap narrative
     const recap = generateRecap({ year, standings, sbMatchup });
     const recapHtml = recap ? `<div class="history-recap">${recap}</div>` : '';
+
+    // Highlights per-giocatore (nuovi dati stats)
+    const hl = highlights || {};
+    const chips = [];
+    if (hl.mvp) chips.push(hlChip('MVP Stagione', hl.mvp.name, `${hl.mvp.pos} · ${hl.mvp.pts.toFixed(0)} pt`));
+    if (hl.bestGame) chips.push(hlChip('Miglior Prova', hl.bestGame.name, `W${hl.bestGame.wk} · ${hl.bestGame.pts.toFixed(1)} pt`));
+    const highlightsHtml = chips.length ? `<div class="history-highlights">${chips.join('')}</div>` : '';
 
     // Regular season standings — editorial rows, no card background
     const standingsHtml = standings.length ? `
@@ -242,8 +318,18 @@ function renderSeasonCard({ year, standings, sbMatchup }, index) {
         </div>
         <div class="history-body">
             ${recapHtml}
+            ${highlightsHtml}
             ${standingsHtml}
             ${sbHtml}
         </div>
+    </div>`;
+}
+
+function hlChip(label, name, meta) {
+    return `
+    <div class="hh-chip">
+        <span class="hh-chip-label">${label}</span>
+        <span class="hh-chip-name">${name}</span>
+        <span class="hh-chip-meta">${meta}</span>
     </div>`;
 }

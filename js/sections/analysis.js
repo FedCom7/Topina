@@ -67,7 +67,7 @@ function renderTeamSelector() {
     if (!container) return;
     container.innerHTML = `
         <button class="an-team-pill${currentTeam === 'all' ? ' active' : ''}" data-team="all" style="--team-color:#B8433A">
-            🏆 Totale
+            Totale
         </button>` + Object.values(TEAMS).map(t =>
         `<button class="an-team-pill${t.key === currentTeam ? ' active' : ''}" data-team="${t.key}" style="--team-color:${t.color}">
             <img src="${t.logo}" alt="" class="an-team-pill-logo">${t.name}
