@@ -1,5 +1,7 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=21';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=21';
+import { TEAMS } from './team.js?v=12';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=12';
 
 let loaded = false;
 
@@ -720,9 +722,121 @@ function renderCharts(stats) {
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
 
         <p class="an-footnote">Playoffs and Super Bowl included. Player production includes bench points; team points are actual matchup scores. Dashed lines mark seasons where the number of giornate changed.</p>
+
+        <div id="charts-advanced">
+            <div class="loading-state"><div class="spinner"></div><p>Caricamento grafici avanzati...</p></div>
+        </div>
     `;
 
     el.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+
+    // Grafici che richiedono il modello di Analysis (draft + roster per settimana)
+    renderAdvancedCharts(markers).catch(e => {
+        console.error('Advanced charts error:', e);
+        const adv = document.getElementById('charts-advanced');
+        if (adv) adv.innerHTML = '';
+    });
+}
+
+/* ---------- Grafici avanzati (draftata / innesti / panchina / costanza) ---------- */
+
+async function renderAdvancedCharts(markers) {
+    const adv = document.getElementById('charts-advanced');
+    if (!adv) return;
+
+    // Costruisce (o recupera dalla cache) il modello Analysis per ogni stagione
+    const models = {};
+    for (const year of SEASONS) {
+        try {
+            const m = await buildSeasonModel(year);
+            if (m) models[year] = m;
+        } catch (e) { /* stagione senza dati: skip */ }
+    }
+    const seasons = Object.keys(models).sort();
+    if (seasons.length < 2) { adv.innerHTML = ''; return; }
+
+    const teamKeys = Object.keys(TEAMS); // capi, lasers, oscurus, sommo
+
+    // Serie multi-team su una metrica (fn(model, teamKey) -> valore o null)
+    const buildTeamMetric = (metricFn) => teamKeys.map(key => ({
+        name: TEAMS[key].name,
+        color: CHART_COLORS_BY_KEY[key] || '#888',
+        values: seasons
+            .map(s => ({ x: s, y: metricFn(models[s], key) }))
+            .filter(v => v.y !== null && v.y !== undefined),
+    })).filter(s => s.values.length > 0);
+
+    // 1) Punti squadra draftata
+    const draftedSeries = buildTeamMetric((m, k) => pointsComparison(m, k).drafted);
+
+    // 2) Punti dagli innesti (somma punti "qui" degli acquisti in-season)
+    const pickupSeries = buildTeamMetric((m, k) => {
+        const { additions } = marketView(m, k);
+        return additions.reduce((s, a) => s + a.agg.pts, 0);
+    });
+
+    // 3) Punti lasciati in panchina (ottimale − reale)
+    const benchSeries = buildTeamMetric((m, k) => pointsComparison(m, k).benchLost);
+
+    // 4) Costanza dei punteggi su tutte le stagioni (range min–mediana–max per team)
+    const distRows = teamKeys.map(key => {
+        const scores = [];
+        for (const s of seasons) {
+            for (const tw of Object.values(models[s].teamWeeks[key] || {})) scores.push(tw.score);
+        }
+        if (!scores.length) return null;
+        const sorted = scores.sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        return { name: TEAMS[key].name, color: CHART_COLORS_BY_KEY[key] || '#888', min: sorted[0], median, max: sorted[sorted.length - 1] };
+    }).filter(Boolean);
+
+    const legendOf = (series) => `
+    <div class="an-chart-legend">
+        ${series.map(s => `<span class="an-legend-item"><span class="an-legend-key" style="background:${s.color}"></span>${s.name}</span>`).join('')}
+    </div>`;
+
+    adv.innerHTML = `
+        <h3 class="an-sub-title">Drafted Team Points by Season</h3>
+        ${legendOf(draftedSeries)}
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(draftedSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <h3 class="an-sub-title">In-Season Pickup Points by Season</h3>
+        ${legendOf(pickupSeries)}
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(pickupSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <h3 class="an-sub-title">Points Left on the Bench by Season</h3>
+        ${legendOf(benchSeries)}
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <h3 class="an-sub-title">Scoring Consistency (all seasons)</h3>
+        ${buildConsistencyChart(distRows)}
+    `;
+
+    adv.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+}
+
+// Range bar per team (min → max, tick sulla mediana) — riusa le classi .an-dist-*
+function buildConsistencyChart(rows) {
+    if (!rows.length) return '';
+    const maxVal = Math.max(...rows.map(r => r.max), 1);
+    return `
+    <div class="an-dist-chart">
+        ${rows.map(r => `
+        <div class="an-dist-row">
+            <span class="an-dist-name">${r.name}</span>
+            <span class="an-dist-track">
+                <span class="an-dist-range" style="left:${(r.min / maxVal * 100).toFixed(1)}%; width:${((r.max - r.min) / maxVal * 100).toFixed(1)}%; background:${r.color}"></span>
+                <span class="an-dist-median" style="left:${(r.median / maxVal * 100).toFixed(1)}%"></span>
+            </span>
+            <span class="an-dist-values">
+                <span class="an-dist-min">${Math.round(r.min)}</span>
+                <span class="an-dist-med">${Math.round(r.median)}</span>
+                <span class="an-dist-max">${Math.round(r.max)}</span>
+            </span>
+        </div>`).join('')}
+    </div>
+    <p class="an-footnote">Intervallo min–max dei punteggi settimanali (tutte le stagioni, playoff inclusi); il segno verticale è la mediana. Barra più corta = squadra più costante.</p>`;
 }
 
 /* ---------- Line chart per stagioni (SVG, x categorico = anni) ---------- */
