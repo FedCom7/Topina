@@ -13,7 +13,7 @@ import { initHallOfFame } from './sections/halloffame.js?v=9';
 import { initTeam } from './sections/team.js?v=12';
 import { initTeams } from './sections/teams.js?v=2';
 import { initGame } from './sections/game.js?v=2';
-import { initAnalysis } from './sections/analysis.js?v=8';
+import { initAnalysis } from './sections/analysis.js?v=9';
 import { initMagazine } from './sections/magazine.js?v=15';
 import { initNavbar } from './ui/navbar.js';
 
