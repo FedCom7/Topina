@@ -6,8 +6,22 @@
  * da template guidati dai numeri: zero contenuto inventato.
  */
 
+import {
+    pickSeeded, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL, TOP_PLAYER_PHRASES,
+    AN_STAKES_PLAYOFF, AN_STAKES_SB, AN_SERIES_LINES, AN_FLOP_WRAP, AN_HOT_STREAK_LINES,
+} from './magazine-voices.js?v=6';
+
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const pick = pickSeeded;
+
+/** Seed deterministico per-partita: stessa partita → stesse frasi ad ogni visita */
+function matchupSeed(ctx, nW, nL) {
+    let h = (+ctx.year) * 37 + (ctx.weekNum || 0);
+    const s = nW + nL;
+    for (let i = 0; i < s.length; i++) h += s.charCodeAt(i);
+    return h;
+}
 
 export const SLOT_ORDER = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'W/R', 'K', 'DEF'];
 
@@ -180,6 +194,7 @@ export function recapArticle(m, bundle, ranks, ctx) {
     const nW = ctx.teamName(W.name), nL = ctx.teamName(L.name);
     const top = [...(W.starters || [])].sort((x, y) => pts(y) - pts(x))[0];
     const topPts = pts(top);
+    const seed = matchupSeed(ctx, nW, nL);
 
     // Titolo
     let headline;
@@ -190,25 +205,28 @@ export function recapArticle(m, bundle, ranks, ctx) {
     const paras = [];
 
     // P1 — la partita
+    const marginBank = margin < 5 ? MARGIN_THRILLER : margin >= 20 ? MARGIN_BLOWOUT : MARGIN_NORMAL;
     let p1 = `Con ${fmt(topPts)} punti di ${top?.name} a fare da traino, ${nW} batte ${nL} ${fmt(sW)} a ${fmt(sL)}.`;
-    if (margin < 5) p1 += ` Un successo di misura, deciso da ${fmt(margin)} punti: partita in bilico fino all'ultimo snap.`;
-    else if (margin >= 20) p1 += ` Vittoria senza appello, con ${fmt(margin)} punti di scarto.`;
-    else p1 += ` Margine finale di ${fmt(margin)} punti.`;
+    p1 += ' ' + pick(marginBank, seed).replaceAll('{margin}', fmt(margin)).replaceAll('{loser}', nL);
     const topStat = statLine(top);
-    if (topStat) p1 += ` La copertina è tutta per ${top?.name}: ${topStat}.`;
     const best = bundle?.players?.[top?.name]?.best;
-    if (best && topPts >= best.pts && topPts > 12) p1 += ` È il suo massimo stagionale.`;
+    const isPersonalBest = !!(best && topPts >= best.pts && topPts > 12);
+    p1 += ' ' + pick(TOP_PLAYER_PHRASES, seed + 1)
+        .replaceAll('{top}', top?.name || nW)
+        .replaceAll('{pts}', fmt(topPts))
+        .replaceAll('{stat}', topStat || 'una prova totale, di quelle che non hanno bisogno di note a margine');
+    if (isPersonalBest) p1 += ` È il suo massimo stagionale.`;
     paras.push(p1);
 
     // P2 — posta in palio / precedenti stagionali
     if (ctx.isSB) {
-        paras.push(`Una notte che vale tutto: con questo successo ${nW} si prende il titolo della Topina League ${ctx.year}.`);
+        paras.push(pick(AN_STAKES_SB, seed + 2)({ nW, year: ctx.year }));
     } else if (ctx.isPlayoff) {
-        paras.push(`In palio c'era un posto nel Super Bowl: ${nW} stacca il biglietto per la finale, per ${nL} la stagione si chiude qui.`);
+        paras.push(pick(AN_STAKES_PLAYOFF, seed + 2)({ nW, nL }));
     } else if (ctx.seriesGames?.length) {
         const w = ctx.seriesGames.filter(g => g.won).length;
         const l = ctx.seriesGames.length - w;
-        paras.push(`Contando i precedenti stagionali, il bilancio tra le due squadre ora dice ${w + 1}-${l} in favore di ${nW}.`);
+        paras.push(pick(AN_SERIES_LINES, seed + 2)({ nW, w: w + 1, l }));
     }
 
     // P3 — il flop della sconfitta
@@ -220,9 +238,8 @@ export function recapArticle(m, bundle, ranks, ctx) {
     if (flop && flop.delta <= -0.35) {
         const s = flop.p.stats;
         const touches = s ? (s.rush_yds || 0) + (s.rec_yds || 0) : 0;
-        let p3 = `In casa ${nL} pesa la giornata no di ${flop.p.name}: ${fmt(flop.v)} punti contro una media stagionale di ${fmt1(flop.avg)}`;
-        p3 += touches ? `, con appena ${touches} yard totali prodotte.` : '.';
-        paras.push(p3);
+        const extra = touches ? `, con appena ${touches} yard totali prodotte.` : '.';
+        paras.push(pick(AN_FLOP_WRAP, seed + 3)({ loser: nL, name: flop.p.name, pts: fmt(flop.v), avg: fmt1(flop.avg), extra }));
     }
 
     // P4 — chi è in fiducia e chi no
@@ -233,7 +250,7 @@ export function recapArticle(m, bundle, ranks, ctx) {
         .slice(0, 2);
     if (hot.length) {
         const names = hot.map(x => `${x.p.name} (+${Math.round((x.v - x.avg) / x.avg * 100)}% sulla media)`).join(' e ');
-        paras.push(`Tra i vincitori c'è chi viaggia a pieni giri: ${names} ${hot.length > 1 ? 'hanno' : 'ha'} dato profondità al punteggio di ${nW}.`);
+        paras.push(pick(AN_HOT_STREAK_LINES, seed + 4)({ names, verb: hot.length > 1 ? 'hanno' : 'ha', nW }));
     }
 
     return {

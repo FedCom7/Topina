@@ -21,13 +21,21 @@ import { TEAM_KEYS } from '../data/team-config.js?v=5';
 import { TEAMS } from './team.js?v=12';
 import { getLeagueData } from '../data/league-data.js?v=1';
 import { getHonorsBundle } from '../data/honors.js?v=1';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg } from '../data/matchup-analysis.js?v=1';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=2';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
     TOP_PLAYER_PHRASES, NOTE_LEADS, CLOSERS,
     PLAYER_QUOTES_WIN, PLAYER_QUOTES_LOSS, BENCH_RAGE,
-} from '../data/magazine-voices.js?v=2';
+    SB_MVP_QUOTES, DPOY_HONORS_QUOTES, COACH_HONORS_QUOTES,
+    RIVALRY_OPENERS, SEASON_SERIES_LINES, STREAK_ALIVE_LINES, STREAK_BROKEN_LINES,
+    STANDINGS_LEADER_LINES, NOTEBOOK_LEADER_LINES, GAP_TIED_LINES, GAP_AHEAD_LINES,
+    NO_FLOP_LINES, FLOP_WRAP_MAIN, FLOP_WRAP_SECONDARY,
+    WAIVER_WRAP_BOTH, WAIVER_WRAP_ADD_ONLY, WAIVER_WRAP_DROP_ONLY, WAIVER_NO_MOVES,
+    SECONDARY_LEDE_OPENERS, SECONDARY_NO_FLOP_LINES,
+    STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
+    TEAMMATE_PRAISE,
+} from '../data/magazine-voices.js?v=6';
 import { playerImageService } from '../services/player-image-service.js?v=4';
 
 let initialized = false;
@@ -53,11 +61,19 @@ function fieldImage(m) {
 
 // ─── Testata: SVG inline (niente asset esterni) ──────────────────
 
-const MASTHEAD_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 74"><text x="320" y="56" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="58" letter-spacing="2" fill="#000">Topina Weekly</text></svg>`);
-
-const SHIELD_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130"><path d="M60 4 108 22v42c0 34-22 52-48 62C34 116 12 98 12 64V22Z" fill="none" stroke="#000" stroke-width="5"/><text x="60" y="82" text-anchor="middle" font-size="52">🏈</text></svg>`);
+/**
+ * Testata del giornale: nome fisso "Topina Weekly", tranne nell'edizione
+ * Super Bowl dove diventa "{Squadra Campione} Weekly". viewBox più alto e
+ * testo spostato in basso (rispetto alla prima versione) perché il
+ * margin-top negativo di .publisher_name — pensato per l'immagine del
+ * vecchio template — spingeva le lettere a sovrapporsi alla riga
+ * superiore del riquadro. textLength fissa mantiene la stessa larghezza
+ * per nomi corti ("Topina") e lunghi ("Capi dei Pianeti Weekly").
+ */
+function mastheadSVG(name) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 80"><text x="320" y="64" text-anchor="middle" textLength="600" lengthAdjust="spacingAndGlyphs" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="54" letter-spacing="2" fill="#000">${name}</text></svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
 
 // ─── Init & navigazione ──────────────────────────────────────────
 
@@ -318,13 +334,20 @@ function waiverStories(data, year, week) {
             return `${n}, salutato dopo ${stintWeeks} settiman${stintWeeks === 1 ? 'a' : 'e'} in rosa e ${fmt1(stintPts)} punti prodotti`;
         });
 
-        let txt = `Colpo di scena in casa ${team}: `;
-        if (addTxt.length && dropTxt.length) txt += `dentro ${addTxt.join('; ')}. Fuori ${dropTxt.join('; ')}: la pazienza, evidentemente, era finita.`;
-        else if (addTxt.length) txt += `firmato ${addTxt.join('; ')}. Il taccuino promuove il coraggio, il campo giudicherà.`;
-        else txt += `via ${dropTxt.join('; ')}. Roster più corto, idee — si spera — più chiare.`;
+        // seed per-squadra: stessa week, squadre diverse → varianti diverse
+        const teamSeed = weekSeed(year, week) + key.length * 5 + Object.keys(curr).indexOf(key) * 13;
+        let txt;
+        if (addTxt.length && dropTxt.length) txt = pick(WAIVER_WRAP_BOTH, teamSeed)({ team, adds: addTxt.join('; '), drops: dropTxt.join('; ') });
+        else if (addTxt.length) txt = pick(WAIVER_WRAP_ADD_ONLY, teamSeed)({ team, adds: addTxt.join('; ') });
+        else txt = pick(WAIVER_WRAP_DROP_ONLY, teamSeed)({ team, drops: dropTxt.join('; ') });
         stories.push(txt);
     });
     return stories;
+}
+
+/** Seed stabile per week: usato per variare i testi senza serializzare l'intero ctx */
+function weekSeed(year, week) {
+    return (+year) * 37 + week;
 }
 
 /** Il flop di giornata: peggior scostamento dalla media stagionale */
@@ -399,8 +422,8 @@ function mainParagraphs({ main, bundle, seed, h2h, standings, isSB, isPlayoff, y
         .replaceAll('{top}', top?.name || w)
         .replaceAll('{pts}', fmt(P(top?.fantasy_points)))
         .replaceAll('{stat}', statLine(top) || 'una prova totale, di quelle che non hanno bisogno di note a margine');
-    const stakes = isSB ? ` E stavolta non era una domenica qualsiasi: in palio c'era il titolo della Topina League ${year}.`
-        : isPlayoff ? ` Con un posto nel Super Bowl in palio, il peso specifico di ogni snap valeva doppio.` : '';
+    const stakes = isSB ? pick(STAKES_SB_LINES, seed + 18)({ year })
+        : isPlayoff ? pick(STAKES_PLAYOFF_LINES, seed + 18) : '';
     const p1 = `${pick(LEDE_OPENERS, seed)}${w} ha piegato ${l} con il punteggio di ${sW} a ${sL}.${stakes} ${marginTxt} ${topTxt}`;
 
     // P2 — il flop e il gossip
@@ -408,33 +431,36 @@ function mainParagraphs({ main, bundle, seed, h2h, standings, isSB, isPlayoff, y
     let p2;
     if (flop) {
         const flopTeam = nameOf(flop.teamRaw);
-        p2 = `Dall'altra parte della moviola, la serata da incubo porta il nome di ${flop.p.name}: appena ${fmt(flop.v)} punti a referto contro una media stagionale di ${fmt1(flop.avg)}, un buco nel lineup che ${flopTeam} ha pagato a prezzo pieno e senza sconti. E qui la cronaca sconfina nel gossip, perché dalla redazione filtrano indiscrezioni su ${pick(GOSSIP_EXCUSES, seed + flop.p.name.length)}. Il diretto interessato smentisce con fermezza, l'entourage minimizza, ma i punti — quelli — purtroppo restano a referto.`;
+        const excuse = pick(GOSSIP_EXCUSES, seed + flop.p.name.length);
+        p2 = pick(FLOP_WRAP_MAIN, seed + 4 + flop.p.name.length)({ name: flop.p.name, pts: fmt(flop.v), avg: fmt1(flop.avg), team: flopTeam, excuse });
     } else {
         const secondBest = [...(wT.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[1];
-        p2 = `In casa ${l} non ci sono veri colpevoli, e forse è questa la notizia peggiore: quando perdi senza che nessuno tradisca le attese, il problema è il soffitto, non il pavimento. ${secondBest ? `Sul fronte opposto, oltre al solito protagonista, anche ${secondBest.name} ha portato mattoni pesanti alla causa con ${fmt(P(secondBest.fantasy_points))} punti: quando i comprimari girano così, per gli avversari il conto si fa salato.` : ''}`;
+        p2 = pick(NO_FLOP_LINES, seed + 4)({ l });
+        if (secondBest) p2 += ` Sul fronte opposto, oltre al solito protagonista, anche ${secondBest.name} ha portato mattoni pesanti alla causa con ${fmt(P(secondBest.fantasy_points))} punti: quando i comprimari girano così, per gli avversari il conto si fa salato.`;
     }
 
     // P3 — rivalità, strisce e classifica
     const parts = [];
     if (h2h && h2h.played > 0) {
         const at = h2h.allTime;
-        parts.push(`E poi c'è il capitolo rivalità, che da queste parti non passa mai di moda: con il successo di oggi il bilancio all-time dello scontro diretto si aggiorna sul ${at.w + 1}-${at.l}${at.t ? ` (più ${at.t} pareggi)` : ''} in favore di ${w}.`);
+        const record = `${at.w + 1}-${at.l}${at.t ? ` (più ${at.t} pareggi)` : ''}`;
+        parts.push(pick(RIVALRY_OPENERS, seed + 5)({ record, w }));
         if (h2h.season.w + h2h.season.l > 0) {
-            parts.push(`In stagione la serie dice ora ${h2h.season.w + 1}-${h2h.season.l} per ${w}.`);
+            parts.push(pick(SEASON_SERIES_LINES, seed + 6)({ record: `${h2h.season.w + 1}-${h2h.season.l}`, w }));
         }
         if (h2h.streak.holderKey === h2h.wKey && h2h.streak.len >= 2) {
-            parts.push(`Soprattutto, con questa fanno ${h2h.streak.len + 1} vittorie consecutive di ${w} nel confronto diretto: dalle parti di ${l} questo derby è diventato ufficialmente materia da psicologo sportivo.`);
+            parts.push(pick(STREAK_ALIVE_LINES, seed + 7)({ len: h2h.streak.len + 1, w, l }));
         } else if (h2h.streak.holderKey === h2h.lKey && h2h.streak.len >= 2) {
-            parts.push(`Vittoria che vale doppio anche per la storia recente: si interrompe la serie di ${h2h.streak.len} successi consecutivi di ${l} nello scontro diretto. La maledizione, se mai è esistita, è archiviata.`);
+            parts.push(pick(STREAK_BROKEN_LINES, seed + 8)({ len: h2h.streak.len, l }));
         }
     }
     if (!isSB && !isPlayoff) {
         const lead = standings[0];
-        if (lead) parts.push(`Alla voce classifica, comanda ${lead.name} con ${lead.w} vittorie: tutte le altre sono avvisate.`);
+        if (lead) parts.push(pick(STANDINGS_LEADER_LINES, seed + 9)({ name: lead.name, wins: lead.w }));
     } else if (isSB) {
         const key = keyOf(wT.name);
         const titles = league.allTime[key]?.sbWins?.length || 1;
-        parts.push(`Per il franchise è il titolo numero ${titles}: l'albo d'oro si aggiorna e il resto della lega può iniziare il conto alla rovescia verso il prossimo draft, con una missione sola.`);
+        parts.push(pick(SB_TITLE_COUNT_LINES, seed + 19)({ titles }));
     }
     parts.push(pick(CLOSERS, seed + 2));
     const p3 = parts.join(' ');
@@ -447,7 +473,7 @@ function mainParagraphs({ main, bundle, seed, h2h, standings, isSB, isPlayoff, y
  * I panchinari con tanti punti attaccano l'allenatore; poi un vincitore
  * che gongola e uno sconfitto che mastica amaro.
  */
-function lockerRoomQuotes({ weekData, main, seed }) {
+function lockerRoomQuotes({ weekData, main, second, seed }) {
     const quotes = [];
 
     // panchinari d'oro di tutta la week: puntano il dito contro il coach
@@ -485,11 +511,34 @@ function lockerRoomQuotes({ weekData, main, seed }) {
         });
         quotes.push(`Di tutt'altro umore ${lBest.name}, che in zona mista mastica amarissimo: ${q}`);
     }
+
+    // voci anche dall'altra partita (la spalla del vincitore e il migliore
+    // degli sconfitti), diverse dal protagonista della colonna "Show"
+    if (second) {
+        const wS = winnerOf(second), lS = loserOf(second);
+        const runner = [...(wS.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[1];
+        if (runner) {
+            const q = pick(PLAYER_QUOTES_WIN, seed + 23 + runner.name.length)({
+                name: runner.name, pts: fmt(P(runner.fantasy_points)),
+                team: nameOf(wS.name), opp: nameOf(lS.name),
+            });
+            quotes.push(`Sorrisi anche nell'altro spogliatoio vincente: ${runner.name} (${nameOf(wS.name)}) si gode la serata: ${q}`);
+        }
+        const lBestS = [...(lS.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[0];
+        if (lBestS) {
+            const q = pick(PLAYER_QUOTES_LOSS, seed + 24 + lBestS.name.length)({
+                name: lBestS.name, pts: fmt(P(lBestS.fantasy_points)),
+                team: nameOf(lS.name), opp: nameOf(wS.name),
+            });
+            quotes.push(`Dall'altra sfida arriva invece lo sfogo di ${lBestS.name} (${nameOf(lS.name)}): ${q}`);
+        }
+    }
     return quotes;
 }
 
 /** Colonna di destra: il Taccuino — mercato raccontato + classifica */
-function notebookParas({ standings, moves, isPlayoff, isSB, main, bundle, season, league, week, config }, fillers = []) {
+function notebookParas({ standings, moves, isPlayoff, isSB, main, bundle, season, league, week, config, year }, fillers = []) {
+    const seed = weekSeed(year, week);
     const paras = [];
     if (isSB) {
         const champ = teamOf(winnerOf(main).name);
@@ -506,14 +555,20 @@ function notebookParas({ standings, moves, isPlayoff, isSB, main, bundle, season
         if (lead) {
             const chaser = standings[1];
             const gap = chaser ? lead.w - chaser.w : 0;
-            paras.push(`La classifica, dopo l'ultimo turno, parla chiaro: comanda ${lead.name} con ${lead.w} vittorie e ${Math.round(lead.pf)} punti totali all'attivo. ${chaser ? (gap === 0 ? `${chaser.name} è lì, appaiata in vetta: la volata è apertissima e ogni singolo punto fatto può diventare oro colato.` : `${chaser.name} insegue a ${gap} lunghezz${gap === 1 ? 'a' : 'e'}: margine vero, ma non ancora un'ipoteca.`) : ''}`);
+            let leadTxt = pick(NOTEBOOK_LEADER_LINES, seed + 10)({ name: lead.name, wins: lead.w, pf: Math.round(lead.pf) });
+            if (chaser) {
+                leadTxt += ' ' + (gap === 0
+                    ? pick(GAP_TIED_LINES, seed + 11)({ chaser: chaser.name })
+                    : pick(GAP_AHEAD_LINES, seed + 11)({ chaser: chaser.name, gapTxt: `${gap} lunghezz${gap === 1 ? 'a' : 'e'}` }));
+            }
+            paras.push(leadTxt);
         }
         if (moves.length) {
             // massimo 3 paragrafi di mercato: se le mosse sono di più, si accorpano
             const packed = moves.length <= 3 ? moves : [moves[0], moves[1], moves.slice(2).join(' ')];
             packed.forEach(txt => paras.push(txt));
         } else {
-            paras.push(`Mercato immobile questa settimana: nessuna mossa in waiver, nessuno squillo. Segno che i roster convincono i rispettivi manager... oppure che qualcuno si è semplicemente dimenticato la scadenza. Ai posteri — e alla prossima week — l'ardua sentenza.`);
+            paras.push(pick(WAIVER_NO_MOVES, seed + 12));
         }
         if (isPlayoff) {
             paras.push(`Domenica notte sapremo tutto: chi festeggia il pass per la finale e chi passerà l'inverno a rimuginare su un lineup sbagliato. Il Taccuino, come sempre, sarà in prima fila.`);
@@ -608,8 +663,8 @@ function newspaperHTML(ctx) {
         seriesGames: [], teamName: nameOf,
     }) : null;
     const secondary = second && !isSB
-        ? secondaryGame(second, recap2, week, bundle, seed, h2hSecond, standings)
-        : secondaryHonors(bundle, champion) || (second ? secondaryGame(second, recap2, week, bundle, seed, h2hSecond, standings) : null);
+        ? secondaryGame(second, recap2, week, bundle, seed, h2hSecond, standings, [main, second])
+        : secondaryHonors(bundle, champion, main, seed) || (second ? secondaryGame(second, recap2, week, bundle, seed, h2hSecond, standings, [main, second]) : null);
 
     const foot = footerStory(ctx);
     const topics = topicsRow(ctx);
@@ -621,11 +676,8 @@ function newspaperHTML(ctx) {
 <div class="mag-wrapper">
 <div class="${paperClass}"${paperStyle}>
   <div class="news-page__section publisher">
-    <div class="logo-shield">
-      <img src="${SHIELD_SVG}" alt="">
-    </div>
     <div class="publisher_name">
-      <img src="${MASTHEAD_SVG}" alt="Topina Weekly">
+      <img src="${mastheadSVG(champion ? `${champion.name} Weekly` : 'Topina Weekly')}" alt="${champion ? champion.name : 'Topina'} Weekly">
       <div class="tagline">IL SETTIMANALE UFFICIALE DELLA TOPINA LEAGUE · DAL 2019</div>
     </div>
   </div>
@@ -737,10 +789,12 @@ function newspaperHTML(ctx) {
             ${secondary.title}
           </p>
           <div class="story-featured-photo">
-            <img src="${secondary.photo}" onerror="this.src='Wallpapers/GameCenterHorizontal.PNG'" alt="">
+            <img src="${secondary.photo}"
+                 ${secondary.bigImgPlayer ? `class="mg-headshot" data-player-name="${secondary.bigImgPlayer}" data-team="${secondary.bigImgTeam || ''}" data-pos="${secondary.bigImgPos || ''}"` : ''}
+                 onerror="this.src='${secondary.bigImgPlayer ? 'images/fallback-player.svg' : 'Wallpapers/GameCenterHorizontal.PNG'}'" alt="">
           </div>
-          <div class="caption">
-            <div class="caption_content">${secondary.caption}</div>
+          <div class="caption${secondary.captionWrap ? ' mag-wrap' : ''}">
+            <div class="caption_content${secondary.captionClass ? ` ${secondary.captionClass}` : ''}">${secondary.caption}</div>
             <div class="page-number">${secondary.page}</div>
           </div>
         </div>
@@ -755,8 +809,8 @@ function newspaperHTML(ctx) {
             </div>
           </div>
           <div class="story-content--third">
-            <img class="mg-headshot" src="${secondary.sideImg}"
-                 data-player-name="${secondary.imgPlayer || ''}" data-team="${secondary.imgTeam || ''}" data-pos="${secondary.imgPos || ''}"
+            <img class="${secondary.sideBanner ? 'mg-banner-side' : 'mg-headshot'}" src="${secondary.sideImg}"
+                 ${secondary.sideBanner ? '' : `data-player-name="${secondary.imgPlayer || ''}" data-team="${secondary.imgTeam || ''}" data-pos="${secondary.imgPos || ''}"`}
                  onerror="this.src='images/fallback-player.svg'" alt="">
             <div class="paragraph">
               <p class="text--capitalize-first">${secondary.p1}</p>
@@ -810,77 +864,178 @@ function newspaperHTML(ctx) {
 
 // ─── Sezioni derivate ────────────────────────────────────────────
 
-function secondaryGame(m, recap, week, bundle, seed, h2h, standings) {
+/**
+ * Score bug in stile broadcast NFL (SVG inline): barra scura arrotondata,
+ * linguette coi colori delle due squadre, punteggi grandi, tag FINALE.
+ * Resta un semplice <img>, quindi la struttura del template non cambia.
+ */
+function scoreBugSVG(matchups) {
+    const W = 640, H = 78, GAP = 14;
+    const rows = matchups.slice(0, 2).map((m, i) => {
+        const y = i * (H + GAP);
+        const w1 = P(m.team1.score) >= P(m.team2.score);
+        const c1 = teamOf(m.team1.name)?.color || '#B8433A';
+        const c2 = teamOf(m.team2.name)?.color || '#4f8cff';
+        const side = (raw, score, won, nameX, scoreX, anchor) => {
+            const nm = nameOf(raw).toUpperCase();
+            // i nomi lunghi (es. CAPI DEI PIANETI) si comprimono per non
+            // invadere lo spazio del punteggio
+            const tl = nm.length > 12 ? ' textLength="168" lengthAdjust="spacingAndGlyphs"' : '';
+            return `
+            <text x="${nameX}" y="${y + 48}" text-anchor="${anchor}"${tl} font-size="21" font-weight="bold"
+                  font-family="Helvetica, Arial, sans-serif" letter-spacing="1"
+                  fill="#fff" opacity="${won ? 1 : 0.55}">${nm}</text>
+            <text x="${scoreX}" y="${y + 50}" text-anchor="middle" font-size="30" font-weight="bold"
+                  font-family="Helvetica, Arial, sans-serif" fill="${won ? '#ffd24d' : '#fff'}"
+                  opacity="${won ? 1 : 0.7}">${fmt(P(score))}</text>`;
+        };
+        return `
+        <rect x="0" y="${y + 6}" width="${W}" height="${H - 12}" rx="10" fill="#101318"/>
+        <rect x="0" y="${y + 6}" width="14" height="${H - 12}" rx="6" fill="${c1}"/>
+        <rect x="${W - 14}" y="${y + 6}" width="14" height="${H - 12}" rx="6" fill="${c2}"/>
+        <rect x="${W / 2 - 34}" y="${y + 6}" width="68" height="18" rx="4" fill="#B8433A"/>
+        <text x="${W / 2}" y="${y + 19.5}" text-anchor="middle" font-size="11" font-weight="bold"
+              font-family="Helvetica, Arial, sans-serif" letter-spacing="2" fill="#fff">FINALE</text>
+        ${side(m.team1.name, m.team1.score, w1, 30, W / 2 - 60, 'start')}
+        ${side(m.team2.name, m.team2.score, !w1, W - 30, W / 2 + 60, 'end')}`;
+    }).join('');
+    const total = matchups.length > 1 ? 2 * H + GAP : H;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${total}">${rows}</svg>`);
+}
+
+/** Statistiche del weekend di una partita, squadra per squadra (testo) */
+function weekendStatsPara(m) {
+    const line = (team) => {
+        const t = teamStatTotals(team);
+        return `${nameOf(team.name)}: ${t.passYds} yd lancio, ${t.rushYds} yd corsa, ${t.recYds} yd ricezione, ${t.td} TD${t.to ? `, ${t.to} pall${t.to === 1 ? 'a persa' : 'e perse'}` : ''}`;
+    };
+    return `${line(m.team1)}. ${line(m.team2)}.`;
+}
+
+function secondaryGame(m, recap, week, bundle, seed, h2h, standings, allMatchups) {
     const w = winnerOf(m), l = loserOf(m);
     const dm = diffMakers(m);
     const top = w === m.team1 ? dm.a : dm.b;
-    const runnerUp = [...(w.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[1];
     const sW = fmt(Math.max(P(m.team1.score), P(m.team2.score)));
     const sL = fmt(Math.min(P(m.team1.score), P(m.team2.score)));
 
-    // p1: mini-lede prolisso + spalla del vincitore
-    let p1 = `Nell'altra sfida di giornata ${nameOf(w.name)} ha avuto ragione di ${nameOf(l.name)} per ${sW} a ${sL}, al termine di una partita che ha vissuto sui ${top ? `${fmt(P(top.fantasy_points))} punti di ${top.name}` : 'dettagli'}: ${statLine(top) || 'prestazione da copertina'}. ${marginOf(m) < 5 ? 'Un epilogo al fotofinish, di quelli che lasciano strascichi negli spogliatoi e munizioni infinite nel gruppo della lega.' : 'Un verdetto più netto di quanto la vigilia lasciasse immaginare, maturato senza mai davvero far intravedere una rimonta.'}`;
-    if (runnerUp) {
-        p1 += ` Nel giorno del suo protagonista, applausi anche per ${runnerUp.name}, che di punti ne ha messi a referto ${fmt(P(runnerUp.fantasy_points))}: quando le seconde linee producono così, allenare diventa un mestiere semplice.`;
+    // Colonna SINISTRA: titolo unito, foto tonda del protagonista,
+    // sottotitolo "X show da N punti" e un trafiletto BREVE (stessa
+    // lunghezza che il pezzo aveva quando stava nella colonna di destra):
+    // lede asciutto + una sola nota (gossip sul flop, o rivalità, o record).
+    const opener = pick(SECONDARY_LEDE_OPENERS, seed + 15);
+    const lede = `${opener} ${nameOf(w.name)} ha avuto ragione di ${nameOf(l.name)} per ${sW} a ${sL}. ${marginOf(m) < 5 ? 'Un epilogo al fotofinish, di quelli che lasciano strascichi.' : 'Un verdetto più netto di quanto la vigilia lasciasse immaginare.'}`;
+
+    const flop = flopOf(m, bundle);
+    let extra;
+    if (flop) {
+        const excuse = pick(GOSSIP_EXCUSES, seed + 7 + flop.p.name.length);
+        extra = pick(FLOP_WRAP_SECONDARY, seed + 16 + flop.p.name.length)({ name: flop.p.name, pts: fmt(flop.v), avg: fmt1(flop.avg), excuse });
+    } else if (h2h && h2h.played > 0) {
+        extra = `Il confronto diretto all-time si aggiorna sul ${h2h.allTime.w + 1}-${h2h.allTime.l} per ${nameOf(w.name)}${h2h.streak.holderKey === h2h.wKey && h2h.streak.len >= 2 ? `, la ${h2h.streak.len + 1}ª di fila in questo incrocio` : ''}.`;
+    } else {
+        const lRec = standings?.find(s => s.key === keyOf(l.name));
+        extra = pick(SECONDARY_NO_FLOP_LINES, seed + 17)({ l: nameOf(l.name), rec: lRec ? `${lRec.w}-${lRec.l}` : null });
     }
 
-    // p2: gossip sul flop di QUESTA partita + rivalità + classifica
-    const flop = flopOf(m, bundle);
-    const parts = [];
-    if (flop) {
-        parts.push(`Serata storta invece per ${flop.p.name}, fermo a ${fmt(flop.v)} punti contro una media stagionale di ${fmt1(flop.avg)}: dalla redazione filtrano indiscrezioni su ${pick(GOSSIP_EXCUSES, seed + 7 + flop.p.name.length)}. Smentite di rito dall'entourage, punti veri a referto.`);
-    }
-    if (h2h && h2h.played > 0) {
-        parts.push(`Il confronto diretto all-time si aggiorna sul ${h2h.allTime.w + 1}-${h2h.allTime.l} per ${nameOf(w.name)}${h2h.streak.holderKey === h2h.wKey && h2h.streak.len >= 2 ? `, la ${h2h.streak.len + 1}ª di fila in questo incrocio: a ${nameOf(l.name)} servirà un esorcista, o quantomeno un lineup migliore` : ''}.`);
-    }
-    const lRec = standings?.find(s => s.key === keyOf(l.name));
-    parts.push(lRec
-        ? `${nameOf(l.name)} scivola così a ${lRec.w}-${lRec.l} in stagione: niente di irreparabile, ma il calendario non aspetta nessuno e il mercato di martedì potrebbe raccontare qualcosa sul suo umore.`
-        : `${nameOf(l.name)} esce ridimensionata dal weekend: la classifica adesso fa meno sorridere e il mercato di martedì potrebbe dire qualcosa sul suo umore.`);
-    const p2 = parts.join(' ');
+    const subtitle = top
+        ? `${top.name} show da ${fmt(P(top.fantasy_points))} punti: ${statLine(top) || 'prestazione da copertina'} — il migliore in campo della seconda sfida di giornata.`
+        : '';
+    const story = `${lede} ${extra}`;
+
+    // Colonna DESTRA: score bug broadcast dei due risultati + statistiche
+    // del weekend squadra per squadra.
+    const games = allMatchups?.length ? allMatchups : [m];
 
     return {
-        title: recap?.headline || `${nameOf(w.name)} batte ${nameOf(l.name)}`,
-        photo: fieldImage(m),
-        caption: `"FINALE: ${fmt(P(m.team1.score))} – ${fmt(P(m.team2.score))}"`,
+        // sottotitolo dentro il titolo (span stilizzato): resta un solo <p>
+        title: `${recap?.headline || `${nameOf(w.name)} batte ${nameOf(l.name)}`}${subtitle ? `<span class="mag-subtitle">${subtitle}</span>` : ''}`,
+        photo: 'images/fallback-player.svg',
+        bigImgPlayer: top?.name || '',
+        bigImgTeam: top?.nfl_team || '',
+        bigImgPos: top?.position_in_team || top?.position || '',
+        caption: story,
+        captionClass: 'mag-body',
+        captionWrap: true,
         page: `week ${week}`,
-        smallName: (top?.name || '').toUpperCase(),
-        bigWord: 'Show',
-        subTitle: `Da ${top ? fmt(P(top.fantasy_points)) : '—'} punti`,
-        subText: `${statLine(top) || 'prestazione da copertina'} — il migliore in campo della seconda sfida di giornata.`,
-        sideImg: 'images/fallback-player.svg',
-        imgPlayer: top?.name || '',
-        imgTeam: top?.nfl_team || '',
-        imgPos: top?.position_in_team || top?.position || '',
-        p1, p2,
+        smallName: 'IL QUADRO DELLA WEEK',
+        bigWord: 'Scores',
+        subTitle: 'Numeri alla mano',
+        subText: 'risultati e statistiche complete dei titolari, squadra per squadra.',
+        sideImg: scoreBugSVG(games),
+        sideBanner: true,
+        p1: games[0] ? weekendStatsPara(games[0]) : '',
+        p2: games[1] ? weekendStatsPara(games[1]) : '',
     };
 }
 
-function secondaryHonors(bundle, champion) {
+/**
+ * Storia secondaria dell'edizione Super Bowl: la notte dei premi.
+ * La FOTO GRANDE + citazione sono del Super Bowl MVP (il migliore della
+ * finale appena giocata, come nell'NFL vera — concetto diverso dal
+ * Topina Honors MVP di stagione, che resta nel titolo/foto piccola).
+ */
+function secondaryHonors(bundle, champion, main, seed) {
     if (!bundle?.revealed) return null;
     const get = (id) => bundle.awards.find(a => a.id === id)?.winner;
     const mvp = get('mvp'), dpoy = get('dpoy'), opoy = get('opoy');
     const coach = bundle.awards.find(a => a.id === 'coach')?.winner;
     if (!mvp) return null;
     const mvpTeam = TEAMS[mvp.teamKey]?.name;
+
+    // Super Bowl MVP: il migliore della finale (non necessariamente l'Honors MVP di stagione)
+    const dm = main ? diffMakers(main) : null;
+    const winnerSide = main ? winnerOf(main) : null;
+    const sbMvp = dm ? (winnerSide === main.team1 ? dm.a : dm.b) : null;
+    const sbMvpQuote = pick(SB_MVP_QUOTES, seed + 20 + (sbMvp?.name.length || 0));
+    // il compagno che lo elogia: secondo miglior titolare della squadra campione
+    const mate = winnerSide
+        ? [...(winnerSide.starters || [])].sort((a, b) => P(b.fantasy_points) - P(a.fantasy_points))[1]
+        : null;
+    const mateQuote = (sbMvp && mate) ? pick(TEAMMATE_PRAISE, seed + 25)({ name: sbMvp.name }) : '';
+
+    const p1Parts = [];
+    if (dpoy) {
+        p1Parts.push(`Sul fronte difensivo il premio va a ${dpoy.name}: ${fmt(dpoy.total)} punti che valgono il titolo di Defensive Player of the Year, in una stagione in cui ogni stop pesava come un macigno.`);
+        p1Parts.push(pick(DPOY_HONORS_QUOTES, seed + 21));
+    }
+    if (opoy && opoy.name !== mvp.name) {
+        p1Parts.push(`Offensive Player of the Year è invece ${opoy.name} (${fmt(opoy.total)} punti), premiato per la costanza con cui ha spostato gli equilibri domenica dopo domenica.`);
+    }
+
+    const p2Parts = [];
+    if (coach) {
+        p2Parts.push(`Coach of the Year è ${TEAMS[coach.teamKey]?.name}: ${coach.efficiency.toFixed(1)}% di lineup efficiency, il manager che ha sbagliato meno di tutti quando c'era da scegliere chi mandare in campo.`);
+        p2Parts.push(pick(COACH_HONORS_QUOTES, seed + 22));
+    }
+    p2Parts.push('Il resto dei premi — dal miglior QB al re delle waiver — è in bella mostra nella pagina Topina Honors, che vale una visita e più di un rosicamento.');
+
     return {
-        title: 'Topina Honors: la notte delle stelle',
-        photo: 'Logos/SB-Champ.png',
-        caption: '"I PREMI DELLA STAGIONE"',
-        page: 'honors',
-        smallName: mvp.name.toUpperCase(),
+        // Colonna sinistra: il Super Bowl MVP — foto nel cerchio,
+        // dichiarazioni sue e di un compagno sulla prestazione
+        title: sbMvp ? `Super Bowl MVP: ${sbMvp.name}` : 'Super Bowl MVP',
+        photo: 'images/fallback-player.svg',
+        bigImgPlayer: sbMvp?.name || '',
+        bigImgTeam: sbMvp?.nfl_team || '',
+        bigImgPos: sbMvp?.position_in_team || sbMvp?.position || '',
+        caption: sbMvp
+            ? `${sbMvp.name}: «${sbMvpQuote}»${mateQuote ? ` ${mate.name}: «${mateQuote}»` : ''}`
+            : '"I PREMI DELLA STAGIONE"',
+        captionClass: sbMvp ? 'mag-quotes' : '',
+        captionWrap: !!sbMvp,
+        page: 'SB MVP',
+        // Colonna destra: la sezione Topina Honors (invariata, ma etichettata)
+        smallName: 'TOPINA HONORS',
         bigWord: 'MVP',
-        subTitle: 'Re della stagione',
-        subText: `${fmt(mvp.total)} punti in regular season${mvpTeam ? ` con la maglia di ${mvpTeam}` : ''}: nessuno come lui.`,
+        subTitle: mvp.name,
+        subText: `Re della stagione: ${fmt(mvp.total)} punti in regular season${mvpTeam ? ` con la maglia di ${mvpTeam}` : ''}. Nessuno come lui.`,
         sideImg: 'images/fallback-player.svg',
         imgPlayer: mvp.name,
         imgTeam: mvp.nfl || '',
         imgPos: mvp.pos || '',
-        p1: [
-            dpoy ? `Sul fronte difensivo il premio va a ${dpoy.name}: ${fmt(dpoy.total)} punti che valgono il titolo di Defensive Player of the Year, in una stagione in cui ogni stop pesava come un macigno.` : '',
-            opoy && opoy.name !== mvp.name ? `Offensive Player of the Year è invece ${opoy.name} (${fmt(opoy.total)} punti), premiato per la costanza con cui ha spostato gli equilibri domenica dopo domenica.` : '',
-        ].filter(Boolean).join(' '),
-        p2: coach ? `Coach of the Year è ${TEAMS[coach.teamKey]?.name}: ${coach.efficiency.toFixed(1)}% di lineup efficiency, il manager che ha sbagliato meno di tutti quando c'era da scegliere chi mandare in campo. Il resto dei premi — dal miglior QB al re delle waiver — è in bella mostra nella pagina Topina Honors, che vale una visita e più di un rosicamento.` : 'Il resto dei premi è in bella mostra nella pagina Topina Honors, che vale una visita e più di un rosicamento.',
+        p1: p1Parts.join(' '),
+        p2: p2Parts.join(' '),
     };
 }
 

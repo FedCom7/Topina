@@ -3455,16 +3455,6 @@ img {
     left: 0;
     right: 0;
 }
-.news-page .logo-shield {
-    text-align: center;
-    margin-right: 7px;
-    margin-top: -20px;
-}
-.news-page .logo-shield img {
-    height: auto;
-    width: 135px;
-    margin: 0 auto;
-}
 .news-page .publisher_name {
     flex: 4;
     margin-top: -35px;
@@ -3474,7 +3464,7 @@ img {
     align-self: center;
 }
 .news-page .publisher_name img {
-    margin: 0 auto;
+    margin: 0 auto 6px;
     max-width: 100%;
 }
 .news-page .publisher_name .tagline {
@@ -3662,6 +3652,7 @@ img {
     color: #fff;
     text-align: center;
     padding: 0.2rem 0.5rem;
+    margin-bottom: 12px;
     position: relative;
 }
 .news-page .author::after {
@@ -6678,4 +6669,77 @@ img {
     object-position: top;
     background: #e8e0d2;
     border: 2px solid #000;
+}
+
+/* Ritratto tondo nella colonna sinistra della storia secondaria
+   (Super Bowl MVP nell'edizione SB, intervistato nelle edizioni normali):
+   quando l'immagine grande è un giocatore, diventa un cerchio centrato
+   invece del taglio a copertina pensato per la foto del campo (additivo) */
+.news-page .story--secondary .story-featured-photo:has(img.mg-headshot) {
+    /* la foto flotta a sinistra: il trafiletto le gira attorno */
+    float: left;
+    margin: 0.35rem 1rem 0.25rem 0;
+}
+
+.news-page .story--secondary .story-featured-photo img.mg-headshot {
+    border-radius: 100%;
+    width: 138px;
+    height: 138px;
+    object-fit: cover;
+    object-position: top;
+    margin: 0;
+    display: block;
+    border: 3px solid #000;
+    background: #e8e0d2;
+}
+
+/* Sottotitolo attaccato al titolo (span dentro lo stesso <p>) */
+.news-page .story-title--secondary .mag-subtitle {
+    display: block;
+    text-transform: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-top: 0.35rem;
+    text-align: left;
+}
+
+/* La caption diventa flusso normale così il testo avvolge la foto;
+   il numero pagina scende sotto, allineato a destra */
+.news-page .caption.mag-wrap {
+    display: block;
+}
+
+.news-page .caption.mag-wrap .page-number {
+    display: block;
+    clear: both;
+    text-align: right;
+    padding: 0.2rem 0.6rem;
+    margin-top: 0.5rem;
+}
+
+/* Citazioni sotto il ritratto: corsivo leggibile, niente maiuscolo forzato */
+.news-page .caption_content.mag-quotes {
+    text-transform: none;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.45;
+}
+
+/* Score bug broadcast nella colonna destra della storia secondaria:
+   annulla il ritratto tondo flottante previsto dal template (additivo) */
+.news-page .story-content--third img.mg-banner-side {
+    border-radius: 0;
+    float: none;
+    width: 100%;
+    height: auto;
+    margin: 0.4rem 0 0.8rem;
+}
+
+/* Caption usata come corpo testo (sottotitolo + trafiletto):
+   niente maiuscolo forzato, interlinea da articolo */
+.news-page .caption_content.mag-body {
+    text-transform: none;
+    font-weight: normal;
+    line-height: 1.5;
 }
