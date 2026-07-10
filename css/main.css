@@ -2184,10 +2184,10 @@ img {
     font-weight: 900;
     font-size: clamp(11rem, 25vw, 19rem);
     line-height: 1;
-    color: var(--text-primary);
-    text-shadow:
-        0 6px 30px rgba(0, 0, 0, 0.8),
-        0 0 60px color-mix(in srgb, var(--team-color) 45%, transparent);
+    color: #000;
+    -webkit-text-stroke: 2px rgba(255, 255, 255, 0.9);
+    text-stroke: 2px rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.7));
     pointer-events: none;
     font-variant-numeric: tabular-nums;
 }
@@ -6063,6 +6063,328 @@ img {
 
     .an-kpi {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ========================================
+   HALL OF FAME — card Panini bordo oro
+   ======================================== */
+
+.hof-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 290px));
+    justify-content: center;
+    gap: 44px 32px;
+    padding: 16px 0 32px;
+}
+
+.hof-card-wrap {
+    animation: fadeUp 0.6s var(--ease) both;
+    animation-delay: calc(var(--card-i, 0) * 120ms);
+}
+
+/* Carta girevole: contenitore prospettico */
+.hof-card {
+    position: relative;
+    aspect-ratio: 5 / 7;
+    perspective: 1400px;
+    cursor: pointer;
+    transition: transform var(--dur-med) var(--ease);
+}
+
+.hof-card:hover {
+    transform: translateY(-6px);
+}
+
+.hof-card-flip {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.6s var(--ease);
+}
+
+.hof-card.flipped .hof-card-flip {
+    transform: rotateY(180deg);
+}
+
+/* Le due facce: cornice oro + interno scuro */
+.hof-card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    padding: 5px;
+    background: linear-gradient(150deg,
+            #f7e08b 0%, #b8860b 22%, #f5e7b0 45%, #8a6a1f 68%, #e8c95f 100%);
+    box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.55),
+        0 0 40px rgba(212, 175, 55, 0.14);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+.hof-card:hover .hof-card-face {
+    box-shadow:
+        0 20px 52px rgba(0, 0, 0, 0.6),
+        0 0 60px rgba(212, 175, 55, 0.28);
+}
+
+.hof-card-back {
+    transform: rotateY(180deg);
+}
+
+/* Gloss diagonale da carta collezionabile */
+.hof-card-face::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    background: linear-gradient(115deg,
+            transparent 30%, rgba(255, 255, 255, 0.14) 42%,
+            rgba(255, 255, 255, 0.03) 50%, transparent 62%);
+    pointer-events: none;
+}
+
+.hof-card-inner {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    border-radius: 13px;
+    overflow: hidden;
+    background: #000;
+}
+
+.hof-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px 6px;
+}
+
+.hof-pos-badge {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #f0d78c;
+    border: 1px solid rgba(212, 175, 55, 0.55);
+    border-radius: 7px;
+    padding: 3px 12px;
+    flex-shrink: 0;
+}
+
+/* Colonna badge (stelle + All-Pro) in alto a destra */
+.hof-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.hof-badges .hof-allpro:first-of-type {
+    margin-top: 6px;
+}
+
+.hof-allpro {
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.hof-allpro--1 {
+    background: rgba(245, 213, 118, 0.16);
+    color: #f5d576;
+    border: 1px solid rgba(245, 213, 118, 0.4);
+}
+
+.hof-allpro--2 {
+    background: rgba(192, 192, 192, 0.14);
+    color: #cfcfcf;
+    border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+.hof-headshot-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 14px 0 34px;
+    min-height: 0;
+}
+
+.hof-headshot {
+    width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.6));
+}
+
+/* Nome verticale grande sul bordo sinistro, dal basso verso l'alto */
+.hof-side-name {
+    position: absolute;
+    left: 6px;
+    bottom: 14px;
+    transform: rotate(180deg);
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #e8c95f;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    max-height: 88%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Stelle Super Bowl in alto a destra */
+.hof-stars {
+    font-size: 1.9rem;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    color: #f5d576;
+    text-shadow: 0 0 16px rgba(245, 213, 118, 0.8);
+}
+
+/* Statistiche in evidenza sul fronte */
+.hof-front-stats {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    padding: 16px 12px 22px;
+}
+
+.hof-front-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+
+.hof-front-stat-value {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.hof-front-stat-label {
+    margin-top: 3px;
+    font-size: 0.54rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+}
+
+.hof-back-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-align: center;
+    color: #f0d78c;
+    padding: 16px 12px 4px;
+    line-height: 1.1;
+}
+
+.hof-stats {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 24px 18px;
+}
+
+.hof-stat-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 4.5px 0;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.14);
+}
+
+.hof-stat-row:last-child {
+    border-bottom: none;
+}
+
+.hof-stat-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+}
+
+.hof-stat-value {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.hof-foil-label {
+    text-align: center;
+    padding: 8px 0 18px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    background: linear-gradient(120deg, #f7e08b, #b8860b, #f5e7b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Caption sotto la card */
+.hof-caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-top: 14px;
+    text-align: center;
+}
+
+.hof-caption-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+
+.hof-caption-class {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #d4af37;
+}
+
+.hof-footnote {
+    text-align: center;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+    .hof-grid {
+        grid-template-columns: minmax(230px, 300px);
+        gap: 36px;
     }
 }
 

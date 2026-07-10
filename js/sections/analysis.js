@@ -880,16 +880,19 @@ function draftValueScatter(model) {
     return points.sort((a, b) => a.pick - b.pick);
 }
 
-function topPerformances(model, limit = 10) {
+function topFlopPerformances(model, limit = 10) {
     const rows = [];
     for (const rec of model.players.values()) {
         for (const [wkStr, w] of Object.entries(rec.weeks)) {
-            if (!w.started) continue;
+            if (!w.started) continue; // solo prestazioni da titolare
             rows.push({ name: rec.name, position: rec.position, teamKey: w.teamKey, wk: Number(wkStr), pts: w.pts });
         }
     }
     rows.sort((a, b) => b.pts - a.pts);
-    return rows.slice(0, limit);
+    return {
+        top: rows.slice(0, limit),
+        flop: rows.slice(-limit).reverse(), // peggiore in cima
+    };
 }
 
 function renderLeagueView(model) {
@@ -914,6 +917,7 @@ function renderLeagueView(model) {
     </div>`;
 
     const rk = leagueRankings(model);
+    const topFlop = topFlopPerformances(model);
 
     return `
     <div class="stats-summary an-kpi">
@@ -956,7 +960,10 @@ function renderLeagueView(model) {
     ${legend}
     ${buildDraftScatterSection(draftValueScatter(model))}
 
-    ${rankingBlockPerf('Top 10 Performance della Stagione', topPerformances(model))}`;
+    <div class="an-rankings">
+        ${rankingBlockPerf('Top 10 Performance', topFlop.top, 'top')}
+        ${rankingBlockPerf('Flop 10 Performance', topFlop.flop, 'flop')}
+    </div>`;
 }
 
 function buildDistributionChart(rows) {
@@ -1008,20 +1015,22 @@ function rankingBlock(title, rows, valueFn, noteFn, highlightMode) {
     </div>`;
 }
 
-function rankingBlockPerf(title, rows) {
-    if (!rows.length) return `<h3 class="an-sub-title">${title}</h3>${emptyState('Nessuna prestazione disponibile')}`;
+function rankingBlockPerf(title, rows, variant = 'top') {
+    if (!rows.length) return `<div class="an-ranking"><h3 class="an-sub-title">${title}</h3>${emptyState('Nessuna prestazione disponibile')}</div>`;
     const max = Math.max(...rows.map(r => r.pts), 1);
+    const highlight = variant === 'flop' ? 'an-rank-row--loss' : 'an-rank-row--win';
     return `
     <div class="an-ranking">
         <h3 class="an-sub-title">${title}</h3>
         ${rows.map((r, i) => {
         const team = TEAMS[r.teamKey];
+        const barW = max > 0 ? Math.max(r.pts / max * 100, 3) : 3;
         return `
-        <div class="an-rank-row${i === 0 ? ' an-rank-row--win' : ''}">
+        <div class="an-rank-row${i === 0 ? ' ' + highlight : ''}">
             <span class="an-rank-pos">${i + 1}</span>
             <img src="${team ? team.logo : 'images/fallback-player.svg'}" alt="" class="an-rank-logo">
             <span class="an-rank-name">${r.name} ${posBadge(r.position)}<span class="an-rank-note">${team ? team.name : ''} — W${r.wk}</span></span>
-            <span class="an-rank-bar"><span style="width:${(r.pts / max * 100).toFixed(1)}%; background:${CHART_COLORS[r.teamKey] || '#888'}"></span></span>
+            <span class="an-rank-bar"><span style="width:${barW.toFixed(1)}%; background:${CHART_COLORS[r.teamKey] || '#888'}"></span></span>
             <span class="an-rank-val">${fmt(r.pts, 1)}</span>
         </div>`;
     }).join('')}

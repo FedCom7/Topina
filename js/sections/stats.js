@@ -54,6 +54,8 @@ function calculateStats(allSeasons) {
     let mostRushTDSeason = { value: 0, player: '', team: '', season: '' };
     let mostPassYardsSeason = { value: 0, player: '', team: '', season: '' };
     let mostPassTDSeason = { value: 0, player: '', team: '', season: '' };
+    let mostRecYardsSeason = { value: 0, player: '', team: '', season: '' };
+    let mostRecTDSeason = { value: 0, player: '', team: '', season: '' };
     let mostSacksSeason = { value: 0, player: '', team: '', season: '' };
     let mostDefTurnoversSeason = { value: 0, player: '', team: '', season: '' };
     let mostDefTDSeason = { value: 0, player: '', team: '', season: '' };
@@ -205,23 +207,28 @@ function calculateStats(allSeasons) {
                             if (!p?.name || !p.stats) return;
                             const key = `${teamName}||${p.name}`;
                             if (!playerSeasonStats[key]) {
-                                playerSeasonStats[key] = { rushYds: 0, rushTd: 0, passYds: 0, passTd: 0, sacks: 0, defTo: 0, defTd: 0 };
+                                playerSeasonStats[key] = { rushYds: 0, rushTd: 0, passYds: 0, passTd: 0, recYds: 0, recTd: 0, sacks: 0, defTo: 0, defTd: 0 };
                             }
                             const acc = playerSeasonStats[key];
                             acc.rushYds += Number(p.stats.rush_yds) || 0;
                             acc.rushTd += Number(p.stats.rush_td) || 0;
                             acc.passYds += Number(p.stats.pass_yds) || 0;
                             acc.passTd += Number(p.stats.pass_td) || 0;
+                            acc.recYds += Number(p.stats.rec_yds) || 0;
+                            acc.recTd += Number(p.stats.rec_td) || 0;
                             acc.sacks += Number(p.stats.sack) || 0;
                             acc.defTo += (Number(p.stats.def_int) || 0) + (Number(p.stats.fum_rec) || 0);
                             acc.defTd += Number(p.stats.def_td) || 0;
 
-                            // All-time team TD totals (regular season only, matches PF/PA scope)
+                            // All-time team TD + yardage totals (regular season only, matches PF/PA scope)
                             const rec = teamRecords[teamName];
                             rec.rushTD = (rec.rushTD || 0) + (Number(p.stats.rush_td) || 0);
                             rec.passTD = (rec.passTD || 0) + (Number(p.stats.pass_td) || 0);
                             rec.recTD = (rec.recTD || 0) + (Number(p.stats.rec_td) || 0);
                             rec.defTD = (rec.defTD || 0) + (Number(p.stats.def_td) || 0);
+                            rec.rushYds = (rec.rushYds || 0) + (Number(p.stats.rush_yds) || 0);
+                            rec.passYds = (rec.passYds || 0) + (Number(p.stats.pass_yds) || 0);
+                            rec.recYds = (rec.recYds || 0) + (Number(p.stats.rec_yds) || 0);
 
                             // Receiving-TD breakdown by position
                             if (!rec.recTDByPos) rec.recTDByPos = { WR: 0, RB: 0, TE: 0 };
@@ -308,6 +315,8 @@ function calculateStats(allSeasons) {
             if (acc.rushTd > mostRushTDSeason.value) mostRushTDSeason = { value: acc.rushTd, player, team, season };
             if (acc.passYds > mostPassYardsSeason.value) mostPassYardsSeason = { value: acc.passYds, player, team, season };
             if (acc.passTd > mostPassTDSeason.value) mostPassTDSeason = { value: acc.passTd, player, team, season };
+            if (acc.recYds > mostRecYardsSeason.value) mostRecYardsSeason = { value: acc.recYds, player, team, season };
+            if (acc.recTd > mostRecTDSeason.value) mostRecTDSeason = { value: acc.recTd, player, team, season };
             if (acc.sacks > mostSacksSeason.value) mostSacksSeason = { value: acc.sacks, player, team, season };
             if (acc.defTo > mostDefTurnoversSeason.value) mostDefTurnoversSeason = { value: acc.defTo, player, team, season };
             if (acc.defTd > mostDefTDSeason.value) mostDefTDSeason = { value: acc.defTd, player, team, season };
@@ -330,6 +339,8 @@ function calculateStats(allSeasons) {
         mostRushTDSeason,
         mostPassYardsSeason,
         mostPassTDSeason,
+        mostRecYardsSeason,
+        mostRecTDSeason,
         mostSacksSeason,
         mostDefTurnoversSeason,
         mostDefTDSeason,
@@ -427,6 +438,8 @@ function renderRecords(stats) {
     const rt = stats.mostRushTDSeason;
     const py = stats.mostPassYardsSeason;
     const pt = stats.mostPassTDSeason;
+    const cy = stats.mostRecYardsSeason;
+    const ct = stats.mostRecTDSeason;
     const sk = stats.mostSacksSeason;
     const dto = stats.mostDefTurnoversSeason;
     const dtd = stats.mostDefTDSeason;
@@ -448,6 +461,8 @@ function renderRecords(stats) {
         rt.value ? recordTile(rt.value, 'Most Rush TDs (Season)', `${rt.player} — ${displayName(rt.team)}, ${rt.season}`) : '',
         py.value ? recordTile(py.value.toLocaleString('en-US'), 'Most Pass Yards (Season)', `${py.player} — ${displayName(py.team)}, ${py.season}`) : '',
         pt.value ? recordTile(pt.value, 'Most Pass TDs (Season)', `${pt.player} — ${displayName(pt.team)}, ${pt.season}`) : '',
+        cy.value ? recordTile(cy.value.toLocaleString('en-US'), 'Most Reception Yards (Season)', `${cy.player} — ${displayName(cy.team)}, ${cy.season}`) : '',
+        ct.value ? recordTile(ct.value, 'Most Reception TDs (Season)', `${ct.player} — ${displayName(ct.team)}, ${ct.season}`) : '',
         sk.value ? recordTile(sk.value, 'Most Sacks (Season)', `${sk.player} — ${displayName(sk.team)}, ${sk.season}`) : '',
         dto.value ? recordTile(dto.value, 'Most Turnovers Forced (Season)', `${dto.player} — ${displayName(dto.team)}, ${dto.season}`) : '',
         dtd.value ? recordTile(dtd.value, 'Most Defensive TDs (Season)', `${dtd.player} — ${displayName(dtd.team)}, ${dtd.season}`) : ''
@@ -488,7 +503,10 @@ function renderTeamPanels(stats) {
         rushTD: Math.max(...entries.map(([, r]) => r.rushTD || 0)),
         passTD: Math.max(...entries.map(([, r]) => r.passTD || 0)),
         recTD: Math.max(...entries.map(([, r]) => r.recTD || 0)),
-        defTD: Math.max(...entries.map(([, r]) => r.defTD || 0))
+        defTD: Math.max(...entries.map(([, r]) => r.defTD || 0)),
+        rushYds: Math.max(...entries.map(([, r]) => r.rushYds || 0)),
+        passYds: Math.max(...entries.map(([, r]) => r.passYds || 0)),
+        recYds: Math.max(...entries.map(([, r]) => r.recYds || 0))
     };
 
     const panels = entries.map(([name, r], i) => {
@@ -530,6 +548,11 @@ function renderTeamPanels(stats) {
                 ${ministat(r.passTD || 0, 'Pass TDs', (r.passTD || 0) === best.passTD && best.passTD > 0)}
                 ${ministat(r.recTD || 0, 'Rec TDs', (r.recTD || 0) === best.recTD && best.recTD > 0)}
                 ${ministat(r.defTD || 0, 'Def TDs', (r.defTD || 0) === best.defTD && best.defTD > 0)}
+            </div>
+            <div class="team-alltime-ministats team-alltime-ministats--td">
+                ${ministat((r.rushYds || 0).toLocaleString('en-US'), 'Rush Yds', (r.rushYds || 0) === best.rushYds && best.rushYds > 0)}
+                ${ministat((r.passYds || 0).toLocaleString('en-US'), 'Pass Yds', (r.passYds || 0) === best.passYds && best.passYds > 0)}
+                ${ministat((r.recYds || 0).toLocaleString('en-US'), 'Rec Yds', (r.recYds || 0) === best.recYds && best.recYds > 0)}
             </div>
             ${recTdSplit(r.recTDByPos)}
             <div class="team-h2h-row">${pills}</div>
