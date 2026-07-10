@@ -14,7 +14,7 @@ import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=1';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle, statLine,
-} from '../data/matchup-analysis.js?v=1';
+} from '../data/matchup-analysis.js?v=2';
 import { TEAMS } from './team.js?v=12';
 import { playerImageService } from '../services/player-image-service.js?v=4';
 
