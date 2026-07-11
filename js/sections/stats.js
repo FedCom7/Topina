@@ -1,7 +1,7 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=21';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=21';
 import { TEAMS } from './team.js?v=12';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=12';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=15';
 
 let loaded = false;
 
@@ -61,6 +61,9 @@ function calculateStats(allSeasons) {
     let mostSacksSeason = { value: 0, player: '', team: '', season: '' };
     let mostDefTurnoversSeason = { value: 0, player: '', team: '', season: '' };
     let mostDefTDSeason = { value: 0, player: '', team: '', season: '' };
+
+    // Career totals per player (tutte le stagioni, sola regular season)
+    const playerCareerStats = {}; // player -> { pts, patMade, fgMade, team }
 
     // Team aggregated stats
     const teamRecords = {}; // { name: { w, l, t, pf, pa, games } }
@@ -237,6 +240,13 @@ function calculateStats(allSeasons) {
                             if (!playerSeasonStats[key]) {
                                 playerSeasonStats[key] = { rushYds: 0, rushTd: 0, passYds: 0, passTd: 0, recYds: 0, recTd: 0, sacks: 0, defTo: 0, defTd: 0 };
                             }
+                            if (!playerCareerStats[p.name]) playerCareerStats[p.name] = { pts: 0, patMade: 0, fgMade: 0, team: teamName };
+                            const car = playerCareerStats[p.name];
+                            car.pts += Number(p.fantasy_points) || 0;
+                            car.patMade += Number(p.stats.pat_made) || 0;
+                            car.fgMade += (Number(p.stats.fg_0_19) || 0) + (Number(p.stats.fg_20_29) || 0) + (Number(p.stats.fg_30_39) || 0) + (Number(p.stats.fg_40_49) || 0) + (Number(p.stats.fg_50_plus) || 0);
+                            car.team = teamName;
+
                             const acc = playerSeasonStats[key];
                             acc.rushYds += Number(p.stats.rush_yds) || 0;
                             acc.rushTd += Number(p.stats.rush_td) || 0;
@@ -358,10 +368,23 @@ function calculateStats(allSeasons) {
         });
     });
 
+    // Career leaders (tutte le stagioni)
+    let mostCareerPts = { value: 0, player: '', team: '' };
+    let mostCareerPat = { value: 0, player: '', team: '' };
+    let mostCareerFg = { value: 0, player: '', team: '' };
+    Object.entries(playerCareerStats).forEach(([player, c]) => {
+        if (c.pts > mostCareerPts.value) mostCareerPts = { value: c.pts, player, team: c.team };
+        if (c.patMade > mostCareerPat.value) mostCareerPat = { value: c.patMade, player, team: c.team };
+        if (c.fgMade > mostCareerFg.value) mostCareerFg = { value: c.fgMade, player, team: c.team };
+    });
+
     return {
         seasonsCount: Object.keys(allSeasons).length,
         totalGames,
         totalPoints: totalPoints.toFixed(2),
+        mostCareerPts,
+        mostCareerPat,
+        mostCareerFg,
         highestScore,
         lowestScore,
         largestMargin,
@@ -486,6 +509,10 @@ function renderRecords(stats) {
     const dto = stats.mostDefTurnoversSeason;
     const dtd = stats.mostDefTDSeason;
 
+    const cp = stats.mostCareerPts;
+    const cpat = stats.mostCareerPat;
+    const cfg = stats.mostCareerFg;
+
     const tiles = [
         recordTile(h.value, 'Highest Score', `${displayName(h.team)} — W${h.week}, ${h.season}`),
         recordTile(l.value, 'Lowest Score', `${displayName(l.team)} — W${l.week}, ${l.season}`),
@@ -507,7 +534,10 @@ function renderRecords(stats) {
         ct.value ? recordTile(ct.value, 'Most Reception TDs (Season)', `${ct.player} — ${displayName(ct.team)}, ${ct.season}`) : '',
         sk.value ? recordTile(sk.value, 'Most Sacks (Season)', `${sk.player} — ${displayName(sk.team)}, ${sk.season}`) : '',
         dto.value ? recordTile(dto.value, 'Most Turnovers Forced (Season)', `${dto.player} — ${displayName(dto.team)}, ${dto.season}`) : '',
-        dtd.value ? recordTile(dtd.value, 'Most Defensive TDs (Season)', `${dtd.player} — ${displayName(dtd.team)}, ${dtd.season}`) : ''
+        dtd.value ? recordTile(dtd.value, 'Most Defensive TDs (Season)', `${dtd.player} — ${displayName(dtd.team)}, ${dtd.season}`) : '',
+        cp.value ? recordTile(cp.value.toLocaleString('en-US', { maximumFractionDigits: 1 }), 'Most Fantasy Points (Career)', `${cp.player} — ${displayName(cp.team)}`) : '',
+        cpat.value ? recordTile(cpat.value, 'Most Extra Points Made (Career)', `${cpat.player} — ${displayName(cpat.team)}`) : '',
+        cfg.value ? recordTile(cfg.value, 'Most Field Goals Made (Career)', `${cfg.player} — ${displayName(cfg.team)}`) : ''
     ];
 
     el.innerHTML = `
@@ -710,9 +740,20 @@ function renderCharts(stats) {
     el.innerHTML = `
         <h2 class="records-title">Trends</h2>
 
+        <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:8px;">Andamento Squadre</h2>
+        <p class="st-block-desc">I punteggi delle 4 squadre stagione per stagione: quanto rendono in campo, quanto è costante il loro punteggio, e come si comportano le loro scelte di gestione (draft, mercato, panchina) nel tempo.</p>
+
         <h3 class="an-sub-title">Team Points by Season</h3>
         ${legendOf(teamSeries)}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(teamSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+        <p class="an-footnote">Playoffs and Super Bowl included. Dashed lines mark seasons where the number of giornate changed.</p>
+
+        <div id="charts-team-rest">
+            <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
+        </div>
+
+        <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Andamento Giocatori</h2>
+        <p class="st-block-desc">Quanti punti producono complessivamente i giocatori della lega ogni anno, e come si ripartiscono tra i ruoli (QB, RB, WR, TE, K, DEF).</p>
 
         <h3 class="an-sub-title">Total Player Production by Season</h3>
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(prodSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
@@ -720,11 +761,14 @@ function renderCharts(stats) {
         <h3 class="an-sub-title">Player Production by Role</h3>
         ${legendOf(roleSeries)}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+        <p class="an-footnote">Player production includes bench points.</p>
 
-        <p class="an-footnote">Playoffs and Super Bowl included. Player production includes bench points; team points are actual matchup scores. Dashed lines mark seasons where the number of giornate changed.</p>
+        <div id="charts-role-dist">
+            <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
+        </div>
 
-        <div id="charts-advanced">
-            <div class="loading-state"><div class="spinner"></div><p>Caricamento grafici avanzati...</p></div>
+        <div id="charts-draft-section">
+            <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
         </div>
     `;
 
@@ -733,16 +777,22 @@ function renderCharts(stats) {
     // Grafici che richiedono il modello di Analysis (draft + roster per settimana)
     renderAdvancedCharts(markers).catch(e => {
         console.error('Advanced charts error:', e);
-        const adv = document.getElementById('charts-advanced');
-        if (adv) adv.innerHTML = '';
+        const teamRest = document.getElementById('charts-team-rest');
+        if (teamRest) teamRest.innerHTML = '';
+        const roleDist = document.getElementById('charts-role-dist');
+        if (roleDist) roleDist.innerHTML = '';
+        const draftSection = document.getElementById('charts-draft-section');
+        if (draftSection) draftSection.innerHTML = '';
     });
 }
 
 /* ---------- Grafici avanzati (draftata / innesti / panchina / costanza) ---------- */
 
 async function renderAdvancedCharts(markers) {
-    const adv = document.getElementById('charts-advanced');
-    if (!adv) return;
+    const teamRest = document.getElementById('charts-team-rest');
+    const roleDist = document.getElementById('charts-role-dist');
+    const draftSection = document.getElementById('charts-draft-section');
+    if (!teamRest && !roleDist && !draftSection) return;
 
     // Costruisce (o recupera dalla cache) il modello Analysis per ogni stagione
     const models = {};
@@ -753,7 +803,12 @@ async function renderAdvancedCharts(markers) {
         } catch (e) { /* stagione senza dati: skip */ }
     }
     const seasons = Object.keys(models).sort();
-    if (seasons.length < 2) { adv.innerHTML = ''; return; }
+    if (seasons.length < 2) {
+        if (teamRest) teamRest.innerHTML = '';
+        if (roleDist) roleDist.innerHTML = '';
+        if (draftSection) draftSection.innerHTML = '';
+        return;
+    }
 
     const teamKeys = Object.keys(TEAMS); // capi, lasers, oscurus, sommo
 
@@ -796,24 +851,111 @@ async function renderAdvancedCharts(markers) {
         ${series.map(s => `<span class="an-legend-item"><span class="an-legend-key" style="background:${s.color}"></span>${s.name}</span>`).join('')}
     </div>`;
 
-    adv.innerHTML = `
-        <h3 class="an-sub-title">Drafted Team Points by Season</h3>
-        ${legendOf(draftedSeries)}
-        <div class="an-chart st-trend-chart">${buildSeasonLineChart(draftedSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+    // 5) Draft: Value per Pick su tutte le stagioni insieme, con la media per numero di pick
+    const draftPoints = [];
+    for (const year of seasons) {
+        const m = models[year];
+        for (const key of teamKeys) {
+            const raw = Object.keys(m.draft?.teams || {}).find(r => rawKeyMatches(m, r, key));
+            if (!raw) continue;
+            for (const pick of m.draft.teams[raw] || []) {
+                const rec = m.players.get(pick.name);
+                let pts = 0;
+                if (rec) for (const w of Object.values(rec.weeks)) if (w.teamKey === key) pts += w.pts;
+                draftPoints.push({ year, pick: pick.pick, name: pick.name, position: pick.position, teamName: TEAMS[key].name, color: CHART_COLORS_BY_KEY[key] || '#888', pts });
+            }
+        }
+    }
 
-        <h3 class="an-sub-title">In-Season Pickup Points by Season</h3>
-        ${legendOf(pickupSeries)}
-        <div class="an-chart st-trend-chart">${buildSeasonLineChart(pickupSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+    // 6) Distribuzione punteggi per ruolo (titolari + panchina, tutte le stagioni)
+    const byRole = {};
+    for (const s of seasons) {
+        for (const rec of models[s].players.values()) {
+            const role = rec.position;
+            if (!ROLE_COLORS[role]) continue;
+            (byRole[role] ||= []);
+            for (const w of Object.values(rec.weeks)) {
+                byRole[role].push(w.pts);
+            }
+        }
+    }
 
-        <h3 class="an-sub-title">Points Left on the Bench by Season</h3>
-        ${legendOf(benchSeries)}
-        <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+    // 7) Margine di vittoria/sconfitta per team (media + varianza), da tutti i matchup
+    const teamMarginStats = {}; // key -> { wins: [margini], losses: [margini] }
+    for (const year of seasons) {
+        let data;
+        try { data = await fetchFantasyData(year); } catch (e) { continue; }
+        if (!data?.weeks) continue;
+        for (const wkData of Object.values(data.weeks)) {
+            for (const m of wkData.matchups || []) {
+                if (!m.team1 || !m.team2) continue;
+                const s1 = parseFloat(m.team1.score || 0);
+                const s2 = parseFloat(m.team2.score || 0);
+                if (s1 === 0 && s2 === 0) continue;
+                if (s1 === s2) continue; // pareggio: nessun vincitore/perdente
+                const margin = Math.abs(s1 - s2);
+                const winnerRaw = s1 > s2 ? m.team1.name : m.team2.name;
+                const loserRaw = s1 > s2 ? m.team2.name : m.team1.name;
+                const wKey = TEAM_KEYS[displayName(winnerRaw)];
+                const lKey = TEAM_KEYS[displayName(loserRaw)];
+                if (wKey) (teamMarginStats[wKey] ||= { wins: [], losses: [] }).wins.push(margin);
+                if (lKey) (teamMarginStats[lKey] ||= { wins: [], losses: [] }).losses.push(margin);
+            }
+        }
+    }
 
-        <h3 class="an-sub-title">Scoring Consistency (all seasons)</h3>
-        ${buildConsistencyChart(distRows)}
-    `;
+    if (teamRest) {
+        teamRest.innerHTML = `
+            <h3 class="an-sub-title">Scoring Consistency (all seasons)</h3>
+            ${buildConsistencyChart(distRows)}
 
-    adv.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+            <h3 class="an-sub-title">Drafted Team Points by Season</h3>
+            ${legendOf(draftedSeries)}
+            <div class="an-chart st-trend-chart">${buildSeasonLineChart(draftedSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+            <h3 class="an-sub-title">In-Season Pickup Points by Season</h3>
+            ${legendOf(pickupSeries)}
+            <div class="an-chart st-trend-chart">${buildSeasonLineChart(pickupSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+            <h3 class="an-sub-title">Points Left on the Bench by Season</h3>
+            ${legendOf(benchSeries)}
+            <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+
+            <h3 class="an-sub-title">Margine: Vittorie vs Sconfitte</h3>
+            <div class="an-chart">${buildMarginDotPlot(teamMarginStats)}</div>
+            <p class="an-footnote">Ogni punto è una partita: a destra (+) le vittorie, a sinistra (−) le sconfitte, distanza dallo 0 = margine. Il segno verticale è la media, la banda è ±1 deviazione standard.</p>
+        `;
+        teamRest.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+    }
+
+    if (roleDist) {
+        roleDist.innerHTML = `
+            <h3 class="an-sub-title">Punteggi settimanali per ruolo</h3>
+            <div class="an-chart">${buildRoleDistribution(byRole)}</div>
+            <p class="an-footnote">Ogni punto è una prestazione settimanale (titolari e panchina, tutte le stagioni). La banda è ±1 deviazione standard attorno alla media (linea verticale).</p>
+        `;
+    }
+
+    if (draftSection) {
+        draftSection.innerHTML = `
+            <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Andamento Draft</h2>
+            <p class="st-block-desc">Il valore di ogni pick del draft su tutte le stagioni: dove cadono gli affari e i bust rispetto alla media della lega per quel numero di chiamata.</p>
+
+            <h3 class="an-sub-title">Draft: Value per Pick (All Years)</h3>
+            <div class="an-chart-legend">
+                <span class="an-legend-item"><span class="an-legend-key" style="background:#f5d576"></span>Media per pick</span>
+            </div>
+            <div class="an-chart" id="draft-scatter-all">${buildDraftScatterAll(draftPoints)}<div class="an-chart-tooltip" hidden></div></div>
+            <p class="an-footnote">Ogni punto è un giocatore draftato in una stagione, posizionato per numero di pick e punti fatti per il team. La linea dorata è la media dei punti per ogni numero di pick su tutti gli anni.</p>
+        `;
+        const scatterAll = draftSection.querySelector('#draft-scatter-all');
+        if (scatterAll) bindDraftScatterAll(scatterAll);
+    }
+}
+
+// Confronta la chiave raw del draft con la chiave team (stessa logica di teamKeyFromRaw in analysis.js)
+function rawKeyMatches(model, raw, teamKey) {
+    return TEAM_KEYS[displayName(raw)] === teamKey;
 }
 
 // Range bar per team (min → max, tick sulla mediana) — riusa le classi .an-dist-*
@@ -978,4 +1120,227 @@ function bindSeasonChart(container) {
         crosshair.setAttribute('visibility', 'hidden');
         tooltip.hidden = true;
     });
+}
+
+/* ---------- Draft: Value per Pick — tutte le stagioni + media per pick ---------- */
+
+const DSC = { w: 800, h: 340, l: 48, r: 12, t: 16, b: 34 };
+const fmtN = (n, dec = 0) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+function buildDraftScatterAll(points) {
+    if (!points.length) return '<div class="empty-state"><p class="empty-state-text">Nessun dato draft disponibile</p></div>';
+
+    const maxPick = Math.max(...points.map(p => p.pick), 1);
+    const maxPts = Math.max(...points.map(p => p.pts), 1);
+    const yTicks = chartNiceTicks(0, maxPts);
+    const yMax = yTicks[yTicks.length - 1];
+
+    const plotW = DSC.w - DSC.l - DSC.r;
+    const plotH = DSC.h - DSC.t - DSC.b;
+    const x = pick => DSC.l + ((pick - 1) / Math.max(maxPick - 1, 1)) * plotW;
+    const y = pts => DSC.t + (1 - pts / yMax) * plotH;
+
+    const grid = yTicks.map(v => `
+        <line x1="${DSC.l}" y1="${y(v)}" x2="${DSC.l + plotW}" y2="${y(v)}" class="an-gridline"/>
+        <text x="${DSC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${fmtN(v)}</text>`).join('');
+
+    const xTickStep = maxPick > 20 ? 4 : 2;
+    const xTicks = [];
+    for (let p = 1; p <= maxPick; p += xTickStep) {
+        xTicks.push(`<text x="${x(p)}" y="${DSC.h - 10}" class="an-tick" text-anchor="middle">${p}</text>`);
+    }
+
+    // Media punti per numero di pick, su tutte le stagioni
+    const byPick = {};
+    for (const p of points) { (byPick[p.pick] ||= []).push(p.pts); }
+    const avgPoints = Object.keys(byPick).map(Number).sort((a, b) => a - b)
+        .map(pick => ({ pick, avg: byPick[pick].reduce((s, v) => s + v, 0) / byPick[pick].length }));
+    const avgLine = avgPoints.map(a => `${x(a.pick).toFixed(1)},${y(a.avg).toFixed(1)}`).join(' ');
+
+    const dots = points.map(p => {
+        const cx = x(p.pick), cy = y(p.pts);
+        return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4" fill="${p.color}" stroke="#000" stroke-width="1.5" opacity="0.85"
+            class="an-dot" data-name="${p.name}" data-pick="${p.pick}" data-year="${p.year}" data-team="${p.teamName}" data-pos="${p.position || ''}" data-pts="${p.pts.toFixed(1)}"/>`;
+    }).join('');
+
+    return `
+    <svg viewBox="0 0 ${DSC.w} ${DSC.h}" class="an-svg">
+        ${grid}${xTicks.join('')}${dots}
+        <polyline points="${avgLine}" fill="none" stroke="#f5d576" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+}
+
+function bindDraftScatterAll(container) {
+    const svg = container.querySelector('svg');
+    const tooltip = container.querySelector('.an-chart-tooltip');
+
+    svg.addEventListener('pointermove', (e) => {
+        const dot = e.target.closest('.an-dot');
+        if (!dot) { tooltip.hidden = true; return; }
+        tooltip.replaceChildren();
+        const title = document.createElement('div');
+        title.className = 'an-tt-title';
+        title.textContent = `Pick #${dot.dataset.pick} — ${dot.dataset.year}`;
+        const row = document.createElement('div');
+        row.className = 'an-tt-row';
+        const key = document.createElement('span');
+        key.className = 'an-tt-key';
+        key.style.background = dot.getAttribute('fill');
+        const val = document.createElement('b');
+        val.textContent = fmtN(Number(dot.dataset.pts), 1);
+        const name = document.createElement('span');
+        name.className = 'an-tt-name';
+        name.textContent = `${dot.dataset.name} (${dot.dataset.pos}) — ${dot.dataset.team}`;
+        row.append(key, val, name);
+        tooltip.append(title, row);
+        tooltip.hidden = false;
+
+        const crect = container.getBoundingClientRect();
+        let tx = e.clientX - crect.left + 14;
+        const tw = tooltip.offsetWidth || 140;
+        if (tx + tw > crect.width - 4) tx = e.clientX - crect.left - tw - 14;
+        tooltip.style.left = `${tx}px`;
+        tooltip.style.top = `${e.clientY - crect.top - 10}px`;
+    });
+
+    svg.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+}
+
+/* ---------- Dot plot: distribuzione punteggi per ruolo (media + ±σ) ---------- */
+
+const RDP = { w: 800, l: 52, r: 16, t: 14, b: 28, lane: 46 };
+
+function buildRoleDistribution(byRole) {
+    const roles = Object.keys(ROLE_COLORS).filter(r => (byRole[r] || []).length);
+    if (!roles.length) return '<div class="empty-state"><p class="empty-state-text">Nessun dato disponibile</p></div>';
+
+    const allPts = roles.flatMap(r => byRole[r]);
+    const maxPts = Math.max(...allPts, 1);
+    const xTicks = chartNiceTicks(0, maxPts);
+    const xMax = xTicks[xTicks.length - 1];
+
+    const plotW = RDP.w - RDP.l - RDP.r;
+    const h = RDP.t + RDP.b + roles.length * RDP.lane;
+    const x = v => RDP.l + (v / xMax) * plotW;
+
+    // Jitter deterministico
+    let seed = 1;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+    const gridX = xTicks.map(v => `
+        <line x1="${x(v)}" y1="${RDP.t}" x2="${x(v)}" y2="${RDP.t + roles.length * RDP.lane}" class="an-gridline"/>
+        <text x="${x(v)}" y="${h - 8}" class="an-tick" text-anchor="middle">${Math.round(v)}</text>`).join('');
+
+    const lanes = roles.map((role, ri) => {
+        const pts = byRole[role];
+        const n = pts.length;
+        const mean = pts.reduce((a, b) => a + b, 0) / n;
+        const variance = pts.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n;
+        const std = Math.sqrt(variance);
+        const color = ROLE_COLORS[role];
+        const cy = RDP.t + ri * RDP.lane + RDP.lane / 2;
+        const jitH = RDP.lane * 0.62;
+
+        const band = `<rect x="${x(Math.max(mean - std, 0)).toFixed(1)}" y="${(cy - jitH / 2).toFixed(1)}"
+            width="${(x(mean + std) - x(Math.max(mean - std, 0))).toFixed(1)}" height="${jitH.toFixed(1)}"
+            fill="${color}" opacity="0.12" rx="3"/>`;
+
+        const dots = pts.map(p => {
+            const dy = cy + (rnd() - 0.5) * jitH;
+            return `<circle cx="${x(p).toFixed(1)}" cy="${dy.toFixed(1)}" r="2" fill="${color}" opacity="0.35"/>`;
+        }).join('');
+
+        const meanLine = `<line x1="${x(mean).toFixed(1)}" y1="${(cy - jitH / 2 - 3).toFixed(1)}" x2="${x(mean).toFixed(1)}" y2="${(cy + jitH / 2 + 3).toFixed(1)}" stroke="${color}" stroke-width="2.5"/>`;
+        const meanLabel = `<text x="${x(mean).toFixed(1)}" y="${(cy - jitH / 2 - 6).toFixed(1)}" class="an-tick" text-anchor="middle" style="fill:${color};font-weight:700">${mean.toFixed(1)}</text>`;
+        const roleLabel = `<text x="${RDP.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${role}</text>`;
+
+        return `${band}${dots}${meanLine}${meanLabel}${roleLabel}`;
+    }).join('');
+
+    return `
+    <svg viewBox="0 0 ${RDP.w} ${h}" class="an-svg">
+        ${gridX}${lanes}
+    </svg>`;
+}
+
+/* ---------- Dot plot divergente: margine Vittorie (+) / Sconfitte (−), centrato su 0 ---------- */
+
+function meanStd(arr) {
+    if (!arr.length) return { mean: 0, std: 0, n: 0 };
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const variance = arr.reduce((a, b) => a + (b - mean) * (b - mean), 0) / arr.length;
+    return { mean, std: Math.sqrt(variance), n: arr.length };
+}
+
+const MDP = { w: 800, l: 90, r: 16, t: 14, b: 28, lane: 56 };
+const SHORT_TEAM_NAME = { capi: 'CDP', lasers: 'Lasers', oscurus: 'Oscurus', sommo: 'Sommo' };
+
+function buildMarginDotPlot(teamMarginStats) {
+    const teamKeys = Object.keys(TEAMS);
+    const rows = teamKeys.map(key => {
+        const stat = teamMarginStats[key] || { wins: [], losses: [] };
+        return { key, name: SHORT_TEAM_NAME[key] || TEAMS[key].name, wins: stat.wins, losses: stat.losses, win: meanStd(stat.wins), loss: meanStd(stat.losses) };
+    });
+    const allMargins = rows.flatMap(r => [...r.wins, ...r.losses]);
+    if (!allMargins.length) return '<div class="empty-state"><p class="empty-state-text">Nessun dato disponibile</p></div>';
+
+    const maxAbs = Math.max(...allMargins, 1);
+    const magTicks = chartNiceTicks(0, maxAbs).filter(v => v > 0);
+    const maxTick = magTicks.length ? magTicks[magTicks.length - 1] : maxAbs;
+
+    const plotW = MDP.w - MDP.l - MDP.r;
+    const halfW = plotW / 2;
+    const centerX = MDP.l + halfW;
+    const h = MDP.t + MDP.b + rows.length * MDP.lane;
+    const x = v => centerX + (v / maxTick) * halfW; // v positivo = vittoria (destra), negativo = sconfitta (sinistra)
+
+    // Griglia: 0 al centro + tick speculari con segno (+ a destra, − a sinistra)
+    const tickValues = [0, ...magTicks, ...magTicks.map(v => -v)];
+    const grid = tickValues.map(v => `
+        <line x1="${x(v).toFixed(1)}" y1="${MDP.t}" x2="${x(v).toFixed(1)}" y2="${MDP.t + rows.length * MDP.lane}" class="${v === 0 ? 'an-vrule' : 'an-gridline'}"/>
+        <text x="${x(v).toFixed(1)}" y="${h - 8}" class="an-tick" text-anchor="middle">${v === 0 ? '0' : (v > 0 ? '+' + Math.round(v) : Math.round(v))}</text>`).join('');
+
+    // Jitter deterministico
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+    const lanes = rows.map((r, ri) => {
+        const cy = MDP.t + ri * MDP.lane + MDP.lane / 2;
+        const jitH = MDP.lane * 0.6;
+
+        const dotsFor = (values, sign, color) => values.map(m => {
+            const dy = cy + (rnd() - 0.5) * jitH;
+            return `<circle cx="${x(sign * m).toFixed(1)}" cy="${dy.toFixed(1)}" r="2" fill="${color}" opacity="0.4"/>`;
+        }).join('');
+
+        const bandFor = (stat, sign, color) => {
+            if (!stat.n) return '';
+            const lo = sign > 0 ? Math.max(stat.mean - stat.std, 0) : -(stat.mean + stat.std);
+            const hi = sign > 0 ? (stat.mean + stat.std) : -Math.max(stat.mean - stat.std, 0);
+            return `<rect x="${x(lo).toFixed(1)}" y="${(cy - jitH / 2).toFixed(1)}" width="${(x(hi) - x(lo)).toFixed(1)}" height="${jitH.toFixed(1)}" fill="${color}" opacity="0.12" rx="3"/>`;
+        };
+
+        const meanMarkFor = (stat, sign, color) => {
+            if (!stat.n) return '';
+            const mx = x(sign * stat.mean);
+            return `
+            <line x1="${mx.toFixed(1)}" y1="${(cy - jitH / 2 - 3).toFixed(1)}" x2="${mx.toFixed(1)}" y2="${(cy + jitH / 2 + 3).toFixed(1)}" stroke="${color}" stroke-width="2.5"/>
+            <text x="${mx.toFixed(1)}" y="${(cy - jitH / 2 - 6).toFixed(1)}" class="an-tick" text-anchor="middle" style="fill:${color};font-weight:700">${fmtN(stat.mean, 1)}</text>`;
+        };
+
+        const winColor = '#22c55e';
+        const lossColor = '#B8433A';
+        const label = `<text x="${MDP.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${r.name}</text>`;
+
+        return `
+            ${bandFor(r.loss, -1, lossColor)}${bandFor(r.win, 1, winColor)}
+            ${dotsFor(r.losses, -1, lossColor)}${dotsFor(r.wins, 1, winColor)}
+            ${meanMarkFor(r.loss, -1, lossColor)}${meanMarkFor(r.win, 1, winColor)}
+            ${label}`;
+    }).join('');
+
+    return `
+    <svg viewBox="0 0 ${MDP.w} ${h}" class="an-svg">
+        ${grid}${lanes}
+    </svg>`;
 }

@@ -3,9 +3,9 @@
  */
 import { initHome } from './sections/home.js?v=24';
 import { initGameCenter } from './sections/game-center.js?v=30';
-import { initStandings } from './sections/standings.js?v=28';
+import { initStandings } from './sections/standings.js?v=31';
 import { initDraft } from './sections/draft.js?v=22';
-import { initStats } from './sections/stats.js?v=33';
+import { initStats } from './sections/stats.js?v=42';
 import { initHistory } from './sections/history.js?v=23';
 import { initHonors } from './sections/honors.js?v=1';
 import { initAllPro } from './sections/allpro.js?v=1';
@@ -13,7 +13,7 @@ import { initHallOfFame } from './sections/halloffame.js?v=9';
 import { initTeam } from './sections/team.js?v=12';
 import { initTeams } from './sections/teams.js?v=2';
 import { initGame } from './sections/game.js?v=2';
-import { initAnalysis } from './sections/analysis.js?v=12';
+import { initAnalysis } from './sections/analysis.js?v=15';
 import { initMagazine } from './sections/magazine.js?v=15';
 import { initNavbar } from './ui/navbar.js';
 

@@ -2119,6 +2119,15 @@ img {
     margin-top: 0;
 }
 
+/* Descrizione dinamica sotto il titolo di blocco */
+.st-block-desc {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    max-width: 68ch;
+    margin: -14px 0 30px;
+}
+
 /* --- Ranking: card stile teams con numero gigante sporgente --- */
 .st-ranking {
     display: flex;
@@ -2130,7 +2139,7 @@ img {
 
 .st-rank-wrap {
     position: relative;
-    width: min(100%, 760px);
+    width: 100%;
     animation: fadeUp 0.5s var(--ease) both;
     animation-delay: calc(var(--card-i, 0) * 90ms);
 }
@@ -2439,8 +2448,8 @@ img {
 .playoff-logo {
     position: relative;
     z-index: 1;
-    width: 120%;
-    height: 120%;
+    width: 195%;
+    height: 195%;
     object-fit: contain;
     filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5));
     transition: transform 0.3s ease;
@@ -5776,6 +5785,15 @@ img {
     font-family: var(--font-body, 'Inter', sans-serif);
 }
 
+/* Label ruolo nel dot plot distribuzioni */
+.st-role-label {
+    fill: var(--text-primary);
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
 .an-endlabel {
     fill: var(--text-secondary);
     font-size: 12px;
@@ -7200,7 +7218,16 @@ img {
 }
 
 .an-ptbl-delta--best {
-    color: var(--accent-green);
+    color: var(--accent-amber);
+}
+
+.an-ptbl-name--best {
+    color: var(--accent-amber);
+}
+
+.an-ptbl-pts--best {
+    color: var(--accent-amber);
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
 }
 
 .an-ptbl-empty {
@@ -7210,6 +7237,56 @@ img {
 
 .an-ptbl tbody tr:hover td {
     background: rgba(255, 255, 255, 0.03);
+}
+
+.an-ptbl-mode-toggle {
+    margin: 4px 0 14px;
+}
+
+.an-ptbl-mode-pill {
+    padding: 5px 14px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-ptbl-mode-pill:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.an-ptbl-mode-pill.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: #fff;
+}
+
+.an-ptbl-more-row td {
+    border-bottom: none;
+    padding: 10px 0 4px;
+    text-align: center;
+}
+
+.an-ptbl-more-btn {
+    padding: 6px 16px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-ptbl-more-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
 }
 
 /* Ritratto tondo nella colonna sinistra della storia secondaria

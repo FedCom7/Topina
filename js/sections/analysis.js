@@ -15,6 +15,7 @@ let currentYear = CURRENT_SEASON;
 let currentTeam = 'capi';
 let currentTab = 'season';
 let avgMode = 'total'; // 'total' | 'starter' — base per la colonna Media
+let rosterPtsMode = 'total'; // 'total' | 'pg' — punti totali vs punti a partita nelle tabelle di confronto
 const modelCache = {};
 
 const TABS = [
@@ -722,6 +723,26 @@ function bindContentEvents() {
             return;
         }
 
+        const ptsBtn = e.target.closest('.an-ptbl-mode-pill');
+        if (ptsBtn) {
+            rosterPtsMode = ptsBtn.dataset.ptsMode;
+            const model = modelCache[currentYear];
+            if (model) render(model);
+            return;
+        }
+
+        const moreBtn = e.target.closest('.an-ptbl-more-btn');
+        if (moreBtn) {
+            const moreRow = moreBtn.closest('.an-ptbl-more-row');
+            const tableWrap = moreBtn.closest('.an-ptbl-wrap');
+            const extraRows = tableWrap ? [...tableWrap.querySelectorAll('.an-ptbl-extra-row')] : [];
+            const collapsing = moreBtn.dataset.expanded === '1';
+            extraRows.forEach(r => r.hidden = collapsing);
+            moreBtn.dataset.expanded = collapsing ? '0' : '1';
+            moreBtn.textContent = collapsing ? moreBtn.dataset.showLabel : 'Nascondi';
+            return;
+        }
+
         const row = e.target.closest('.an-player-row');
         if (!row || row.classList.contains('an-row-static')) return;
         const name = row.dataset.player;
@@ -1022,9 +1043,13 @@ function renderLeagueView(model) {
     <h3 class="an-sub-title">Confronto Rose — Squadra Draftata</h3>
     ${buildRosterCompareTable(model, 'drafted')}
 
-    <h3 class="an-sub-title">Confronto Rose — Squadra Finale</h3>
-    ${buildRosterCompareTable(model, 'final')}
-    <p class="an-footnote">Slot titolari riempiti col miglior giocatore disponibile nel ruolo (W/R = flex RB/WR/TE); sotto la riga, i panchinari. "Titolari" = somma dei soli slot titolari, "Totale" = tutti i giocatori della rosa.</p>`;
+    <h3 class="an-sub-title">Confronto Rose — Squadra Migliore</h3>
+    ${buildRosterCompareTable(model, 'best')}
+    <p class="an-footnote">Slot titolari riempiti col miglior giocatore disponibile nel ruolo (W/R = flex RB/WR/TE) tra tutti quelli passati dalla rosa in stagione; sotto la riga, i panchinari. "Titolari" = somma dei soli slot titolari, "Totale" = tutti i giocatori della rosa.</p>
+
+    <h3 class="an-sub-title">Confronto Innesti</h3>
+    ${buildPickupsCompareTable(model)}
+    <p class="an-footnote">Innesti in-season ordinati per punti fatti (dal migliore), non per ruolo.</p>`;
 }
 
 function seasonTotalPts(rec) {
@@ -1045,8 +1070,43 @@ function assignLineup(players) {
     });
     const bench = pool.filter((_, i) => !used.has(i));
     const startersPts = starters.reduce((s, p) => s + (p ? p.pts : 0), 0);
+    const startersGames = starters.reduce((s, p) => s + (p ? p.games : 0), 0);
     const totalPts = pool.reduce((s, p) => s + p.pts, 0);
-    return { starters, bench, startersPts, totalPts };
+    const totalGames = pool.reduce((s, p) => s + p.games, 0);
+    return { starters, bench, startersPts, startersGames, totalPts, totalGames };
+}
+
+// Valore da mostrare secondo rosterPtsMode: punti totali o punti a partita
+function ptblValue(pts, games) {
+    if (pts === null || pts === undefined) return null;
+    if (rosterPtsMode === 'pg') return games ? pts / games : 0;
+    return pts;
+}
+
+function ptblModeToggleHtml() {
+    return `
+    <div class="an-avg-toggle an-ptbl-mode-toggle">
+        <button class="an-ptbl-mode-pill${rosterPtsMode === 'total' ? ' active' : ''}" data-pts-mode="total">Punti Totali</button>
+        <button class="an-ptbl-mode-pill${rosterPtsMode === 'pg' ? ' active' : ''}" data-pts-mode="pg">Punti a Partita</button>
+    </div>`;
+}
+
+// Righe oltre questa soglia vengono nascoste dietro un pulsante "Mostra altri"
+const PTBL_COLLAPSE_AFTER = 10;
+
+function collapseRowsHtml(rows, colspan, label) {
+    if (rows.length <= PTBL_COLLAPSE_AFTER) return rows.join('');
+    const visible = rows.slice(0, PTBL_COLLAPSE_AFTER).join('');
+    const hidden = rows.slice(PTBL_COLLAPSE_AFTER)
+        .map(r => r.replace('<tr>', '<tr class="an-ptbl-extra-row" hidden>'))
+        .join('');
+    const hiddenCount = rows.length - PTBL_COLLAPSE_AFTER;
+    const showLabel = `Mostra altri ${hiddenCount} ${label}`;
+    const moreRow = `
+        <tr class="an-ptbl-more-row">
+            <td colspan="${colspan}"><button class="an-ptbl-more-btn" data-expanded="0" data-show-label="${showLabel}">${showLabel}</button></td>
+        </tr>`;
+    return visible + hidden + moreRow;
 }
 
 // Tabella confronto rose: colonne = team, righe = slot titolari + panchinari + somme
@@ -1058,10 +1118,11 @@ function buildRosterCompareTable(model, mode) {
             if (!raw) return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', missing: true };
             players = (model.draft.teams[raw] || []).map(pick => {
                 const rec = model.players.get(pick.name);
-                return { name: pick.name, pos: rec?.position || pick.position, pts: rec ? seasonTotalPts(rec) : 0 };
+                return { name: pick.name, pos: rec?.position || pick.position, pts: rec ? seasonTotalPts(rec) : 0, games: rec ? Object.keys(rec.weeks).length : 0 };
             });
         } else {
-            players = marketView(model, t.key).finalRoster.map(({ rec, agg }) => ({ name: rec.name, pos: rec.position, pts: agg.pts }));
+            // 'best': tutti i giocatori passati dalla rosa in stagione (non solo quelli finali)
+            players = seasonView(model, t.key).map(({ rec, agg }) => ({ name: rec.name, pos: rec.position, pts: agg.pts, games: agg.games }));
         }
         return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', ...assignLineup(players) };
     });
@@ -1071,24 +1132,29 @@ function buildRosterCompareTable(model, mode) {
     }
 
     const maxBench = Math.max(0, ...teams.map(t => (t.bench || []).length));
+    const decimals = rosterPtsMode === 'pg' ? 1 : 0;
 
-    // Delta rispetto al migliore della stessa riga (0 = leader di riga)
+    // Delta rispetto al migliore della stessa riga (0 = leader di riga, in oro)
     const rowMaxOf = (arr) => { const n = arr.filter(v => v !== null && v !== undefined); return n.length ? Math.max(...n) : null; };
-    const delta = (pts, rowMax) => {
-        if (pts === null || pts === undefined || rowMax === null) return '';
-        const gap = rowMax - pts;
+    const delta = (val, rowMax) => {
+        if (val === null || val === undefined || rowMax === null) return '';
+        const gap = rowMax - val;
         return gap <= 0.05
             ? '<span class="an-ptbl-delta an-ptbl-delta--best">0</span>'
-            : `<span class="an-ptbl-delta">−${fmt(gap, 0)}</span>`;
+            : `<span class="an-ptbl-delta">−${fmt(gap, decimals)}</span>`;
     };
-    const playerCell = (p, rowMax) => p
-        ? `<span class="an-ptbl-name">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts">${fmt(p.pts, 0)}</b>${delta(p.pts, rowMax)}</span>`
-        : '<span class="an-ptbl-empty">—</span>';
+    const isLeader = (val, rowMax) => val !== null && val !== undefined && rowMax !== null && (rowMax - val) <= 0.05;
+    const playerCell = (p, rowMax) => {
+        if (!p) return '<span class="an-ptbl-empty">—</span>';
+        const val = ptblValue(p.pts, p.games);
+        const leader = isLeader(val, rowMax);
+        return `<span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span>`;
+    };
     const emptyTd = '<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>';
 
     // Righe slot titolari
     let body = LINEUP_SLOTS.map((slot, si) => {
-        const arr = teams.map(t => t.missing ? null : (t.starters?.[si]?.pts ?? null));
+        const arr = teams.map(t => t.missing ? null : (t.starters?.[si] ? ptblValue(t.starters[si].pts, t.starters[si].games) : null));
         const rowMax = rowMaxOf(arr);
         return `
         <tr>
@@ -1099,31 +1165,102 @@ function buildRosterCompareTable(model, mode) {
 
     body += `<tr class="an-ptbl-seprow"><td colspan="${teams.length + 1}"></td></tr>`;
 
-    // Righe panchina
+    // Righe panchina (collassate oltre PTBL_COLLAPSE_AFTER)
+    const benchRows = [];
     for (let i = 0; i < maxBench; i++) {
-        const arr = teams.map(t => t.missing ? null : (t.bench?.[i]?.pts ?? null));
+        const arr = teams.map(t => t.missing ? null : (t.bench?.[i] ? ptblValue(t.bench[i].pts, t.bench[i].games) : null));
         const rowMax = rowMaxOf(arr);
-        body += `
+        benchRows.push(`
         <tr>
             <td class="an-ptbl-slot an-ptbl-slot--bn">BN</td>
             ${teams.map(t => t.missing ? emptyTd : `<td class="an-ptbl-cell">${playerCell(t.bench?.[i], rowMax)}</td>`).join('')}
-        </tr>`;
+        </tr>`);
     }
+    body += collapseRowsHtml(benchRows, teams.length + 1, 'panchinari');
 
     // Righe somma (delta anche qui)
-    const sumRow = (label, valFn, extraClass = '') => {
-        const arr = teams.map(t => t.missing ? null : valFn(t));
+    const sumRow = (label, ptsFn, gamesFn, extraClass = '') => {
+        const arr = teams.map(t => t.missing ? null : ptblValue(ptsFn(t), gamesFn(t)));
         const rowMax = rowMaxOf(arr);
         return `
         <tr class="an-ptbl-sumrow${extraClass}">
             <td class="an-ptbl-slot">${label}</td>
-            ${teams.map((t, ti) => t.missing
-            ? `<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>`
-            : `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts">${fmt(arr[ti], 0)}</b>${delta(arr[ti], rowMax)}</span></td>`).join('')}
+            ${teams.map((t, ti) => {
+            if (t.missing) return `<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>`;
+            const leader = isLeader(arr[ti], rowMax);
+            return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(arr[ti], decimals)}</b>${delta(arr[ti], rowMax)}</span></td>`;
+        }).join('')}
         </tr>`;
     };
-    body += sumRow('Titolari', t => t.startersPts);
-    body += sumRow('Totale', t => t.totalPts, ' an-ptbl-sumrow--total');
+    body += sumRow('Titolari', t => t.startersPts, t => t.startersGames);
+    body += sumRow('Totale', t => t.totalPts, t => t.totalGames, ' an-ptbl-sumrow--total');
+
+    return `
+    ${ptblModeToggleHtml()}
+    <div class="an-ptbl-wrap">
+        <table class="an-ptbl">
+            <thead><tr>
+                <th></th>
+                ${teams.map(t => `<th style="color:${t.color}">${t.name}</th>`).join('')}
+            </tr></thead>
+            <tbody>${body}</tbody>
+        </table>
+    </div>`;
+}
+
+// Tabella confronto innesti: righe in ordine di punti (non di ruolo/rosa)
+function buildPickupsCompareTable(model) {
+    const teams = Object.values(TEAMS).map(t => {
+        const additions = marketView(model, t.key).additions
+            .map(({ rec, agg }) => ({ name: rec.name, pos: rec.position, pts: agg.pts, games: agg.games }))
+            .sort((a, b) => b.pts - a.pts);
+        const totalPts = additions.reduce((s, p) => s + p.pts, 0);
+        const totalGames = additions.reduce((s, p) => s + p.games, 0);
+        return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', additions, totalPts, totalGames };
+    });
+
+    const maxRows = Math.max(0, ...teams.map(t => t.additions.length));
+    if (!maxRows) return emptyState('Nessun innesto in questa stagione per nessuna squadra');
+
+    const decimals = rosterPtsMode === 'pg' ? 1 : 0;
+    const rowMaxOf = (arr) => { const n = arr.filter(v => v !== null && v !== undefined); return n.length ? Math.max(...n) : null; };
+    const delta = (val, rowMax) => {
+        if (val === null || val === undefined || rowMax === null) return '';
+        const gap = rowMax - val;
+        return gap <= 0.05
+            ? '<span class="an-ptbl-delta an-ptbl-delta--best">0</span>'
+            : `<span class="an-ptbl-delta">−${fmt(gap, decimals)}</span>`;
+    };
+    const isLeader = (val, rowMax) => val !== null && val !== undefined && rowMax !== null && (rowMax - val) <= 0.05;
+    const playerCell = (p, rowMax) => {
+        if (!p) return '<span class="an-ptbl-empty">—</span>';
+        const val = ptblValue(p.pts, p.games);
+        const leader = isLeader(val, rowMax);
+        return `<span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span>`;
+    };
+
+    const rows = [];
+    for (let i = 0; i < maxRows; i++) {
+        const arr = teams.map(t => t.additions[i] ? ptblValue(t.additions[i].pts, t.additions[i].games) : null);
+        const rowMax = rowMaxOf(arr);
+        rows.push(`
+        <tr>
+            <td class="an-ptbl-slot">#${i + 1}</td>
+            ${teams.map(t => `<td class="an-ptbl-cell">${playerCell(t.additions[i], rowMax)}</td>`).join('')}
+        </tr>`);
+    }
+    let body = collapseRowsHtml(rows, teams.length + 1, 'innesti');
+
+    const totalArr = teams.map(t => ptblValue(t.totalPts, t.totalGames));
+    const totalRowMax = rowMaxOf(totalArr);
+    body += `
+        <tr class="an-ptbl-sumrow an-ptbl-sumrow--total">
+            <td class="an-ptbl-slot">Totale</td>
+            ${teams.map((t, ti) => {
+        const leader = isLeader(totalArr[ti], totalRowMax);
+        return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(totalArr[ti], decimals)}</b>${delta(totalArr[ti], totalRowMax)}</span></td>`;
+    }).join('')}
+        </tr>`;
 
     return `
     <div class="an-ptbl-wrap">
