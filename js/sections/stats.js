@@ -1,9 +1,41 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=21';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=21';
 import { TEAMS } from './team.js?v=12';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=15';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=16';
 
 let loaded = false;
+
+// Player-record granularity toggle state (League Records section)
+let recordMode = 'season'; // 'game' | 'season' | 'career'
+let statsCache = null;
+let recordsListenerBound = false;
+
+// Andamento Giocatori: titolari-only vs tutti i giocatori
+let playerViewMode = 'all'; // 'all' | 'starters'
+let chartsListenerBound = false;
+let chartMarkersCache = null;
+let byRoleCache = null;         // { role: [pts, ...] } — titolari + panchina
+let byRoleStartersCache = null; // { role: [pts, ...] } — solo titolari
+
+// Categorie di statistiche giocatore unificate su tre granularità (game/season/career)
+const STAT_CATS = [
+    { key: 'pts', label: 'Fantasy Points', extract: p => Number(p.fantasy_points) || 0, decimals: 1 },
+    { key: 'passYds', label: 'Pass Yards', extract: p => Number(p.stats.pass_yds) || 0 },
+    { key: 'passTd', label: 'Pass TDs', extract: p => Number(p.stats.pass_td) || 0 },
+    { key: 'rushYds', label: 'Rush Yards', extract: p => Number(p.stats.rush_yds) || 0 },
+    { key: 'rushTd', label: 'Rush TDs', extract: p => Number(p.stats.rush_td) || 0 },
+    { key: 'recYds', label: 'Receiving Yards', extract: p => Number(p.stats.rec_yds) || 0 },
+    { key: 'recTd', label: 'Receiving TDs', extract: p => Number(p.stats.rec_td) || 0 },
+    { key: 'sacks', label: 'Sacks', extract: p => Number(p.stats.sack) || 0 },
+    { key: 'defTo', label: 'Turnovers Forced', extract: p => (Number(p.stats.def_int) || 0) + (Number(p.stats.fum_rec) || 0) },
+    { key: 'defTd', label: 'Defensive TDs', extract: p => Number(p.stats.def_td) || 0 },
+    { key: 'patMade', label: 'Extra Points Made', extract: p => Number(p.stats.pat_made) || 0 },
+    { key: 'fgMade', label: 'Field Goals Made', extract: p => ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_40_49', 'fg_50_plus'].reduce((s, f) => s + (Number(p.stats[f]) || 0), 0) },
+];
+
+function emptyLeader(extra) {
+    return { value: 0, player: '', team: '', ...extra };
+}
 
 export async function initStats() {
     if (loaded) return;
@@ -28,6 +60,7 @@ export async function initStats() {
         }
 
         const stats = calculateStats(allSeasons);
+        statsCache = stats;
         renderStats(stats);
     } catch (e) {
         console.error("Stats Init Error:", e);
@@ -51,19 +84,18 @@ function calculateStats(allSeasons) {
     let maxWinStreak = { value: 0, team: '', start: '', end: '' };
     let maxLossStreak = { value: 0, team: '', start: '', end: '' };
 
-    // Single-season player/defense records (from new per-player stat data)
-    let mostRushYardsSeason = { value: 0, player: '', team: '', season: '' };
-    let mostRushTDSeason = { value: 0, player: '', team: '', season: '' };
-    let mostPassYardsSeason = { value: 0, player: '', team: '', season: '' };
-    let mostPassTDSeason = { value: 0, player: '', team: '', season: '' };
-    let mostRecYardsSeason = { value: 0, player: '', team: '', season: '' };
-    let mostRecTDSeason = { value: 0, player: '', team: '', season: '' };
-    let mostSacksSeason = { value: 0, player: '', team: '', season: '' };
-    let mostDefTurnoversSeason = { value: 0, player: '', team: '', season: '' };
-    let mostDefTDSeason = { value: 0, player: '', team: '', season: '' };
+    // Player stat leaders su tre granularità (una entry per STAT_CATS key)
+    const perGameLeaders = {};
+    const perSeasonLeaders = {};
+    const perCareerLeaders = {};
+    STAT_CATS.forEach(c => {
+        perGameLeaders[c.key] = emptyLeader({ season: '', week: '' });
+        perSeasonLeaders[c.key] = emptyLeader({ season: '' });
+        perCareerLeaders[c.key] = emptyLeader();
+    });
 
-    // Career totals per player (tutte le stagioni, sola regular season)
-    const playerCareerStats = {}; // player -> { pts, patMade, fgMade, team }
+    // Career totals per player (tutte le stagioni, sola regular season) — anche sorgente dei Top 5
+    const playerCareerStats = {}; // player -> { ...STAT_CATS totals, team }
 
     // Team aggregated stats
     const teamRecords = {}; // { name: { w, l, t, pf, pa, games } }
@@ -75,7 +107,9 @@ function calculateStats(allSeasons) {
     // Chart data (per-season trends, playoffs included)
     const chartTeamPoints = {};   // season -> { rawTeamName: pts }
     const chartPlayerTotals = {}; // season -> total fantasy points by all players (starters+bench)
+    const chartPlayerTotalsStarters = {}; // season -> total fantasy points, solo titolari
     const chartRolePoints = {};   // season -> { role: pts }
+    const chartRolePointsStarters = {}; // season -> { role: pts }, solo titolari
     const chartGiornate = {};     // season -> giornate effettivamente giocate (matchup presenti)
 
     const initTeam = (name) => {
@@ -126,7 +160,9 @@ function calculateStats(allSeasons) {
         const playerSeasonStats = {}; // `${team}||${player}` -> aggregated season stat totals
         const chartSeasonTeamPts = {}; // team -> pts (tutte le settimane, playoff inclusi)
         const seasonRolePoints = {}; // role -> fantasy points (all players, playoff inclusi)
+        const seasonRolePointsStarters = {}; // role -> fantasy points (solo titolari, playoff inclusi)
         let seasonPlayerTotal = 0;
+        let seasonPlayerTotalStarters = 0;
         let playedWeeks = 0;
 
         // Identify the actual Super Bowl matchup for this season
@@ -166,13 +202,17 @@ function calculateStats(allSeasons) {
                 chartSeasonTeamPts[t1] = (chartSeasonTeamPts[t1] || 0) + s1;
                 chartSeasonTeamPts[t2] = (chartSeasonTeamPts[t2] || 0) + s2;
                 for (const side of [m.team1, m.team2]) {
-                    for (const list of [side.starters, side.bench]) {
+                    for (const [list, isStarter] of [[side.starters, true], [side.bench, false]]) {
                         for (const p of list || []) {
                             if (!p?.name) continue;
                             const pPts = parseFloat(p.fantasy_points || 0);
                             seasonPlayerTotal += pPts;
+                            if (isStarter) seasonPlayerTotalStarters += pPts;
                             const role = p.position_in_team || p.position;
-                            if (role) seasonRolePoints[role] = (seasonRolePoints[role] || 0) + pPts;
+                            if (role) {
+                                seasonRolePoints[role] = (seasonRolePoints[role] || 0) + pPts;
+                                if (isStarter) seasonRolePointsStarters[role] = (seasonRolePointsStarters[role] || 0) + pPts;
+                            }
                         }
                     }
                 }
@@ -238,25 +278,24 @@ function calculateStats(allSeasons) {
                             if (!p?.name || !p.stats) return;
                             const key = `${teamName}||${p.name}`;
                             if (!playerSeasonStats[key]) {
-                                playerSeasonStats[key] = { rushYds: 0, rushTd: 0, passYds: 0, passTd: 0, recYds: 0, recTd: 0, sacks: 0, defTo: 0, defTd: 0 };
+                                playerSeasonStats[key] = Object.fromEntries(STAT_CATS.map(c => [c.key, 0]));
                             }
-                            if (!playerCareerStats[p.name]) playerCareerStats[p.name] = { pts: 0, patMade: 0, fgMade: 0, team: teamName };
+                            if (!playerCareerStats[p.name]) {
+                                playerCareerStats[p.name] = { ...Object.fromEntries(STAT_CATS.map(c => [c.key, 0])), team: teamName };
+                            }
                             const car = playerCareerStats[p.name];
-                            car.pts += Number(p.fantasy_points) || 0;
-                            car.patMade += Number(p.stats.pat_made) || 0;
-                            car.fgMade += (Number(p.stats.fg_0_19) || 0) + (Number(p.stats.fg_20_29) || 0) + (Number(p.stats.fg_30_39) || 0) + (Number(p.stats.fg_40_49) || 0) + (Number(p.stats.fg_50_plus) || 0);
+                            const acc = playerSeasonStats[key];
                             car.team = teamName;
 
-                            const acc = playerSeasonStats[key];
-                            acc.rushYds += Number(p.stats.rush_yds) || 0;
-                            acc.rushTd += Number(p.stats.rush_td) || 0;
-                            acc.passYds += Number(p.stats.pass_yds) || 0;
-                            acc.passTd += Number(p.stats.pass_td) || 0;
-                            acc.recYds += Number(p.stats.rec_yds) || 0;
-                            acc.recTd += Number(p.stats.rec_td) || 0;
-                            acc.sacks += Number(p.stats.sack) || 0;
-                            acc.defTo += (Number(p.stats.def_int) || 0) + (Number(p.stats.fum_rec) || 0);
-                            acc.defTd += Number(p.stats.def_td) || 0;
+                            STAT_CATS.forEach(c => {
+                                const val = c.extract(p);
+                                acc[c.key] += val;
+                                car[c.key] += val;
+                                // Per-game leader: confronto immediato, nessun accumulatore persistente
+                                if (val > perGameLeaders[c.key].value) {
+                                    perGameLeaders[c.key] = { value: val, player: p.name, team: teamName, season, week: wNum };
+                                }
+                            });
 
                             // All-time team TD + yardage totals (regular season only, matches PF/PA scope)
                             const rec = teamRecords[teamName];
@@ -350,41 +389,59 @@ function calculateStats(allSeasons) {
         // End of Season: store chart trends (playoff inclusi)
         chartTeamPoints[season] = { ...chartSeasonTeamPts };
         chartPlayerTotals[season] = seasonPlayerTotal;
+        chartPlayerTotalsStarters[season] = seasonPlayerTotalStarters;
         chartRolePoints[season] = seasonRolePoints;
+        chartRolePointsStarters[season] = seasonRolePointsStarters;
         chartGiornate[season] = playedWeeks;
 
         // End of Season: Check single-season player/defense records
         Object.entries(playerSeasonStats).forEach(([key, acc]) => {
             const [team, player] = key.split('||');
-            if (acc.rushYds > mostRushYardsSeason.value) mostRushYardsSeason = { value: acc.rushYds, player, team, season };
-            if (acc.rushTd > mostRushTDSeason.value) mostRushTDSeason = { value: acc.rushTd, player, team, season };
-            if (acc.passYds > mostPassYardsSeason.value) mostPassYardsSeason = { value: acc.passYds, player, team, season };
-            if (acc.passTd > mostPassTDSeason.value) mostPassTDSeason = { value: acc.passTd, player, team, season };
-            if (acc.recYds > mostRecYardsSeason.value) mostRecYardsSeason = { value: acc.recYds, player, team, season };
-            if (acc.recTd > mostRecTDSeason.value) mostRecTDSeason = { value: acc.recTd, player, team, season };
-            if (acc.sacks > mostSacksSeason.value) mostSacksSeason = { value: acc.sacks, player, team, season };
-            if (acc.defTo > mostDefTurnoversSeason.value) mostDefTurnoversSeason = { value: acc.defTo, player, team, season };
-            if (acc.defTd > mostDefTDSeason.value) mostDefTDSeason = { value: acc.defTd, player, team, season };
+            STAT_CATS.forEach(c => {
+                if (acc[c.key] > perSeasonLeaders[c.key].value) {
+                    perSeasonLeaders[c.key] = { value: acc[c.key], player, team, season };
+                }
+            });
         });
     });
 
     // Career leaders (tutte le stagioni)
-    let mostCareerPts = { value: 0, player: '', team: '' };
-    let mostCareerPat = { value: 0, player: '', team: '' };
-    let mostCareerFg = { value: 0, player: '', team: '' };
     Object.entries(playerCareerStats).forEach(([player, c]) => {
-        if (c.pts > mostCareerPts.value) mostCareerPts = { value: c.pts, player, team: c.team };
-        if (c.patMade > mostCareerPat.value) mostCareerPat = { value: c.patMade, player, team: c.team };
-        if (c.fgMade > mostCareerFg.value) mostCareerFg = { value: c.fgMade, player, team: c.team };
+        STAT_CATS.forEach(cat => {
+            if (c[cat.key] > perCareerLeaders[cat.key].value) {
+                perCareerLeaders[cat.key] = { value: c[cat.key], player, team: c.team };
+            }
+        });
     });
+
+    // Top 5 all-time (career) per le leaderboard QB/RB/WR/TD
+    const top5Of = (key) => Object.entries(playerCareerStats)
+        .map(([player, c]) => ({ player, team: c.team, value: c[key] }))
+        .filter(r => r.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+    const top5 = {
+        passYds: top5Of('passYds'),
+        rushYds: top5Of('rushYds'),
+        recYds: top5Of('recYds'),
+        passTd: top5Of('passTd'),
+        rushTd: top5Of('rushTd'),
+        recTd: top5Of('recTd'),
+        defTd: top5Of('defTd'),
+        totalTd: Object.entries(playerCareerStats)
+            .map(([player, c]) => ({ player, team: c.team, value: c.rushTd + c.passTd + c.recTd + c.defTd }))
+            .filter(r => r.value > 0)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5),
+    };
 
     return {
         seasonsCount: Object.keys(allSeasons).length,
         totalGames,
         totalPoints: totalPoints.toFixed(2),
-        mostCareerPts,
-        mostCareerPat,
-        mostCareerFg,
+        recordLeaders: { game: perGameLeaders, season: perSeasonLeaders, career: perCareerLeaders },
+        statCats: STAT_CATS,
+        top5,
         highestScore,
         lowestScore,
         largestMargin,
@@ -393,21 +450,14 @@ function calculateStats(allSeasons) {
         fewestPointsSeason,
         maxWinStreak,
         maxLossStreak,
-        mostRushYardsSeason,
-        mostRushTDSeason,
-        mostPassYardsSeason,
-        mostPassTDSeason,
-        mostRecYardsSeason,
-        mostRecTDSeason,
         chartData: {
             teamPoints: chartTeamPoints,
             playerTotals: chartPlayerTotals,
+            playerTotalsStarters: chartPlayerTotalsStarters,
             rolePoints: chartRolePoints,
+            rolePointsStarters: chartRolePointsStarters,
             giornate: chartGiornate,
         },
-        mostSacksSeason,
-        mostDefTurnoversSeason,
-        mostDefTDSeason,
         teamRecords,
         headToHead
     };
@@ -499,21 +549,7 @@ function renderRecords(stats) {
     const titles = extremesBy(stats.teamRecords, 'sbWins');
     const wins = extremesBy(stats.teamRecords, 'w');
 
-    const ry = stats.mostRushYardsSeason;
-    const rt = stats.mostRushTDSeason;
-    const py = stats.mostPassYardsSeason;
-    const pt = stats.mostPassTDSeason;
-    const cy = stats.mostRecYardsSeason;
-    const ct = stats.mostRecTDSeason;
-    const sk = stats.mostSacksSeason;
-    const dto = stats.mostDefTurnoversSeason;
-    const dtd = stats.mostDefTDSeason;
-
-    const cp = stats.mostCareerPts;
-    const cpat = stats.mostCareerPat;
-    const cfg = stats.mostCareerFg;
-
-    const tiles = [
+    const teamTiles = [
         recordTile(h.value, 'Highest Score', `${displayName(h.team)} — W${h.week}, ${h.season}`),
         recordTile(l.value, 'Lowest Score', `${displayName(l.team)} — W${l.week}, ${l.season}`),
         recordTile(m.value, 'Largest Margin', `${displayName(m.winner)} def. ${displayName(m.loser)} — W${m.week}, ${m.season}`),
@@ -525,25 +561,53 @@ function renderRecords(stats) {
         titles ? recordTile(titles.max.value, 'Most Championships', titles.max.teams) : '',
         titles ? recordTile(titles.min.value, 'Fewest Championships', titles.min.teams) : '',
         wins ? recordTile(wins.max.value, 'Most Wins All-Time', wins.max.teams) : '',
-        wins ? recordTile(wins.min.value, 'Fewest Wins All-Time', wins.min.teams) : '',
-        ry.value ? recordTile(ry.value.toLocaleString('en-US'), 'Most Rush Yards (Season)', `${ry.player} — ${displayName(ry.team)}, ${ry.season}`) : '',
-        rt.value ? recordTile(rt.value, 'Most Rush TDs (Season)', `${rt.player} — ${displayName(rt.team)}, ${rt.season}`) : '',
-        py.value ? recordTile(py.value.toLocaleString('en-US'), 'Most Pass Yards (Season)', `${py.player} — ${displayName(py.team)}, ${py.season}`) : '',
-        pt.value ? recordTile(pt.value, 'Most Pass TDs (Season)', `${pt.player} — ${displayName(pt.team)}, ${pt.season}`) : '',
-        cy.value ? recordTile(cy.value.toLocaleString('en-US'), 'Most Reception Yards (Season)', `${cy.player} — ${displayName(cy.team)}, ${cy.season}`) : '',
-        ct.value ? recordTile(ct.value, 'Most Reception TDs (Season)', `${ct.player} — ${displayName(ct.team)}, ${ct.season}`) : '',
-        sk.value ? recordTile(sk.value, 'Most Sacks (Season)', `${sk.player} — ${displayName(sk.team)}, ${sk.season}`) : '',
-        dto.value ? recordTile(dto.value, 'Most Turnovers Forced (Season)', `${dto.player} — ${displayName(dto.team)}, ${dto.season}`) : '',
-        dtd.value ? recordTile(dtd.value, 'Most Defensive TDs (Season)', `${dtd.player} — ${displayName(dtd.team)}, ${dtd.season}`) : '',
-        cp.value ? recordTile(cp.value.toLocaleString('en-US', { maximumFractionDigits: 1 }), 'Most Fantasy Points (Career)', `${cp.player} — ${displayName(cp.team)}`) : '',
-        cpat.value ? recordTile(cpat.value, 'Most Extra Points Made (Career)', `${cpat.player} — ${displayName(cpat.team)}`) : '',
-        cfg.value ? recordTile(cfg.value, 'Most Field Goals Made (Career)', `${cfg.player} — ${displayName(cfg.team)}`) : ''
+        wins ? recordTile(wins.min.value, 'Fewest Wins All-Time', wins.min.teams) : ''
     ];
+
+    const leaders = stats.recordLeaders[recordMode];
+    const playerTiles = stats.statCats.map(cat => {
+        const r = leaders[cat.key];
+        if (!r.value) return '';
+        const value = cat.decimals
+            ? r.value.toLocaleString('en-US', { maximumFractionDigits: cat.decimals })
+            : r.value.toLocaleString('en-US');
+        const holder = recordMode === 'game'
+            ? `${r.player} — ${displayName(r.team)}, W${r.week} ${r.season}`
+            : recordMode === 'season'
+                ? `${r.player} — ${displayName(r.team)}, ${r.season}`
+                : `${r.player} — ${displayName(r.team)}`;
+        return recordTile(value, `Most ${cat.label}`, holder);
+    });
 
     el.innerHTML = `
         <h2 class="records-title">League Records</h2>
-        <div class="record-tiles">${tiles.join('')}</div>
+        <div class="record-tiles">${teamTiles.join('')}</div>
+
+        <div class="st-records-divider"></div>
+
+        <div class="an-avg-toggle st-record-mode-toggle">
+            <button class="an-avg-pill st-record-mode-pill${recordMode === 'game' ? ' active' : ''}" data-record-mode="game">Per Game</button>
+            <button class="an-avg-pill st-record-mode-pill${recordMode === 'season' ? ' active' : ''}" data-record-mode="season">Per Stagione</button>
+            <button class="an-avg-pill st-record-mode-pill${recordMode === 'career' ? ' active' : ''}" data-record-mode="career">Per Carriera</button>
+        </div>
+        <div class="record-tiles">${playerTiles.join('')}</div>
+
+        <h2 class="records-title st-leader-title">Top 5 All-Time</h2>
+        <div class="st-leader-grid">
+            ${leaderPanel('Passing Yards — QB', stats.top5.passYds)}
+            ${leaderPanel('Rushing Yards — RB', stats.top5.rushYds)}
+            ${leaderPanel('Receiving Yards — WR', stats.top5.recYds)}
+            ${leaderPanel('Total TDs', stats.top5.totalTd)}
+        </div>
+        <div class="st-leader-grid">
+            ${leaderPanel('Passing TDs', stats.top5.passTd)}
+            ${leaderPanel('Rushing TDs', stats.top5.rushTd)}
+            ${leaderPanel('Receiving TDs', stats.top5.recTd)}
+            ${leaderPanel('Defensive TDs', stats.top5.defTd)}
+        </div>
     `;
+
+    bindRecordModeToggle();
 }
 
 function recordTile(value, label, holder) {
@@ -553,6 +617,33 @@ function recordTile(value, label, holder) {
         <div class="record-tile-label">${label}</div>
         ${holder ? `<div class="record-tile-holder">${holder}</div>` : ''}
     </div>`;
+}
+
+function leaderPanel(title, rows) {
+    if (!rows.length) return `<div class="st-leader-panel"><div class="st-leader-panel-title">${title}</div></div>`;
+    return `
+    <div class="st-leader-panel">
+        <div class="st-leader-panel-title">${title}</div>
+        ${rows.map((r, i) => `
+        <div class="st-leader-row${i === 0 ? ' st-leader-row--top' : ''}">
+            <span class="st-leader-rank">${i + 1}</span>
+            <span class="st-leader-name">${r.player}<span class="st-leader-team">${displayName(r.team)}</span></span>
+            <span class="st-leader-value">${Math.round(r.value).toLocaleString('en-US')}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+function bindRecordModeToggle() {
+    if (recordsListenerBound) return;
+    recordsListenerBound = true;
+    const el = document.getElementById('records-block');
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+        const btn = e.target.closest('.st-record-mode-pill');
+        if (!btn) return;
+        recordMode = btn.dataset.recordMode;
+        if (statsCache) renderRecords(statsCache);
+    });
 }
 
 function renderTeamPanels(stats) {
@@ -686,11 +777,79 @@ function teamChartColor(rawName) {
     return CHART_COLORS_BY_KEY[key] || '#888';
 }
 
+function legendOf(series) {
+    return `
+    <div class="an-chart-legend">
+        ${series.map(s => `<span class="an-legend-item"><span class="an-legend-key" style="background:${s.color}"></span>${s.name}</span>`).join('')}
+    </div>`;
+}
+
+// Grafici "Total Player Production" + "Player Production by Role" — reattivi al toggle Tutti/Solo Titolari
+function renderPlayerProdCharts() {
+    const el = document.getElementById('player-trend-charts');
+    if (!el || !statsCache?.chartData || !chartMarkersCache) return;
+
+    const { rolePoints, rolePointsStarters, playerTotals, playerTotalsStarters } = statsCache.chartData;
+    const totals = playerViewMode === 'starters' ? playerTotalsStarters : playerTotals;
+    const roleTotals = playerViewMode === 'starters' ? rolePointsStarters : rolePoints;
+    const seasons = Object.keys(playerTotals).sort();
+
+    const prodSeries = [{
+        name: 'All Players',
+        color: '#d4665e',
+        values: seasons.map(s => ({ x: s, y: totals[s] || 0 })),
+    }];
+
+    const roles = Object.keys(ROLE_COLORS).filter(r => seasons.some(s => (roleTotals[s] || {})[r] > 0));
+    const roleSeries = roles.map(role => ({
+        name: role,
+        color: ROLE_COLORS[role],
+        values: seasons.map(s => ({ x: s, y: (roleTotals[s] || {})[role] || 0 })),
+    }));
+
+    el.innerHTML = `
+        <h3 class="an-sub-title">Total Player Production by Season</h3>
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(prodSeries, chartMarkersCache)}<div class="an-chart-tooltip" hidden></div></div>
+
+        <h3 class="an-sub-title">Player Production by Role</h3>
+        ${legendOf(roleSeries)}
+        <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, chartMarkersCache)}<div class="an-chart-tooltip" hidden></div></div>
+        <p class="an-footnote">${playerViewMode === 'starters' ? 'Solo titolari.' : 'Player production includes bench points.'}</p>
+    `;
+    el.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+}
+
+function bindPlayerViewToggle() {
+    if (chartsListenerBound) return;
+    chartsListenerBound = true;
+    const el = document.getElementById('charts-block');
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+        const btn = e.target.closest('.st-player-mode-pill');
+        if (!btn) return;
+        playerViewMode = btn.dataset.playerMode;
+        btn.parentElement.querySelectorAll('.st-player-mode-pill').forEach(b => b.classList.toggle('active', b === btn));
+        renderPlayerProdCharts();
+        if (byRoleCache && byRoleStartersCache) renderRoleDistChart();
+    });
+}
+
+function renderRoleDistChart() {
+    const roleDist = document.getElementById('charts-role-dist');
+    if (!roleDist) return;
+    const byRole = playerViewMode === 'starters' ? byRoleStartersCache : byRoleCache;
+    roleDist.innerHTML = `
+        <h3 class="an-sub-title">Punteggi settimanali per ruolo</h3>
+        <div class="an-chart">${buildRoleDistribution(byRole)}</div>
+        <p class="an-footnote">Ogni punto è una prestazione settimanale (${playerViewMode === 'starters' ? 'solo titolari' : 'titolari e panchina'}, tutte le stagioni). La banda è ±1 deviazione standard attorno alla media (linea verticale).</p>
+    `;
+}
+
 function renderCharts(stats) {
     const el = document.getElementById('charts-block');
     if (!el || !stats.chartData) return;
 
-    const { teamPoints, playerTotals, rolePoints, giornate } = stats.chartData;
+    const { teamPoints, giornate } = stats.chartData;
     const seasons = Object.keys(teamPoints).sort();
     if (seasons.length < 2) { el.innerHTML = ''; return; }
 
@@ -707,6 +866,7 @@ function renderCharts(stats) {
             });
         }
     }
+    chartMarkersCache = markers;
 
     // 1) Punti totali per team nelle stagioni
     const teamNames = [...new Set(seasons.flatMap(s => Object.keys(teamPoints[s])))];
@@ -716,26 +876,6 @@ function renderCharts(stats) {
         values: seasons.filter(s => teamPoints[s][raw] !== undefined)
             .map(s => ({ x: s, y: teamPoints[s][raw] })),
     })).filter(s => s.values.length > 0);
-
-    // 2) Produzione totale di tutti i giocatori
-    const prodSeries = [{
-        name: 'All Players',
-        color: '#d4665e',
-        values: seasons.map(s => ({ x: s, y: playerTotals[s] || 0 })),
-    }];
-
-    // 3) Produzione per ruolo
-    const roles = Object.keys(ROLE_COLORS).filter(r => seasons.some(s => (rolePoints[s] || {})[r] > 0));
-    const roleSeries = roles.map(role => ({
-        name: role,
-        color: ROLE_COLORS[role],
-        values: seasons.map(s => ({ x: s, y: (rolePoints[s] || {})[role] || 0 })),
-    }));
-
-    const legendOf = (series) => `
-    <div class="an-chart-legend">
-        ${series.map(s => `<span class="an-legend-item"><span class="an-legend-key" style="background:${s.color}"></span>${s.name}</span>`).join('')}
-    </div>`;
 
     el.innerHTML = `
         <h2 class="records-title">Trends</h2>
@@ -755,13 +895,11 @@ function renderCharts(stats) {
         <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Andamento Giocatori</h2>
         <p class="st-block-desc">Quanti punti producono complessivamente i giocatori della lega ogni anno, e come si ripartiscono tra i ruoli (QB, RB, WR, TE, K, DEF).</p>
 
-        <h3 class="an-sub-title">Total Player Production by Season</h3>
-        <div class="an-chart st-trend-chart">${buildSeasonLineChart(prodSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
-
-        <h3 class="an-sub-title">Player Production by Role</h3>
-        ${legendOf(roleSeries)}
-        <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
-        <p class="an-footnote">Player production includes bench points.</p>
+        <div class="an-avg-toggle st-player-mode-toggle">
+            <button class="an-avg-pill st-player-mode-pill${playerViewMode === 'all' ? ' active' : ''}" data-player-mode="all">Tutti</button>
+            <button class="an-avg-pill st-player-mode-pill${playerViewMode === 'starters' ? ' active' : ''}" data-player-mode="starters">Solo Titolari</button>
+        </div>
+        <div id="player-trend-charts"></div>
 
         <div id="charts-role-dist">
             <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
@@ -773,6 +911,8 @@ function renderCharts(stats) {
     `;
 
     el.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
+    renderPlayerProdCharts();
+    bindPlayerViewToggle();
 
     // Grafici che richiedono il modello di Analysis (draft + roster per settimana)
     renderAdvancedCharts(markers).catch(e => {
@@ -846,11 +986,6 @@ async function renderAdvancedCharts(markers) {
         return { name: TEAMS[key].name, color: CHART_COLORS_BY_KEY[key] || '#888', min: sorted[0], median, max: sorted[sorted.length - 1] };
     }).filter(Boolean);
 
-    const legendOf = (series) => `
-    <div class="an-chart-legend">
-        ${series.map(s => `<span class="an-legend-item"><span class="an-legend-key" style="background:${s.color}"></span>${s.name}</span>`).join('')}
-    </div>`;
-
     // 5) Draft: Value per Pick su tutte le stagioni insieme, con la media per numero di pick
     const draftPoints = [];
     for (const year of seasons) {
@@ -867,18 +1002,23 @@ async function renderAdvancedCharts(markers) {
         }
     }
 
-    // 6) Distribuzione punteggi per ruolo (titolari + panchina, tutte le stagioni)
+    // 6) Distribuzione punteggi per ruolo (titolari + panchina, tutte le stagioni) — anche solo titolari
     const byRole = {};
+    const byRoleStarters = {};
     for (const s of seasons) {
         for (const rec of models[s].players.values()) {
             const role = rec.position;
             if (!ROLE_COLORS[role]) continue;
             (byRole[role] ||= []);
+            (byRoleStarters[role] ||= []);
             for (const w of Object.values(rec.weeks)) {
                 byRole[role].push(w.pts);
+                if (w.started) byRoleStarters[role].push(w.pts);
             }
         }
     }
+    byRoleCache = byRole;
+    byRoleStartersCache = byRoleStarters;
 
     // 7) Margine di vittoria/sconfitta per team (media + varianza), da tutti i matchup
     const teamMarginStats = {}; // key -> { wins: [margini], losses: [margini] }
@@ -928,13 +1068,7 @@ async function renderAdvancedCharts(markers) {
         teamRest.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
     }
 
-    if (roleDist) {
-        roleDist.innerHTML = `
-            <h3 class="an-sub-title">Punteggi settimanali per ruolo</h3>
-            <div class="an-chart">${buildRoleDistribution(byRole)}</div>
-            <p class="an-footnote">Ogni punto è una prestazione settimanale (titolari e panchina, tutte le stagioni). La banda è ±1 deviazione standard attorno alla media (linea verticale).</p>
-        `;
-    }
+    if (roleDist) renderRoleDistChart();
 
     if (draftSection) {
         draftSection.innerHTML = `

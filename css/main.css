@@ -3986,6 +3986,113 @@ img {
     color: var(--text-secondary);
 }
 
+.st-records-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 32px 0;
+}
+
+.st-record-mode-toggle {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 20px;
+}
+
+.st-player-mode-toggle {
+    margin: 4px 0 24px;
+}
+
+.st-leader-title {
+    margin-top: 48px;
+}
+
+.st-leader-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.st-leader-panel {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    padding: 16px;
+}
+
+.st-leader-panel-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-red);
+    margin-bottom: 10px;
+}
+
+.st-leader-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-variant-numeric: tabular-nums;
+}
+
+.st-leader-row:last-child {
+    border-bottom: none;
+}
+
+.st-leader-rank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    width: 14px;
+    flex-shrink: 0;
+}
+
+.st-leader-name {
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.st-leader-team {
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.st-leader-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+}
+
+.st-leader-row--top .st-leader-name,
+.st-leader-row--top .st-leader-value {
+    color: var(--accent-amber);
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
+@media (max-width: 900px) {
+    .st-leader-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .st-leader-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* --- Team all-time panels --- */
 .teams-alltime-block {
     margin-top: 90px;

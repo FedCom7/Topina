@@ -46,14 +46,31 @@ async function loadStandings() {
 
     const bracketBlock = `
         <h3 class="st-block-title">Playoff Picture</h3>
+        <p class="st-block-desc">${bracketDescription(standings, data, config, playoffsStarted)}</p>
         ${bracketHTML}`;
     const rankingBlock = `
         <h3 class="st-block-title">Regular Season</h3>
+        <p class="st-block-desc">${rankingDescription()}</p>
         ${rankingHTML}`;
 
     wrap.innerHTML = playoffsStarted
         ? bracketBlock + rankingBlock
         : rankingBlock + bracketBlock;
+}
+
+/* ============================================================
+   DESCRIZIONI DEI BLOCCHI
+   ============================================================ */
+
+function bracketDescription(standings, data, config, playoffsStarted) {
+    const base = `Il tabellone dei playoff: 1ª contro 4ª e 2ª contro 3ª in semifinale (W${config.playoffWeek}), le vincenti al Super Bowl (W${config.superBowlWeek}).`;
+    return playoffsStarted
+        ? `${base} In grigio le eliminate, in oro il campione.`
+        : `${base} Proiezione basata sulla classifica attuale.`;
+}
+
+function rankingDescription() {
+    return `La classifica della stagione, ordinata per record: il numero grande è il seed playoff. Clicca una card per aprire la pagina del franchise.`;
 }
 
 /* ============================================================
