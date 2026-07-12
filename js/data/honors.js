@@ -10,6 +10,7 @@ import {
     getSeasonConfig, displayName, SEASONS
 } from '../data.js?v=5';
 import { TEAM_KEYS } from './team-config.js?v=5';
+import { FLEX_ELIGIBLE } from './league-rules.js?v=1';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')
 function toKey(rawName) {
@@ -144,7 +145,7 @@ export function buildSeasonPlayers(fantasyData, config) {
     return { players, managers };
 }
 
-/** Punti della miglior lineup possibile (QB, 2RB, 2WR, TE, FLEX, K, DEF) */
+/** Punti della miglior lineup possibile (QB, 2RB, 2WR, TE, FLEX RB/WR, K, DEF) */
 function _optimalLineupPts(roster) {
     const byPos = {};
     roster.forEach(p => {
@@ -161,8 +162,8 @@ function _optimalLineupPts(roster) {
 
     let pts = take('QB', 1) + take('RB', 2) + take('WR', 2) + take('TE', 1)
         + take('K', 1) + take('DEF', 1);
-    // FLEX: il migliore rimasto tra RB/WR/TE
-    const flexPool = [...(byPos.RB || []), ...(byPos.WR || []), ...(byPos.TE || [])];
+    // FLEX: il migliore rimasto tra i ruoli ammessi (RB/WR in questa lega)
+    const flexPool = FLEX_ELIGIBLE.flatMap(pos => byPos[pos] || []);
     if (flexPool.length) pts += Math.max(...flexPool);
     return pts;
 }
@@ -277,7 +278,7 @@ export function computeAllPro(players) {
         return p;
     };
     const drawFlex = () => {
-        const candidates = ['RB', 'WR', 'TE']
+        const candidates = FLEX_ELIGIBLE
             .map(pos => (pool[pos] || []).find(x => !used.has(x.name)))
             .filter(Boolean)
             .sort((a, b) => b.total - a.total);

@@ -20,7 +20,7 @@ import {
 import { TEAM_KEYS } from '../data/team-config.js?v=5';
 import { TEAMS } from './team.js?v=12';
 import { getLeagueData } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=1';
+import { getHonorsBundle } from '../data/honors.js?v=2';
 import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=2';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,

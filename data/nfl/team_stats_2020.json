@@ -1,0 +1,7464 @@
+{
+ "season": 2020,
+ "generatedAt": "2026-07-11T14:36:28.352Z",
+ "weeks": 17,
+ "scheduleOnly": false,
+ "teams": {
+  "HOU": {
+   "games": 16,
+   "record": {
+    "w": 4,
+    "l": 12,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 24,
+    "totYdsPg": 394.3,
+    "passYdsPg": 302.7,
+    "rushYdsPg": 91.6,
+    "playsPg": 58.8,
+    "ydsPerPlay": 6.71,
+    "passRate": 0.61,
+    "rzPlaysPg": 8.2,
+    "turnovers": 18,
+    "sacksAllowed": 50,
+    "passTd": 33,
+    "rushTd": 10,
+    "passInt": 7,
+    "snapsPg": 62.6
+   },
+   "defense": {
+    "papg": 29,
+    "totYdsAllowedPg": 416.8,
+    "passYdsAllowedPg": 270.3,
+    "rushYdsAllowedPg": 160.1,
+    "sacks": 34,
+    "interceptions": 3,
+    "fumblesForced": 9,
+    "fumbleRecoveries": 7,
+    "defTds": 1,
+    "safeties": 0,
+    "takeaways": 10,
+    "passDefended": 49,
+    "tacklesForLoss": 65,
+    "qbHits": 79,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 20.2,
+     "pgHalf": 20.1,
+     "rank": 6
+    },
+    "RB": {
+     "pgLeague": 32,
+     "pgHalf": 29.2,
+     "rank": 2
+    },
+    "WR": {
+     "pgLeague": 39.5,
+     "pgHalf": 32.8,
+     "rank": 7
+    },
+    "TE": {
+     "pgLeague": 12.7,
+     "pgHalf": 10.2,
+     "rank": 17
+    },
+    "K": {
+     "pgLeague": 8,
+     "pgHalf": 7.9,
+     "rank": 12
+    },
+    "DEF": {
+     "pgLeague": 5.7,
+     "pgHalf": 6.5,
+     "rank": 18
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 18,
+     "totYdsPg": 8,
+     "passYdsPg": 2,
+     "rushYdsPg": 31,
+     "playsPg": 32,
+     "ydsPerPlay": 1,
+     "rzPlaysPg": 26,
+     "passTd": 8,
+     "rushTd": 30,
+     "turnovers": 11,
+     "sacksAllowed": 29,
+     "passInt": 2
+    },
+    "defense": {
+     "papg": 27,
+     "totYdsAllowedPg": 30,
+     "passYdsAllowedPg": 25,
+     "rushYdsAllowedPg": 32,
+     "sacks": 18,
+     "interceptions": 32,
+     "fumblesForced": 26,
+     "defTds": 17,
+     "takeaways": 32,
+     "passDefended": 30,
+     "tacklesForLoss": 16,
+     "qbHits": 22
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "KC",
+     "home": false,
+     "pf": 20,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "BAL",
+     "home": true,
+     "pf": 16,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "PIT",
+     "home": false,
+     "pf": 21,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "MIN",
+     "home": true,
+     "pf": 23,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "JAX",
+     "home": true,
+     "pf": 30,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "TEN",
+     "home": false,
+     "pf": 36,
+     "pa": 42,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "GB",
+     "home": true,
+     "pf": 20,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "JAX",
+     "home": false,
+     "pf": 27,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "CLE",
+     "home": false,
+     "pf": 7,
+     "pa": 10,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "NE",
+     "home": true,
+     "pf": 27,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "DET",
+     "home": false,
+     "pf": 41,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "IND",
+     "home": true,
+     "pf": 20,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "CHI",
+     "home": false,
+     "pf": 7,
+     "pa": 36,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "IND",
+     "home": false,
+     "pf": 20,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "CIN",
+     "home": true,
+     "pf": 31,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "TEN",
+     "home": true,
+     "pf": 38,
+     "pa": 41,
+     "result": "L"
+    }
+   ]
+  },
+  "KC": {
+   "games": 16,
+   "record": {
+    "w": 14,
+    "l": 2,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 29.6,
+    "totYdsPg": 424.4,
+    "passYdsPg": 312,
+    "rushYdsPg": 112.4,
+    "playsPg": 66,
+    "ydsPerPlay": 6.43,
+    "passRate": 0.61,
+    "rzPlaysPg": 9.3,
+    "turnovers": 16,
+    "sacksAllowed": 24,
+    "passTd": 40,
+    "rushTd": 13,
+    "passInt": 7,
+    "snapsPg": 70.6
+   },
+   "defense": {
+    "papg": 22.6,
+    "totYdsAllowedPg": 358.3,
+    "passYdsAllowedPg": 246.3,
+    "rushYdsAllowedPg": 122.1,
+    "sacks": 32,
+    "interceptions": 16,
+    "fumblesForced": 11,
+    "fumbleRecoveries": 6,
+    "defTds": 2,
+    "safeties": 1,
+    "takeaways": 22,
+    "passDefended": 64,
+    "tacklesForLoss": 47,
+    "qbHits": 99,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.9,
+     "pgHalf": 19.7,
+     "rank": 11
+    },
+    "RB": {
+     "pgLeague": 23.8,
+     "pgHalf": 21.1,
+     "rank": 12
+    },
+    "WR": {
+     "pgLeague": 30.4,
+     "pgHalf": 25.1,
+     "rank": 31
+    },
+    "TE": {
+     "pgLeague": 15.5,
+     "pgHalf": 12.6,
+     "rank": 4
+    },
+    "K": {
+     "pgLeague": 6,
+     "pgHalf": 5.9,
+     "rank": 29
+    },
+    "DEF": {
+     "pgLeague": 3.2,
+     "pgHalf": 3.9,
+     "rank": 27
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 6,
+     "totYdsPg": 1,
+     "passYdsPg": 1,
+     "rushYdsPg": 17,
+     "playsPg": 7,
+     "ydsPerPlay": 3,
+     "rzPlaysPg": 17,
+     "passTd": 3,
+     "rushTd": 22,
+     "turnovers": 5,
+     "sacksAllowed": 5,
+     "passInt": 3
+    },
+    "defense": {
+     "papg": 10,
+     "totYdsAllowedPg": 16,
+     "passYdsAllowedPg": 12,
+     "rushYdsAllowedPg": 21,
+     "sacks": 19,
+     "interceptions": 5,
+     "fumblesForced": 19,
+     "defTds": 8,
+     "takeaways": 8,
+     "passDefended": 19,
+     "tacklesForLoss": 31,
+     "qbHits": 10
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "HOU",
+     "home": true,
+     "pf": 34,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "LAC",
+     "home": false,
+     "pf": 23,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "BAL",
+     "home": false,
+     "pf": 34,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "NE",
+     "home": true,
+     "pf": 26,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "LV",
+     "home": true,
+     "pf": 32,
+     "pa": 40,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "BUF",
+     "home": false,
+     "pf": 26,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "DEN",
+     "home": false,
+     "pf": 43,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 35,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "CAR",
+     "home": true,
+     "pf": 33,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "LV",
+     "home": false,
+     "pf": 35,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "TB",
+     "home": false,
+     "pf": 27,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "DEN",
+     "home": true,
+     "pf": 22,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "MIA",
+     "home": false,
+     "pf": 33,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "NO",
+     "home": false,
+     "pf": 32,
+     "pa": 29,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "ATL",
+     "home": true,
+     "pf": 17,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "LAC",
+     "home": true,
+     "pf": 21,
+     "pa": 38,
+     "result": "L"
+    }
+   ]
+  },
+  "BAL": {
+   "games": 16,
+   "record": {
+    "w": 11,
+    "l": 5,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 29.3,
+    "totYdsPg": 373.5,
+    "passYdsPg": 181.5,
+    "rushYdsPg": 192,
+    "playsPg": 61.9,
+    "ydsPerPlay": 6.04,
+    "passRate": 0.42,
+    "rzPlaysPg": 9.5,
+    "turnovers": 17,
+    "sacksAllowed": 32,
+    "passTd": 27,
+    "rushTd": 24,
+    "passInt": 11,
+    "snapsPg": 65.9
+   },
+   "defense": {
+    "papg": 18.9,
+    "totYdsAllowedPg": 329.8,
+    "passYdsAllowedPg": 238,
+    "rushYdsAllowedPg": 108.9,
+    "sacks": 39,
+    "interceptions": 10,
+    "fumblesForced": 22,
+    "fumbleRecoveries": 11,
+    "defTds": 3,
+    "safeties": 2,
+    "takeaways": 21,
+    "passDefended": 67,
+    "tacklesForLoss": 71,
+    "qbHits": 116,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.9,
+     "pgHalf": 17,
+     "rank": 22
+    },
+    "RB": {
+     "pgLeague": 21.5,
+     "pgHalf": 18.6,
+     "rank": 20
+    },
+    "WR": {
+     "pgLeague": 33.1,
+     "pgHalf": 25.6,
+     "rank": 25
+    },
+    "TE": {
+     "pgLeague": 12.2,
+     "pgHalf": 9.7,
+     "rank": 20
+    },
+    "K": {
+     "pgLeague": 4.6,
+     "pgHalf": 4.1,
+     "rank": 32
+    },
+    "DEF": {
+     "pgLeague": 4.1,
+     "pgHalf": 4.7,
+     "rank": 24
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 7,
+     "totYdsPg": 19,
+     "passYdsPg": 32,
+     "rushYdsPg": 1,
+     "playsPg": 25,
+     "ydsPerPlay": 10,
+     "rzPlaysPg": 15,
+     "passTd": 13,
+     "rushTd": 3,
+     "turnovers": 8,
+     "sacksAllowed": 13,
+     "passInt": 9
+    },
+    "defense": {
+     "papg": 2,
+     "totYdsAllowedPg": 7,
+     "passYdsAllowedPg": 9,
+     "rushYdsAllowedPg": 8,
+     "sacks": 14,
+     "interceptions": 23,
+     "fumblesForced": 1,
+     "defTds": 3,
+     "takeaways": 14,
+     "passDefended": 16,
+     "tacklesForLoss": 11,
+     "qbHits": 2
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "CLE",
+     "home": true,
+     "pf": 38,
+     "pa": 6,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "HOU",
+     "home": false,
+     "pf": 33,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "KC",
+     "home": true,
+     "pf": 20,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "WAS",
+     "home": false,
+     "pf": 31,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "CIN",
+     "home": true,
+     "pf": 27,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "PHI",
+     "home": false,
+     "pf": 30,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "PIT",
+     "home": true,
+     "pf": 24,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "IND",
+     "home": false,
+     "pf": 24,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "NE",
+     "home": false,
+     "pf": 17,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "TEN",
+     "home": true,
+     "pf": 24,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "PIT",
+     "home": false,
+     "pf": 14,
+     "pa": 19,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "DAL",
+     "home": true,
+     "pf": 34,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "CLE",
+     "home": false,
+     "pf": 47,
+     "pa": 42,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "JAX",
+     "home": true,
+     "pf": 40,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "NYG",
+     "home": true,
+     "pf": 27,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "CIN",
+     "home": false,
+     "pf": 38,
+     "pa": 3,
+     "result": "W"
+    }
+   ]
+  },
+  "CLE": {
+   "games": 16,
+   "record": {
+    "w": 11,
+    "l": 5,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 25.5,
+    "totYdsPg": 379.6,
+    "passYdsPg": 231.3,
+    "rushYdsPg": 148.3,
+    "playsPg": 63.7,
+    "ydsPerPlay": 5.96,
+    "passRate": 0.5,
+    "rzPlaysPg": 10,
+    "turnovers": 15,
+    "sacksAllowed": 26,
+    "passTd": 27,
+    "rushTd": 21,
+    "passInt": 8,
+    "snapsPg": 68.6
+   },
+   "defense": {
+    "papg": 26.2,
+    "totYdsAllowedPg": 358.4,
+    "passYdsAllowedPg": 264,
+    "rushYdsAllowedPg": 110.7,
+    "sacks": 38,
+    "interceptions": 11,
+    "fumblesForced": 16,
+    "fumbleRecoveries": 11,
+    "defTds": 2,
+    "safeties": 2,
+    "takeaways": 22,
+    "passDefended": 74,
+    "tacklesForLoss": 57,
+    "qbHits": 75,
+    "blockedKicks": 3
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 19.9,
+     "pgHalf": 19.9,
+     "rank": 8
+    },
+    "RB": {
+     "pgLeague": 20.1,
+     "pgHalf": 17.6,
+     "rank": 26
+    },
+    "WR": {
+     "pgLeague": 39.5,
+     "pgHalf": 32.6,
+     "rank": 8
+    },
+    "TE": {
+     "pgLeague": 15.2,
+     "pgHalf": 12.4,
+     "rank": 5
+    },
+    "K": {
+     "pgLeague": 6.9,
+     "pgHalf": 6.8,
+     "rank": 20
+    },
+    "DEF": {
+     "pgLeague": 4.8,
+     "pgHalf": 5.6,
+     "rank": 21
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 14,
+     "totYdsPg": 18,
+     "passYdsPg": 27,
+     "rushYdsPg": 3,
+     "playsPg": 20,
+     "ydsPerPlay": 14,
+     "rzPlaysPg": 6,
+     "passTd": 14,
+     "rushTd": 5,
+     "turnovers": 3,
+     "sacksAllowed": 8,
+     "passInt": 5
+    },
+    "defense": {
+     "papg": 21,
+     "totYdsAllowedPg": 17,
+     "passYdsAllowedPg": 21,
+     "rushYdsAllowedPg": 10,
+     "sacks": 15,
+     "interceptions": 18,
+     "fumblesForced": 4,
+     "defTds": 9,
+     "takeaways": 9,
+     "passDefended": 10,
+     "tacklesForLoss": 23,
+     "qbHits": 25
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "BAL",
+     "home": false,
+     "pf": 6,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "CIN",
+     "home": true,
+     "pf": 35,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "WAS",
+     "home": true,
+     "pf": 34,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "DAL",
+     "home": false,
+     "pf": 49,
+     "pa": 38,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "IND",
+     "home": true,
+     "pf": 32,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "PIT",
+     "home": false,
+     "pf": 7,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "CIN",
+     "home": false,
+     "pf": 37,
+     "pa": 34,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "LV",
+     "home": true,
+     "pf": 6,
+     "pa": 16,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "HOU",
+     "home": true,
+     "pf": 10,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "PHI",
+     "home": true,
+     "pf": 22,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "JAX",
+     "home": false,
+     "pf": 27,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "TEN",
+     "home": false,
+     "pf": 41,
+     "pa": 35,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "BAL",
+     "home": true,
+     "pf": 42,
+     "pa": 47,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "NYG",
+     "home": false,
+     "pf": 20,
+     "pa": 6,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 16,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "PIT",
+     "home": true,
+     "pf": 24,
+     "pa": 22,
+     "result": "W"
+    }
+   ]
+  },
+  "LAR": {
+   "games": 16,
+   "record": {
+    "w": 10,
+    "l": 6,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 23.3,
+    "totYdsPg": 387.6,
+    "passYdsPg": 261.4,
+    "rushYdsPg": 126.1,
+    "playsPg": 68,
+    "ydsPerPlay": 5.7,
+    "passRate": 0.56,
+    "rzPlaysPg": 9.6,
+    "turnovers": 25,
+    "sacksAllowed": 25,
+    "passTd": 20,
+    "rushTd": 19,
+    "passInt": 14,
+    "snapsPg": 72.1
+   },
+   "defense": {
+    "papg": 18.5,
+    "totYdsAllowedPg": 281.9,
+    "passYdsAllowedPg": 212.6,
+    "rushYdsAllowedPg": 90.8,
+    "sacks": 53,
+    "interceptions": 14,
+    "fumblesForced": 12,
+    "fumbleRecoveries": 8,
+    "defTds": 4,
+    "safeties": 1,
+    "takeaways": 22,
+    "passDefended": 68,
+    "tacklesForLoss": 66,
+    "qbHits": 101,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 13.5,
+     "pgHalf": 13.8,
+     "rank": 32
+    },
+    "RB": {
+     "pgLeague": 19.8,
+     "pgHalf": 17,
+     "rank": 28
+    },
+    "WR": {
+     "pgLeague": 27.1,
+     "pgHalf": 21.6,
+     "rank": 32
+    },
+    "TE": {
+     "pgLeague": 12.1,
+     "pgHalf": 9.8,
+     "rank": 21
+    },
+    "K": {
+     "pgLeague": 6.3,
+     "pgHalf": 6.5,
+     "rank": 28
+    },
+    "DEF": {
+     "pgLeague": 6.4,
+     "pgHalf": 7.6,
+     "rank": 12
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 22,
+     "totYdsPg": 13,
+     "passYdsPg": 15,
+     "rushYdsPg": 10,
+     "playsPg": 3,
+     "ydsPerPlay": 19,
+     "rzPlaysPg": 13,
+     "passTd": 26,
+     "rushTd": 10,
+     "turnovers": 25,
+     "sacksAllowed": 6,
+     "passInt": 23
+    },
+    "defense": {
+     "papg": 1,
+     "totYdsAllowedPg": 1,
+     "passYdsAllowedPg": 2,
+     "rushYdsAllowedPg": 3,
+     "sacks": 2,
+     "interceptions": 12,
+     "fumblesForced": 14,
+     "defTds": 1,
+     "takeaways": 10,
+     "passDefended": 15,
+     "tacklesForLoss": 15,
+     "qbHits": 8
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "DAL",
+     "home": true,
+     "pf": 20,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "PHI",
+     "home": false,
+     "pf": 37,
+     "pa": 19,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "BUF",
+     "home": false,
+     "pf": 32,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "NYG",
+     "home": true,
+     "pf": 17,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "WAS",
+     "home": false,
+     "pf": 30,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "SF",
+     "home": false,
+     "pf": 16,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "CHI",
+     "home": true,
+     "pf": 24,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "MIA",
+     "home": false,
+     "pf": 17,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "SEA",
+     "home": true,
+     "pf": 23,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "TB",
+     "home": false,
+     "pf": 27,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "SF",
+     "home": true,
+     "pf": 20,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "ARI",
+     "home": false,
+     "pf": 38,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "NE",
+     "home": true,
+     "pf": 24,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 20,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "SEA",
+     "home": false,
+     "pf": 9,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "ARI",
+     "home": true,
+     "pf": 18,
+     "pa": 7,
+     "result": "W"
+    }
+   ]
+  },
+  "DAL": {
+   "games": 16,
+   "record": {
+    "w": 6,
+    "l": 10,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 24.7,
+    "totYdsPg": 393.4,
+    "passYdsPg": 281.9,
+    "rushYdsPg": 111.6,
+    "playsPg": 69.4,
+    "ydsPerPlay": 5.67,
+    "passRate": 0.6,
+    "rzPlaysPg": 9.2,
+    "turnovers": 26,
+    "sacksAllowed": 44,
+    "passTd": 25,
+    "rushTd": 14,
+    "passInt": 13,
+    "snapsPg": 72.2
+   },
+   "defense": {
+    "papg": 29.6,
+    "totYdsAllowedPg": 386.4,
+    "passYdsAllowedPg": 238.8,
+    "rushYdsAllowedPg": 158.4,
+    "sacks": 31,
+    "interceptions": 10,
+    "fumblesForced": 13,
+    "fumbleRecoveries": 11,
+    "defTds": 2,
+    "safeties": 0,
+    "takeaways": 21,
+    "passDefended": 46,
+    "tacklesForLoss": 54,
+    "qbHits": 74,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.9,
+     "pgHalf": 19,
+     "rank": 12
+    },
+    "RB": {
+     "pgLeague": 23.4,
+     "pgHalf": 21.3,
+     "rank": 13
+    },
+    "WR": {
+     "pgLeague": 42,
+     "pgHalf": 35.3,
+     "rank": 5
+    },
+    "TE": {
+     "pgLeague": 11.6,
+     "pgHalf": 9.5,
+     "rank": 24
+    },
+    "K": {
+     "pgLeague": 7.9,
+     "pgHalf": 7.9,
+     "rank": 13
+    },
+    "DEF": {
+     "pgLeague": 7.6,
+     "pgHalf": 8.4,
+     "rank": 8
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 17,
+     "totYdsPg": 9,
+     "passYdsPg": 7,
+     "rushYdsPg": 18,
+     "playsPg": 2,
+     "ydsPerPlay": 20,
+     "rzPlaysPg": 18,
+     "passTd": 19,
+     "rushTd": 21,
+     "turnovers": 28,
+     "sacksAllowed": 25,
+     "passInt": 17
+    },
+    "defense": {
+     "papg": 28,
+     "totYdsAllowedPg": 23,
+     "passYdsAllowedPg": 10,
+     "rushYdsAllowedPg": 31,
+     "sacks": 20,
+     "interceptions": 24,
+     "fumblesForced": 9,
+     "defTds": 10,
+     "takeaways": 15,
+     "passDefended": 31,
+     "tacklesForLoss": 27,
+     "qbHits": 26
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "LAR",
+     "home": false,
+     "pf": 17,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "ATL",
+     "home": true,
+     "pf": 40,
+     "pa": 39,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "SEA",
+     "home": false,
+     "pf": 31,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "CLE",
+     "home": true,
+     "pf": 38,
+     "pa": 49,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "NYG",
+     "home": true,
+     "pf": 37,
+     "pa": 34,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "ARI",
+     "home": true,
+     "pf": 10,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "WAS",
+     "home": false,
+     "pf": 3,
+     "pa": 25,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "PHI",
+     "home": false,
+     "pf": 9,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "PIT",
+     "home": true,
+     "pf": 19,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "MIN",
+     "home": false,
+     "pf": 31,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "WAS",
+     "home": true,
+     "pf": 16,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "BAL",
+     "home": false,
+     "pf": 17,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "CIN",
+     "home": false,
+     "pf": 30,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "SF",
+     "home": true,
+     "pf": 41,
+     "pa": 33,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "PHI",
+     "home": true,
+     "pf": 37,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "NYG",
+     "home": false,
+     "pf": 19,
+     "pa": 23,
+     "result": "L"
+    }
+   ]
+  },
+  "LAC": {
+   "games": 16,
+   "record": {
+    "w": 7,
+    "l": 9,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 24,
+    "totYdsPg": 397.1,
+    "passYdsPg": 284.3,
+    "rushYdsPg": 112.8,
+    "playsPg": 70.3,
+    "ydsPerPlay": 5.65,
+    "passRate": 0.58,
+    "rzPlaysPg": 9.9,
+    "turnovers": 16,
+    "sacksAllowed": 34,
+    "passTd": 31,
+    "rushTd": 12,
+    "passInt": 10,
+    "snapsPg": 74.3
+   },
+   "defense": {
+    "papg": 26.6,
+    "totYdsAllowedPg": 343.4,
+    "passYdsAllowedPg": 232.2,
+    "rushYdsAllowedPg": 119.4,
+    "sacks": 27,
+    "interceptions": 12,
+    "fumblesForced": 5,
+    "fumbleRecoveries": 5,
+    "defTds": 2,
+    "safeties": 1,
+    "takeaways": 17,
+    "passDefended": 54,
+    "tacklesForLoss": 55,
+    "qbHits": 84,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 19.1,
+     "pgHalf": 19.5,
+     "rank": 10
+    },
+    "RB": {
+     "pgLeague": 23.3,
+     "pgHalf": 20.3,
+     "rank": 14
+    },
+    "WR": {
+     "pgLeague": 31.9,
+     "pgHalf": 26.6,
+     "rank": 28
+    },
+    "TE": {
+     "pgLeague": 14.1,
+     "pgHalf": 11.8,
+     "rank": 11
+    },
+    "K": {
+     "pgLeague": 8.6,
+     "pgHalf": 8.5,
+     "rank": 8
+    },
+    "DEF": {
+     "pgLeague": 4.9,
+     "pgHalf": 6.4,
+     "rank": 20
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 19,
+     "totYdsPg": 6,
+     "passYdsPg": 6,
+     "rushYdsPg": 16,
+     "playsPg": 1,
+     "ydsPerPlay": 21,
+     "rzPlaysPg": 7,
+     "passTd": 10,
+     "rushTd": 27,
+     "turnovers": 6,
+     "sacksAllowed": 15,
+     "passInt": 7
+    },
+    "defense": {
+     "papg": 23,
+     "totYdsAllowedPg": 10,
+     "passYdsAllowedPg": 6,
+     "rushYdsAllowedPg": 17,
+     "sacks": 25,
+     "interceptions": 14,
+     "fumblesForced": 31,
+     "defTds": 11,
+     "takeaways": 25,
+     "passDefended": 26,
+     "tacklesForLoss": 25,
+     "qbHits": 18
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "CIN",
+     "home": false,
+     "pf": 16,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "KC",
+     "home": true,
+     "pf": 20,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "CAR",
+     "home": true,
+     "pf": 16,
+     "pa": 21,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "TB",
+     "home": false,
+     "pf": 31,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "NO",
+     "home": false,
+     "pf": 27,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "JAX",
+     "home": true,
+     "pf": 39,
+     "pa": 29,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "DEN",
+     "home": false,
+     "pf": 30,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "LV",
+     "home": true,
+     "pf": 26,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "MIA",
+     "home": false,
+     "pf": 21,
+     "pa": 29,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 34,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "BUF",
+     "home": false,
+     "pf": 17,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "NE",
+     "home": true,
+     "pf": 0,
+     "pa": 45,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "ATL",
+     "home": true,
+     "pf": 20,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "LV",
+     "home": false,
+     "pf": 30,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "DEN",
+     "home": true,
+     "pf": 19,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "KC",
+     "home": false,
+     "pf": 38,
+     "pa": 21,
+     "result": "W"
+    }
+   ]
+  },
+  "CIN": {
+   "games": 16,
+   "record": {
+    "w": 4,
+    "l": 11,
+    "t": 1
+   },
+   "offense": {
+    "ppg": 19.4,
+    "totYdsPg": 338.4,
+    "passYdsPg": 237.1,
+    "rushYdsPg": 101.4,
+    "playsPg": 64.9,
+    "ydsPerPlay": 5.22,
+    "passRate": 0.59,
+    "rzPlaysPg": 8.3,
+    "turnovers": 24,
+    "sacksAllowed": 48,
+    "passTd": 19,
+    "rushTd": 13,
+    "passInt": 11,
+    "snapsPg": 69.8
+   },
+   "defense": {
+    "papg": 26.5,
+    "totYdsAllowedPg": 389.4,
+    "passYdsAllowedPg": 246.4,
+    "rushYdsAllowedPg": 148.2,
+    "sacks": 17,
+    "interceptions": 11,
+    "fumblesForced": 10,
+    "fumbleRecoveries": 6,
+    "defTds": 0,
+    "safeties": 0,
+    "takeaways": 17,
+    "passDefended": 80,
+    "tacklesForLoss": 45,
+    "qbHits": 72,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.3,
+     "pgHalf": 18.6,
+     "rank": 16
+    },
+    "RB": {
+     "pgLeague": 23.9,
+     "pgHalf": 22.2,
+     "rank": 11
+    },
+    "WR": {
+     "pgLeague": 36.3,
+     "pgHalf": 29.8,
+     "rank": 16
+    },
+    "TE": {
+     "pgLeague": 14.4,
+     "pgHalf": 11.8,
+     "rank": 10
+    },
+    "K": {
+     "pgLeague": 9.4,
+     "pgHalf": 9.6,
+     "rank": 3
+    },
+    "DEF": {
+     "pgLeague": 8.3,
+     "pgHalf": 9.2,
+     "rank": 5
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 29,
+     "totYdsPg": 29,
+     "passYdsPg": 25,
+     "rushYdsPg": 25,
+     "playsPg": 11,
+     "ydsPerPlay": 30,
+     "rzPlaysPg": 25,
+     "passTd": 27,
+     "rushTd": 23,
+     "turnovers": 24,
+     "sacksAllowed": 27,
+     "passInt": 10
+    },
+    "defense": {
+     "papg": 22,
+     "totYdsAllowedPg": 26,
+     "passYdsAllowedPg": 13,
+     "rushYdsAllowedPg": 29,
+     "sacks": 32,
+     "interceptions": 19,
+     "fumblesForced": 25,
+     "defTds": 26,
+     "takeaways": 26,
+     "passDefended": 4,
+     "tacklesForLoss": 32,
+     "qbHits": 27
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "LAC",
+     "home": true,
+     "pf": 13,
+     "pa": 16,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "CLE",
+     "home": false,
+     "pf": 30,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "PHI",
+     "home": false,
+     "pf": 23,
+     "pa": 23,
+     "result": "T"
+    },
+    {
+     "week": 4,
+     "opp": "JAX",
+     "home": true,
+     "pf": 33,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "BAL",
+     "home": false,
+     "pf": 3,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "IND",
+     "home": false,
+     "pf": 27,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "CLE",
+     "home": true,
+     "pf": 34,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "TEN",
+     "home": true,
+     "pf": 31,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "PIT",
+     "home": false,
+     "pf": 10,
+     "pa": 36,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "WAS",
+     "home": false,
+     "pf": 9,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "NYG",
+     "home": true,
+     "pf": 17,
+     "pa": 19,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "MIA",
+     "home": false,
+     "pf": 7,
+     "pa": 19,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "DAL",
+     "home": true,
+     "pf": 7,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "PIT",
+     "home": true,
+     "pf": 27,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "HOU",
+     "home": false,
+     "pf": 37,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "BAL",
+     "home": true,
+     "pf": 3,
+     "pa": 38,
+     "result": "L"
+    }
+   ]
+  },
+  "SF": {
+   "games": 16,
+   "record": {
+    "w": 6,
+    "l": 10,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 23.5,
+    "totYdsPg": 384.1,
+    "passYdsPg": 270,
+    "rushYdsPg": 114.1,
+    "playsPg": 64.3,
+    "ydsPerPlay": 5.97,
+    "passRate": 0.58,
+    "rzPlaysPg": 8.9,
+    "turnovers": 30,
+    "sacksAllowed": 39,
+    "passTd": 25,
+    "rushTd": 17,
+    "passInt": 17,
+    "snapsPg": 69.9
+   },
+   "defense": {
+    "papg": 24.4,
+    "totYdsAllowedPg": 314.4,
+    "passYdsAllowedPg": 220.4,
+    "rushYdsAllowedPg": 106.1,
+    "sacks": 30,
+    "interceptions": 12,
+    "fumblesForced": 11,
+    "fumbleRecoveries": 7,
+    "defTds": 1,
+    "safeties": 0,
+    "takeaways": 19,
+    "passDefended": 62,
+    "tacklesForLoss": 67,
+    "qbHits": 72,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.6,
+     "pgHalf": 16.9,
+     "rank": 24
+    },
+    "RB": {
+     "pgLeague": 20,
+     "pgHalf": 17.7,
+     "rank": 27
+    },
+    "WR": {
+     "pgLeague": 35.4,
+     "pgHalf": 28.9,
+     "rank": 19
+    },
+    "TE": {
+     "pgLeague": 8.3,
+     "pgHalf": 6.3,
+     "rank": 32
+    },
+    "K": {
+     "pgLeague": 9.1,
+     "pgHalf": 9.6,
+     "rank": 6
+    },
+    "DEF": {
+     "pgLeague": 7.9,
+     "pgHalf": 9.1,
+     "rank": 7
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 21,
+     "totYdsPg": 16,
+     "passYdsPg": 10,
+     "rushYdsPg": 15,
+     "playsPg": 16,
+     "ydsPerPlay": 12,
+     "rzPlaysPg": 21,
+     "passTd": 20,
+     "rushTd": 13,
+     "turnovers": 31,
+     "sacksAllowed": 20,
+     "passInt": 30
+    },
+    "defense": {
+     "papg": 17,
+     "totYdsAllowedPg": 5,
+     "passYdsAllowedPg": 4,
+     "rushYdsAllowedPg": 7,
+     "sacks": 22,
+     "interceptions": 15,
+     "fumblesForced": 20,
+     "defTds": 18,
+     "takeaways": 19,
+     "passDefended": 21,
+     "tacklesForLoss": 14,
+     "qbHits": 28
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "ARI",
+     "home": true,
+     "pf": 20,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 31,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "NYG",
+     "home": false,
+     "pf": 36,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "PHI",
+     "home": true,
+     "pf": 20,
+     "pa": 25,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "MIA",
+     "home": true,
+     "pf": 17,
+     "pa": 43,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "LAR",
+     "home": true,
+     "pf": 24,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "NE",
+     "home": false,
+     "pf": 33,
+     "pa": 6,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "SEA",
+     "home": false,
+     "pf": 27,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "GB",
+     "home": true,
+     "pf": 17,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "NO",
+     "home": false,
+     "pf": 13,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "LAR",
+     "home": false,
+     "pf": 23,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "BUF",
+     "home": true,
+     "pf": 24,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "WAS",
+     "home": true,
+     "pf": 15,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "DAL",
+     "home": false,
+     "pf": 33,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "ARI",
+     "home": false,
+     "pf": 20,
+     "pa": 12,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "SEA",
+     "home": true,
+     "pf": 23,
+     "pa": 26,
+     "result": "L"
+    }
+   ]
+  },
+  "ARI": {
+   "games": 16,
+   "record": {
+    "w": 8,
+    "l": 8,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 25.6,
+    "totYdsPg": 394.6,
+    "passYdsPg": 254.8,
+    "rushYdsPg": 139.8,
+    "playsPg": 67.6,
+    "ydsPerPlay": 5.83,
+    "passRate": 0.55,
+    "rzPlaysPg": 9.8,
+    "turnovers": 21,
+    "sacksAllowed": 29,
+    "passTd": 27,
+    "rushTd": 22,
+    "passInt": 13,
+    "snapsPg": 73.3
+   },
+   "defense": {
+    "papg": 22.9,
+    "totYdsAllowedPg": 351.9,
+    "passYdsAllowedPg": 246.8,
+    "rushYdsAllowedPg": 124.8,
+    "sacks": 48,
+    "interceptions": 11,
+    "fumblesForced": 12,
+    "fumbleRecoveries": 7,
+    "defTds": 0,
+    "safeties": 1,
+    "takeaways": 18,
+    "passDefended": 57,
+    "tacklesForLoss": 88,
+    "qbHits": 100,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.7,
+     "pgHalf": 18.7,
+     "rank": 13
+    },
+    "RB": {
+     "pgLeague": 21.6,
+     "pgHalf": 19.4,
+     "rank": 19
+    },
+    "WR": {
+     "pgLeague": 35.9,
+     "pgHalf": 28.7,
+     "rank": 17
+    },
+    "TE": {
+     "pgLeague": 10.9,
+     "pgHalf": 8.6,
+     "rank": 27
+    },
+    "K": {
+     "pgLeague": 7.8,
+     "pgHalf": 7.6,
+     "rank": 14
+    },
+    "DEF": {
+     "pgLeague": 5.5,
+     "pgHalf": 6.6,
+     "rank": 19
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 13,
+     "totYdsPg": 7,
+     "passYdsPg": 18,
+     "rushYdsPg": 7,
+     "playsPg": 4,
+     "ydsPerPlay": 17,
+     "rzPlaysPg": 10,
+     "passTd": 15,
+     "rushTd": 4,
+     "turnovers": 18,
+     "sacksAllowed": 11,
+     "passInt": 18
+    },
+    "defense": {
+     "papg": 12,
+     "totYdsAllowedPg": 13,
+     "passYdsAllowedPg": 15,
+     "rushYdsAllowedPg": 23,
+     "sacks": 4,
+     "interceptions": 20,
+     "fumblesForced": 15,
+     "defTds": 27,
+     "takeaways": 22,
+     "passDefended": 24,
+     "tacklesForLoss": 5,
+     "qbHits": 9
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "SF",
+     "home": false,
+     "pf": 24,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "WAS",
+     "home": true,
+     "pf": 30,
+     "pa": 15,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "DET",
+     "home": true,
+     "pf": 23,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "CAR",
+     "home": false,
+     "pf": 21,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 30,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "DAL",
+     "home": false,
+     "pf": 38,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "SEA",
+     "home": true,
+     "pf": 37,
+     "pa": 34,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "MIA",
+     "home": true,
+     "pf": 31,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "BUF",
+     "home": true,
+     "pf": 32,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "SEA",
+     "home": false,
+     "pf": 21,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "NE",
+     "home": false,
+     "pf": 17,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "LAR",
+     "home": true,
+     "pf": 28,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "NYG",
+     "home": false,
+     "pf": 26,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "PHI",
+     "home": true,
+     "pf": 33,
+     "pa": 26,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "SF",
+     "home": true,
+     "pf": 12,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "LAR",
+     "home": false,
+     "pf": 7,
+     "pa": 18,
+     "result": "L"
+    }
+   ]
+  },
+  "GB": {
+   "games": 16,
+   "record": {
+    "w": 13,
+    "l": 3,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 31.8,
+    "totYdsPg": 401.1,
+    "passYdsPg": 268.7,
+    "rushYdsPg": 132.4,
+    "playsPg": 61.9,
+    "ydsPerPlay": 6.48,
+    "passRate": 0.54,
+    "rzPlaysPg": 9.8,
+    "turnovers": 11,
+    "sacksAllowed": 21,
+    "passTd": 48,
+    "rushTd": 16,
+    "passInt": 5,
+    "snapsPg": 65.9
+   },
+   "defense": {
+    "papg": 23.1,
+    "totYdsAllowedPg": 334.1,
+    "passYdsAllowedPg": 237.1,
+    "rushYdsAllowedPg": 112.8,
+    "sacks": 41,
+    "interceptions": 11,
+    "fumblesForced": 11,
+    "fumbleRecoveries": 7,
+    "defTds": 2,
+    "safeties": 1,
+    "takeaways": 18,
+    "passDefended": 74,
+    "tacklesForLoss": 58,
+    "qbHits": 80,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.1,
+     "pgHalf": 16.4,
+     "rank": 28
+    },
+    "RB": {
+     "pgLeague": 26.8,
+     "pgHalf": 24.1,
+     "rank": 5
+    },
+    "WR": {
+     "pgLeague": 31.6,
+     "pgHalf": 26.3,
+     "rank": 30
+    },
+    "TE": {
+     "pgLeague": 10.2,
+     "pgHalf": 8,
+     "rank": 30
+    },
+    "K": {
+     "pgLeague": 7.1,
+     "pgHalf": 6.9,
+     "rank": 18
+    },
+    "DEF": {
+     "pgLeague": 1.8,
+     "pgHalf": 2.6,
+     "rank": 32
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 1,
+     "totYdsPg": 5,
+     "passYdsPg": 11,
+     "rushYdsPg": 8,
+     "playsPg": 26,
+     "ydsPerPlay": 2,
+     "rzPlaysPg": 11,
+     "passTd": 1,
+     "rushTd": 15,
+     "turnovers": 1,
+     "sacksAllowed": 2,
+     "passInt": 1
+    },
+    "defense": {
+     "papg": 13,
+     "totYdsAllowedPg": 9,
+     "passYdsAllowedPg": 8,
+     "rushYdsAllowedPg": 13,
+     "sacks": 10,
+     "interceptions": 21,
+     "fumblesForced": 21,
+     "defTds": 12,
+     "takeaways": 23,
+     "passDefended": 11,
+     "tacklesForLoss": 22,
+     "qbHits": 21
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "MIN",
+     "home": false,
+     "pf": 43,
+     "pa": 34,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "DET",
+     "home": true,
+     "pf": 42,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "NO",
+     "home": false,
+     "pf": 37,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "ATL",
+     "home": true,
+     "pf": 30,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "TB",
+     "home": false,
+     "pf": 10,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "HOU",
+     "home": false,
+     "pf": 35,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "MIN",
+     "home": true,
+     "pf": 22,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "SF",
+     "home": false,
+     "pf": 34,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "JAX",
+     "home": true,
+     "pf": 24,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "IND",
+     "home": false,
+     "pf": 31,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "CHI",
+     "home": true,
+     "pf": 41,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "PHI",
+     "home": true,
+     "pf": 30,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "DET",
+     "home": false,
+     "pf": 31,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "CAR",
+     "home": true,
+     "pf": 24,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "TEN",
+     "home": true,
+     "pf": 40,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "CHI",
+     "home": false,
+     "pf": 35,
+     "pa": 16,
+     "result": "W"
+    }
+   ]
+  },
+  "MIN": {
+   "games": 16,
+   "record": {
+    "w": 7,
+    "l": 9,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 26.9,
+    "totYdsPg": 408.1,
+    "passYdsPg": 266.6,
+    "rushYdsPg": 141.6,
+    "playsPg": 63.6,
+    "ydsPerPlay": 6.41,
+    "passRate": 0.53,
+    "rzPlaysPg": 9.9,
+    "turnovers": 23,
+    "sacksAllowed": 39,
+    "passTd": 35,
+    "rushTd": 20,
+    "passInt": 13,
+    "snapsPg": 69.3
+   },
+   "defense": {
+    "papg": 29.7,
+    "totYdsAllowedPg": 393.3,
+    "passYdsAllowedPg": 266.7,
+    "rushYdsAllowedPg": 133.8,
+    "sacks": 23,
+    "interceptions": 15,
+    "fumblesForced": 8,
+    "fumbleRecoveries": 4,
+    "defTds": 0,
+    "safeties": 1,
+    "takeaways": 19,
+    "passDefended": 56,
+    "tacklesForLoss": 54,
+    "qbHits": 68,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 17.3,
+     "pgHalf": 17.7,
+     "rank": 20
+    },
+    "RB": {
+     "pgLeague": 26.8,
+     "pgHalf": 24.5,
+     "rank": 6
+    },
+    "WR": {
+     "pgLeague": 39.7,
+     "pgHalf": 33.2,
+     "rank": 6
+    },
+    "TE": {
+     "pgLeague": 12.6,
+     "pgHalf": 10.4,
+     "rank": 18
+    },
+    "K": {
+     "pgLeague": 9.9,
+     "pgHalf": 10.1,
+     "rank": 2
+    },
+    "DEF": {
+     "pgLeague": 6.6,
+     "pgHalf": 7.9,
+     "rank": 11
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 11,
+     "totYdsPg": 2,
+     "passYdsPg": 12,
+     "rushYdsPg": 5,
+     "playsPg": 22,
+     "ydsPerPlay": 4,
+     "rzPlaysPg": 8,
+     "passTd": 6,
+     "rushTd": 6,
+     "turnovers": 23,
+     "sacksAllowed": 21,
+     "passInt": 19
+    },
+    "defense": {
+     "papg": 29,
+     "totYdsAllowedPg": 27,
+     "passYdsAllowedPg": 22,
+     "rushYdsAllowedPg": 27,
+     "sacks": 28,
+     "interceptions": 7,
+     "fumblesForced": 27,
+     "defTds": 28,
+     "takeaways": 20,
+     "passDefended": 25,
+     "tacklesForLoss": 28,
+     "qbHits": 30
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "GB",
+     "home": true,
+     "pf": 34,
+     "pa": 43,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "IND",
+     "home": false,
+     "pf": 11,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "TEN",
+     "home": true,
+     "pf": 30,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "HOU",
+     "home": false,
+     "pf": 31,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "SEA",
+     "home": false,
+     "pf": 26,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "ATL",
+     "home": true,
+     "pf": 23,
+     "pa": 40,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "GB",
+     "home": false,
+     "pf": 28,
+     "pa": 22,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "DET",
+     "home": true,
+     "pf": 34,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "CHI",
+     "home": false,
+     "pf": 19,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "DAL",
+     "home": true,
+     "pf": 28,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "CAR",
+     "home": true,
+     "pf": 28,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "JAX",
+     "home": true,
+     "pf": 27,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "TB",
+     "home": false,
+     "pf": 14,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "CHI",
+     "home": true,
+     "pf": 27,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "NO",
+     "home": false,
+     "pf": 33,
+     "pa": 52,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "DET",
+     "home": false,
+     "pf": 37,
+     "pa": 35,
+     "result": "W"
+    }
+   ]
+  },
+  "CAR": {
+   "games": 16,
+   "record": {
+    "w": 5,
+    "l": 11,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 21.9,
+    "totYdsPg": 360.3,
+    "passYdsPg": 256.3,
+    "rushYdsPg": 104,
+    "playsPg": 61.3,
+    "ydsPerPlay": 5.88,
+    "passRate": 0.58,
+    "rzPlaysPg": 9.4,
+    "turnovers": 21,
+    "sacksAllowed": 35,
+    "passTd": 16,
+    "rushTd": 19,
+    "passInt": 16,
+    "snapsPg": 66.5
+   },
+   "defense": {
+    "papg": 25.1,
+    "totYdsAllowedPg": 360.1,
+    "passYdsAllowedPg": 251.5,
+    "rushYdsAllowedPg": 120.3,
+    "sacks": 29,
+    "interceptions": 7,
+    "fumblesForced": 13,
+    "fumbleRecoveries": 13,
+    "defTds": 3,
+    "safeties": 0,
+    "takeaways": 20,
+    "passDefended": 58,
+    "tacklesForLoss": 55,
+    "qbHits": 88,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.6,
+     "pgHalf": 18.4,
+     "rank": 15
+    },
+    "RB": {
+     "pgLeague": 25.2,
+     "pgHalf": 21.9,
+     "rank": 8
+    },
+    "WR": {
+     "pgLeague": 34.8,
+     "pgHalf": 28.3,
+     "rank": 21
+    },
+    "TE": {
+     "pgLeague": 15.1,
+     "pgHalf": 12.2,
+     "rank": 6
+    },
+    "K": {
+     "pgLeague": 8.5,
+     "pgHalf": 8.4,
+     "rank": 9
+    },
+    "DEF": {
+     "pgLeague": 5.8,
+     "pgHalf": 6.1,
+     "rank": 16
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 24,
+     "totYdsPg": 21,
+     "passYdsPg": 17,
+     "rushYdsPg": 23,
+     "playsPg": 28,
+     "ydsPerPlay": 16,
+     "rzPlaysPg": 16,
+     "passTd": 28,
+     "rushTd": 11,
+     "turnovers": 19,
+     "sacksAllowed": 17,
+     "passInt": 26
+    },
+    "defense": {
+     "papg": 18,
+     "totYdsAllowedPg": 18,
+     "passYdsAllowedPg": 16,
+     "rushYdsAllowedPg": 20,
+     "sacks": 23,
+     "interceptions": 30,
+     "fumblesForced": 10,
+     "defTds": 4,
+     "takeaways": 17,
+     "passDefended": 23,
+     "tacklesForLoss": 26,
+     "qbHits": 16
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "LV",
+     "home": true,
+     "pf": 30,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "TB",
+     "home": false,
+     "pf": 17,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "LAC",
+     "home": false,
+     "pf": 21,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "ARI",
+     "home": true,
+     "pf": 31,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "ATL",
+     "home": false,
+     "pf": 23,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "CHI",
+     "home": true,
+     "pf": 16,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "NO",
+     "home": false,
+     "pf": 24,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "ATL",
+     "home": true,
+     "pf": 17,
+     "pa": 25,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "KC",
+     "home": false,
+     "pf": 31,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "TB",
+     "home": true,
+     "pf": 23,
+     "pa": 46,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "DET",
+     "home": true,
+     "pf": 20,
+     "pa": 0,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "MIN",
+     "home": false,
+     "pf": 27,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "DEN",
+     "home": true,
+     "pf": 27,
+     "pa": 32,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "GB",
+     "home": false,
+     "pf": 16,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "WAS",
+     "home": false,
+     "pf": 20,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "NO",
+     "home": true,
+     "pf": 7,
+     "pa": 33,
+     "result": "L"
+    }
+   ]
+  },
+  "LV": {
+   "games": 16,
+   "record": {
+    "w": 8,
+    "l": 8,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 27.1,
+    "totYdsPg": 393.4,
+    "passYdsPg": 273.9,
+    "rushYdsPg": 119.4,
+    "playsPg": 64.4,
+    "ydsPerPlay": 6.1,
+    "passRate": 0.55,
+    "rzPlaysPg": 11.1,
+    "turnovers": 25,
+    "sacksAllowed": 28,
+    "passTd": 28,
+    "rushTd": 20,
+    "passInt": 10,
+    "snapsPg": 68.8
+   },
+   "defense": {
+    "papg": 29.9,
+    "totYdsAllowedPg": 389.1,
+    "passYdsAllowedPg": 271.3,
+    "rushYdsAllowedPg": 124.4,
+    "sacks": 21,
+    "interceptions": 10,
+    "fumblesForced": 8,
+    "fumbleRecoveries": 4,
+    "defTds": 0,
+    "safeties": 0,
+    "takeaways": 14,
+    "passDefended": 73,
+    "tacklesForLoss": 61,
+    "qbHits": 76,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 20,
+     "pgHalf": 20.3,
+     "rank": 7
+    },
+    "RB": {
+     "pgLeague": 28.2,
+     "pgHalf": 25.6,
+     "rank": 4
+    },
+    "WR": {
+     "pgLeague": 37.8,
+     "pgHalf": 31.2,
+     "rank": 13
+    },
+    "TE": {
+     "pgLeague": 12.6,
+     "pgHalf": 10.1,
+     "rank": 19
+    },
+    "K": {
+     "pgLeague": 9,
+     "pgHalf": 8.6,
+     "rank": 7
+    },
+    "DEF": {
+     "pgLeague": 5.8,
+     "pgHalf": 6.9,
+     "rank": 17
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 10,
+     "totYdsPg": 10,
+     "passYdsPg": 9,
+     "rushYdsPg": 14,
+     "playsPg": 15,
+     "ydsPerPlay": 8,
+     "rzPlaysPg": 2,
+     "passTd": 11,
+     "rushTd": 7,
+     "turnovers": 26,
+     "sacksAllowed": 10,
+     "passInt": 8
+    },
+    "defense": {
+     "papg": 30,
+     "totYdsAllowedPg": 25,
+     "passYdsAllowedPg": 26,
+     "rushYdsAllowedPg": 22,
+     "sacks": 29,
+     "interceptions": 25,
+     "fumblesForced": 28,
+     "defTds": 29,
+     "takeaways": 30,
+     "passDefended": 12,
+     "tacklesForLoss": 20,
+     "qbHits": 23
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "CAR",
+     "home": false,
+     "pf": 34,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "NO",
+     "home": true,
+     "pf": 34,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "NE",
+     "home": false,
+     "pf": 20,
+     "pa": 36,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "BUF",
+     "home": true,
+     "pf": 23,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "KC",
+     "home": false,
+     "pf": 40,
+     "pa": 32,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "TB",
+     "home": true,
+     "pf": 20,
+     "pa": 45,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "CLE",
+     "home": false,
+     "pf": 16,
+     "pa": 6,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "LAC",
+     "home": false,
+     "pf": 31,
+     "pa": 26,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "DEN",
+     "home": true,
+     "pf": 37,
+     "pa": 12,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "KC",
+     "home": true,
+     "pf": 31,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "ATL",
+     "home": false,
+     "pf": 6,
+     "pa": 43,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 31,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "IND",
+     "home": true,
+     "pf": 27,
+     "pa": 44,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "LAC",
+     "home": true,
+     "pf": 27,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "MIA",
+     "home": true,
+     "pf": 25,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "DEN",
+     "home": false,
+     "pf": 32,
+     "pa": 31,
+     "result": "W"
+    }
+   ]
+  },
+  "TB": {
+   "games": 16,
+   "record": {
+    "w": 11,
+    "l": 5,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 30.8,
+    "totYdsPg": 393.4,
+    "passYdsPg": 298.5,
+    "rushYdsPg": 94.9,
+    "playsPg": 63.6,
+    "ydsPerPlay": 6.19,
+    "passRate": 0.63,
+    "rzPlaysPg": 9.2,
+    "turnovers": 16,
+    "sacksAllowed": 22,
+    "passTd": 42,
+    "rushTd": 16,
+    "passInt": 12,
+    "snapsPg": 67.9
+   },
+   "defense": {
+    "papg": 22.2,
+    "totYdsAllowedPg": 327.1,
+    "passYdsAllowedPg": 269.4,
+    "rushYdsAllowedPg": 80.1,
+    "sacks": 48,
+    "interceptions": 15,
+    "fumblesForced": 15,
+    "fumbleRecoveries": 10,
+    "defTds": 1,
+    "safeties": 1,
+    "takeaways": 25,
+    "passDefended": 70,
+    "tacklesForLoss": 91,
+    "qbHits": 116,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 17.4,
+     "pgHalf": 17.5,
+     "rank": 19
+    },
+    "RB": {
+     "pgLeague": 19.4,
+     "pgHalf": 16.4,
+     "rank": 29
+    },
+    "WR": {
+     "pgLeague": 38.3,
+     "pgHalf": 31.3,
+     "rank": 10
+    },
+    "TE": {
+     "pgLeague": 14.9,
+     "pgHalf": 12.1,
+     "rank": 7
+    },
+    "K": {
+     "pgLeague": 6.7,
+     "pgHalf": 6.6,
+     "rank": 24
+    },
+    "DEF": {
+     "pgLeague": 3.6,
+     "pgHalf": 4.4,
+     "rank": 26
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 3,
+     "totYdsPg": 11,
+     "passYdsPg": 3,
+     "rushYdsPg": 28,
+     "playsPg": 23,
+     "ydsPerPlay": 7,
+     "rzPlaysPg": 19,
+     "passTd": 2,
+     "rushTd": 16,
+     "turnovers": 7,
+     "sacksAllowed": 4,
+     "passInt": 16
+    },
+    "defense": {
+     "papg": 8,
+     "totYdsAllowedPg": 6,
+     "passYdsAllowedPg": 23,
+     "rushYdsAllowedPg": 1,
+     "sacks": 5,
+     "interceptions": 8,
+     "fumblesForced": 5,
+     "defTds": 19,
+     "takeaways": 4,
+     "passDefended": 14,
+     "tacklesForLoss": 2,
+     "qbHits": 3
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "NO",
+     "home": false,
+     "pf": 23,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "CAR",
+     "home": true,
+     "pf": 31,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "DEN",
+     "home": false,
+     "pf": 28,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "LAC",
+     "home": true,
+     "pf": 38,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "CHI",
+     "home": false,
+     "pf": 19,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "GB",
+     "home": true,
+     "pf": 38,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "LV",
+     "home": false,
+     "pf": 45,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "NYG",
+     "home": false,
+     "pf": 25,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "NO",
+     "home": true,
+     "pf": 3,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "CAR",
+     "home": false,
+     "pf": 46,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "LAR",
+     "home": true,
+     "pf": 24,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "KC",
+     "home": true,
+     "pf": 24,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "MIN",
+     "home": true,
+     "pf": 26,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "ATL",
+     "home": false,
+     "pf": 31,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "DET",
+     "home": false,
+     "pf": 47,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "ATL",
+     "home": true,
+     "pf": 44,
+     "pa": 27,
+     "result": "W"
+    }
+   ]
+  },
+  "NO": {
+   "games": 16,
+   "record": {
+    "w": 12,
+    "l": 4,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 30.1,
+    "totYdsPg": 387,
+    "passYdsPg": 246.6,
+    "rushYdsPg": 140.4,
+    "playsPg": 64.9,
+    "ydsPerPlay": 5.97,
+    "passRate": 0.52,
+    "rzPlaysPg": 11.4,
+    "turnovers": 17,
+    "sacksAllowed": 29,
+    "passTd": 28,
+    "rushTd": 30,
+    "passInt": 8,
+    "snapsPg": 68.6
+   },
+   "defense": {
+    "papg": 21.1,
+    "totYdsAllowedPg": 310.9,
+    "passYdsAllowedPg": 234.9,
+    "rushYdsAllowedPg": 93.4,
+    "sacks": 45,
+    "interceptions": 18,
+    "fumblesForced": 6,
+    "fumbleRecoveries": 5,
+    "defTds": 1,
+    "safeties": 1,
+    "takeaways": 23,
+    "passDefended": 84,
+    "tacklesForLoss": 81,
+    "qbHits": 112,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 15.9,
+     "pgHalf": 16.2,
+     "rank": 29
+    },
+    "RB": {
+     "pgLeague": 17.3,
+     "pgHalf": 15.4,
+     "rank": 32
+    },
+    "WR": {
+     "pgLeague": 35.4,
+     "pgHalf": 29.5,
+     "rank": 20
+    },
+    "TE": {
+     "pgLeague": 13,
+     "pgHalf": 10.6,
+     "rank": 14
+    },
+    "K": {
+     "pgLeague": 7.1,
+     "pgHalf": 7.1,
+     "rank": 19
+    },
+    "DEF": {
+     "pgLeague": 2.8,
+     "pgHalf": 4.1,
+     "rank": 30
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 5,
+     "totYdsPg": 14,
+     "passYdsPg": 20,
+     "rushYdsPg": 6,
+     "playsPg": 12,
+     "ydsPerPlay": 13,
+     "rzPlaysPg": 1,
+     "passTd": 12,
+     "rushTd": 1,
+     "turnovers": 9,
+     "sacksAllowed": 12,
+     "passInt": 6
+    },
+    "defense": {
+     "papg": 5,
+     "totYdsAllowedPg": 4,
+     "passYdsAllowedPg": 7,
+     "rushYdsAllowedPg": 4,
+     "sacks": 8,
+     "interceptions": 1,
+     "fumblesForced": 30,
+     "defTds": 20,
+     "takeaways": 6,
+     "passDefended": 1,
+     "tacklesForLoss": 6,
+     "qbHits": 5
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "TB",
+     "home": true,
+     "pf": 34,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "LV",
+     "home": false,
+     "pf": 24,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "GB",
+     "home": true,
+     "pf": 30,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "DET",
+     "home": false,
+     "pf": 35,
+     "pa": 29,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "LAC",
+     "home": true,
+     "pf": 30,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "CAR",
+     "home": true,
+     "pf": 27,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "CHI",
+     "home": false,
+     "pf": 26,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "TB",
+     "home": false,
+     "pf": 38,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "SF",
+     "home": true,
+     "pf": 27,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "ATL",
+     "home": true,
+     "pf": 24,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "DEN",
+     "home": false,
+     "pf": 31,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "ATL",
+     "home": false,
+     "pf": 21,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "PHI",
+     "home": false,
+     "pf": 21,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "KC",
+     "home": true,
+     "pf": 29,
+     "pa": 32,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "MIN",
+     "home": true,
+     "pf": 52,
+     "pa": 33,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "CAR",
+     "home": false,
+     "pf": 33,
+     "pa": 7,
+     "result": "W"
+    }
+   ]
+  },
+  "BUF": {
+   "games": 16,
+   "record": {
+    "w": 13,
+    "l": 3,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 31.3,
+    "totYdsPg": 406,
+    "passYdsPg": 298.3,
+    "rushYdsPg": 107.7,
+    "playsPg": 64.6,
+    "ydsPerPlay": 6.29,
+    "passRate": 0.59,
+    "rzPlaysPg": 10.3,
+    "turnovers": 22,
+    "sacksAllowed": 27,
+    "passTd": 40,
+    "rushTd": 16,
+    "passInt": 11,
+    "snapsPg": 69.8
+   },
+   "defense": {
+    "papg": 23.4,
+    "totYdsAllowedPg": 352.5,
+    "passYdsAllowedPg": 246.6,
+    "rushYdsAllowedPg": 119.4,
+    "sacks": 38,
+    "interceptions": 15,
+    "fumblesForced": 14,
+    "fumbleRecoveries": 11,
+    "defTds": 3,
+    "safeties": 0,
+    "takeaways": 26,
+    "passDefended": 76,
+    "tacklesForLoss": 72,
+    "qbHits": 92,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.3,
+     "pgHalf": 18.7,
+     "rank": 17
+    },
+    "RB": {
+     "pgLeague": 22.8,
+     "pgHalf": 20.4,
+     "rank": 17
+    },
+    "WR": {
+     "pgLeague": 32.9,
+     "pgHalf": 26.2,
+     "rank": 27
+    },
+    "TE": {
+     "pgLeague": 14.9,
+     "pgHalf": 11.8,
+     "rank": 8
+    },
+    "K": {
+     "pgLeague": 6.6,
+     "pgHalf": 6.7,
+     "rank": 26
+    },
+    "DEF": {
+     "pgLeague": 2.9,
+     "pgHalf": 3.7,
+     "rank": 29
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 2,
+     "totYdsPg": 4,
+     "passYdsPg": 4,
+     "rushYdsPg": 20,
+     "playsPg": 13,
+     "ydsPerPlay": 6,
+     "rzPlaysPg": 4,
+     "passTd": 4,
+     "rushTd": 17,
+     "turnovers": 20,
+     "sacksAllowed": 9,
+     "passInt": 11
+    },
+    "defense": {
+     "papg": 16,
+     "totYdsAllowedPg": 14,
+     "passYdsAllowedPg": 14,
+     "rushYdsAllowedPg": 18,
+     "sacks": 16,
+     "interceptions": 9,
+     "fumblesForced": 7,
+     "defTds": 5,
+     "takeaways": 2,
+     "passDefended": 7,
+     "tacklesForLoss": 9,
+     "qbHits": 13
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 27,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "MIA",
+     "home": false,
+     "pf": 31,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "LAR",
+     "home": true,
+     "pf": 35,
+     "pa": 32,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "LV",
+     "home": false,
+     "pf": 30,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "TEN",
+     "home": false,
+     "pf": 16,
+     "pa": 42,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "KC",
+     "home": true,
+     "pf": 17,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 18,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "NE",
+     "home": true,
+     "pf": 24,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "SEA",
+     "home": true,
+     "pf": 44,
+     "pa": 34,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "ARI",
+     "home": false,
+     "pf": 30,
+     "pa": 32,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "LAC",
+     "home": true,
+     "pf": 27,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "SF",
+     "home": false,
+     "pf": 34,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "PIT",
+     "home": true,
+     "pf": 26,
+     "pa": 15,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "DEN",
+     "home": false,
+     "pf": 48,
+     "pa": 19,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "NE",
+     "home": false,
+     "pf": 38,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "MIA",
+     "home": true,
+     "pf": 56,
+     "pa": 26,
+     "result": "W"
+    }
+   ]
+  },
+  "NYJ": {
+   "games": 16,
+   "record": {
+    "w": 2,
+    "l": 14,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 15.2,
+    "totYdsPg": 299.9,
+    "passYdsPg": 194.7,
+    "rushYdsPg": 105.2,
+    "playsPg": 59.3,
+    "ydsPerPlay": 5.06,
+    "passRate": 0.55,
+    "rzPlaysPg": 5.5,
+    "turnovers": 19,
+    "sacksAllowed": 43,
+    "passTd": 16,
+    "rushTd": 9,
+    "passInt": 14,
+    "snapsPg": 63.1
+   },
+   "defense": {
+    "papg": 28.6,
+    "totYdsAllowedPg": 387.6,
+    "passYdsAllowedPg": 286.4,
+    "rushYdsAllowedPg": 113.8,
+    "sacks": 31,
+    "interceptions": 10,
+    "fumblesForced": 17,
+    "fumbleRecoveries": 9,
+    "defTds": 1,
+    "safeties": 1,
+    "takeaways": 19,
+    "passDefended": 67,
+    "tacklesForLoss": 72,
+    "qbHits": 84,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 22,
+     "pgHalf": 21.9,
+     "rank": 2
+    },
+    "RB": {
+     "pgLeague": 24.1,
+     "pgHalf": 20.9,
+     "rank": 10
+    },
+    "WR": {
+     "pgLeague": 38.1,
+     "pgHalf": 30.7,
+     "rank": 12
+    },
+    "TE": {
+     "pgLeague": 17.9,
+     "pgHalf": 15,
+     "rank": 2
+    },
+    "K": {
+     "pgLeague": 9.3,
+     "pgHalf": 9.8,
+     "rank": 5
+    },
+    "DEF": {
+     "pgLeague": 8.5,
+     "pgHalf": 9.9,
+     "rank": 3
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 32,
+     "totYdsPg": 32,
+     "passYdsPg": 31,
+     "rushYdsPg": 21,
+     "playsPg": 31,
+     "ydsPerPlay": 32,
+     "rzPlaysPg": 32,
+     "passTd": 29,
+     "rushTd": 31,
+     "turnovers": 14,
+     "sacksAllowed": 24,
+     "passInt": 24
+    },
+    "defense": {
+     "papg": 26,
+     "totYdsAllowedPg": 24,
+     "passYdsAllowedPg": 28,
+     "rushYdsAllowedPg": 15,
+     "sacks": 21,
+     "interceptions": 26,
+     "fumblesForced": 2,
+     "defTds": 21,
+     "takeaways": 21,
+     "passDefended": 17,
+     "tacklesForLoss": 10,
+     "qbHits": 19
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "BUF",
+     "home": false,
+     "pf": 17,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "SF",
+     "home": true,
+     "pf": 13,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "IND",
+     "home": false,
+     "pf": 7,
+     "pa": 36,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "DEN",
+     "home": true,
+     "pf": 28,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "ARI",
+     "home": true,
+     "pf": 10,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "MIA",
+     "home": false,
+     "pf": 0,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "BUF",
+     "home": true,
+     "pf": 10,
+     "pa": 18,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "KC",
+     "home": false,
+     "pf": 9,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "NE",
+     "home": true,
+     "pf": 27,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "LAC",
+     "home": false,
+     "pf": 28,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "MIA",
+     "home": true,
+     "pf": 3,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "LV",
+     "home": true,
+     "pf": 28,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "SEA",
+     "home": false,
+     "pf": 3,
+     "pa": 40,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "LAR",
+     "home": false,
+     "pf": 23,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "CLE",
+     "home": true,
+     "pf": 23,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "NE",
+     "home": false,
+     "pf": 14,
+     "pa": 28,
+     "result": "L"
+    }
+   ]
+  },
+  "MIA": {
+   "games": 16,
+   "record": {
+    "w": 10,
+    "l": 6,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 25.3,
+    "totYdsPg": 350.1,
+    "passYdsPg": 246.1,
+    "rushYdsPg": 104.1,
+    "playsPg": 63.7,
+    "ydsPerPlay": 5.5,
+    "passRate": 0.57,
+    "rzPlaysPg": 10.4,
+    "turnovers": 19,
+    "sacksAllowed": 34,
+    "passTd": 24,
+    "rushTd": 15,
+    "passInt": 13,
+    "snapsPg": 68.1
+   },
+   "defense": {
+    "papg": 21.1,
+    "totYdsAllowedPg": 367.9,
+    "passYdsAllowedPg": 273.3,
+    "rushYdsAllowedPg": 115.7,
+    "sacks": 41,
+    "interceptions": 18,
+    "fumblesForced": 14,
+    "fumbleRecoveries": 9,
+    "defTds": 2,
+    "safeties": 0,
+    "takeaways": 27,
+    "passDefended": 76,
+    "tacklesForLoss": 69,
+    "qbHits": 99,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 17.2,
+     "pgHalf": 17.7,
+     "rank": 21
+    },
+    "RB": {
+     "pgLeague": 21.2,
+     "pgHalf": 18.9,
+     "rank": 22
+    },
+    "WR": {
+     "pgLeague": 37.5,
+     "pgHalf": 31.9,
+     "rank": 14
+    },
+    "TE": {
+     "pgLeague": 10.8,
+     "pgHalf": 8.4,
+     "rank": 28
+    },
+    "K": {
+     "pgLeague": 5.7,
+     "pgHalf": 5.6,
+     "rank": 31
+    },
+    "DEF": {
+     "pgLeague": 6,
+     "pgHalf": 6.6,
+     "rank": 15
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 15,
+     "totYdsPg": 23,
+     "passYdsPg": 21,
+     "rushYdsPg": 22,
+     "playsPg": 21,
+     "ydsPerPlay": 23,
+     "rzPlaysPg": 3,
+     "passTd": 22,
+     "rushTd": 19,
+     "turnovers": 15,
+     "sacksAllowed": 16,
+     "passInt": 20
+    },
+    "defense": {
+     "papg": 6,
+     "totYdsAllowedPg": 20,
+     "passYdsAllowedPg": 27,
+     "rushYdsAllowedPg": 16,
+     "sacks": 11,
+     "interceptions": 2,
+     "fumblesForced": 8,
+     "defTds": 13,
+     "takeaways": 1,
+     "passDefended": 8,
+     "tacklesForLoss": 13,
+     "qbHits": 11
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "NE",
+     "home": false,
+     "pf": 11,
+     "pa": 21,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "BUF",
+     "home": true,
+     "pf": 28,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "JAX",
+     "home": false,
+     "pf": 31,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "SEA",
+     "home": true,
+     "pf": 23,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "SF",
+     "home": false,
+     "pf": 43,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 24,
+     "pa": 0,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "LAR",
+     "home": true,
+     "pf": 28,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "ARI",
+     "home": false,
+     "pf": 34,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "LAC",
+     "home": true,
+     "pf": 29,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "DEN",
+     "home": false,
+     "pf": 13,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 20,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "CIN",
+     "home": true,
+     "pf": 19,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "KC",
+     "home": true,
+     "pf": 27,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "NE",
+     "home": true,
+     "pf": 22,
+     "pa": 12,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "LV",
+     "home": false,
+     "pf": 26,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "BUF",
+     "home": false,
+     "pf": 26,
+     "pa": 56,
+     "result": "L"
+    }
+   ]
+  },
+  "NE": {
+   "games": 16,
+   "record": {
+    "w": 7,
+    "l": 9,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 20.4,
+    "totYdsPg": 341.9,
+    "passYdsPg": 195.3,
+    "rushYdsPg": 146.6,
+    "playsPg": 61.2,
+    "ydsPerPlay": 5.59,
+    "passRate": 0.47,
+    "rzPlaysPg": 8.6,
+    "turnovers": 19,
+    "sacksAllowed": 37,
+    "passTd": 12,
+    "rushTd": 20,
+    "passInt": 14,
+    "snapsPg": 63.9
+   },
+   "defense": {
+    "papg": 22.1,
+    "totYdsAllowedPg": 353.8,
+    "passYdsAllowedPg": 231.8,
+    "rushYdsAllowedPg": 130.3,
+    "sacks": 24,
+    "interceptions": 18,
+    "fumblesForced": 5,
+    "fumbleRecoveries": 4,
+    "defTds": 2,
+    "safeties": 0,
+    "takeaways": 22,
+    "passDefended": 52,
+    "tacklesForLoss": 48,
+    "qbHits": 64,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.3,
+     "pgHalf": 17.1,
+     "rank": 26
+    },
+    "RB": {
+     "pgLeague": 22.3,
+     "pgHalf": 20.2,
+     "rank": 18
+    },
+    "WR": {
+     "pgLeague": 34.1,
+     "pgHalf": 27.9,
+     "rank": 23
+    },
+    "TE": {
+     "pgLeague": 10.5,
+     "pgHalf": 8.4,
+     "rank": 29
+    },
+    "K": {
+     "pgLeague": 6.8,
+     "pgHalf": 6.8,
+     "rank": 23
+    },
+    "DEF": {
+     "pgLeague": 6.9,
+     "pgHalf": 7.6,
+     "rank": 10
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 27,
+     "totYdsPg": 28,
+     "passYdsPg": 30,
+     "rushYdsPg": 4,
+     "playsPg": 29,
+     "ydsPerPlay": 22,
+     "rzPlaysPg": 24,
+     "passTd": 31,
+     "rushTd": 8,
+     "turnovers": 16,
+     "sacksAllowed": 19,
+     "passInt": 25
+    },
+    "defense": {
+     "papg": 7,
+     "totYdsAllowedPg": 15,
+     "passYdsAllowedPg": 5,
+     "rushYdsAllowedPg": 26,
+     "sacks": 26,
+     "interceptions": 3,
+     "fumblesForced": 32,
+     "defTds": 14,
+     "takeaways": 11,
+     "passDefended": 27,
+     "tacklesForLoss": 30,
+     "qbHits": 31
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "MIA",
+     "home": true,
+     "pf": 21,
+     "pa": 11,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "SEA",
+     "home": false,
+     "pf": 30,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "LV",
+     "home": true,
+     "pf": 36,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "KC",
+     "home": false,
+     "pf": 10,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "DEN",
+     "home": true,
+     "pf": 12,
+     "pa": 18,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "SF",
+     "home": true,
+     "pf": 6,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "BUF",
+     "home": false,
+     "pf": 21,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 30,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "BAL",
+     "home": true,
+     "pf": 23,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "HOU",
+     "home": false,
+     "pf": 20,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "ARI",
+     "home": true,
+     "pf": 20,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "LAC",
+     "home": false,
+     "pf": 45,
+     "pa": 0,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "LAR",
+     "home": false,
+     "pf": 3,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "MIA",
+     "home": false,
+     "pf": 12,
+     "pa": 22,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "BUF",
+     "home": true,
+     "pf": 9,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 28,
+     "pa": 14,
+     "result": "W"
+    }
+   ]
+  },
+  "JAX": {
+   "games": 16,
+   "record": {
+    "w": 1,
+    "l": 15,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 19.1,
+    "totYdsPg": 342.1,
+    "passYdsPg": 247.2,
+    "rushYdsPg": 94.9,
+    "playsPg": 62.3,
+    "ydsPerPlay": 5.49,
+    "passRate": 0.65,
+    "rzPlaysPg": 6.8,
+    "turnovers": 25,
+    "sacksAllowed": 44,
+    "passTd": 25,
+    "rushTd": 9,
+    "passInt": 16,
+    "snapsPg": 64.2
+   },
+   "defense": {
+    "papg": 30.8,
+    "totYdsAllowedPg": 417.7,
+    "passYdsAllowedPg": 270.1,
+    "rushYdsAllowedPg": 153,
+    "sacks": 18,
+    "interceptions": 12,
+    "fumblesForced": 8,
+    "fumbleRecoveries": 5,
+    "defTds": 1,
+    "safeties": 0,
+    "takeaways": 17,
+    "passDefended": 60,
+    "tacklesForLoss": 57,
+    "qbHits": 76,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 21.7,
+     "pgHalf": 22.1,
+     "rank": 3
+    },
+    "RB": {
+     "pgLeague": 29.5,
+     "pgHalf": 26.7,
+     "rank": 3
+    },
+    "WR": {
+     "pgLeague": 38.2,
+     "pgHalf": 31.4,
+     "rank": 11
+    },
+    "TE": {
+     "pgLeague": 14.1,
+     "pgHalf": 12,
+     "rank": 12
+    },
+    "K": {
+     "pgLeague": 9.4,
+     "pgHalf": 9.3,
+     "rank": 4
+    },
+    "DEF": {
+     "pgLeague": 7.4,
+     "pgHalf": 7.9,
+     "rank": 9
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 30,
+     "totYdsPg": 27,
+     "passYdsPg": 19,
+     "rushYdsPg": 29,
+     "playsPg": 24,
+     "ydsPerPlay": 24,
+     "rzPlaysPg": 30,
+     "passTd": 21,
+     "rushTd": 32,
+     "turnovers": 27,
+     "sacksAllowed": 26,
+     "passInt": 27
+    },
+    "defense": {
+     "papg": 31,
+     "totYdsAllowedPg": 31,
+     "passYdsAllowedPg": 24,
+     "rushYdsAllowedPg": 30,
+     "sacks": 31,
+     "interceptions": 16,
+     "fumblesForced": 29,
+     "defTds": 22,
+     "takeaways": 27,
+     "passDefended": 22,
+     "tacklesForLoss": 24,
+     "qbHits": 24
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "IND",
+     "home": true,
+     "pf": 27,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "TEN",
+     "home": false,
+     "pf": 30,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "MIA",
+     "home": true,
+     "pf": 13,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "CIN",
+     "home": false,
+     "pf": 25,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "HOU",
+     "home": false,
+     "pf": 14,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "DET",
+     "home": true,
+     "pf": 16,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "LAC",
+     "home": false,
+     "pf": 29,
+     "pa": 39,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "HOU",
+     "home": true,
+     "pf": 25,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "GB",
+     "home": false,
+     "pf": 20,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "PIT",
+     "home": true,
+     "pf": 3,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "CLE",
+     "home": true,
+     "pf": 25,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "MIN",
+     "home": false,
+     "pf": 24,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "TEN",
+     "home": true,
+     "pf": 10,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "BAL",
+     "home": false,
+     "pf": 14,
+     "pa": 40,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "CHI",
+     "home": true,
+     "pf": 17,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "IND",
+     "home": false,
+     "pf": 14,
+     "pa": 28,
+     "result": "L"
+    }
+   ]
+  },
+  "IND": {
+   "games": 16,
+   "record": {
+    "w": 11,
+    "l": 5,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 28.2,
+    "totYdsPg": 386.4,
+    "passYdsPg": 261.6,
+    "rushYdsPg": 124.8,
+    "playsPg": 64.5,
+    "ydsPerPlay": 5.99,
+    "passRate": 0.55,
+    "rzPlaysPg": 10.1,
+    "turnovers": 15,
+    "sacksAllowed": 21,
+    "passTd": 24,
+    "rushTd": 20,
+    "passInt": 11,
+    "snapsPg": 69.3
+   },
+   "defense": {
+    "papg": 22.6,
+    "totYdsAllowedPg": 332.1,
+    "passYdsAllowedPg": 257.9,
+    "rushYdsAllowedPg": 90,
+    "sacks": 40,
+    "interceptions": 15,
+    "fumblesForced": 11,
+    "fumbleRecoveries": 9,
+    "defTds": 4,
+    "safeties": 3,
+    "takeaways": 24,
+    "passDefended": 77,
+    "tacklesForLoss": 71,
+    "qbHits": 81,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.9,
+     "pgHalf": 17.5,
+     "rank": 23
+    },
+    "RB": {
+     "pgLeague": 21.5,
+     "pgHalf": 18.8,
+     "rank": 21
+    },
+    "WR": {
+     "pgLeague": 36.5,
+     "pgHalf": 30.1,
+     "rank": 15
+    },
+    "TE": {
+     "pgLeague": 11,
+     "pgHalf": 8.6,
+     "rank": 26
+    },
+    "K": {
+     "pgLeague": 6.6,
+     "pgHalf": 6.7,
+     "rank": 27
+    },
+    "DEF": {
+     "pgLeague": 4.1,
+     "pgHalf": 4.4,
+     "rank": 25
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 9,
+     "totYdsPg": 15,
+     "passYdsPg": 14,
+     "rushYdsPg": 11,
+     "playsPg": 14,
+     "ydsPerPlay": 11,
+     "rzPlaysPg": 5,
+     "passTd": 23,
+     "rushTd": 9,
+     "turnovers": 4,
+     "sacksAllowed": 3,
+     "passInt": 12
+    },
+    "defense": {
+     "papg": 11,
+     "totYdsAllowedPg": 8,
+     "passYdsAllowedPg": 19,
+     "rushYdsAllowedPg": 2,
+     "sacks": 12,
+     "interceptions": 10,
+     "fumblesForced": 22,
+     "defTds": 2,
+     "takeaways": 5,
+     "passDefended": 6,
+     "tacklesForLoss": 12,
+     "qbHits": 20
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "JAX",
+     "home": false,
+     "pf": 20,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "MIN",
+     "home": true,
+     "pf": 28,
+     "pa": 11,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 36,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "CHI",
+     "home": false,
+     "pf": 19,
+     "pa": 11,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "CLE",
+     "home": false,
+     "pf": 23,
+     "pa": 32,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "CIN",
+     "home": true,
+     "pf": 31,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "DET",
+     "home": false,
+     "pf": 41,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "BAL",
+     "home": true,
+     "pf": 10,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "TEN",
+     "home": false,
+     "pf": 34,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "GB",
+     "home": true,
+     "pf": 34,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "TEN",
+     "home": true,
+     "pf": 26,
+     "pa": 45,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "HOU",
+     "home": false,
+     "pf": 26,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "LV",
+     "home": false,
+     "pf": 44,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "HOU",
+     "home": true,
+     "pf": 27,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "PIT",
+     "home": false,
+     "pf": 24,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "JAX",
+     "home": true,
+     "pf": 28,
+     "pa": 14,
+     "result": "W"
+    }
+   ]
+  },
+  "CHI": {
+   "games": 16,
+   "record": {
+    "w": 8,
+    "l": 8,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 23.3,
+    "totYdsPg": 347.6,
+    "passYdsPg": 245.3,
+    "rushYdsPg": 102.3,
+    "playsPg": 65.1,
+    "ydsPerPlay": 5.34,
+    "passRate": 0.61,
+    "rzPlaysPg": 9.6,
+    "turnovers": 22,
+    "sacksAllowed": 36,
+    "passTd": 26,
+    "rushTd": 12,
+    "passInt": 16,
+    "snapsPg": 69.2
+   },
+   "defense": {
+    "papg": 23.1,
+    "totYdsAllowedPg": 344.9,
+    "passYdsAllowedPg": 246.2,
+    "rushYdsAllowedPg": 113.3,
+    "sacks": 35,
+    "interceptions": 10,
+    "fumblesForced": 13,
+    "fumbleRecoveries": 6,
+    "defTds": 1,
+    "safeties": 1,
+    "takeaways": 16,
+    "passDefended": 71,
+    "tacklesForLoss": 63,
+    "qbHits": 87,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.5,
+     "pgHalf": 16.9,
+     "rank": 25
+    },
+    "RB": {
+     "pgLeague": 20.5,
+     "pgHalf": 18.1,
+     "rank": 25
+    },
+    "WR": {
+     "pgLeague": 33.1,
+     "pgHalf": 26.8,
+     "rank": 26
+    },
+    "TE": {
+     "pgLeague": 16.7,
+     "pgHalf": 13.8,
+     "rank": 3
+    },
+    "K": {
+     "pgLeague": 7.8,
+     "pgHalf": 7.6,
+     "rank": 15
+    },
+    "DEF": {
+     "pgLeague": 6.3,
+     "pgHalf": 7,
+     "rank": 13
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 23,
+     "totYdsPg": 25,
+     "passYdsPg": 22,
+     "rushYdsPg": 24,
+     "playsPg": 10,
+     "ydsPerPlay": 27,
+     "rzPlaysPg": 14,
+     "passTd": 18,
+     "rushTd": 28,
+     "turnovers": 21,
+     "sacksAllowed": 18,
+     "passInt": 28
+    },
+    "defense": {
+     "papg": 14,
+     "totYdsAllowedPg": 11,
+     "passYdsAllowedPg": 11,
+     "rushYdsAllowedPg": 14,
+     "sacks": 17,
+     "interceptions": 27,
+     "fumblesForced": 11,
+     "defTds": 23,
+     "takeaways": 28,
+     "passDefended": 13,
+     "tacklesForLoss": 18,
+     "qbHits": 17
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "DET",
+     "home": false,
+     "pf": 27,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "NYG",
+     "home": true,
+     "pf": 17,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "ATL",
+     "home": false,
+     "pf": 30,
+     "pa": 26,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "IND",
+     "home": true,
+     "pf": 11,
+     "pa": 19,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "TB",
+     "home": true,
+     "pf": 20,
+     "pa": 19,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "CAR",
+     "home": false,
+     "pf": 23,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "LAR",
+     "home": false,
+     "pf": 10,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "NO",
+     "home": true,
+     "pf": 23,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "TEN",
+     "home": false,
+     "pf": 17,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "MIN",
+     "home": true,
+     "pf": 13,
+     "pa": 19,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "GB",
+     "home": false,
+     "pf": 25,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "DET",
+     "home": true,
+     "pf": 30,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "HOU",
+     "home": true,
+     "pf": 36,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "MIN",
+     "home": false,
+     "pf": 33,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "JAX",
+     "home": false,
+     "pf": 41,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "GB",
+     "home": true,
+     "pf": 16,
+     "pa": 35,
+     "result": "L"
+    }
+   ]
+  },
+  "DET": {
+   "games": 16,
+   "record": {
+    "w": 5,
+    "l": 11,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 23.6,
+    "totYdsPg": 368.3,
+    "passYdsPg": 274.8,
+    "rushYdsPg": 93.5,
+    "playsPg": 61.8,
+    "ydsPerPlay": 5.96,
+    "passRate": 0.61,
+    "rzPlaysPg": 8.7,
+    "turnovers": 20,
+    "sacksAllowed": 42,
+    "passTd": 27,
+    "rushTd": 17,
+    "passInt": 13,
+    "snapsPg": 64.7
+   },
+   "defense": {
+    "papg": 32.4,
+    "totYdsAllowedPg": 419.8,
+    "passYdsAllowedPg": 297.1,
+    "rushYdsAllowedPg": 134.6,
+    "sacks": 24,
+    "interceptions": 7,
+    "fumblesForced": 15,
+    "fumbleRecoveries": 5,
+    "defTds": 0,
+    "safeties": 1,
+    "takeaways": 12,
+    "passDefended": 52,
+    "tacklesForLoss": 61,
+    "qbHits": 56,
+    "blockedKicks": 4
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 23.7,
+     "pgHalf": 23.7,
+     "rank": 1
+    },
+    "RB": {
+     "pgLeague": 33,
+     "pgHalf": 30.4,
+     "rank": 1
+    },
+    "WR": {
+     "pgLeague": 43,
+     "pgHalf": 35.3,
+     "rank": 3
+    },
+    "TE": {
+     "pgLeague": 12,
+     "pgHalf": 9.9,
+     "rank": 22
+    },
+    "K": {
+     "pgLeague": 6.7,
+     "pgHalf": 6.1,
+     "rank": 25
+    },
+    "DEF": {
+     "pgLeague": 6.1,
+     "pgHalf": 7.3,
+     "rank": 14
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 20,
+     "totYdsPg": 20,
+     "passYdsPg": 8,
+     "rushYdsPg": 30,
+     "playsPg": 27,
+     "ydsPerPlay": 15,
+     "rzPlaysPg": 23,
+     "passTd": 16,
+     "rushTd": 14,
+     "turnovers": 17,
+     "sacksAllowed": 23,
+     "passInt": 21
+    },
+    "defense": {
+     "papg": 32,
+     "totYdsAllowedPg": 32,
+     "passYdsAllowedPg": 30,
+     "rushYdsAllowedPg": 28,
+     "sacks": 27,
+     "interceptions": 31,
+     "fumblesForced": 6,
+     "defTds": 30,
+     "takeaways": 31,
+     "passDefended": 28,
+     "tacklesForLoss": 21,
+     "qbHits": 32
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "CHI",
+     "home": true,
+     "pf": 23,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "GB",
+     "home": false,
+     "pf": 21,
+     "pa": 42,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "ARI",
+     "home": false,
+     "pf": 26,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "NO",
+     "home": true,
+     "pf": 29,
+     "pa": 35,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "JAX",
+     "home": false,
+     "pf": 34,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "ATL",
+     "home": false,
+     "pf": 23,
+     "pa": 22,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "IND",
+     "home": true,
+     "pf": 21,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "MIN",
+     "home": false,
+     "pf": 20,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "WAS",
+     "home": true,
+     "pf": 30,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "CAR",
+     "home": false,
+     "pf": 0,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "HOU",
+     "home": true,
+     "pf": 25,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "CHI",
+     "home": false,
+     "pf": 34,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "GB",
+     "home": true,
+     "pf": 24,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "TEN",
+     "home": false,
+     "pf": 25,
+     "pa": 46,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "TB",
+     "home": true,
+     "pf": 7,
+     "pa": 47,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "MIN",
+     "home": true,
+     "pf": 35,
+     "pa": 37,
+     "result": "L"
+    }
+   ]
+  },
+  "ATL": {
+   "games": 16,
+   "record": {
+    "w": 4,
+    "l": 12,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 24.8,
+    "totYdsPg": 383.9,
+    "passYdsPg": 288.8,
+    "rushYdsPg": 95.2,
+    "playsPg": 67.1,
+    "ydsPerPlay": 5.73,
+    "passRate": 0.61,
+    "rzPlaysPg": 9.9,
+    "turnovers": 17,
+    "sacksAllowed": 41,
+    "passTd": 27,
+    "rushTd": 13,
+    "passInt": 11,
+    "snapsPg": 71.4
+   },
+   "defense": {
+    "papg": 25.9,
+    "totYdsAllowedPg": 398.4,
+    "passYdsAllowedPg": 307.4,
+    "rushYdsAllowedPg": 102.6,
+    "sacks": 29,
+    "interceptions": 12,
+    "fumblesForced": 17,
+    "fumbleRecoveries": 9,
+    "defTds": 1,
+    "safeties": 0,
+    "takeaways": 21,
+    "passDefended": 51,
+    "tacklesForLoss": 63,
+    "qbHits": 90,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 20.3,
+     "pgHalf": 20.7,
+     "rank": 5
+    },
+    "RB": {
+     "pgLeague": 20.7,
+     "pgHalf": 17.7,
+     "rank": 24
+    },
+    "WR": {
+     "pgLeague": 45.1,
+     "pgHalf": 37.6,
+     "rank": 1
+    },
+    "TE": {
+     "pgLeague": 18.4,
+     "pgHalf": 15.2,
+     "rank": 1
+    },
+    "K": {
+     "pgLeague": 7.6,
+     "pgHalf": 7.8,
+     "rank": 16
+    },
+    "DEF": {
+     "pgLeague": 4.7,
+     "pgHalf": 5.2,
+     "rank": 22
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 16,
+     "totYdsPg": 17,
+     "passYdsPg": 5,
+     "rushYdsPg": 27,
+     "playsPg": 5,
+     "ydsPerPlay": 18,
+     "rzPlaysPg": 9,
+     "passTd": 17,
+     "rushTd": 24,
+     "turnovers": 10,
+     "sacksAllowed": 22,
+     "passInt": 13
+    },
+    "defense": {
+     "papg": 19,
+     "totYdsAllowedPg": 29,
+     "passYdsAllowedPg": 32,
+     "rushYdsAllowedPg": 6,
+     "sacks": 24,
+     "interceptions": 17,
+     "fumblesForced": 3,
+     "defTds": 24,
+     "takeaways": 16,
+     "passDefended": 29,
+     "tacklesForLoss": 19,
+     "qbHits": 15
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "SEA",
+     "home": true,
+     "pf": 25,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "DAL",
+     "home": false,
+     "pf": 39,
+     "pa": 40,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "CHI",
+     "home": true,
+     "pf": 26,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "GB",
+     "home": false,
+     "pf": 16,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "CAR",
+     "home": true,
+     "pf": 16,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "MIN",
+     "home": false,
+     "pf": 40,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "DET",
+     "home": true,
+     "pf": 22,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "CAR",
+     "home": false,
+     "pf": 25,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "DEN",
+     "home": true,
+     "pf": 34,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "NO",
+     "home": false,
+     "pf": 9,
+     "pa": 24,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "LV",
+     "home": true,
+     "pf": 43,
+     "pa": 6,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "NO",
+     "home": true,
+     "pf": 16,
+     "pa": 21,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "LAC",
+     "home": false,
+     "pf": 17,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "TB",
+     "home": true,
+     "pf": 27,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "KC",
+     "home": false,
+     "pf": 14,
+     "pa": 17,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "TB",
+     "home": false,
+     "pf": 27,
+     "pa": 44,
+     "result": "L"
+    }
+   ]
+  },
+  "SEA": {
+   "games": 16,
+   "record": {
+    "w": 12,
+    "l": 4,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 28.7,
+    "totYdsPg": 388.2,
+    "passYdsPg": 265.3,
+    "rushYdsPg": 122.9,
+    "playsPg": 63.8,
+    "ydsPerPlay": 6.08,
+    "passRate": 0.58,
+    "rzPlaysPg": 9,
+    "turnovers": 18,
+    "sacksAllowed": 48,
+    "passTd": 40,
+    "rushTd": 15,
+    "passInt": 13,
+    "snapsPg": 67.9
+   },
+   "defense": {
+    "papg": 23.2,
+    "totYdsAllowedPg": 380.6,
+    "passYdsAllowedPg": 300.7,
+    "rushYdsAllowedPg": 95.4,
+    "sacks": 46,
+    "interceptions": 14,
+    "fumblesForced": 12,
+    "fumbleRecoveries": 8,
+    "defTds": 0,
+    "safeties": 3,
+    "takeaways": 22,
+    "passDefended": 79,
+    "tacklesForLoss": 89,
+    "qbHits": 107,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 19.7,
+     "pgHalf": 20,
+     "rank": 9
+    },
+    "RB": {
+     "pgLeague": 23,
+     "pgHalf": 20.1,
+     "rank": 16
+    },
+    "WR": {
+     "pgLeague": 42.3,
+     "pgHalf": 33.5,
+     "rank": 4
+    },
+    "TE": {
+     "pgLeague": 12.9,
+     "pgHalf": 10.4,
+     "rank": 15
+    },
+    "K": {
+     "pgLeague": 7.3,
+     "pgHalf": 7.6,
+     "rank": 17
+    },
+    "DEF": {
+     "pgLeague": 4.5,
+     "pgHalf": 4.7,
+     "rank": 23
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 8,
+     "totYdsPg": 12,
+     "passYdsPg": 13,
+     "rushYdsPg": 12,
+     "playsPg": 19,
+     "ydsPerPlay": 9,
+     "rzPlaysPg": 20,
+     "passTd": 5,
+     "rushTd": 20,
+     "turnovers": 12,
+     "sacksAllowed": 28,
+     "passInt": 22
+    },
+    "defense": {
+     "papg": 15,
+     "totYdsAllowedPg": 22,
+     "passYdsAllowedPg": 31,
+     "rushYdsAllowedPg": 5,
+     "sacks": 7,
+     "interceptions": 13,
+     "fumblesForced": 16,
+     "defTds": 31,
+     "takeaways": 12,
+     "passDefended": 5,
+     "tacklesForLoss": 4,
+     "qbHits": 6
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "ATL",
+     "home": false,
+     "pf": 38,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "NE",
+     "home": true,
+     "pf": 35,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "DAL",
+     "home": true,
+     "pf": 38,
+     "pa": 31,
+     "result": "W"
+    },
+    {
+     "week": 4,
+     "opp": "MIA",
+     "home": false,
+     "pf": 31,
+     "pa": 23,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "MIN",
+     "home": true,
+     "pf": 27,
+     "pa": 26,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "ARI",
+     "home": false,
+     "pf": 34,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "SF",
+     "home": true,
+     "pf": 37,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "BUF",
+     "home": false,
+     "pf": 34,
+     "pa": 44,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "LAR",
+     "home": false,
+     "pf": 16,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "ARI",
+     "home": true,
+     "pf": 28,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "PHI",
+     "home": false,
+     "pf": 23,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "NYG",
+     "home": true,
+     "pf": 12,
+     "pa": 17,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "NYJ",
+     "home": true,
+     "pf": 40,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "WAS",
+     "home": false,
+     "pf": 20,
+     "pa": 15,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "LAR",
+     "home": true,
+     "pf": 20,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "SF",
+     "home": false,
+     "pf": 26,
+     "pa": 23,
+     "result": "W"
+    }
+   ]
+  },
+  "WAS": {
+   "games": 16,
+   "record": {
+    "w": 7,
+    "l": 9,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 20.9,
+    "totYdsPg": 337.9,
+    "passYdsPg": 237.3,
+    "rushYdsPg": 100.7,
+    "playsPg": 65.7,
+    "ydsPerPlay": 5.14,
+    "passRate": 0.6,
+    "rzPlaysPg": 8.1,
+    "turnovers": 27,
+    "sacksAllowed": 50,
+    "passTd": 16,
+    "rushTd": 18,
+    "passInt": 16,
+    "snapsPg": 69.8
+   },
+   "defense": {
+    "papg": 20.6,
+    "totYdsAllowedPg": 304.6,
+    "passYdsAllowedPg": 211.1,
+    "rushYdsAllowedPg": 112.4,
+    "sacks": 47,
+    "interceptions": 16,
+    "fumblesForced": 13,
+    "fumbleRecoveries": 7,
+    "defTds": 3,
+    "safeties": 1,
+    "takeaways": 23,
+    "passDefended": 66,
+    "tacklesForLoss": 78,
+    "qbHits": 97,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 15.7,
+     "pgHalf": 15.9,
+     "rank": 30
+    },
+    "RB": {
+     "pgLeague": 18,
+     "pgHalf": 16,
+     "rank": 31
+    },
+    "WR": {
+     "pgLeague": 31.7,
+     "pgHalf": 25.7,
+     "rank": 29
+    },
+    "TE": {
+     "pgLeague": 11.1,
+     "pgHalf": 9,
+     "rank": 25
+    },
+    "K": {
+     "pgLeague": 6.9,
+     "pgHalf": 7.1,
+     "rank": 21
+    },
+    "DEF": {
+     "pgLeague": 8,
+     "pgHalf": 8.8,
+     "rank": 6
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 25,
+     "totYdsPg": 30,
+     "passYdsPg": 24,
+     "rushYdsPg": 26,
+     "playsPg": 8,
+     "ydsPerPlay": 31,
+     "rzPlaysPg": 27,
+     "passTd": 30,
+     "rushTd": 12,
+     "turnovers": 29,
+     "sacksAllowed": 30,
+     "passInt": 29
+    },
+    "defense": {
+     "papg": 4,
+     "totYdsAllowedPg": 2,
+     "passYdsAllowedPg": 1,
+     "rushYdsAllowedPg": 12,
+     "sacks": 6,
+     "interceptions": 6,
+     "fumblesForced": 12,
+     "defTds": 6,
+     "takeaways": 7,
+     "passDefended": 18,
+     "tacklesForLoss": 7,
+     "qbHits": 12
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "PHI",
+     "home": true,
+     "pf": 27,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "ARI",
+     "home": false,
+     "pf": 15,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "CLE",
+     "home": false,
+     "pf": 20,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "BAL",
+     "home": true,
+     "pf": 17,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "LAR",
+     "home": true,
+     "pf": 10,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "NYG",
+     "home": false,
+     "pf": 19,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "DAL",
+     "home": true,
+     "pf": 25,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "NYG",
+     "home": true,
+     "pf": 20,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "DET",
+     "home": false,
+     "pf": 27,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "CIN",
+     "home": true,
+     "pf": 20,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "DAL",
+     "home": false,
+     "pf": 41,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "PIT",
+     "home": false,
+     "pf": 23,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "SF",
+     "home": false,
+     "pf": 23,
+     "pa": 15,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "SEA",
+     "home": true,
+     "pf": 15,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "CAR",
+     "home": true,
+     "pf": 13,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "PHI",
+     "home": false,
+     "pf": 20,
+     "pa": 14,
+     "result": "W"
+    }
+   ]
+  },
+  "PHI": {
+   "games": 16,
+   "record": {
+    "w": 4,
+    "l": 11,
+    "t": 1
+   },
+   "offense": {
+    "ppg": 20.9,
+    "totYdsPg": 359.9,
+    "passYdsPg": 233,
+    "rushYdsPg": 126.9,
+    "playsPg": 66.6,
+    "ydsPerPlay": 5.4,
+    "passRate": 0.6,
+    "rzPlaysPg": 7.6,
+    "turnovers": 29,
+    "sacksAllowed": 65,
+    "passTd": 22,
+    "rushTd": 16,
+    "passInt": 20,
+    "snapsPg": 73
+   },
+   "defense": {
+    "papg": 26.1,
+    "totYdsAllowedPg": 363.1,
+    "passYdsAllowedPg": 256,
+    "rushYdsAllowedPg": 125.8,
+    "sacks": 49,
+    "interceptions": 8,
+    "fumblesForced": 12,
+    "fumbleRecoveries": 10,
+    "defTds": 2,
+    "safeties": 1,
+    "takeaways": 18,
+    "passDefended": 43,
+    "tacklesForLoss": 91,
+    "qbHits": 114,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 17.6,
+     "pgHalf": 17.4,
+     "rank": 18
+    },
+    "RB": {
+     "pgLeague": 21.1,
+     "pgHalf": 19,
+     "rank": 23
+    },
+    "WR": {
+     "pgLeague": 39.4,
+     "pgHalf": 32.5,
+     "rank": 9
+    },
+    "TE": {
+     "pgLeague": 14.8,
+     "pgHalf": 12.3,
+     "rank": 9
+    },
+    "K": {
+     "pgLeague": 8.1,
+     "pgHalf": 8.6,
+     "rank": 10
+    },
+    "DEF": {
+     "pgLeague": 8.8,
+     "pgHalf": 9.7,
+     "rank": 1
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 26,
+     "totYdsPg": 22,
+     "passYdsPg": 26,
+     "rushYdsPg": 9,
+     "playsPg": 6,
+     "ydsPerPlay": 26,
+     "rzPlaysPg": 28,
+     "passTd": 24,
+     "rushTd": 18,
+     "turnovers": 30,
+     "sacksAllowed": 32,
+     "passInt": 31
+    },
+    "defense": {
+     "papg": 20,
+     "totYdsAllowedPg": 19,
+     "passYdsAllowedPg": 18,
+     "rushYdsAllowedPg": 24,
+     "sacks": 3,
+     "interceptions": 29,
+     "fumblesForced": 17,
+     "defTds": 15,
+     "takeaways": 24,
+     "passDefended": 32,
+     "tacklesForLoss": 3,
+     "qbHits": 4
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "WAS",
+     "home": false,
+     "pf": 17,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "LAR",
+     "home": true,
+     "pf": 19,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "CIN",
+     "home": true,
+     "pf": 23,
+     "pa": 23,
+     "result": "T"
+    },
+    {
+     "week": 4,
+     "opp": "SF",
+     "home": false,
+     "pf": 25,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "PIT",
+     "home": false,
+     "pf": 29,
+     "pa": 38,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "BAL",
+     "home": true,
+     "pf": 28,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 7,
+     "opp": "NYG",
+     "home": true,
+     "pf": 22,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "DAL",
+     "home": true,
+     "pf": 23,
+     "pa": 9,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "NYG",
+     "home": false,
+     "pf": 17,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "CLE",
+     "home": false,
+     "pf": 17,
+     "pa": 22,
+     "result": "L"
+    },
+    {
+     "week": 12,
+     "opp": "SEA",
+     "home": true,
+     "pf": 17,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "GB",
+     "home": false,
+     "pf": 16,
+     "pa": 30,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "NO",
+     "home": true,
+     "pf": 24,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "ARI",
+     "home": false,
+     "pf": 26,
+     "pa": 33,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "DAL",
+     "home": false,
+     "pf": 17,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "WAS",
+     "home": true,
+     "pf": 14,
+     "pa": 20,
+     "result": "L"
+    }
+   ]
+  },
+  "DEN": {
+   "games": 16,
+   "record": {
+    "w": 5,
+    "l": 11,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 20.2,
+    "totYdsPg": 349.4,
+    "passYdsPg": 229.6,
+    "rushYdsPg": 119.9,
+    "playsPg": 64.3,
+    "ydsPerPlay": 5.43,
+    "passRate": 0.56,
+    "rzPlaysPg": 6.8,
+    "turnovers": 31,
+    "sacksAllowed": 32,
+    "passTd": 21,
+    "rushTd": 13,
+    "passInt": 23,
+    "snapsPg": 68.7
+   },
+   "defense": {
+    "papg": 27.9,
+    "totYdsAllowedPg": 367.9,
+    "passYdsAllowedPg": 255.6,
+    "rushYdsAllowedPg": 129.9,
+    "sacks": 42,
+    "interceptions": 10,
+    "fumblesForced": 11,
+    "fumbleRecoveries": 5,
+    "defTds": 0,
+    "safeties": 0,
+    "takeaways": 15,
+    "passDefended": 64,
+    "tacklesForLoss": 65,
+    "qbHits": 92,
+    "blockedKicks": 2
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 18.7,
+     "pgHalf": 18.8,
+     "rank": 14
+    },
+    "RB": {
+     "pgLeague": 23.3,
+     "pgHalf": 20.9,
+     "rank": 15
+    },
+    "WR": {
+     "pgLeague": 35.5,
+     "pgHalf": 29.1,
+     "rank": 18
+    },
+    "TE": {
+     "pgLeague": 13.7,
+     "pgHalf": 10.9,
+     "rank": 13
+    },
+    "K": {
+     "pgLeague": 10.5,
+     "pgHalf": 10.6,
+     "rank": 1
+    },
+    "DEF": {
+     "pgLeague": 8.7,
+     "pgHalf": 9.4,
+     "rank": 2
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 28,
+     "totYdsPg": 24,
+     "passYdsPg": 28,
+     "rushYdsPg": 13,
+     "playsPg": 17,
+     "ydsPerPlay": 25,
+     "rzPlaysPg": 31,
+     "passTd": 25,
+     "rushTd": 25,
+     "turnovers": 32,
+     "sacksAllowed": 14,
+     "passInt": 32
+    },
+    "defense": {
+     "papg": 25,
+     "totYdsAllowedPg": 21,
+     "passYdsAllowedPg": 17,
+     "rushYdsAllowedPg": 25,
+     "sacks": 9,
+     "interceptions": 28,
+     "fumblesForced": 23,
+     "defTds": 32,
+     "takeaways": 29,
+     "passDefended": 20,
+     "tacklesForLoss": 17,
+     "qbHits": 14
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "TEN",
+     "home": true,
+     "pf": 14,
+     "pa": 16,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "PIT",
+     "home": false,
+     "pf": 21,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "TB",
+     "home": true,
+     "pf": 10,
+     "pa": 28,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "NYJ",
+     "home": false,
+     "pf": 37,
+     "pa": 28,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "NE",
+     "home": false,
+     "pf": 18,
+     "pa": 12,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "KC",
+     "home": true,
+     "pf": 16,
+     "pa": 43,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "LAC",
+     "home": true,
+     "pf": 31,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "ATL",
+     "home": false,
+     "pf": 27,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "LV",
+     "home": false,
+     "pf": 12,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "MIA",
+     "home": true,
+     "pf": 20,
+     "pa": 13,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "NO",
+     "home": true,
+     "pf": 3,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 13,
+     "opp": "KC",
+     "home": false,
+     "pf": 16,
+     "pa": 22,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "CAR",
+     "home": false,
+     "pf": 32,
+     "pa": 27,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "BUF",
+     "home": true,
+     "pf": 19,
+     "pa": 48,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "LAC",
+     "home": false,
+     "pf": 16,
+     "pa": 19,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "LV",
+     "home": true,
+     "pf": 31,
+     "pa": 32,
+     "result": "L"
+    }
+   ]
+  },
+  "TEN": {
+   "games": 16,
+   "record": {
+    "w": 11,
+    "l": 5,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 30.7,
+    "totYdsPg": 407,
+    "passYdsPg": 239.1,
+    "rushYdsPg": 167.9,
+    "playsPg": 64.3,
+    "ydsPerPlay": 6.33,
+    "passRate": 0.48,
+    "rzPlaysPg": 9.8,
+    "turnovers": 12,
+    "sacksAllowed": 25,
+    "passTd": 33,
+    "rushTd": 26,
+    "passInt": 7,
+    "snapsPg": 69.2
+   },
+   "defense": {
+    "papg": 27.4,
+    "totYdsAllowedPg": 398.3,
+    "passYdsAllowedPg": 287.1,
+    "rushYdsAllowedPg": 119.9,
+    "sacks": 19,
+    "interceptions": 15,
+    "fumblesForced": 11,
+    "fumbleRecoveries": 7,
+    "defTds": 1,
+    "safeties": 0,
+    "takeaways": 22,
+    "passDefended": 81,
+    "tacklesForLoss": 54,
+    "qbHits": 70,
+    "blockedKicks": 1
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 21.2,
+     "pgHalf": 21.8,
+     "rank": 4
+    },
+    "RB": {
+     "pgLeague": 26,
+     "pgHalf": 23.1,
+     "rank": 7
+    },
+    "WR": {
+     "pgLeague": 44.5,
+     "pgHalf": 36,
+     "rank": 2
+    },
+    "TE": {
+     "pgLeague": 12.9,
+     "pgHalf": 10.4,
+     "rank": 16
+    },
+    "K": {
+     "pgLeague": 6.9,
+     "pgHalf": 6.8,
+     "rank": 22
+    },
+    "DEF": {
+     "pgLeague": 2.1,
+     "pgHalf": 2.8,
+     "rank": 31
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 4,
+     "totYdsPg": 3,
+     "passYdsPg": 23,
+     "rushYdsPg": 2,
+     "playsPg": 18,
+     "ydsPerPlay": 5,
+     "rzPlaysPg": 12,
+     "passTd": 9,
+     "rushTd": 2,
+     "turnovers": 2,
+     "sacksAllowed": 7,
+     "passInt": 4
+    },
+    "defense": {
+     "papg": 24,
+     "totYdsAllowedPg": 28,
+     "passYdsAllowedPg": 29,
+     "rushYdsAllowedPg": 19,
+     "sacks": 30,
+     "interceptions": 11,
+     "fumblesForced": 24,
+     "defTds": 25,
+     "takeaways": 13,
+     "passDefended": 3,
+     "tacklesForLoss": 29,
+     "qbHits": 29
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "DEN",
+     "home": false,
+     "pf": 16,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "JAX",
+     "home": true,
+     "pf": 33,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "MIN",
+     "home": false,
+     "pf": 31,
+     "pa": 30,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "BUF",
+     "home": true,
+     "pf": 42,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "HOU",
+     "home": true,
+     "pf": 42,
+     "pa": 36,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "PIT",
+     "home": true,
+     "pf": 24,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "CIN",
+     "home": false,
+     "pf": 20,
+     "pa": 31,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "CHI",
+     "home": true,
+     "pf": 24,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "IND",
+     "home": true,
+     "pf": 17,
+     "pa": 34,
+     "result": "L"
+    },
+    {
+     "week": 11,
+     "opp": "BAL",
+     "home": false,
+     "pf": 30,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "IND",
+     "home": false,
+     "pf": 45,
+     "pa": 26,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "CLE",
+     "home": true,
+     "pf": 35,
+     "pa": 41,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "JAX",
+     "home": false,
+     "pf": 31,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 15,
+     "opp": "DET",
+     "home": true,
+     "pf": 46,
+     "pa": 25,
+     "result": "W"
+    },
+    {
+     "week": 16,
+     "opp": "GB",
+     "home": false,
+     "pf": 14,
+     "pa": 40,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "HOU",
+     "home": false,
+     "pf": 41,
+     "pa": 38,
+     "result": "W"
+    }
+   ]
+  },
+  "NYG": {
+   "games": 16,
+   "record": {
+    "w": 6,
+    "l": 10,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 17.5,
+    "totYdsPg": 319,
+    "passYdsPg": 208.5,
+    "rushYdsPg": 110.5,
+    "playsPg": 60.3,
+    "ydsPerPlay": 5.29,
+    "passRate": 0.56,
+    "rzPlaysPg": 7.4,
+    "turnovers": 22,
+    "sacksAllowed": 50,
+    "passTd": 12,
+    "rushTd": 13,
+    "passInt": 11,
+    "snapsPg": 65
+   },
+   "defense": {
+    "papg": 22.3,
+    "totYdsAllowedPg": 349.3,
+    "passYdsAllowedPg": 258.1,
+    "rushYdsAllowedPg": 110.9,
+    "sacks": 40,
+    "interceptions": 11,
+    "fumblesForced": 13,
+    "fumbleRecoveries": 9,
+    "defTds": 2,
+    "safeties": 0,
+    "takeaways": 20,
+    "passDefended": 75,
+    "tacklesForLoss": 74,
+    "qbHits": 107,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 16.3,
+     "pgHalf": 16.3,
+     "rank": 27
+    },
+    "RB": {
+     "pgLeague": 24.9,
+     "pgHalf": 21.6,
+     "rank": 9
+    },
+    "WR": {
+     "pgLeague": 34.5,
+     "pgHalf": 27.5,
+     "rank": 22
+    },
+    "TE": {
+     "pgLeague": 12,
+     "pgHalf": 9.4,
+     "rank": 23
+    },
+    "K": {
+     "pgLeague": 8.1,
+     "pgHalf": 8.3,
+     "rank": 11
+    },
+    "DEF": {
+     "pgLeague": 8.5,
+     "pgHalf": 9.4,
+     "rank": 4
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 31,
+     "totYdsPg": 31,
+     "passYdsPg": 29,
+     "rushYdsPg": 19,
+     "playsPg": 30,
+     "ydsPerPlay": 28,
+     "rzPlaysPg": 29,
+     "passTd": 32,
+     "rushTd": 26,
+     "turnovers": 22,
+     "sacksAllowed": 31,
+     "passInt": 14
+    },
+    "defense": {
+     "papg": 9,
+     "totYdsAllowedPg": 12,
+     "passYdsAllowedPg": 20,
+     "rushYdsAllowedPg": 11,
+     "sacks": 13,
+     "interceptions": 22,
+     "fumblesForced": 13,
+     "defTds": 16,
+     "takeaways": 18,
+     "passDefended": 9,
+     "tacklesForLoss": 8,
+     "qbHits": 7
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "PIT",
+     "home": true,
+     "pf": 16,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 2,
+     "opp": "CHI",
+     "home": false,
+     "pf": 13,
+     "pa": 17,
+     "result": "L"
+    },
+    {
+     "week": 3,
+     "opp": "SF",
+     "home": true,
+     "pf": 9,
+     "pa": 36,
+     "result": "L"
+    },
+    {
+     "week": 4,
+     "opp": "LAR",
+     "home": false,
+     "pf": 9,
+     "pa": 17,
+     "result": "L"
+    },
+    {
+     "week": 5,
+     "opp": "DAL",
+     "home": false,
+     "pf": 34,
+     "pa": 37,
+     "result": "L"
+    },
+    {
+     "week": 6,
+     "opp": "WAS",
+     "home": true,
+     "pf": 20,
+     "pa": 19,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "PHI",
+     "home": false,
+     "pf": 21,
+     "pa": 22,
+     "result": "L"
+    },
+    {
+     "week": 8,
+     "opp": "TB",
+     "home": true,
+     "pf": 23,
+     "pa": 25,
+     "result": "L"
+    },
+    {
+     "week": 9,
+     "opp": "WAS",
+     "home": false,
+     "pf": 23,
+     "pa": 20,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "PHI",
+     "home": true,
+     "pf": 27,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "CIN",
+     "home": false,
+     "pf": 19,
+     "pa": 17,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "SEA",
+     "home": false,
+     "pf": 17,
+     "pa": 12,
+     "result": "W"
+    },
+    {
+     "week": 14,
+     "opp": "ARI",
+     "home": true,
+     "pf": 7,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "CLE",
+     "home": true,
+     "pf": 6,
+     "pa": 20,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "BAL",
+     "home": false,
+     "pf": 13,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 17,
+     "opp": "DAL",
+     "home": true,
+     "pf": 23,
+     "pa": 19,
+     "result": "W"
+    }
+   ]
+  },
+  "PIT": {
+   "games": 16,
+   "record": {
+    "w": 12,
+    "l": 4,
+    "t": 0
+   },
+   "offense": {
+    "ppg": 26,
+    "totYdsPg": 342.5,
+    "passYdsPg": 258.1,
+    "rushYdsPg": 84.4,
+    "playsPg": 65.2,
+    "ydsPerPlay": 5.25,
+    "passRate": 0.64,
+    "rzPlaysPg": 8.9,
+    "turnovers": 18,
+    "sacksAllowed": 14,
+    "passTd": 35,
+    "rushTd": 12,
+    "passInt": 11,
+    "snapsPg": 69.8
+   },
+   "defense": {
+    "papg": 19.5,
+    "totYdsAllowedPg": 305.8,
+    "passYdsAllowedPg": 218.4,
+    "rushYdsAllowedPg": 109,
+    "sacks": 56,
+    "interceptions": 18,
+    "fumblesForced": 12,
+    "fumbleRecoveries": 8,
+    "defTds": 3,
+    "safeties": 1,
+    "takeaways": 26,
+    "passDefended": 84,
+    "tacklesForLoss": 103,
+    "qbHits": 136,
+    "blockedKicks": 0
+   },
+   "fpa": {
+    "QB": {
+     "pgLeague": 14.2,
+     "pgHalf": 14.8,
+     "rank": 31
+    },
+    "RB": {
+     "pgLeague": 18.7,
+     "pgHalf": 17,
+     "rank": 30
+    },
+    "WR": {
+     "pgLeague": 33.8,
+     "pgHalf": 27.9,
+     "rank": 24
+    },
+    "TE": {
+     "pgLeague": 9.1,
+     "pgHalf": 7,
+     "rank": 31
+    },
+    "K": {
+     "pgLeague": 6,
+     "pgHalf": 6.1,
+     "rank": 30
+    },
+    "DEF": {
+     "pgLeague": 3,
+     "pgHalf": 3.9,
+     "rank": 28
+    }
+   },
+   "ranks": {
+    "offense": {
+     "ppg": 12,
+     "totYdsPg": 26,
+     "passYdsPg": 16,
+     "rushYdsPg": 32,
+     "playsPg": 9,
+     "ydsPerPlay": 29,
+     "rzPlaysPg": 22,
+     "passTd": 7,
+     "rushTd": 29,
+     "turnovers": 13,
+     "sacksAllowed": 1,
+     "passInt": 15
+    },
+    "defense": {
+     "papg": 3,
+     "totYdsAllowedPg": 3,
+     "passYdsAllowedPg": 3,
+     "rushYdsAllowedPg": 9,
+     "sacks": 1,
+     "interceptions": 4,
+     "fumblesForced": 18,
+     "defTds": 7,
+     "takeaways": 3,
+     "passDefended": 2,
+     "tacklesForLoss": 1,
+     "qbHits": 1
+    }
+   },
+   "schedule": [
+    {
+     "week": 1,
+     "opp": "NYG",
+     "home": false,
+     "pf": 26,
+     "pa": 16,
+     "result": "W"
+    },
+    {
+     "week": 2,
+     "opp": "DEN",
+     "home": true,
+     "pf": 26,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 3,
+     "opp": "HOU",
+     "home": true,
+     "pf": 28,
+     "pa": 21,
+     "result": "W"
+    },
+    {
+     "week": 5,
+     "opp": "PHI",
+     "home": true,
+     "pf": 38,
+     "pa": 29,
+     "result": "W"
+    },
+    {
+     "week": 6,
+     "opp": "CLE",
+     "home": true,
+     "pf": 38,
+     "pa": 7,
+     "result": "W"
+    },
+    {
+     "week": 7,
+     "opp": "TEN",
+     "home": false,
+     "pf": 27,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 8,
+     "opp": "BAL",
+     "home": false,
+     "pf": 28,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 9,
+     "opp": "DAL",
+     "home": false,
+     "pf": 24,
+     "pa": 19,
+     "result": "W"
+    },
+    {
+     "week": 10,
+     "opp": "CIN",
+     "home": true,
+     "pf": 36,
+     "pa": 10,
+     "result": "W"
+    },
+    {
+     "week": 11,
+     "opp": "JAX",
+     "home": false,
+     "pf": 27,
+     "pa": 3,
+     "result": "W"
+    },
+    {
+     "week": 12,
+     "opp": "BAL",
+     "home": true,
+     "pf": 19,
+     "pa": 14,
+     "result": "W"
+    },
+    {
+     "week": 13,
+     "opp": "WAS",
+     "home": true,
+     "pf": 17,
+     "pa": 23,
+     "result": "L"
+    },
+    {
+     "week": 14,
+     "opp": "BUF",
+     "home": false,
+     "pf": 15,
+     "pa": 26,
+     "result": "L"
+    },
+    {
+     "week": 15,
+     "opp": "CIN",
+     "home": false,
+     "pf": 17,
+     "pa": 27,
+     "result": "L"
+    },
+    {
+     "week": 16,
+     "opp": "IND",
+     "home": true,
+     "pf": 28,
+     "pa": 24,
+     "result": "W"
+    },
+    {
+     "week": 17,
+     "opp": "CLE",
+     "home": false,
+     "pf": 22,
+     "pa": 24,
+     "result": "L"
+    }
+   ]
+  }
+ }
+}

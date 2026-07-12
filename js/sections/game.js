@@ -9,7 +9,7 @@
 import { fetchFantasyData, displayName, getSeasonConfig } from '../data.js?v=5';
 import { TEAM_KEYS } from '../data/team-config.js?v=5';
 import { getLeagueData } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=1';
+import { getHonorsBundle } from '../data/honors.js?v=2';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=1';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,

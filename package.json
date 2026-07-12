@@ -4,7 +4,8 @@
     "description": "Topina League Fantasy Football",
     "main": "script.js",
     "scripts": {
-        "upload-data": "node scripts/upload-data.js"
+        "upload-data": "node scripts/upload-data.js",
+        "build-team-stats": "node scripts/build-nfl-team-stats.mjs"
     },
     "dependencies": {
         "firebase-admin": "^12.0.0"

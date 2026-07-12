@@ -5,7 +5,7 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=5';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=1';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=2';
 import { TEAMS } from './team.js?v=12';
 
 let initialized = false;

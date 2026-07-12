@@ -6072,9 +6072,10 @@ img {
 
 .hof-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 290px));
+    /* cella ~ come la figurina del modal, così i valori px interni tornano */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 236px));
     justify-content: center;
-    gap: 44px 32px;
+    gap: 40px 28px;
     padding: 16px 0 32px;
 }
 
@@ -6082,6 +6083,15 @@ img {
     animation: fadeUp 0.6s var(--ease) both;
     animation-delay: calc(var(--card-i, 0) * 120ms);
 }
+
+/* La figurina Panini (stessa della scheda giocatore) è cliccabile: apre il modal */
+.hof-card-click {
+    display: block;
+    cursor: pointer;
+    transition: transform var(--dur-med) var(--ease);
+}
+.hof-card-click:hover { transform: translateY(-6px); }
+.hof-card-click:focus-visible { outline: 2px solid var(--accent-amber); outline-offset: 4px; border-radius: 16px; }
 
 /* Carta girevole: contenitore prospettico */
 .hof-card {
@@ -7064,4 +7074,1471 @@ img {
     text-transform: none;
     font-weight: normal;
     line-height: 1.5;
+}
+
+/* ================================
+   DRAFT GRADES (pagina #draftgrades)
+   ================================ */
+
+/* riepilogo voti in testa */
+.dg-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.dg-sum {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    animation: cell-rise var(--dur-slow) var(--ease) both;
+    animation-delay: calc(var(--dg-i, 0) * 70ms);
+}
+
+.dg-sum img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.dg-sum-name {
+    font-weight: 600;
+    font-size: 0.82rem;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* lettera-voto */
+.dg-letter {
+    margin-left: auto;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.dg-letter--big {
+    font-size: 3.4rem;
+    flex-shrink: 0;
+}
+
+.dg-letter--A { color: var(--accent-green); }
+.dg-letter--B { color: var(--accent-amber); }
+.dg-letter--C { color: #f97316; }
+.dg-letter--D { color: var(--accent-red); }
+
+/* card squadra */
+.dg-card {
+    margin-bottom: 16px;
+    gap: 14px;
+}
+
+.dg-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.dg-head-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+.dg-head-info {
+    min-width: 0;
+    margin-right: auto;
+}
+
+.dg-head-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.dg-body {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 22px;
+    align-items: start;
+}
+
+.dg-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+/* barre reparto */
+.dg-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 8px;
+}
+
+.dg-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78rem;
+}
+
+.dg-bar-pos {
+    width: 34px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--text-secondary);
+}
+
+.dg-bar-track {
+    flex: 1;
+    height: 9px;
+    border-radius: var(--pill-radius);
+    background: var(--bg-glass);
+    overflow: hidden;
+}
+
+.dg-bar-track span {
+    display: block;
+    height: 100%;
+    border-radius: var(--pill-radius);
+    background: color-mix(in srgb, var(--team-color) 70%, white 10%);
+    transition: width 0.6s var(--ease);
+}
+
+.dg-bar--strong .dg-bar-track span { background: var(--accent-green); }
+.dg-bar--weak .dg-bar-track span { background: var(--accent-red); }
+
+.dg-bar-val {
+    min-width: 86px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.dg-bar-val small { color: var(--text-muted); }
+
+.dg-bar-delta {
+    min-width: 46px;
+    text-align: right;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.dg-bar--strong .dg-bar-delta { color: var(--accent-green); }
+.dg-bar--weak .dg-bar-delta { color: var(--accent-red); }
+
+.dg-strategy {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.dg-comment {
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    border-left: 3px solid color-mix(in srgb, var(--team-color) 60%, transparent);
+    padding-left: 12px;
+}
+
+/* box pick giusta/sbagliata */
+.dg-pick {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-glass);
+}
+
+.dg-pick--best { border-color: color-mix(in srgb, var(--accent-green) 40%, transparent); }
+.dg-pick--worst { border-color: color-mix(in srgb, var(--accent-red) 40%, transparent); }
+
+.dg-headshot {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-glass);
+    border: 2px solid var(--border-card);
+    flex-shrink: 0;
+}
+
+.dg-pick-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.dg-pick-kind {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.dg-pick--best .dg-pick-kind { color: var(--accent-green); }
+.dg-pick--worst .dg-pick-kind { color: var(--accent-red); }
+
+.dg-pick-name {
+    font-family: var(--font-display);
+    font-weight: 800;
+}
+
+.dg-pick-name small { color: var(--text-muted); font-weight: 500; }
+
+.dg-pick-meta {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.dg-pick-val {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.dg-pick-val small { color: var(--text-muted); font-weight: 500; }
+
+/* elenco completo pick */
+.dg-details summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 6px 0;
+}
+
+.dg-rows {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 6px;
+}
+
+.dg-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 2px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.8rem;
+}
+
+.dg-row-pick {
+    width: 34px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.dg-row .allpro-pos { width: 40px; font-size: 0.58rem; }
+
+.dg-row-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dg-row-val {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.dg-row-delta {
+    min-width: 62px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.72rem;
+}
+
+.dg-row-delta.up { color: var(--accent-green); }
+.dg-row-delta.down { color: var(--accent-red); }
+
+.dg-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: var(--radius-xs);
+    white-space: nowrap;
+}
+
+.dg-badge--up { color: var(--accent-green); background: color-mix(in srgb, var(--accent-green) 16%, transparent); }
+.dg-badge--down { color: var(--accent-red); background: color-mix(in srgb, var(--accent-red) 16%, transparent); }
+
+.dg-pick-actual {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dg-footnote {
+    margin-top: 14px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.dg-card[data-team-key] { cursor: pointer; }
+
+.dg-cta {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--team-color) 80%, var(--text-primary));
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+
+.dg-card:hover .dg-cta { opacity: 1; transform: translateX(0); }
+
+@media (max-width: 900px) {
+    .dg-summary { grid-template-columns: repeat(2, 1fr); }
+    .dg-body { grid-template-columns: 1fr; }
+    .dg-cta { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   DRAFT GRADE TEAM — analisi draft di una squadra (#draftgrades/y/k)
+   ============================================================ */
+
+.dgt-hero {
+    display: flex;
+    flex-direction: row; /* .mosaic-card imposta column */
+    align-items: center;
+    gap: 22px;
+    min-height: 0;
+}
+
+.dgt-hero-logo {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--team-color) 45%, transparent));
+}
+
+.dgt-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+}
+
+.dgt-hero-strategy {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.dgt-card { margin-top: 18px; }
+
+.dgt-card-sub {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 4px 0 12px;
+    line-height: 1.5;
+}
+
+.dgt-chart-wrap {
+    position: relative;
+    overflow-x: auto;
+}
+
+.dgt-chart-wrap .an-svg { min-width: 560px; }
+
+.dgt-alt-line {
+    stroke: var(--text-muted);
+    stroke-width: 1.6;
+    stroke-dasharray: 5 4;
+    stroke-linejoin: round;
+}
+
+.dgt-gap-area {
+    fill: color-mix(in srgb, var(--accent-red, #ff453a) 10%, transparent);
+    stroke: none;
+}
+
+.dgt-bar-proj { fill: color-mix(in srgb, var(--text-muted) 55%, transparent); }
+
+.dgt-bar-label { font-size: 10px; }
+
+/* chips (anagrafica, ADP, recap) */
+.dgt-age-chips,
+.dgt-recap-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.dgt-chip {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-glass);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.dgt-chip--up { color: var(--accent-green); border-color: color-mix(in srgb, var(--accent-green) 40%, transparent); }
+.dgt-chip--down { color: var(--accent-red); border-color: color-mix(in srgb, var(--accent-red) 40%, transparent); }
+
+.dgt-injuries {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dgt-injury {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    border-left: 3px solid color-mix(in srgb, var(--accent-red) 60%, transparent);
+    padding-left: 10px;
+}
+
+/* pick per pick */
+.dgt-picks {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.dgt-pick {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-glass);
+    padding: 14px;
+}
+
+.dgt-pick-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dgt-pick-head .dg-row-pick { width: auto; font-size: 0.95rem; }
+
+.dgt-pick-img { width: 52px; height: 52px; }
+
+.dgt-pick-head .dg-badge,
+.dgt-pick-head > .dgt-chip,
+.dgt-pick-grade { margin-left: auto; }
+
+/* se prima del voto c'è già il badge/chip ADP, resta attaccato a destra */
+.dgt-pick-head .dg-badge + .dgt-pick-grade,
+.dgt-pick-head > .dgt-chip + .dgt-pick-grade { margin-left: 0; }
+
+.dgt-pick-grade {
+    font-size: 1.25rem;
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.dgt-pick-body {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dgt-pick-prior,
+.dgt-pick-alt {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.dgt-pick-verdict {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    font-style: italic;
+    border-left: 3px solid color-mix(in srgb, var(--team-color) 60%, transparent);
+    padding-left: 10px;
+    margin-top: 2px;
+}
+
+.dgt-recap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.dgt-recap-row .mc-kicker { margin-right: 4px; }
+
+@media (max-width: 900px) {
+    .dgt-hero { flex-wrap: wrap; }
+    .dgt-hero-logo { width: 64px; height: 64px; }
+    .dgt-pick-head { flex-wrap: wrap; }
+    .dgt-pick-head .dg-badge { margin-left: 0; }
+    .dgt-pick-grade { margin-left: auto; }
+}
+
+/* ============================================================
+   STORICO GIOCATORI — trend, rischio, righe carriera (draft grades)
+   ============================================================ */
+
+.dg-trend {
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dg-trend--up { color: var(--accent-green); }
+.dg-trend--flat { color: var(--text-muted); }
+.dg-trend--down { color: var(--accent-red); }
+
+.dg-risk {
+    font-size: 0.72rem;
+    margin-left: 5px;
+    cursor: help;
+}
+
+.dg-pick-hist,
+.dgt-pick-hist {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.dgt-pick-hist { font-size: 0.78rem; }
+
+/* ============================================================
+   PLAYER MODAL — scheda giocatore (js/components/player-modal.js)
+   ============================================================ */
+
+body.pm-open { overflow: hidden; }
+
+[data-player-modal] { cursor: pointer; }
+
+.dg-row[data-player-modal]:hover,
+.dg-pick[data-player-modal]:hover,
+.dgt-pick-head[data-player-modal]:hover {
+    background: var(--bg-glass);
+    border-radius: var(--radius-xs);
+}
+
+.pm-overlay[hidden] { display: none; }
+
+.pm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200; /* sopra la navbar (1000) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: pm-fade var(--dur-med) var(--ease);
+}
+
+@keyframes pm-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.pm-dialog {
+    --team-color: var(--accent-red);
+    position: relative;
+    width: min(780px, 100%);
+    max-height: 86vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 26px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    animation: pm-rise var(--dur-med) var(--ease);
+}
+
+.pm-dialog::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 90% 110% at 85% -10%,
+            color-mix(in srgb, var(--team-color) 26%, transparent) 0%,
+            transparent 60%);
+    pointer-events: none;
+}
+
+@keyframes pm-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pm-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-glass);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.pm-close:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+.pm-content { position: relative; z-index: 1; }
+
+/* Card orizzontale: mini-card Hall of Fame a sinistra, statistiche a destra */
+.pm-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 22px;
+}
+
+.pm-left {
+    flex: 0 0 232px;
+}
+
+.pm-headshot {
+    flex-shrink: 0;
+}
+
+/* Figurina Panini (proporzioni fisse 464×631, stesso stile delle card della
+   pagina Hall of Fame — js/data/hall-of-fame.js decide chi è eletto davvero):
+   cornice dorata solo per i veri eletti, bianca/argento per tutti gli altri. */
+/* width: 100% → si adatta al contenitore (232px nel modal via .pm-left,
+   la cella della griglia nella pagina Hall of Fame). aspect-ratio fissa. */
+.pm-panini {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 464 / 631;
+    border-radius: 14px;
+    padding: 4px;
+    background: linear-gradient(150deg, #e8e8e8 0%, #a8a8a8 22%, #f7f7f7 45%, #888888 68%, #d8d8d8 100%);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.06);
+}
+
+.pm-panini--gold {
+    background: linear-gradient(150deg, #f7e08b 0%, #b8860b 22%, #f5e7b0 45%, #8a6a1f 68%, #e8c95f 100%);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 34px rgba(212, 175, 55, 0.2);
+}
+
+.pm-panini-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    border-radius: 11px;
+    background: #000;
+    overflow: hidden;
+}
+
+.pm-panini-inner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 11px;
+    background: linear-gradient(115deg,
+            transparent 30%, rgba(255, 255, 255, 0.14) 42%,
+            rgba(255, 255, 255, 0.03) 50%, transparent 62%);
+    pointer-events: none;
+}
+
+/* Nome verticale grande sul bordo sinistro, dal basso verso l'alto */
+.pm-panini-side-name {
+    position: absolute;
+    left: 5px;
+    bottom: 10px;
+    transform: rotate(180deg);
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #e8c95f;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    max-height: 90%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.pm-panini:not(.pm-panini--gold) .pm-panini-side-name {
+    color: var(--text-primary);
+}
+
+/* Badge in overlay sopra la foto, incolonnati in alto a sinistra (ruolo in
+   cima, poi stelle SB e selezioni All-Pro): liberano il lato destro così il
+   busto può allargarsi verso destra. */
+.pm-panini-top {
+    position: absolute;
+    top: 8px;
+    left: 20px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.pm-panini-pos {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #f0d78c;
+    border: 1px solid rgba(212, 175, 55, 0.55);
+    border-radius: 6px;
+    padding: 2px 9px;
+    flex-shrink: 0;
+}
+
+.pm-panini:not(.pm-panini--gold) .pm-panini-pos {
+    color: var(--text-secondary);
+    border-color: var(--border-card);
+}
+
+.pm-panini-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.pm-panini-stars {
+    font-size: 0.95rem;
+    line-height: 1;
+    color: #f5d576;
+    text-shadow: 0 0 10px rgba(245, 213, 118, 0.7);
+}
+
+.pm-panini:not(.pm-panini--gold) .pm-panini-stars {
+    color: var(--accent-amber);
+    text-shadow: none;
+}
+
+.pm-panini-allpro {
+    font-family: var(--font-display);
+    font-size: 0.52rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.pm-panini-allpro--1 {
+    background: rgba(245, 213, 118, 0.16);
+    color: #f5d576;
+    border: 1px solid rgba(245, 213, 118, 0.4);
+}
+
+.pm-panini-allpro--2 {
+    background: rgba(192, 192, 192, 0.14);
+    color: #cfcfcf;
+    border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+/* Contenitore verticale che riempie la card dall'alto fino alle info: essendo
+   più alto che largo (formato ritratto), "cover" mostra tutta l'altezza del
+   busto (testa e spalle) e taglia i lati in eccesso — niente zoom su un pezzo
+   del volto. Angoli inferiori arrotondati per non avere lo spigolo secco. */
+/* Insets via margin (non padding): così il border-box del contenitore
+   coincide con la foto e il border-radius la ritaglia in modo pulito. Con il
+   padding l'arrotondamento partiva nella fascia vuota e si interrompeva netto
+   sul bordo dell'immagine (evidente con spalle larghe). */
+.pm-panini-photo-wrap {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    margin: 0 8px 0 30px;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 0 0 34px 0; /* solo basso-destra arrotondato, basso-sinistra a spigolo */
+}
+
+/* Busto intero, non ingrandito su un dettaglio: object-fit cover con il
+   contenitore in formato ritratto ritaglia i lati e tiene testa+spalle.
+   Il PNG di ESPN è già un ritaglio con sfondo trasparente (come nella pagina
+   Hall of Fame). */
+.pm-panini-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 4%;
+}
+
+/* Info allineata alla foto (stessi margini): la bolla è larga quanto il busto */
+.pm-panini-info {
+    position: relative;
+    z-index: 1;
+    padding: 8px 8px 10px 30px;
+}
+
+/* Bolla unica con le scritte (data/altezza/peso + stagioni Topina):
+   semi-trasparente, angolo basso-sinistra a spigolo vivo come la card,
+   gli altri arrotondati con raggio uniforme. Oro per gli Hall of Famer. */
+.pm-panini-bubble {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 7px 14px;
+    /* raggio destro grande: i due angoli a destra si fondono in una curva
+       unica continua; basso-sinistra a spigolo vivo come la card */
+    border-radius: 27px 27px 27px 0;
+    background: rgba(245, 240, 232, 0.6);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    text-align: center;
+}
+
+.pm-panini--gold .pm-panini-bubble {
+    background: linear-gradient(150deg, rgba(247, 224, 139, 0.68), rgba(232, 201, 95, 0.68));
+}
+
+.pm-panini-bio {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.pm-panini-seasons {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #000;
+}
+
+.pm-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pm-chip {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--pill-radius);
+    padding: 2px 9px;
+    white-space: nowrap;
+}
+
+/* Usata dalla pagina giocatore intera (js/sections/player-page.js), badge
+   anelli SB in alto a destra nell'header — il modal ora usa .pm-hof-stars. */
+.pm-rings {
+    margin-left: auto;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent-amber);
+    white-space: nowrap;
+}
+
+.pm-right {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Statistiche grandi in cima alla colonna destra */
+.pm-big-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    padding: 2px 0 16px;
+}
+
+.pm-big-stat-value {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.7rem;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.pm-big-stat-label {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.pm-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0 4px;
+}
+
+.pm-block + .pm-block { border-top: 1px solid var(--border-subtle); }
+.pm-right > .pm-block:first-child { padding-top: 0; }
+.pm-layout + .pm-block { border-top: 1px solid var(--border-subtle); }
+
+.pm-table-wrap { overflow-x: auto; }
+
+.pm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.pm-table th {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 4px 10px 6px 0;
+}
+
+.pm-table td {
+    padding: 5px 10px 5px 0;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.pm-td-strong { font-weight: 700; color: var(--text-primary); }
+
+.pm-note,
+.pm-empty,
+.pm-error {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.pm-error { color: var(--accent-red); }
+
+/* Tile base (riquadro con bordo): usata dalla pagina giocatore intera
+   (js/sections/player-page.js, classi .pp-tiles/.pp-tile) — nel modal la
+   Carriera Topina usa invece .pm-ministats, senza riquadro, vedi sotto. */
+.pm-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.pm-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-glass);
+}
+
+.pm-tile-value {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.pm-tile-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+/* Carriera Topina (modal): ministat in stile Stats, nessun riquadro */
+.pm-ministats {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pm-seasons {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Grid a colonne fisse: le righe restano allineate qualsiasi sia il numero
+   di loghi squadra (in flex, più loghi spingevano a destra tutto il resto). */
+.pm-season-row {
+    display: grid;
+    grid-template-columns: 36px 70px 56px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.pm-season-row + .pm-season-row { border-top: 1px solid var(--border-subtle); }
+
+.pm-season-row--future { opacity: 0.75; }
+
+.pm-season-year {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pm-season-logos { display: flex; gap: 4px; overflow: hidden; }
+
+.pm-team-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.pm-season-pts {
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.pm-season-note {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    min-width: 0;
+    white-space: normal;
+}
+
+.pm-awards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pm-award {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--pill-radius);
+    background: var(--bg-glass);
+    padding: 5px 11px;
+    white-space: nowrap;
+}
+
+.pm-award b { color: var(--text-primary); font-weight: 700; }
+
+.pm-award--gold {
+    color: var(--accent-amber);
+    border-color: color-mix(in srgb, var(--accent-amber) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-amber) 10%, transparent);
+}
+
+@media (max-width: 640px) {
+    .pm-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .pm-dialog {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 20px 20px 0 0;
+        padding: 20px 16px;
+    }
+
+    .pm-layout { flex-direction: column; align-items: center; gap: 14px; }
+
+    .pm-left { flex: none; width: 200px; } /* nel modal la figurina resta compatta */
+    .pm-left .pm-panini-bio { font-size: 0.55rem; } /* card modal più stretta: evita l'ellissi */
+
+    .pm-big-stats { gap: 16px; }
+
+    .pm-season-row { grid-template-columns: 34px 60px 50px 1fr; gap: 6px; }
+}
+
+/* ============================================================
+   PAGINA GIOCATORE COMPLETA (#player/{year}/{pos}/{nome})
+   ============================================================ */
+
+/* Link nel modal verso la pagina completa */
+.pm-fullstats {
+    display: block;
+    margin: 14px 0 4px;
+    padding: 11px 16px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    background: var(--bg-glass);
+    transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.pm-fullstats:hover {
+    background: var(--bg-card-hover);
+    border-color: color-mix(in srgb, var(--team-color, var(--accent-red)) 55%, transparent);
+}
+
+/* Blocchi della pagina: card autonome (fuori dal modal) */
+.pp-block {
+    padding: 20px 22px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+}
+.pp-block + .pp-block { border-top: 1px solid var(--border-subtle); }
+
+/* Hero */
+.pp-hero { min-height: 0; padding: 24px 28px; }
+.pp-headshot {
+    width: 110px;
+    height: 80px;
+    object-fit: cover;
+    object-position: top;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+}
+.pp-headshot--logo {
+    object-fit: contain;
+    background: transparent;
+    border: none;
+    height: 96px;
+    width: 96px;
+}
+.pp-hero-chips { margin-top: 6px; }
+.pp-chip-logo {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    vertical-align: -3px;
+    margin-right: 5px;
+}
+.pp-chip-injury { color: var(--accent-amber); }
+
+.pp-projline {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 0 4px;
+}
+
+/* Tiles: griglia più fitta della versione modal */
+.pp-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.pp-tile .pm-tile-value { font-size: 1rem; }
+
+/* Infermeria */
+.pp-injury {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-amber) 8%, transparent);
+}
+.pp-injury-title {
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-amber);
+}
+
+/* ID esterni */
+.pp-ids { display: flex; flex-wrap: wrap; gap: 8px; }
+.pp-id {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-glass);
+}
+a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
+
+/* Tabelle per categoria */
+.pp-cat { margin-top: 10px; }
+.pp-cat-title {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+.pp-scroll { overflow-x: auto; }
+.pp-table th { position: sticky; top: 0; }
+
+/* Game log */
+.pp-gamelog {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-glass);
+    padding: 0 14px;
+}
+.pp-gamelog + .pp-gamelog { margin-top: 8px; }
+.pp-gamelog summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 12px 2px;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.pp-gamelog summary::-webkit-details-marker { display: none; }
+.pp-gamelog summary::before {
+    content: '▸';
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: transform var(--dur-fast) var(--ease);
+}
+.pp-gamelog[open] summary::before { transform: rotate(90deg); }
+.pp-gamelog-meta {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.pp-gamelog .pm-table-wrap { padding-bottom: 12px; }
+
+/* Avversario nelle tabelle */
+.pp-opp { white-space: nowrap; }
+.pp-opp-logo {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    vertical-align: -3px;
+    margin: 0 4px 0 2px;
+}
+.pp-opp-rec { color: var(--text-muted); font-size: 0.72rem; }
+
+/* Badge rank 1-32 */
+.pp-rank {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.pp-rank--good { color: var(--accent-green); }
+.pp-rank--bad { color: var(--accent-red); }
+
+/* Chip difficoltà matchup */
+.pp-mu {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: var(--pill-radius);
+    border: 1px solid transparent;
+}
+.pp-mu--easy {
+    color: var(--accent-green);
+    border-color: color-mix(in srgb, var(--accent-green) 35%, transparent);
+    background: color-mix(in srgb, var(--accent-green) 10%, transparent);
+}
+.pp-mu--mid {
+    color: var(--text-secondary);
+    border-color: var(--border-subtle);
+    background: var(--bg-glass);
+}
+.pp-mu--hard {
+    color: var(--accent-red);
+    border-color: color-mix(in srgb, var(--accent-red) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+}
+
+/* Risultato partita */
+.pp-res { font-weight: 700; white-space: nowrap; }
+.pp-res--w { color: var(--accent-green); }
+.pp-res--l { color: var(--accent-red); }
+.pp-res--t { color: var(--accent-amber); }
+
+.pp-sos {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    padding: 2px 0 6px;
+}
+
+@media (max-width: 640px) {
+    .pp-block { padding: 16px 14px; }
+    .pp-hero { padding: 18px 16px; }
+    .pp-headshot { width: 84px; height: 62px; }
+    .pp-tiles { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+   DRAFT GRADES — pronostico stagione e classifica forza
+   ============================================================ */
+
+/* Striscia pronostico in fondo alla card team */
+.dg-pred {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+}
+.dg-pred-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-glass);
+}
+.dg-pred-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+.dg-pred-value {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+.dg-pred-item small {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+.dg-pred-item--sb .dg-pred-value {
+    color: color-mix(in srgb, var(--team-color, var(--accent-red)) 75%, #fff);
+}
+.dg-pred-bar {
+    height: 5px;
+    margin-top: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+.dg-pred-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--team-color, var(--accent-red)) 70%, transparent), var(--team-color, var(--accent-red)));
+}
+
+/* Classifica forza roster (sotto le card riassunto) */
+.dg-ranking { min-height: 0; margin-bottom: 16px; }
+.dg-rk-wrap { overflow-x: auto; }
+.dg-rk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.dg-rk-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.dg-rk-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.dg-rk-table tr:last-child td { border-bottom: none; }
+.dg-rk-team {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.dg-rk-team img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    vertical-align: -6px;
+    margin-right: 8px;
+    filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--team-color) 50%, transparent));
+}
+.dg-rk-total b {
+    font-family: var(--font-display);
+    color: var(--text-primary);
+}
+.dg-rk-table small { color: var(--text-muted); }
+
+/* Chip rank 1ª-4ª */
+.dg-rank {
+    display: inline-block;
+    min-width: 26px;
+    padding: 2px 6px;
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    background: var(--bg-glass);
+}
+.dg-rank--1 {
+    color: var(--accent-green);
+    border-color: color-mix(in srgb, var(--accent-green) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-green) 10%, transparent);
+}
+.dg-rank--2 { color: var(--text-secondary); }
+.dg-rank--4 {
+    color: var(--accent-red);
+    border-color: color-mix(in srgb, var(--accent-red) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+}
+
+@media (max-width: 640px) {
+    .dg-pred { grid-template-columns: 1fr; gap: 8px; }
 }

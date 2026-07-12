@@ -2,10 +2,11 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js';
-import { TEAM_KEYS } from '../data/team-config.js';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=5';
+import { TEAM_KEYS } from '../data/team-config.js?v=5';
 import { TEAMS } from './team.js?v=12';
 import { playerImageService } from '../services/player-image-service.js?v=4';
+import { initPlayerModal } from '../components/player-modal.js?v=8';
 import { db } from '../firebase-config.js';
 
 let loaded = false;
@@ -15,6 +16,7 @@ let currentYear = null;
 export async function initDraft() {
     if (loaded) return;
     loaded = true;
+    initPlayerModal();
     renderYearSelector();
     await loadYear(CURRENT_SEASON);
 }
@@ -89,7 +91,9 @@ function renderCards(round) {
         const fallback = 'images/fallback-player.svg';
 
         return `
-        <div class="draft-card" style="--team-color:${team?.color || 'var(--accent-red)'};animation-delay:${(i % 12) * 40}ms">
+        <div class="draft-card" data-player-modal
+             data-player-name="${p.player}" data-pos="${p.pos}" data-nfl="${p.nfl || ''}" data-year="${currentYear}"
+             style="--team-color:${team?.color || 'var(--accent-red)'};animation-delay:${(i % 12) * 40}ms">
             <div class="draft-pick-badge">#${p.pick}</div>
             <div class="draft-card-image">
                  <img src="${fallback}" class="draft-headshot" data-player-name="${p.player}" data-team="${p.nfl}" data-pos="${p.pos}" alt="${p.player}">

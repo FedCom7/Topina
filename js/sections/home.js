@@ -18,7 +18,7 @@
 
 import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=5';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=1';
+import { getHonorsBundle } from '../data/honors.js?v=2';
 import { TEAMS } from './team.js?v=12';
 import { teamsCardsHTML } from './teams.js?v=2';
 

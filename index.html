@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=71">
+    <link rel="stylesheet" href="css/main.css?v=104">
 </head>
 
 <body>
@@ -34,7 +34,9 @@
                     <a href="#teams" class="nav-link" data-section="teams">Teams</a>
                 </li>
                 <li class="nav-item"><a href="#analysis" class="nav-link" data-section="analysis">Analysis</a></li>
-                <li class="nav-item"><a href="#draft" class="nav-link" data-section="draft">Draft</a></li>
+                <li class="nav-item has-dropdown" data-dropdown="draft">
+                    <a href="#draft" class="nav-link" data-section="draft">Draft</a>
+                </li>
                 <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="history">
                     <a href="#history" class="nav-link" data-section="history">History</a>
@@ -57,6 +59,11 @@
             <a href="#team-lasers" class="nav-dp-item">Lasers</a>
             <a href="#team-oscurus" class="nav-dp-item">Oscurus</a>
             <a href="#team-sommo" class="nav-dp-item">Sommo</a>
+        </div>
+        <div class="nav-dropdown-panel" data-panel="draft">
+            <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
+            <div class="nav-dp-sep"></div>
+            <a href="#draftgrades" class="nav-dp-item" data-section="draftgrades">Draft Grades</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="history">
             <a href="#history" class="nav-dp-item nav-dp-header" data-section="history">League History</a>
@@ -156,6 +163,33 @@
                 </div>
             </div>
         </div>
+    </section>
+
+    <!-- ====== DRAFT GRADES (pagelle del draft) ====== -->
+    <section class="page-section" id="draftgrades">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Draft Grades</h1>
+                <p class="section-subtitle">Le pagelle della war-room, squadra per squadra</p>
+            </div>
+            <div class="year-selector" id="dg-year-selector"></div>
+            <div id="draftgrades-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Correzione dei compiti...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== DRAFT GRADE TEAM (#draftgrades/{year}/{teamKey}) ====== -->
+    <section class="page-section" id="draftgrade-team">
+        <!-- Contenuto iniettato da js/sections/draftgrade-team.js -->
+    </section>
+
+    <!-- ====== PAGINA GIOCATORE (#player/{year}/{pos}/{nome}) ====== -->
+    <section class="page-section" id="player-page">
+        <!-- Contenuto iniettato da js/sections/player-page.js -->
     </section>
 
     <!-- ====== STATS ====== -->
@@ -271,7 +305,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=69"></script>
+    <script type="module" src="js/app.js?v=77"></script>
 </body>
 
 </html>

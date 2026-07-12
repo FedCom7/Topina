@@ -1,20 +1,23 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=24';
+import { initHome } from './sections/home.js?v=25';
 import { initGameCenter } from './sections/game-center.js?v=30';
 import { initStandings } from './sections/standings.js?v=28';
-import { initDraft } from './sections/draft.js?v=22';
+import { initDraft } from './sections/draft.js?v=30';
+import { initDraftGrades } from './sections/draftgrades.js?v=13';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=11';
+import { initPlayerPage } from './sections/player-page.js?v=8';
 import { initStats } from './sections/stats.js?v=27';
 import { initHistory } from './sections/history.js?v=22';
-import { initHonors } from './sections/honors.js?v=1';
-import { initAllPro } from './sections/allpro.js?v=1';
-import { initHallOfFame } from './sections/halloffame.js?v=9';
+import { initHonors } from './sections/honors.js?v=2';
+import { initAllPro } from './sections/allpro.js?v=2';
+import { initHallOfFame } from './sections/halloffame.js?v=14';
 import { initTeam } from './sections/team.js?v=12';
 import { initTeams } from './sections/teams.js?v=2';
-import { initGame } from './sections/game.js?v=2';
+import { initGame } from './sections/game.js?v=3';
 import { initAnalysis } from './sections/analysis.js?v=9';
-import { initMagazine } from './sections/magazine.js?v=15';
+import { initMagazine } from './sections/magazine.js?v=16';
 import { initNavbar } from './ui/navbar.js';
 
 const SECTIONS = {
@@ -24,6 +27,7 @@ const SECTIONS = {
     'teams': initTeams,
     'analysis': initAnalysis,
     'draft': initDraft,
+    'draftgrades': initDraftGrades,
     'stats': initStats,
     'history': initHistory,
     'honors': initHonors,
@@ -37,6 +41,7 @@ const NAV_PARENT = {
     'honors': 'history',
     'allpro': 'history',
     'halloffame': 'history',
+    'draftgrades': 'draft',
     'magazine': 'game-center',
 };
 
@@ -46,6 +51,8 @@ function getSection() {
     const hash = location.hash.slice(1) || 'home';
     if (TEAM_KEYS_NAV.has(hash)) return hash;
     if (hash.startsWith('game/')) return hash; // #game/{year}/{week}/{idx}
+    if (hash.startsWith('draftgrades/')) return hash; // #draftgrades/{year}/{teamKey}
+    if (hash.startsWith('player/')) return hash; // #player/{year}/{pos}/{nome}
     return SECTIONS[hash] ? hash : 'home';
 }
 
@@ -53,7 +60,9 @@ function navigate() {
     const active = getSection();
     const isTeam = TEAM_KEYS_NAV.has(active);
     const isGame = active.startsWith('game/');
-    const sectionId = isTeam ? 'team' : isGame ? 'game' : active;
+    const isDGTeam = active.startsWith('draftgrades/');
+    const isPlayer = active.startsWith('player/');
+    const sectionId = isTeam ? 'team' : isGame ? 'game' : isDGTeam ? 'draftgrade-team' : isPlayer ? 'player-page' : active;
 
     // Update sections
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -63,7 +72,7 @@ function navigate() {
     // Update nav — team pages mantengono "Teams" evidenziato,
     // le voci da dropdown evidenziano la voce madre
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : (NAV_PARENT[active] || active);
+    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : isDGTeam || isPlayer ? 'draft' : (NAV_PARENT[active] || active);
     document.querySelector(`.nav-link[data-section="${navTarget}"]`)?.classList.add('active');
 
     // Close mobile menu
@@ -74,6 +83,10 @@ function navigate() {
         initTeam();
     } else if (isGame) {
         initGame();
+    } else if (isDGTeam) {
+        initDraftGradeTeam();
+    } else if (isPlayer) {
+        initPlayerPage();
     } else {
         SECTIONS[active]?.();
     }
