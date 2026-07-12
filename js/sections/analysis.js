@@ -12,8 +12,11 @@ import { playerImageService } from '../services/player-image-service.js?v=4';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
-let currentTeam = 'capi';
+let currentTeam = 'all';
 let currentTab = 'season';
+let avgMode = 'total'; // 'total' | 'starter' — base per la colonna Media
+// Punti totali vs punti a partita nelle tabelle di confronto — toggle indipendente per sezione
+let rosterPtsMode = { drafted: 'total', best: 'total', pickups: 'total' };
 const modelCache = {};
 
 const TABS = [
@@ -67,7 +70,7 @@ function renderTeamSelector() {
     if (!container) return;
     container.innerHTML = `
         <button class="an-team-pill${currentTeam === 'all' ? ' active' : ''}" data-team="all" style="--team-color:#B8433A">
-            🏆 Totale
+            Totale
         </button>` + Object.values(TEAMS).map(t =>
         `<button class="an-team-pill${t.key === currentTeam ? ' active' : ''}" data-team="${t.key}" style="--team-color:${t.color}">
             <img src="${t.logo}" alt="" class="an-team-pill-logo">${t.name}
@@ -97,7 +100,7 @@ function rawFromTeamKey(draftTeams, teamKey) {
    MODEL
    ============================================================ */
 
-async function buildSeasonModel(year) {
+export async function buildSeasonModel(year) {
     if (modelCache[year]) return modelCache[year];
 
     const [fantasy, draft] = await Promise.all([fetchFantasyData(year), fetchDraftData(year)]);
@@ -159,18 +162,25 @@ function sumStats(target, stats) {
 
 // Aggrega un giocatore sulle settimane in cui era su questo roster
 function aggregateOnTeam(rec, teamKey) {
-    const agg = { games: 0, pts: 0, stats: {}, firstWeek: null, lastWeekOn: null, weeks: [] };
+    const agg = { games: 0, pts: 0, gamesStarted: 0, ptsStarted: 0, stats: {}, firstWeek: null, lastWeekOn: null, weeks: [] };
     for (const [wkStr, w] of Object.entries(rec.weeks)) {
         if (w.teamKey !== teamKey) continue;
         const wk = Number(wkStr);
         agg.games++;
         agg.pts += w.pts;
+        if (w.started) { agg.gamesStarted++; agg.ptsStarted += w.pts; }
         sumStats(agg.stats, w.stats);
         if (agg.firstWeek === null || wk < agg.firstWeek) agg.firstWeek = wk;
         if (agg.lastWeekOn === null || wk > agg.lastWeekOn) agg.lastWeekOn = wk;
         agg.weeks.push(wk);
     }
     return agg;
+}
+
+// Media punti secondo la modalità corrente: 'starter' (solo da titolare) o 'total'
+function avgOf(agg) {
+    if (avgMode === 'starter') return agg.gamesStarted ? agg.ptsStarted / agg.gamesStarted : 0;
+    return agg.games ? agg.pts / agg.games : 0;
 }
 
 function ptsElsewhere(rec, teamKey) {
@@ -201,7 +211,7 @@ function draftView(model, teamKey) {
     });
 }
 
-function marketView(model, teamKey) {
+export function marketView(model, teamKey) {
     const draftedNames = new Set();
     const raw = rawFromTeamKey(model.draft?.teams, teamKey);
     if (raw) for (const p of model.draft.teams[raw] || []) draftedNames.add(p.name);
@@ -254,7 +264,7 @@ function optimalWeekPoints(model, teamKey, wk) {
     return total;
 }
 
-function pointsComparison(model, teamKey) {
+export function pointsComparison(model, teamKey) {
     let real = 0, optimal = 0;
     let worstMiss = null; // miglior prestazione lasciata in panchina
 
@@ -424,7 +434,27 @@ async function render(model) {
             ${TABS.map(t => `<button class="year-pill an-tab${t.id === currentTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>`;
 
-    wrap.innerHTML = renderKpi(kpi) + tabsHtml + `<div class="an-view" id="an-view"><div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div></div>`;
+    const controlsHtml = `
+        <div class="an-controls">
+            <div class="an-avg-toggle">
+                <span class="an-avg-label">Media:</span>
+                <button class="an-avg-pill${avgMode === 'total' ? ' active' : ''}" data-avg="total">Totale</button>
+                <button class="an-avg-pill${avgMode === 'starter' ? ' active' : ''}" data-avg="starter">Da titolare</button>
+            </div>
+            <details class="an-legend-box">
+                <summary>Cosa significano le etichette?</summary>
+                <ul class="an-legend-list">
+                    <li><span class="an-badge an-badge-round">R1</span> Round del draft in cui è stato scelto (R1 = primo giro).</li>
+                    <li><span class="an-badge an-badge-top an-badge-top1">Top 1</span> Miglior 1°/2°/3° del proprio ruolo in tutta la lega quell'anno.</li>
+                    <li><span class="an-badge an-badge-in">Preso W5</span> Innesto in-season: settimana in cui è arrivato in rosa.</li>
+                    <li><span class="an-badge an-badge-drop">Svincolato W9</span> Uscito dalla rosa dopo quella settimana (<b>Ceduto</b> se passato a un altro team).</li>
+                    <li><span class="an-badge an-badge-start">In roster finale</span> Presente nella rosa dell'ultima giornata.</li>
+                    <li><b>G</b> = partite in rosa · <b>Media</b> = punti per partita (vedi selettore sopra) · <b>Punti qui</b> vs <b>Altrove</b> = punti fatti in questa rosa vs in altre.</li>
+                </ul>
+            </details>
+        </div>`;
+
+    wrap.innerHTML = renderKpi(kpi) + tabsHtml + controlsHtml + `<div class="an-view" id="an-view"><div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div></div>`;
 
     let viewHtml = '';
     switch (currentTab) {
@@ -528,7 +558,7 @@ function playerRow(rec, agg, extraBadge = '') {
         <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${extraBadge}</span>
         <span class="an-cell">${agg.games}</span>
         <span class="an-cell an-pts">${fmt(agg.pts, 2)}</span>
-        <span class="an-cell">${fmt(agg.games ? agg.pts / agg.games : 0, 1)}</span>
+        <span class="an-cell">${fmt(avgOf(agg), 1)}</span>
         <span class="an-keystats">${keyStatLine(rec.position, agg.stats)}</span>
         <span class="an-chevron">›</span>
     </div>
@@ -567,20 +597,20 @@ function renderMarketTab(model) {
 
     const additionsHtml = additions.length ? `
         <h3 class="an-sub-title">Innesti in stagione${hasDraft ? '' : ' (draft non disponibile)'}</h3>
-        <div class="an-list-head an-list-head-market">
-            <span></span><span>Giocatore</span><span>Preso</span><span>G</span><span>Punti qui</span><span>Altrove</span><span></span>
+        <div class="an-list-head">
+            <span></span><span>Giocatore</span><span>G</span><span>Punti</span><span>Media</span><span class="an-head-stats">Statistiche</span><span></span>
         </div>
-        ${additions.map(({ rec, agg, elsewhere, onFinal }) => `
-        <div class="an-player-row" data-player="${encodeURIComponent(rec.name)}">
-            ${headshotImg(rec)}
-            <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${topBadge(rec.name, ranks)} ${onFinal ? '<span class="an-badge an-badge-start">In roster finale</span>' : ''}</span>
-            <span class="an-cell">W${agg.firstWeek}</span>
-            <span class="an-cell">${agg.games}</span>
-            <span class="an-cell an-pts an-split-here">${fmt(agg.pts, 2)}</span>
-            <span class="an-cell an-split-away">${elsewhere > 0 ? fmt(elsewhere, 2) : '—'}</span>
-            <span class="an-chevron">›</span>
-        </div>
-        <div class="an-week-drill" data-drill="${encodeURIComponent(rec.name)}" hidden></div>`).join('')}
+        ${additions.map(({ rec, agg, elsewhere, onFinal }) => {
+        const badges = [`<span class="an-badge an-badge-in">Preso W${agg.firstWeek}</span>`];
+        if (agg.lastWeekOn < model.lastWeek) {
+            const w = rec.weeks[model.lastWeek];
+            badges.push(`<span class="an-badge an-badge-drop">${w && w.teamKey !== currentTeam ? 'Ceduto' : 'Mollato'} dopo W${agg.lastWeekOn}</span>`);
+        }
+        if (elsewhere > 0) badges.push(`<span class="an-badge an-badge-away">Altrove ${fmt(elsewhere, 0)} pt</span>`);
+        if (onFinal) badges.push('<span class="an-badge an-badge-start">In roster finale</span>');
+        badges.push(topBadge(rec.name, ranks));
+        return playerRow(rec, agg, badges.join(' '));
+    }).join('')}
         <p class="an-footnote">"Altrove" = punti fatti nelle settimane in cui il giocatore era nel roster di un altro team. Le settimane da svincolato non sono tracciate.</p>
     ` : `<h3 class="an-sub-title">Innesti in stagione</h3>${emptyState('Nessun innesto: roster invariato rispetto al draft')}`;
 
@@ -618,7 +648,7 @@ function renderLineupTab(model) {
             <div class="an-lineup-name">${rec.name}</div>
             <div class="an-lineup-meta">${posBadge(rec.position)} ${topBadge(rec.name, ranks)} <span class="an-lineup-nfl">${rec.nflTeam || ''}</span></div>
             <div class="an-lineup-pts">${fmt(agg.pts, 2)} <span>pt</span></div>
-            <div class="an-lineup-avg">${fmt(agg.games ? agg.pts / agg.games : 0, 1)} di media · ${agg.games} G</div>
+            <div class="an-lineup-avg">${fmt(avgOf(agg), 1)} di media · ${agg.games} G</div>
         </div>`;
     }).join('')}
     </div>`;
@@ -683,6 +713,34 @@ function bindContentEvents() {
             currentTab = tab.dataset.tab;
             const model = modelCache[currentYear];
             if (model) render(model);
+            return;
+        }
+
+        const avgBtn = e.target.closest('.an-avg-pill');
+        if (avgBtn) {
+            avgMode = avgBtn.dataset.avg;
+            const model = modelCache[currentYear];
+            if (model) render(model);
+            return;
+        }
+
+        const ptsBtn = e.target.closest('.an-ptbl-mode-pill');
+        if (ptsBtn) {
+            rosterPtsMode[ptsBtn.dataset.ptsSection] = ptsBtn.dataset.ptsMode;
+            const model = modelCache[currentYear];
+            if (model) render(model);
+            return;
+        }
+
+        const moreBtn = e.target.closest('.an-ptbl-more-btn');
+        if (moreBtn) {
+            const moreRow = moreBtn.closest('.an-ptbl-more-row');
+            const tableWrap = moreBtn.closest('.an-ptbl-wrap');
+            const extraRows = tableWrap ? [...tableWrap.querySelectorAll('.an-ptbl-extra-row')] : [];
+            const collapsing = moreBtn.dataset.expanded === '1';
+            extraRows.forEach(r => r.hidden = collapsing);
+            moreBtn.dataset.expanded = collapsing ? '0' : '1';
+            moreBtn.textContent = collapsing ? moreBtn.dataset.showLabel : 'Nascondi';
             return;
         }
 
@@ -802,18 +860,35 @@ const CHART_COLORS = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', s
 const ROLES = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
 function weeklyScores(model) {
-    return Object.values(TEAMS).map(t => {
+    const teams = Object.values(TEAMS).map(t => {
         const values = [];
         let cumulative = 0;
         for (let wk = 1; wk <= model.lastWeek; wk++) {
             const tw = model.teamWeeks[t.key]?.[wk];
             if (tw) {
                 cumulative += tw.score;
-                values.push({ wk, score: cumulative, weekScore: tw.score });
+                values.push({ wk, cum: cumulative, weekScore: tw.score, score: cumulative });
             }
         }
         return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', values };
     }).filter(s => s.values.length > 0);
+
+    // score = distacco cumulativo dalla media di lega a quella settimana
+    // (linee attorno a 0 → differenze molto più leggibili di quelle cumulative pure)
+    for (let wk = 1; wk <= model.lastWeek; wk++) {
+        const cums = [];
+        for (const s of teams) {
+            const v = s.values.find(x => x.wk === wk);
+            if (v) cums.push(v.cum);
+        }
+        if (!cums.length) continue;
+        const mean = cums.reduce((a, b) => a + b, 0) / cums.length;
+        for (const s of teams) {
+            const v = s.values.find(x => x.wk === wk);
+            if (v) v.score = v.cum - mean;
+        }
+    }
+    return teams;
 }
 
 function roleBreakdown(model) {
@@ -839,9 +914,13 @@ function leagueRankings(model) {
         const { additions } = marketView(model, t.key);
         const pickupPts = additions.reduce((s, a) => s + a.agg.pts, 0);
         const topPickup = additions[0] || null;
+        const draftPicks = (draftView(model, t.key) || []).filter(p => p.rec && p.agg);
+        const topDraft = draftPicks.length
+            ? draftPicks.reduce((best, p) => p.agg.pts > best.agg.pts ? p : best)
+            : null;
         return {
             key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
-            drafted: kpi.drafted, pickupPts, topPickup, benchLost: kpi.benchLost, worstMiss: kpi.worstMiss,
+            drafted: kpi.drafted, pickupPts, topPickup, topDraft, benchLost: kpi.benchLost, worstMiss: kpi.worstMiss,
         };
     });
     return {
@@ -917,7 +996,7 @@ function renderLeagueView(model) {
     </div>`;
 
     const rk = leagueRankings(model);
-    const topFlop = topFlopPerformances(model);
+    const topFlop = topFlopPerformances(model, 5);
 
     return `
     <div class="stats-summary an-kpi">
@@ -939,16 +1018,17 @@ function renderLeagueView(model) {
         </div>
     </div>
 
-    <h3 class="an-sub-title">Punti cumulativi week per week</h3>
+    <h3 class="an-sub-title">Distacco cumulativo dalla media di lega</h3>
     ${legend}
     <div class="an-chart" id="an-line-chart">${buildLineChart(series)}<div class="an-chart-tooltip" hidden></div></div>
+    <p class="an-footnote">Ogni linea è il punteggio cumulativo del team meno la media di lega alla stessa settimana: sopra lo 0 = sopra la media, sotto = sotto. Nel tooltip il totale cumulativo reale.</p>
 
     <h3 class="an-sub-title">Punti per ruolo (titolari)</h3>
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
 
     <div class="an-rankings">
-        ${rankingBlock('Miglior Draft', rk.draft, r => r.drafted, () => null, 'win')}
+        ${rankingBlock('Miglior Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
         ${rankingBlock('Migliori Innesti', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
         ${rankingBlock('Punti Lasciati in Panchina', rk.bench, r => r.benchLost, r => r.worstMiss ? `Peggior svista: ${r.worstMiss.name}, ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
@@ -961,8 +1041,245 @@ function renderLeagueView(model) {
     ${buildDraftScatterSection(draftValueScatter(model))}
 
     <div class="an-rankings">
-        ${rankingBlockPerf('Top 10 Performance', topFlop.top, 'top')}
-        ${rankingBlockPerf('Flop 10 Performance', topFlop.flop, 'flop')}
+        ${rankingBlockPerf('Top 5 Performance', topFlop.top, 'top')}
+        ${rankingBlockPerf('Flop 5 Performance', topFlop.flop, 'flop')}
+    </div>
+
+    <h3 class="an-sub-title">Confronto Rose — Squadra Draftata</h3>
+    ${buildRosterCompareTable(model, 'drafted')}
+
+    <h3 class="an-sub-title">Confronto Rose — Squadra Migliore</h3>
+    ${buildRosterCompareTable(model, 'best')}
+    <p class="an-footnote">Slot titolari riempiti col miglior giocatore disponibile nel ruolo (W/R = flex RB/WR/TE) tra tutti quelli passati dalla rosa in stagione; sotto la riga, i panchinari. "Titolari" = somma dei soli slot titolari, "Totale" = tutti i giocatori della rosa.</p>
+
+    <h3 class="an-sub-title">Confronto Innesti</h3>
+    ${buildPickupsCompareTable(model)}
+    <p class="an-footnote">Innesti in-season ordinati per punti fatti (dal migliore), non per ruolo.</p>`;
+}
+
+function seasonTotalPts(rec) {
+    let p = 0;
+    for (const w of Object.values(rec.weeks)) p += w.pts;
+    return p;
+}
+
+// Assegna i migliori giocatori agli slot del lineup titolare; il resto va in panchina.
+// L'ordinamento segue la metrica attualmente selezionata per la sezione (totale o punti/partita).
+function assignLineup(players, section) {
+    const pool = [...players].sort((a, b) => ptblValue(b.pts, b.games, section) - ptblValue(a.pts, a.games, section));
+    const used = new Set();
+    const starters = LINEUP_SLOTS.map(({ eligible }) => {
+        const idx = pool.findIndex((p, i) => !used.has(i) && eligible.includes(p.pos));
+        if (idx === -1) return null;
+        used.add(idx);
+        return pool[idx];
+    });
+    const bench = pool.filter((_, i) => !used.has(i));
+    const startersPts = starters.reduce((s, p) => s + (p ? p.pts : 0), 0);
+    const startersGames = starters.reduce((s, p) => s + (p ? p.games : 0), 0);
+    const totalPts = pool.reduce((s, p) => s + p.pts, 0);
+    const totalGames = pool.reduce((s, p) => s + p.games, 0);
+    return { starters, bench, startersPts, startersGames, totalPts, totalGames };
+}
+
+// Valore da mostrare secondo rosterPtsMode[section]: punti totali o punti a partita
+function ptblValue(pts, games, section) {
+    if (pts === null || pts === undefined) return null;
+    if (rosterPtsMode[section] === 'pg') return games ? pts / games : 0;
+    return pts;
+}
+
+function ptblModeToggleHtml(section) {
+    const mode = rosterPtsMode[section];
+    return `
+    <div class="an-avg-toggle an-ptbl-mode-toggle">
+        <button class="an-ptbl-mode-pill${mode === 'total' ? ' active' : ''}" data-pts-section="${section}" data-pts-mode="total">Punti Totali</button>
+        <button class="an-ptbl-mode-pill${mode === 'pg' ? ' active' : ''}" data-pts-section="${section}" data-pts-mode="pg">Punti a Partita</button>
+    </div>`;
+}
+
+// Righe oltre questa soglia vengono nascoste dietro un pulsante "Mostra altri"
+const PTBL_COLLAPSE_AFTER = 10;
+
+function collapseRowsHtml(rows, colspan, label) {
+    if (rows.length <= PTBL_COLLAPSE_AFTER) return rows.join('');
+    const visible = rows.slice(0, PTBL_COLLAPSE_AFTER).join('');
+    const hidden = rows.slice(PTBL_COLLAPSE_AFTER)
+        .map(r => r.replace('<tr>', '<tr class="an-ptbl-extra-row" hidden>'))
+        .join('');
+    const hiddenCount = rows.length - PTBL_COLLAPSE_AFTER;
+    const showLabel = `Mostra altri ${hiddenCount} ${label}`;
+    const moreRow = `
+        <tr class="an-ptbl-more-row">
+            <td colspan="${colspan}"><button class="an-ptbl-more-btn" data-expanded="0" data-show-label="${showLabel}">${showLabel}</button></td>
+        </tr>`;
+    return visible + hidden + moreRow;
+}
+
+// Tabella confronto rose: colonne = team, righe = slot titolari + panchinari + somme
+function buildRosterCompareTable(model, mode) {
+    const teams = Object.values(TEAMS).map(t => {
+        let players;
+        if (mode === 'drafted') {
+            const raw = rawFromTeamKey(model.draft?.teams, t.key);
+            if (!raw) return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', missing: true };
+            players = (model.draft.teams[raw] || []).map(pick => {
+                const rec = model.players.get(pick.name);
+                return { name: pick.name, pos: rec?.position || pick.position, pts: rec ? seasonTotalPts(rec) : 0, games: rec ? Object.keys(rec.weeks).length : 0 };
+            });
+        } else {
+            // 'best': tutti i giocatori passati dalla rosa in stagione (non solo quelli finali)
+            players = seasonView(model, t.key).map(({ rec, agg }) => ({ name: rec.name, pos: rec.position, pts: agg.pts, games: agg.games }));
+        }
+        return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', ...assignLineup(players, mode) };
+    });
+
+    if (mode === 'drafted' && teams.every(t => t.missing)) {
+        return emptyState(`Dati draft non disponibili per il ${currentYear}`);
+    }
+
+    const maxBench = Math.max(0, ...teams.map(t => (t.bench || []).length));
+    const decimals = rosterPtsMode[mode] === 'pg' ? 1 : 0;
+
+    // Delta rispetto al migliore della stessa riga (0 = leader di riga, in oro)
+    const rowMaxOf = (arr) => { const n = arr.filter(v => v !== null && v !== undefined); return n.length ? Math.max(...n) : null; };
+    const delta = (val, rowMax) => {
+        if (val === null || val === undefined || rowMax === null) return '';
+        const gap = rowMax - val;
+        return gap <= 0.05
+            ? '<span class="an-ptbl-delta an-ptbl-delta--best">0</span>'
+            : `<span class="an-ptbl-delta">−${fmt(gap, decimals)}</span>`;
+    };
+    const isLeader = (val, rowMax) => val !== null && val !== undefined && rowMax !== null && (rowMax - val) <= 0.05;
+    const playerCell = (p, rowMax) => {
+        if (!p) return '<span class="an-ptbl-empty">—</span>';
+        const val = ptblValue(p.pts, p.games, mode);
+        const leader = isLeader(val, rowMax);
+        return `<span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span>`;
+    };
+    const emptyTd = '<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>';
+
+    // Righe slot titolari
+    let body = LINEUP_SLOTS.map((slot, si) => {
+        const arr = teams.map(t => t.missing ? null : (t.starters?.[si] ? ptblValue(t.starters[si].pts, t.starters[si].games, mode) : null));
+        const rowMax = rowMaxOf(arr);
+        return `
+        <tr>
+            <td class="an-ptbl-slot">${slot.slot}</td>
+            ${teams.map(t => t.missing ? emptyTd : `<td class="an-ptbl-cell">${playerCell(t.starters?.[si], rowMax)}</td>`).join('')}
+        </tr>`;
+    }).join('');
+
+    body += `<tr class="an-ptbl-seprow"><td colspan="${teams.length + 1}"></td></tr>`;
+
+    // Righe panchina (collassate oltre PTBL_COLLAPSE_AFTER)
+    const benchRows = [];
+    for (let i = 0; i < maxBench; i++) {
+        const arr = teams.map(t => t.missing ? null : (t.bench?.[i] ? ptblValue(t.bench[i].pts, t.bench[i].games, mode) : null));
+        const rowMax = rowMaxOf(arr);
+        benchRows.push(`
+        <tr>
+            <td class="an-ptbl-slot an-ptbl-slot--bn">BN</td>
+            ${teams.map(t => t.missing ? emptyTd : `<td class="an-ptbl-cell">${playerCell(t.bench?.[i], rowMax)}</td>`).join('')}
+        </tr>`);
+    }
+    body += collapseRowsHtml(benchRows, teams.length + 1, 'panchinari');
+
+    // Righe somma (delta anche qui)
+    const sumRow = (label, ptsFn, gamesFn, extraClass = '') => {
+        const arr = teams.map(t => t.missing ? null : ptblValue(ptsFn(t), gamesFn(t), mode));
+        const rowMax = rowMaxOf(arr);
+        return `
+        <tr class="an-ptbl-sumrow${extraClass}">
+            <td class="an-ptbl-slot">${label}</td>
+            ${teams.map((t, ti) => {
+            if (t.missing) return `<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>`;
+            const leader = isLeader(arr[ti], rowMax);
+            return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(arr[ti], decimals)}</b>${delta(arr[ti], rowMax)}</span></td>`;
+        }).join('')}
+        </tr>`;
+    };
+    body += sumRow('Titolari', t => t.startersPts, t => t.startersGames);
+    body += sumRow('Totale', t => t.totalPts, t => t.totalGames, ' an-ptbl-sumrow--total');
+
+    return `
+    ${ptblModeToggleHtml(mode)}
+    <div class="an-ptbl-wrap">
+        <table class="an-ptbl">
+            <thead><tr>
+                <th></th>
+                ${teams.map(t => `<th style="color:${t.color}">${t.name}</th>`).join('')}
+            </tr></thead>
+            <tbody>${body}</tbody>
+        </table>
+    </div>`;
+}
+
+// Tabella confronto innesti: righe in ordine di punti (non di ruolo/rosa)
+function buildPickupsCompareTable(model) {
+    const section = 'pickups';
+    const teams = Object.values(TEAMS).map(t => {
+        const additions = marketView(model, t.key).additions
+            .map(({ rec, agg }) => ({ name: rec.name, pos: rec.position, pts: agg.pts, games: agg.games }))
+            .sort((a, b) => ptblValue(b.pts, b.games, section) - ptblValue(a.pts, a.games, section));
+        const totalPts = additions.reduce((s, p) => s + p.pts, 0);
+        const totalGames = additions.reduce((s, p) => s + p.games, 0);
+        return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', additions, totalPts, totalGames };
+    });
+
+    const maxRows = Math.max(0, ...teams.map(t => t.additions.length));
+    if (!maxRows) return emptyState('Nessun innesto in questa stagione per nessuna squadra');
+
+    const decimals = rosterPtsMode[section] === 'pg' ? 1 : 0;
+    const rowMaxOf = (arr) => { const n = arr.filter(v => v !== null && v !== undefined); return n.length ? Math.max(...n) : null; };
+    const delta = (val, rowMax) => {
+        if (val === null || val === undefined || rowMax === null) return '';
+        const gap = rowMax - val;
+        return gap <= 0.05
+            ? '<span class="an-ptbl-delta an-ptbl-delta--best">0</span>'
+            : `<span class="an-ptbl-delta">−${fmt(gap, decimals)}</span>`;
+    };
+    const isLeader = (val, rowMax) => val !== null && val !== undefined && rowMax !== null && (rowMax - val) <= 0.05;
+    const playerCell = (p, rowMax) => {
+        if (!p) return '<span class="an-ptbl-empty">—</span>';
+        const val = ptblValue(p.pts, p.games, section);
+        const leader = isLeader(val, rowMax);
+        return `<span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span>`;
+    };
+
+    const rows = [];
+    for (let i = 0; i < maxRows; i++) {
+        const arr = teams.map(t => t.additions[i] ? ptblValue(t.additions[i].pts, t.additions[i].games, section) : null);
+        const rowMax = rowMaxOf(arr);
+        rows.push(`
+        <tr>
+            <td class="an-ptbl-slot">#${i + 1}</td>
+            ${teams.map(t => `<td class="an-ptbl-cell">${playerCell(t.additions[i], rowMax)}</td>`).join('')}
+        </tr>`);
+    }
+    let body = collapseRowsHtml(rows, teams.length + 1, 'innesti');
+
+    const totalArr = teams.map(t => ptblValue(t.totalPts, t.totalGames, section));
+    const totalRowMax = rowMaxOf(totalArr);
+    body += `
+        <tr class="an-ptbl-sumrow an-ptbl-sumrow--total">
+            <td class="an-ptbl-slot">Totale</td>
+            ${teams.map((t, ti) => {
+        const leader = isLeader(totalArr[ti], totalRowMax);
+        return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(totalArr[ti], decimals)}</b>${delta(totalArr[ti], totalRowMax)}</span></td>`;
+    }).join('')}
+        </tr>`;
+
+    return `
+    ${ptblModeToggleHtml(section)}
+    <div class="an-ptbl-wrap">
+        <table class="an-ptbl">
+            <thead><tr>
+                <th></th>
+                ${teams.map(t => `<th style="color:${t.color}">${t.name}</th>`).join('')}
+            </tr></thead>
+            <tbody>${body}</tbody>
+        </table>
     </div>`;
 }
 
@@ -1280,7 +1597,7 @@ function bindLineChart(container) {
             key.className = 'an-tt-key';
             key.style.background = s.color;
             const val = document.createElement('b');
-            val.textContent = fmt(v.score, 1);
+            val.textContent = fmt(v.cum !== undefined ? v.cum : v.score, 1);
             const name = document.createElement('span');
             name.className = 'an-tt-name';
             name.textContent = v.weekScore !== undefined ? `${s.name} (+${fmt(v.weekScore, 1)})` : s.name;

@@ -1694,83 +1694,60 @@ img {
 
 
 
-/* ---- History SB Scoreboard (Game Center style) ---- */
-.history-sb-scoreboard {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 6px 20px;
-    margin-top: 12px;
-    border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    overflow: visible;
-    position: relative;
+/* ---- History: SB banner (riusa .gc-banner) + highlights ---- */
+.history-sb-banner {
+    margin-top: 4px;
+    margin-bottom: 0;
 }
 
-.history-sb-team {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.history-sb-logo {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
-    margin-top: -30px;
-    margin-bottom: -20px;
-    transition: transform 0.3s ease;
-}
-
-.history-sb-logo:hover {
-    transform: scale(1.08) translateY(-3px);
-}
-
-.history-sb-name {
-    font-family: var(--font-display);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.95rem;
-    letter-spacing: 0.04em;
-    color: var(--text-primary);
-    white-space: nowrap;
-}
-
-.history-sb-scores {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.history-sb-score {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-    min-width: 50px;
-    text-align: center;
-}
-
-.history-sb-score.winner {
-    color: #B8433A;
-    text-shadow: 0 0 10px rgba(184, 67, 58, 0.25);
-}
-
-.history-sb-score.loser {
+.history-sb-mvp {
+    font-size: 0.78rem;
     color: var(--text-muted);
+    margin-top: 10px;
 }
 
-.history-sb-vs {
-    font-size: 0.6rem;
+.history-sb-mvp b {
+    color: var(--accent-amber);
     font-weight: 700;
-    color: var(--text-muted);
+}
+
+/* Chips highlights (MVP stagione, miglior prova) */
+.history-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 14px 0 6px;
+}
+
+.hh-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md, 12px);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.03);
+    min-width: 150px;
+}
+
+.hh-chip-label {
+    font-size: 0.58rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
+    color: var(--accent-red);
+}
+
+.hh-chip-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.hh-chip-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
 }
 
 /* ================================
@@ -2126,21 +2103,29 @@ img {
    STANDINGS REDESIGN
    ======================================== */
 
-/* Titoletto in stile section-title (gradient) ma orizzontale */
+/* Titoletto in stile filigrana Standings (display uppercase) ma orizzontale e rosso */
 .st-block-title {
     font-family: var(--font-display);
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(2rem, 5vw, 2.7rem);
     font-weight: 800;
-    letter-spacing: -0.03em;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--accent-red);
     margin: 56px 0 28px;
 }
 
 .st-block-title:first-child {
     margin-top: 0;
+}
+
+/* Descrizione dinamica sotto il titolo di blocco */
+.st-block-desc {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    max-width: 68ch;
+    margin: -14px 0 30px;
 }
 
 /* --- Ranking: card stile teams con numero gigante sporgente --- */
@@ -2154,7 +2139,7 @@ img {
 
 .st-rank-wrap {
     position: relative;
-    width: min(100%, 760px);
+    width: 100%;
     animation: fadeUp 0.5s var(--ease) both;
     animation-delay: calc(var(--card-i, 0) * 90ms);
 }
@@ -2463,8 +2448,8 @@ img {
 .playoff-logo {
     position: relative;
     z-index: 1;
-    width: 120%;
-    height: 120%;
+    width: 195%;
+    height: 195%;
     object-fit: contain;
     filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5));
     transition: transform 0.3s ease;
@@ -4001,9 +3986,125 @@ img {
     color: var(--text-secondary);
 }
 
+.st-records-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 32px 0;
+}
+
+.st-record-mode-toggle {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 20px;
+}
+
+.st-player-mode-toggle {
+    margin: 4px 0 24px;
+}
+
+.st-leader-title {
+    margin-top: 48px;
+}
+
+.st-leader-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.st-leader-panel {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    padding: 16px;
+}
+
+.st-leader-panel-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-red);
+    margin-bottom: 10px;
+}
+
+.st-leader-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-variant-numeric: tabular-nums;
+}
+
+.st-leader-row:last-child {
+    border-bottom: none;
+}
+
+.st-leader-rank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    width: 14px;
+    flex-shrink: 0;
+}
+
+.st-leader-name {
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.st-leader-team {
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.st-leader-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+}
+
+.st-leader-row--top .st-leader-name,
+.st-leader-row--top .st-leader-value {
+    color: var(--accent-amber);
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
+@media (max-width: 900px) {
+    .st-leader-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .st-leader-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* --- Team all-time panels --- */
 .teams-alltime-block {
     margin-top: 90px;
+}
+
+.charts-block {
+    margin-top: 90px;
+}
+
+.charts-block .records-title {
+    text-align: center;
+    margin-bottom: 2.5rem;
 }
 
 .team-alltime-grid {
@@ -5544,6 +5645,9 @@ img {
 .an-drill-team {
     color: var(--text-secondary);
     font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Confronto: drill-down anno corrente / anno precedente, impilati a piena larghezza
@@ -5788,6 +5892,15 @@ img {
     font-family: var(--font-body, 'Inter', sans-serif);
 }
 
+/* Label ruolo nel dot plot distribuzioni */
+.st-role-label {
+    fill: var(--text-primary);
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
 .an-endlabel {
     fill: var(--text-secondary);
     font-size: 12px;
@@ -5804,6 +5917,21 @@ img {
     stroke: rgba(255, 255, 255, 0.3);
     stroke-width: 1;
     pointer-events: none;
+}
+
+/* Riga verticale tratteggiata: cambio di formato stagione (giornate) */
+.an-vrule {
+    stroke: rgba(255, 255, 255, 0.28);
+    stroke-width: 1;
+    stroke-dasharray: 5 5;
+    pointer-events: none;
+}
+
+.an-vrule-label {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-style: italic;
 }
 
 .an-bar {
@@ -7001,6 +7129,281 @@ img {
     object-position: top;
     background: #e8e0d2;
     border: 2px solid #000;
+}
+
+/* ===== ANALYSIS — controlli (media toggle + legenda) ===== */
+.an-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 4px 0 20px;
+}
+
+.an-avg-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.an-avg-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.an-avg-pill {
+    padding: 5px 14px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-avg-pill:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.an-avg-pill.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: #fff;
+}
+
+.an-legend-box {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    max-width: 100%;
+}
+
+.an-legend-box summary {
+    cursor: pointer;
+    color: var(--accent-red);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    list-style: none;
+}
+
+.an-legend-box summary::-webkit-details-marker { display: none; }
+.an-legend-box summary::before { content: 'ⓘ '; }
+
+.an-legend-list {
+    margin: 12px 0 0;
+    padding: 14px 18px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    background: rgba(255, 255, 255, 0.03);
+    line-height: 1.5;
+}
+
+.an-legend-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.an-badge-away {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+}
+
+/* ===== ANALYSIS — tabella confronto giocatori (Totale) ===== */
+.an-ptbl-wrap {
+    overflow-x: auto;
+    margin-bottom: 6px;
+}
+
+.an-ptbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.an-ptbl th {
+    text-align: left;
+    padding: 8px 10px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.82rem;
+    border-bottom: 1px solid var(--border-card);
+    white-space: nowrap;
+}
+
+.an-ptbl-slot {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-red);
+    text-align: center;
+    width: 56px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 7px 6px;
+}
+
+.an-ptbl-slot--bn {
+    color: var(--text-muted);
+}
+
+.an-ptbl-cell {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+}
+
+/* Riga separatrice titolari → panchina */
+.an-ptbl-seprow td {
+    border-bottom: 2px solid var(--border-card);
+    padding: 3px 0;
+}
+
+/* Righe somma */
+.an-ptbl-sumrow td {
+    border-bottom: none;
+    padding-top: 10px;
+}
+
+.an-ptbl-sumrow .an-ptbl-slot {
+    color: var(--text-secondary);
+    border-bottom: none;
+}
+
+.an-ptbl-sumrow .an-ptbl-pts {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.an-ptbl-sumrow--total .an-ptbl-slot,
+.an-ptbl-sumrow--total .an-ptbl-pts {
+    color: var(--accent-amber);
+    font-size: 1.02rem;
+}
+
+.an-ptbl-sumrow:hover td {
+    background: none !important;
+}
+
+.an-ptbl-name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.an-ptbl-pos {
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    margin-left: 6px;
+    text-transform: uppercase;
+}
+
+.an-ptbl-val {
+    float: right;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding-left: 14px;
+}
+
+.an-ptbl-pts {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.an-ptbl-delta {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--accent-red);
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+    text-align: right;
+}
+
+.an-ptbl-delta--best {
+    color: var(--accent-amber);
+}
+
+.an-ptbl-name--best {
+    color: var(--accent-amber);
+}
+
+.an-ptbl-pts--best {
+    color: var(--accent-amber);
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
+.an-ptbl-empty {
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.an-ptbl tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.an-ptbl-mode-toggle {
+    margin: 4px 0 14px;
+}
+
+.an-ptbl-mode-pill {
+    padding: 5px 14px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-ptbl-mode-pill:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.an-ptbl-mode-pill.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: #fff;
+}
+
+.an-ptbl-more-row td {
+    border-bottom: none;
+    padding: 10px 0 4px;
+    text-align: center;
+}
+
+.an-ptbl-more-btn {
+    padding: 6px 16px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-ptbl-more-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
 }
 
 /* Ritratto tondo nella colonna sinistra della storia secondaria
