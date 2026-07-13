@@ -2,11 +2,11 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
-import { TEAMS } from './team.js?v=12';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { initPlayerModal } from '../components/player-modal.js?v=8';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=22';
+import { TEAM_KEYS } from '../data/team-config.js?v=22';
+import { TEAMS } from './team.js?v=14';
+import { playerImageService } from '../services/player-image-service.js?v=5';
+import { initPlayerModal } from '../components/player-modal.js?v=12';
 import { db } from '../firebase-config.js';
 
 let loaded = false;
@@ -43,7 +43,7 @@ async function loadYear(year) {
     try {
         const data = await fetchDraftData(year);
         if (!data) {
-            grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun draft per il ${year}</p></div>`;
+            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun draft per il ${year}</p></div>`;
             document.getElementById('dr-round-selector').innerHTML = '';
             return;
         }
@@ -51,7 +51,7 @@ async function loadYear(year) {
         currentPicks = flattenDraft(data);
 
         if (!currentPicks.length) {
-            grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><p class="empty-state-text">Dati draft non disponibili</p></div>`;
+            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Dati draft non disponibili</p></div>`;
             return;
         }
 

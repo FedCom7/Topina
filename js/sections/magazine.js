@@ -16,12 +16,12 @@
 import {
     fetchFantasyData, displayName, SEASONS, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
-} from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
-import { TEAMS } from './team.js?v=12';
-import { getLeagueData } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=2';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=2';
+} from '../data.js?v=22';
+import { TEAM_KEYS } from '../data/team-config.js?v=22';
+import { TEAMS } from './team.js?v=14';
+import { getLeagueData } from '../data/league-data.js?v=2';
+import { getHonorsBundle } from '../data/honors.js?v=4';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=3';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
@@ -35,8 +35,8 @@ import {
     SECONDARY_LEDE_OPENERS, SECONDARY_NO_FLOP_LINES,
     STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
     TEAMMATE_PRAISE,
-} from '../data/magazine-voices.js?v=6';
-import { playerImageService } from '../services/player-image-service.js?v=4';
+} from '../data/magazine-voices.js?v=7';
+import { playerImageService } from '../services/player-image-service.js?v=5';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -110,7 +110,7 @@ async function loadYear(year) {
     if (!_cache[year]) _cache[year] = await fetchFantasyData(year);
     const data = _cache[year];
     if (!data?.weeks) {
-        paper.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗞️</div><p class="empty-state-text">Nessuna edizione per il ${year}</p></div>`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessuna edizione per il ${year}</p></div>`;
         document.getElementById('mg-week-selector').innerHTML = '';
         return;
     }
@@ -122,7 +122,7 @@ async function loadYear(year) {
         if (wk?.matchups?.some(m => m.team1 && m.team2 && (P(m.team1.score) > 0 || P(m.team2.score) > 0))) played.push(w);
     }
     if (!played.length) {
-        paper.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗞️</div><p class="empty-state-text">Stagione ${year} non ancora iniziata</p></div>`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">Stagione ${year} non ancora iniziata</p></div>`;
         document.getElementById('mg-week-selector').innerHTML = '';
         return;
     }
@@ -177,7 +177,7 @@ async function renderEdition() {
         second = sorted[1] || null;
     }
     if (!main) {
-        paper.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗞️</div><p class="empty-state-text">Nessuna partita in questa week</p></div>`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessuna partita in questa week</p></div>`;
         return;
     }
 

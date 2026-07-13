@@ -12,15 +12,15 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=3';
-import { computeSeasonMetrics, computeEfficiency, snapSharePct } from '../data/player-metrics.js?v=1';
-import { getTeamContext } from '../data/nfl-team-stats.js?v=1';
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=3';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=8';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=5';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { canonAbbr } from '../data/nfl-schedule.js?v=1';
-import { CURRENT_SEASON } from '../data.js?v=5';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=4';
+import { computeSeasonMetrics, computeEfficiency, snapSharePct } from '../data/player-metrics.js?v=2';
+import { getTeamContext } from '../data/nfl-team-stats.js?v=2';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=5';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=12';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=6';
+import { playerImageService } from '../services/player-image-service.js?v=5';
+import { canonAbbr } from '../data/nfl-schedule.js?v=2';
+import { CURRENT_SEASON } from '../data.js?v=22';
 
 const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const fmt0 = (n) => n == null ? '—' : Math.round(n).toLocaleString('it-IT');
@@ -42,7 +42,7 @@ export async function initPlayerPage() {
     const year = parts[1], pos = (parts[2] || '').toUpperCase().replace('W/R', 'WR');
 
     if (!name || !year) {
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">Giocatore non trovato</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Giocatore non trovato</p></div></div>`;
         return;
     }
 
@@ -72,7 +72,7 @@ export async function initPlayerPage() {
     } catch (e) {
         console.error('[player-page]', e);
         if (location.hash !== myHash) return;
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento delle statistiche</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento delle statistiche</p></div></div>`;
     }
 }
 
@@ -112,7 +112,7 @@ function heroBlock({ name, pos, abbr, full, career, year }) {
         info?.age ? `<span class="pm-chip">${info.age} anni</span>` : '',
         info?.college ? `<span class="pm-chip">${esc(info.college)}</span>` : '',
         career?.seasons.size ? `<span class="pm-chip">${career.seasons.size} stagion${career.seasons.size === 1 ? 'e' : 'i'} Topina</span>` : '',
-        info?.injury_status ? `<span class="pm-chip pp-chip-injury">🩹 ${esc(info.injury_status)}</span>` : '',
+        info?.injury_status ? `<span class="pm-chip pp-chip-injury">${esc(info.injury_status)}</span>` : '',
     ].filter(Boolean).join('');
 
     return `
@@ -123,7 +123,7 @@ function heroBlock({ name, pos, abbr, full, career, year }) {
             <h1 class="mc-title">${esc(name)}</h1>
             <div class="pm-chips pp-hero-chips">${chips}</div>
         </div>
-        ${career?.sbWins ? `<div class="pm-rings" title="Anelli Super Bowl">🏆${career.sbWins > 1 ? `×${career.sbWins}` : ''}</div>` : ''}
+        ${career?.sbWins ? `<div class="pm-rings" title="Anelli Super Bowl">SB ×${career.sbWins}</div>` : ''}
     </header>`;
 }
 
@@ -177,7 +177,7 @@ function anagraficaBlock(info) {
 
     const injury = info.injury_status ? `
         <div class="pp-injury">
-            <span class="pp-injury-title">🩹 Infermeria (stato attuale)</span>
+            <span class="pp-injury-title">Infermeria (stato attuale)</span>
             <span>${esc(info.injury_status)}${info.injury_body_part ? ` — ${esc(info.injury_body_part)}` : ''}${info.injury_notes ? ` · ${esc(info.injury_notes)}` : ''}${info.injury_start_date ? ` · dal ${new Date(info.injury_start_date).toLocaleDateString('it-IT')}` : ''}</span>
         </div>` : '';
 
@@ -554,7 +554,7 @@ function renderDefPage(section, ctx) {
                     ${career?.seasons.size ? `<span class="pm-chip">${career.seasons.size} stagion${career.seasons.size === 1 ? 'e' : 'i'} Topina</span>` : ''}
                 </div>
             </div>
-            ${career?.sbWins ? `<div class="pm-rings" title="Anelli Super Bowl">🏆${career.sbWins > 1 ? `×${career.sbWins}` : ''}</div>` : ''}
+            ${career?.sbWins ? `<div class="pm-rings" title="Anelli Super Bowl">SB ×${career.sbWins}</div>` : ''}
         </header>
         ${defStatsBlock(ctx)}
         ${fpaBlock(ctx)}

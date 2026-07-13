@@ -9,7 +9,7 @@
 import {
     pickSeeded, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL, TOP_PLAYER_PHRASES,
     AN_STAKES_PLAYOFF, AN_STAKES_SB, AN_SERIES_LINES, AN_FLOP_WRAP, AN_HOT_STREAK_LINES,
-} from './magazine-voices.js?v=6';
+} from './magazine-voices.js?v=7';
 
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

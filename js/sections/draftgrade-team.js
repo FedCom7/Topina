@@ -13,19 +13,19 @@
  * Come game.js: nessun guard `initialized`, si ri-parsa l'hash a ogni chiamata.
  */
 
-import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
-import { TEAMS } from './team.js?v=12';
-import { getHonorsBundle } from '../data/honors.js?v=2';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=5';
-import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=3';
-import { initPlayerModal } from '../components/player-modal.js?v=8';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { pickSeeded } from '../data/magazine-voices.js?v=6';
+import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=22';
+import { TEAM_KEYS } from '../data/team-config.js?v=22';
+import { TEAMS } from './team.js?v=14';
+import { getHonorsBundle } from '../data/honors.js?v=4';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=6';
+import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=4';
+import { initPlayerModal } from '../components/player-modal.js?v=12';
+import { playerImageService } from '../services/player-image-service.js?v=5';
+import { pickSeeded } from '../data/magazine-voices.js?v=7';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge,
-} from './draftgrades.js?v=13';
+} from './draftgrades.js?v=16';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -78,7 +78,7 @@ export async function initDraftGradeTeam() {
     const [, year, teamKey] = location.hash.slice(1).split('/');
     const team = TEAMS[teamKey];
     if (!team || !year) {
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">Squadra o anno non trovati</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Squadra o anno non trovati</p></div></div>`;
         return;
     }
 
@@ -118,7 +118,7 @@ export async function initDraftGradeTeam() {
         render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed });
     } catch (e) {
         console.error('[draftgrade-team]', e);
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
     }
 }
 
@@ -391,10 +391,10 @@ function rosterCard(ctx) {
     const ageNote = known ? pickSeeded(AGE_NOTES[ageKind], (+year) * 7 + g.key.length)(team.name) : '';
     const ageChips = known ? `
         <div class="dgt-age-chips">
-            ${rookies ? `<span class="dgt-chip">🐣 ${rookies} rookie</span>` : ''}
-            ${young ? `<span class="dgt-chip">🌱 ${young} al 1°-2° anno</span>` : ''}
-            ${prime ? `<span class="dgt-chip">⚡ ${prime} nel prime (3-6 anni)</span>` : ''}
-            ${vets ? `<span class="dgt-chip">🎖️ ${vets} ${vets === 1 ? 'veterano' : 'veterani'} (7+ anni)</span>` : ''}
+            ${rookies ? `<span class="dgt-chip">${rookies} rookie</span>` : ''}
+            ${young ? `<span class="dgt-chip">${young} al 1°-2° anno</span>` : ''}
+            ${prime ? `<span class="dgt-chip">${prime} nel prime (3-6 anni)</span>` : ''}
+            ${vets ? `<span class="dgt-chip">${vets} ${vets === 1 ? 'veterano' : 'veterani'} (7+ anni)</span>` : ''}
         </div>` : '';
 
     // letture dallo storico: trend, breakout e profili a rischio del roster
@@ -410,12 +410,12 @@ function rosterCard(ctx) {
         });
         const risky = details.filter(x => x.d.risk?.level === 'alto');
         const chips = [
-            rising.length ? `<span class="dgt-chip dgt-chip--up">📈 ${rising.length} in ascesa</span>` : '',
-            falling.length ? `<span class="dgt-chip dgt-chip--down">📉 ${falling.length} in declino</span>` : '',
-            breakouts.length ? `<span class="dgt-chip">💥 breakout: ${breakouts.map(x => x.p.player).join(', ')}</span>` : '',
+            rising.length ? `<span class="dgt-chip dgt-chip--up">${rising.length} in ascesa</span>` : '',
+            falling.length ? `<span class="dgt-chip dgt-chip--down">${falling.length} in declino</span>` : '',
+            breakouts.length ? `<span class="dgt-chip">breakout: ${breakouts.map(x => x.p.player).join(', ')}</span>` : '',
         ].filter(Boolean).join('');
         const riskNote = risky.length
-            ? `<p class="dg-comment">⚠️ Veteran${risky.length === 1 ? 'o' : 'i'} in parabola discendente: ${risky.map(x => x.p.player).join(', ')} — nei numeri storici della lega questo profilo ha floppato il 36% delle volte.</p>` : '';
+            ? `<p class="dg-comment">Veteran${risky.length === 1 ? 'o' : 'i'} in parabola discendente: ${risky.map(x => x.p.player).join(', ')} — nei numeri storici della lega questo profilo ha floppato il 36% delle volte.</p>` : '';
         if (chips || riskNote) {
             histBlock = `
             <span class="mc-kicker">Letture dallo storico</span>
@@ -505,11 +505,11 @@ function picksSection(ctx, prevYear) {
         const older = d?.hist?.seasons?.filter(s => s.back >= 2) || [];
         const peak = d?.hist?.peak?.back >= 2 ? peakNote(d.hist, p.pos) : '';
         const olderLine = older.length
-            ? `<p class="dgt-pick-hist">🗂️ Prima ancora — ${historyLine({ seasons: older }, p.pos, 5)}${peak ? ` · <b>${peak}</b>` : ''}</p>` : '';
+            ? `<p class="dgt-pick-hist">Prima ancora — ${historyLine({ seasons: older }, p.pos, 5)}${peak ? ` · <b>${peak}</b>` : ''}</p>` : '';
         const badges = [
             d?.hist ? trendBadge(d.hist) : '',
-            d?.hist?.consistency >= 0.75 ? `<span class="dgt-chip">🎯 costante</span>` : '',
-            d?.risk?.level === 'alto' ? `<span class="dg-badge dg-badge--down" title="${d.risk.label}">⚠️ profilo a rischio</span>` : '',
+            d?.hist?.consistency >= 0.75 ? `<span class="dgt-chip">costante</span>` : '',
+            d?.risk?.level === 'alto' ? `<span class="dg-badge dg-badge--down" title="${d.risk.label}">profilo a rischio</span>` : '',
         ].filter(Boolean).join(' ');
 
         return `
@@ -528,9 +528,9 @@ function picksSection(ctx, prevYear) {
                 ${pickGrade}
             </div>
             <div class="dgt-pick-body">
-                <p class="dgt-pick-prior">📊 ${priorLine(p, prevStats, prevYear, expAtDraft)} ${badges}</p>
+                <p class="dgt-pick-prior">${priorLine(p, prevStats, prevYear, expAtDraft)} ${badges}</p>
                 ${olderLine}
-                <p class="dgt-pick-alt">♟️ ${altLine}</p>
+                <p class="dgt-pick-alt">${altLine}</p>
                 <p class="dgt-pick-verdict">${verdict}</p>
             </div>
         </div>`;

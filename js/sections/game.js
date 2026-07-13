@@ -6,17 +6,17 @@
  * confronto stats di squadra + difference maker → player notes.
  */
 
-import { fetchFantasyData, displayName, getSeasonConfig } from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
-import { getLeagueData } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=2';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=1';
+import { fetchFantasyData, displayName, getSeasonConfig } from '../data.js?v=22';
+import { TEAM_KEYS } from '../data/team-config.js?v=22';
+import { getLeagueData } from '../data/league-data.js?v=2';
+import { getHonorsBundle } from '../data/honors.js?v=4';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=2';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle, statLine,
-} from '../data/matchup-analysis.js?v=2';
-import { TEAMS } from './team.js?v=12';
-import { playerImageService } from '../services/player-image-service.js?v=4';
+} from '../data/matchup-analysis.js?v=3';
+import { TEAMS } from './team.js?v=14';
+import { playerImageService } from '../services/player-image-service.js?v=5';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -41,7 +41,7 @@ export async function initGame() {
         const weekData = data?.weeks?.[String(week)];
         const m = weekData?.matchups?.[idx];
         if (!m?.team1 || !m?.team2) {
-            section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Matchup non trovato</p></div></div>`;
+            section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Matchup non trovato</p></div></div>`;
             return;
         }
 
@@ -94,7 +94,7 @@ export async function initGame() {
         renderChart(m, year, week);
     } catch (e) {
         console.error('[Game] errore analisi:', e);
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
     }
 }
 

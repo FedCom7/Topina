@@ -13,12 +13,12 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=3';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=5';
-import { TEAMS } from '../sections/team.js?v=12';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { getPlayerInfo } from '../data/player-full.js?v=3';
-import { getHallOfFameYear } from '../data/hall-of-fame.js?v=1';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=5';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=6';
+import { TEAMS } from '../sections/team.js?v=14';
+import { playerImageService } from '../services/player-image-service.js?v=5';
+import { getPlayerInfo } from '../data/player-full.js?v=4';
+import { getHallOfFameYear } from '../data/hall-of-fame.js?v=4';
 
 const MAX_NFL_YEARS = 5;
 const FIRST_PROJ_YEAR = 2018; // Sleeper non ha proiezioni prima
@@ -402,19 +402,19 @@ export function topinaBlock(career) {
 export function awardsBlock(career, awards) {
     const chips = [];
     for (const a of awards.awards) {
-        chips.push(`<span class="pm-award">${a.icon} ${a.name} <b>${a.year}</b></span>`);
+        chips.push(`<span class="pm-award">${a.name} <b>${a.year}</b></span>`);
     }
     if (awards.allProFirst.length) {
-        chips.push(`<span class="pm-award pm-award--gold">🥇 All-Pro 1° Team <b>${awards.allProFirst.join(', ')}</b></span>`);
+        chips.push(`<span class="pm-award pm-award--gold">All-Pro 1° Team <b>${awards.allProFirst.join(', ')}</b></span>`);
     }
     if (awards.allProSecond.length) {
-        chips.push(`<span class="pm-award">🥈 All-Pro 2° Team <b>${awards.allProSecond.join(', ')}</b></span>`);
+        chips.push(`<span class="pm-award">All-Pro 2° Team <b>${awards.allProSecond.join(', ')}</b></span>`);
     }
     if (career?.sbWins) {
-        chips.push(`<span class="pm-award pm-award--gold">🏆 Anell${career.sbWins === 1 ? 'o' : 'i'} Super Bowl ×${career.sbWins}</span>`);
+        chips.push(`<span class="pm-award pm-award--gold">Anell${career.sbWins === 1 ? 'o' : 'i'} Super Bowl ×${career.sbWins}</span>`);
     }
     if (career?.top1Count) {
-        chips.push(`<span class="pm-award">⭐ Top 1 di ruolo ×${career.top1Count}</span>`);
+        chips.push(`<span class="pm-award">Top 1 di ruolo ×${career.top1Count}</span>`);
     }
 
     return `

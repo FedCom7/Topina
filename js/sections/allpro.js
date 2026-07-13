@@ -4,9 +4,9 @@
  * (QB, RB×2, WR×2, TE, FLEX, K, DEF), da js/data/honors.js.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=5';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=2';
-import { TEAMS } from './team.js?v=12';
+import { CURRENT_SEASON } from '../data.js?v=22';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=4';
+import { TEAMS } from './team.js?v=14';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -42,14 +42,13 @@ async function loadYear(year) {
 
     const bundle = await getHonorsBundle(year);
     if (!bundle) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
         return;
     }
 
     if (!bundle.rsComplete) {
         wrap.innerHTML = `
         <div class="honors-teaser">
-            <span class="honors-teaser-icon">⭐</span>
             <h2 class="honors-teaser-title">Selezioni in corso</h2>
             <p class="honors-teaser-text">L'All-Pro Team viene selezionato a regular season conclusa, insieme ai Topina Honors.</p>
         </div>`;

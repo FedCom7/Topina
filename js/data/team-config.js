@@ -20,7 +20,7 @@ export const NFL_DATES = {
 // Current champion (update after each season)
 export const CURRENT_CHAMPION = {
     name: 'Loading...',
-    logo: '🏆',
+    logo: '',
     record: '-',
     year: '-'
 };

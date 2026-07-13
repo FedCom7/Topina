@@ -8,9 +8,9 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
-} from '../data.js?v=5';
-import { TEAM_KEYS } from './team-config.js?v=5';
-import { FLEX_ELIGIBLE } from './league-rules.js?v=1';
+} from '../data.js?v=22';
+import { TEAM_KEYS } from './team-config.js?v=22';
+import { FLEX_ELIGIBLE } from './league-rules.js?v=2';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')
 function toKey(rawName) {
@@ -45,15 +45,45 @@ async function _build(year) {
     const rsComplete = _weekPlayed(fantasyData, config.regularSeasonWeeks);
     const revealed = _weekPlayed(fantasyData, config.playoffWeek);
 
+    // OROY e Comeback Player of the Year servono uno storico precedente:
+    // niente per la prima stagione della lega (non esiste un "prima" con cui confrontare).
+    const rookieCtx = await _buildRookieContext(year);
+
     return {
         year,
         players,
         managers,
-        awards: computeAwards(players, managers, draftPicks),
+        awards: computeAwards(players, managers, draftPicks, rookieCtx),
         allPro: computeAllPro(players),
         rsComplete,
         revealed,
     };
+}
+
+/**
+ * Contesto per i premi che richiedono lo storico delle stagioni precedenti:
+ * - priorNames: nomi di tutti i giocatori mai apparsi prima di `year` (per OROY)
+ * - prevTotals: punti totali della stagione immediatamente precedente, per nome (per CPOY)
+ * Entrambi null per la prima stagione della lega.
+ */
+async function _buildRookieContext(year) {
+    const idx = SEASONS.indexOf(String(year));
+    if (idx <= 0) return { priorNames: null, prevTotals: null };
+
+    const priorNames = new Set();
+    for (const prevYear of SEASONS.slice(0, idx)) {
+        const prevBundle = await getHonorsBundle(prevYear);
+        if (prevBundle) Object.keys(prevBundle.players).forEach(n => priorNames.add(n));
+    }
+
+    let prevTotals = null;
+    const immediatePrev = await getHonorsBundle(SEASONS[idx - 1]);
+    if (immediatePrev) {
+        prevTotals = {};
+        Object.values(immediatePrev.players).forEach(p => { prevTotals[p.name] = p.total; });
+    }
+
+    return { priorNames, prevTotals };
 }
 
 function _weekPlayed(fantasyData, weekNum) {
@@ -174,20 +204,23 @@ const fmtPts = (n) => n.toLocaleString('it-IT', { minimumFractionDigits: 1, maxi
 
 /**
  * Set completo dei Topina Honors.
- * Ogni premio: { id, name, icon, desc, winner, finalists, statLine(entry) }
+ * Ogni premio: { id, abbr, name, desc, winner, finalists, statLine(entry) }
  * winner/finalists per i premi giocatore sono entry di `players`;
  * per il Coach of the Year sono { teamKey, efficiency, ... }.
+ * `rookieCtx` ({ priorNames, prevTotals }) arriva da _buildRookieContext e
+ * serve solo a OROY e Comeback Player of the Year — entrambi assenti nella
+ * prima stagione della lega, perché richiedono uno storico precedente.
  */
-export function computeAwards(players, managers, draftPicks) {
+export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
     const all = Object.values(players);
     const rank = (filter) => all.filter(filter).sort((a, b) => b.total - a.total);
 
     const playerStat = (p) => `${fmtPts(p.total)} pt · best ${fmtPts(p.best.pts)} (W${p.best.week})`;
 
-    const playerAward = (id, name, icon, desc, filter) => {
+    const playerAward = (id, abbr, name, desc, filter) => {
         const list = rank(filter);
         return {
-            id, name, icon, desc, kind: 'player',
+            id, abbr, name, desc, kind: 'player',
             winner: list[0] || null,
             finalists: list.slice(0, 3),
             statLine: playerStat,
@@ -195,29 +228,69 @@ export function computeAwards(players, managers, draftPicks) {
     };
 
     const awards = [
-        playerAward('mvp', 'Most Valuable Player', '👑',
+        playerAward('mvp', 'MVP', 'Most Valuable Player',
             'Il giocatore con più punti fantasy della regular season.',
             p => p.pos !== 'DEF'),
-        playerAward('opoy', 'Offensive Player of the Year', '⚡',
+        playerAward('opoy', 'OPOY', 'Offensive Player of the Year',
             'Il miglior skill player (RB/WR/TE) della stagione.',
             p => ['RB', 'WR', 'TE'].includes(p.pos)),
-        playerAward('dpoy', 'Defensive Player of the Year', '🛡️',
+    ];
+
+    // Offensive Rookie of the Year — il rookie offensive con più punti.
+    // "Rookie" = al suo primo anno nella lega (mai apparso nelle stagioni precedenti).
+    // Niente nella prima stagione della lega: tutti sarebbero "rookie", il dato non ha senso.
+    if (rookieCtx.priorNames) {
+        const rookies = rank(p =>
+            p.pos !== 'DEF' && p.pos !== 'K' && !rookieCtx.priorNames.has(p.name));
+        if (rookies.length) {
+            awards.push({
+                id: 'oroy', abbr: 'OROY', name: 'Offensive Rookie of the Year',
+                desc: 'Il rookie offensive con più punti fantasy: al suo primo anno nella lega.',
+                kind: 'player',
+                winner: rookies[0] || null,
+                finalists: rookies.slice(0, 3),
+                statLine: playerStat,
+            });
+        }
+    }
+
+    awards.push(
+        playerAward('dpoy', 'DPOY', 'Defensive Player of the Year',
             'La difesa che ha portato più punti alla propria squadra.',
             p => p.pos === 'DEF'),
-    ];
+    );
 
     // Coach of the Year — lineup efficiency: chi ha lasciato meno punti in panchina
     const coaches = Object.entries(managers)
         .map(([teamKey, m]) => ({ teamKey, ...m }))
         .sort((a, b) => b.efficiency - a.efficiency);
     awards.push({
-        id: 'coach', name: 'Coach of the Year', icon: '🎯',
+        id: 'coach', abbr: 'COTY', name: 'Coach of the Year',
         desc: 'Il manager con la miglior lineup efficiency: punti schierati rispetto alla lineup ottimale.',
         kind: 'coach',
         winner: coaches[0] || null,
         finalists: coaches,
         statLine: (c) => `${c.efficiency.toFixed(1)}% efficiency · ${fmtPts(c.optimal - c.actual)} pt lasciati in panchina`,
     });
+
+    // Comeback Player of the Year — il salto di punti più grande rispetto alla stagione precedente.
+    // Niente nella prima stagione della lega: non esiste un "anno prima" con cui confrontare.
+    if (rookieCtx.prevTotals) {
+        const withDelta = all
+            .filter(p => p.pos !== 'DEF' && rookieCtx.prevTotals[p.name] != null)
+            .map(p => ({ ...p, delta: p.total - rookieCtx.prevTotals[p.name] }))
+            .sort((a, b) => b.delta - a.delta);
+        if (withDelta.length) {
+            awards.push({
+                id: 'cpoy', abbr: 'CPOY', name: 'Comeback Player of the Year',
+                desc: 'Il salto di punti fantasy più grande rispetto alla stagione precedente.',
+                kind: 'player',
+                winner: withDelta[0] || null,
+                finalists: withDelta.slice(0, 3),
+                statLine: (p) => `${fmtPts(p.total)} pt (${p.delta >= 0 ? '+' : ''}${fmtPts(p.delta)} vs anno prima)`,
+            });
+        }
+    }
 
     // Steal of the Draft — chi, pescato nella metà bassa del draft, ha reso di più
     if (draftPicks.length) {
@@ -228,7 +301,7 @@ export function computeAwards(players, managers, draftPicks) {
             .filter(p => p.name && p.total > 0)
             .sort((a, b) => b.total - a.total);
         awards.push({
-            id: 'steal', name: 'Steal of the Draft', icon: '💎',
+            id: 'steal', name: 'Steal of the Draft',
             desc: 'La pescata più redditizia della metà bassa del draft.',
             kind: 'player',
             winner: steals[0] || null,
@@ -239,14 +312,14 @@ export function computeAwards(players, managers, draftPicks) {
 
     // Premi di posizione
     const POS_AWARDS = [
-        ['qb', 'QB of the Year', '🎖️', 'QB'],
-        ['rb', 'RB of the Year', '🏃', 'RB'],
-        ['wr', 'WR of the Year', '🙌', 'WR'],
-        ['te', 'TE of the Year', '🧱', 'TE'],
-        ['k', 'Kicker of the Year', '🦵', 'K'],
+        ['qb', 'QB of the Year', 'QB'],
+        ['rb', 'RB of the Year', 'RB'],
+        ['wr', 'WR of the Year', 'WR'],
+        ['te', 'TE of the Year', 'TE'],
+        ['k', 'Kicker of the Year', 'K'],
     ];
-    POS_AWARDS.forEach(([id, name, icon, pos]) => {
-        awards.push(playerAward(id, name, icon,
+    POS_AWARDS.forEach(([id, name, pos]) => {
+        awards.push(playerAward(id, null, name,
             `Il miglior ${pos} della regular season.`, p => p.pos === pos));
     });
 

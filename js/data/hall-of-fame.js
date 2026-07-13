@@ -9,11 +9,11 @@
  * negli anni successivi. Un eletto all'anno dal FIRST_CLASS_YEAR.
  */
 
-import { SEASONS, CURRENT_SEASON } from '../data.js?v=5';
-import { getHonorsBundle } from './honors.js?v=2';
-import { buildCareers } from './careers.js?v=3';
+import { SEASONS, CURRENT_SEASON } from '../data.js?v=22';
+import { getHonorsBundle } from './honors.js?v=4';
+import { buildCareers } from './careers.js?v=5';
 
-export const FIRST_CLASS_YEAR = 2022;
+export const FIRST_CLASS_YEAR = 2025;
 export const MIN_SEASONS = 3;
 const SB_BONUS = 120;
 const TOP1_BONUS = 80;

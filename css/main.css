@@ -145,10 +145,6 @@ img {
     letter-spacing: -0.02em;
 }
 
-.logo-emoji {
-    font-size: 1.4rem;
-}
-
 .logo-text {
     background: var(--accent-gradient);
     -webkit-background-clip: text;
@@ -1777,11 +1773,6 @@ img {
     text-align: center;
     padding: 60px 24px;
     color: var(--text-muted);
-}
-
-.empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 12px;
 }
 
 
@@ -4561,16 +4552,16 @@ img {
     position: relative;
 }
 
-.honors-card-icon {
-    font-size: 1.7rem;
-    line-height: 1;
-}
-
 .honors-card-title {
     font-family: var(--font-display);
     font-size: 1.15rem;
     font-weight: 800;
     letter-spacing: -0.01em;
+}
+
+.honors-card-abbr {
+    color: var(--award-color, var(--accent-red));
+    font-weight: 900;
 }
 
 .honors-card-desc {
@@ -4691,10 +4682,6 @@ img {
     gap: 10px;
     text-align: center;
     padding: 80px 24px;
-}
-
-.honors-teaser-icon {
-    font-size: 3rem;
 }
 
 .honors-teaser-title {
@@ -5377,9 +5364,13 @@ img {
     margin: 6px 0 2px;
 }
 
-.mc-rail-emoji {
+.mc-rail-abbr {
     position: relative;
-    font-size: 1.9rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: var(--accent-amber);
     margin: 6px 0 2px;
 }
 

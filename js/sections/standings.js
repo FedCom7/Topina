@@ -3,8 +3,8 @@
  * Ranking a card (stile teams page, numeri giganti sporgenti) + Playoff bracket.
  * Ordine dinamico: regular season → ranking sopra; dai playoff in poi → bracket sopra.
  */
-import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=5';
-import { TEAMS } from './team.js?v=12';
+import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=22';
+import { TEAMS } from './team.js?v=14';
 
 let loaded = false;
 
@@ -32,7 +32,7 @@ async function loadStandings() {
     const data = await fetchFantasyData(CURRENT_SEASON);
 
     if (!data) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Dati non disponibili</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Dati non disponibili</p></div>`;
         return;
     }
 

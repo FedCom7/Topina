@@ -1,6 +1,6 @@
-import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=5';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=5';
-import { TEAMS } from './team.js?v=12';
+import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=22';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=22';
+import { TEAMS } from './team.js?v=14';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -53,7 +53,7 @@ async function loadYear(year) {
 
     currentData = await fetchFantasyData(year);
     if (!currentData?.weeks) {
-        grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
         document.getElementById('gc-week-selector').innerHTML = '';
         return;
     }
@@ -98,7 +98,7 @@ function renderMatchups() {
     const grid = document.getElementById('gc-matchup-grid');
     const weekData = currentData?.weeks?.[String(currentWeek)];
     if (!weekData?.matchups?.length) {
-        grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏈</div><p class="empty-state-text">Nessun matchup per ${weekLabel(currentWeek)}</p></div>`;
+        grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun matchup per ${weekLabel(currentWeek)}</p></div>`;
         return;
     }
 

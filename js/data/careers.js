@@ -14,10 +14,10 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     SEASONS, getSeasonConfig, getSuperBowlMatchup, displayName,
-} from '../data.js?v=5';
-import { TEAM_KEYS } from './team-config.js?v=5';
-import { getHonorsBundle } from './honors.js?v=2';
-import { normName } from './projections.js?v=5';
+} from '../data.js?v=22';
+import { TEAM_KEYS } from './team-config.js?v=22';
+import { getHonorsBundle } from './honors.js?v=4';
+import { normName } from './projections.js?v=6';
 
 let careersCache = null;
 
@@ -156,7 +156,7 @@ export async function getCareer(name) {
 
 /**
  * Tutti i premi di lega vinti in carriera dal giocatore.
- * → { awards: [{year, id, name, icon}], allProFirst: [anni], allProSecond: [anni] }
+ * → { awards: [{year, id, name}], allProFirst: [anni], allProSecond: [anni] }
  * I premi nominati escono solo a stagione `revealed` (cerimonia fatta),
  * gli All-Pro solo a regular season conclusa — stessa regola della HOF.
  */
@@ -172,7 +172,7 @@ export async function getPlayerAwards(name) {
         if (bundle.revealed) {
             for (const a of bundle.awards) {
                 if (a.kind === 'player' && a.winner?.name === name) {
-                    out.awards.push({ year, id: a.id, name: a.name, icon: a.icon });
+                    out.awards.push({ year, id: a.id, name: a.name });
                 }
             }
         }

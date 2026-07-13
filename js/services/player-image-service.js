@@ -1,4 +1,4 @@
-import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=2';
+import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=3';
 
 const CACHE_KEY = 'topina_player_ids_v3';
 const FALLBACK_IMAGE = 'images/fallback-player.svg';

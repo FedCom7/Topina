@@ -16,11 +16,11 @@
  * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=5';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=2';
-import { TEAMS } from './team.js?v=12';
-import { teamsCardsHTML } from './teams.js?v=2';
+import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=22';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=2';
+import { getHonorsBundle } from '../data/honors.js?v=4';
+import { TEAMS } from './team.js?v=14';
+import { teamsCardsHTML } from './teams.js?v=3';
 
 let initialized = false;
 
@@ -50,7 +50,7 @@ export async function initHome() {
         initScrollFX(wrap);
     } catch (e) {
         console.error('Home load error:', e);
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Impossibile caricare i dati della lega</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Impossibile caricare i dati della lega</p></div>`;
     }
 }
 
@@ -67,9 +67,9 @@ function detectPhase(season, bundle) {
 
 function phaseLabel({ phase, season }) {
     switch (phase.type) {
-        case 'REGULAR_SEASON': return `🏈 Stagione ${season.year} · Week ${phase.week}`;
-        case 'PLAYOFFS': return `🔥 Playoffs ${season.year}`;
-        case 'SB_WEEK': return `🏆 Super Bowl Week ${season.year}`;
+        case 'REGULAR_SEASON': return `Stagione ${season.year} · Week ${phase.week}`;
+        case 'PLAYOFFS': return `Playoffs ${season.year}`;
+        case 'SB_WEEK': return `Super Bowl Week ${season.year}`;
         default: {
             const days = daysToKickoff(season.year);
             return days > 0
@@ -259,7 +259,6 @@ function cardHonors({ bundle, season }) {
         .filter(a => wanted[a.id] && a.winner)
         .map(a => `
         <div class="mc-mini-award">
-            <span class="mc-mini-award-icon">${a.icon}</span>
             <span class="mc-mini-award-label">${wanted[a.id]}</span>
             <span class="mc-mini-award-name">${a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name}</span>
         </div>`).join('');
@@ -443,7 +442,7 @@ function railChampions({ league }) {
                 top: s.year,
                 media: `<img class="mc-rail-logo" src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">`,
                 title: t.name,
-                sub: rec ? `${rec.w}–${rec.l}${rec.t ? `–${rec.t}` : ''} · 🏆 Champion` : '🏆 Champion',
+                sub: rec ? `${rec.w}–${rec.l}${rec.t ? `–${rec.t}` : ''} · Champion` : 'Champion',
             });
         });
     return rail({
@@ -512,7 +511,7 @@ function railHonors({ bundle }) {
         .map(a => railCard({
             glow: TEAMS[a.winner.teamKey]?.color,
             top: a.name,
-            media: `<span class="mc-rail-emoji">${a.icon}</span>`,
+            media: a.abbr ? `<span class="mc-rail-abbr">${a.abbr}</span>` : '',
             title: a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name,
             sub: a.kind === 'player' && a.winner.pos ? `${a.winner.pos} · ${fmtPts(a.winner.total)} pt` : '',
         }));

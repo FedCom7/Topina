@@ -5,10 +5,10 @@
  * identità, franchise players, rivalità, divisa.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=5';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=1';
-import { computeTeamBadges } from '../data/badges.js?v=1';
-import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=8';
+import { CURRENT_SEASON } from '../data.js?v=22';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=2';
+import { computeTeamBadges } from '../data/badges.js?v=2';
+import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=9';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {
@@ -476,7 +476,7 @@ function renderHistory(league, teamKey) {
         if (!s.complete) {
             chip = '<span class="hist-chip hist-chip--live">In corso</span>';
         } else if (t.sbWin) {
-            chip = '<span class="hist-chip hist-chip--champ">🏆 Champion</span>';
+            chip = '<span class="hist-chip hist-chip--champ">Champion</span>';
         } else if (t.sbAppearance) {
             chip = '<span class="hist-chip hist-chip--runnerup">Runner-up</span>';
         } else if (t.rsTitle) {
