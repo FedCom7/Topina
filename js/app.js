@@ -3,7 +3,7 @@
  */
 import { initHome } from './sections/home.js?v=27';
 import { initGameCenter } from './sections/game-center.js?v=31';
-import { initStandings } from './sections/standings.js?v=32';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=34';
 import { initDraft } from './sections/draft.js?v=33';
 import { initDraftGrades } from './sections/draftgrades.js?v=16';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=14';
@@ -24,6 +24,7 @@ const SECTIONS = {
     'home': initHome,
     'game-center': initGameCenter,
     'standings': initStandings,
+    'playoffs': initPlayoffs,
     'teams': initTeams,
     'analysis': initAnalysis,
     'draft': initDraft,
@@ -42,6 +43,7 @@ const NAV_PARENT = {
     'allpro': 'history',
     'halloffame': 'history',
     'draftgrades': 'draft',
+    'playoffs': 'standings',
     'magazine': 'game-center',
 };
 

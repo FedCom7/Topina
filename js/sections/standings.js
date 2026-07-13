@@ -1,12 +1,15 @@
 /**
  * Standings Section
- * Ranking a card (stile teams page, numeri giganti sporgenti) + Playoff bracket.
- * Ordine dinamico: regular season → ranking sopra; dai playoff in poi → bracket sopra.
+ * Due pagine distinte, raggiungibili dal sotto-menu di Standings:
+ *   #standings → Regular Season (card di classifica col seed gigante)
+ *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
 import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=22';
 import { TEAMS } from './team.js?v=14';
 
-let loaded = false;
+let loadedStandings = false;
+let loadedPlayoffs = false;
+let _season = null; // { data, standings, config, playoffsStarted } — condiviso dalle due viste
 
 // Team info (colore + logo) dal display name
 function teamInfo(rawName) {
@@ -14,48 +17,56 @@ function teamInfo(rawName) {
     return Object.values(TEAMS).find(t => t.name === dn) || { name: dn, color: '#888', logo: 'images/nfl_logo.png' };
 }
 
-export async function initStandings() {
-    if (loaded) return;
-    loaded = true;
-
-    // Year selector non usato in questa pagina
-    const selector = document.getElementById('st-year-selector');
-    if (selector) selector.style.display = 'none';
-
-    await loadStandings();
-}
-
-async function loadStandings() {
-    const wrap = document.getElementById('standings-table-wrap');
-    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento Classifica...</p></div>`;
-
+/** Dati di stagione, calcolati una volta sola e riusati da entrambe le viste. */
+async function getSeason() {
+    if (_season) return _season;
     const data = await fetchFantasyData(CURRENT_SEASON);
-
-    if (!data) {
-        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Dati non disponibili</p></div>`;
-        return;
-    }
+    if (!data) return null;
 
     const standings = processStandings(data, CURRENT_SEASON);
     const config = getSeasonConfig(CURRENT_SEASON);
     const maxWeek = Math.max(...Object.keys(data.weeks || {}).map(Number), 0);
     const playoffsStarted = maxWeek >= config.playoffWeek;
 
-    const bracketHTML = generateBracket(standings, data, config, playoffsStarted);
-    const rankingHTML = generateRankingCards(standings);
+    return (_season = { data, standings, config, playoffsStarted });
+}
 
-    const bracketBlock = `
-        <h3 class="st-block-title">Playoff Picture</h3>
-        <p class="st-block-desc">${bracketDescription(standings, data, config, playoffsStarted)}</p>
-        ${bracketHTML}`;
-    const rankingBlock = `
-        <h3 class="st-block-title">Regular Season</h3>
+const spinner = (label) =>
+    `<div class="loading-state"><div class="spinner"></div><p>Caricamento ${label}...</p></div>`;
+const noData = '<div class="empty-state"><p class="empty-state-text">Dati non disponibili</p></div>';
+
+export async function initStandings() {
+    if (loadedStandings) return;
+    loadedStandings = true;
+
+    const selector = document.getElementById('st-year-selector');
+    if (selector) selector.style.display = 'none';
+
+    const wrap = document.getElementById('standings-table-wrap');
+    wrap.innerHTML = spinner('Classifica');
+
+    const s = await getSeason();
+    if (!s) { wrap.innerHTML = noData; return; }
+
+    wrap.innerHTML = `
         <p class="st-block-desc">${rankingDescription()}</p>
-        ${rankingHTML}`;
+        ${generateRankingCards(s.standings)}`;
+}
 
-    wrap.innerHTML = playoffsStarted
-        ? bracketBlock + rankingBlock
-        : rankingBlock + bracketBlock;
+export async function initPlayoffs() {
+    if (loadedPlayoffs) return;
+    loadedPlayoffs = true;
+
+    const wrap = document.getElementById('playoffs-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = spinner('Playoff Picture');
+
+    const s = await getSeason();
+    if (!s) { wrap.innerHTML = noData; return; }
+
+    wrap.innerHTML = `
+        <p class="st-block-desc">${bracketDescription(s.standings, s.data, s.config, s.playoffsStarted)}</p>
+        ${generateBracket(s.standings, s.data, s.config, s.playoffsStarted)}`;
 }
 
 /* ============================================================

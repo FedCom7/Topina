@@ -1758,13 +1758,18 @@ img {
     padding: 80px 24px;
     color: var(--text-muted);
     gap: 16px;
+    /* Se il contenitore è una grid (matchup-grid, draft-grid, teams-index…)
+       lo spinner occuperebbe una sola cella: così resta sempre centrato. */
+    grid-column: 1 / -1;
+    width: 100%;
+    text-align: center;
 }
 
 .spinner {
     width: 32px;
     height: 32px;
     border: 3px solid var(--border-card);
-    border-top-color: var(--accent-blue);
+    border-top-color: var(--accent-red);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -3891,13 +3896,6 @@ img {
     text-align: center;
 }
 
-.stats-summary .loading-state {
-    grid-column: 1 / -1;
-}
-
-.stats-summary .spinner {
-    border-top-color: var(--accent-red);
-}
 
 .summary-stat {
     animation: fadeUp 0.5s var(--ease) both;
