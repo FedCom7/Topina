@@ -19,7 +19,7 @@ import { TEAMS } from './team.js?v=14';
 import { getHonorsBundle } from '../data/honors.js?v=4';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=6';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=4';
-import { initPlayerModal } from '../components/player-modal.js?v=12';
+import { initPlayerModal } from '../components/player-modal.js?v=15';
 import { playerImageService } from '../services/player-image-service.js?v=5';
 import { pickSeeded } from '../data/magazine-voices.js?v=7';
 import {

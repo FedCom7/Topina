@@ -281,11 +281,14 @@ function calculateStats(allSeasons) {
                                 playerSeasonStats[key] = Object.fromEntries(STAT_CATS.map(c => [c.key, 0]));
                             }
                             if (!playerCareerStats[p.name]) {
-                                playerCareerStats[p.name] = { ...Object.fromEntries(STAT_CATS.map(c => [c.key, 0])), team: teamName };
+                                playerCareerStats[p.name] = { ...Object.fromEntries(STAT_CATS.map(c => [c.key, 0])), team: teamName, pos: '' };
                             }
                             const car = playerCareerStats[p.name];
                             const acc = playerSeasonStats[key];
                             car.team = teamName;
+                            // `position` è lo slot (BN, W/R, RES…): il ruolo vero è position_in_team
+                            const truePos = (p.position_in_team || '').toUpperCase();
+                            if (truePos) car.pos = truePos;
 
                             STAT_CATS.forEach(c => {
                                 const val = c.extract(p);
@@ -414,25 +417,43 @@ function calculateStats(allSeasons) {
         });
     });
 
-    // Top 5 all-time (career) per le leaderboard QB/RB/WR/TD
-    const top5Of = (key) => Object.entries(playerCareerStats)
-        .map(([player, c]) => ({ player, team: c.team, value: c[key] }))
+    // Top 5 all-time (career). `pos` filtra per ruolo (TE, K, punti per ruolo);
+    // `valueFn` permette totali derivati (es. TD complessivi).
+    const top5By = ({ key, pos, valueFn } = {}) => Object.entries(playerCareerStats)
+        .filter(([, c]) => !pos || c.pos === pos)
+        .map(([player, c]) => ({
+            player, team: c.team,
+            value: valueFn ? valueFn(c) : c[key],
+        }))
         .filter(r => r.value > 0)
         .sort((a, b) => b.value - a.value)
         .slice(0, 5);
+
+    const allTd = (c) => c.rushTd + c.passTd + c.recTd + c.defTd;
+
     const top5 = {
-        passYds: top5Of('passYds'),
-        rushYds: top5Of('rushYds'),
-        recYds: top5Of('recYds'),
-        passTd: top5Of('passTd'),
-        rushTd: top5Of('rushTd'),
-        recTd: top5Of('recTd'),
-        defTd: top5Of('defTd'),
-        totalTd: Object.entries(playerCareerStats)
-            .map(([player, c]) => ({ player, team: c.team, value: c.rushTd + c.passTd + c.recTd + c.defTd }))
-            .filter(r => r.value > 0)
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5),
+        passYds: top5By({ key: 'passYds' }),
+        rushYds: top5By({ key: 'rushYds' }),
+        recYds: top5By({ key: 'recYds' }),
+        passTd: top5By({ key: 'passTd' }),
+        rushTd: top5By({ key: 'rushTd' }),
+        recTd: top5By({ key: 'recTd' }),
+        defTd: top5By({ key: 'defTd' }),
+        totalTd: top5By({ valueFn: allTd }),
+
+        // Tight end e kicker
+        teRecYds: top5By({ key: 'recYds', pos: 'TE' }),
+        teRecTd: top5By({ key: 'recTd', pos: 'TE' }),
+        kFg: top5By({ key: 'fgMade', pos: 'K' }),
+        kPat: top5By({ key: 'patMade', pos: 'K' }),
+
+        // Punti fantasy di carriera, per ruolo
+        ptsQB: top5By({ key: 'pts', pos: 'QB' }),
+        ptsRB: top5By({ key: 'pts', pos: 'RB' }),
+        ptsWR: top5By({ key: 'pts', pos: 'WR' }),
+        ptsTE: top5By({ key: 'pts', pos: 'TE' }),
+        ptsK: top5By({ key: 'pts', pos: 'K' }),
+        ptsDEF: top5By({ key: 'pts', pos: 'DEF' }),
     };
 
     return {
@@ -597,13 +618,29 @@ function renderRecords(stats) {
             ${leaderPanel('Passing Yards — QB', stats.top5.passYds)}
             ${leaderPanel('Rushing Yards — RB', stats.top5.rushYds)}
             ${leaderPanel('Receiving Yards — WR', stats.top5.recYds)}
-            ${leaderPanel('Total TDs', stats.top5.totalTd)}
+            ${leaderPanel('Receiving Yards — TE', stats.top5.teRecYds)}
         </div>
         <div class="st-leader-grid">
             ${leaderPanel('Passing TDs', stats.top5.passTd)}
             ${leaderPanel('Rushing TDs', stats.top5.rushTd)}
             ${leaderPanel('Receiving TDs', stats.top5.recTd)}
+            ${leaderPanel('Receiving TDs — TE', stats.top5.teRecTd)}
+        </div>
+        <div class="st-leader-grid">
+            ${leaderPanel('Total TDs', stats.top5.totalTd)}
             ${leaderPanel('Defensive TDs', stats.top5.defTd)}
+            ${leaderPanel('Field Goals — K', stats.top5.kFg)}
+            ${leaderPanel('Extra Points — K', stats.top5.kPat)}
+        </div>
+
+        <h3 class="an-sub-title st-leader-sub">Punti Fantasy di Carriera per Ruolo</h3>
+        <div class="st-leader-grid st-leader-grid--3">
+            ${leaderPanel('QB', stats.top5.ptsQB, 1)}
+            ${leaderPanel('RB', stats.top5.ptsRB, 1)}
+            ${leaderPanel('WR', stats.top5.ptsWR, 1)}
+            ${leaderPanel('TE', stats.top5.ptsTE, 1)}
+            ${leaderPanel('K', stats.top5.ptsK, 1)}
+            ${leaderPanel('DEF', stats.top5.ptsDEF, 1)}
         </div>
     `;
 
@@ -619,8 +656,11 @@ function recordTile(value, label, holder) {
     </div>`;
 }
 
-function leaderPanel(title, rows) {
+function leaderPanel(title, rows, decimals = 0) {
     if (!rows.length) return `<div class="st-leader-panel"><div class="st-leader-panel-title">${title}</div></div>`;
+    const fmtVal = (v) => v.toLocaleString('en-US', {
+        minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+    });
     return `
     <div class="st-leader-panel">
         <div class="st-leader-panel-title">${title}</div>
@@ -628,7 +668,7 @@ function leaderPanel(title, rows) {
         <div class="st-leader-row${i === 0 ? ' st-leader-row--top' : ''}">
             <span class="st-leader-rank">${i + 1}</span>
             <span class="st-leader-name">${r.player}<span class="st-leader-team">${displayName(r.team)}</span></span>
-            <span class="st-leader-value">${Math.round(r.value).toLocaleString('en-US')}</span>
+            <span class="st-leader-value">${fmtVal(r.value)}</span>
         </div>`).join('')}
     </div>`;
 }

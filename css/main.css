@@ -209,6 +209,11 @@ img {
     height: calc(var(--nav-height) + 56px);
 }
 
+/* Secondo livello del menu mobile (drill-down). Su desktop non esiste. */
+.nav-l2 {
+    display: none;
+}
+
 /* Full-width panel, sits below the nav-inner row */
 .nav-dropdown-panel {
     position: absolute;
@@ -1816,36 +1821,157 @@ img {
    ================================ */
 
 @media (max-width: 768px) {
-    .nav-links {
-        display: none;
+    /* Le due schermate del drill-down occupano la stessa area, sotto la navbar */
+    .nav-links,
+    .nav-l2 {
         position: absolute;
         top: var(--nav-height);
         left: 0;
         right: 0;
         flex-direction: column;
-        background: rgba(6, 8, 15, 0.95);
+        background: rgba(6, 8, 15, 0.97);
         backdrop-filter: blur(var(--blur-lg));
         -webkit-backdrop-filter: blur(var(--blur-lg));
         border-bottom: 1px solid var(--border-subtle);
         padding: 12px;
         gap: 2px;
+        max-height: calc(100vh - var(--nav-height));
+        overflow-y: auto;
+        transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+    }
+
+    .nav-links {
+        display: none;
     }
 
     .nav-links.open {
         display: flex;
     }
 
+    /* .navbar è alta --nav-height con overflow:hidden, mentre il menu è
+       posizionato SOTTO (top: --nav-height): senza questo verrebbe ritagliato
+       via e il tap sull'hamburger sembrerebbe non fare nulla. */
+    .navbar:has(.nav-links.open) {
+        height: auto;
+        overflow: visible;
+    }
+
     .nav-hamburger {
         display: flex;
     }
 
-    /* Dropdown panel nascosto su mobile (il menu hamburger ha già le voci) */
+    /* Il pannello hover non serve su mobile: le sue voci finiscono nel
+       secondo livello del drill-down, costruito da navbar.js. */
     .nav-dropdown-panel {
         display: none;
     }
 
     .navbar.dropdown-active {
         height: var(--nav-height);
+    }
+
+    /* Livello 1 → esce a sinistra quando si scende nel livello 2 */
+    .navbar.l2-open .nav-links {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(-16px);
+        pointer-events: none;
+    }
+
+    /* Livello 2 → entra da destra. Niente translate fuori schermo:
+       eviterebbe il taglio ma creerebbe scroll orizzontale sul body. */
+    .nav-l2 {
+        display: flex;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(16px);
+        pointer-events: none;
+    }
+
+    .navbar.l2-open .nav-l2 {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        pointer-events: auto;
+    }
+
+    /* Le categorie mostrano che c'è un livello sotto */
+    .nav-item.has-dropdown > .nav-link::after {
+        content: '›';
+        float: right;
+        font-size: 1.15em;
+        line-height: 1;
+        color: var(--text-muted);
+    }
+
+    .nav-l2-back {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 12px;
+        margin-bottom: 2px;
+        background: none;
+        border: none;
+        border-radius: var(--radius-sm, 8px);
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        align-self: flex-start;
+    }
+
+    .nav-l2-back:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-l2-back-icon {
+        font-size: 1.25em;
+        line-height: 1;
+    }
+
+    .nav-l2-title {
+        padding: 0 12px 8px;
+        font-family: var(--font-display);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--accent-red);
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 6px;
+    }
+
+    .nav-l2-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .nav-l2-link {
+        display: block;
+        padding: 13px 12px;
+        border-radius: var(--radius-sm, 8px);
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: color var(--dur-fast, 0.2s) var(--ease),
+                    background var(--dur-fast, 0.2s) var(--ease);
+    }
+
+    .nav-l2-link--header {
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .nav-l2-link:hover,
+    .nav-l2-link:focus-visible {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.06);
     }
 
     .hero-title {
@@ -4002,6 +4128,16 @@ img {
     margin-top: 20px;
 }
 
+/* 6 pannelli (punti per ruolo): 3+3 invece di 4+2 spaiato */
+.st-leader-grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.st-leader-sub {
+    margin-top: 40px;
+    text-align: center;
+}
+
 .st-leader-panel {
     background: var(--bg-primary);
     border: 1px solid var(--border-subtle);
@@ -5188,6 +5324,10 @@ img {
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
     line-height: 1.1;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .mc-num-label {
@@ -5386,6 +5526,130 @@ img {
     color: var(--text-muted);
 }
 
+/* ── Reskin visual: watermark, sfondi, avatar, seed ── */
+
+/* Logo team gigante in filigrana dentro la card (stile .teams-card-watermark) */
+.mc-watermark {
+    position: absolute;
+    right: -6%;
+    top: 50%;
+    height: 135%;
+    transform: translateY(-50%) rotate(-6deg);
+    opacity: 0.06;
+    filter: drop-shadow(0 0 40px var(--team-color, var(--accent-red)));
+    pointer-events: none;
+    transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+}
+
+.mosaic-card:hover .mc-watermark {
+    opacity: 0.11;
+    transform: translateY(-50%) rotate(-3deg) scale(1.04);
+}
+
+/* I contenuti stanno sopra watermark e sfondo */
+.mosaic-card > .mc-kicker,
+.mosaic-card > .mc-title,
+.mosaic-card > .mc-body,
+.mosaic-card > .mc-cta {
+    position: relative;
+    z-index: 1;
+}
+
+/* Sfondo fotografico (Super Bowl: stadio della finale) */
+.mc-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.mc-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.22;
+}
+
+.mc-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.85));
+}
+
+/* Avatar giocatore tondo (headshot ESPN, fallback SVG) */
+.mc-avatar {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+}
+
+.mc-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.mc-avatar--gold {
+    border: 1.5px solid var(--accent-amber);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-amber) 35%, transparent);
+}
+
+.mc-avatar--rail {
+    width: 58px;
+    height: 58px;
+    margin: 6px 0 2px;
+}
+
+/* Riga con filetto nel colore del team */
+.mc-row--tinted {
+    border-left: 2px solid color-mix(in srgb, var(--team-color, var(--accent-red)) 60%, transparent);
+    padding-left: 10px;
+}
+
+/* Score row con gradienti nei colori delle due squadre */
+.mc-score-row--vs {
+    --w1-mix: 12%;
+    --w2-mix: 12%;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--t1, transparent) var(--w1-mix), transparent),
+        transparent 35% 65%,
+        color-mix(in srgb, var(--t2, transparent) var(--w2-mix), transparent));
+    border-radius: 10px;
+    border-bottom: none;
+    margin-bottom: 6px;
+    padding: 11px 12px;
+}
+
+.mc-score-row--vs.mc-score-row--w1 { --w1-mix: 24%; }
+.mc-score-row--vs.mc-score-row--w2 { --w2-mix: 24%; }
+
+/* Seed gigante in outline (mini .st-rank-number) per la classifica */
+.mc-seed {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 2.4rem;
+    line-height: 1;
+    width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+    color: transparent;
+    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--team-color, var(--accent-red)) 80%, white);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Punti compatti accanto all'avatar nelle rail */
+.mc-rail-big--sm {
+    font-size: 1.3rem;
+    margin: 0;
+}
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
     .mosaic {
@@ -5402,6 +5666,16 @@ img {
 
     .mc-rail-card {
         flex-basis: 172px;
+    }
+
+    .mc-avatar--rail {
+        width: 48px;
+        height: 48px;
+    }
+
+    .mc-seed {
+        font-size: 1.9rem;
+        width: 34px;
     }
 
     .honors-card--mvp {
@@ -8072,6 +8346,31 @@ body.pm-open { overflow: hidden; }
     background: var(--surface-card);
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
     animation: pm-rise var(--dur-med) var(--ease);
+    /* Scrollbar scura quando la scheda è più alta del viewport:
+       quella di default del browser stonerebbe sul fondo nero. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.pm-dialog::-webkit-scrollbar {
+    width: 10px;
+}
+
+.pm-dialog::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pm-dialog::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    /* il bordo trasparente stacca il thumb dal bordo del dialog */
+    border: 3px solid transparent;
+    background-clip: content-box;
+}
+
+.pm-dialog::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+    background-clip: content-box;
 }
 
 .pm-dialog::before {
@@ -8588,6 +8887,97 @@ body.pm-open { overflow: hidden; }
 /* ============================================================
    PAGINA GIOCATORE COMPLETA (#player/{year}/{pos}/{nome})
    ============================================================ */
+
+/* Blocco "Questa partita" — scheda aperta dal Game Center */
+.pm-game-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pm-game-pts {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--team-color, var(--accent-red));
+    font-variant-numeric: tabular-nums;
+}
+
+.pm-game-pts small {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+.pm-game-meta {
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.pm-game-status {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.pm-game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 1px;
+    margin-top: 4px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.pm-game-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px;
+    background: var(--bg-primary);
+}
+
+.pm-game-cell-val {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.pm-game-cell-lbl {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.pm-game-empty {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Slot cliccabili nel campo del Game Center */
+.formation-slot[data-player-modal] {
+    cursor: pointer;
+    transition: transform 0.15s var(--ease), filter 0.15s var(--ease);
+}
+
+.formation-slot[data-player-modal]:hover {
+    transform: translateY(-2px) scale(1.04);
+    filter: brightness(1.15);
+}
 
 /* Link nel modal verso la pagina completa */
 .pm-fullstats {

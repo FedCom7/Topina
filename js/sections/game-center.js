@@ -1,6 +1,7 @@
 import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=22';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=22';
 import { TEAMS } from './team.js?v=14';
+import { initPlayerModal } from '../components/player-modal.js?v=15';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -28,6 +29,7 @@ function getFieldImage(team1Name, team2Name) {
 export async function initGameCenter() {
     if (loaded) return;
     loaded = true;
+    initPlayerModal();
     renderYearSelector();
     await loadYear(CURRENT_SEASON);
 }
@@ -198,9 +200,37 @@ function renderDefK(team, side) {
 function specialSlot(p, side, type) {
     // type is 'DEF' or 'K'
     // side is 'left' or 'right'
-    return `<div class="formation-slot special-slot ${side}-${type.toLowerCase()}">
+    return `<div class="formation-slot special-slot ${side}-${type.toLowerCase()}" ${modalAttrs(p)}>
         ${slotContent(p)}
     </div>`;
+}
+
+/**
+ * Attributi per aprire la scheda giocatore sul click, col contesto della
+ * partita mostrata (punti, avversario, esito, stats): il modal ci costruisce
+ * il blocco "Questa partita".
+ */
+function modalAttrs(p, isBench = false) {
+    const game = {
+        pts: parseFloat(p.fantasy_points) || 0,
+        opponent: p.opponent || '',
+        status: p.status || '',
+        week: currentWeek,
+        year: currentYear,
+        started: !isBench,
+        stats: p.stats || {},
+    };
+    const payload = encodeURIComponent(JSON.stringify(game));
+    return `data-player-modal
+             data-player-name="${escAttr(p.name)}"
+             data-pos="${escAttr((p.position || '').toUpperCase())}"
+             data-nfl="${escAttr(p.nfl_team || '')}"
+             data-year="${currentYear}"
+             data-game="${payload}"`;
+}
+
+function escAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
 function slotContent(p) {
@@ -272,7 +302,7 @@ function olineSlot() {
 
 function slotCard(p, isBench = false) {
     if (!p) return '';
-    return `<div class="formation-slot${isBench ? ' bench-slot' : ''}">
+    return `<div class="formation-slot${isBench ? ' bench-slot' : ''}" ${modalAttrs(p, isBench)}>
         ${slotContent(p)}
     </div>`;
 }

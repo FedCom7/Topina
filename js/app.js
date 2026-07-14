@@ -1,14 +1,14 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=27';
-import { initGameCenter } from './sections/game-center.js?v=31';
+import { initHome } from './sections/home.js?v=28';
+import { initGameCenter } from './sections/game-center.js?v=32';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=34';
 import { initDraft } from './sections/draft.js?v=33';
 import { initDraftGrades } from './sections/draftgrades.js?v=16';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=14';
 import { initPlayerPage } from './sections/player-page.js?v=11';
-import { initStats } from './sections/stats.js?v=46';
+import { initStats } from './sections/stats.js?v=48';
 import { initHistory } from './sections/history.js?v=24';
 import { initHonors } from './sections/honors.js?v=4';
 import { initAllPro } from './sections/allpro.js?v=3';
@@ -18,7 +18,7 @@ import { initTeams } from './sections/teams.js?v=3';
 import { initGame } from './sections/game.js?v=4';
 import { initAnalysis } from './sections/analysis.js?v=17';
 import { initMagazine } from './sections/magazine.js?v=17';
-import { initNavbar } from './ui/navbar.js';
+import { initNavbar } from './ui/navbar.js?v=3';
 
 const SECTIONS = {
     'home': initHome,

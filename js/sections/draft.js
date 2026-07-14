@@ -6,7 +6,7 @@ import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } fr
 import { TEAM_KEYS } from '../data/team-config.js?v=22';
 import { TEAMS } from './team.js?v=14';
 import { playerImageService } from '../services/player-image-service.js?v=5';
-import { initPlayerModal } from '../components/player-modal.js?v=12';
+import { initPlayerModal } from '../components/player-modal.js?v=15';
 import { db } from '../firebase-config.js';
 
 let loaded = false;

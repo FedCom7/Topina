@@ -21,6 +21,7 @@ import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=2';
 import { getHonorsBundle } from '../data/honors.js?v=4';
 import { TEAMS } from './team.js?v=14';
 import { teamsCardsHTML } from './teams.js?v=3';
+import { playerImageService } from '../services/player-image-service.js?v=5';
 
 let initialized = false;
 
@@ -48,6 +49,7 @@ export async function initHome() {
 
         wrap.innerHTML = `<div class="mosaic">${cards.join('')}</div>`;
         initScrollFX(wrap);
+        hydrateHeadshots(wrap); // fire-and-forget: il mosaico dipinge subito coi fallback
     } catch (e) {
         console.error('Home load error:', e);
         wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Impossibile caricare i dati della lega</p></div>`;
@@ -128,11 +130,22 @@ const MOSAIC = {
 
 // ─── Scaffolding card ────────────────────────────────────────────
 
-/** Card standard del mosaico. span: 'hero' | 'wide' | 'half' */
-function card({ span = 'half', glow, kicker, title, body, cta, href, cls = '', parallax = false }) {
+/**
+ * Card standard del mosaico. span: 'hero' | 'wide' | 'half'
+ * watermarkKey: logo team in filigrana dietro il contenuto.
+ * bg: immagine di sfondo a piena card (con overlay scuro per leggibilità).
+ */
+function card({ span = 'half', glow, kicker, title, body, cta, href, cls = '', parallax = false, watermarkKey, bg }) {
+    const wm = watermarkKey && TEAMS[watermarkKey];
+    const styles = [
+        glow ? `--card-glow:${glow}` : '',
+        wm ? `--team-color:${wm.color}` : '',
+    ].filter(Boolean).join(';');
     return `
     <article class="mosaic-card mc-${span} ${cls}" ${parallax ? 'data-parallax' : ''}
-             ${glow ? `style="--card-glow:${glow}"` : ''}>
+             ${styles ? `style="${styles}"` : ''}>
+        ${bg ? `<div class="mc-bg"><img src="${bg}" alt="" aria-hidden="true" onerror="this.parentElement.remove()"></div>` : ''}
+        ${wm ? `<img class="mc-watermark" src="${wm.logo}" alt="" aria-hidden="true" onerror="this.remove()">` : ''}
         ${kicker ? `<span class="mc-kicker">${kicker}</span>` : ''}
         ${title ? `<h2 class="mc-title">${title}</h2>` : ''}
         <div class="mc-body">${body}</div>
@@ -173,6 +186,29 @@ function teamChip(key) {
 
 function keyOf(rawName) {
     return TEAM_KEY_LIST.find(k => TEAMS[k].name === displayName(rawName)) || null;
+}
+
+/**
+ * Avatar tondo del giocatore. Rende subito il fallback SVG; la foto vera
+ * arriva dopo, via hydrateHeadshots. ring: '' | 'mc-avatar--gold' | 'mc-avatar--rail'…
+ */
+function playerAvatar(name, nfl, pos, year, ring = '') {
+    return `<span class="mc-avatar ${ring}">
+        <img src="images/fallback-player.svg" alt="" loading="lazy"
+             data-headshot data-player-name="${name}" data-team="${nfl || ''}"
+             data-pos="${pos || ''}" data-year="${year || ''}"></span>`;
+}
+
+/** Sostituisce i fallback con gli headshot ESPN, senza mai bloccare il render. */
+function hydrateHeadshots(wrap) {
+    wrap.querySelectorAll('img[data-headshot]').forEach(img => {
+        img.onerror = () => {
+            if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg';
+        };
+        playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, img.dataset.pos, img.dataset.year)
+            .then(url => { if (url) img.src = url; })
+            .catch(() => { /* resta il fallback */ });
+    });
 }
 
 // ─── Card comuni ─────────────────────────────────────────────────
@@ -236,7 +272,7 @@ function cardChampion({ season, league }) {
     const t = TEAMS[key];
     const titles = league.allTime[key]?.sbWins.length || 1;
     return card({
-        glow: t.color, parallax: true,
+        glow: t.color, parallax: true, watermarkKey: key,
         kicker: `Super Bowl · Stagione ${season.year}`,
         title: `${t.name} sul trono`,
         body: `
@@ -286,8 +322,9 @@ function cardAllPro({ bundle, season }) {
         .filter(s => ['QB', 'RB', 'WR'].includes(s.slot) && s.player)
         .slice(0, 3)
         .map(({ slot, player }) => `
-        <div class="mc-row">
+        <div class="mc-row mc-row--tinted" style="--team-color:${TEAMS[player.teamKey]?.color || 'var(--accent-red)'}">
             <span class="allpro-pos pos-${slot.toLowerCase()}">${slot}</span>
+            ${playerAvatar(player.name, player.nfl, player.pos, season.year)}
             <span class="mc-row-name">${player.name}</span>
             <span class="mc-row-value">${fmtPts(player.total)} pt</span>
         </div>`).join('');
@@ -323,8 +360,10 @@ function cardLastWeek({ season, phase }) {
         const g = season.perTeam[key]?.games.find(x => x.week === phase.week);
         if (!g || !g.opp) return;
         seen.add(key); seen.add(g.opp);
+        const winSide = g.won ? 'mc-score-row--w1' : 'mc-score-row--w2';
         rows.push(`
-        <div class="mc-score-row">
+        <div class="mc-score-row mc-score-row--vs ${winSide}"
+             style="--t1:${TEAMS[key]?.color || 'transparent'};--t2:${TEAMS[g.opp]?.color || 'transparent'}">
             ${teamChip(key)}
             <span class="mc-score"><b class="${g.won ? 'w' : ''}">${fmtScore(g.pts)}</b> – <b class="${!g.won ? 'w' : ''}">${fmtScore(g.oppPts)}</b></span>
             ${teamChip(g.opp)}
@@ -342,14 +381,16 @@ function cardLastWeek({ season, phase }) {
 function cardStandings({ season }) {
     const rows = season.standings.slice(0, 4).map((s, i) => {
         const key = keyOf(s.name);
+        const color = key ? TEAMS[key].color : 'var(--accent-red)';
         return `
-        <div class="mc-row">
-            <span class="mc-rank">${i + 1}</span>
+        <div class="mc-row" style="--team-color:${color}">
+            <span class="mc-seed">${i + 1}</span>
             ${key ? teamChip(key) : displayName(s.name)}
             <span class="mc-row-value">${s.w}–${s.l}${s.t ? `–${s.t}` : ''}</span>
         </div>`;
     }).join('');
     return card({
+        watermarkKey: keyOf(season.standings[0]?.name),
         kicker: `Stagione ${season.year}`,
         title: 'La corsa ai playoff',
         body: `<div class="mc-rows">${rows}</div>`,
@@ -365,8 +406,9 @@ function cardMvpRace({ bundle, season }) {
         .slice(0, 3);
     if (!race.length) return '';
     const rows = race.map((p, i) => `
-        <div class="mc-row">
+        <div class="mc-row mc-row--tinted" style="--team-color:${TEAMS[p.teamKey]?.color || 'var(--accent-red)'}">
             <span class="mc-rank">${i + 1}</span>
+            ${playerAvatar(p.name, p.nfl, p.pos, season.year, i === 0 ? 'mc-avatar--gold' : '')}
             <span class="mc-row-name">${p.name} <small>${p.pos}</small></span>
             <span class="mc-row-value">${fmtPts(p.total)} pt</span>
         </div>`).join('');
@@ -386,8 +428,14 @@ async function cardPlayoffs({ season }) {
         const key = keyOf(t.name);
         return key ? teamChip(key) : displayName(t.name);
     };
-    const pair = (a, b) => `
-        <div class="mc-score-row">${side(a)}<span class="mc-score">vs</span>${side(b)}</div>`;
+    const pair = (a, b) => {
+        const c1 = TEAMS[keyOf(a.name)]?.color || 'transparent';
+        const c2 = TEAMS[keyOf(b.name)]?.color || 'transparent';
+        return `
+        <div class="mc-score-row mc-score-row--vs" style="--t1:${c1};--t2:${c2}">
+            ${side(a)}<span class="mc-score">vs</span>${side(b)}
+        </div>`;
+    };
     const body = matchups?.length
         ? matchups.map(m => pair(m.team1, m.team2)).join('')
         : (s.length >= 4 ? pair(s[0], s[3]) + pair(s[1], s[2]) : '');
@@ -419,8 +467,11 @@ async function cardSuperBowl({ season }) {
             <span>${displayName(t.name)}</span>
         </div>`;
     };
+    // Sfondo: lo stadio della finale (coppie in ordine alfabetico), fallback generico
+    const k1 = keyOf(t1.name), k2 = keyOf(t2.name);
+    const bg = k1 && k2 ? `Wallpapers/sb_${[k1, k2].sort().join('_')}.png` : 'Wallpapers/stadium_bg.png';
     return card({
-        span: 'wide', cls: 'mc-center', parallax: true,
+        span: 'wide', cls: 'mc-center', parallax: true, bg,
         kicker: `Super Bowl · Stagione ${season.year}`,
         title: 'Tutto in una notte',
         body: `<div class="mc-sb">${chip(t1)}<span class="mc-sb-vs">VS</span>${chip(t2)}</div>`,
@@ -465,13 +516,15 @@ async function railTopPerformances({ season, phase }) {
             name: p.name,
             pos: (p.position_in_team || p.position || '').toUpperCase(),
             pts: parseFloat(p.fantasy_points) || 0,
+            nfl: p.nfl_team || '',
             key,
         }));
     }));
     const cards = perf.sort((a, b) => b.pts - a.pts).slice(0, 8).map(p => railCard({
         glow: TEAMS[p.key]?.color,
         top: `${p.pos}${TEAMS[p.key] ? ` · ${TEAMS[p.key].name}` : ''}`,
-        media: `<span class="mc-rail-big">${fmtPts(p.pts)}</span>`,
+        media: playerAvatar(p.name, p.nfl, p.pos, season.year, 'mc-avatar--rail')
+            + `<span class="mc-rail-big mc-rail-big--sm">${fmtPts(p.pts)}</span>`,
         title: p.name,
         sub: 'punti fantasy',
     }));
@@ -483,7 +536,7 @@ async function railTopPerformances({ season, phase }) {
     });
 }
 
-function railMvpRace({ bundle }) {
+function railMvpRace({ bundle, season }) {
     if (!bundle) return '';
     const cards = Object.values(bundle.players)
         .filter(p => p.pos !== 'DEF')
@@ -492,7 +545,8 @@ function railMvpRace({ bundle }) {
         .map((p, i) => railCard({
             glow: TEAMS[p.teamKey]?.color,
             top: `#${i + 1} · ${p.pos}`,
-            media: `<span class="mc-rail-big">${fmtPts(p.total)}</span>`,
+            media: playerAvatar(p.name, p.nfl, p.pos, season?.year, `mc-avatar--rail${i === 0 ? ' mc-avatar--gold' : ''}`)
+                + `<span class="mc-rail-big mc-rail-big--sm">${fmtPts(p.total)}</span>`,
             title: p.name,
             sub: 'punti in stagione',
         }));
@@ -504,17 +558,24 @@ function railMvpRace({ bundle }) {
     });
 }
 
-function railHonors({ bundle }) {
+function railHonors({ bundle, season }) {
     if (!bundle?.revealed) return '';
     const cards = bundle.awards
         .filter(a => a.winner)
-        .map(a => railCard({
-            glow: TEAMS[a.winner.teamKey]?.color,
-            top: a.name,
-            media: a.abbr ? `<span class="mc-rail-abbr">${a.abbr}</span>` : '',
-            title: a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name,
-            sub: a.kind === 'player' && a.winner.pos ? `${a.winner.pos} · ${fmtPts(a.winner.total)} pt` : '',
-        }));
+        .map(a => {
+            const isCoach = a.kind === 'coach';
+            const team = TEAMS[a.winner.teamKey];
+            const media = isCoach
+                ? (team ? `<img class="mc-rail-logo" src="${team.logo}" alt="" onerror="this.style.display='none'">` : '')
+                : playerAvatar(a.winner.name, a.winner.nfl, a.winner.pos, season?.year, 'mc-avatar--rail mc-avatar--gold');
+            return railCard({
+                glow: team?.color,
+                top: a.abbr ? `${a.abbr} · ${a.name}` : a.name,
+                media,
+                title: isCoach ? (team?.name || '—') : a.winner.name,
+                sub: a.kind === 'player' && a.winner.pos ? `${a.winner.pos} · ${fmtPts(a.winner.total)} pt` : '',
+            });
+        });
     return rail({
         kicker: 'Topina Honors',
         title: 'I premiati',

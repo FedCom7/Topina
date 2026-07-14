@@ -37,12 +37,24 @@ export function initPlayerModal() {
     if (_wired) return;
     _wired = true;
 
+    // Flag sul document, non solo sul modulo: se una copia stale del modulo
+    // resta viva in cache, il suo listener non registra un secondo handler.
+    if (document.documentElement.dataset.pmWired) return;
+    document.documentElement.dataset.pmWired = '1';
+
     document.addEventListener('click', (e) => {
         const el = e.target.closest('[data-player-modal]');
         if (!el) return;
-        const { playerName, pos, nfl, year } = el.dataset;
+        const { playerName, pos, nfl, year, game } = el.dataset;
         if (!playerName) return;
-        openPlayerModal({ name: playerName, pos: pos || '', nfl: nfl || '', year: year || '' });
+
+        // Contesto partita opzionale (Game Center): stats della singola gara
+        let gameCtx = null;
+        if (game) {
+            try { gameCtx = JSON.parse(decodeURIComponent(game)); }
+            catch { /* payload malformato: si apre la scheda senza il blocco partita */ }
+        }
+        openPlayerModal({ name: playerName, pos: pos || '', nfl: nfl || '', year: year || '', game: gameCtx });
     });
 
     document.addEventListener('keydown', (e) => {
@@ -51,7 +63,17 @@ export function initPlayerModal() {
 }
 
 function ensureDom() {
-    if (_overlay) return _overlay;
+    if (_overlay?.isConnected) return _overlay;
+
+    // Se un overlay esiste già nel DOM lo riusiamo: così anche con due istanze
+    // del modulo vive insieme (copia stale in cache del browser) resta una sola
+    // scheda a schermo, invece di due sovrapposte.
+    const existing = document.querySelector('.pm-overlay');
+    if (existing) {
+        _overlay = existing;
+        return _overlay;
+    }
+
     _overlay = document.createElement('div');
     _overlay.className = 'pm-overlay';
     _overlay.hidden = true;
@@ -77,7 +99,7 @@ export function closePlayerModal() {
 
 // ─── Apertura e caricamento ──────────────────────────────────────
 
-export async function openPlayerModal({ name, pos, nfl, year }) {
+export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
     const overlay = ensureDom();
     const dialog = overlay.querySelector('.pm-dialog');
     const content = overlay.querySelector('.pm-content');
@@ -89,9 +111,10 @@ export async function openPlayerModal({ name, pos, nfl, year }) {
 
     const cacheKey = `${normName(name)}|${pos}`;
     if (_cache.has(cacheKey)) {
-        const { html, color } = _cache.get(cacheKey);
+        const { html, color, career, awards } = _cache.get(cacheKey);
         dialog.style.setProperty('--team-color', color || '');
         content.innerHTML = html;
+        appendContextBlocks(content, { game, pos, career, awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
         return;
@@ -108,11 +131,12 @@ export async function openPlayerModal({ name, pos, nfl, year }) {
     hydrateHeadshot(content, name, nfl, pos, year);
 
     try {
-        const { html, color } = await buildCard({ name, pos, nfl, year });
+        const built = await buildCard({ name, pos, nfl, year });
         if (token !== _openToken) return; // nel frattempo è stata aperta un'altra scheda
-        _cache.set(cacheKey, { html, color });
-        dialog.style.setProperty('--team-color', color || '');
-        content.innerHTML = html;
+        _cache.set(cacheKey, built);
+        dialog.style.setProperty('--team-color', built.color || '');
+        content.innerHTML = built.html;
+        appendContextBlocks(content, { game, pos, career: built.career, awards: built.awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
     } catch (e) {
@@ -123,6 +147,97 @@ export async function openPlayerModal({ name, pos, nfl, year }) {
                 className: 'pm-error', textContent: 'Errore nel caricamento della scheda.',
             }));
     }
+}
+
+/**
+ * Blocchi che dipendono da DA DOVE è stata aperta la scheda, quindi composti
+ * qui e non dentro buildCard (il cui HTML è cachato per giocatore e resterebbe
+ * congelato sul primo contesto):
+ *   - dal Game Center → "Questa partita" (le stats di quella singola gara)
+ *   - da ogni altra parte → la bacheca premi di carriera
+ * Sono alternativi: nel Game Center conta la partita, non la carriera.
+ */
+function appendContextBlocks(content, { game, pos, career, awards }) {
+    const html = game
+        ? gameBlockHtml(game, pos)
+        : (awards ? awardsBlock(career, awards) : '');
+    if (html) content.insertAdjacentHTML('beforeend', html);
+}
+
+/** Statistiche rilevanti della singola gara, per ruolo. */
+function gameStatCells(pos, s = {}) {
+    const n = (v) => Number(v) || 0;
+    const cell = (label, value) => ({ label, value });
+
+    switch ((pos || '').toUpperCase()) {
+        case 'QB':
+            return [
+                cell('Yd lancio', n(s.pass_yds)), cell('TD lancio', n(s.pass_td)),
+                cell('INT', n(s.pass_int)), cell('Yd corsa', n(s.rush_yds)),
+                cell('TD corsa', n(s.rush_td)),
+            ];
+        case 'RB':
+            return [
+                cell('Yd corsa', n(s.rush_yds)), cell('TD corsa', n(s.rush_td)),
+                cell('Ricezioni', n(s.rec)), cell('Yd ricezione', n(s.rec_yds)),
+                cell('TD ricezione', n(s.rec_td)),
+            ];
+        case 'WR':
+        case 'TE':
+        case 'W/R':
+            return [
+                cell('Ricezioni', n(s.rec)), cell('Yd ricezione', n(s.rec_yds)),
+                cell('TD ricezione', n(s.rec_td)), cell('Yd corsa', n(s.rush_yds)),
+            ];
+        case 'K': {
+            const fg = n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus);
+            return [
+                cell('Field goal', fg), cell('Extra point', n(s.pat_made)),
+                cell('FG da 50+', n(s.fg_50_plus)),
+            ];
+        }
+        case 'DEF':
+            return [
+                cell('Sack', n(s.sack)), cell('Intercetti', n(s.def_int)),
+                cell('Fumble rec.', n(s.fum_rec)), cell('TD difensivi', n(s.def_td)),
+                cell('Punti subiti', n(s.pts_allow)),
+            ];
+        default:
+            return [];
+    }
+}
+
+function gameBlockHtml(game, pos) {
+    const { pts = 0, opponent = '', status = '', week, year, started, stats } = game;
+    const cells = gameStatCells(pos, stats);
+    const fumble = Number(stats?.fum_lost) || 0;
+    if (fumble) cells.push({ label: 'Fumble persi', value: fumble });
+
+    const meta = [
+        week ? `Week ${week}` : '',
+        year || '',
+        opponent ? `vs ${opponent}` : '',
+        started ? 'Titolare' : 'Panchina',
+    ].filter(Boolean).join(' · ');
+
+    const grid = cells.length
+        ? `<div class="pm-game-grid">${cells.map(c => `
+            <div class="pm-game-cell">
+                <span class="pm-game-cell-val">${c.value}</span>
+                <span class="pm-game-cell-lbl">${c.label}</span>
+            </div>`).join('')}</div>`
+        : '<p class="pm-game-empty">Nessuna statistica registrata per questa partita.</p>';
+
+    return `
+    <section class="pm-block pm-game">
+        <h3 class="pm-block-title">Questa partita</h3>
+        <div class="pm-game-head">
+            <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small></span>
+            <span class="pm-game-meta">${meta}</span>
+        </div>
+        ${status ? `<p class="pm-game-status">${status}</p>` : ''}
+        ${grid}
+    </section>`;
 }
 
 /**
@@ -190,6 +305,8 @@ async function buildCard({ name, pos, nfl, year }) {
     const teamKey = prevalentTeam(career);
     const color = teamKey ? TEAMS[teamKey]?.color : null;
 
+    // La bacheca premi NON entra qui: è composta per-apertura in openPlayerModal,
+    // perché dal Game Center va nascosta (lì conta la singola partita).
     const html = `
         <div class="pm-layout">
             <div class="pm-left">${paniniCard({ name, pos, nfl, info, career, hofYear })}</div>
@@ -197,10 +314,9 @@ async function buildCard({ name, pos, nfl, year }) {
                 ${bigStatsBlock(career)}
                 ${careerTableBlock(name, pos, years, byYear, career)}
             </div>
-        </div>
-        ${awardsBlock(career, awards)}`;
+        </div>`;
 
-    return { html, color };
+    return { html, color, career, awards };
 }
 
 const fmtDate = (iso) => {
