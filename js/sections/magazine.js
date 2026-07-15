@@ -21,7 +21,7 @@ import { TEAM_KEYS } from '../data/team-config.js?v=22';
 import { TEAMS } from './team.js?v=14';
 import { getLeagueData } from '../data/league-data.js?v=2';
 import { getHonorsBundle } from '../data/honors.js?v=4';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=3';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=4';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
@@ -35,7 +35,7 @@ import {
     SECONDARY_LEDE_OPENERS, SECONDARY_NO_FLOP_LINES,
     STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
     TEAMMATE_PRAISE,
-} from '../data/magazine-voices.js?v=7';
+} from '../data/magazine-voices.js?v=8';
 import { playerImageService } from '../services/player-image-service.js?v=5';
 
 let initialized = false;

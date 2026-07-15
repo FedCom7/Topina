@@ -21,11 +21,11 @@ import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/p
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=4';
 import { initPlayerModal } from '../components/player-modal.js?v=15';
 import { playerImageService } from '../services/player-image-service.js?v=5';
-import { pickSeeded } from '../data/magazine-voices.js?v=7';
+import { pickSeeded } from '../data/magazine-voices.js?v=8';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge,
-} from './draftgrades.js?v=16';
+} from './draftgrades.js?v=17';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

@@ -28,7 +28,7 @@ import { getSeasonProjections, matchProjection } from '../data/projections.js?v=
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=4';
 import { initPlayerModal } from '../components/player-modal.js?v=15';
 import { playerImageService } from '../services/player-image-service.js?v=5';
-import { pickSeeded } from '../data/magazine-voices.js?v=7';
+import { pickSeeded } from '../data/magazine-voices.js?v=8';
 import { predictSeason } from '../data/draft-predictions.js?v=3';
 
 let initialized = false;

@@ -158,18 +158,33 @@ export const MARGIN_THRILLER = [
     `Un'esecuzione al cardiopalma, decisa da appena {margin} punti: roba da controllare il punteggio col binocolo fino all'ultimo snap del lunedì notte.`,
     `Solo {margin} punti alla fine separano gioia e disperazione: una partita che ha consumato divani, unghie e amicizie.`,
     `{margin} punti di margine sono un soffio, e il soffio stavolta ha spettinato {loser} proprio sulla linea del traguardo.`,
+    `Decisa da {margin} punti scarsi: una di quelle partite che si raccontano ai nipoti, sempre che il cuore regga fino ad allora.`,
+    `Il tabellone finale dice {margin} punti di differenza, ma non racconta le dieci volte in cui {loser} ha creduto di averla vinta.`,
+    `Una moneta lanciata in aria per tre giorni e ricaduta dalla parte giusta: {margin} punti, ed è finita solo quando è finita davvero.`,
+    `Partita da ultimo respiro: {margin} punti di margine e {loser} che rigiocherà nella propria testa ogni singola scelta di formazione.`,
+    `C'è chi vince dominando e chi vince così: {margin} punti strappati con le unghie, mentre {loser} già preparava i festeggiamenti.`,
 ];
 
 export const MARGIN_BLOWOUT = [
     `Non c'è mai stata partita: {margin} punti di scarto sono una sentenza passata in giudicato, senza possibilità d'appello.`,
     `Una valanga da {margin} punti che ha travolto ogni velleità di {loser} già prima del piatto forte della domenica.`,
     `{margin} punti di differenza: più che un risultato, un manifesto programmatico affisso in ogni bacheca della lega.`,
+    `Un monologo da {margin} punti: {loser} è rimasto in campo per dovere di cronaca, non per esito in bilico.`,
+    `{margin} punti di scarto sono il tipo di distanza che non si commenta: si archivia in fretta e si cambia argomento a cena.`,
+    `Partita chiusa in fretta e riaperta mai: {margin} punti di margine e la sensazione che {loser} sia rimasto negli spogliatoi.`,
+    `Ci sono sconfitte e poi ci sono lezioni: {margin} punti di divario collocano questa serata decisamente nella seconda categoria.`,
+    `Dominio totale certificato da {margin} punti: l'unico dubbio della domenica era l'entità del passivo.`,
 ];
 
 export const MARGIN_NORMAL = [
     `Alla fine il tabellone dice {margin} punti di margine: partita vera per un tempo, poi la qualità ha presentato il conto.`,
     `{margin} punti di scarto maturati con la pazienza di chi sa aspettare il momento giusto per affondare.`,
     `Un successo da {margin} punti, costruito senza fretta e amministrato con la calma dei forti.`,
+    `{margin} punti di differenza al fischio finale: equilibrio a tratti, ma la direzione del vento non è mai stata davvero in dubbio.`,
+    `Vittoria solida da {margin} punti: niente fuochi d'artificio, solo un compito eseguito dall'inizio alla fine.`,
+    `Il margine finale di {margin} punti fotografa bene la serata: {loser} ha tenuto botta finché ha potuto, poi ha ceduto di schianto.`,
+    `{margin} punti di scarto, guadagnati un possesso alla volta: la classica partita vinta più di testa che di talento.`,
+    `Alla distanza è uscita la differenza: {margin} punti che pesano più di quanto dica il numero.`,
 ];
 
 export const TOP_PLAYER_PHRASES = [
@@ -177,6 +192,12 @@ export const TOP_PLAYER_PHRASES = [
     `A prendersi la scena è {top}: {stat}, {pts} punti e la sensazione che il campo fosse casa sua.`,
     `Il nome sulla bocca di tutti è {top}: {pts} punti pesantissimi ({stat}) e avversari ridotti a spettatori paganti.`,
     `Serviva un protagonista e si è presentato {top}: {stat}, per {pts} punti che hanno indirizzato tutta la contesa.`,
+    `{top} ha giocato una partita a parte: {stat}, {pts} punti e il resto del campo a fare da comparsa.`,
+    `Domenica di grazia per {top}: {pts} punti frutto di {stat}, di quelle prestazioni che spostano una settimana intera.`,
+    `Se cercate la differenza tra le due squadre, si chiama {top}: {stat} e {pts} punti messi a referto senza mai voltarsi.`,
+    `Prestazione da manuale di {top}: {stat}, {pts} punti e la pratica indirizzata già a metà weekend.`,
+    `In un weekend di alti e bassi, {top} ha scelto solo gli alti: {pts} punti con {stat}.`,
+    `{pts} punti di {top} ({stat}): quando il tuo migliore è anche il migliore in campo, di solito finisce bene.`,
 ];
 
 export const NOTE_LEADS = [
@@ -548,6 +569,10 @@ export const AN_STAKES_PLAYOFF = [
     (c) => `Semifinale secca, senza domani: ${c.nW} vola in finale, ${c.nL} deve fare le valigie.`,
     (c) => `Chi vinceva andava al Super Bowl, chi perdeva chiudeva l'annata: ${c.nW} ha scelto la porta giusta, ${c.nL} quella sbagliata.`,
     (c) => `Una sola squadra poteva continuare a sognare il titolo: è ${c.nW}, mentre per ${c.nL} è già tempo di bilanci.`,
+    (c) => `Le semifinali non fanno prigionieri: ${c.nW} sopravvive e avanza, ${c.nL} guarda il Super Bowl dal divano.`,
+    (c) => `Novanta minuti... anzi, un weekend intero col fiato sospeso: ${c.nW} passa il turno, per ${c.nL} l'appuntamento col titolo è rimandato di un anno.`,
+    (c) => `${c.nW} regge la pressione della partita secca e vola in finale; a ${c.nL} restano i rimpianti e il mercato di primavera.`,
+    (c) => `La stagione di ${c.nL} finisce a un passo dalla notte più importante; quella di ${c.nW} continua dove contano davvero.`,
 ];
 
 /** c: { nW, year } — super bowl */
@@ -556,6 +581,10 @@ export const AN_STAKES_SB = [
     (c) => `Non capita tutte le settimane di giocarsi un titolo: ${c.nW} lo fa, e lo porta a casa.`,
     (c) => `Il trofeo della Topina League ${c.year} ha un nuovo proprietario: ${c.nW}, che si prende la notte più importante dell'anno.`,
     (c) => `Serata da incorniciare per ${c.nW}, che aggiunge il titolo ${c.year} alla propria bacheca.`,
+    (c) => `Quando conta, conta: ${c.nW} vince l'unica partita che nessuno dimentica e si laurea campione ${c.year}.`,
+    (c) => `Il ${c.year} avrà un solo nome inciso nell'albo d'oro, ed è quello di ${c.nW}: notte perfetta, titolo meritato.`,
+    (c) => `Mesi di draft, waiver e formazioni incastrate trovano il loro senso in una notte sola: ${c.nW} è campione della Topina League ${c.year}.`,
+    (c) => `Il confetti cannon è tutto per ${c.nW}: il Super Bowl ${c.year} parla la sua lingua.`,
 ];
 
 /** c: { nW, w, l } — precedenti stagionali (w/l = record aggiornato) */
@@ -564,6 +593,10 @@ export const AN_SERIES_LINES = [
     (c) => `Sommando anche questa, il conto stagionale tra le due sale a ${c.w}-${c.l} per ${c.nW}.`,
     (c) => `Il computo dei precedenti in stagione recita ora ${c.w}-${c.l}, sempre a vantaggio di ${c.nW}.`,
     (c) => `Guardando i soli precedenti di quest'anno, ${c.nW} allunga a ${c.w}-${c.l}.`,
+    (c) => `La sfida stagionale tra le due ha ora un padrone più chiaro: ${c.w}-${c.l} per ${c.nW}.`,
+    (c) => `Aggiornato il conto degli scontri diretti dell'anno: ${c.w}-${c.l}, e a sorridere è sempre ${c.nW}.`,
+    (c) => `Anche il derby stagionale pende ora dalla parte di ${c.nW}: ${c.w}-${c.l} il bilancio aggiornato.`,
+    (c) => `Nella rivalità di quest'anno c'è un nuovo capitolo, e lo firma ${c.nW}: ${c.w}-${c.l}.`,
 ];
 
 /** c: { name, pts, avg, extra } — extra = clausola yard, già formattata o stringa vuota */
@@ -572,6 +605,10 @@ export const AN_FLOP_WRAP = [
     (c) => `Nota stonata per ${c.loser}: ${c.name} si ferma a ${c.pts} punti, lontano dalla sua media di ${c.avg}${c.extra}`,
     (c) => `Non aiuta ${c.loser} la prestazione opaca di ${c.name}, fermo a ${c.pts} punti contro i consueti ${c.avg} di media${c.extra}`,
     (c) => `Da rivedere la prova di ${c.name} in casa ${c.loser}: appena ${c.pts} punti, ben sotto la media stagionale di ${c.avg}${c.extra}`,
+    (c) => `${c.loser} può recriminare soprattutto su ${c.name}: ${c.pts} punti quando la sua media dice ${c.avg}${c.extra}`,
+    (c) => `Il grande assente in casa ${c.loser} è stato ${c.name}: presenza in campo, ${c.pts} punti a referto contro i ${c.avg} attesi${c.extra}`,
+    (c) => `Serata storta per ${c.name}, e ${c.loser} l'ha pagata cara: ${c.pts} punti, la metà scarsa dei ${c.avg} che garantisce di solito${c.extra}`,
+    (c) => `Quando il tuo uomo da ${c.avg} di media te ne porta ${c.pts}, la strada si fa in salita: chiedere a ${c.loser} e al suo ${c.name}${c.extra}`,
 ];
 
 /** c: { names, verb, nW } — verb = "hanno"/"ha" già concordato */
@@ -580,6 +617,36 @@ export const AN_HOT_STREAK_LINES = [
     (c) => `Non solo il protagonista annunciato: anche ${c.names} ${c.verb} spinto forte in casa ${c.nW}.`,
     (c) => `${c.nW} può contare pure su un buon momento di forma di ${c.names}, in doppia cifra sulle attese.`,
     (c) => `A completare il quadro vincente, ${c.names} ${c.verb} confermato un ottimo momento di forma.`,
+    (c) => `Il supporting cast di ${c.nW} ha recitato benissimo: ${c.names} ${c.verb} superato nettamente le proprie medie.`,
+    (c) => `Vittorie così si costruiscono in profondità: ${c.names} ${c.verb} aggiunto punti pesanti oltre le attese per ${c.nW}.`,
+    (c) => `Occhio anche ai comprimari di lusso: ${c.names} ${c.verb} viaggiato ben sopra il proprio standard stagionale.`,
+    (c) => `In casa ${c.nW} la copertina non basta a raccontare tutto: ${c.names} ${c.verb} messo il turbo rispetto alla media.`,
+];
+
+/* ── Note giocatori e difference maker (pagina analisi) ── */
+
+/** c: { facts, bits } — facts = "X punti (stat)", bits = contesto o '' */
+export const AN_COMMENT_WRAP = [
+    (c) => `${c.facts}${c.bits ? ` — ${c.bits}` : ''}.`,
+    (c) => `Chiude con ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+    (c) => `Referto finale: ${c.facts}${c.bits ? `, ${c.bits}` : ''}.`,
+    (c) => `A tabellino ${c.facts}${c.bits ? ` — ${c.bits}` : ''}.`,
+    (c) => `La sua domenica dice ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+    (c) => `Porta in dote ${c.facts}${c.bits ? `, ${c.bits}` : ''}.`,
+    (c) => `Numeri alla mano: ${c.facts}${c.bits ? ` — ${c.bits}` : ''}.`,
+    (c) => `Contributo da ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+];
+
+/** c: { pts, avg, statTail } — giornata sottotono; statTail = " Frase stat." o '' */
+export const AN_NOTE_BAD = [
+    (c) => `Giornata da dimenticare: solo ${c.pts} punti contro una media stagionale di ${c.avg}.${c.statTail}`,
+    (c) => `Serata storta: ${c.pts} punti, con una media da ${c.avg} rimasta un miraggio.${c.statTail}`,
+    (c) => `Da lui ci si aspettava molto di più: ${c.pts} punti a fronte dei ${c.avg} di media.${c.statTail}`,
+    (c) => `Fermo a ${c.pts} punti, meno della metà del suo passo abituale (${c.avg}).${c.statTail}`,
+    (c) => `Il tabellino recita ${c.pts} punti: per uno che viaggia a ${c.avg}, un incidente di percorso.${c.statTail}`,
+    (c) => `Prestazione incolore da ${c.pts} punti, lontanissima dai ${c.avg} che garantisce di solito.${c.statTail}`,
+    (c) => `Uno di quei weekend in cui niente gira: ${c.pts} punti contro i consueti ${c.avg}.${c.statTail}`,
+    (c) => `Panchina meritata la prossima? ${c.pts} punti contro una media di ${c.avg} lasciano il dubbio.${c.statTail}`,
 ];
 
 /** Compagni di squadra che elogiano il protagonista. c: { name } */

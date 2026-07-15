@@ -2,6 +2,7 @@ import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, g
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=22';
 import { TEAMS } from './team.js?v=14';
 import { initPlayerModal } from '../components/player-modal.js?v=15';
+import { playerImageService } from '../services/player-image-service.js?v=5';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -61,9 +62,21 @@ async function loadYear(year) {
     }
 
     const maxWeek = getWeekCount(currentData);
-    currentWeek = 1;
+    currentWeek = lastPlayedWeek(maxWeek);
     renderWeekSelector(maxWeek);
     renderMatchups();
+}
+
+/** Ultima week con punti giocati (default all'apertura); 1 se la stagione non è iniziata. */
+function lastPlayedWeek(maxWeek) {
+    for (let w = maxWeek; w >= 1; w--) {
+        const wk = currentData.weeks[String(w)];
+        if (wk?.matchups?.some(m =>
+            (parseFloat(m.team1?.score) || 0) > 0 || (parseFloat(m.team2?.score) || 0) > 0)) {
+            return w;
+        }
+    }
+    return 1;
 }
 
 function renderWeekSelector(maxWeek) {
@@ -76,7 +89,7 @@ function renderWeekSelector(maxWeek) {
         let extraClass = '';
         if (w === config.playoffWeek) { label = 'Playoffs'; extraClass = ' playoff-pill'; }
         else if (w === config.superBowlWeek) { label = 'Super Bowl'; extraClass = ' sb-pill'; }
-        html += `<button class="week-pill${w === 1 ? ' active' : ''}${extraClass}" data-week="${w}">${label}</button>`;
+        html += `<button class="week-pill${w === currentWeek ? ' active' : ''}${extraClass}" data-week="${w}">${label}</button>`;
     }
     container.innerHTML = html;
     container.addEventListener('click', (e) => {
@@ -179,6 +192,8 @@ function renderMatchups() {
             </div>
         </div>`;
     }).join('');
+
+    hydrateSlotPhotos(grid);
 }
 
 /** DEF + K positioned absolutely on field */
@@ -233,13 +248,34 @@ function escAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
+/** "Marvin Guiu" → "M. Guiu". Le DEF restano col nome squadra intero. */
+function shortName(p) {
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    if (role === 'DEF') return p.name;
+    const parts = String(p.name).trim().split(/\s+/);
+    if (parts.length < 2) return p.name;
+    return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+}
+
 function slotContent(p) {
-    const raw = (p.position || 'BN').toUpperCase();
-    const pos = raw === 'W/R' ? 'FLEX' : raw;
-    const posLower = pos.toLowerCase();
-    return `<span class="slot-pos pos-${posLower}">${raw}</span>
-            <span class="slot-name">${p.name}</span>
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    return `<span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
+                data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}"
+                data-pos="${role}" data-year="${currentYear}"></span>
+            <span class="slot-name">${shortName(p)}</span>
             <span class="slot-pts">${p.fantasy_points}</span>`;
+}
+
+/** Riempie le foto degli slot dopo il render, senza bloccare (pattern draft/home). */
+function hydrateSlotPhotos(grid) {
+    grid.querySelectorAll('img[data-headshot]').forEach(img => {
+        img.onerror = () => {
+            if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg';
+        };
+        playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, img.dataset.pos, img.dataset.year)
+            .then(url => { if (url) img.src = url; })
+            .catch(() => { /* resta il fallback */ });
+    });
 }
 
 function renderRoster(team, side) {

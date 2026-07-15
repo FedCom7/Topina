@@ -743,14 +743,12 @@ img {
 /* ---- Main formations area ---- */
 .formations-area {
     position: absolute;
-    /* Take out of flow to prevent pushing bottom row? */
-    /* Wait, we want it to fill the field EXCEPT the bottom area */
-    top: 15%;
+    /* Fascia dei giocatori di movimento, leggermente ribassata
+       (DEF/K sono .special-slot, posizionati a parte) */
+    top: 18.5%;
     left: 0;
     right: 0;
-    bottom: 20%;
-    /* Increased space for bench (was 20%) */
-    /* Leave space for DEF/K/Bench */
+    bottom: 16.5%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -868,23 +866,22 @@ img {
    So around 22-24% from left/right edge.
 */
 
-/* Move closer to center (50-yard line) */
+/* Verso l'esterno del campo: con le foto gli slot sono più larghi e a
+   36%/24% si accavallavano ai WR della colonna di scrimmage. */
 .left-def {
-    left: 36%;
-    /* Reduced from 42% to avoid overlap */
+    left: 25%;
 }
 
 .left-k {
-    left: 24%;
-    /* Adjusted accordingly */
+    left: 13%;
 }
 
 .right-def {
-    right: 36%;
+    right: 25%;
 }
 
 .right-k {
-    right: 24%;
+    right: 13%;
 }
 
 .slot-pos {
@@ -895,6 +892,31 @@ img {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     line-height: 1.2;
+}
+
+/* Foto tonda del giocatore sopra il nome (stile lineup app) */
+.slot-photo {
+    display: block;
+    width: clamp(28px, 3.4vw, 46px);
+    height: clamp(28px, 3.4vw, 46px);
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 2px auto 1px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
+}
+
+.slot-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.formation-slot.bench-slot .slot-photo {
+    width: clamp(22px, 2.4vw, 32px);
+    height: clamp(22px, 2.4vw, 32px);
 }
 
 .slot-name {
@@ -941,20 +963,19 @@ img {
     /* Shadow to pop against any grass color */
 }
 
-/* ---- Bottom row: Bench ---- */
+/* ---- Bottom row: Bench ----
+   Staccata dal campo (non più sovrapposta): sta sotto, con le due metà che
+   partono dalla stessa altezza; un eventuale giocatore in più va a capo
+   verso il basso. */
 .field-bottom-row {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 20;
     display: flex;
-    align-items: flex-end;
-    padding: 4px 1%;
-    gap: 4px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
-    pointer-events: none;
-    /* Let clicks pass through if empty areas */
+    align-items: flex-start;
+    margin-top: 10px;
+    padding: 8px 10px;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
 }
 
 /* Allow pointer events on children */
@@ -7098,11 +7119,129 @@ img {
 
 .gb-out-row {
     display: grid;
-    grid-template-columns: 44px 1fr auto auto 1fr;
+    /* pos | giocatore | dettaglio | pts | pts | dettaglio | giocatore | pos */
+    grid-template-columns: 44px 1fr minmax(0, 150px) auto auto minmax(0, 150px) 1fr 44px;
     align-items: center;
     gap: 8px;
     padding: 9px 0;
     border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Dettaglio tra nome e punteggio: mini-stat a valori (numero + label micro) */
+.gb-out-stat {
+    display: flex;
+    gap: 12px;
+    min-width: 0;
+}
+
+.gb-out-stat--l {
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.gb-out-stat--r {
+    justify-content: flex-start;
+    padding-left: 10px;
+}
+
+.gb-out-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+}
+
+.gb-out-mini b {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.gb-out-mini i {
+    font-style: normal;
+    font-size: 0.52rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Nome giocatore: intero su desktop, "M. Cognome" su mobile */
+.gb-out-name-short {
+    display: none;
+}
+
+/* Panchinari dentro l'outcome: separatore + righe come i titolari */
+.gb-out-sep {
+    text-align: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    padding: 14px 0 5px;
+    border-bottom: 2px solid var(--border-card);
+}
+
+.gb-out-row--bn .gb-out-name {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.gb-out-row--bn .gb-out-pts {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* ── Live: puntino pulsante e targhette ── */
+.gb-live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-green) 70%, transparent);
+    margin-right: 5px;
+    vertical-align: middle;
+    animation: gb-live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gb-live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gb-live-dot { animation: none; }
+}
+
+.gb-live-badge {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.gb-live-badge .gb-live-dot {
+    background: #fff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+.gb-bug-final--live {
+    color: #fb7185;
 }
 
 .gb-out-row .allpro-pos {
@@ -7116,7 +7255,9 @@ img {
     min-width: 0;
 }
 
-.gb-out-player:last-child {
+/* Il giocatore di destra è l'ultimo DIV della riga (dopo di lui c'è solo
+   il badge ruolo, uno span): :last-child non lo prende più. */
+div.gb-out-player:last-of-type {
     text-align: right;
 }
 
@@ -7138,8 +7279,8 @@ img {
 
 .gb-out-pts {
     font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.85rem;
+    font-weight: 700;
+    font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
 }
@@ -7163,6 +7304,7 @@ img {
     flex-direction: column;
     gap: 14px;
 }
+
 
 .gb-statbar-label {
     display: block;
@@ -7350,9 +7492,23 @@ img {
         max-width: 84px;
     }
 
+    /* Su mobile: via le mini-stat, restano entrambi i badge ruolo;
+       i nomi passano alla forma corta "M. Cognome" */
     .gb-out-row {
-        grid-template-columns: 36px 1fr auto auto 1fr;
+        grid-template-columns: 36px 1fr auto auto 1fr 36px;
         gap: 5px;
+    }
+
+    .gb-out-stat {
+        display: none;
+    }
+
+    .gb-out-name-full {
+        display: none;
+    }
+
+    .gb-out-name-short {
+        display: inline;
     }
 }
 
