@@ -8,9 +8,9 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
-} from '../data.js?v=22';
-import { TEAM_KEYS } from './team-config.js?v=22';
-import { FLEX_ELIGIBLE } from './league-rules.js?v=2';
+} from '../data.js?v=23';
+import { TEAM_KEYS } from './team-config.js?v=23';
+import { FLEX_ELIGIBLE } from './league-rules.js?v=3';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')
 function toKey(rawName) {

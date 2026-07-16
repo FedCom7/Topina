@@ -4,8 +4,8 @@
  *   #standings → Regular Season (card di classifica col seed gigante)
  *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
-import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=22';
-import { TEAMS } from './team.js?v=14';
+import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=23';
+import { TEAMS } from './team.js?v=15';
 
 let loadedStandings = false;
 let loadedPlayoffs = false;

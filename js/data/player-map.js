@@ -2879,6 +2879,7 @@ export const PLAYER_ID_MAP = {
     'Jake Coker': '2576773',
     'Jake Eldrenkamp': '2978298',
     'Jake Elliott': '3050478',
+    'Jake Ferguson': '4242355',
     'Jake Fisher': '2576971',
     'Jake Fromm': '4240689',
     'Jake Ganus': '2977936',

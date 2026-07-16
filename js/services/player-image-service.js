@@ -1,4 +1,4 @@
-import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=3';
+import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=5';
 
 const CACHE_KEY = 'topina_player_ids_v3';
 const FALLBACK_IMAGE = 'images/fallback-player.svg';
@@ -190,7 +190,10 @@ export class PlayerImageService {
 
     async _fetchPlayerId(name) {
         try {
-            const searchUrl = `https://site.api.espn.com/apis/common/v3/search?limit=5&type=player&sport=football&league=nfl&q=${encodeURIComponent(name)}`;
+            // NB: il parametro è `query=` — con `q=` ESPN ignora il filtro e
+            // restituisce i giocatori più popolari, mandando in fallback chiunque
+            // non fosse già in mappa o nel roster corrente.
+            const searchUrl = `https://site.api.espn.com/apis/common/v3/search?limit=5&type=player&sport=football&league=nfl&query=${encodeURIComponent(name)}`;
             const searchRes = await fetch(searchUrl);
 
             if (searchRes.ok) {

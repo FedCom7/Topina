@@ -1,8 +1,8 @@
-import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=22';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=22';
-import { TEAMS } from './team.js?v=14';
-import { initPlayerModal } from '../components/player-modal.js?v=15';
-import { playerImageService } from '../services/player-image-service.js?v=5';
+import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=23';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=23';
+import { TEAMS } from './team.js?v=15';
+import { initPlayerModal } from '../components/player-modal.js?v=16';
+import { playerImageService } from '../services/player-image-service.js?v=7';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;

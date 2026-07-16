@@ -16,12 +16,12 @@
  * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=22';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=2';
-import { getHonorsBundle } from '../data/honors.js?v=4';
-import { TEAMS } from './team.js?v=14';
-import { teamsCardsHTML } from './teams.js?v=3';
-import { playerImageService } from '../services/player-image-service.js?v=5';
+import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=23';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=3';
+import { getHonorsBundle } from '../data/honors.js?v=5';
+import { TEAMS } from './team.js?v=15';
+import { teamsCardsHTML } from './teams.js?v=4';
+import { playerImageService } from '../services/player-image-service.js?v=7';
 
 let initialized = false;
 

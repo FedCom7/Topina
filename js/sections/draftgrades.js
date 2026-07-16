@@ -20,16 +20,16 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=22';
-import { TEAM_KEYS } from '../data/team-config.js?v=22';
-import { TEAMS } from './team.js?v=14';
-import { getHonorsBundle } from '../data/honors.js?v=4';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=6';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=4';
-import { initPlayerModal } from '../components/player-modal.js?v=15';
-import { playerImageService } from '../services/player-image-service.js?v=5';
-import { pickSeeded } from '../data/magazine-voices.js?v=8';
-import { predictSeason } from '../data/draft-predictions.js?v=3';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=23';
+import { TEAM_KEYS } from '../data/team-config.js?v=23';
+import { TEAMS } from './team.js?v=15';
+import { getHonorsBundle } from '../data/honors.js?v=5';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=7';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=5';
+import { initPlayerModal } from '../components/player-modal.js?v=16';
+import { playerImageService } from '../services/player-image-service.js?v=7';
+import { pickSeeded } from '../data/magazine-voices.js?v=9';
+import { predictSeason } from '../data/draft-predictions.js?v=4';
 
 let initialized = false;
 let currentYear = null;

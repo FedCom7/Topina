@@ -14,10 +14,10 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     SEASONS, getSeasonConfig, getSuperBowlMatchup, displayName,
-} from '../data.js?v=22';
-import { TEAM_KEYS } from './team-config.js?v=22';
-import { getHonorsBundle } from './honors.js?v=4';
-import { normName } from './projections.js?v=6';
+} from '../data.js?v=23';
+import { TEAM_KEYS } from './team-config.js?v=23';
+import { getHonorsBundle } from './honors.js?v=5';
+import { normName } from './projections.js?v=7';
 
 let careersCache = null;
 

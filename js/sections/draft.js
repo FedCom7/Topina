@@ -2,11 +2,11 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=22';
-import { TEAM_KEYS } from '../data/team-config.js?v=22';
-import { TEAMS } from './team.js?v=14';
-import { playerImageService } from '../services/player-image-service.js?v=5';
-import { initPlayerModal } from '../components/player-modal.js?v=15';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=23';
+import { TEAM_KEYS } from '../data/team-config.js?v=23';
+import { TEAMS } from './team.js?v=15';
+import { playerImageService } from '../services/player-image-service.js?v=7';
+import { initPlayerModal } from '../components/player-modal.js?v=16';
 import { db } from '../firebase-config.js';
 
 let loaded = false;

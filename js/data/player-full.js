@@ -9,11 +9,11 @@
  * Le DEF hanno come id l'abbreviazione della squadra (es. "DAL").
  */
 
-import { getSeasonStats, matchProjection } from './projections.js?v=6';
-import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=3';
-import { TEAM_ABBR_MAP } from './player-map.js?v=3';
-import { canonAbbr } from './nfl-schedule.js?v=2';
-import { CURRENT_SEASON } from '../data.js?v=22';
+import { getSeasonStats, matchProjection } from './projections.js?v=7';
+import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=4';
+import { TEAM_ABBR_MAP } from './player-map.js?v=5';
+import { canonAbbr } from './nfl-schedule.js?v=3';
+import { CURRENT_SEASON } from '../data.js?v=23';
 
 export const FIRST_STATS_YEAR = 2015; // prima stagione con stats Sleeper affidabili
 const MAX_SEASONS = 10;
