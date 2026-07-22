@@ -14,10 +14,10 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     SEASONS, getSeasonConfig, getSuperBowlMatchup, displayName,
-} from '../data.js?v=23';
-import { TEAM_KEYS } from './team-config.js?v=23';
-import { getHonorsBundle } from './honors.js?v=5';
-import { normName } from './projections.js?v=7';
+} from '../data.js?v=32';
+import { TEAM_KEYS } from './team-config.js?v=31';
+import { getHonorsBundle } from './honors.js?v=13';
+import { normName } from './projections.js?v=15';
 
 let careersCache = null;
 
@@ -69,7 +69,7 @@ export async function buildCareers() {
                                 name: p.name, position: pos, nflTeam: p.nfl_team || '',
                                 seasons: new Set(), lastSeason: season,
                                 totPts: 0, stats: {}, top1Count: 0, sbWins: 0, gamesStarted: 0,
-                                firstTeam: 0, secondTeam: 0,
+                                firstTeam: 0, secondTeam: 0, mvp: 0,
                                 bySeason: {}, draftedBy: [],
                             });
                             if (pos) c.position = pos;
@@ -135,6 +135,34 @@ export async function buildCareers() {
             const c = careers.get(pk.player);
             const teamKey = TEAM_KEYS[displayName(pk.team)] || null;
             if (c && teamKey) c.draftedBy.push({ year, teamKey, pick: pk.pick, round: pk.round });
+        }
+    }
+
+    // Premi di lega per carriera: MVP di stagione + All-Pro First/Second Team.
+    // Stesso gate no-spoiler di getPlayerAwards (MVP a stagione svelata, AP a
+    // regular season conclusa). Unica sorgente di verità: prima erano popolati
+    // solo da hall-of-fame.js/attachAllPro, quindi assenti fuori dalla HOF.
+    for (const season of SEASONS) {
+        let bundle;
+        try { bundle = await getHonorsBundle(season); } catch { continue; }
+        if (!bundle) continue;
+        if (bundle.revealed) {
+            for (const a of bundle.awards) {
+                if (a.id === 'mvp' && a.kind === 'player' && a.winner) {
+                    const c = careers.get(a.winner.name);
+                    if (c) c.mvp++;
+                }
+            }
+        }
+        if (bundle.rsComplete) {
+            for (const { player } of bundle.allPro.first) {
+                const c = player && careers.get(player.name);
+                if (c) c.firstTeam++;
+            }
+            for (const { player } of bundle.allPro.second) {
+                const c = player && careers.get(player.name);
+                if (c) c.secondTeam++;
+            }
         }
     }
 

@@ -2,11 +2,11 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=23';
-import { TEAM_KEYS } from '../data/team-config.js?v=23';
-import { TEAMS } from './team.js?v=15';
-import { playerImageService } from '../services/player-image-service.js?v=7';
-import { initPlayerModal } from '../components/player-modal.js?v=16';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=32';
+import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=24';
 import { db } from '../firebase-config.js';
 
 let loaded = false;
@@ -85,43 +85,35 @@ function renderCards(round) {
     const picks = round === 'all' ? currentPicks : currentPicks.filter(p => p.round === parseInt(round));
 
     grid.innerHTML = picks.map((p, i) => {
-        const posClass = `pos-${(p.pos || '').toLowerCase().replace('/', '')}`;
         const teamKey = TEAM_KEYS[displayName(p.team)] || null;
         const team = TEAMS[teamKey] || null;
-        const fallback = 'images/fallback-player.svg';
 
         return `
-        <div class="draft-card" data-player-modal
+        <div class="draft-fig" data-player-modal
              data-player-name="${p.player}" data-pos="${p.pos}" data-nfl="${p.nfl || ''}" data-year="${currentYear}"
              style="--team-color:${team?.color || 'var(--accent-red)'};animation-delay:${(i % 12) * 40}ms">
-            <div class="draft-pick-badge">#${p.pick}</div>
-            <div class="draft-card-image">
-                 <img src="${fallback}" class="draft-headshot" data-player-name="${p.player}" data-team="${p.nfl}" data-pos="${p.pos}" alt="${p.player}">
+            <div class="draft-fig-card">
+                <span class="draft-fig-pick">#${p.pick}</span>
+                ${paniniCard({ name: p.player, pos: p.pos, nfl: p.nfl, compact: true })}
             </div>
-            <div class="draft-card-info">
-                <div class="draft-player-name">${p.player}</div>
-                <div class="draft-meta-row">
-                    <span class="player-pos ${posClass}">${p.pos}</span>
-                    <span class="draft-nfl-team">${p.nfl}</span>
-                </div>
-                <div class="draft-fantasy-team">
-                    <span class="label">Drafted by</span>
-                    <span class="draft-fantasy-team-row">
-                        ${team ? `<img class="draft-team-logo" src="${team.logo}" alt="" onerror="this.style.display='none'">` : ''}
-                        <span class="team-name">${team?.name || displayName(p.team)}</span>
-                    </span>
-                </div>
+            <div class="draft-fig-cap">
+                <span class="draft-fig-label">Drafted by</span>
+                <span class="draft-fig-team">
+                    ${team ? `<img src="${team.logo}" alt="" onerror="this.style.display='none'">` : ''}
+                    ${team?.name || displayName(p.team)}
+                </span>
             </div>
         </div>`;
     }).join('');
 
     // Load images asynchronously
     updateDraftImages(currentYear);
+    hydratePaniniBadges(grid);
 }
 
 /** Update src for all player headshots */
 function updateDraftImages(year) {
-    const images = document.querySelectorAll('.draft-headshot'); images.forEach(async (img) => {
+    const images = document.querySelectorAll('.pm-headshot'); images.forEach(async (img) => {
         const name = img.dataset.playerName;
         const team = img.dataset.team;
         const pos = img.dataset.pos;

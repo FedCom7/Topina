@@ -16,12 +16,12 @@
 import {
     fetchFantasyData, displayName, SEASONS, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
-} from '../data.js?v=23';
-import { TEAM_KEYS } from '../data/team-config.js?v=23';
-import { TEAMS } from './team.js?v=15';
-import { getLeagueData } from '../data/league-data.js?v=3';
-import { getHonorsBundle } from '../data/honors.js?v=5';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=5';
+} from '../data.js?v=32';
+import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
+import { getLeagueData } from '../data/league-data.js?v=11';
+import { getHonorsBundle } from '../data/honors.js?v=13';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=13';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
@@ -35,8 +35,8 @@ import {
     SECONDARY_LEDE_OPENERS, SECONDARY_NO_FLOP_LINES,
     STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
     TEAMMATE_PRAISE,
-} from '../data/magazine-voices.js?v=9';
-import { playerImageService } from '../services/player-image-service.js?v=7';
+} from '../data/magazine-voices.js?v=17';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

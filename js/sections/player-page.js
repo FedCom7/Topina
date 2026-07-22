@@ -12,15 +12,15 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=5';
-import { computeSeasonMetrics, computeEfficiency, snapSharePct } from '../data/player-metrics.js?v=3';
-import { getTeamContext } from '../data/nfl-team-stats.js?v=3';
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=6';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=16';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=7';
-import { playerImageService } from '../services/player-image-service.js?v=7';
-import { canonAbbr } from '../data/nfl-schedule.js?v=3';
-import { CURRENT_SEASON } from '../data.js?v=23';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=13';
+import { computeSeasonMetrics, computeEfficiency, snapSharePct } from '../data/player-metrics.js?v=11';
+import { getTeamContext } from '../data/nfl-team-stats.js?v=11';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=14';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=24';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=15';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { canonAbbr } from '../data/nfl-schedule.js?v=11';
+import { CURRENT_SEASON } from '../data.js?v=32';
 
 const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const fmt0 = (n) => n == null ? '—' : Math.round(n).toLocaleString('it-IT');

@@ -6,9 +6,9 @@
  *  - Champion + highlights per-giocatore (MVP stagione, miglior prova, MVP del SB)
  *  - Dynamic season recap narratives
  */
-import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=23';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=23';
-import { TEAMS } from './team.js?v=15';
+import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=32';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
 
 let loaded = false;
 

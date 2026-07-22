@@ -5,10 +5,12 @@
  * identità, franchise players, rivalità, divisa.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=23';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=3';
-import { computeTeamBadges } from '../data/badges.js?v=3';
-import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=10';
+import { CURRENT_SEASON } from '../data.js?v=32';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
+import { computeTeamBadges } from '../data/badges.js?v=11';
+import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=18';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=24';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {
@@ -524,14 +526,47 @@ function renderFlags(players) {
         return;
     }
 
-    container.innerHTML = players.map(p => `
-        <div class="team-flag-card">
-            <div class="team-flag-pos pos-${(p.pos || '').toLowerCase().replace('/', '')}">${p.pos || '—'}</div>
-            <div class="team-flag-info">
-                <div class="team-flag-name">${p.name}</div>
-                <div class="team-flag-years">${p.seasons.join(' · ')}</div>
-            </div>
-            <div class="team-flag-count">${p.seasons.length}×</div>
+    const figs = players.map(p => franchiseFig(p)).join('');
+    container.innerHTML = `
+        <div class="allpro-car-nav tf-nav">
+            <button class="allpro-car-btn" data-dir="-1" aria-label="Precedente">‹</button>
+            <button class="allpro-car-btn" data-dir="1" aria-label="Successivo">›</button>
         </div>
-    `).join('');
+        <div class="allpro-track tf-track">${figs}</div>`;
+
+    hydrateFlagImages(container);
+    hydratePaniniBadges(container);
+    initPlayerModal(); // click su figurina → scheda completa
+    const track = container.querySelector('.tf-track');
+    container.querySelectorAll('.allpro-car-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const step = Math.round(track.clientWidth * 0.7);
+            track.scrollBy({ left: step * Number(btn.dataset.dir), behavior: 'smooth' });
+        });
+    });
+}
+
+function franchiseFig(p) {
+    return `
+    <div class="allpro-fig" data-player-modal data-player-name="${p.name}" data-pos="${p.pos || ''}" data-nfl="">
+        ${paniniCard({ name: p.name, pos: p.pos, nfl: '', compact: true })}
+        <div class="allpro-fig-cap tf-cap">
+            <span class="allpro-fig-pts">${p.seasons.length}<small>× draft</small></span>
+            <span class="tf-seasons">${p.seasons.join(' · ')}</span>
+        </div>
+    </div>`;
+}
+
+function hydrateFlagImages(container) {
+    container.querySelectorAll('.pm-headshot').forEach(async (img) => {
+        const name = img.dataset.playerName;
+        if (!name) return;
+        img.onerror = () => {
+            if (!img.src.endsWith('images/fallback-player.svg')) img.src = 'images/fallback-player.svg';
+        };
+        try {
+            const url = await playerImageService.getPlayerImageUrl(name, img.dataset.team, img.dataset.pos, CURRENT_SEASON);
+            if (url) img.src = url;
+        } catch (e) { /* fallback già impostato */ }
+    });
 }

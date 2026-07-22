@@ -21,6 +21,33 @@ export function displayName(raw) {
     return TEAM_DISPLAY_NAMES[raw] || raw;
 }
 
+// Abbreviazioni ufficiali — usate come fallback quando il nome non entra.
+export const TEAM_ABBR = {
+    'Capi dei Pianeti': 'CDP',
+    'Lasers': 'LAS',
+    'Oscurus': 'OSC',
+    'Sommo': 'SOM',
+};
+
+export function teamAbbr(raw) {
+    const dn = displayName(raw);
+    return TEAM_ABBR[dn] || dn;
+}
+
+/**
+ * Markup del nome squadra che si auto-abbrevia quando non entra nello spazio.
+ * Renderizza il nome completo; `refitTeamNames()` (js/utils/team-abbr.js),
+ * invocato dal router a ogni render e sul resize, lo sostituisce con la sigla
+ * solo se non ci sta. `cls` aggiunge classi extra allo span.
+ */
+export function teamNameHTML(raw, cls = '') {
+    const dn = displayName(raw);
+    const ab = TEAM_ABBR[dn];
+    const extra = cls ? ` ${cls}` : '';
+    if (!ab) return `<span class="tname${extra}">${dn}</span>`;
+    return `<span class="tname${extra}" data-abbr="${ab}">${dn}</span>`;
+}
+
 // ─── Fetch functions ───
 
 export async function fetchFantasyData(season) {

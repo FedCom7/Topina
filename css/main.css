@@ -2083,163 +2083,77 @@ img {
     }
 }
 
-.draft-card {
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 320px;
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-card);
-    transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
+/* Card del draft = figurina Panini con cornice tinta del team che l'ha scelto */
+.draft-fig {
+    cursor: pointer;
     animation: cell-rise var(--dur-slow) var(--ease) both;
-}
-
-.draft-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 100% 65% at 50% 0%,
-            color-mix(in srgb, var(--team-color) 32%, transparent) 0%,
-            transparent 68%);
-    opacity: 0.6;
-    transition: opacity var(--dur-med) var(--ease);
-    pointer-events: none;
-}
-
-.draft-card:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--team-color) 45%, transparent);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4),
-        0 0 40px color-mix(in srgb, var(--team-color) 16%, transparent);
-}
-
-.draft-card:hover::before {
-    opacity: 1;
-}
-
-.draft-pick-badge {
-    position: absolute;
-    top: 10px;
-    left: 14px;
-    z-index: 2;
-    font-family: var(--font-display);
-    font-size: 2.1rem;
-    font-weight: 800;
-    line-height: 1;
-    color: color-mix(in srgb, var(--team-color) 70%, white 30%);
-    opacity: 0.28;
-    pointer-events: none;
-}
-
-.draft-card-image {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    overflow: hidden;
-}
-
-.draft-headshot {
-    height: 100%;
-    width: auto;
-    object-fit: contain;
-    mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
     transition: transform var(--dur-med) var(--ease);
 }
 
-.draft-card:hover .draft-headshot {
-    transform: scale(1.06);
+.draft-fig:hover {
+    transform: translateY(-4px);
 }
 
-.draft-card-info {
+.draft-fig-card {
     position: relative;
-    z-index: 2;
-    padding: 14px 18px 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
 }
 
-.draft-player-name {
+.draft-fig-card .pm-panini {
+    margin: 0;
+    /* La cornice metallica tinta del colore del franchise che ha draftato */
+    background: linear-gradient(150deg,
+        color-mix(in srgb, var(--team-color) 30%, #e8e8e8) 0%,
+        color-mix(in srgb, var(--team-color) 55%, #a8a8a8) 22%,
+        color-mix(in srgb, var(--team-color) 18%, #f7f7f7) 45%,
+        color-mix(in srgb, var(--team-color) 60%, #888888) 68%,
+        color-mix(in srgb, var(--team-color) 32%, #d8d8d8) 100%);
+}
+
+.draft-fig-pick {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
     font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 1.4rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
 }
 
-.draft-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.player-pos {
-    display: inline-flex;
-    padding: 2px 8px;
-    border-radius: var(--radius-xs);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-}
-
-.draft-nfl-team {
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-}
-
-.draft-fantasy-team {
-    margin-top: auto;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-subtle);
+.draft-fig-cap {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 2px;
+    margin-top: 10px;
+    padding: 0 2px;
 }
 
-.draft-fantasy-team .label {
-    font-size: 0.6rem;
+.draft-fig-label {
+    font-size: 0.58rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 700;
     color: var(--text-muted);
 }
 
-.draft-fantasy-team-row {
+.draft-fig-team {
     display: flex;
     align-items: center;
     gap: 7px;
-    min-width: 0;
-}
-
-.draft-team-logo {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.draft-fantasy-team .team-name {
     font-weight: 700;
     font-size: 0.85rem;
     color: color-mix(in srgb, var(--team-color) 65%, white 30%);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.draft-fig-team img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 /* ========================================
@@ -2457,10 +2371,48 @@ img {
 }
 
 /* --- Playoff picture: griglia esplicita 4x4 (layout originale, stile card moderno) --- */
+/* Nome squadra auto-abbreviabile (js/utils/team-abbr.js): riempie la cella
+   che lo contiene così da poter misurare se il nome completo ci sta. */
+.tname {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .playoff-picture-container {
     max-width: 880px;
     margin: 0 auto;
     padding: 4px 4px 60px;
+}
+
+/* Etichette dei turni (desktop) */
+.playoff-rounds {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    margin-bottom: 14px;
+    padding: 0 4px;
+}
+
+.playoff-round-label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.playoff-round-label--final {
+    color: var(--accent-amber);
+}
+
+/* Toggle desktop / mobile */
+.playoff-mobile {
+    display: none;
 }
 
 .playoff-grid-explicit {
@@ -2611,25 +2563,145 @@ img {
 }
 
 @media (max-width: 900px) {
-    .playoff-grid-explicit {
+    /* Desktop grid via, bracket a card-matchup in scena */
+    .playoff-desktop {
+        display: none;
+    }
+
+    .playoff-mobile {
+        display: flex;
+    }
+
+    /* Bracket: semifinale | Topina Bowl (rialzata) | semifinale */
+    .pob-bracket {
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 22px 2px 10px;
+    }
+
+    .pob-semi {
+        flex: 1 1 0;
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        min-height: 0;
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 6px 6px 4px;
     }
 
-    .playoff-card {
-        min-height: 110px;
+    .pob-label {
+        font-family: var(--font-display);
+        font-size: 0.56rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        padding: 2px 4px 6px;
     }
 
-    .playoff-logo {
-        width: auto;
-        height: 90%;
+    .pob-final {
+        flex: 1.2 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: color-mix(in srgb, var(--surface-card) 90%, #000);
+        border: 1px solid color-mix(in srgb, var(--accent-amber) 32%, var(--border-subtle));
+        border-radius: 14px;
+        padding: 6px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+        transform: translateY(-14px);
+        z-index: 2;
     }
 
-    .sb-logo-overlay {
-        width: 240px;
-        bottom: -70px;
+    .pob-trophy {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 0 8px;
+    }
+
+    .pob-trophy-img {
+        width: 66px;
+        height: 66px;
+        object-fit: contain;
+        filter: drop-shadow(0 3px 9px rgba(0, 0, 0, 0.6));
+    }
+
+    .pob-trophy-year {
+        position: absolute;
+        top: 46%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: var(--font-display);
+        font-size: 0.5rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #fff;
+        opacity: 0.9;
+        pointer-events: none;
+    }
+
+    /* Riga squadra */
+    .pob-team {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 5px;
+        text-decoration: none;
+        border-radius: 8px;
+        color: var(--text-secondary);
+    }
+
+    .pob-team + .pob-team {
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .pob-team--win {
+        background: color-mix(in srgb, var(--team-color) 14%, transparent);
+        color: var(--text-primary);
+    }
+
+    .pob-team--lose {
+        opacity: 0.42;
+    }
+
+    .pob-team--tbd {
+        justify-content: center;
+        color: var(--text-muted);
+    }
+
+    .pob-logo {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    .pob-abbr {
+        flex: 1;
+        min-width: 0;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .pob-team--win .pob-abbr {
+        color: var(--text-primary);
+    }
+
+    .pob-score {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 1.05rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-primary);
     }
 
     .st-rank-wrap {
@@ -3115,58 +3187,27 @@ img {
 }
 
 /* ── Franchise Players ── */
+/* Franchise players: carosello di figurine Panini (riusa lo stile .allpro-*) */
 .team-flags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
     margin-top: 4px;
 }
 
-.team-flag-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    background: var(--bg-glass);
-    border: 1px solid var(--border-subtle);
-    min-width: 240px;
-    flex: 1;
-    max-width: 360px;
-    transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+.tf-nav {
+    justify-content: flex-end;
+    margin-bottom: 12px;
 }
 
-.team-flag-card:hover {
-    border-color: color-mix(in srgb, var(--team-color) 45%, transparent);
-    background: color-mix(in srgb, var(--team-color) 7%, transparent);
+.tf-cap {
+    /* draft-count a sinistra, stagioni a destra (una riga) */
+    flex-wrap: wrap;
 }
 
-.team-flag-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.team-flag-name {
+.tf-seasons {
+    font-size: 0.72rem;
     font-weight: 600;
-    font-size: 0.88rem;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.team-flag-years {
-    font-size: 0.7rem;
     color: var(--text-secondary);
-    margin-top: 2px;
-}
-
-.team-flag-count {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--team-color);
-    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 /* ── Cella All-Time ── */
@@ -3467,11 +3508,6 @@ img {
     .bento-cell {
         grid-column: span 12 !important;
         padding: 18px;
-    }
-
-    .team-flag-card {
-        min-width: 100%;
-        max-width: 100%;
     }
 }
 
@@ -4860,11 +4896,12 @@ img {
 
 .allpro-team-label {
     font-family: var(--font-display);
-    font-size: 1.3rem;
-    font-weight: 800;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin-bottom: 24px;
     background: var(--accent-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -4878,71 +4915,161 @@ img {
     color: var(--text-muted);
 }
 
-.allpro-rows {
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--border-subtle);
-}
-
-.allpro-row {
+/* Carosello: testata (titolo + frecce) e track orizzontale scorrevole */
+.allpro-car-head {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
-    padding: 13px 8px;
-    border-bottom: 1px solid var(--border-subtle);
-    animation: fadeUp var(--dur-slow) var(--ease) both;
-    animation-delay: calc(var(--row-i, 0) * 50ms);
+    margin-bottom: 20px;
 }
 
-.allpro-pos {
-    flex-shrink: 0;
-    width: 46px;
-    text-align: center;
-    padding: 4px 0;
-    border-radius: var(--radius-xs);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+.allpro-car-head .allpro-team-label {
+    margin-bottom: 0;
 }
 
-.allpro-info {
+.allpro-car-nav {
     display: flex;
-    flex-direction: column;
-    min-width: 0;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
-.allpro-name {
+.allpro-car-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--dur-fast, 0.2s) var(--ease), border-color var(--dur-fast, 0.2s) var(--ease);
+}
+
+.allpro-car-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--text-muted);
+}
+
+.allpro-track {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 2px;
+    padding: 4px 2px 10px;
+    scrollbar-width: none;
+}
+
+.allpro-track::-webkit-scrollbar {
+    display: none;
+}
+
+/* Figurina senza box contenitore: slot sopra, Panini, didascalia sotto */
+.allpro-fig {
+    flex: 0 0 240px;
+    width: 240px;
+    scroll-snap-align: start;
+    cursor: pointer;
+    transition: transform var(--dur-med) var(--ease);
+}
+
+.allpro-fig:hover {
+    transform: translateY(-4px);
+}
+
+.allpro-fig .pm-panini {
+    margin: 0;
+}
+
+.allpro-fig-slot {
+    display: block;
     font-family: var(--font-display);
-    font-size: 1.05rem;
-    font-weight: 700;
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+    padding: 0;
+    background: none;
+    border-radius: 0;
 }
 
-.allpro-meta {
-    font-size: 0.72rem;
+.allpro-fig--empty {
+    width: 100%;
+    aspect-ratio: 464 / 631;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--border-subtle);
+    border-radius: 14px;
     color: var(--text-muted);
+    cursor: default;
 }
 
-.allpro-team-logo {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
-    margin-left: auto;
+.allpro-fig-cap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 0 2px;
 }
 
-.allpro-pts {
+.allpro-fig-pts {
     font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 1.35rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    min-width: 86px;
-    text-align: right;
+    color: var(--team-color, var(--text-primary));
+    white-space: nowrap;
 }
 
-.allpro-row .allpro-pts small {
-    font-size: 0.65rem;
+.allpro-fig-pts small {
+    font-size: 0.6rem;
     font-weight: 600;
     color: var(--text-muted);
     margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.allpro-fig-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.allpro-fig-team img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+    .allpro-track {
+        gap: 16px;
+    }
+
+    .allpro-fig {
+        flex-basis: 150px;
+        width: 150px;
+    }
+
+    .allpro-car-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
 }
 
 /* ================================
@@ -8705,6 +8832,21 @@ body.pm-open { overflow: hidden; }
     padding: 1px 6px;
     border-radius: 4px;
     white-space: nowrap;
+}
+
+/* MVP di stagione: badge dorato più marcato, sopra gli altri */
+.pm-panini-mvp {
+    font-family: var(--font-display);
+    font-size: 0.55rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    color: #1a1200;
+    background: linear-gradient(135deg, #ffe08a, #e0a72a);
+    box-shadow: 0 0 10px rgba(245, 190, 70, 0.5);
 }
 
 .pm-panini-allpro--1 {

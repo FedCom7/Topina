@@ -6,9 +6,9 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=23';
-import { TEAMS } from './team.js?v=15';
-import { playerImageService } from '../services/player-image-service.js?v=7';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=32';
+import { TEAMS } from './team.js?v=23';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

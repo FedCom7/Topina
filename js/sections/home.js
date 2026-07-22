@@ -16,12 +16,12 @@
  * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { displayName, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=23';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=3';
-import { getHonorsBundle } from '../data/honors.js?v=5';
-import { TEAMS } from './team.js?v=15';
-import { teamsCardsHTML } from './teams.js?v=4';
-import { playerImageService } from '../services/player-image-service.js?v=7';
+import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=32';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
+import { getHonorsBundle } from '../data/honors.js?v=13';
+import { TEAMS } from './team.js?v=23';
+import { teamsCardsHTML } from './teams.js?v=13';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
 
@@ -181,7 +181,7 @@ function railCard({ glow, top, media, title, sub }) {
 function teamChip(key) {
     const t = TEAMS[key];
     return t ? `<span class="mc-team" style="--team-color:${t.color}">
-        <img src="${t.logo}" alt="" onerror="this.style.display='none'">${t.name}</span>` : key;
+        <img src="${t.logo}" alt="" onerror="this.style.display='none'">${teamNameHTML(t.name)}</span>` : key;
 }
 
 function keyOf(rawName) {
@@ -464,7 +464,7 @@ async function cardSuperBowl({ season }) {
         return `
         <div class="mc-sb-side" style="--team-color:${team?.color || 'var(--accent-red)'}">
             ${team ? `<img src="${team.logo}" alt="" data-depth="0.1" onerror="this.style.display='none'">` : ''}
-            <span>${displayName(t.name)}</span>
+            <span>${teamNameHTML(t.name)}</span>
         </div>`;
     };
     // Sfondo: lo stadio della finale (coppie in ordine alfabetico), fallback generico

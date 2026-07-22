@@ -13,19 +13,19 @@
  * Come game.js: nessun guard `initialized`, si ri-parsa l'hash a ogni chiamata.
  */
 
-import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=23';
-import { TEAM_KEYS } from '../data/team-config.js?v=23';
-import { TEAMS } from './team.js?v=15';
-import { getHonorsBundle } from '../data/honors.js?v=5';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=7';
-import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=5';
-import { initPlayerModal } from '../components/player-modal.js?v=16';
-import { playerImageService } from '../services/player-image-service.js?v=7';
-import { pickSeeded } from '../data/magazine-voices.js?v=9';
+import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=32';
+import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
+import { getHonorsBundle } from '../data/honors.js?v=13';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=15';
+import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=13';
+import { initPlayerModal } from '../components/player-modal.js?v=24';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge,
-} from './draftgrades.js?v=18';
+} from './draftgrades.js?v=26';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

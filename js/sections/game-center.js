@@ -1,8 +1,8 @@
-import { fetchFantasyData, getWeekCount, displayName, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=23';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=23';
-import { TEAMS } from './team.js?v=15';
-import { initPlayerModal } from '../components/player-modal.js?v=16';
-import { playerImageService } from '../services/player-image-service.js?v=7';
+import { fetchFantasyData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=32';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
+import { initPlayerModal } from '../components/player-modal.js?v=24';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -147,7 +147,7 @@ function renderMatchups() {
                 <img class="gc-banner-wm gc-banner-wm-r" src="${logo2}" alt="" aria-hidden="true">
                 <div class="gc-banner-inner">
                     <div class="gc-banner-side">
-                        <span class="gc-banner-name">${displayName(m.team1.name)}</span>
+                        <span class="gc-banner-name">${teamNameHTML(m.team1.name)}</span>
                     </div>
                     <span class="gc-banner-score${w1 ? ' winner' : ''}">${m.team1.score}</span>
                     <div class="gc-banner-mid">
@@ -156,12 +156,12 @@ function renderMatchups() {
                     </div>
                     <span class="gc-banner-score${!w1 ? ' winner' : ''}">${m.team2.score}</span>
                     <div class="gc-banner-side gc-banner-side-r">
-                        <span class="gc-banner-name">${displayName(m.team2.name)}</span>
+                        <span class="gc-banner-name">${teamNameHTML(m.team2.name)}</span>
                     </div>
                 </div>
             </a>
             <div class="matchup-field-horizontal">
-                <span class="field-team-label field-team-label-top">${displayName(m.team1.name)}</span>
+                <span class="field-team-label field-team-label-top">${teamNameHTML(m.team1.name)}</span>
                 <img src="${fieldImg}" class="field-bg" alt="">
                 <div class="field-overlay">
                     <div class="formations-area">
@@ -178,15 +178,15 @@ function renderMatchups() {
                     ${renderDefK(m.team1, 'left')}
                     ${renderDefK(m.team2, 'right')}
                 </div>
-                <span class="field-team-label field-team-label-bottom">${displayName(m.team2.name)}</span>
+                <span class="field-team-label field-team-label-bottom">${teamNameHTML(m.team2.name)}</span>
             </div>
             <div class="field-bottom-row">
                 <div class="bench-half bench-left">
-                    <span class="bench-label">${displayName(m.team1.name)}</span>
+                    <span class="bench-label">${teamNameHTML(m.team1.name)}</span>
                     ${renderBench(m.team1)}
                 </div>
                 <div class="bench-half bench-right">
-                    <span class="bench-label">${displayName(m.team2.name)}</span>
+                    <span class="bench-label">${teamNameHTML(m.team2.name)}</span>
                     ${renderBench(m.team2)}
                 </div>
             </div>

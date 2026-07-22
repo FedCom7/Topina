@@ -5,8 +5,9 @@
  * teamsCardsHTML è riusata dalla home (mosaico) per card identiche.
  */
 
-import { TEAMS } from './team.js?v=15';
-import { getLeagueData } from '../data/league-data.js?v=3';
+import { TEAMS } from './team.js?v=23';
+import { getLeagueData } from '../data/league-data.js?v=11';
+import { teamNameHTML } from '../data.js?v=32';
 
 let loaded = false;
 
@@ -32,7 +33,7 @@ export function teamsCardsHTML(league) {
                      onerror="this.style.display='none'">
                 <div class="teams-card-info">
                     <span class="teams-card-kicker">Est. 2019</span>
-                    <h2 class="teams-card-name">${team.name}</h2>
+                    <h2 class="teams-card-name">${teamNameHTML(team.name)}</h2>
                     <div class="teams-card-stats">${stats}</div>
                 </div>
                 <span class="teams-card-arrow" aria-hidden="true">&rarr;</span>

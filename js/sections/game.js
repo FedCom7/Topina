@@ -6,17 +6,17 @@
  * confronto stats di squadra + difference maker → player notes.
  */
 
-import { fetchFantasyData, displayName, getSeasonConfig } from '../data.js?v=23';
-import { TEAM_KEYS } from '../data/team-config.js?v=23';
-import { getLeagueData } from '../data/league-data.js?v=3';
-import { getHonorsBundle } from '../data/honors.js?v=5';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=3';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=32';
+import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { getLeagueData } from '../data/league-data.js?v=11';
+import { getHonorsBundle } from '../data/honors.js?v=13';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle,
-} from '../data/matchup-analysis.js?v=5';
-import { TEAMS } from './team.js?v=15';
-import { playerImageService } from '../services/player-image-service.js?v=7';
+} from '../data/matchup-analysis.js?v=13';
+import { TEAMS } from './team.js?v=23';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -120,7 +120,7 @@ function scoreBugHTML(m, weekLabel, year, isLive = false) {
     const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
     const side = (t, raw) => `
         <div class="gb-bug-side">
-            <span class="gb-bug-name">${t?.name || displayName(raw.name)}</span>
+            <span class="gb-bug-name">${teamNameHTML(t?.name || displayName(raw.name))}</span>
         </div>`;
     return `
     <div class="gb-scorebug" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}">

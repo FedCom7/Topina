@@ -12,11 +12,11 @@
  * tra i reload.
  */
 
-import { getSeasonConfig } from '../data.js?v=23';
-import { getTeamStats } from './nfl-team-stats.js?v=3';
-import { canonAbbr } from './nfl-schedule.js?v=3';
-import { resolveDefAbbrSync } from './player-full.js?v=5';
-import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=3';
+import { getSeasonConfig } from '../data.js?v=32';
+import { getTeamStats } from './nfl-team-stats.js?v=11';
+import { canonAbbr } from './nfl-schedule.js?v=11';
+import { resolveDefAbbrSync } from './player-full.js?v=13';
+import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=11';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // FLEX gestito a parte (pool RB/WR)
 const FLEX_POS = FLEX_ELIGIBLE;

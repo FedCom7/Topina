@@ -9,9 +9,8 @@
  * negli anni successivi. Un eletto all'anno dal FIRST_CLASS_YEAR.
  */
 
-import { SEASONS, CURRENT_SEASON } from '../data.js?v=23';
-import { getHonorsBundle } from './honors.js?v=5';
-import { buildCareers } from './careers.js?v=6';
+import { CURRENT_SEASON } from '../data.js?v=32';
+import { buildCareers } from './careers.js?v=14';
 
 export const FIRST_CLASS_YEAR = 2025;
 export const MIN_SEASONS = 3;
@@ -21,28 +20,6 @@ const ALLPRO1_BONUS = 120;
 const ALLPRO2_BONUS = 60;
 
 let _classes = null;
-
-// Conta le apparizioni All-Pro (First/Second Team) per ogni carriera,
-// riusando il calcolo della sezione All-Pro (js/data/honors.js).
-async function attachAllPro(careers) {
-    for (const year of SEASONS) {
-        let bundle;
-        try {
-            bundle = await getHonorsBundle(year);
-        } catch {
-            continue;
-        }
-        if (!bundle || !bundle.rsComplete) continue; // conta solo stagioni con RS conclusa
-        for (const { player } of bundle.allPro.first) {
-            const c = player && careers.get(player.name);
-            if (c) c.firstTeam++;
-        }
-        for (const { player } of bundle.allPro.second) {
-            const c = player && careers.get(player.name);
-            if (c) c.secondTeam++;
-        }
-    }
-}
 
 function electClasses(careers) {
     const classes = [];
@@ -83,8 +60,8 @@ function electClasses(careers) {
 /** Classi di elezione (FIRST_CLASS_YEAR → oggi): [{year, inductee|null}]. Cache in memoria. */
 export async function electHallOfFame() {
     if (_classes) return _classes;
+    // buildCareers popola già firstTeam/secondTeam (oltre a mvp, sbWins, top1)
     const careers = await buildCareers();
-    await attachAllPro(careers);
     return (_classes = electClasses(careers));
 }
 

@@ -13,12 +13,12 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=6';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=7';
-import { TEAMS } from '../sections/team.js?v=15';
-import { playerImageService } from '../services/player-image-service.js?v=7';
-import { getPlayerInfo } from '../data/player-full.js?v=5';
-import { getHallOfFameYear } from '../data/hall-of-fame.js?v=5';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=14';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=15';
+import { TEAMS } from '../sections/team.js?v=23';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { getPlayerInfo } from '../data/player-full.js?v=13';
+import { getHallOfFameYear } from '../data/hall-of-fame.js?v=13';
 
 const MAX_NFL_YEARS = 5;
 const FIRST_PROJ_YEAR = 2018; // Sleeper non ha proiezioni prima
@@ -347,11 +347,39 @@ function bioLine(info) {
  * `info`/`career`/`hofYear`/`teamKey` sono opzionali (assenti nello
  * scheletro di caricamento, popolati a scheda pronta).
  */
-export function paniniCard({ name, pos, nfl, info, career, hofYear }) {
+/**
+ * Badge di carriera (MVP di stagione, anelli SB, All-Pro 1°/2° Team).
+ * Estratto per poterlo iniettare a posteriori nelle card sparse per il sito
+ * (All-Pro, Franchise Players, Draft) senza passare `career` al render.
+ */
+export function paniniBadgesHTML(career) {
+    if (!career) return '';
+    const stars = career.sbWins ? '★'.repeat(Math.min(career.sbWins, 5)) : '';
+    return `
+        ${career.mvp ? `<span class="pm-panini-mvp">${career.mvp}× MVP</span>` : ''}
+        ${stars ? `<span class="pm-panini-stars">${stars}</span>` : ''}
+        ${career.firstTeam ? `<span class="pm-panini-allpro pm-panini-allpro--1">${career.firstTeam}× AP1</span>` : ''}
+        ${career.secondTeam ? `<span class="pm-panini-allpro pm-panini-allpro--2">${career.secondTeam}× AP2</span>` : ''}`;
+}
+
+/** Riempie i badge di carriera nelle card già renderizzate (foto a parte). */
+export async function hydratePaniniBadges(container) {
+    const cards = container.querySelectorAll('.pm-panini');
+    for (const card of cards) {
+        const badges = card.querySelector('.pm-panini-badges');
+        const name = card.querySelector('.pm-headshot')?.dataset.playerName;
+        if (!badges || !name) continue;
+        const career = await getCareer(name).catch(() => null);
+        if (career) badges.innerHTML = paniniBadgesHTML(career);
+    }
+}
+
+export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = false }) {
     const gold = !!hofYear;
     const stars = career?.sbWins ? '★'.repeat(Math.min(career.sbWins, 5)) : '';
     const bio = bioLine(info);
     const seasons = career ? `${career.seasons.size} stagion${career.seasons.size === 1 ? 'e' : 'i'} Topina` : '';
+    const showBubble = !compact && (bio || seasons);
 
     return `
     <div class="pm-panini${gold ? ' pm-panini--gold' : ''}">
@@ -359,17 +387,13 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear }) {
             <span class="pm-panini-side-name">${name}</span>
             <div class="pm-panini-top">
                 ${pos ? `<span class="pm-panini-pos">${pos}</span>` : '<span></span>'}
-                <div class="pm-panini-badges">
-                    ${stars ? `<span class="pm-panini-stars">${stars}</span>` : ''}
-                    ${career?.firstTeam ? `<span class="pm-panini-allpro pm-panini-allpro--1">${career.firstTeam}× AP1</span>` : ''}
-                    ${career?.secondTeam ? `<span class="pm-panini-allpro pm-panini-allpro--2">${career.secondTeam}× AP2</span>` : ''}
-                </div>
+                <div class="pm-panini-badges">${paniniBadgesHTML(career)}</div>
             </div>
             <div class="pm-panini-photo-wrap">
                 <img class="pm-headshot pm-panini-photo" src="images/fallback-player.svg" alt="${name}"
                      data-player-name="${name}" data-team="${nfl || ''}" data-pos="${pos || ''}">
             </div>
-            ${bio || seasons ? `
+            ${showBubble ? `
             <div class="pm-panini-info">
                 <div class="pm-panini-bubble">
                     ${bio ? `<span class="pm-panini-bio">${bio}</span>` : ''}
