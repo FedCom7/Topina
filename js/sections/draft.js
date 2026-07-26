@@ -6,7 +6,7 @@ import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } fr
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=23';
 import { playerImageService } from '../services/player-image-service.js?v=15';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=24';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=25';
 import { db } from '../firebase-config.js';
 
 let loaded = false;
