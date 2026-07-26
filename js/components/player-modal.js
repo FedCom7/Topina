@@ -309,7 +309,7 @@ async function buildCard({ name, pos, nfl, year }) {
     // perché dal Game Center va nascosta (lì conta la singola partita).
     const html = `
         <div class="pm-layout">
-            <div class="pm-left">${paniniCard({ name, pos, nfl, info, career, hofYear })}</div>
+            <div class="pm-left">${paniniCard({ name, pos, nfl, info, career, hofYear, compact: true })}</div>
             <div class="pm-right">
                 ${bigStatsBlock(career)}
                 ${careerTableBlock(name, pos, years, byYear, career)}
