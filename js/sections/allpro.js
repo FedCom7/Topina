@@ -4,9 +4,11 @@
  * (QB, RB×2, WR×2, TE, FLEX, K, DEF), da js/data/honors.js.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=5';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=2';
-import { TEAMS } from './team.js?v=12';
+import { CURRENT_SEASON } from '../data.js?v=32';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=13';
+import { TEAMS } from './team.js?v=23';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=24';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -16,6 +18,7 @@ const fmtPts = (n) => n.toLocaleString('it-IT', { minimumFractionDigits: 1, maxi
 export function initAllPro() {
     if (initialized) return;
     initialized = true;
+    initPlayerModal(); // click su una figurina → scheda completa
     renderYearSelector();
     loadYear(currentYear);
 }
@@ -42,14 +45,13 @@ async function loadYear(year) {
 
     const bundle = await getHonorsBundle(year);
     if (!bundle) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
         return;
     }
 
     if (!bundle.rsComplete) {
         wrap.innerHTML = `
         <div class="honors-teaser">
-            <span class="honors-teaser-icon">⭐</span>
             <h2 class="honors-teaser-title">Selezioni in corso</h2>
             <p class="honors-teaser-text">L'All-Pro Team viene selezionato a regular season conclusa, insieme ai Topina Honors.</p>
         </div>`;
@@ -60,33 +62,72 @@ async function loadYear(year) {
         ${allProTeamHTML('First Team', bundle.allPro.first, 1)}
         ${allProTeamHTML('Second Team', bundle.allPro.second, 2)}
     `;
+    hydrateImages(wrap);
+    hydratePaniniBadges(wrap);
+    bindCarousels(wrap);
 }
 
 function allProTeamHTML(label, team, tier) {
-    const rows = team.map((slot, i) => allProRow(slot, i)).join('');
+    const figs = team.map(({ slot, player }) => allProFig(slot, player)).join('');
     return `
     <div class="allpro-team allpro-team--${tier}">
-        <h2 class="allpro-team-label">${label}</h2>
-        <div class="allpro-rows">${rows}</div>
+        <div class="allpro-car-head">
+            <h2 class="allpro-team-label">${label}</h2>
+            <div class="allpro-car-nav">
+                <button class="allpro-car-btn" data-dir="-1" aria-label="Precedente">‹</button>
+                <button class="allpro-car-btn" data-dir="1" aria-label="Successivo">›</button>
+            </div>
+        </div>
+        <div class="allpro-track">${figs}</div>
     </div>`;
 }
 
-function allProRow({ slot, player }, i) {
+function allProFig(slot, player) {
+    const posCls = slot.toLowerCase().replace('/', '');
     if (!player) {
-        return `<div class="allpro-row" style="--row-i:${i}">
-            <span class="allpro-pos pos-${slot.toLowerCase()}">${slot}</span>
-            <span class="allpro-name">—</span>
+        return `<div class="allpro-fig">
+            <span class="allpro-fig-slot pos-${posCls}">${slot}</span>
+            <div class="allpro-fig--empty">—</div>
         </div>`;
     }
     const team = TEAMS[player.teamKey];
     return `
-    <div class="allpro-row" style="--row-i:${i};--team-color:${team?.color || 'var(--accent-red)'}">
-        <span class="allpro-pos pos-${slot.toLowerCase()}">${slot}</span>
-        <div class="allpro-info">
-            <span class="allpro-name">${player.name}</span>
-            <span class="allpro-meta">${player.pos}${player.nfl ? ` · ${player.nfl}` : ''}${team ? ` · ${team.name}` : ''}</span>
+    <div class="allpro-fig" style="--team-color:${team?.color || 'var(--accent-red)'}"
+         data-player-modal data-player-name="${player.name}" data-pos="${player.pos || ''}"
+         data-nfl="${player.nfl || ''}" data-year="${currentYear}">
+        <span class="allpro-fig-slot pos-${posCls}">${slot}</span>
+        ${paniniCard({ name: player.name, pos: player.pos, nfl: player.nfl, compact: true })}
+        <div class="allpro-fig-cap">
+            <span class="allpro-fig-pts">${fmtPts(player.total)}<small>pt</small></span>
+            ${team ? `<span class="allpro-fig-team"><img src="${team.logo}" alt="" onerror="this.style.display='none'">${team.name}</span>` : ''}
         </div>
-        ${team ? `<img class="allpro-team-logo" src="${team.logo}" alt="${team.name}" onerror="this.style.display='none'">` : ''}
-        <span class="allpro-pts">${fmtPts(player.total)}<small>pt</small></span>
     </div>`;
+}
+
+/** Frecce del carosello: scorrono la track di ~una card e mezza. */
+function bindCarousels(wrap) {
+    wrap.querySelectorAll('.allpro-team').forEach(teamEl => {
+        const track = teamEl.querySelector('.allpro-track');
+        if (!track) return;
+        teamEl.querySelectorAll('.allpro-car-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const step = Math.round(track.clientWidth * 0.7);
+                track.scrollBy({ left: step * Number(btn.dataset.dir), behavior: 'smooth' });
+            });
+        });
+    });
+}
+
+function hydrateImages(wrap) {
+    wrap.querySelectorAll('.pm-headshot').forEach(async (img) => {
+        const name = img.dataset.playerName;
+        if (!name) return;
+        img.onerror = () => {
+            if (!img.src.endsWith('images/fallback-player.svg')) img.src = 'images/fallback-player.svg';
+        };
+        try {
+            const url = await playerImageService.getPlayerImageUrl(name, img.dataset.team, img.dataset.pos, currentYear);
+            if (url) img.src = url;
+        } catch (e) { /* fallback già impostato */ }
+    });
 }

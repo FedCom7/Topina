@@ -6,9 +6,9 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=5';
-import { TEAMS } from './team.js?v=12';
-import { playerImageService } from '../services/player-image-service.js?v=4';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=32';
+import { TEAMS } from './team.js?v=23';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -407,11 +407,11 @@ async function load() {
         model = await buildSeasonModel(currentYear);
     } catch (e) {
         console.error('Analysis load error:', e);
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p class="empty-state-text">Errore nel caricamento: ${e.message}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Errore nel caricamento: ${e.message}</p></div>`;
         return;
     }
     if (!model) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun dato per la stagione ${currentYear}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${currentYear}</p></div>`;
         return;
     }
 
@@ -696,7 +696,7 @@ function compareRow({ rec, agg, prevPts }, ranks) {
 }
 
 function emptyState(text) {
-    return `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">${text}</p></div>`;
+    return `<div class="empty-state"><p class="empty-state-text">${text}</p></div>`;
 }
 
 /* ============================================================

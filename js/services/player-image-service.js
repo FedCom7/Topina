@@ -1,6 +1,9 @@
-import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=2';
+import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 
-const CACHE_KEY = 'topina_player_ids_v3';
+// Bump della versione = svuota la cache locale: le versioni v3 e precedenti
+// hanno accumulato ID sbagliati dall'era del bug di ricerca (q= invece di
+// query=), che restituivano URL headshot in 404.
+const CACHE_KEY = 'topina_player_ids_v4';
 const FALLBACK_IMAGE = 'images/fallback-player.svg';
 
 export class PlayerImageService {
@@ -38,14 +41,8 @@ export class PlayerImageService {
             return `https://a.espncdn.com/i/teamlogos/nfl/500/${TEAM_ABBR_MAP[playerName]}.png`;
         }
 
-        // 1. Check Cache first (local storage)
-        if (this.cache[playerName] && this.cache[playerName] !== 'NOT_FOUND') {
-            const val = this.cache[playerName];
-            this._log(`-> Found in Cache: ${val}`);
-            return val.startsWith('http') ? val : this._buildUrl(val);
-        }
-
-        // 2. Check Manual Map (Legacy)
+        // 1. Check Manual Map (override curato): PRIMA della cache, così una
+        // correzione manuale vince sempre su un ID errato eventualmente cachato.
         if (PLAYER_ID_MAP[playerName]) {
             const val = PLAYER_ID_MAP[playerName];
             const url = val.startsWith('http') ? val : this._buildUrl(val);
@@ -53,6 +50,13 @@ export class PlayerImageService {
             this._saveCache();
             this._log(`-> Found in Manual Map: ${url}`);
             return url;
+        }
+
+        // 2. Check Cache (local storage)
+        if (this.cache[playerName] && this.cache[playerName] !== 'NOT_FOUND') {
+            const val = this.cache[playerName];
+            this._log(`-> Found in Cache: ${val}`);
+            return val.startsWith('http') ? val : this._buildUrl(val);
         }
 
         // Check if we should use roster strategy
@@ -148,12 +152,13 @@ export class PlayerImageService {
         // Use the smart fuzzy match on the roster list
         const match = this._findBestMatch(roster, playerName);
         if (match) {
-            // Priority 1: Use ID to build standard URL
-            if (match.id) {
-                return this._buildUrl(match.id);
-            }
+            // Priorità all'headshot fornito dal roster: esiste per certo.
+            // Solo se manca ripieghiamo sull'URL costruito dall'id (può 404).
             if (match.headshot && match.headshot.href) {
                 return match.headshot.href;
+            }
+            if (match.id) {
+                return this._buildUrl(match.id);
             }
         }
         return null;
@@ -190,7 +195,10 @@ export class PlayerImageService {
 
     async _fetchPlayerId(name) {
         try {
-            const searchUrl = `https://site.api.espn.com/apis/common/v3/search?limit=5&type=player&sport=football&league=nfl&q=${encodeURIComponent(name)}`;
+            // NB: il parametro è `query=` — con `q=` ESPN ignora il filtro e
+            // restituisce i giocatori più popolari, mandando in fallback chiunque
+            // non fosse già in mappa o nel roster corrente.
+            const searchUrl = `https://site.api.espn.com/apis/common/v3/search?limit=5&type=player&sport=football&league=nfl&query=${encodeURIComponent(name)}`;
             const searchRes = await fetch(searchUrl);
 
             if (searchRes.ok) {
@@ -199,13 +207,11 @@ export class PlayerImageService {
                     const bestMatch = this._findBestMatch(searchData.items, name);
                     if (bestMatch) {
                         const item = bestMatch;
+                        // Priorità all'headshot fornito da ESPN: se c'è, l'immagine
+                        // esiste per certo (evita 404 su id validi ma senza foto).
+                        const imageUrl = item.headshot?.href || item.image?.href;
+                        if (imageUrl) return { id: item.id || 'unknown', url: imageUrl };
                         if (item.id) return item.id;
-                        let imageUrl = item.headshot?.href || item.image?.href;
-                        if (imageUrl) {
-                            const idMatch = imageUrl.match(/\/(\d+)\.png/);
-                            if (idMatch && idMatch[1]) return idMatch[1];
-                            return { id: item.id || 'unknown', url: imageUrl };
-                        }
                         if (item.uid) {
                             const parts = item.uid.split('~a:');
                             if (parts.length > 1) return parts[1];

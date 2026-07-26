@@ -6,9 +6,9 @@
  *  - Champion + highlights per-giocatore (MVP stagione, miglior prova, MVP del SB)
  *  - Dynamic season recap narratives
  */
-import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=5';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=6';
-import { TEAMS } from './team.js?v=12';
+import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=32';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
 
 let loaded = false;
 
@@ -277,7 +277,7 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
                 </div>
             </div>
         </${tag}>
-        ${sbMvp ? `<div class="history-sb-mvp">🏆 MVP del Super Bowl: <b>${sbMvp.name}</b> (${sbMvp.pos} · ${sbMvp.team}) — ${sbMvp.pts.toFixed(2)} pt</div>` : ''}`;
+        ${sbMvp ? `<div class="history-sb-mvp">MVP del Super Bowl: <b>${sbMvp.name}</b> (${sbMvp.pos} · ${sbMvp.team}) — ${sbMvp.pts.toFixed(2)} pt</div>` : ''}`;
     }
 
     // Season recap narrative

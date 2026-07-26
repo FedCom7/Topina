@@ -5,9 +5,9 @@
  * Super Bowl week: prima si mostrano solo i finalisti, come nella realtà.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=5';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=2';
-import { TEAMS } from './team.js?v=12';
+import { CURRENT_SEASON } from '../data.js?v=32';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=13';
+import { TEAMS } from './team.js?v=23';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -41,7 +41,7 @@ async function loadYear(year) {
 
     const bundle = await getHonorsBundle(year);
     if (!bundle) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
         return;
     }
 
@@ -54,14 +54,13 @@ async function loadYear(year) {
 
     wrap.innerHTML = `
         <div class="honors-stage">${bundle.awards.map((a, i) => awardCard(a, bundle.revealed, i)).join('')}</div>
-        ${bundle.revealed ? '' : `<p class="honors-sealed-note">🤫 Le buste si aprono alla vigilia del Super Bowl ${year} — per ora solo i finalisti.</p>`}
+        ${bundle.revealed ? '' : `<p class="honors-sealed-note">Le buste si aprono alla vigilia del Super Bowl ${year} — per ora solo i finalisti.</p>`}
     `;
 }
 
 function teaserHTML(year, title, text) {
     return `
     <div class="honors-teaser">
-        <span class="honors-teaser-icon">🏆</span>
         <h2 class="honors-teaser-title">${title}</h2>
         <p class="honors-teaser-text">${text}</p>
     </div>`;
@@ -124,9 +123,8 @@ function awardCard(award, revealed, i) {
     return `
     <article class="honors-card${isMvp ? ' honors-card--mvp' : ''}" style="--award-color:${revealed ? color : 'var(--accent-amber)'};--card-i:${i}">
         <header class="honors-card-head">
-            <span class="honors-card-icon">${award.icon}</span>
             <div>
-                <h2 class="honors-card-title">${award.name}</h2>
+                <h2 class="honors-card-title">${award.abbr ? `<span class="honors-card-abbr">${award.abbr}</span> ` : ''}${award.name}</h2>
                 <p class="honors-card-desc">${award.desc}</p>
             </div>
         </header>

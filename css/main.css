@@ -145,10 +145,6 @@ img {
     letter-spacing: -0.02em;
 }
 
-.logo-emoji {
-    font-size: 1.4rem;
-}
-
 .logo-text {
     background: var(--accent-gradient);
     -webkit-background-clip: text;
@@ -211,6 +207,11 @@ img {
 
 .navbar.dropdown-active {
     height: calc(var(--nav-height) + 56px);
+}
+
+/* Secondo livello del menu mobile (drill-down). Su desktop non esiste. */
+.nav-l2 {
+    display: none;
 }
 
 /* Full-width panel, sits below the nav-inner row */
@@ -742,14 +743,12 @@ img {
 /* ---- Main formations area ---- */
 .formations-area {
     position: absolute;
-    /* Take out of flow to prevent pushing bottom row? */
-    /* Wait, we want it to fill the field EXCEPT the bottom area */
-    top: 15%;
+    /* Fascia dei giocatori di movimento, leggermente ribassata
+       (DEF/K sono .special-slot, posizionati a parte) */
+    top: 18.5%;
     left: 0;
     right: 0;
-    bottom: 20%;
-    /* Increased space for bench (was 20%) */
-    /* Leave space for DEF/K/Bench */
+    bottom: 16.5%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -867,23 +866,22 @@ img {
    So around 22-24% from left/right edge.
 */
 
-/* Move closer to center (50-yard line) */
+/* Verso l'esterno del campo: con le foto gli slot sono più larghi e a
+   36%/24% si accavallavano ai WR della colonna di scrimmage. */
 .left-def {
-    left: 36%;
-    /* Reduced from 42% to avoid overlap */
+    left: 25%;
 }
 
 .left-k {
-    left: 24%;
-    /* Adjusted accordingly */
+    left: 13%;
 }
 
 .right-def {
-    right: 36%;
+    right: 25%;
 }
 
 .right-k {
-    right: 24%;
+    right: 13%;
 }
 
 .slot-pos {
@@ -894,6 +892,31 @@ img {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     line-height: 1.2;
+}
+
+/* Foto tonda del giocatore sopra il nome (stile lineup app) */
+.slot-photo {
+    display: block;
+    width: clamp(28px, 3.4vw, 46px);
+    height: clamp(28px, 3.4vw, 46px);
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 2px auto 1px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
+}
+
+.slot-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.formation-slot.bench-slot .slot-photo {
+    width: clamp(22px, 2.4vw, 32px);
+    height: clamp(22px, 2.4vw, 32px);
 }
 
 .slot-name {
@@ -940,20 +963,19 @@ img {
     /* Shadow to pop against any grass color */
 }
 
-/* ---- Bottom row: Bench ---- */
+/* ---- Bottom row: Bench ----
+   Staccata dal campo (non più sovrapposta): sta sotto, con le due metà che
+   partono dalla stessa altezza; un eventuale giocatore in più va a capo
+   verso il basso. */
 .field-bottom-row {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 20;
     display: flex;
-    align-items: flex-end;
-    padding: 4px 1%;
-    gap: 4px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
-    pointer-events: none;
-    /* Let clicks pass through if empty areas */
+    align-items: flex-start;
+    margin-top: 10px;
+    padding: 8px 10px;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
 }
 
 /* Allow pointer events on children */
@@ -1762,13 +1784,18 @@ img {
     padding: 80px 24px;
     color: var(--text-muted);
     gap: 16px;
+    /* Se il contenitore è una grid (matchup-grid, draft-grid, teams-index…)
+       lo spinner occuperebbe una sola cella: così resta sempre centrato. */
+    grid-column: 1 / -1;
+    width: 100%;
+    text-align: center;
 }
 
 .spinner {
     width: 32px;
     height: 32px;
     border: 3px solid var(--border-card);
-    border-top-color: var(--accent-blue);
+    border-top-color: var(--accent-red);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -1777,11 +1804,6 @@ img {
     text-align: center;
     padding: 60px 24px;
     color: var(--text-muted);
-}
-
-.empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 12px;
 }
 
 
@@ -1820,36 +1842,157 @@ img {
    ================================ */
 
 @media (max-width: 768px) {
-    .nav-links {
-        display: none;
+    /* Le due schermate del drill-down occupano la stessa area, sotto la navbar */
+    .nav-links,
+    .nav-l2 {
         position: absolute;
         top: var(--nav-height);
         left: 0;
         right: 0;
         flex-direction: column;
-        background: rgba(6, 8, 15, 0.95);
+        background: rgba(6, 8, 15, 0.97);
         backdrop-filter: blur(var(--blur-lg));
         -webkit-backdrop-filter: blur(var(--blur-lg));
         border-bottom: 1px solid var(--border-subtle);
         padding: 12px;
         gap: 2px;
+        max-height: calc(100vh - var(--nav-height));
+        overflow-y: auto;
+        transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+    }
+
+    .nav-links {
+        display: none;
     }
 
     .nav-links.open {
         display: flex;
     }
 
+    /* .navbar è alta --nav-height con overflow:hidden, mentre il menu è
+       posizionato SOTTO (top: --nav-height): senza questo verrebbe ritagliato
+       via e il tap sull'hamburger sembrerebbe non fare nulla. */
+    .navbar:has(.nav-links.open) {
+        height: auto;
+        overflow: visible;
+    }
+
     .nav-hamburger {
         display: flex;
     }
 
-    /* Dropdown panel nascosto su mobile (il menu hamburger ha già le voci) */
+    /* Il pannello hover non serve su mobile: le sue voci finiscono nel
+       secondo livello del drill-down, costruito da navbar.js. */
     .nav-dropdown-panel {
         display: none;
     }
 
     .navbar.dropdown-active {
         height: var(--nav-height);
+    }
+
+    /* Livello 1 → esce a sinistra quando si scende nel livello 2 */
+    .navbar.l2-open .nav-links {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(-16px);
+        pointer-events: none;
+    }
+
+    /* Livello 2 → entra da destra. Niente translate fuori schermo:
+       eviterebbe il taglio ma creerebbe scroll orizzontale sul body. */
+    .nav-l2 {
+        display: flex;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(16px);
+        pointer-events: none;
+    }
+
+    .navbar.l2-open .nav-l2 {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        pointer-events: auto;
+    }
+
+    /* Le categorie mostrano che c'è un livello sotto */
+    .nav-item.has-dropdown > .nav-link::after {
+        content: '›';
+        float: right;
+        font-size: 1.15em;
+        line-height: 1;
+        color: var(--text-muted);
+    }
+
+    .nav-l2-back {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 12px;
+        margin-bottom: 2px;
+        background: none;
+        border: none;
+        border-radius: var(--radius-sm, 8px);
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        align-self: flex-start;
+    }
+
+    .nav-l2-back:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-l2-back-icon {
+        font-size: 1.25em;
+        line-height: 1;
+    }
+
+    .nav-l2-title {
+        padding: 0 12px 8px;
+        font-family: var(--font-display);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--accent-red);
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 6px;
+    }
+
+    .nav-l2-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .nav-l2-link {
+        display: block;
+        padding: 13px 12px;
+        border-radius: var(--radius-sm, 8px);
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: color var(--dur-fast, 0.2s) var(--ease),
+                    background var(--dur-fast, 0.2s) var(--ease);
+    }
+
+    .nav-l2-link--header {
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .nav-l2-link:hover,
+    .nav-l2-link:focus-visible {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.06);
     }
 
     .hero-title {
@@ -1940,163 +2083,77 @@ img {
     }
 }
 
-.draft-card {
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 320px;
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-card);
-    transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
+/* Card del draft = figurina Panini con cornice tinta del team che l'ha scelto */
+.draft-fig {
+    cursor: pointer;
     animation: cell-rise var(--dur-slow) var(--ease) both;
-}
-
-.draft-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 100% 65% at 50% 0%,
-            color-mix(in srgb, var(--team-color) 32%, transparent) 0%,
-            transparent 68%);
-    opacity: 0.6;
-    transition: opacity var(--dur-med) var(--ease);
-    pointer-events: none;
-}
-
-.draft-card:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--team-color) 45%, transparent);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4),
-        0 0 40px color-mix(in srgb, var(--team-color) 16%, transparent);
-}
-
-.draft-card:hover::before {
-    opacity: 1;
-}
-
-.draft-pick-badge {
-    position: absolute;
-    top: 10px;
-    left: 14px;
-    z-index: 2;
-    font-family: var(--font-display);
-    font-size: 2.1rem;
-    font-weight: 800;
-    line-height: 1;
-    color: color-mix(in srgb, var(--team-color) 70%, white 30%);
-    opacity: 0.28;
-    pointer-events: none;
-}
-
-.draft-card-image {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    overflow: hidden;
-}
-
-.draft-headshot {
-    height: 100%;
-    width: auto;
-    object-fit: contain;
-    mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
     transition: transform var(--dur-med) var(--ease);
 }
 
-.draft-card:hover .draft-headshot {
-    transform: scale(1.06);
+.draft-fig:hover {
+    transform: translateY(-4px);
 }
 
-.draft-card-info {
+.draft-fig-card {
     position: relative;
-    z-index: 2;
-    padding: 14px 18px 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
 }
 
-.draft-player-name {
+.draft-fig-card .pm-panini {
+    margin: 0;
+    /* La cornice metallica tinta del colore del franchise che ha draftato */
+    background: linear-gradient(150deg,
+        color-mix(in srgb, var(--team-color) 30%, #e8e8e8) 0%,
+        color-mix(in srgb, var(--team-color) 55%, #a8a8a8) 22%,
+        color-mix(in srgb, var(--team-color) 18%, #f7f7f7) 45%,
+        color-mix(in srgb, var(--team-color) 60%, #888888) 68%,
+        color-mix(in srgb, var(--team-color) 32%, #d8d8d8) 100%);
+}
+
+.draft-fig-pick {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
     font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 1.4rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
 }
 
-.draft-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.player-pos {
-    display: inline-flex;
-    padding: 2px 8px;
-    border-radius: var(--radius-xs);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-}
-
-.draft-nfl-team {
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-}
-
-.draft-fantasy-team {
-    margin-top: auto;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-subtle);
+.draft-fig-cap {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 2px;
+    margin-top: 10px;
+    padding: 0 2px;
 }
 
-.draft-fantasy-team .label {
-    font-size: 0.6rem;
+.draft-fig-label {
+    font-size: 0.58rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 700;
     color: var(--text-muted);
 }
 
-.draft-fantasy-team-row {
+.draft-fig-team {
     display: flex;
     align-items: center;
     gap: 7px;
-    min-width: 0;
-}
-
-.draft-team-logo {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.draft-fantasy-team .team-name {
     font-weight: 700;
     font-size: 0.85rem;
     color: color-mix(in srgb, var(--team-color) 65%, white 30%);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.draft-fig-team img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 /* ========================================
@@ -2314,10 +2371,48 @@ img {
 }
 
 /* --- Playoff picture: griglia esplicita 4x4 (layout originale, stile card moderno) --- */
+/* Nome squadra auto-abbreviabile (js/utils/team-abbr.js): riempie la cella
+   che lo contiene così da poter misurare se il nome completo ci sta. */
+.tname {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .playoff-picture-container {
     max-width: 880px;
     margin: 0 auto;
     padding: 4px 4px 60px;
+}
+
+/* Etichette dei turni (desktop) */
+.playoff-rounds {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    margin-bottom: 14px;
+    padding: 0 4px;
+}
+
+.playoff-round-label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.playoff-round-label--final {
+    color: var(--accent-amber);
+}
+
+/* Toggle desktop / mobile */
+.playoff-mobile {
+    display: none;
 }
 
 .playoff-grid-explicit {
@@ -2468,25 +2563,145 @@ img {
 }
 
 @media (max-width: 900px) {
-    .playoff-grid-explicit {
+    /* Desktop grid via, bracket a card-matchup in scena */
+    .playoff-desktop {
+        display: none;
+    }
+
+    .playoff-mobile {
+        display: flex;
+    }
+
+    /* Bracket: semifinale | Topina Bowl (rialzata) | semifinale */
+    .pob-bracket {
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 22px 2px 10px;
+    }
+
+    .pob-semi {
+        flex: 1 1 0;
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        min-height: 0;
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 6px 6px 4px;
     }
 
-    .playoff-card {
-        min-height: 110px;
+    .pob-label {
+        font-family: var(--font-display);
+        font-size: 0.56rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        padding: 2px 4px 6px;
     }
 
-    .playoff-logo {
-        width: auto;
-        height: 90%;
+    .pob-final {
+        flex: 1.2 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: color-mix(in srgb, var(--surface-card) 90%, #000);
+        border: 1px solid color-mix(in srgb, var(--accent-amber) 32%, var(--border-subtle));
+        border-radius: 14px;
+        padding: 6px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+        transform: translateY(-14px);
+        z-index: 2;
     }
 
-    .sb-logo-overlay {
-        width: 240px;
-        bottom: -70px;
+    .pob-trophy {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 0 8px;
+    }
+
+    .pob-trophy-img {
+        width: 66px;
+        height: 66px;
+        object-fit: contain;
+        filter: drop-shadow(0 3px 9px rgba(0, 0, 0, 0.6));
+    }
+
+    .pob-trophy-year {
+        position: absolute;
+        top: 46%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: var(--font-display);
+        font-size: 0.5rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #fff;
+        opacity: 0.9;
+        pointer-events: none;
+    }
+
+    /* Riga squadra */
+    .pob-team {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 5px;
+        text-decoration: none;
+        border-radius: 8px;
+        color: var(--text-secondary);
+    }
+
+    .pob-team + .pob-team {
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .pob-team--win {
+        background: color-mix(in srgb, var(--team-color) 14%, transparent);
+        color: var(--text-primary);
+    }
+
+    .pob-team--lose {
+        opacity: 0.42;
+    }
+
+    .pob-team--tbd {
+        justify-content: center;
+        color: var(--text-muted);
+    }
+
+    .pob-logo {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    .pob-abbr {
+        flex: 1;
+        min-width: 0;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .pob-team--win .pob-abbr {
+        color: var(--text-primary);
+    }
+
+    .pob-score {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 1.05rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-primary);
     }
 
     .st-rank-wrap {
@@ -2972,58 +3187,27 @@ img {
 }
 
 /* ── Franchise Players ── */
+/* Franchise players: carosello di figurine Panini (riusa lo stile .allpro-*) */
 .team-flags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
     margin-top: 4px;
 }
 
-.team-flag-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    background: var(--bg-glass);
-    border: 1px solid var(--border-subtle);
-    min-width: 240px;
-    flex: 1;
-    max-width: 360px;
-    transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+.tf-nav {
+    justify-content: flex-end;
+    margin-bottom: 12px;
 }
 
-.team-flag-card:hover {
-    border-color: color-mix(in srgb, var(--team-color) 45%, transparent);
-    background: color-mix(in srgb, var(--team-color) 7%, transparent);
+.tf-cap {
+    /* draft-count a sinistra, stagioni a destra (una riga) */
+    flex-wrap: wrap;
 }
 
-.team-flag-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.team-flag-name {
+.tf-seasons {
+    font-size: 0.72rem;
     font-weight: 600;
-    font-size: 0.88rem;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.team-flag-years {
-    font-size: 0.7rem;
     color: var(--text-secondary);
-    margin-top: 2px;
-}
-
-.team-flag-count {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--team-color);
-    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 /* ── Cella All-Time ── */
@@ -3324,11 +3508,6 @@ img {
     .bento-cell {
         grid-column: span 12 !important;
         padding: 18px;
-    }
-
-    .team-flag-card {
-        min-width: 100%;
-        max-width: 100%;
     }
 }
 
@@ -3900,13 +4079,6 @@ img {
     text-align: center;
 }
 
-.stats-summary .loading-state {
-    grid-column: 1 / -1;
-}
-
-.stats-summary .spinner {
-    border-top-color: var(--accent-red);
-}
 
 .summary-stat {
     animation: fadeUp 0.5s var(--ease) both;
@@ -4011,6 +4183,16 @@ img {
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-top: 20px;
+}
+
+/* 6 pannelli (punti per ruolo): 3+3 invece di 4+2 spaiato */
+.st-leader-grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.st-leader-sub {
+    margin-top: 40px;
+    text-align: center;
 }
 
 .st-leader-panel {
@@ -4561,16 +4743,16 @@ img {
     position: relative;
 }
 
-.honors-card-icon {
-    font-size: 1.7rem;
-    line-height: 1;
-}
-
 .honors-card-title {
     font-family: var(--font-display);
     font-size: 1.15rem;
     font-weight: 800;
     letter-spacing: -0.01em;
+}
+
+.honors-card-abbr {
+    color: var(--award-color, var(--accent-red));
+    font-weight: 900;
 }
 
 .honors-card-desc {
@@ -4693,10 +4875,6 @@ img {
     padding: 80px 24px;
 }
 
-.honors-teaser-icon {
-    font-size: 3rem;
-}
-
 .honors-teaser-title {
     font-family: var(--font-display);
     font-size: clamp(1.6rem, 4vw, 2.4rem);
@@ -4718,11 +4896,12 @@ img {
 
 .allpro-team-label {
     font-family: var(--font-display);
-    font-size: 1.3rem;
-    font-weight: 800;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin-bottom: 24px;
     background: var(--accent-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -4736,71 +4915,161 @@ img {
     color: var(--text-muted);
 }
 
-.allpro-rows {
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--border-subtle);
-}
-
-.allpro-row {
+/* Carosello: testata (titolo + frecce) e track orizzontale scorrevole */
+.allpro-car-head {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
-    padding: 13px 8px;
-    border-bottom: 1px solid var(--border-subtle);
-    animation: fadeUp var(--dur-slow) var(--ease) both;
-    animation-delay: calc(var(--row-i, 0) * 50ms);
+    margin-bottom: 20px;
 }
 
-.allpro-pos {
-    flex-shrink: 0;
-    width: 46px;
-    text-align: center;
-    padding: 4px 0;
-    border-radius: var(--radius-xs);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+.allpro-car-head .allpro-team-label {
+    margin-bottom: 0;
 }
 
-.allpro-info {
+.allpro-car-nav {
     display: flex;
-    flex-direction: column;
-    min-width: 0;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
-.allpro-name {
+.allpro-car-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--dur-fast, 0.2s) var(--ease), border-color var(--dur-fast, 0.2s) var(--ease);
+}
+
+.allpro-car-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--text-muted);
+}
+
+.allpro-track {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 2px;
+    padding: 4px 2px 10px;
+    scrollbar-width: none;
+}
+
+.allpro-track::-webkit-scrollbar {
+    display: none;
+}
+
+/* Figurina senza box contenitore: slot sopra, Panini, didascalia sotto */
+.allpro-fig {
+    flex: 0 0 240px;
+    width: 240px;
+    scroll-snap-align: start;
+    cursor: pointer;
+    transition: transform var(--dur-med) var(--ease);
+}
+
+.allpro-fig:hover {
+    transform: translateY(-4px);
+}
+
+.allpro-fig .pm-panini {
+    margin: 0;
+}
+
+.allpro-fig-slot {
+    display: block;
     font-family: var(--font-display);
-    font-size: 1.05rem;
-    font-weight: 700;
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+    padding: 0;
+    background: none;
+    border-radius: 0;
 }
 
-.allpro-meta {
-    font-size: 0.72rem;
+.allpro-fig--empty {
+    width: 100%;
+    aspect-ratio: 464 / 631;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--border-subtle);
+    border-radius: 14px;
     color: var(--text-muted);
+    cursor: default;
 }
 
-.allpro-team-logo {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
-    margin-left: auto;
+.allpro-fig-cap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 0 2px;
 }
 
-.allpro-pts {
+.allpro-fig-pts {
     font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 1.35rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    min-width: 86px;
-    text-align: right;
+    color: var(--team-color, var(--text-primary));
+    white-space: nowrap;
 }
 
-.allpro-row .allpro-pts small {
-    font-size: 0.65rem;
+.allpro-fig-pts small {
+    font-size: 0.6rem;
     font-weight: 600;
     color: var(--text-muted);
     margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.allpro-fig-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.allpro-fig-team img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+    .allpro-track {
+        gap: 16px;
+    }
+
+    .allpro-fig {
+        flex-basis: 150px;
+        width: 150px;
+    }
+
+    .allpro-car-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
 }
 
 /* ================================
@@ -5203,6 +5472,10 @@ img {
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
     line-height: 1.1;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .mc-num-label {
@@ -5377,9 +5650,13 @@ img {
     margin: 6px 0 2px;
 }
 
-.mc-rail-emoji {
+.mc-rail-abbr {
     position: relative;
-    font-size: 1.9rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: var(--accent-amber);
     margin: 6px 0 2px;
 }
 
@@ -5395,6 +5672,130 @@ img {
     position: relative;
     font-size: 0.72rem;
     color: var(--text-muted);
+}
+
+/* ── Reskin visual: watermark, sfondi, avatar, seed ── */
+
+/* Logo team gigante in filigrana dentro la card (stile .teams-card-watermark) */
+.mc-watermark {
+    position: absolute;
+    right: -6%;
+    top: 50%;
+    height: 135%;
+    transform: translateY(-50%) rotate(-6deg);
+    opacity: 0.06;
+    filter: drop-shadow(0 0 40px var(--team-color, var(--accent-red)));
+    pointer-events: none;
+    transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+}
+
+.mosaic-card:hover .mc-watermark {
+    opacity: 0.11;
+    transform: translateY(-50%) rotate(-3deg) scale(1.04);
+}
+
+/* I contenuti stanno sopra watermark e sfondo */
+.mosaic-card > .mc-kicker,
+.mosaic-card > .mc-title,
+.mosaic-card > .mc-body,
+.mosaic-card > .mc-cta {
+    position: relative;
+    z-index: 1;
+}
+
+/* Sfondo fotografico (Super Bowl: stadio della finale) */
+.mc-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.mc-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.22;
+}
+
+.mc-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.85));
+}
+
+/* Avatar giocatore tondo (headshot ESPN, fallback SVG) */
+.mc-avatar {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+}
+
+.mc-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.mc-avatar--gold {
+    border: 1.5px solid var(--accent-amber);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-amber) 35%, transparent);
+}
+
+.mc-avatar--rail {
+    width: 58px;
+    height: 58px;
+    margin: 6px 0 2px;
+}
+
+/* Riga con filetto nel colore del team */
+.mc-row--tinted {
+    border-left: 2px solid color-mix(in srgb, var(--team-color, var(--accent-red)) 60%, transparent);
+    padding-left: 10px;
+}
+
+/* Score row con gradienti nei colori delle due squadre */
+.mc-score-row--vs {
+    --w1-mix: 12%;
+    --w2-mix: 12%;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--t1, transparent) var(--w1-mix), transparent),
+        transparent 35% 65%,
+        color-mix(in srgb, var(--t2, transparent) var(--w2-mix), transparent));
+    border-radius: 10px;
+    border-bottom: none;
+    margin-bottom: 6px;
+    padding: 11px 12px;
+}
+
+.mc-score-row--vs.mc-score-row--w1 { --w1-mix: 24%; }
+.mc-score-row--vs.mc-score-row--w2 { --w2-mix: 24%; }
+
+/* Seed gigante in outline (mini .st-rank-number) per la classifica */
+.mc-seed {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 2.4rem;
+    line-height: 1;
+    width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+    color: transparent;
+    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--team-color, var(--accent-red)) 80%, white);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Punti compatti accanto all'avatar nelle rail */
+.mc-rail-big--sm {
+    font-size: 1.3rem;
+    margin: 0;
 }
 
 /* ── Mobile ── */
@@ -5413,6 +5814,16 @@ img {
 
     .mc-rail-card {
         flex-basis: 172px;
+    }
+
+    .mc-avatar--rail {
+        width: 48px;
+        height: 48px;
+    }
+
+    .mc-seed {
+        font-size: 1.9rem;
+        width: 34px;
     }
 
     .honors-card--mvp {
@@ -6835,11 +7246,129 @@ img {
 
 .gb-out-row {
     display: grid;
-    grid-template-columns: 44px 1fr auto auto 1fr;
+    /* pos | giocatore | dettaglio | pts | pts | dettaglio | giocatore | pos */
+    grid-template-columns: 44px 1fr minmax(0, 150px) auto auto minmax(0, 150px) 1fr 44px;
     align-items: center;
     gap: 8px;
     padding: 9px 0;
     border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Dettaglio tra nome e punteggio: mini-stat a valori (numero + label micro) */
+.gb-out-stat {
+    display: flex;
+    gap: 12px;
+    min-width: 0;
+}
+
+.gb-out-stat--l {
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.gb-out-stat--r {
+    justify-content: flex-start;
+    padding-left: 10px;
+}
+
+.gb-out-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+}
+
+.gb-out-mini b {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.gb-out-mini i {
+    font-style: normal;
+    font-size: 0.52rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Nome giocatore: intero su desktop, "M. Cognome" su mobile */
+.gb-out-name-short {
+    display: none;
+}
+
+/* Panchinari dentro l'outcome: separatore + righe come i titolari */
+.gb-out-sep {
+    text-align: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    padding: 14px 0 5px;
+    border-bottom: 2px solid var(--border-card);
+}
+
+.gb-out-row--bn .gb-out-name {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.gb-out-row--bn .gb-out-pts {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* ── Live: puntino pulsante e targhette ── */
+.gb-live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-green) 70%, transparent);
+    margin-right: 5px;
+    vertical-align: middle;
+    animation: gb-live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gb-live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gb-live-dot { animation: none; }
+}
+
+.gb-live-badge {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.gb-live-badge .gb-live-dot {
+    background: #fff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+.gb-bug-final--live {
+    color: #fb7185;
 }
 
 .gb-out-row .allpro-pos {
@@ -6853,7 +7382,9 @@ img {
     min-width: 0;
 }
 
-.gb-out-player:last-child {
+/* Il giocatore di destra è l'ultimo DIV della riga (dopo di lui c'è solo
+   il badge ruolo, uno span): :last-child non lo prende più. */
+div.gb-out-player:last-of-type {
     text-align: right;
 }
 
@@ -6875,8 +7406,8 @@ img {
 
 .gb-out-pts {
     font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.85rem;
+    font-weight: 700;
+    font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
 }
@@ -6900,6 +7431,7 @@ img {
     flex-direction: column;
     gap: 14px;
 }
+
 
 .gb-statbar-label {
     display: block;
@@ -7087,9 +7619,23 @@ img {
         max-width: 84px;
     }
 
+    /* Su mobile: via le mini-stat, restano entrambi i badge ruolo;
+       i nomi passano alla forma corta "M. Cognome" */
     .gb-out-row {
-        grid-template-columns: 36px 1fr auto auto 1fr;
+        grid-template-columns: 36px 1fr auto auto 1fr 36px;
         gap: 5px;
+    }
+
+    .gb-out-stat {
+        display: none;
+    }
+
+    .gb-out-name-full {
+        display: none;
+    }
+
+    .gb-out-name-short {
+        display: inline;
     }
 }
 
@@ -8281,6 +8827,31 @@ body.pm-open { overflow: hidden; }
     background: var(--surface-card);
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
     animation: pm-rise var(--dur-med) var(--ease);
+    /* Scrollbar scura quando la scheda è più alta del viewport:
+       quella di default del browser stonerebbe sul fondo nero. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.pm-dialog::-webkit-scrollbar {
+    width: 10px;
+}
+
+.pm-dialog::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pm-dialog::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    /* il bordo trasparente stacca il thumb dal bordo del dialog */
+    border: 3px solid transparent;
+    background-clip: content-box;
+}
+
+.pm-dialog::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+    background-clip: content-box;
 }
 
 .pm-dialog::before {
@@ -8459,6 +9030,21 @@ body.pm-open { overflow: hidden; }
     padding: 1px 6px;
     border-radius: 4px;
     white-space: nowrap;
+}
+
+/* MVP di stagione: badge dorato più marcato, sopra gli altri */
+.pm-panini-mvp {
+    font-family: var(--font-display);
+    font-size: 0.55rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    color: #1a1200;
+    background: linear-gradient(135deg, #ffe08a, #e0a72a);
+    box-shadow: 0 0 10px rgba(245, 190, 70, 0.5);
 }
 
 .pm-panini-allpro--1 {
@@ -8797,6 +9383,97 @@ body.pm-open { overflow: hidden; }
 /* ============================================================
    PAGINA GIOCATORE COMPLETA (#player/{year}/{pos}/{nome})
    ============================================================ */
+
+/* Blocco "Questa partita" — scheda aperta dal Game Center */
+.pm-game-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pm-game-pts {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--team-color, var(--accent-red));
+    font-variant-numeric: tabular-nums;
+}
+
+.pm-game-pts small {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+.pm-game-meta {
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.pm-game-status {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.pm-game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 1px;
+    margin-top: 4px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.pm-game-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px;
+    background: var(--bg-primary);
+}
+
+.pm-game-cell-val {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.pm-game-cell-lbl {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.pm-game-empty {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Slot cliccabili nel campo del Game Center */
+.formation-slot[data-player-modal] {
+    cursor: pointer;
+    transition: transform 0.15s var(--ease), filter 0.15s var(--ease);
+}
+
+.formation-slot[data-player-modal]:hover {
+    transform: translateY(-2px) scale(1.04);
+    filter: brightness(1.15);
+}
 
 /* Link nel modal verso la pagina completa */
 .pm-fullstats {

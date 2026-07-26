@@ -5,11 +5,11 @@
  * (#player/{year}/{pos}/{nome}) o alla pagina squadra NFL (#nfl-team/{abbr}).
  */
 
-import { buildCareers } from '../data/careers.js?v=4';
+import { buildCareers } from '../data/careers.js?v=14';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=1';
-import { normName } from '../data/projections.js?v=6';
+import { normName } from '../data/projections.js?v=15';
 import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=6';
-import { CURRENT_SEASON } from '../data.js?v=5';
+import { CURRENT_SEASON } from '../data.js?v=32';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const teamLogoUrl = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${(abbr || '').toLowerCase()}.png`;

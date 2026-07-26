@@ -20,16 +20,16 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
-import { TEAMS } from './team.js?v=12';
-import { getHonorsBundle } from '../data/honors.js?v=2';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=6';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=3';
-import { initPlayerModal } from '../components/player-modal.js?v=9';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { pickSeeded } from '../data/magazine-voices.js?v=6';
-import { predictSeason } from '../data/draft-predictions.js?v=4';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=32';
+import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { TEAMS } from './team.js?v=23';
+import { getHonorsBundle } from '../data/honors.js?v=13';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=15';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=13';
+import { initPlayerModal } from '../components/player-modal.js?v=24';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { pickSeeded } from '../data/magazine-voices.js?v=17';
+import { predictSeason } from '../data/draft-predictions.js?v=12';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=4';
 import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=1';
 
@@ -86,7 +86,7 @@ export async function initDraftGrades() {
         if (_draftCache[y]?.teams) years.push(y);
     }
     if (!years.length) {
-        content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><p class="empty-state-text">Nessun draft disponibile</p></div>`;
+        content.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun draft disponibile</p></div>`;
         return;
     }
 
@@ -154,7 +154,7 @@ async function loadYear() {
         setTimeout(() => console.log(`[draftgrades] pick matchate su proiezioni ${year}: ${evaluator.matched()}/${picks.length}`), 0);
     } catch (e) {
         console.error('[draftgrades]', e);
-        content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel calcolo delle pagelle</p></div>`;
+        content.innerHTML = `<div class="empty-state"><p class="empty-state-text">Errore nel calcolo delle pagelle</p></div>`;
     }
 }
 
@@ -479,7 +479,7 @@ function teamCard(g, rank, year, meta, seed, pred) {
     const rows = g.list.map(p => {
         const d = meta.detailOf?.(p);
         const risk = d?.risk?.level === 'alto'
-            ? `<span class="dg-risk" title="${d.risk.label}">⚠️</span>` : '';
+            ? `<span class="dg-risk" title="${d.risk.label}">!</span>` : '';
         return `
         <div class="dg-row" data-player-modal
              data-player-name="${p.player}" data-pos="${p.pos}" data-nfl="${p.nfl || ''}" data-year="${year}">

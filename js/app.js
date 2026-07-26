@@ -1,31 +1,33 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=25';
-import { initGameCenter } from './sections/game-center.js?v=30';
-import { initStandings } from './sections/standings.js?v=31';
-import { initDraft } from './sections/draft.js?v=30';
-import { initDraftGrades } from './sections/draftgrades.js?v=16';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=14';
-import { initPlayerPage } from './sections/player-page.js?v=51';
+import { initHome } from './sections/home.js?v=38';
+import { initGameCenter } from './sections/game-center.js?v=43';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=46';
+import { initDraft } from './sections/draft.js?v=43';
+import { initDraftGrades } from './sections/draftgrades.js?v=27';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=25';
+import { initPlayerPage } from './sections/player-page.js?v=52';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=10';
 import { initPlayersSearch } from './sections/players-search.js?v=9';
-import { initStats } from './sections/stats.js?v=45';
-import { initHistory } from './sections/history.js?v=23';
-import { initHonors } from './sections/honors.js?v=2';
-import { initAllPro } from './sections/allpro.js?v=2';
-import { initHallOfFame } from './sections/halloffame.js?v=14';
-import { initTeam } from './sections/team.js?v=12';
-import { initTeams } from './sections/teams.js?v=2';
-import { initGame } from './sections/game.js?v=3';
-import { initAnalysis } from './sections/analysis.js?v=16';
-import { initMagazine } from './sections/magazine.js?v=16';
-import { initNavbar } from './ui/navbar.js';
+import { initStats } from './sections/stats.js?v=57';
+import { initHistory } from './sections/history.js?v=33';
+import { initHonors } from './sections/honors.js?v=13';
+import { initAllPro } from './sections/allpro.js?v=14';
+import { initHallOfFame } from './sections/halloffame.js?v=28';
+import { initTeam } from './sections/team.js?v=23';
+import { initTeams } from './sections/teams.js?v=13';
+import { initGame } from './sections/game.js?v=26';
+import { initAnalysis } from './sections/analysis.js?v=26';
+import { initMagazine } from './sections/magazine.js?v=27';
+import { initNavbar } from './ui/navbar.js?v=12';
+import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 
 const SECTIONS = {
     'home': initHome,
     'game-center': initGameCenter,
     'standings': initStandings,
+    'playoffs': initPlayoffs,
     'teams': initTeams,
     'analysis': initAnalysis,
     'draft': initDraft,
@@ -45,6 +47,7 @@ const NAV_PARENT = {
     'allpro': 'history',
     'halloffame': 'history',
     'draftgrades': 'draft',
+    'playoffs': 'standings',
     'magazine': 'game-center',
 };
 
@@ -111,5 +114,6 @@ document.getElementById('nav-hamburger')?.addEventListener('click', () => {
 window.addEventListener('hashchange', navigate);
 document.addEventListener('DOMContentLoaded', () => {
     initNavbar();
+    startAutoAbbr();
     navigate();
 });

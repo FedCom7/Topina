@@ -9,7 +9,8 @@
 import {
     pickSeeded, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL, TOP_PLAYER_PHRASES,
     AN_STAKES_PLAYOFF, AN_STAKES_SB, AN_SERIES_LINES, AN_FLOP_WRAP, AN_HOT_STREAK_LINES,
-} from './magazine-voices.js?v=6';
+    AN_COMMENT_WRAP, AN_NOTE_BAD,
+} from './magazine-voices.js?v=17';
 
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -119,6 +120,14 @@ export function teamStatTotals(team) {
 
 const ordinal = (n) => `${n}º`;
 
+/** Seed deterministico per giocatore+prestazione: stesse frasi ad ogni visita */
+function playerSeed(p) {
+    let h = Math.round(pts(p) * 100);
+    const s = p?.name || '';
+    for (let i = 0; i < s.length; i++) h += s.charCodeAt(i) * (i + 1);
+    return h;
+}
+
 /** Commento breve per un giocatore (difference maker / note) */
 export function playerComment(p, bundle, ranks) {
     const v = pts(p);
@@ -141,10 +150,8 @@ export function playerComment(p, bundle, ranks) {
     const best = bundle?.players?.[p.name]?.best;
     if (best && v >= best.pts && v > 12) bits.push('suo massimo stagionale');
 
-    let text = `${fmt(v)} punti`;
-    if (stat) text += ` (${stat})`;
-    if (bits.length) text += ` — ${bits.join(', ')}`;
-    return text + '.';
+    const facts = `${fmt(v)} punti${stat ? ` (${stat})` : ''}`;
+    return pick(AN_COMMENT_WRAP, playerSeed(p))({ facts, bits: bits.join(', ') });
 }
 
 /** Player notes: i giocatori che hanno segnato la partita (esclusi i diff maker) */
@@ -169,9 +176,9 @@ export function playerNotes(m, bundle, ranks) {
     return candidates.slice(0, 6).map(({ p, rawName, v, avg, delta }) => {
         let text;
         if (delta <= -0.35 && avg) {
-            text = `Giornata da dimenticare: solo ${fmt(v)} punti contro una media stagionale di ${fmt1(avg)}.`;
             const s = statLine(p);
-            if (s) text += ` ${s.charAt(0).toUpperCase() + s.slice(1)}.`;
+            const statTail = s ? ` ${s.charAt(0).toUpperCase() + s.slice(1)}.` : '';
+            text = pick(AN_NOTE_BAD, playerSeed(p))({ pts: fmt(v), avg: fmt1(avg), statTail });
         } else {
             text = playerComment(p, bundle, ranks);
         }

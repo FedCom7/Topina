@@ -6,17 +6,17 @@
  * confronto stats di squadra + difference maker → player notes.
  */
 
-import { fetchFantasyData, displayName, getSeasonConfig } from '../data.js?v=5';
-import { TEAM_KEYS } from '../data/team-config.js?v=5';
-import { getLeagueData } from '../data/league-data.js?v=1';
-import { getHonorsBundle } from '../data/honors.js?v=2';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=1';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=32';
+import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { getLeagueData } from '../data/league-data.js?v=11';
+import { getHonorsBundle } from '../data/honors.js?v=13';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
-    playerComment, playerNotes, recapArticle, statLine,
-} from '../data/matchup-analysis.js?v=2';
-import { TEAMS } from './team.js?v=12';
-import { playerImageService } from '../services/player-image-service.js?v=4';
+    playerComment, playerNotes, recapArticle,
+} from '../data/matchup-analysis.js?v=13';
+import { TEAMS } from './team.js?v=23';
+import { playerImageService } from '../services/player-image-service.js?v=15';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -41,13 +41,26 @@ export async function initGame() {
         const weekData = data?.weeks?.[String(week)];
         const m = weekData?.matchups?.[idx];
         if (!m?.team1 || !m?.team2) {
-            section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Matchup non trovato</p></div></div>`;
+            section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Matchup non trovato</p></div></div>`;
             return;
         }
 
-        const [bundle, league] = await Promise.all([getHonorsBundle(year), getLeagueData()]);
+        const [bundle, league, sched] = await Promise.all([
+            getHonorsBundle(year), getLeagueData(),
+            getWeekSchedule(year, week).catch(() => null),
+        ]);
         const ranks = weekPosRanks(weekData);
         const config = getSeasonConfig(year);
+
+        // Live: la partita NFL di un giocatore è in corso ORA (kickoff reale
+        // ESPN + durata stimata ~3h15). Per le stagioni passate è sempre false.
+        const now = Date.now();
+        const liveNow = (p) => {
+            const w = p?.nfl_team ? sched?.get(canonAbbr(p.nfl_team)) : null;
+            return !!w && now >= w.start.getTime() && now <= w.end.getTime();
+        };
+        const anyLive = [m.team1, m.team2].some(team =>
+            [...(team.starters || []), ...(team.bench || [])].some(liveNow));
         const isPlayoff = week === config.playoffWeek;
         const isSB = week === config.superBowlWeek;
         const weekLabel = isSB ? 'Super Bowl' : isPlayoff ? 'Playoffs' : `Week ${week}`;
@@ -67,11 +80,14 @@ export async function initGame() {
         const dm = diffMakers(m);
         const notes = playerNotes(m, bundle, ranks);
 
+        // Con almeno una partita live, niente sezioni "a bocce ferme":
+        // recap, difference maker e protagonisti arrivano a partite finite.
         section.innerHTML = `
         <div class="section-inner gb-page">
             <a class="gb-back" href="#game-center"><span aria-hidden="true">←</span> Game Center</a>
-            ${scoreBugHTML(m, weekLabel, year)}
-            ${roleCompareHTML(m)}
+            ${scoreBugHTML(m, weekLabel, year, anyLive)}
+            ${anyLive ? '' : articleHTML(article, weekLabel)}
+            ${outcomeHTML(m, liveNow)}
             <div class="mosaic-card mc-wide gb-card mc-in" id="gb-chart-card">
                 <span class="mc-kicker">Andamento del weekend</span>
                 <h2 class="mc-title">Punto a punto</h2>
@@ -79,44 +95,45 @@ export async function initGame() {
                     <div class="loading-state"><div class="spinner"></div><p>Caricamento calendario NFL...</p></div>
                 </div>
             </div>
-            <div class="gb-article-grid">
-                ${articleHTML(article, weekLabel)}
-                ${outcomeHTML(m)}
-            </div>
+            ${roleCompareHTML(m)}
+            ${anyLive ? statBarsHTML(m) : `
             <div class="gb-halves">
                 ${statBarsHTML(m)}
                 ${diffMakerHTML(m, dm, bundle, ranks)}
             </div>
-            ${notesHTML(notes)}
+            ${notesHTML(notes)}`}
         </div>`;
 
         loadHeadshots(section, year);
         renderChart(m, year, week);
     } catch (e) {
         console.error('[Game] errore analisi:', e);
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
     }
 }
 
 // ─── Score bug ───────────────────────────────────────────────────
 
-function scoreBugHTML(m, weekLabel, year) {
+function scoreBugHTML(m, weekLabel, year, isLive = false) {
     const s1 = P({ fantasy_points: m.team1.score });
     const s2 = P({ fantasy_points: m.team2.score });
     const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
     const side = (t, raw) => `
         <div class="gb-bug-side">
-            <span class="gb-bug-name">${t?.name || displayName(raw.name)}</span>
+            <span class="gb-bug-name">${teamNameHTML(t?.name || displayName(raw.name))}</span>
         </div>`;
     return `
     <div class="gb-scorebug" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}">
+        ${isLive ? '<span class="gb-live-badge"><i class="gb-live-dot"></i>LIVE</span>' : ''}
         ${t1 ? `<img class="gb-bug-wm gb-bug-wm-l" src="${t1.logo}" alt="" aria-hidden="true">` : ''}
         ${t2 ? `<img class="gb-bug-wm gb-bug-wm-r" src="${t2.logo}" alt="" aria-hidden="true">` : ''}
         <div class="gb-bug-inner">
             ${side(t1, m.team1)}
             <span class="gb-bug-score${s1 >= s2 ? ' winner' : ''}">${fmt(s1)}</span>
             <div class="gb-bug-mid">
-                <span class="gb-bug-final">Finale</span>
+                ${isLive
+                    ? '<span class="gb-bug-final gb-bug-final--live"><i class="gb-live-dot"></i> Live</span>'
+                    : '<span class="gb-bug-final">Finale</span>'}
                 <span class="gb-bug-week">${weekLabel} · ${year}</span>
             </div>
             <span class="gb-bug-score${s2 >= s1 ? ' winner' : ''}">${fmt(s2)}</span>
@@ -268,36 +285,75 @@ function articleHTML(article, weekLabel) {
     </article>`;
 }
 
-function outcomeHTML(m) {
+function outcomeHTML(m, liveNow = () => false) {
     const pairs = slotPairs(m);
+    // "Marvin Guiu" → "M. Guiu" (mobile); le DEF restano col nome squadra intero
+    const shortName = (p) => {
+        const role = (p.position_in_team || p.position || '').toUpperCase();
+        if (role === 'DEF') return p.name;
+        const parts = String(p.name).trim().split(/\s+/);
+        return parts.length < 2 ? p.name : `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+    };
     const cell = (p) => {
         if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
         return `
         <div class="gb-out-player">
-            <span class="gb-out-name">${p.name}</span>
+            <span class="gb-out-name">${liveNow(p) ? '<i class="gb-live-dot"></i>' : ''}<span class="gb-out-name-full">${p.name}</span><span class="gb-out-name-short">${shortName(p)}</span></span>
             <span class="gb-out-meta">${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}</span>
         </div>`;
     };
-    const rows = pairs.map(({ slot, a, b }) => {
+    // Mini-stat a valori (2-3 per ruolo): numero sopra, etichetta micro sotto.
+    // I primi due candidati escono sempre, il resto solo se > 0.
+    const miniStats = (p) => {
+        const s = p?.stats || {};
+        const n = (v) => Number(v) || 0;
+        const role = (p?.position_in_team || p?.position || '').toUpperCase();
+        const CANDIDATES = {
+            QB: [[n(s.pass_yds), 'yd lancio'], [n(s.pass_td), 'td'], [n(s.pass_int), 'int'], [n(s.rush_yds), 'yd corsa']],
+            RB: [[n(s.rush_yds), 'yd corsa'], [n(s.rush_td), 'td'], [n(s.rec_yds), 'yd ric'], [n(s.rec_td), 'td ric']],
+            WR: [[n(s.rec), 'rec'], [n(s.rec_yds), 'yd ric'], [n(s.rec_td), 'td']],
+            TE: [[n(s.rec), 'rec'], [n(s.rec_yds), 'yd ric'], [n(s.rec_td), 'td']],
+            K: [[n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus), 'fg'], [n(s.pat_made), 'xp']],
+            DEF: [[n(s.sack), 'sack'], [n(s.def_int) + n(s.fum_rec), 'to'], [n(s.def_td), 'td']],
+        };
+        const list = CANDIDATES[role] || CANDIDATES[role === 'W/R' ? 'WR' : role] || [];
+        return list.filter(([v], i) => i < 2 || v > 0).slice(0, 3);
+    };
+    const stat = (p, sideCls) => {
+        const tiles = p ? miniStats(p) : [];
+        return `<span class="gb-out-stat ${sideCls}">${tiles.map(([v, l]) => `
+            <span class="gb-out-mini"><b>${v}</b><i>${l}</i></span>`).join('')}</span>`;
+    };
+    const rowFor = (slot, a, b, extraCls = '') => {
         const pa = P(a), pb = P(b);
+        const posBadge = `<span class="allpro-pos pos-${slot.toLowerCase().replace('/', '')}">${slot}</span>`;
         return `
-        <div class="gb-out-row">
-            <span class="allpro-pos pos-${slot.toLowerCase().replace('/', '')}">${slot}</span>
+        <div class="gb-out-row${extraCls}">
+            ${posBadge}
             ${cell(a)}
+            ${stat(a, 'gb-out-stat--l')}
             <span class="gb-out-pts${pa > pb ? ' win' : ''}">${pa.toFixed(2)}</span>
             <span class="gb-out-pts${pb > pa ? ' win' : ''}">${pb.toFixed(2)}</span>
+            ${stat(b, 'gb-out-stat--r')}
             ${cell(b)}
+            ${posBadge}
         </div>`;
-    }).join('');
-    const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
+    };
+    const rows = pairs.map(({ slot, a, b }) => rowFor(slot, a, b)).join('');
+
+    // Panchinari: sotto i titolari, stesse righe appaiate (slot BN)
+    const bench1 = m.team1.bench || [];
+    const bench2 = m.team2.bench || [];
+    const maxBench = Math.max(bench1.length, bench2.length);
+    let benchRows = '';
+    for (let i = 0; i < maxBench; i++) {
+        benchRows += rowFor('BN', bench1[i] || null, bench2[i] || null, ' gb-out-row--bn');
+    }
+    if (benchRows) benchRows = `<div class="gb-out-sep">Panchina</div>${benchRows}`;
+
     return `
     <aside class="mosaic-card gb-card gb-outcome mc-in">
-        <span class="mc-kicker">Matchup outcome</span>
-        <div class="gb-out-head">
-            <span style="color:${t1?.color || 'inherit'}">${t1?.name || displayName(m.team1.name)}</span>
-            <span style="color:${t2?.color || 'inherit'}">${t2?.name || displayName(m.team2.name)}</span>
-        </div>
-        <div class="gb-out-rows">${rows}</div>
+        <div class="gb-out-rows">${rows}${benchRows}</div>
     </aside>`;
 }
 

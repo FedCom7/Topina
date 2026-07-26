@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=130">
+    <link rel="stylesheet" href="css/main.css?v=152">
 </head>
 
 <body>
@@ -20,7 +20,6 @@
     <nav class="navbar" id="navbar">
         <div class="nav-inner">
             <a href="#home" class="nav-logo">
-                <span class="logo-emoji">🏈</span>
                 <span class="logo-text">Topina</span>
             </a>
             <ul class="nav-links">
@@ -28,7 +27,8 @@
                 <li class="nav-item has-dropdown" data-dropdown="game-center">
                     <a href="#game-center" class="nav-link" data-section="game-center">Game Center</a>
                 </li>
-                <li class="nav-item"><a href="#standings" class="nav-link" data-section="standings">Standings</a>
+                <li class="nav-item has-dropdown" data-dropdown="standings">
+                    <a href="#standings" class="nav-link" data-section="standings">Standings</a>
                 </li>
                 <li class="nav-item has-dropdown" data-dropdown="teams">
                     <a href="#teams" class="nav-link" data-section="teams">Teams</a>
@@ -60,6 +60,11 @@
             <a href="#team-lasers" class="nav-dp-item">Lasers</a>
             <a href="#team-oscurus" class="nav-dp-item">Oscurus</a>
             <a href="#team-sommo" class="nav-dp-item">Sommo</a>
+        </div>
+        <div class="nav-dropdown-panel" data-panel="standings">
+            <a href="#standings" class="nav-dp-item nav-dp-header" data-section="standings">Regular Season</a>
+            <div class="nav-dp-sep"></div>
+            <a href="#playoffs" class="nav-dp-item" data-section="playoffs">Playoff Picture</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="draft">
             <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
@@ -115,11 +120,11 @@
         </div>
     </section>
 
-    <!-- ====== STANDINGS ====== -->
+    <!-- ====== STANDINGS (Regular Season) ====== -->
     <section class="page-section" id="standings">
         <div class="section-inner">
             <div class="section-header">
-                <h1 class="section-title">Standings</h1>
+                <h1 class="section-title">Regular Season</h1>
                 <p class="section-subtitle">Classifica della stagione</p>
             </div>
             <div class="year-selector" id="st-year-selector"></div>
@@ -127,6 +132,22 @@
                 <div class="loading-state">
                     <div class="spinner"></div>
                     <p>Caricamento classifica...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== PLAYOFF PICTURE ====== -->
+    <section class="page-section" id="playoffs">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Playoff Picture</h1>
+                <p class="section-subtitle">Il tabellone verso il Super Bowl</p>
+            </div>
+            <div class="standings-table-wrap" id="playoffs-wrap">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Caricamento Playoff Picture...</p>
                 </div>
             </div>
         </div>
@@ -317,7 +338,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=122"></script>
+    <script type="module" src="js/app.js?v=136"></script>
 </body>
 
 </html>

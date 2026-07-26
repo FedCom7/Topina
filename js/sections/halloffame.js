@@ -8,11 +8,11 @@
  * (1° e 2° team). Un eletto all'anno.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=5';
-import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=2';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=9';
-import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=3';
+import { CURRENT_SEASON } from '../data.js?v=32';
+import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=13';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=24';
+import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=13';
 
 let initialized = false;
 
@@ -45,7 +45,7 @@ async function load() {
         render(wrap, inductees);
     } catch (e) {
         console.error('Hall of Fame error:', e);
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p class="empty-state-text">Errore nel caricamento: ${e.message}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Errore nel caricamento: ${e.message}</p></div>`;
     }
 }
 
@@ -55,7 +55,7 @@ async function load() {
 
 function render(wrap, inductees) {
     if (!inductees.length) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏛️</div><p class="empty-state-text">Nessun giocatore ancora eletto</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun giocatore ancora eletto</p></div>`;
         return;
     }
 

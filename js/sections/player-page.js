@@ -12,15 +12,15 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=3';
-import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=2';
-import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=1';
-import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=4';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=9';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=6';
-import { playerImageService } from '../services/player-image-service.js?v=4';
-import { canonAbbr } from '../data/nfl-schedule.js?v=1';
-import { CURRENT_SEASON } from '../data.js?v=5';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=13';
+import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=12';
+import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=11';
+import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=14';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=24';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=15';
+import { playerImageService } from '../services/player-image-service.js?v=15';
+import { canonAbbr } from '../data/nfl-schedule.js?v=11';
+import { CURRENT_SEASON } from '../data.js?v=32';
 import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers } from '../data/context-score.js?v=4';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries } from '../data/nfl-team-extras.js?v=7';
@@ -53,7 +53,7 @@ export async function initPlayerPage() {
     const year = parts[1], pos = (parts[2] || '').toUpperCase().replace('W/R', 'WR');
 
     if (!name || !year) {
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">Giocatore non trovato</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Giocatore non trovato</p></div></div>`;
         return;
     }
 
@@ -214,7 +214,7 @@ export async function initPlayerPage() {
     } catch (e) {
         console.error('[player-page]', e);
         if (location.hash !== myHash) return;
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento delle statistiche</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento delle statistiche</p></div></div>`;
     }
 }
 
@@ -294,6 +294,31 @@ function bindViolinHover(section) {
     });
 }
 
+// Hero alternativo del collega (panini): mantenuto per compatibilità, non
+// usato dalla renderPlayerPage corrente che usa recapCard.
+function heroBlock({ name, pos, abbr, full, career, year }) {
+    const info = full.info;
+    const chips = [
+        pos ? `<span class="allpro-pos pos-${pos.toLowerCase()}">${pos}</span>` : '',
+        abbr ? `<span class="pm-chip"><img class="pp-chip-logo" src="${teamLogo(abbr)}" alt="" onerror="this.style.display='none'">${abbr}</span>` : '',
+        info?.age ? `<span class="pm-chip">${info.age} anni</span>` : '',
+        info?.college ? `<span class="pm-chip">${esc(info.college)}</span>` : '',
+        career?.seasons.size ? `<span class="pm-chip">${career.seasons.size} stagion${career.seasons.size === 1 ? 'e' : 'i'} Topina</span>` : '',
+        info?.injury_status ? `<span class="pm-chip pp-chip-injury">${esc(info.injury_status)}</span>` : '',
+    ].filter(Boolean).join('');
+
+    return `
+    <header class="mosaic-card mc-wide dgt-hero pp-hero mc-in">
+        <img class="pp-headshot" src="images/fallback-player.svg" alt="${esc(name)}">
+        <div class="dgt-hero-info">
+            <span class="mc-kicker">Scheda completa · Draft ${year}</span>
+            <h1 class="mc-title">${esc(name)}</h1>
+            <div class="pm-chips pp-hero-chips">${chips}</div>
+        </div>
+        ${career?.sbWins ? `<div class="pm-rings" title="Anelli Super Bowl">SB ×${career.sbWins}</div>` : ''}
+    </header>`;
+}
+
 function noStatsBlock(full, projEntry, year) {
     const msg = !full.resolved
         ? 'Statistiche NFL dettagliate non disponibili per questo giocatore (nessuna corrispondenza su Sleeper).'
@@ -370,6 +395,12 @@ function recapCard(ctx) {
         combine.cone != null ? factChip(`${combine.cone}s`, '3-cone') : '',
         combine.shuttle != null ? factChip(`${combine.shuttle}s`, 'shuttle') : '',
     ].filter(Boolean).join('') : '';
+    // Blocco infermeria del collega (mantenuto per compatibilità).
+    const injury = info.injury_status ? `
+        <div class="pp-injury">
+            <span class="pp-injury-title">Infermeria (stato attuale)</span>
+            <span>${esc(info.injury_status)}${info.injury_body_part ? ` — ${esc(info.injury_body_part)}` : ''}${info.injury_notes ? ` · ${esc(info.injury_notes)}` : ''}${info.injury_start_date ? ` · dal ${new Date(info.injury_start_date).toLocaleDateString('it-IT')}` : ''}</span>
+        </div>` : '';
 
     // Draft NFL reale + accolades di carriera, in una riga
     const draftChips = [

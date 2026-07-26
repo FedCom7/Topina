@@ -1,12 +1,15 @@
 /**
  * Standings Section
- * Ranking a card (stile teams page, numeri giganti sporgenti) + Playoff bracket.
- * Ordine dinamico: regular season → ranking sopra; dai playoff in poi → bracket sopra.
+ * Due pagine distinte, raggiungibili dal sotto-menu di Standings:
+ *   #standings → Regular Season (card di classifica col seed gigante)
+ *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
-import { fetchFantasyData, processStandings, displayName, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=5';
-import { TEAMS } from './team.js?v=12';
+import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=32';
+import { TEAMS } from './team.js?v=23';
 
-let loaded = false;
+let loadedStandings = false;
+let loadedPlayoffs = false;
+let _season = null; // { data, standings, config, playoffsStarted } — condiviso dalle due viste
 
 // Team info (colore + logo) dal display name
 function teamInfo(rawName) {
@@ -14,48 +17,56 @@ function teamInfo(rawName) {
     return Object.values(TEAMS).find(t => t.name === dn) || { name: dn, color: '#888', logo: 'images/nfl_logo.png' };
 }
 
-export async function initStandings() {
-    if (loaded) return;
-    loaded = true;
-
-    // Year selector non usato in questa pagina
-    const selector = document.getElementById('st-year-selector');
-    if (selector) selector.style.display = 'none';
-
-    await loadStandings();
-}
-
-async function loadStandings() {
-    const wrap = document.getElementById('standings-table-wrap');
-    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento Classifica...</p></div>`;
-
+/** Dati di stagione, calcolati una volta sola e riusati da entrambe le viste. */
+async function getSeason() {
+    if (_season) return _season;
     const data = await fetchFantasyData(CURRENT_SEASON);
-
-    if (!data) {
-        wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p class="empty-state-text">Dati non disponibili</p></div>`;
-        return;
-    }
+    if (!data) return null;
 
     const standings = processStandings(data, CURRENT_SEASON);
     const config = getSeasonConfig(CURRENT_SEASON);
     const maxWeek = Math.max(...Object.keys(data.weeks || {}).map(Number), 0);
     const playoffsStarted = maxWeek >= config.playoffWeek;
 
-    const bracketHTML = generateBracket(standings, data, config, playoffsStarted);
-    const rankingHTML = generateRankingCards(standings);
+    return (_season = { data, standings, config, playoffsStarted });
+}
 
-    const bracketBlock = `
-        <h3 class="st-block-title">Playoff Picture</h3>
-        <p class="st-block-desc">${bracketDescription(standings, data, config, playoffsStarted)}</p>
-        ${bracketHTML}`;
-    const rankingBlock = `
-        <h3 class="st-block-title">Regular Season</h3>
+const spinner = (label) =>
+    `<div class="loading-state"><div class="spinner"></div><p>Caricamento ${label}...</p></div>`;
+const noData = '<div class="empty-state"><p class="empty-state-text">Dati non disponibili</p></div>';
+
+export async function initStandings() {
+    if (loadedStandings) return;
+    loadedStandings = true;
+
+    const selector = document.getElementById('st-year-selector');
+    if (selector) selector.style.display = 'none';
+
+    const wrap = document.getElementById('standings-table-wrap');
+    wrap.innerHTML = spinner('Classifica');
+
+    const s = await getSeason();
+    if (!s) { wrap.innerHTML = noData; return; }
+
+    wrap.innerHTML = `
         <p class="st-block-desc">${rankingDescription()}</p>
-        ${rankingHTML}`;
+        ${generateRankingCards(s.standings)}`;
+}
 
-    wrap.innerHTML = playoffsStarted
-        ? bracketBlock + rankingBlock
-        : rankingBlock + bracketBlock;
+export async function initPlayoffs() {
+    if (loadedPlayoffs) return;
+    loadedPlayoffs = true;
+
+    const wrap = document.getElementById('playoffs-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = spinner('Playoff Picture');
+
+    const s = await getSeason();
+    if (!s) { wrap.innerHTML = noData; return; }
+
+    wrap.innerHTML = `
+        <p class="st-block-desc">${bracketDescription(s.standings, s.data, s.config, s.playoffsStarted)}</p>
+        ${generateBracket(s.standings, s.data, s.config, s.playoffsStarted)}`;
 }
 
 /* ============================================================
@@ -96,7 +107,7 @@ function generateRankingCards(standings) {
                 <div class="st-rank-body">
                     <div class="st-rank-info">
                         <span class="st-rank-kicker">Seed #${rank}</span>
-                        <h2 class="st-rank-name">${info.name}</h2>
+                        <h2 class="st-rank-name">${teamNameHTML(info.name)}</h2>
                         <div class="st-rank-stats">
                             <span class="st-rank-stat"><strong>${t.w}–${t.l}</strong> Record</span>
                             <span class="st-rank-stat"><strong>${t.pf.toLocaleString('it-IT')}</strong> PF</span>
@@ -184,30 +195,95 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
 
     const nameOf = (t) => t?.name ?? t;
 
+    /* ---- Punteggi per la vista mobile (card-matchup) ---- */
+    const abbrOf = (info) => teamAbbr(info.name);
+    const fmt = (v) => Number.isFinite(v) ? (Number.isInteger(v) ? String(v) : v.toFixed(1)) : '';
+
+    const scoresOf = (teamA, teamB) => {
+        if (!playoffMatchups || !teamA || !teamB) return null;
+        const m = playoffMatchups.find(mu =>
+            mu.team1 && mu.team2 &&
+            [mu.team1.name, mu.team2.name].includes(teamA.name) &&
+            [mu.team1.name, mu.team2.name].includes(teamB.name));
+        if (!m) return null;
+        return { [m.team1.name]: parseFloat(m.team1.score), [m.team2.name]: parseFloat(m.team2.score) };
+    };
+    const sf1Scores = scoresOf(seed1, seed4);
+    const sf2Scores = scoresOf(seed2, seed3);
+    const sbScores = (sbMatchup?.team1 && sbMatchup?.team2)
+        ? { [sbMatchup.team1.name]: parseFloat(sbMatchup.team1.score), [sbMatchup.team2.name]: parseFloat(sbMatchup.team2.score) }
+        : null;
+
+    // Riga squadra dentro una card-matchup mobile
+    const pobTeam = (team, scores, winnerName, decided) => {
+        if (!team) return `<div class="pob-team pob-team--tbd"><span class="pob-abbr">—</span></div>`;
+        const name = nameOf(team);
+        const info = teamInfo(name);
+        const isWin = decided && name === winnerName;
+        const cls = decided ? (isWin ? ' pob-team--win' : ' pob-team--lose') : '';
+        const sc = scores ? fmt(scores[name]) : '';
+        return `
+        <a href="#team-${info.key || ''}" class="pob-team${cls}" style="--team-color:${info.color}">
+            <img class="pob-logo" src="${info.logo}" alt="" onerror="this.style.display='none'">
+            <span class="pob-abbr">${abbrOf(info)}</span>
+            <span class="pob-score">${sc}</span>
+        </a>`;
+    };
+
+    const pobSemi = (side, tA, tB, scores, winnerName) => `
+        <div class="pob-semi pob-semi--${side}">
+            <span class="pob-label">Semifinale</span>
+            ${pobTeam(tA, scores, winnerName, !!winnerName)}
+            ${pobTeam(tB, scores, winnerName, !!winnerName)}
+        </div>`;
+
     const projectionNote = !playoffsStarted
         ? `<p class="st-bracket-note">Proiezione basata sulla classifica attuale — i playoff iniziano alla W${config.playoffWeek}</p>`
         : '';
 
     return `
     <div class="playoff-picture-container">
-        <div class="playoff-grid-explicit">
-            <!-- LEFT COLUMN: 1 vs 4 -->
-            ${renderCard(seed1, 'pos-1', 1, loser1v4?.name === seed1.name)}
-            ${renderCard(seed4, 'pos-2', 4, loser1v4?.name === seed4.name)}
+        <!-- ===== DESKTOP: griglia a loghi ===== -->
+        <div class="playoff-desktop">
+            <div class="playoff-rounds">
+                <span class="playoff-round-label">Semifinale</span>
+                <span class="playoff-round-label playoff-round-label--final">Topina Bowl</span>
+                <span class="playoff-round-label">Semifinale</span>
+            </div>
+            <div class="playoff-grid-explicit">
+                <!-- LEFT COLUMN: 1 vs 4 -->
+                ${renderCard(seed1, 'pos-1', 1, loser1v4?.name === seed1.name)}
+                ${renderCard(seed4, 'pos-2', 4, loser1v4?.name === seed4.name)}
 
-            <!-- MID LEFT: winner of 1v4 -->
-            ${renderCard(winner1v4, 'pos-3', null, sbLoser === nameOf(winner1v4), champion === nameOf(winner1v4))}
+                <!-- MID LEFT: winner of 1v4 -->
+                ${renderCard(winner1v4, 'pos-3', null, sbLoser === nameOf(winner1v4), champion === nameOf(winner1v4))}
 
-            <!-- MID RIGHT: winner of 2v3 -->
-            ${renderCard(winner2v3, 'pos-4', null, sbLoser === nameOf(winner2v3), champion === nameOf(winner2v3))}
+                <!-- MID RIGHT: winner of 2v3 -->
+                ${renderCard(winner2v3, 'pos-4', null, sbLoser === nameOf(winner2v3), champion === nameOf(winner2v3))}
 
-            <!-- RIGHT COLUMN: 2 vs 3 -->
-            ${renderCard(seed2, 'pos-5', 2, loser2v3?.name === seed2.name)}
-            ${renderCard(seed3, 'pos-6', 3, loser2v3?.name === seed3.name)}
+                <!-- RIGHT COLUMN: 2 vs 3 -->
+                ${renderCard(seed2, 'pos-5', 2, loser2v3?.name === seed2.name)}
+                ${renderCard(seed3, 'pos-6', 3, loser2v3?.name === seed3.name)}
 
-            <!-- SUPER BOWL LOGO OVERLAY -->
-            <img src="Wallpapers/superbowl_vii_logo.png" alt="Super Bowl VII" class="sb-logo-overlay">
+                <!-- SUPER BOWL LOGO OVERLAY -->
+                <img src="Wallpapers/superbowl_vii_logo.png" alt="Topina Bowl" class="sb-logo-overlay">
+            </div>
         </div>
+
+        <!-- ===== MOBILE: bracket a card-matchup (semi | Topina Bowl | semi) ===== -->
+        <div class="playoff-mobile pob-bracket">
+            ${pobSemi('left', seed1, seed4, sf1Scores, nameOf(winner1v4))}
+            <div class="pob-final">
+                <div class="pob-trophy">
+                    <img class="pob-trophy-img" src="Wallpapers/superbowl_vii_logo.png" alt="Topina Bowl" onerror="this.style.display='none'">
+                    <span class="pob-trophy-year">${CURRENT_SEASON}</span>
+                </div>
+                ${pobTeam(winner1v4, sbScores, champion, !!champion)}
+                ${pobTeam(winner2v3, sbScores, champion, !!champion)}
+            </div>
+            ${pobSemi('right', seed2, seed3, sf2Scores, nameOf(winner2v3))}
+        </div>
+
         ${projectionNote}
     </div>
     `;
