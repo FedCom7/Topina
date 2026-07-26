@@ -173,21 +173,15 @@ img {
     background: var(--bg-glass);
 }
 
+/* Nessuna evidenziazione della pagina selezionata nel menu: l'attivo resta
+   identico a un link normale (solo l'hover dà feedback). */
 .nav-link.active {
-    color: var(--text-primary);
-    background: rgba(79, 140, 255, 0.12);
+    color: var(--text-secondary);
+    background: transparent;
 }
 
 .nav-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 2px;
-    background: var(--accent-gradient);
-    border-radius: 2px;
+    content: none;
 }
 
 /* --------------------------------
