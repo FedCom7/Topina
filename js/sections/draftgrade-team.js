@@ -17,15 +17,17 @@ import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displa
 import { TEAM_KEYS } from '../data/team-config.js?v=5';
 import { TEAMS } from './team.js?v=12';
 import { getHonorsBundle } from '../data/honors.js?v=2';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=5';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=6';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=3';
-import { initPlayerModal } from '../components/player-modal.js?v=8';
+import { initPlayerModal } from '../components/player-modal.js?v=9';
 import { playerImageService } from '../services/player-image-service.js?v=4';
 import { pickSeeded } from '../data/magazine-voices.js?v=6';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
-    GRADE_COMMENTS, outcomeBadge,
-} from './draftgrades.js?v=13';
+    GRADE_COMMENTS, outcomeBadge, computeVorGrades,
+} from './draftgrades.js?v=16';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=4';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=1';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -111,11 +113,23 @@ export async function initDraftGradeTeam() {
         const evaluated = grades.flatMap(x => x.list);
         g.list.forEach(p => { p.alt = bestAlternative(p, evaluated); });
 
+        // Player Context Score (SOS+) da nflverse: profilo roster + accuratezza.
+        // Si attacca p.ctx a TUTTE le squadre (non solo questa) così il Team
+        // Strength Index qui combacia con quello della lista Draft Grades.
+        // Degradazione graceful: se i dati mancano, sos resta null e la card sparisce.
+        const sosByTeam = await Promise.all(grades.map(x =>
+            attachTeamContext(x, year).catch(() => ({ model: null, sosAvg: null, subAvg: {} }))));
+        const sos = sosByTeam[rank];
+        // Team Strength Index (motore di valutazione della rosa) — non tocca il voto.
+        await evaluateLeague(grades, year).catch(e => console.warn('[team-eval]', e));
+        // Voto di fine stagione (VOR) — solo stagioni giocate.
+        const vor = seasonPlayed ? computeVorGrades(picks, meta) : null;
+
         const weekly = seasonPlayed
             ? await buildWeeklySeries(year, g.list).catch(() => null) : null;
         if (!location.hash.includes(`draftgrades/${year}/${teamKey}`)) return;
 
-        render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed });
+        render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed, sos, vor });
     } catch (e) {
         console.error('[draftgrade-team]', e);
         section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
@@ -155,6 +169,120 @@ async function buildWeeklySeries(year, teamPicks) {
         }));
     }
     return series;
+}
+
+// ─── Player Context Score (SOS+) ─────────────────────────────────
+
+const SOS_DIMS = ['teamOffense', 'volume', 'efficiency', 'schedule', 'playoff', 'trend', 'ageCurve', 'durability'];
+const SOS_LABELS = {
+    teamOffense: 'Attacco NFL', volume: 'Volume', efficiency: 'Efficienza', schedule: 'Calendario',
+    playoff: 'Calendario playoff', trend: 'Trend carriera', ageCurve: 'Età / curva', durability: 'Durabilità',
+};
+
+/** Attacca p.ctx a ogni pick d'attacco e calcola gli aggregati del roster. */
+async function attachTeamContext(g, year) {
+    const model = await getDraftModel();
+    const OFF = new Set(['QB', 'RB', 'WR', 'TE']);
+    await Promise.all(g.list.map(async p => {
+        if (!OFF.has(p.pos)) return;
+        try { p.ctx = await getContextScore({ name: p.player, pos: p.pos, team: p.nfl, year: +year, projValue: p.value }); }
+        catch { p.ctx = null; }
+    }));
+    const withCtx = g.list.filter(p => p.ctx?.contextScore != null);
+    const sosAvg = withCtx.length ? Math.round(withCtx.reduce((s, p) => s + p.ctx.contextScore, 0) / withCtx.length) : null;
+    const subAvg = {};
+    for (const d of SOS_DIMS) {
+        const vals = withCtx.map(p => p.ctx.subScores?.[d]).filter(v => v != null);
+        subAvg[d] = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    }
+    return { model, sosAvg, subAvg };
+}
+
+/** Card SOS+: profilo del roster (media sub-score attacco) + rischi flop. */
+function sosCard(ctx) {
+    const { sos, g } = ctx;
+    if (!sos || sos.sosAvg == null) return '';
+    const bars = SOS_DIMS.map(k => {
+        const v = sos.subAvg[k];
+        if (v == null) return `
+        <div class="dgt-sos-bar dgt-sos-bar--na">
+            <span class="dgt-sos-label">${SOS_LABELS[k]}</span>
+            <span class="dgt-sos-track"></span><span class="dgt-sos-val">n/d</span>
+        </div>`;
+        const cls = v >= 66 ? ' up' : v <= 40 ? ' down' : '';
+        return `
+        <div class="dgt-sos-bar${cls}">
+            <span class="dgt-sos-label">${SOS_LABELS[k]}</span>
+            <span class="dgt-sos-track"><span style="width:${v}%"></span></span>
+            <span class="dgt-sos-val">${v}</span>
+        </div>`;
+    }).join('');
+
+    const off = g.list.filter(p => p.ctx?.contextScore != null);
+    const top = [...off].sort((a, b) => b.ctx.contextScore - a.ctx.contextScore)[0];
+    const flopRisk = off.filter(p => p.ctx.bustProb != null && p.ctx.bustProb >= 0.4)
+        .sort((a, b) => b.ctx.bustProb - a.ctx.bustProb);
+    const notes = `
+        <div class="dgt-sos-notes">
+            ${top ? `<span class="dgt-chip dgt-chip--up">Profilo migliore: ${top.player} · SOS+ ${top.ctx.contextScore}</span>` : ''}
+            ${flopRisk.map(p => `<span class="dgt-chip dgt-chip--down">Rischio flop: ${p.player} · ${Math.round(p.ctx.bustProb * 100)}%</span>`).join('')}
+        </div>`;
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Contesto oltre le proiezioni · dati NFL avanzati (nflverse)</span>
+        <h2 class="mc-title">Player Context Score <small class="dgt-sos-big">SOS+ medio ${sos.sosAvg}</small></h2>
+        <p class="dgt-card-sub">Profilo medio dell'attacco su 8 dimensioni (0-100, percentili dell'anno precedente): qualità dell'attacco NFL dei giocatori, volume atteso, efficienza, difficoltà del calendario per ruolo, calendario nelle settimane playoff, trend, curva d'età e durabilità. Pesi di riferimento fissi; il modello conferma le proiezioni sul valore e aggiunge la probabilità di flop.</p>
+        <div class="dgt-sos-bars">${bars}</div>
+        ${notes}
+    </div>`;
+}
+
+// ─── Team Strength Index (valutazione della rosa) ────────────────
+
+/**
+ * Card Team Strength: il TSI (0-100) e le sue componenti. Valuta la ROSA
+ * (titolari, profondità, bilanciamento, scarsità, rischio, bye, stack,
+ * contesto), non la somma delle pick. Indice di lettura, pesi di design.
+ */
+function teamStrengthCard(ctx) {
+    const { g } = ctx;
+    if (g.tsi == null) return '';
+    const order = Object.keys(TSI_WEIGHTS).sort((a, b) => TSI_WEIGHTS[b] - TSI_WEIGHTS[a]);
+    const bars = order.map(k => {
+        const v = g.tsiSub?.[k];
+        if (v == null) return `
+        <div class="dgt-sos-bar dgt-sos-bar--na">
+            <span class="dgt-sos-label">${TSI_LABELS[k]} <em>${Math.round(TSI_WEIGHTS[k] * 100)}%</em></span>
+            <span class="dgt-sos-track"></span><span class="dgt-sos-val">n/d</span>
+        </div>`;
+        const cls = v >= 60 ? ' up' : v <= 40 ? ' down' : '';
+        return `
+        <div class="dgt-sos-bar${cls}">
+            <span class="dgt-sos-label">${TSI_LABELS[k]} <em>${Math.round(TSI_WEIGHTS[k] * 100)}%</em></span>
+            <span class="dgt-sos-track"><span style="width:${v}%"></span></span>
+            <span class="dgt-sos-val">${v}</span>
+        </div>`;
+    }).join('');
+
+    const riskLevel = g.tsiRisk >= 60 ? 'alto' : g.tsiRisk >= 40 ? 'medio' : 'contenuto';
+    const notes = `
+        <div class="dgt-sos-notes">
+            <span class="dgt-chip">Titolari: ${fmt0(g.starterValue)} pt proiettati</span>
+            <span class="dgt-chip dgt-chip--${g.tsiRisk >= 55 ? 'down' : 'up'}">Rischio roster: ${riskLevel} (${g.tsiRisk}/100)</span>
+            ${g.tsiSub?.balance != null && g.tsiSub.balance <= 45 ? `<span class="dgt-chip dgt-chip--down">Costruzione sbilanciata</span>` : ''}
+            ${g.tsiSub?.stack != null && g.tsiSub.stack >= 70 ? `<span class="dgt-chip dgt-chip--up">Stack QB-ricevitore</span>` : ''}
+            ${g.byesKnown === false ? `<span class="dgt-chip">Bye week non disponibili</span>` : ''}
+        </div>`;
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Quanto è forte la rosa · valutazione del roster</span>
+        <h2 class="mc-title">Team Strength Index <small class="dgt-sos-big dgt-tsi-big">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}ª lega` : ''}</small></h2>
+        <p class="dgt-card-sub">Indice 0-100 che valuta la <b>rosa</b>, non la somma delle pick: forza dei titolari, vantaggio posizionale slot-per-slot, scarsità (valore sopra il replacement della lega a 4 squadre), profondità della panchina, rischio, bilanciamento, ottimizzazione delle bye, stack e contesto offensivo NFL. È un indice di lettura (pesi di design, 50 ≈ media lega) affiancato al voto ufficiale, che <b>non</b> cambia.</p>
+        <div class="dgt-sos-bars">${bars}</div>
+        ${notes}
+    </div>`;
 }
 
 // ─── Classificazione pick e testi ────────────────────────────────
@@ -219,6 +347,8 @@ function render(section, ctx) {
         </header>
 
         ${curveCard(g, team)}
+        ${teamStrengthCard(ctx)}
+        ${sosCard(ctx)}
         ${rosterCard(ctx)}
         ${picksSection(ctx, prevYear)}
         ${seasonPlayed ? verdictSection(ctx) : ''}
@@ -506,9 +636,12 @@ function picksSection(ctx, prevYear) {
         const peak = d?.hist?.peak?.back >= 2 ? peakNote(d.hist, p.pos) : '';
         const olderLine = older.length
             ? `<p class="dgt-pick-hist">🗂️ Prima ancora — ${historyLine({ seasons: older }, p.pos, 5)}${peak ? ` · <b>${peak}</b>` : ''}</p>` : '';
+        const riskChip = p.riskIndex != null
+            ? `<span class="dgt-chip dgt-chip--${p.riskIndex >= 60 ? 'down' : p.riskIndex <= 35 ? 'up' : ''}" title="Risk Index composito: bust, volatilità, durabilità ed età">Rischio ${p.riskIndex}</span>` : '';
         const badges = [
             d?.hist ? trendBadge(d.hist) : '',
             d?.hist?.consistency >= 0.75 ? `<span class="dgt-chip">🎯 costante</span>` : '',
+            riskChip,
             d?.risk?.level === 'alto' ? `<span class="dg-badge dg-badge--down" title="${d.risk.label}">⚠️ profilo a rischio</span>` : '',
         ].filter(Boolean).join(' ');
 
@@ -550,7 +683,25 @@ const PB = { w: 860, h: 300, l: 52, r: 16, t: 18, b: 46 };
 const WK = { w: 860, h: 320, l: 52, r: 120, t: 18, b: 34 };
 
 function verdictSection(ctx) {
-    const { year, team, g, weekly } = ctx;
+    const { year, team, g, weekly, vor, rank } = ctx;
+
+    // voto di fine stagione (VOR) vs voto post-draft
+    const eos = vor?.byKey?.[g.key];
+    const postLetter = letterFor(g.ratio, rank);
+    const eosBlock = eos ? `
+        <div class="dgt-eos-grades">
+            <div class="dgt-eos-item">
+                <span class="mc-kicker">Voto post-draft</span>
+                <span class="dg-letter dg-letter--${gradeBand(postLetter)}">${postLetter}</span>
+                <small>sulle proiezioni del giorno del draft</small>
+            </div>
+            <div class="dgt-eos-arrow" aria-hidden="true">→</div>
+            <div class="dgt-eos-item">
+                <span class="mc-kicker">Voto di fine stagione</span>
+                <span class="dg-letter dg-letter--${gradeBand(eos.letter)}">${eos.letter}</span>
+                <small>${eos.rank + 1}ª lega su base VOR (resa reale)</small>
+            </div>
+        </div>` : '';
 
     // (a) proiettato vs reale, barre accoppiate per pick
     const rows = g.list.filter(p => p.actual != null);
@@ -611,6 +762,7 @@ function verdictSection(ctx) {
         <span class="mc-kicker">Com'è andata davvero</span>
         <h2 class="mc-title">Il verdetto del campo</h2>
         <p class="dgt-card-sub">Barre grigie: punti proiettati preseason. Barre colorate: punti reali della stagione ${year}.</p>
+        ${eosBlock}
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${PB.w} ${PB.h}" class="an-svg">${grid}${bars}</svg>
         </div>
@@ -618,6 +770,44 @@ function verdictSection(ctx) {
         <span class="mc-kicker" style="margin-top:18px">La corsa dei top pick (punti cumulati)</span>
         <div class="dgt-chart-wrap">${weeklyChart}</div>` : ''}
         ${recap}
+        ${accuracyBlock(ctx)}
+    </div>`;
+}
+
+/**
+ * Accuratezza pre-vs-reale: lega i segnali pre-stagione (SOS+, probabilità
+ * flop) agli scostamenti reali dell'attacco. Niente correlazione su n piccolo
+ * (un roster ha ~8 pick d'attacco, statisticamente inaffidabile): si mostra
+ * caso per caso se i flop/rivelazioni reali erano stati segnalati.
+ */
+function accuracyBlock(ctx) {
+    const off = ctx.g.list.filter(p => p.ctx?.contextScore != null && p.actual != null);
+    if (!off.length) return '';
+    const ratio = (p) => (p.value ? p.actual / p.value : 1);
+
+    // (1) le CHIAMATE flop del modello (rischio ≥ 40%) alla prova dei fatti
+    const calls = off.filter(p => p.ctx.bustProb != null && p.ctx.bustProb >= 0.4)
+        .sort((a, b) => b.ctx.bustProb - a.ctx.bustProb);
+    const callChips = calls.map(p => {
+        const flopped = ratio(p) <= 0.6;
+        return `<span class="dgt-chip dgt-chip--${flopped ? 'up' : 'down'}">${p.player}: flop ${Math.round(p.ctx.bustProb * 100)}% → ${flopped ? 'confermato ✓' : 'smentito ✗'}</span>`;
+    });
+    // (2) rivelazioni reali che avevano un profilo SOS+ alto
+    const revChips = off.filter(p => p.value >= 15 && ratio(p) >= 1.35 && p.ctx.contextScore >= 62)
+        .map(p => `<span class="dgt-chip dgt-chip--up">${p.player}: rivelazione con SOS+ alto (${p.ctx.contextScore}) ✓</span>`);
+
+    const rows = [...callChips, ...revChips];
+    const lead = calls.length
+        ? `Le chiamate "flop" del modello (rischio ≥ 40%) alla prova dei fatti${revChips.length ? ', più le rivelazioni che avevano già un profilo SOS+ alto' : ''}.`
+        : (revChips.length
+            ? 'Nessuna pick ad alto rischio flop; le rivelazioni della stagione avevano già un profilo SOS+ alto.'
+            : 'Roster prudente: il modello non aveva segnalato pick ad alto rischio flop.');
+
+    return `
+    <div class="dgt-accuracy">
+        <span class="mc-kicker">Il modello ci aveva visto?</span>
+        <p class="dgt-card-sub">${lead}</p>
+        ${rows.length ? `<div class="dgt-recap-row">${rows.join('')}</div>` : ''}
     </div>`;
 }
 

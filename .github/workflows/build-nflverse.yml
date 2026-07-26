@@ -1,0 +1,85 @@
+name: Build nflverse features + draft model
+
+# Rigenera i JSON feature nflverse e il modello draft, poi li committa.
+# Così le Draft Grades / SOS+ si aggiornano da sole: nessun run locale.
+# I dati nflverse sono pubblici (nessun secret). La cache grezza .nflverse-cache/
+# resta effimera nel runner (gitignored).
+
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Stagioni da rigenerare (es. '2025 2024'); vuoto = ultime due"
+        required: false
+        default: ''
+  push:
+    branches: [main]
+    paths:
+      - 'data/draft/**'          # nuovo draft caricato → aggiorna le feature
+  schedule:
+    - cron: '0 9 * * 2'          # ogni martedì mattina (in stagione tiene aggiornato)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-nflverse
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determina le stagioni
+        id: yrs
+        run: |
+          if [ -n "${{ github.event.inputs.seasons }}" ]; then
+            echo "seasons=${{ github.event.inputs.seasons }}" >> "$GITHUB_OUTPUT"
+          else
+            Y=$(date +%Y)
+            echo "seasons=$Y $((Y-1))" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Genera feature nflverse
+        run: node scripts/build-nflverse-features.mjs ${{ steps.yrs.outputs.seasons }}
+
+      - name: Riallena il modello draft
+        run: node scripts/build-draft-model.mjs
+
+      - name: Cause di performance (perché ha reso così)
+        run: node scripts/build-perf-causes.mjs
+
+      - name: Genera rosa completa squadre NFL
+        run: node scripts/build-nfl-roster.mjs ${{ steps.yrs.outputs.seasons }}
+
+      - name: Genera report infortuni squadre NFL
+        run: node scripts/build-nfl-injuries.mjs ${{ steps.yrs.outputs.seasons }}
+
+      - name: Genera combine + draft NFL reale + contratti (storico, poco costoso)
+        run: node scripts/build-nfl-combine-draft.mjs
+
+      - name: Genera trade storiche per squadra
+        run: node scripts/build-nfl-trades.mjs
+
+      - name: Commit dei JSON derivati (se cambiati)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/nfl/adv_*.json data/nfl/playerids.json data/model/draft_model_v1.json \
+                  data/model/perf_causes_*.json \
+                  data/nfl/roster_*.json data/nfl/injuries_*.json \
+                  data/nfl/combine_draft.json data/nfl/team_trades.json
+          if git diff --staged --quiet; then
+            echo "Nessuna modifica ai dati derivati."
+          else
+            git commit -m "chore(data): rigenera feature nflverse + modello draft [skip ci]"
+            git push
+          fi

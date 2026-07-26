@@ -9,7 +9,7 @@
  * Le DEF hanno come id l'abbreviazione della squadra (es. "DAL").
  */
 
-import { getSeasonStats, matchProjection } from './projections.js?v=5';
+import { getSeasonStats, matchProjection } from './projections.js?v=6';
 import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=2';
 import { TEAM_ABBR_MAP } from './player-map.js?v=2';
 import { canonAbbr } from './nfl-schedule.js?v=1';

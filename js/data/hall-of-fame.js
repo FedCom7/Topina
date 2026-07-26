@@ -11,7 +11,7 @@
 
 import { SEASONS, CURRENT_SEASON } from '../data.js?v=5';
 import { getHonorsBundle } from './honors.js?v=2';
-import { buildCareers } from './careers.js?v=3';
+import { buildCareers } from './careers.js?v=4';
 
 export const FIRST_CLASS_YEAR = 2022;
 export const MIN_SEASONS = 3;

@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=105">
+    <link rel="stylesheet" href="css/main.css?v=130">
 </head>
 
 <body>
@@ -37,6 +37,7 @@
                 <li class="nav-item has-dropdown" data-dropdown="draft">
                     <a href="#draft" class="nav-link" data-section="draft">Draft</a>
                 </li>
+                <li class="nav-item"><a href="#players" class="nav-link" data-section="players">Players</a></li>
                 <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="history">
                     <a href="#history" class="nav-link" data-section="history">History</a>
@@ -192,6 +193,16 @@
         <!-- Contenuto iniettato da js/sections/player-page.js -->
     </section>
 
+    <!-- ====== PAGINA SQUADRA NFL (#nfl-team/{abbr}/{anno?}) ====== -->
+    <section class="page-section" id="nfl-team-page">
+        <!-- Contenuto iniettato da js/sections/nfl-team-page.js -->
+    </section>
+
+    <!-- ====== PLAYERS (ricerca giocatore/squadra) ====== -->
+    <section class="page-section" id="players">
+        <!-- Contenuto iniettato da js/sections/players-search.js -->
+    </section>
+
     <!-- ====== STATS ====== -->
     <section class="page-section" id="stats">
         <div class="section-inner">
@@ -306,7 +317,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=93"></script>
+    <script type="module" src="js/app.js?v=122"></script>
 </body>
 
 </html>

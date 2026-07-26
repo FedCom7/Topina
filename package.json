@@ -5,7 +5,14 @@
     "main": "script.js",
     "scripts": {
         "upload-data": "node scripts/upload-data.js",
-        "build-team-stats": "node scripts/build-nfl-team-stats.mjs"
+        "build-team-stats": "node scripts/build-nfl-team-stats.mjs",
+        "build-nflverse": "node scripts/build-nflverse-features.mjs",
+        "build-draft-model": "node scripts/build-draft-model.mjs",
+        "build-perf-causes": "node scripts/build-perf-causes.mjs",
+        "build-nfl-roster": "node scripts/build-nfl-roster.mjs",
+        "build-nfl-injuries": "node scripts/build-nfl-injuries.mjs",
+        "build-nfl-combine-draft": "node scripts/build-nfl-combine-draft.mjs",
+        "build-nfl-trades": "node scripts/build-nfl-trades.mjs"
     },
     "dependencies": {
         "firebase-admin": "^12.0.0"

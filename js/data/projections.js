@@ -31,12 +31,15 @@ export function normName(name) {
 
 /**
  * Map proiezioni per l'anno: chiave `${normName}|${POS}` →
- * { name, pos, team, adp, projPts, ptsStd, gp }
+ * { name, pos, team, adp, projPts, ptsStd, gp, raw }
+ * `raw` è l'oggetto stat grezzo di Sleeper (rush_yd, pass_td, rec, ecc.):
+ * stessi nomi di campo delle stat REALI di getSeasonStats/player-full.js,
+ * quindi riusabile dagli stessi renderer (es. CATEGORIES in player-page.js).
  */
 export async function getSeasonProjections(year) {
     if (_mem[year]) return _mem[year];
 
-    const cacheKey = `topina_proj_v3_${year}`;
+    const cacheKey = `topina_proj_v4_${year}`;
     try {
         const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
         if (cached && Date.now() - cached.at < TTL_MS) {
@@ -70,6 +73,7 @@ export async function getSeasonProjections(year) {
             injuryStatus: pl.injury_status || null,
             injuryBodyPart: pl.injury_body_part || null,
             injuryNotes: pl.injury_notes || null,
+            raw: stats,
         };
         // niente proiezioni né adp → voce inutile
         if (entry.projPts == null && entry.ptsStd == null && entry.adp == null) return;

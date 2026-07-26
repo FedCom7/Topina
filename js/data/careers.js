@@ -17,7 +17,7 @@ import {
 } from '../data.js?v=5';
 import { TEAM_KEYS } from './team-config.js?v=5';
 import { getHonorsBundle } from './honors.js?v=2';
-import { normName } from './projections.js?v=5';
+import { normName } from './projections.js?v=6';
 
 let careersCache = null;
 
@@ -28,14 +28,21 @@ export async function buildCareers() {
 
     const careers = new Map(); // name -> career
 
-    for (const season of SEASONS) {
-        let data;
+    // Le stagioni sono indipendenti: si scaricano tutte in parallelo (7 letture
+    // Firebase in volo insieme invece che una dopo l'altra) e si processano in
+    // sequenza — l'elaborazione è puro CPU e istantanea, il collo di bottiglia
+    // è la rete. L'ordine di elaborazione non conta: `lastSeason`/`bySeason`
+    // sono già calcolati per confronto/chiave, non per ordine di arrivo.
+    const seasonResults = await Promise.all(SEASONS.map(async (season) => {
         try {
-            data = await fetchFantasyData(season);
+            return [season, await fetchFantasyData(season)];
         } catch (e) {
             console.warn(`careers: dati ${season} non disponibili`, e);
-            continue;
+            return [season, null];
         }
+    }));
+
+    for (const [season, data] of seasonResults) {
         if (!data?.weeks) continue;
 
         const config = getSeasonConfig(season);
@@ -123,13 +130,15 @@ export async function buildCareers() {
     }
 
     // Chi lo ha draftato, anno per anno (incluso l'eventuale draft della
-    // stagione successiva, se già fatto)
+    // stagione successiva, se già fatto) — stesso discorso: fetch in parallelo.
     const nextYear = String(+SEASONS[SEASONS.length - 1] + 1);
-    for (const year of [...SEASONS, nextYear]) {
-        let draft;
+    const draftResults = await Promise.all([...SEASONS, nextYear].map(async (year) => {
         try {
-            draft = await fetchDraftData(year);
-        } catch { continue; }
+            return [year, await fetchDraftData(year)];
+        } catch { return [year, null]; }
+    }));
+
+    for (const [year, draft] of draftResults) {
         if (!draft?.teams) continue;
         for (const pk of flattenDraft(draft)) {
             const c = careers.get(pk.player);
