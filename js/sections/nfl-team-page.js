@@ -110,6 +110,9 @@ function render(section, ctx) {
 
     section.innerHTML = `
     <div class="section-inner gb-page pp-page">
+        <div class="section-header nfl-year-header">
+            <h1 class="section-title nfl-year-title" id="nfl-year-side">${year}</h1>
+        </div>
         <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Indietro</a>
 
         <h2 class="pp-section-title"><small>01</small> Identità squadra</h2>
@@ -167,6 +170,8 @@ function bindLiveYearSelector(section, abbr) {
         if (sched) sched.innerHTML = '';
         const live = await fetchTeamLive(abbr, year);
         if (location.hash !== myHash) return;
+        const yearSide = section.querySelector('#nfl-year-side');
+        if (yearSide) yearSide.textContent = year; // anno grande a sinistra
         if (idExtra) idExtra.innerHTML = identityExtraBlock(live);
         if (perf) perf.innerHTML = fpiBlock(live) + teamLeadersBlock(live) + seasonStatsBlock(live);
         if (sched) sched.innerHTML = depthChartBlock(live) + scheduleBlock(live) + gameDetailBlock(live) + transactionsBlock(live);

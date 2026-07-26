@@ -10575,3 +10575,13 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-adv-prov td { color: var(--text-muted); }
 .pp-adv-prov td:first-child { color: var(--text-secondary); font-weight: 600; }
 .pp-adv-star { color: var(--accent, #4f8cff); font-weight: 700; margin-left: 2px; cursor: help; }
+
+/* Anno selezionato grande e ROSSO sul bordo sinistro della pagina squadra NFL
+   (stesso posizionamento verticale del titolo di sezione delle altre pagine,
+   ma pieno rosso come i "total points" di Analysis, non in contorno). */
+.section-inner > .section-header .nfl-year-title {
+    background: none;
+    color: var(--accent-red);
+    -webkit-text-fill-color: var(--accent-red);
+    -webkit-text-stroke: 0;
+}
