@@ -1,0 +1,513 @@
+/**
+ * Endpoint ESPN live "squadra" e "lega" non coperti dal build nflverse.
+ * Tutti gli host usati qui (site.api.espn.com, sports.core.api.espn.com,
+ * site.web.api.espn.com) espongono `Access-Control-Allow-Origin: *`, quindi
+ * il fetch diretto dal browser funziona (stesso pattern di
+ * player-bio-extra.js / nfl-team-extras.js).
+ *
+ * Profilo squadra (identità+stadio+coach+record+prossima partita), Football
+ * Power Index, calendario live con risultati, transactions, statistiche
+ * ufficiali di stagione, odds Super Bowl; più i due dataset di lega
+ * (classifica NFL reale e power ranking FPI) mostrati sotto la ricerca in
+ * "Players".
+ */
+
+import { canonAbbr } from './nfl-schedule.js?v=11';
+import { ESPN_TEAM_IDS } from './player-map.js?v=13';
+
+const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl';
+
+// id ESPN → sigla canonica (per risolvere i $ref team.$ref .../teams/{id})
+const ID_TO_ABBR = Object.fromEntries(Object.entries(ESPN_TEAM_IDS).map(([a, id]) => [id, a]));
+const abbrFromRef = (ref) => {
+    const m = /\/teams\/(\d+)/.exec(ref || '');
+    return m ? ID_TO_ABBR[m[1]] || null : null;
+};
+
+async function fetchJson(url) {
+    try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+    catch { return null; }
+}
+
+const _cache = {}; // chiave → Promise (una sola chiamata di rete per risorsa/stagione)
+function cached(key, loader) {
+    return (_cache[key] ??= loader());
+}
+
+// ─── Profilo squadra: identità, stadio, record, prossima partita, coach ──
+
+/**
+ * Anagrafica live della squadra dall'endpoint dettaglio (teams/{id}) unito al
+ * capo-allenatore dal roster. Ritorna null se la sigla non è mappata.
+ */
+/** Head coach canonico (core): nome, esperienza, college, luogo di nascita, headshot. */
+async function teamHeadCoach(teamId, season) {
+    const list = await fetchJson(`${CORE}/seasons/${season}/teams/${teamId}/coaches`);
+    const ref = list?.items?.[0]?.$ref;
+    if (!ref) return null;
+    const c = await fetchJson(ref);
+    if (!c) return null;
+    const bp = c.birthPlace;
+    return {
+        name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || null,
+        experience: c.experience ?? null,
+        college: c.college?.name || (typeof c.college === 'string' ? c.college : null),
+        headshot: c.headshot?.href || null,
+        birthPlace: bp ? [bp.city, bp.state, bp.country].filter(Boolean).join(', ') : null,
+    };
+}
+
+export async function getTeamProfile(abbr, season) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId) return null;
+    return cached(`profile-${teamId}-${season}`, async () => {
+        const [detail, roster, recordData, coach] = await Promise.all([
+            fetchJson(`${SITE}/teams/${teamId}?season=${season}`),
+            fetchJson(`${SITE}/teams/${teamId}/roster`),
+            fetchJson(`${CORE}/seasons/${season}/types/2/teams/${teamId}/record`), // canonico: con split
+            teamHeadCoach(teamId, season),                                        // canonico: con college/headshot
+        ]);
+        const t = detail?.team;
+        if (!t) return null;
+        const rec = t.record?.items?.find(i => i.type === 'total') || t.record?.items?.[0] || null;
+        const recStats = Object.fromEntries((rec?.stats || []).map(s => [s.name, s.value]));
+        const venue = t.franchise?.venue || null;
+        const next = t.nextEvent?.[0] || null;
+        const nextComp = next?.competitions?.[0] || null;
+
+        // Record con split (casa/trasferta/divisione/conference) dall'endpoint dedicato.
+        const recByType = Object.fromEntries((recordData?.items || []).map(r => [r.type, r.summary]));
+        const recordSplits = {
+            overall: recByType.total || rec?.summary || null,
+            home: recByType.home || null, road: recByType.road || null,
+            div: recByType.vsdiv || null, conf: recByType.vsconf || null,
+        };
+        // Coach: canonico (core) con fallback sul coach del roster (solo nome/exp).
+        const rosterCoach = roster?.coach?.[0] || null;
+        const coachOut = coach || (rosterCoach ? {
+            name: `${rosterCoach.firstName || ''} ${rosterCoach.lastName || ''}`.trim(),
+            experience: rosterCoach.experience ?? null, college: null, headshot: null, birthPlace: null,
+        } : null);
+
+        return {
+            recordSplits, coach: coachOut,
+            abbr: A,
+            displayName: t.displayName || null,
+            location: t.location || null,
+            nickname: t.nickname || null,
+            color: t.color ? `#${t.color}` : null,
+            altColor: t.alternateColor ? `#${t.alternateColor}` : null,
+            logo: t.logos?.[0]?.href || null,
+            standingSummary: t.standingSummary || null,
+            record: rec ? { summary: rec.summary || null, ...recStats } : null,
+            venue: venue ? {
+                name: venue.fullName || null,
+                city: venue.address?.city || null,
+                state: venue.address?.state || null,
+                capacity: venue.capacity || null,
+                grass: venue.grass ?? null,
+                indoor: venue.indoor ?? null,
+                image: venue.images?.[0]?.href || null,
+            } : null,
+            nextEvent: next && nextComp ? {
+                name: next.name || null,
+                shortName: next.shortName || null,
+                date: next.date || null,
+                week: next.week?.text || null,
+                venue: nextComp.venue?.fullName || null,
+            } : null,
+        };
+    });
+}
+
+// ─── Football Power Index (season-level) ─────────────────────────────────
+
+/** Mappa abbr → FPI per l'intera lega in una stagione (una sola chiamata). */
+async function powerIndexAll(season) {
+    return cached(`fpi-${season}`, async () => {
+        const data = await fetchJson(`${CORE}/seasons/${season}/powerindex?limit=40`);
+        const out = {};
+        for (const it of data?.items || []) {
+            const A = abbrFromRef(it.team?.$ref);
+            if (!A) continue;
+            const p = Object.fromEntries((it.predictives || []).map(s => [s.name, s.value]));
+            out[A] = {
+                fpi: p.fpi ?? null, rank: p.fpirank ?? null,
+                projW: p.projectedw ?? null, projL: p.projectedl ?? null, projT: p.projectedt ?? null,
+            };
+        }
+        return out;
+    });
+}
+
+/** FPI di una singola squadra in una stagione, o null. */
+export async function getTeamPowerIndex(abbr, season) {
+    const all = await powerIndexAll(season);
+    return all[canonAbbr(abbr)] || null;
+}
+
+// ─── Calendario live con risultati ───────────────────────────────────────
+
+/**
+ * Calendario ESPN della stagione: una riga per gara con avversario, casa/fuori,
+ * esito e punteggio (dove la gara si è giocata). Ritorna [] se non disponibile.
+ */
+export async function getTeamScheduleLive(abbr, season) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId) return [];
+    return cached(`sched-${teamId}-${season}`, async () => {
+        const data = await fetchJson(`${SITE}/teams/${teamId}/schedule?season=${season}`);
+        return (data?.events || []).map(ev => {
+            const comp = ev.competitions?.[0] || {};
+            const cs = comp.competitors || [];
+            const me = cs.find(c => c.team?.id === teamId) || cs.find(c => c.homeAway && c.team?.abbreviation);
+            const opp = cs.find(c => c !== me) || null;
+            const scoreOf = (c) => {
+                const s = c?.score;
+                if (s == null) return null;
+                return typeof s === 'object' ? (s.displayValue ?? s.value ?? null) : s;
+            };
+            const status = comp.status?.type?.state || ev.competitions?.[0]?.status?.type?.name || null;
+            return {
+                eventId: ev.id || comp.id || null,
+                week: ev.week?.text || (ev.week?.number != null ? `Week ${ev.week.number}` : null),
+                date: ev.date || null,
+                name: ev.shortName || ev.name || null,
+                opp: opp?.team?.abbreviation ? canonAbbr(opp.team.abbreviation) : null,
+                oppName: opp?.team?.displayName || null,
+                homeAway: me?.homeAway || null,
+                completed: !!comp.status?.type?.completed,
+                winner: me?.winner ?? null,
+                score: scoreOf(me), oppScore: scoreOf(opp),
+                status,
+            };
+        });
+    });
+}
+
+// ─── Transactions (firme/tagli/waiver) ───────────────────────────────────
+
+/** Movimenti roster recenti. Spesso vuoto lato ESPN (specie in stagione). */
+export async function getTeamTransactions(abbr) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId) return [];
+    return cached(`txn-${teamId}`, async () => {
+        const data = await fetchJson(`${SITE}/teams/${teamId}/transactions`);
+        return (data?.transactions || data?.items || []).map(t => ({
+            date: t.date || null,
+            description: t.description || t.displayText || null,
+        })).filter(t => t.description);
+    });
+}
+
+// ─── Statistiche ufficiali di stagione (ESPN, con rank) ──────────────────
+
+const STAT_CAT_LABELS = {
+    general: 'Generale', passing: 'Lancio', rushing: 'Corsa', receiving: 'Ricezione',
+    defensive: 'Difesa', defensiveInterceptions: 'Intercetti', kicking: 'Kicking',
+    returning: 'Ritorni', punting: 'Punting', scoring: 'Punti', miscellaneous: 'Varie',
+};
+
+/**
+ * Stat sheet ufficiale ESPN della squadra: categorie (lancio/corsa/difesa/…)
+ * con valore e rank 1-32 per ogni voce. È l'aggregato stagionale a cui le
+ * competitors/{id}/statistics per-gara fanno capo. Ritorna [] se assente.
+ */
+export async function getTeamSeasonStats(abbr, season) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId) return [];
+    return cached(`teamstats-${teamId}-${season}`, async () => {
+        const data = await fetchJson(`${CORE}/seasons/${season}/types/2/teams/${teamId}/statistics`);
+        const cats = data?.splits?.categories || [];
+        return cats.map(c => ({
+            key: c.name,
+            label: STAT_CAT_LABELS[c.name] || c.displayName || c.name,
+            stats: (c.stats || [])
+                .filter(s => s.displayValue != null && s.rankDisplayValue)
+                .map(s => ({
+                    label: s.displayName || s.name,
+                    value: s.displayValue,
+                    rank: s.rankDisplayValue || null,
+                })),
+        })).filter(c => c.stats.length);
+    });
+}
+
+/**
+ * Tabellino (box score) della squadra in una singola partita, dall'endpoint
+ * competitors/{teamId}/statistics. Ritorna categorie [{label, stats:[{label,value}]}]
+ * (senza rank: è il dato per-gara, non stagionale). [] se non disponibile.
+ */
+export async function getTeamGameBoxscore(abbr, eventId) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId || !eventId) return [];
+    return cached(`box-${eventId}-${teamId}`, async () => {
+        const data = await fetchJson(`${CORE}/events/${eventId}/competitions/${eventId}/competitors/${teamId}/statistics`);
+        const cats = data?.splits?.categories || [];
+        return cats.map(c => ({
+            key: c.name,
+            label: STAT_CAT_LABELS[c.name] || c.displayName || c.name,
+            stats: (c.stats || [])
+                .filter(s => s.displayValue != null && s.displayValue !== '' && s.displayValue !== '0')
+                .map(s => ({ label: s.displayName || s.name, value: s.displayValue })),
+        })).filter(c => c.stats.length);
+    });
+}
+
+// ─── Dettaglio partita (game summary) ────────────────────────────────────
+
+/**
+ * Riepilogo completo di una partita (endpoint `summary`): punteggio finale,
+ * confronto statistico fra le due squadre (box score), sintesi delle
+ * segnature, info gara (stadio/spettatori/arbitri) e win probability finale.
+ * Un solo fetch che raccoglie ciò che altrimenti richiederebbe
+ * competitors/statistics + scoringplays + probabilities + gameinfo separati.
+ */
+export async function getGameSummary(eventId) {
+    if (!eventId) return null;
+    return cached(`summary-${eventId}`, async () => {
+        const [d, pred, oddsData] = await Promise.all([
+            fetchJson(`${SITE}/summary?event=${eventId}`),
+            fetchJson(`${CORE}/events/${eventId}/competitions/${eventId}/predictor`),
+            fetchJson(`${CORE}/events/${eventId}/competitions/${eventId}/odds`),
+        ]);
+        if (!d) return null;
+        const comp = d.header?.competitions?.[0] || {};
+        const competitors = (comp.competitors || []).map(c => ({
+            abbr: canonAbbr(c.team?.abbreviation || ''),
+            home: c.homeAway === 'home',
+            score: c.score ?? null,
+            winner: c.winner ?? null,
+        }));
+        const homeAbbr = competitors.find(c => c.home)?.abbr || null;
+
+        const teamStats = (d.boxscore?.teams || []).map(t => ({
+            abbr: canonAbbr(t.team?.abbreviation || ''),
+            home: canonAbbr(t.team?.abbreviation || '') === homeAbbr,
+            stats: (t.statistics || []).map(s => ({ label: s.label || s.name, value: s.displayValue ?? '' })),
+        }));
+
+        const scoring = (d.scoringPlays || []).map(p => ({
+            q: p.period?.number ?? null,
+            clock: p.clock?.displayValue || null,
+            team: canonAbbr(p.team?.abbreviation || ''),
+            type: p.scoringType?.displayName || null,
+            text: p.text || null,
+            home: p.homeScore ?? null, away: p.awayScore ?? null,
+        }));
+
+        const gi = d.gameInfo || {};
+        const gameInfo = {
+            venue: gi.venue?.fullName || null,
+            city: gi.venue?.address?.city || null,
+            attendance: gi.attendance || null,
+            officials: (gi.officials || []).map(o => o.displayName || o.fullName).filter(Boolean),
+        };
+        const wp = d.winprobability || [];
+        const lastWp = wp[wp.length - 1] || null;
+        const firstWp = wp[0] || null;
+
+        // Drive chart (#1): riassunto drive-per-drive + play-by-play (ogni snap).
+        const drives = (d.drives?.previous || []).map(dr => ({
+            team: canonAbbr(dr.team?.abbreviation || ''),
+            desc: dr.description || null,
+            result: dr.displayResult || dr.result || null,
+            yards: dr.yards ?? null,
+            playCount: dr.plays?.length ?? dr.offensivePlays ?? null,
+            start: dr.start?.text || null, end: dr.end?.text || null,
+            plays: (dr.plays || []).map(p => ({
+                q: p.period?.number ?? null,
+                clock: p.clock?.displayValue || null,
+                dd: p.start?.downDistanceText || null,
+                text: p.text || null,
+                scoring: !!p.scoringPlay,
+                penalty: !!p.isPenalty,
+                turnover: !!p.isTurnover,
+                away: p.awayScore ?? null, home: p.homeScore ?? null,
+            })),
+        }));
+
+        // Proiezione ESPN + linea (#5): il predictor funziona anche a gara
+        // conclusa (proiezione pre-gara); le quote spesso mancano sulle gare passate.
+        const projStat = (side) => {
+            const s = (pred?.[side]?.statistics || []).find(x => x.name === 'gameProjection');
+            return s ? (s.value ?? parseFloat(s.displayValue)) : null;
+        };
+        const prediction = pred ? { homePct: projStat('homeTeam'), awayPct: projStat('awayTeam') } : null;
+        const o = oddsData?.items?.find(i => i.spread != null || i.overUnder != null || i.details) || null;
+        const odds = o ? {
+            provider: o.provider?.name || null, details: o.details || null,
+            spread: o.spread ?? null, overUnder: o.overUnder ?? null,
+        } : null;
+
+        return {
+            status: comp.status?.type?.description || null,
+            week: d.header?.week ?? null,
+            season: d.header?.season?.year ?? null,
+            date: comp.date || null,
+            competitors, homeAbbr, teamStats, scoring, gameInfo, drives, prediction, odds,
+            homeWinPct: lastWp?.homeWinPercentage ?? null,
+            homeWinPctStart: firstWp?.homeWinPercentage ?? null,
+        };
+    });
+}
+
+// ─── Leader statistici di squadra ────────────────────────────────────────
+
+const _athleteName = {}; // $ref → nome (cache: i leader condividono gli stessi atleti)
+async function athleteNameFromRef(ref) {
+    if (!ref) return null;
+    if (ref in _athleteName) return _athleteName[ref];
+    const d = await fetchJson(ref);
+    return (_athleteName[ref] = d?.displayName || d?.fullName || null);
+}
+
+const LEADER_CATS = [
+    ['passingYards', 'Yard su lancio'], ['rushingYards', 'Yard su corsa'],
+    ['receivingYards', 'Yard in ricezione'], ['totalTackles', 'Tackle'],
+    ['sacks', 'Sack'], ['interceptions', 'Intercetti'],
+];
+
+/**
+ * Leader statistici della squadra nella stagione (core team/leaders): per ogni
+ * categoria chiave, giocatore in testa e valore. Risolve i nomi via $ref.
+ */
+export async function getTeamLeaders(abbr, season) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId) return [];
+    return cached(`leaders-${teamId}-${season}`, async () => {
+        const data = await fetchJson(`${CORE}/seasons/${season}/types/2/teams/${teamId}/leaders`);
+        const byName = Object.fromEntries((data?.categories || []).map(c => [c.name, c]));
+        const out = await Promise.all(LEADER_CATS.map(async ([key, label]) => {
+            const cat = byName[key];
+            const lead = cat?.leaders?.[0];
+            if (!lead) return null;
+            const name = await athleteNameFromRef(lead.athlete?.$ref);
+            if (!name) return null;
+            return { label, name, value: lead.displayValue ?? lead.value ?? null };
+        }));
+        return out.filter(Boolean);
+    });
+}
+
+// ─── Leaderboard di lega per categoria (#7) ──────────────────────────────
+// L'endpoint site.web `statistics/byathlete` è morto (400 interno): si usa il
+// core `seasons/{y}/types/2/leaders`, che espone i leader NFL per categoria.
+
+const LEAGUE_LEADER_CATS = [
+    ['passingYards', 'Yard su lancio'], ['passingTouchdowns', 'TD su lancio'],
+    ['rushingYards', 'Yard su corsa'], ['rushingTouchdowns', 'TD su corsa'],
+    ['receivingYards', 'Yard in ricezione'], ['receptions', 'Ricezioni'],
+    ['sacks', 'Sack'], ['interceptions', 'Intercetti'], ['totalTackles', 'Tackle'],
+];
+
+/**
+ * Leaderboard NFL per categoria (top 5), con nome giocatore e squadra risolti
+ * dai $ref. Per la sezione "Players". Ritorna [{key, label, rows:[{rank,name,team,value}]}].
+ */
+export async function getLeagueLeaders(season, topN = 5) {
+    return cached(`leagueleaders-${season}-${topN}`, async () => {
+        const data = await fetchJson(`${CORE}/seasons/${season}/types/2/leaders`);
+        const byName = Object.fromEntries((data?.categories || []).map(c => [c.name, c]));
+        const out = await Promise.all(LEAGUE_LEADER_CATS.map(async ([key, label]) => {
+            const cat = byName[key];
+            const top = (cat?.leaders || []).slice(0, topN);
+            if (!top.length) return null;
+            const rows = await Promise.all(top.map(async (l, i) => ({
+                rank: i + 1,
+                name: await athleteNameFromRef(l.athlete?.$ref),
+                team: abbrFromRef(l.team?.$ref),
+                value: l.displayValue ?? l.value ?? null,
+            })));
+            return { key, label, rows: rows.filter(r => r.name) };
+        }));
+        return out.filter(c => c && c.rows.length);
+    });
+}
+
+// ─── Feed notizie (now.core.api) ─────────────────────────────────────────
+
+/**
+ * Ultime notizie NFL (now.core.api). `team` opzionale (sigla ESPN minuscola)
+ * per filtrare sulla squadra. Ritorna [{headline, published, link, type}].
+ */
+export async function getNews(team, limit = 10) {
+    const q = team ? `&team=${team.toLowerCase()}` : '';
+    return cached(`news-${team || 'league'}-${limit}`, async () => {
+        const d = await fetchJson(`https://now.core.api.espn.com/v1/sports/news?sport=football&leagues=nfl${q}&limit=${limit}`);
+        return (d?.headlines || []).map(h => ({
+            headline: h.headline || h.description || null,
+            published: h.published || null,
+            link: h.links?.web?.href || h.links?.[0]?.href || null,
+            type: h.type || null,
+        })).filter(n => n.headline);
+    });
+}
+
+// ─── Odds Super Bowl (futures) ───────────────────────────────────────────
+
+/**
+ * Quota Super Bowl della squadra dal mercato futures ESPN (primo book
+ * disponibile). Ritorna { odds, provider } o null.
+ */
+export async function getTeamFutures(abbr, season) {
+    const A = canonAbbr(abbr);
+    const teamId = ESPN_TEAM_IDS[A];
+    if (!teamId) return null;
+    const data = await cached(`futures-${season}`, () => fetchJson(`${CORE}/seasons/${season}/futures?limit=50`));
+    const market = (data?.items || []).find(i => /super bowl/i.test(i.name || ''));
+    const provider = market?.futures?.[0];
+    const book = (provider?.books || []).find(b => abbrFromRef(b.team?.$ref) === A);
+    if (!book) return null;
+    return { odds: book.value ?? book.displayValue ?? null, provider: provider.provider?.name || null };
+}
+
+// ─── Lega: classifica NFL reale ──────────────────────────────────────────
+
+/**
+ * Classifica NFL per conference (AFC/NFC) con record, %, seed playoff, streak,
+ * punti fatti/subiti. Per la sezione "Players" sotto la barra di ricerca.
+ */
+export async function getLeagueStandings(season) {
+    return cached(`standings-${season}`, async () => {
+        const data = await fetchJson(`https://site.api.espn.com/apis/v2/sports/football/nfl/standings?season=${season}`);
+        const conferences = (data?.children || []).map(conf => {
+            const entries = (conf.standings?.entries || []).map(e => {
+                const st = Object.fromEntries((e.stats || []).map(s => [s.name, s]));
+                const num = (n) => st[n]?.value ?? null;
+                const disp = (n) => st[n]?.displayValue ?? null;
+                return {
+                    abbr: canonAbbr(e.team?.abbreviation || ''),
+                    name: e.team?.displayName || null,
+                    wins: num('wins'), losses: num('losses'), ties: num('ties'),
+                    winPct: disp('winPercent'), seed: num('playoffSeed'),
+                    pf: num('pointsFor'), pa: num('pointsAgainst'),
+                    diff: disp('pointDifferential') || disp('differential'),
+                    streak: disp('streak'), clincher: disp('clincher'),
+                };
+            }).sort((a, b) => (a.seed ?? 99) - (b.seed ?? 99));
+            return { name: conf.name || conf.shortName || '', abbr: conf.abbreviation || '', entries };
+        });
+        return conferences.filter(c => c.entries.length);
+    });
+}
+
+/**
+ * Power ranking di lega = squadre ordinate per FPI (l'endpoint /rankings
+ * dedicato ESPN è vuoto; il Power Index è la fonte "forza squadra"
+ * ufficiale). Ritorna [{ rank, abbr, fpi, projW, projL }].
+ */
+export async function getLeaguePowerRankings(season) {
+    const all = await powerIndexAll(season);
+    return Object.entries(all)
+        .filter(([, v]) => v.fpi != null)
+        .map(([abbr, v]) => ({ abbr, ...v }))
+        .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+}

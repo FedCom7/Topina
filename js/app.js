@@ -4,15 +4,17 @@
 import { initHome } from './sections/home.js?v=38';
 import { initGameCenter } from './sections/game-center.js?v=43';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=46';
-import { initDraft } from './sections/draft.js?v=42';
-import { initDraftGrades } from './sections/draftgrades.js?v=26';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=24';
-import { initPlayerPage } from './sections/player-page.js?v=20';
+import { initDraft } from './sections/draft.js?v=43';
+import { initDraftGrades } from './sections/draftgrades.js?v=27';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=25';
+import { initPlayerPage } from './sections/player-page.js?v=52';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=10';
+import { initPlayersSearch } from './sections/players-search.js?v=9';
 import { initStats } from './sections/stats.js?v=57';
 import { initHistory } from './sections/history.js?v=33';
 import { initHonors } from './sections/honors.js?v=13';
 import { initAllPro } from './sections/allpro.js?v=14';
-import { initHallOfFame } from './sections/halloffame.js?v=27';
+import { initHallOfFame } from './sections/halloffame.js?v=28';
 import { initTeam } from './sections/team.js?v=23';
 import { initTeams } from './sections/teams.js?v=13';
 import { initGame } from './sections/game.js?v=26';
@@ -36,6 +38,7 @@ const SECTIONS = {
     'allpro': initAllPro,
     'halloffame': initHallOfFame,
     'magazine': initMagazine,
+    'players': initPlayersSearch,
 };
 
 // Sezioni raggiungibili solo dai dropdown: nel nav si evidenzia la voce madre
@@ -56,6 +59,7 @@ function getSection() {
     if (hash.startsWith('game/')) return hash; // #game/{year}/{week}/{idx}
     if (hash.startsWith('draftgrades/')) return hash; // #draftgrades/{year}/{teamKey}
     if (hash.startsWith('player/')) return hash; // #player/{year}/{pos}/{nome}
+    if (hash.startsWith('nfl-team/')) return hash; // #nfl-team/{abbr}/{anno?}
     return SECTIONS[hash] ? hash : 'home';
 }
 
@@ -65,7 +69,8 @@ function navigate() {
     const isGame = active.startsWith('game/');
     const isDGTeam = active.startsWith('draftgrades/');
     const isPlayer = active.startsWith('player/');
-    const sectionId = isTeam ? 'team' : isGame ? 'game' : isDGTeam ? 'draftgrade-team' : isPlayer ? 'player-page' : active;
+    const isNflTeam = active.startsWith('nfl-team/');
+    const sectionId = isTeam ? 'team' : isGame ? 'game' : isDGTeam ? 'draftgrade-team' : isPlayer ? 'player-page' : isNflTeam ? 'nfl-team-page' : active;
 
     // Update sections
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -75,7 +80,7 @@ function navigate() {
     // Update nav — team pages mantengono "Teams" evidenziato,
     // le voci da dropdown evidenziano la voce madre
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : isDGTeam || isPlayer ? 'draft' : (NAV_PARENT[active] || active);
+    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : isDGTeam ? 'draft' : (isPlayer || isNflTeam) ? 'players' : (NAV_PARENT[active] || active);
     document.querySelector(`.nav-link[data-section="${navTarget}"]`)?.classList.add('active');
 
     // Close mobile menu
@@ -90,6 +95,8 @@ function navigate() {
         initDraftGradeTeam();
     } else if (isPlayer) {
         initPlayerPage();
+    } else if (isNflTeam) {
+        initNflTeamPage();
     } else {
         SECTIONS[active]?.();
     }

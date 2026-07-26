@@ -10,6 +10,38 @@
 const r1 = (v) => (v == null || Number.isNaN(v) ? null : +v.toFixed(1));
 const r2 = (v) => (v == null || Number.isNaN(v) ? null : +v.toFixed(2));
 
+/**
+ * Metriche avanzate PROVVISORIE calcolate dai soli dati Sleeper (box score),
+ * per una stagione non ancora coperta da nflverse. Copre solo il sottoinsieme
+ * derivabile per-giocatore: snap% (off_snp/tm_off_snp), catch%, resa per
+ * target/corsa, volume corsa, produzione al lancio. Le metriche di
+ * tracking/EPA/share-di-squadra (NGS, PFR, WOPR/RACR, target/air-yards share)
+ * NON sono ricavabili dal box score e restano nulle finché nflverse pubblica —
+ * a quel punto la riga reale rimpiazza automaticamente questa (l'app rilegge
+ * adv_players_{Y}.json a ogni caricamento). `s` = oggetto stats grezzo Sleeper.
+ */
+export function computeProvisionalAdv(pos, s) {
+    if (!s || !s.gp) return null;
+    const gp = s.gp;
+    const div = (a, b) => (a != null && b) ? a / b : null;
+    const P = (pos || '').toUpperCase();
+    if (P === 'K') {
+        return { provisional: true, gp, fgMade: s.fgm ?? null, fgAtt: s.fga ?? null };
+    }
+    return {
+        provisional: true, gp,
+        snapPct: r2(div(s.off_snp, s.tm_off_snp)),
+        catchRate: r2(div(s.rec, s.rec_tgt)),
+        ydsPerTgt: r1(s.rec_ypt ?? div(s.rec_yd, s.rec_tgt)),
+        yacPerRec: r1(div(s.rec_yac, s.rec)),            // spesso assente su Sleeper
+        ydsPerCarry: r2(s.rush_ypa ?? div(s.rush_yd, s.rush_att)),
+        carriesPerGame: r1(div(s.rush_att, gp)),
+        tgtPerGame: r1(div(s.rec_tgt, gp)),
+        passYd: s.pass_yd ?? null,
+        passTd: s.pass_td ?? null,
+    };
+}
+
 /** Statistiche di distribuzione e forma su una stagione. */
 export function computeSeasonMetrics(games) {
     const pts = (games || []).map(g => g.pts).filter(p => p != null);

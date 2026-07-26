@@ -30,6 +30,8 @@ import { initPlayerModal } from '../components/player-modal.js?v=24';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import { predictSeason } from '../data/draft-predictions.js?v=12';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=4';
+import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=1';
 
 let initialized = false;
 let currentYear = null;
@@ -136,9 +138,18 @@ async function loadYear() {
         };
         const grades = computeGrades(picks, evaluator.valueOf, meta);
         const pred = await predictSeason(year, grades).catch(() => null);
+        // Context Score (SOS+) da nflverse: layer aggiuntivo, NON tocca i voti.
+        // Degradazione graceful: se i dati mancano, ctx resta null e si mostra
+        // solo la pagella classica.
+        const model = await attachContextScores(grades, year).catch(() => null);
+        // Team Strength Index (TSI): motore di valutazione della ROSA (non tocca
+        // il voto ufficiale). Usa p.ctx già attaccato sopra. Graceful se assente.
+        await evaluateLeague(grades, year).catch((e) => console.warn('[team-eval]', e));
+        // Voto di fine stagione (VOR) — solo stagioni giocate; non tocca il post-draft.
+        const vor = seasonPlayed ? computeVorGrades(picks, meta) : null;
         if (currentYear !== year) return;
 
-        content.innerHTML = renderGrades(year, grades, meta, pred);
+        content.innerHTML = renderGrades(year, grades, meta, pred, model, vor);
         loadHeadshots(content, year);
         setTimeout(() => console.log(`[draftgrades] pick matchate su proiezioni ${year}: ${evaluator.matched()}/${picks.length}`), 0);
     } catch (e) {
@@ -223,6 +234,36 @@ export function computeGrades(picks, valueOf, meta) {
     }).sort((a, b) => b.ratio - a.ratio);
 }
 
+/**
+ * Valutatore di FINE STAGIONE basato su VOR (Value Over Replacement): il valore
+ * di una pick è la produzione REALE sopra il livello di replacement della lega
+ * per quel ruolo. Rende comparabili ruoli diversi (300 pt QB ≠ 300 pt WR) e,
+ * dato in pasto a computeGrades, produce un voto retrospettivo con la stessa
+ * scala del voto post-draft. Richiede la stagione già giocata (actualPlayers).
+ */
+export function makeVorEvaluator(picks, actualPlayers) {
+    const actualOf = (p) => actualPlayers[p.player]?.total ?? null;
+    const repl = replacementLevels(
+        picks.map(p => ({ pos: p.pos, __v: actualOf(p) ?? 0 })), '__v');
+    return {
+        valueOf: (p) => { const a = actualOf(p); return a == null ? 0 : Math.max(0, a - (repl[p.pos] || 0)); },
+        replacement: repl,
+    };
+}
+
+/**
+ * Voti di fine stagione (VOR) per tutte le squadre + mappa key→{letter,rank,ratio}.
+ * Ritorna null se la stagione non è stata giocata.
+ */
+export function computeVorGrades(picks, meta) {
+    if (!meta.seasonPlayed) return null;
+    const vor = makeVorEvaluator(picks, meta.actualPlayers);
+    const grades = computeGrades(picks, vor.valueOf, { ...meta, mode: 'vor' });
+    const byKey = {};
+    grades.forEach((g, i) => { byKey[g.key] = { letter: letterFor(g.ratio, i), rank: i, ratio: g.ratio }; });
+    return { grades, byKey, replacement: vor.replacement };
+}
+
 export function letterFor(ratio, rank) {
     let letter;
     if (ratio >= 1.08) letter = 'A+';
@@ -266,17 +307,65 @@ export function strategyLine(list) {
 
 // ─── Rendering ───────────────────────────────────────────────────
 
-function renderGrades(year, grades, meta, pred) {
+/**
+ * Attacca a ogni pick d'attacco il Player Context Score (SOS+) da nflverse.
+ * NON modifica value/expected/ratio: le pagelle restano identiche (il modello
+ * di regressione non è adottato, vedi build-draft-model.mjs). Aggiunge solo il
+ * layer informativo (sub-score, floor/ceiling, bust%). Ritorna il modello.
+ */
+async function attachContextScores(grades, year) {
+    const model = await getDraftModel();
+    const OFF = new Set(['QB', 'RB', 'WR', 'TE']);
+    const tasks = [];
+    for (const g of grades) for (const p of g.list) {
+        if (!OFF.has(p.pos)) continue;
+        tasks.push(getContextScore({ name: p.player, pos: p.pos, team: p.nfl, year: +year, projValue: p.value })
+            .then(ctx => { p.ctx = ctx; }).catch(() => { p.ctx = null; }));
+    }
+    await Promise.all(tasks);
+    for (const g of grades) {
+        const cs = g.list.map(p => p.ctx?.contextScore).filter(v => v != null);
+        g.sosAvg = cs.length ? Math.round(cs.reduce((a, b) => a + b, 0) / cs.length) : null;
+    }
+    return model;
+}
+
+/** Chip SOS+ (+ badge flop se il modello stima alto rischio). */
+function sosChip(ctx) {
+    if (!ctx || ctx.contextScore == null) return '';
+    const bust = ctx.bustProb != null && ctx.bustProb >= 0.4
+        ? ` <span class="dg-bust" title="Probabilità flop stimata dal modello (Brier < base-rate 6/7 stagioni)">flop ${Math.round(ctx.bustProb * 100)}%</span>` : '';
+    return `<span class="dg-sos" title="Player Context Score (SOS+): attacco NFL, volume, efficienza, calendario, trend">SOS+ ${ctx.contextScore}</span>${bust}`;
+}
+
+/** Mini-barre TSI in testa alla card: le componenti chiave della forza rosa. */
+function tsiMiniBars(g) {
+    const keys = ['starter', 'posAdv', 'vor', 'risk', 'balance'];
+    const bars = keys.filter(k => g.tsiSub?.[k] != null).map(k => {
+        const v = g.tsiSub[k];
+        const cls = v >= 60 ? ' dg-tsibar--good' : v <= 40 ? ' dg-tsibar--bad' : '';
+        return `<span class="dg-tsibar${cls}" title="${TSI_LABELS[k]}: ${v}/100">
+            <small>${TSI_LABELS[k]}</small>
+            <span class="dg-tsibar-track"><span style="width:${v}%"></span></span>
+        </span>`;
+    }).join('');
+    return `<div class="dg-tsibars">${bars}</div>`;
+}
+
+function renderGrades(year, grades, meta, pred, model, vor) {
     const seed = (+year) * 41;
 
     const summary = grades.map((g, i) => {
         const t = TEAMS[g.key];
         const letter = letterFor(g.ratio, i);
+        const eos = vor?.byKey?.[g.key];
         return `
         <div class="dg-sum" style="--team-color:${t.color};--dg-i:${i}">
             <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
             <span class="dg-sum-name">${t.name}</span>
-            <span class="dg-letter dg-letter--${gradeBand(letter)}">${letter}</span>
+            ${eos ? `<span class="dg-eos" title="Voto di fine stagione (VOR): quanto ha reso la rosa davvero">FS ${eos.letter}</span>` : ''}
+            <span class="dg-letter dg-letter--${gradeBand(letter)}" title="Voto post-draft (proiezioni)">${letter}</span>
+            ${g.tsi != null ? `<span class="dg-tsi" title="Team Strength Index — forza complessiva della rosa (0-100)">TSI ${Math.round(g.tsi)}</span>` : ''}
         </div>`;
     }).join('');
 
@@ -286,7 +375,7 @@ function renderGrades(year, grades, meta, pred) {
     <div class="dg-summary">${summary}</div>
     ${powerRanking(grades)}
     ${cards}
-    <p class="dg-footnote">Voti basati su ${meta.label}, con l'ADP reale per reach e steal${year === '2019' ? ' (ADP non disponibile per il 2019: solo il valore proiettato)' : ''}.${meta.seasonPlayed ? ' I badge "rivelazione"/"flop" confrontano la proiezione con la produzione poi ottenuta in stagione.' : ''} Baseline: "draft perfetto" — l'atteso della pick n° N è l'N-esimo miglior valore proiettato del pool draftato. Per kicker e difese il valore pesa anche la produzione reale recente (60% e 35%): sulle 419 pick 2019-2025 migliora nettamente la previsione, mentre per l'attacco le proiezioni battono ogni metrica storica. Lo storico resta però il miglior segnale di rischio: i veterani 6+ anni in calo hanno floppato il 36% delle volte (media lega 10%).${pred ? ` Pronostici e chance Super Bowl: Monte Carlo su ${fmt0(pred.iterations)} stagioni simulate dai valori del draft — lineup ottimale settimana per settimana${pred.byesKnown ? ' con le bye week NFL reali' : ' (bye week non disponibili per questa stagione)'}, calendario di lega (rotazione fissa verificata 2019-2025), playoff 1ª-4ª e 2ª-3ª con tiebreak sui punti fatti, variabilità settimanale ±18%.` : ''}</p>`;
+    <p class="dg-footnote">Voti basati su ${meta.label}, con l'ADP reale per reach e steal${year === '2019' ? ' (ADP non disponibile per il 2019: solo il valore proiettato)' : ''}.${meta.seasonPlayed ? ' I badge "rivelazione"/"flop" confrontano la proiezione con la produzione poi ottenuta in stagione.' : ''} Baseline: "draft perfetto" — l'atteso della pick n° N è l'N-esimo miglior valore proiettato del pool draftato. Per kicker e difese il valore pesa anche la produzione reale recente (60% e 35%): sulle 419 pick 2019-2025 migliora nettamente la previsione, mentre per l'attacco le proiezioni battono ogni metrica storica. Lo storico resta però il miglior segnale di rischio: i veterani 6+ anni in calo hanno floppato il 36% delle volte (media lega 10%).${pred ? ` Pronostici e chance Super Bowl: Monte Carlo su ${fmt0(pred.iterations)} stagioni simulate dai valori del draft — lineup ottimale settimana per settimana${pred.byesKnown ? ' con le bye week NFL reali' : ' (bye week non disponibili per questa stagione)'}, calendario di lega (rotazione fissa verificata 2019-2025), playoff 1ª-4ª e 2ª-3ª con tiebreak sui punti fatti, variabilità settimanale per giocatore.` : ''}${model ? ` <b>SOS+</b> (Player Context Score): indice 0-100 da dati NFL avanzati nflverse dell'anno precedente — qualità dell'attacco, volume, efficienza, calendario per ruolo, trend — mostrato accanto al voto. Il modello di valore, validato leave-one-season-out (2019-2024), conferma le proiezioni senza batterle, quindi <b>non</b> cambia le pagelle; il modello di flop probability invece batte il base-rate in 6 stagioni su 7 e alimenta i badge "flop".` : ''}${grades.some(g => g.tsi != null) ? ` <b>TSI</b> (Team Strength Index): indice 0-100 che valuta la ROSA, non la somma delle pick — forza dei titolari, vantaggio posizionale, scarsità (VOR), profondità, rischio, bilanciamento, bye, stack e contesto NFL. È un indice di lettura (pesi di design, 50 ≈ media lega), affiancato al voto ufficiale che NON cambia.` : ''}${vor ? ` <b>FS</b> (voto di Fine Stagione): pagella retrospettiva su base <b>VOR</b> (Value Over Replacement) — la produzione reale di ogni pick sopra il livello di replacement della lega per quel ruolo, così ruoli diversi diventano comparabili. È un secondo voto, non sostituisce quello post-draft.` : ''}</p>`;
 }
 
 /**
@@ -374,6 +463,7 @@ function teamCard(g, rank, year, meta, seed, pred) {
                 <span class="dg-pick-name">${p.player} <small>${p.pos}${p.nfl ? ` · ${p.nfl}` : ''}</small></span>
                 <span class="dg-pick-meta">${label}</span>
                 <span class="dg-pick-val">${fmt0(p.value)} pt ${d?.wHist ? 'attesi (proiezione + storico)' : 'proiettati'} <small>vs ${fmt0(p.expected)} attesi (${p.delta >= 0 ? '+' : ''}${fmt0(p.delta)})</small></span>
+                ${p.ctx ? `<span class="dg-pick-sos">${sosChip(p.ctx)}${p.ctx.floor != null ? ` <small>range ${fmt0(p.ctx.floor)}–${fmt0(p.ctx.ceiling)}</small>` : ''}</span>` : ''}
                 ${histRow}
                 ${p.actual != null ? `<span class="dg-pick-actual">poi: ${fmt0(p.actual)} pt reali ${outcomeBadge(p)}</span>` : ''}
             </div>
@@ -398,6 +488,7 @@ function teamCard(g, rank, year, meta, seed, pred) {
             <span class="dg-row-name">${p.player}${risk}</span>
             <span class="dg-row-val">${fmt0(p.value)}</span>
             <span class="dg-row-delta ${p.delta >= 0 ? 'up' : 'down'}">${p.delta >= 0 ? '▲' : '▼'} ${fmt0(Math.abs(p.delta))}</span>
+            ${p.ctx?.contextScore != null ? `<span class="dg-row-sos" title="Player Context Score (SOS+)">SOS+ ${p.ctx.contextScore}</span>` : ''}
             ${d?.hist ? trendBadge(d.hist) : ''}
             ${outcomeBadge(p)}
         </div>`;
@@ -409,7 +500,8 @@ function teamCard(g, rank, year, meta, seed, pred) {
             <img class="dg-head-logo" src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
             <div class="dg-head-info">
                 <h2 class="mc-title">${t.name}</h2>
-                <span class="dg-head-meta">${fmt0(g.total)} punti attesi al draft · baseline ${fmt0(g.expected)} · resa ${(g.ratio * 100).toFixed(0)}%</span>
+                <span class="dg-head-meta">${fmt0(g.total)} punti attesi al draft · baseline ${fmt0(g.expected)} · resa ${(g.ratio * 100).toFixed(0)}%${g.sosAvg != null ? ` · <span class="dg-sos" title="Media Player Context Score (SOS+) dell'attacco">SOS+ medio ${g.sosAvg}</span>` : ''}${g.tsi != null ? ` · <span class="dg-tsi" title="Team Strength Index — forza della rosa (0-100)">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}ª lega` : ''}</span>` : ''}</span>
+                ${g.tsi != null ? tsiMiniBars(g) : ''}
                 <span class="dg-cta">Analisi completa del draft →</span>
             </div>
             <span class="dg-letter dg-letter--big dg-letter--${band}">${letter}</span>

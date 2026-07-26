@@ -7,9 +7,13 @@
  * fissa a 3 settimane, identica ogni anno dal 2019) e simula N stagioni
  * complete: regular season, playoff (1ª vs 4ª, 2ª vs 3ª) e Super Bowl.
  *
- * Rumore settimanale: normale con σ = 18% della media (stima sulle stagioni
- * 2019-2025, σ ≈ 25 su μ ≈ 136). RNG seedato per anno: risultati stabili
- * tra i reload.
+ * Rumore settimanale: varianza PER GIOCATORE. Ogni titolare porta il suo
+ * coefficiente di variazione (cv) dal game-log dell'anno precedente (nflverse,
+ * via context-score); la varianza di squadra è la somma delle varianze dei
+ * titolari (σ_team = √Σ(perGame·cv)²). Roster consistenti → σ più bassa → più
+ * vittorie H2H. I cv di default sono tarati per riprodurre il ~18% di squadra
+ * calibrato sulle stagioni reali quando i dati per-giocatore mancano.
+ * RNG seedato per anno: risultati stabili tra i reload.
  */
 
 import { getSeasonConfig } from '../data.js?v=32';
@@ -17,13 +21,16 @@ import { getTeamStats } from './nfl-team-stats.js?v=11';
 import { canonAbbr } from './nfl-schedule.js?v=11';
 import { resolveDefAbbrSync } from './player-full.js?v=13';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=11';
+import { perGameCv } from './context-score.js?v=4';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // FLEX gestito a parte (pool RB/WR)
 const FLEX_POS = FLEX_ELIGIBLE;
 const GAMES_PER_SEASON = 16; // gare NFL utili di un titolare (17 - bye)
-const SIGMA_RATIO = 0.18;
 const SIGMA_MIN = 16;
 const ITERATIONS = 4000;
+// cv di default per ruolo (senza game-log): scelti perché aggregati su un
+// lineup danno σ_team ≈ 18% della media, come la vecchia calibrazione.
+const DEFAULT_CV = { QB: 0.42, RB: 0.55, WR: 0.60, TE: 0.62, K: 0.55, DEF: 0.60 };
 
 // rotazione reale della lega (verificata 2019-2025): periodo 3
 const ROTATION = [
@@ -76,27 +83,36 @@ function replacementPerGame(allPicks) {
     return repl;
 }
 
-/** Media punti del lineup ottimale di una settimana (bye esclusi). */
+/**
+ * Lineup ottimale di una settimana (bye esclusi): ritorna media e VARIANZA.
+ * mu = Σ perGame dei titolari; variance = Σ (perGame·cv)² (giocatori
+ * indipendenti). Le slot vuote usano il replacement col cv di default.
+ */
 function weeklyMu(roster, week, repl) {
     const avail = roster.filter(p => p.bye !== week);
     const byPos = {};
     for (const p of avail) (byPos[p.pos] = byPos[p.pos] || []).push(p);
     for (const list of Object.values(byPos)) list.sort((a, b) => b.perGame - a.perGame);
 
-    let mu = 0;
+    let mu = 0, variance = 0;
     const used = new Set();
+    const addVar = (pg, cv) => { const s = pg * cv; variance += s * s; };
     for (const [pos, n] of Object.entries(SLOTS)) {
         const list = byPos[pos] || [];
         for (let i = 0; i < n; i++) {
-            if (list[i]) { mu += list[i].perGame; used.add(list[i]); }
-            else mu += repl[pos] || 0;
+            if (list[i]) { mu += list[i].perGame; addVar(list[i].perGame, list[i].cv); used.add(list[i]); }
+            else { mu += repl[pos] || 0; addVar(repl[pos] || 0, DEFAULT_CV[pos] || 0.55); }
         }
     }
     // FLEX: miglior RB/WR/TE rimasto
     const flex = FLEX_POS.flatMap(pos => (byPos[pos] || []).filter(p => !used.has(p)))
         .sort((a, b) => b.perGame - a.perGame)[0];
-    mu += flex ? flex.perGame : Math.max(...FLEX_POS.map(p => repl[p] || 0));
-    return mu;
+    if (flex) { mu += flex.perGame; addVar(flex.perGame, flex.cv); }
+    else {
+        const bestReplPos = FLEX_POS.reduce((a, b) => (repl[b] || 0) > (repl[a] || 0) ? b : a, FLEX_POS[0]);
+        mu += repl[bestReplPos] || 0; addVar(repl[bestReplPos] || 0, DEFAULT_CV[bestReplPos] || 0.6);
+    }
+    return { mu, variance };
 }
 
 /**
@@ -115,19 +131,22 @@ export async function predictSeason(year, grades) {
     const allPicks = grades.flatMap(g => g.list);
     const repl = replacementPerGame(allPicks);
 
-    // roster con per-gara e bye
+    // roster con per-gara, bye e cv per-giocatore (dal game-log dell'anno prima)
     const rosters = {};
     for (const g of grades) {
-        rosters[g.key] = g.list.map(p => {
+        rosters[g.key] = await Promise.all(g.list.map(async p => {
             const abbr = p.pos === 'DEF'
                 ? resolveDefAbbrSync(p.player)
                 : canonAbbr(p.nfl);
+            let cv = null;
+            try { cv = await perGameCv({ name: p.player, pos: p.pos, year: +year }); } catch { /* default */ }
             return {
                 pos: p.pos,
                 perGame: (p.value || 0) / GAMES_PER_SEASON,
+                cv: cv ?? DEFAULT_CV[p.pos] ?? 0.55,
                 bye: (byes && abbr && byes[abbr]) || null,
             };
-        });
+        }));
     }
 
     // profilo settimanale (regular season) + settimana "piena" per i playoff
@@ -137,7 +156,7 @@ export async function predictSeason(year, grades) {
         muFull[key] = weeklyMu(rosters[key], 0, repl); // week 0: nessuno in bye
     }
 
-    const sigma = (mu) => Math.max(SIGMA_MIN, mu * SIGMA_RATIO);
+    const sigmaOf = (prof) => Math.max(SIGMA_MIN, Math.sqrt(prof.variance));
     const rng = makeRng((+year || 1) * 9973);
     const wins = Object.fromEntries(keys.map(k => [k, 0]));
     const sb = Object.fromEntries(keys.map(k => [k, 0]));
@@ -147,8 +166,9 @@ export async function predictSeason(year, grades) {
         const pf = Object.fromEntries(keys.map(k => [k, 0]));
         for (let wk = 1; wk <= weeks; wk++) {
             for (const [a, b] of ROTATION[(wk - 1) % 3]) {
-                const sa = mus[a][wk - 1] + sigma(mus[a][wk - 1]) * rng.normal();
-                const sBpts = mus[b][wk - 1] + sigma(mus[b][wk - 1]) * rng.normal();
+                const pa = mus[a][wk - 1], pb = mus[b][wk - 1];
+                const sa = pa.mu + sigmaOf(pa) * rng.normal();
+                const sBpts = pb.mu + sigmaOf(pb) * rng.normal();
                 pf[a] += sa; pf[b] += sBpts;
                 if (sa >= sBpts) w[a]++; else w[b]++;
             }
@@ -158,8 +178,8 @@ export async function predictSeason(year, grades) {
         // playoff: 1ª vs 4ª, 2ª vs 3ª (tiebreak: punti fatti), poi Super Bowl
         const seed = [...keys].sort((a, b) => w[b] - w[a] || pf[b] - pf[a]);
         const game = (a, b) => {
-            const sa = muFull[a] + sigma(muFull[a]) * rng.normal();
-            const sBpts = muFull[b] + sigma(muFull[b]) * rng.normal();
+            const sa = muFull[a].mu + sigmaOf(muFull[a]) * rng.normal();
+            const sBpts = muFull[b].mu + sigmaOf(muFull[b]) * rng.normal();
             return sa >= sBpts ? a : b;
         };
         sb[game(game(seed[0], seed[3]), game(seed[1], seed[2]))]++;
@@ -174,7 +194,7 @@ export async function predictSeason(year, grades) {
             expL: +(weeks - expW).toFixed(1),
             record: `${intW}-${weeks - intW}`,
             sbPct: Math.round(sb[k] / ITERATIONS * 100),
-            muAvg: +(mus[k].reduce((s, m) => s + m, 0) / weeks).toFixed(1),
+            muAvg: +(mus[k].reduce((s, m) => s + m.mu, 0) / weeks).toFixed(1),
         };
     }
     return { byTeam, weeks, byesKnown: !!byes, iterations: ITERATIONS };
