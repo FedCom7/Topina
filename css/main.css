@@ -9015,7 +9015,7 @@ body.pm-open { overflow: hidden; }
    busto può allargarsi verso destra. */
 .pm-panini-top {
     position: absolute;
-    top: 8px;
+    top: 12px;
     left: 12px;
     z-index: 3;
     display: flex;
