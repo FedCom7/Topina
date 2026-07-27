@@ -17,14 +17,17 @@ const TEAM_FIELD_KEYS = {
     'Capi dei Pianeti': 'C.D.P'
 };
 
+// Cache-bust dei wallpaper del campo: da bumpare quando si sostituiscono i file
+// (il browser altrimenti li tiene in cache disco a tempo indefinito, non avendo
+// header Cache-Control il server locale di sviluppo).
+const FIELD_IMG_VERSION = 2;
+
 /** Build the correct field image path for a matchup */
 function getFieldImage(team1Name, team2Name) {
     const k1 = TEAM_FIELD_KEYS[displayName(team1Name)];
     const k2 = TEAM_FIELD_KEYS[displayName(team2Name)];
-    if (k1 && k2) {
-        return `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png`;
-    }
-    return 'Wallpapers/GameCenterHorizontal.PNG';
+    const file = (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
+    return `${file}?v=${FIELD_IMG_VERSION}`;
 }
 
 export async function initGameCenter() {

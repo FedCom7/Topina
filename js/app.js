@@ -1,8 +1,8 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=38';
-import { initGameCenter } from './sections/game-center.js?v=43';
+import { initHome } from './sections/home.js?v=47';
+import { initGameCenter } from './sections/game-center.js?v=44';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=46';
 import { initDraft } from './sections/draft.js?v=43';
 import { initDraftGrades } from './sections/draftgrades.js?v=27';
@@ -16,10 +16,10 @@ import { initHonors } from './sections/honors.js?v=13';
 import { initAllPro } from './sections/allpro.js?v=14';
 import { initHallOfFame } from './sections/halloffame.js?v=28';
 import { initTeam } from './sections/team.js?v=23';
-import { initTeams } from './sections/teams.js?v=13';
+import { initTeams } from './sections/teams.js?v=14';
 import { initGame } from './sections/game.js?v=26';
 import { initAnalysis } from './sections/analysis.js?v=26';
-import { initMagazine } from './sections/magazine.js?v=27';
+import { initMagazine } from './sections/magazine.js?v=28';
 import { initNavbar } from './ui/navbar.js?v=12';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 

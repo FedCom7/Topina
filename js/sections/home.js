@@ -19,8 +19,9 @@
 import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=32';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
 import { getHonorsBundle } from '../data/honors.js?v=13';
+import { electHallOfFame } from '../data/hall-of-fame.js?v=13';
 import { TEAMS } from './team.js?v=23';
-import { teamsCardsHTML } from './teams.js?v=13';
+import { teamsCardsHTML } from './teams.js?v=14';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
@@ -95,6 +96,7 @@ const MOSAIC = {
         cardHero(ctx),
         cardChampion(ctx),
         cardHonors(ctx),
+        cardHallOfFame(ctx),
         cardTeams(ctx),
         railChampions(ctx),
         cardAllPro(ctx),
@@ -135,7 +137,7 @@ const MOSAIC = {
  * watermarkKey: logo team in filigrana dietro il contenuto.
  * bg: immagine di sfondo a piena card (con overlay scuro per leggibilità).
  */
-function card({ span = 'half', glow, kicker, title, body, cta, href, cls = '', parallax = false, watermarkKey, bg }) {
+function card({ span = 'half', glow, kicker, title, body, cta, href, cls = '', parallax = false, watermarkKey, bg, sideImg }) {
     const wm = watermarkKey && TEAMS[watermarkKey];
     const styles = [
         glow ? `--card-glow:${glow}` : '',
@@ -146,6 +148,7 @@ function card({ span = 'half', glow, kicker, title, body, cta, href, cls = '', p
              ${styles ? `style="${styles}"` : ''}>
         ${bg ? `<div class="mc-bg"><img src="${bg}" alt="" aria-hidden="true" onerror="this.parentElement.remove()"></div>` : ''}
         ${wm ? `<img class="mc-watermark" src="${wm.logo}" alt="" aria-hidden="true" onerror="this.remove()">` : ''}
+        ${sideImg ? `<img class="mc-side-img" src="${sideImg}" alt="" aria-hidden="true" data-depth="0.1" onerror="this.remove()">` : ''}
         ${kicker ? `<span class="mc-kicker">${kicker}</span>` : ''}
         ${title ? `<h2 class="mc-title">${title}</h2>` : ''}
         <div class="mc-body">${body}</div>
@@ -272,37 +275,61 @@ function cardChampion({ season, league }) {
     const t = TEAMS[key];
     const titles = league.allTime[key]?.sbWins.length || 1;
     return card({
-        glow: t.color, parallax: true, watermarkKey: key,
-        kicker: `Super Bowl · Stagione ${season.year}`,
-        title: `${t.name} sul trono`,
+        span: 'wide', cls: 'mc-champion-card', glow: t.color, parallax: true, sideImg: t.logo,
+        kicker: `Super Bowl Champ · Stagione ${season.year}`,
         body: `
         <div class="mc-champion" style="--team-color:${t.color}">
-            <img class="mc-champion-logo" src="${t.logo}" alt="${t.name}" data-depth="0.1"
-                 onerror="this.style.display='none'">
-            <div class="mc-champion-info">
-                <span>Campioni in carica della Topina League</span>
-                <span class="mc-champion-titles">${titles}° titolo del franchise</span>
-            </div>
+            <span class="mc-champion-titles">${titles}° titolo del franchise</span>
+            <span class="mc-champion-name">${t.name}</span>
         </div>`,
-        cta: 'La pagina del franchise', href: `#team-${key}`,
     });
 }
 
 function cardHonors({ bundle, season }) {
     if (!bundle?.revealed) return '';
-    const wanted = { mvp: 'MVP', dpoy: 'DPOY', coach: 'Coach of the Year' };
-    const minis = bundle.awards
+    const wanted = { mvp: 'MVP', dpoy: 'DPOY', oroy: 'OROY', coach: 'COACH' };
+    const rows = bundle.awards
         .filter(a => wanted[a.id] && a.winner)
-        .map(a => `
-        <div class="mc-mini-award">
-            <span class="mc-mini-award-label">${wanted[a.id]}</span>
-            <span class="mc-mini-award-name">${a.kind === 'coach' ? (TEAMS[a.winner.teamKey]?.name || '—') : a.winner.name}</span>
-        </div>`).join('');
+        .map(a => {
+            const isCoach = a.kind === 'coach';
+            const team = TEAMS[a.winner.teamKey];
+            const media = isCoach
+                ? (team ? `<span class="mc-avatar mc-avatar--logo"><img src="${team.logo}" alt="" onerror="this.parentElement.remove()"></span>` : '')
+                : playerAvatar(a.winner.name, a.winner.nfl, a.winner.pos, season.year);
+            const name = isCoach ? (team?.name || '—') : a.winner.name;
+            return `
+        <div class="mc-row mc-row--tinted" style="--team-color:${team?.color || 'var(--accent-red)'}">
+            <span class="mc-honor-tag">${wanted[a.id]}</span>
+            ${media}
+            <span class="mc-row-name">${name}</span>
+        </div>`;
+        }).join('');
     return card({
         kicker: `Topina Honors ${season.year}`,
         title: 'I premiati della stagione',
-        body: `<div class="mc-mini-awards">${minis}</div>`,
+        body: `<div class="mc-rows">${rows}</div>`,
         cta: 'Tutti i premi', href: '#honors',
+    });
+}
+
+async function cardHallOfFame({ season }) {
+    const classes = await electHallOfFame();
+    const latest = [...classes].reverse().find(c => c.inductee);
+    if (!latest) return '';
+    const p = latest.inductee;
+    const teamKey = p.draftedBy?.length ? p.draftedBy[p.draftedBy.length - 1].teamKey : null;
+    const team = teamKey ? TEAMS[teamKey] : null;
+    return card({
+        glow: team?.color,
+        kicker: `Hall of Fame · Classe ${latest.year}`,
+        title: 'L’ultimo eletto',
+        body: `
+        <div class="mc-hof-feature" style="--team-color:${team?.color || 'var(--accent-amber)'}">
+            ${playerAvatar(p.name, p.nflTeam, p.position, p.lastSeason, 'mc-avatar--gold mc-avatar--hof')}
+            <span class="mc-hof-name">${p.name}</span>
+            <span class="mc-hof-role">${p.position}</span>
+        </div>`,
+        cta: 'La Hall of Fame', href: '#halloffame',
     });
 }
 

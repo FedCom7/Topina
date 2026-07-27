@@ -53,10 +53,12 @@ const keyOf = (raw) => TEAM_KEYS[displayName(raw)] || null;
 
 // Mapping nomi → chiavi wallpaper campo (come in game-center)
 const FIELD_KEYS = { 'Oscurus': 'OSCURUS', 'Lasers': 'LASERS', 'Sommo': 'SOMMO', 'Capi dei Pianeti': 'C.D.P' };
+const FIELD_IMG_VERSION = 2; // bump quando si sostituiscono i wallpaper (vedi game-center.js)
 function fieldImage(m) {
     const k1 = FIELD_KEYS[displayName(m.team1.name)];
     const k2 = FIELD_KEYS[displayName(m.team2.name)];
-    return (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
+    const file = (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
+    return `${file}?v=${FIELD_IMG_VERSION}`;
 }
 
 // ─── Testata: SVG inline (niente asset esterni) ──────────────────
@@ -728,7 +730,7 @@ function newspaperHTML(ctx) {
             </div>
           </div>
           <div class="story-column column--second-third">
-            <p class="story-featured-photo"><img src="${fieldImage(main)}" onerror="this.src='Wallpapers/GameCenterHorizontal.PNG'" alt=""></p>
+            <p class="story-featured-photo"><img src="${fieldImage(main)}" onerror="this.src='Wallpapers/GameCenterHorizontal.PNG?v=${FIELD_IMG_VERSION}'" alt=""></p>
             <div class="blockquote-wrapper">
               <div class="blockquote-title">
                 <div class="text--superscript">${cq.title.sup}</div>
@@ -791,7 +793,7 @@ function newspaperHTML(ctx) {
           <div class="story-featured-photo">
             <img src="${secondary.photo}"
                  ${secondary.bigImgPlayer ? `class="mg-headshot" data-player-name="${secondary.bigImgPlayer}" data-team="${secondary.bigImgTeam || ''}" data-pos="${secondary.bigImgPos || ''}"` : ''}
-                 onerror="this.src='${secondary.bigImgPlayer ? 'images/fallback-player.svg' : 'Wallpapers/GameCenterHorizontal.PNG'}'" alt="">
+                 onerror="this.src='${secondary.bigImgPlayer ? 'images/fallback-player.svg' : `Wallpapers/GameCenterHorizontal.PNG?v=${FIELD_IMG_VERSION}`}'" alt="">
           </div>
           <div class="caption${secondary.captionWrap ? ' mag-wrap' : ''}">
             <div class="caption_content${secondary.captionClass ? ` ${secondary.captionClass}` : ''}">${secondary.caption}</div>
