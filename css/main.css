@@ -10585,3 +10585,12 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     -webkit-text-fill-color: var(--accent-red);
     -webkit-text-stroke: 0;
 }
+
+/* L'anno della pagina squadra NFL resta FISSO durante lo scroll (solo desktop,
+   dove è il titolo verticale a sinistra) così è sempre visibile. */
+@media (min-width: 768px) {
+    .section-inner > .section-header.nfl-year-header {
+        position: fixed;
+        top: 110px;
+    }
+}
