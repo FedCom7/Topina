@@ -20,7 +20,7 @@ import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=6';
+} from '../data/nfl-team-live.js?v=7';
 import {
     esc, teamLogo, factChip, tile, fmt1, ord, TEAM_HISTORY_YEARS,
     teamHistoryBlock, teamExtrasBlock,
@@ -202,7 +202,7 @@ function identityExtraBlock({ profile }) {
             <div class="pp-coach-body">
                 <span class="mc-kicker">Head coach</span>
                 <b>${esc(co.name)}</b>
-                <span class="pm-note" style="margin-top:2px">${[co.experience != null ? `${co.experience}ª stagione` : '', co.college ? `${esc(co.college)}` : '', co.birthPlace ? esc(co.birthPlace) : ''].filter(Boolean).join(' · ')}</span>
+                <span class="pm-note" style="margin-top:2px">${[co.experience != null ? `${co.experience}ª stagione in carriera` : '', co.teamTenure != null ? `${co.teamTenure}ª con ${esc(p.abbr)}` : '', co.college ? `${esc(co.college)}` : '', co.birthPlace ? esc(co.birthPlace) : ''].filter(Boolean).join(' · ')}</span>
             </div>
         </div>` : '';
 

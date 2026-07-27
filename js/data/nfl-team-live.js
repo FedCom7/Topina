@@ -41,7 +41,37 @@ function cached(key, loader) {
  * Anagrafica live della squadra dall'endpoint dettaglio (teams/{id}) unito al
  * capo-allenatore dal roster. Ritorna null se la sigla non è mappata.
  */
-/** Head coach canonico (core): nome, esperienza, college, luogo di nascita, headshot. */
+/**
+ * Anni consecutivi del coach con la squadra corrente, fino alla stagione data.
+ * `experience` ESPN è la carriera totale; qui si conta la permanenza col team.
+ * `coachSeasons` (endpoint coach globale) elenca tutte le stagioni di carriera;
+ * il team di ogni stagione è accurato solo su `seasons/{y}/coaches/{id}` (NON
+ * su `seasons/{y}/teams/{id}/coaches`, che ritorna sempre il coach attuale).
+ * La permanenza è contigua → ricerca binaria sul team, ~log(n) fetch.
+ */
+async function coachTeamTenure(coachId, teamId, season) {
+    const g = await fetchJson(`${CORE}/coaches/${coachId}`);
+    const yrs = (g?.coachSeasons || [])
+        .map(r => { const m = /seasons\/(\d+)/.exec(r.$ref || ''); return m ? +m[1] : null; })
+        .filter(y => y != null && y <= +season)
+        .sort((a, b) => b - a); // dal più recente
+    if (!yrs.length) return null;
+    const teamOf = async (y) => {
+        const c = await fetchJson(`${CORE}/seasons/${y}/coaches/${coachId}`);
+        const m = /teams\/(\d+)/.exec(c?.team?.$ref || '');
+        return m ? m[1] : null;
+    };
+    // prefisso di anni consecutivi (dal più recente) con teamId
+    let lo = 0, hi = yrs.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if ((await teamOf(yrs[mid])) === String(teamId)) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo || null;
+}
+
+/** Head coach canonico (core): nome, esperienza, anni con la squadra, college, luogo, headshot. */
 async function teamHeadCoach(teamId, season) {
     const list = await fetchJson(`${CORE}/seasons/${season}/teams/${teamId}/coaches`);
     const ref = list?.items?.[0]?.$ref;
@@ -49,9 +79,11 @@ async function teamHeadCoach(teamId, season) {
     const c = await fetchJson(ref);
     if (!c) return null;
     const bp = c.birthPlace;
+    const teamTenure = c.id ? await coachTeamTenure(c.id, teamId, season).catch(() => null) : null;
     return {
         name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || null,
         experience: c.experience ?? null,
+        teamTenure,
         college: c.college?.name || (typeof c.college === 'string' ? c.college : null),
         headshot: c.headshot?.href || null,
         birthPlace: bp ? [bp.city, bp.state, bp.country].filter(Boolean).join(', ') : null,
