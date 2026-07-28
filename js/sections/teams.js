@@ -29,8 +29,6 @@ export function teamsCardsHTML(league) {
             <img class="teams-card-watermark" src="${team.logo}" alt="" aria-hidden="true"
                  onerror="this.style.display='none'">
             <div class="teams-card-body">
-                <img class="teams-card-logo" src="${team.logo}" alt="${team.name}"
-                     onerror="this.style.display='none'">
                 <div class="teams-card-info">
                     <span class="teams-card-kicker">Est. 2019</span>
                     <h2 class="teams-card-name">${teamNameHTML(team.name)}</h2>

@@ -2517,7 +2517,7 @@ img {
     right: -6%;
     top: 50%;
     height: 160%;
-    transform: translateY(-50%) rotate(-6deg);
+    transform: translateY(-50%);
     opacity: 0.07;
     filter: drop-shadow(0 0 40px var(--team-color));
     pointer-events: none;
@@ -2527,7 +2527,7 @@ img {
 .st-rank-wrap--right .st-rank-watermark {
     right: auto;
     left: -6%;
-    transform: translateY(-50%) rotate(6deg);
+    transform: translateY(-50%);
 }
 
 .st-rank-body {
@@ -4819,17 +4819,16 @@ img {
     right: -8%;
     top: 50%;
     height: 150%;
-    transform: translateY(-50%) rotate(-6deg);
+    transform: translateY(-50%);
     opacity: 0.07;
     filter: drop-shadow(0 0 40px var(--team-color));
     pointer-events: none;
     user-select: none;
-    transition: opacity var(--dur-med) var(--ease), transform 0.4s var(--ease);
+    transition: opacity var(--dur-med) var(--ease);
 }
 
 .teams-card:hover .teams-card-watermark {
     opacity: 0.12;
-    transform: translateY(-50%) rotate(-3deg) scale(1.04);
 }
 
 .teams-card-body {
@@ -4840,14 +4839,6 @@ img {
     gap: 20px;
     width: 100%;
     padding: 28px;
-}
-
-.teams-card-logo {
-    width: 84px;
-    height: 84px;
-    object-fit: contain;
-    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.5));
-    flex-shrink: 0;
 }
 
 .teams-card-info {
@@ -4921,11 +4912,6 @@ img {
     .teams-card-body {
         padding: 20px;
         gap: 14px;
-    }
-
-    .teams-card-logo {
-        width: 60px;
-        height: 60px;
     }
 }
 
@@ -5614,26 +5600,43 @@ img {
 }
 
 /* ── Campione ── */
+/* Logo del campione: immagine "di lato" a tutta altezza della card,
+   figlia diretta dell'article (come .mc-watermark/.mc-bg) così può
+   posizionarsi rispetto all'intera card e non solo al suo .mc-body. */
+.mc-side-img {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: auto;
+    max-width: 46%;
+    object-fit: contain;
+    object-position: right center;
+    filter: drop-shadow(0 0 44px color-mix(in srgb, var(--team-color, var(--card-glow)) 55%, transparent));
+    pointer-events: none;
+}
+
+.mc-champion-card {
+    min-height: 260px;
+}
+
+.mc-champion-card .mc-kicker,
+.mc-champion-card .mc-body,
+.mc-champion-card .mc-cta {
+    max-width: 54%;
+}
+
+/* Il body cresce a riempire l'altezza della card e spinge il nome in basso */
+.mc-champion-card .mc-body {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+}
+
 .mc-champion {
     display: flex;
-    align-items: center;
-    gap: 22px;
-    flex-wrap: wrap;
-}
-
-.mc-champion-logo {
-    width: 110px;
-    height: 110px;
-    object-fit: contain;
-    filter: drop-shadow(0 0 36px color-mix(in srgb, var(--team-color) 55%, transparent));
-}
-
-.mc-champion-info {
-    display: flex;
     flex-direction: column;
-    gap: 4px;
-    color: var(--text-secondary);
-    font-size: 0.92rem;
+    gap: 6px;
 }
 
 .mc-champion-titles {
@@ -5644,42 +5647,28 @@ img {
     color: var(--accent-amber);
 }
 
-/* ── Mini premi ── */
-.mc-mini-awards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
-}
-
-.mc-mini-award {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 4px;
-    padding: 16px 10px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-glass);
-}
-
-.mc-mini-award-icon {
-    font-size: 1.4rem;
-}
-
-.mc-mini-award-label {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
-.mc-mini-award-name {
+.mc-champion-name {
     font-family: var(--font-display);
-    font-size: 0.95rem;
+    font-size: clamp(2.8rem, 6vw, 4.6rem);
+    font-weight: 900;
+    line-height: 0.98;
+    color: var(--text-primary);
+}
+
+/* ── Premi: riga come .mc-row (etichetta + avatar/logo + nome) ── */
+.mc-honor-tag {
+    font-family: var(--font-display);
+    font-size: 0.62rem;
     font-weight: 800;
-    line-height: 1.15;
+    letter-spacing: 0.08em;
+    color: var(--accent-amber);
+    width: 44px;
+    flex-shrink: 0;
+}
+
+.mc-avatar--logo img {
+    object-fit: contain;
+    padding: 5px;
 }
 
 /* ── Numeri lega ── */
@@ -5913,16 +5902,14 @@ img {
     right: -6%;
     top: 50%;
     height: 135%;
-    transform: translateY(-50%) rotate(-6deg);
+    transform: translateY(-50%);
     opacity: 0.06;
     filter: drop-shadow(0 0 40px var(--team-color, var(--accent-red)));
     pointer-events: none;
-    transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
 }
 
 .mosaic-card:hover .mc-watermark {
     opacity: 0.11;
-    transform: translateY(-50%) rotate(-3deg) scale(1.04);
 }
 
 /* I contenuti stanno sopra watermark e sfondo */
@@ -5986,10 +5973,46 @@ img {
     margin: 6px 0 2px;
 }
 
+.mc-avatar--hof {
+    width: 132px;
+    height: 132px;
+    border-width: 2px;
+}
+
+/* ── Hall of Fame: foto grande centrata, nome e ruolo sotto ── */
+.mc-hof-feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 10px 0 4px;
+}
+
+.mc-hof-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-top: 6px;
+}
+
+.mc-hof-role {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--team-color, var(--accent-amber)) 70%, white 20%);
+}
+
 /* Riga con filetto nel colore del team */
 .mc-row--tinted {
     border-left: 2px solid color-mix(in srgb, var(--team-color, var(--accent-red)) 60%, transparent);
     padding-left: 10px;
+}
+
+.mc-row .allpro-pos {
+    background: none;
 }
 
 /* Score row con gradienti nei colori delle due squadre */
@@ -6050,6 +6073,20 @@ img {
     .mc-avatar--rail {
         width: 48px;
         height: 48px;
+    }
+
+    /* Su mobile la card è troppo stretta per testo + logo a tutta altezza
+       affiancati: il logo torna un watermark di sfondo, testo a piena larghezza. */
+    .mc-side-img {
+        max-width: 60%;
+        opacity: 0.16;
+        filter: none;
+    }
+
+    .mc-champion-card .mc-kicker,
+    .mc-champion-card .mc-body,
+    .mc-champion-card .mc-cta {
+        max-width: 100%;
     }
 
     .mc-seed {
@@ -7605,6 +7642,8 @@ img {
 .gb-out-row .allpro-pos {
     width: 40px;
     font-size: 0.6rem;
+    text-align: center;
+    background: none;
 }
 
 .gb-out-player {
@@ -9207,8 +9246,8 @@ body.pm-open { overflow: hidden; }
    busto può allargarsi verso destra. */
 .pm-panini-top {
     position: absolute;
-    top: 8px;
-    left: 20px;
+    top: 12px;
+    left: 12px;
     z-index: 3;
     display: flex;
     flex-direction: column;
