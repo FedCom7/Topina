@@ -20,7 +20,7 @@ import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=7';
+} from '../data/nfl-team-live.js?v=8';
 import {
     esc, teamLogo, factChip, tile, fmt1, ord, TEAM_HISTORY_YEARS,
     teamHistoryBlock, teamExtrasBlock,
@@ -202,7 +202,18 @@ function identityExtraBlock({ profile }) {
             <div class="pp-coach-body">
                 <span class="mc-kicker">Head coach</span>
                 <b>${esc(co.name)}</b>
-                <span class="pm-note" style="margin-top:2px">${[co.experience != null ? `${co.experience}ª stagione in carriera` : '', co.teamTenure != null ? `${co.teamTenure}ª con ${esc(p.abbr)}` : '', co.college ? `${esc(co.college)}` : '', co.birthPlace ? esc(co.birthPlace) : ''].filter(Boolean).join(' · ')}</span>
+                <span class="pm-note" style="margin-top:2px">${[
+                    co.experience != null ? `${co.experience}ª stagione in carriera` : '',
+                    co.teamTenure != null ? `${co.teamTenure}ª con ${esc(p.abbr)}` : '',
+                    co.age != null ? `${co.age} anni` : '',
+                    co.college ? esc(co.college) : '',
+                    co.birthPlace ? esc(co.birthPlace) : '',
+                ].filter(Boolean).join(' · ')}</span>
+                ${(co.recordTotal || co.recordRegular || co.recordPost) ? `<span class="pm-note" style="margin-top:2px">Record da capo-allenatore: ${[
+                    co.recordTotal ? `${esc(co.recordTotal)} totale` : '',
+                    co.recordRegular ? `${esc(co.recordRegular)} regular` : '',
+                    co.recordPost ? `${esc(co.recordPost)} playoff` : '',
+                ].filter(Boolean).join(' · ')}</span>` : ''}
             </div>
         </div>` : '';
 

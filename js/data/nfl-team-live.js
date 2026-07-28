@@ -41,52 +41,74 @@ function cached(key, loader) {
  * Anagrafica live della squadra dall'endpoint dettaglio (teams/{id}) unito al
  * capo-allenatore dal roster. Ritorna null se la sigla non è mappata.
  */
-/**
- * Anni consecutivi del coach con la squadra corrente, fino alla stagione data.
- * `experience` ESPN è la carriera totale; qui si conta la permanenza col team.
- * `coachSeasons` (endpoint coach globale) elenca tutte le stagioni di carriera;
- * il team di ogni stagione è accurato solo su `seasons/{y}/coaches/{id}` (NON
- * su `seasons/{y}/teams/{id}/coaches`, che ritorna sempre il coach attuale).
- * La permanenza è contigua → ricerca binaria sul team, ~log(n) fetch.
- */
-async function coachTeamTenure(coachId, teamId, season) {
-    const g = await fetchJson(`${CORE}/coaches/${coachId}`);
-    const yrs = (g?.coachSeasons || [])
+const _college = {}; // $ref → nome college (cache)
+async function collegeName(ref) {
+    if (!ref) return null;
+    if (ref in _college) return _college[ref];
+    const c = await fetchJson(ref);
+    return (_college[ref] = c?.name || null);
+}
+
+/** Team (id) di un coach in una data stagione — l'unica direzione accurata. */
+async function coachTeamId(coachId, year) {
+    const c = await fetchJson(`${CORE}/seasons/${year}/coaches/${coachId}`);
+    const m = /teams\/(\d+)/.exec(c?.team?.$ref || '');
+    return m ? m[1] : null;
+}
+
+/** Anni consecutivi (dal più recente, fino a `season`) del coach con `teamId`. */
+async function coachTeamTenure(global, coachId, teamId, season) {
+    const yrs = (global?.coachSeasons || [])
         .map(r => { const m = /seasons\/(\d+)/.exec(r.$ref || ''); return m ? +m[1] : null; })
         .filter(y => y != null && y <= +season)
-        .sort((a, b) => b - a); // dal più recente
+        .sort((a, b) => b - a);
     if (!yrs.length) return null;
-    const teamOf = async (y) => {
-        const c = await fetchJson(`${CORE}/seasons/${y}/coaches/${coachId}`);
-        const m = /teams\/(\d+)/.exec(c?.team?.$ref || '');
-        return m ? m[1] : null;
-    };
-    // prefisso di anni consecutivi (dal più recente) con teamId
-    let lo = 0, hi = yrs.length;
+    let lo = 0, hi = yrs.length; // ricerca binaria: permanenza contigua
     while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if ((await teamOf(yrs[mid])) === String(teamId)) lo = mid + 1;
+        if ((await coachTeamId(coachId, yrs[mid])) === String(teamId)) lo = mid + 1;
         else hi = mid;
     }
     return lo || null;
 }
 
-/** Head coach canonico (core): nome, esperienza, anni con la squadra, college, luogo, headshot. */
+/**
+ * Head coach della squadra con tutte le info ESPN: anagrafica (età/luogo/
+ * college), esperienza in carriera, anni con la squadra, record di carriera
+ * (totale/regular/playoff). NB: ESPN non ha uno storico coach affidabile
+ * (team→coach ritorna sempre l'ATTUALE, e la lista coach delle stagioni
+ * passate è spesso vuota) → si mostra il coach attuale, con le statistiche
+ * calcolate fino alla stagione selezionata (esperienza/anni/età).
+ */
 async function teamHeadCoach(teamId, season) {
-    const list = await fetchJson(`${CORE}/seasons/${season}/teams/${teamId}/coaches`);
-    const ref = list?.items?.[0]?.$ref;
-    if (!ref) return null;
-    const c = await fetchJson(ref);
-    if (!c) return null;
-    const bp = c.birthPlace;
-    const teamTenure = c.id ? await coachTeamTenure(c.id, teamId, season).catch(() => null) : null;
+    const listedRef = (await fetchJson(`${CORE}/seasons/${season}/teams/${teamId}/coaches`))?.items?.[0]?.$ref;
+    if (!listedRef) return null;
+    const coachId = /coaches\/(\d+)/.exec(listedRef)?.[1] || null;
+    const cy = await fetchJson(listedRef);
+    if (!cy) return null;
+
+    const bp = cy.birthPlace;
+    const [global, recTotal, recReg, recPost, college] = await Promise.all([
+        fetchJson(`${CORE}/coaches/${coachId}`),
+        fetchJson(`${CORE}/coaches/${coachId}/record/0`),
+        fetchJson(`${CORE}/coaches/${coachId}/record/2`),
+        fetchJson(`${CORE}/coaches/${coachId}/record/3`),
+        collegeName(cy.college?.$ref),
+    ]);
+    const teamTenure = await coachTeamTenure(global, coachId, teamId, season).catch(() => null);
+    const birthYear = cy.dateOfBirth ? +cy.dateOfBirth.slice(0, 4) : null;
+
     return {
-        name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || null,
-        experience: c.experience ?? null,
+        name: `${cy.firstName || ''} ${cy.lastName || ''}`.trim() || null,
+        experience: cy.experience ?? null,
         teamTenure,
-        college: c.college?.name || (typeof c.college === 'string' ? c.college : null),
-        headshot: c.headshot?.href || null,
+        college,
+        headshot: cy.headshot?.href || global?.headshot?.href || null,
         birthPlace: bp ? [bp.city, bp.state, bp.country].filter(Boolean).join(', ') : null,
+        age: birthYear ? (+season - birthYear) : null, // età nella stagione mostrata
+        recordTotal: recTotal?.summary || null,
+        recordRegular: recReg?.summary || null,
+        recordPost: recPost?.summary || null,
     };
 }
 
