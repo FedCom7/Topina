@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=155">
+    <link rel="stylesheet" href="css/main.css?v=160">
 </head>
 
 <body>
@@ -22,6 +22,11 @@
             <a href="#home" class="nav-logo">
                 <span class="logo-text">Topina</span>
             </a>
+            <button class="nav-back" id="nav-back" aria-label="Indietro" type="button">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
             <ul class="nav-links">
                 <li class="nav-item"><a href="#home" class="nav-link active" data-section="home">Home</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="game-center">
@@ -43,9 +48,28 @@
                     <a href="#history" class="nav-link" data-section="history">History</a>
                 </li>
             </ul>
-            <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu">
-                <span></span><span></span><span></span>
-            </button>
+            <div class="nav-actions">
+                <button class="nav-search-btn" id="nav-search-btn" aria-label="Cerca" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" aria-expanded="false">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+        <!-- Lente di ricerca mobile (giocatori Topina + squadre NFL) -->
+        <div class="nav-search" id="nav-search">
+            <div class="nav-search-bar">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="search" id="nav-search-input" class="nav-search-input" placeholder="Cerca giocatore o squadra..." autocomplete="off">
+            </div>
+            <div class="nav-search-results" id="nav-search-results">
+                <p class="pm-empty">Inizia a scrivere per cercare — es. un nome, o "Chiefs".</p>
+            </div>
         </div>
         <!-- Dropdown panels — direct children of .navbar for CSS :has() expansion -->
         <div class="nav-dropdown-panel" data-panel="game-center">

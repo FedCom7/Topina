@@ -268,12 +268,97 @@ img {
     padding: 8px;
 }
 
+/* Freccia "indietro": solo nel drill-down mobile, mai su desktop */
+.nav-back {
+    display: none;
+}
+
 .nav-hamburger span {
     width: 22px;
     height: 2px;
     background: var(--text-secondary);
     border-radius: 2px;
     transition: all var(--dur-med) var(--ease);
+}
+
+/* Azioni a destra della barra mobile (lente + hamburger). Nascoste su desktop. */
+.nav-actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+}
+
+.nav-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--dur-med) var(--ease);
+}
+
+.nav-search-btn:hover,
+.nav-search-btn[aria-expanded="true"] {
+    color: var(--text-primary);
+}
+
+/* Overlay lente: scende sotto la barra, a tutta pagina. Solo mobile. */
+.nav-search {
+    display: none;
+    position: absolute;
+    top: var(--nav-height);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: rgba(6, 8, 15, 0.97);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 16px;
+    gap: 14px;
+    min-height: calc(100vh - var(--nav-height));
+    max-height: calc(100vh - var(--nav-height));
+    overflow-y: auto;
+}
+
+.nav-search.open {
+    display: flex;
+}
+
+.nav-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    height: 46px;
+    border-radius: var(--pill-radius);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+}
+
+.nav-search-input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.nav-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.nav-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 /* ================================
@@ -1836,7 +1921,24 @@ img {
    ================================ */
 
 @media (max-width: 768px) {
-    /* Le due schermate del drill-down occupano la stessa area, sotto la navbar */
+    /* Barra stile Apple: logo a sinistra, lente + hamburger a destra */
+    .nav-inner {
+        justify-content: space-between;
+    }
+
+    .nav-logo {
+        display: flex;
+    }
+
+    .nav-actions {
+        display: flex;
+    }
+
+    /* Le due schermate del drill-down occupano la stessa area, sotto la navbar.
+       min-height a tutta pagina: il menu "scende" e riempie lo schermo.
+       Lo SFONDO opaco non sta sui pannelli ma su .navbar::after (vedi sotto):
+       i pannelli sono trasparenti e portano solo il contenuto, così possono
+       scorrere/sfumare senza mai lasciare scoperta la pagina. */
     .nav-links,
     .nav-l2 {
         position: absolute;
@@ -1844,35 +1946,194 @@ img {
         left: 0;
         right: 0;
         flex-direction: column;
+        padding: 12px;
+        gap: 2px;
+        min-height: calc(100vh - var(--nav-height));
+        max-height: calc(100vh - var(--nav-height));
+        overflow-y: auto;
+        transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+    }
+
+    .nav-links { z-index: 1; }
+    .nav-l2 { z-index: 2; }
+
+    /* Menu chiuso: non interattivo. La chiusura è l'ESATTA inversa
+       dell'apertura, quindi:
+       - in apertura lo sfondo appare subito e le voci entrano a cascata
+         (dall'alto verso il basso), sfumando dal basso;
+       - in chiusura le voci escono a cascata INVERSA (dal basso verso l'alto)
+         e SOLO dopo (delay 0.72s) svanisce lo sfondo — altrimenti taglierebbe
+         via le voci ancora in movimento.
+       Il transform resta in transizione solo per lo scorrimento del livello 1
+       quando si entra nel drill-down (translateX), non per apertura/chiusura. */
+    .nav-links {
+        gap: 4px;
+        padding: 22px 22px 32px;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.28s var(--ease) 0.72s, transform 0.4s var(--ease), visibility 0s linear 1s;
+    }
+
+    .nav-links.open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition: opacity 0.28s var(--ease), transform 0.4s var(--ease), visibility 0s;
+    }
+
+    /* Voci grandi e distanziate, stile Apple */
+    .nav-links .nav-link {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+        padding: 10px 6px;
+        border-radius: var(--radius-sm);
+    }
+
+    .nav-links .nav-item {
+        opacity: 0;
+        transform: translateY(28px);
+        transition: opacity 0.36s var(--ease), transform 0.36s var(--ease);
+    }
+
+    .nav-links.open .nav-item {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* Apertura: cascata dall'alto verso il basso */
+    .nav-links.open .nav-item:nth-child(1) { transition-delay: 0.04s; }
+    .nav-links.open .nav-item:nth-child(2) { transition-delay: 0.08s; }
+    .nav-links.open .nav-item:nth-child(3) { transition-delay: 0.12s; }
+    .nav-links.open .nav-item:nth-child(4) { transition-delay: 0.16s; }
+    .nav-links.open .nav-item:nth-child(5) { transition-delay: 0.20s; }
+    .nav-links.open .nav-item:nth-child(6) { transition-delay: 0.24s; }
+    .nav-links.open .nav-item:nth-child(7) { transition-delay: 0.28s; }
+    .nav-links.open .nav-item:nth-child(8) { transition-delay: 0.32s; }
+    .nav-links.open .nav-item:nth-child(9) { transition-delay: 0.36s; }
+
+    /* Chiusura: cascata inversa (dal basso verso l'alto) — ritardi speculari */
+    .nav-links .nav-item:nth-child(1) { transition-delay: 0.36s; }
+    .nav-links .nav-item:nth-child(2) { transition-delay: 0.32s; }
+    .nav-links .nav-item:nth-child(3) { transition-delay: 0.28s; }
+    .nav-links .nav-item:nth-child(4) { transition-delay: 0.24s; }
+    .nav-links .nav-item:nth-child(5) { transition-delay: 0.20s; }
+    .nav-links .nav-item:nth-child(6) { transition-delay: 0.16s; }
+    .nav-links .nav-item:nth-child(7) { transition-delay: 0.12s; }
+    .nav-links .nav-item:nth-child(8) { transition-delay: 0.08s; }
+    .nav-links .nav-item:nth-child(9) { transition-delay: 0.04s; }
+
+    /* Menu e lente sono posizionati SOTTO la barra (top: --nav-height). Con
+       overflow:hidden verrebbero ritagliati; su mobile lo teniamo sempre
+       visibile — altrimenti, chiudendo, il pannello sparirebbe di colpo invece
+       di risalire in dissolvenza (il menu chiuso resta invisibile via
+       opacity/visibility, quindi non serve il clip). */
+    .navbar {
+        overflow: visible;
+    }
+
+    .navbar:has(.nav-links.open),
+    .navbar:has(.nav-search.open) {
+        height: auto;
+    }
+
+    /* Sfondo unico del menu: superficie opaca (z-index 0) dietro entrambi i
+       livelli. Presente finché il menu è aperto — livello 1 e 2 ci scorrono
+       sopra senza mai scoprire la pagina (niente più flash nel drill-down).
+       Appare subito in apertura, svanisce in ritardo in chiusura (dopo le voci). */
+    /* NB: position ASSOLUTA, non fixed. La navbar ha backdrop-filter, che la
+       rende blocco contenitore dei figli fixed: uno ::after fixed si
+       ancorerebbe alla barra (65px) invece che al viewport, riducendosi a una
+       striscia. Con absolute + altezza esplicita copre tutta l'area del menu,
+       esattamente come i pannelli. */
+    .navbar::after {
+        content: '';
+        position: absolute;
+        top: var(--nav-height);
+        left: 0;
+        right: 0;
+        height: calc(100vh - var(--nav-height));
         background: rgba(6, 8, 15, 0.97);
         backdrop-filter: blur(var(--blur-lg));
         -webkit-backdrop-filter: blur(var(--blur-lg));
         border-bottom: 1px solid var(--border-subtle);
-        padding: 12px;
-        gap: 2px;
-        max-height: calc(100vh - var(--nav-height));
-        overflow-y: auto;
-        transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        z-index: 0;
+        transition: opacity 0.28s var(--ease) 0.72s, visibility 0s linear 1s;
     }
 
-    .nav-links {
-        display: none;
+    .navbar:has(.nav-links.open)::after {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.28s var(--ease), visibility 0s;
     }
 
-    .nav-links.open {
+    /* Logo e lente si dissolvono all'apertura del menu: in alto resta solo la X
+       (e, nel sotto-menu, la freccia indietro a sinistra). */
+    .nav-logo,
+    .nav-search-btn {
+        transition: opacity var(--dur-med) var(--ease), color var(--dur-med) var(--ease), visibility 0s;
+    }
+
+    .navbar:has(.nav-links.open) .nav-logo,
+    .navbar:has(.nav-links.open) .nav-search-btn {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity var(--dur-med) var(--ease), visibility 0s linear var(--dur-med);
+    }
+
+    /* Freccia "indietro" in alto a sinistra, speculare alla X. Compare solo nel
+       sotto-menu (l2-open). Assoluta rispetto alla navbar → sta ferma nella barra. */
+    .nav-back {
         display: flex;
+        position: absolute;
+        left: 16px;
+        top: 0;
+        height: var(--nav-height);
+        align-items: center;
+        padding: 8px;
+        color: var(--text-primary);
+        background: none;
+        border: none;
+        cursor: pointer;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateX(-6px);
+        z-index: 4;
+        transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease), visibility 0s linear var(--dur-med);
     }
 
-    /* .navbar è alta --nav-height con overflow:hidden, mentre il menu è
-       posizionato SOTTO (top: --nav-height): senza questo verrebbe ritagliato
-       via e il tap sull'hamburger sembrerebbe non fare nulla. */
-    .navbar:has(.nav-links.open) {
-        height: auto;
-        overflow: visible;
+    .navbar.l2-open .nav-back {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: none;
+        transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease), visibility 0s;
     }
 
     .nav-hamburger {
         display: flex;
+    }
+
+    /* Hamburger → X quando il menu è aperto */
+    .navbar:has(.nav-links.open) .nav-hamburger span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+
+    .navbar:has(.nav-links.open) .nav-hamburger span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .navbar:has(.nav-links.open) .nav-hamburger span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
     }
 
     /* Il pannello hover non serve su mobile: le sue voci finiscono nel
@@ -1885,22 +2146,27 @@ img {
         height: var(--nav-height);
     }
 
-    /* Livello 1 → esce a sinistra quando si scende nel livello 2 */
+    /* Livello 1 → scorre a sinistra sfumando quando si entra nel livello 2.
+       visibility:hidden RITARDATA (0.34s): il pannello resta reso durante lo
+       scorrimento e solo alla fine si nasconde — così, con lo sfondo opaco
+       sotto, la pagina non fa mai capolino (era la causa del flash). */
     .navbar.l2-open .nav-links {
         opacity: 0;
         visibility: hidden;
-        transform: translateX(-16px);
+        transform: translateX(-28px);
         pointer-events: none;
+        transition: opacity 0.3s var(--ease), transform 0.34s var(--ease), visibility 0s linear 0.34s;
     }
 
-    /* Livello 2 → entra da destra. Niente translate fuori schermo:
-       eviterebbe il taglio ma creerebbe scroll orizzontale sul body. */
+    /* Livello 2 → entra da destra sfumando, sopra il livello 1 (z-index 2). */
     .nav-l2 {
         display: flex;
+        padding: 22px 22px 32px;
         opacity: 0;
         visibility: hidden;
-        transform: translateX(16px);
+        transform: translateX(28px);
         pointer-events: none;
+        transition: opacity 0.3s var(--ease), transform 0.34s var(--ease), visibility 0s linear 0.34s;
     }
 
     .navbar.l2-open .nav-l2 {
@@ -1908,54 +2174,25 @@ img {
         visibility: visible;
         transform: none;
         pointer-events: auto;
+        transition: opacity 0.3s var(--ease), transform 0.34s var(--ease), visibility 0s;
     }
 
-    /* Le categorie mostrano che c'è un livello sotto */
+    /* Le categorie con sotto-sezioni: la freccina compare in hover, a destra */
     .nav-item.has-dropdown > .nav-link::after {
         content: '›';
         float: right;
         font-size: 1.15em;
         line-height: 1;
-        color: var(--text-muted);
-    }
-
-    .nav-l2-back {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 12px;
-        margin-bottom: 2px;
-        background: none;
-        border: none;
-        border-radius: var(--radius-sm, 8px);
-        color: var(--text-muted);
-        font-family: inherit;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        align-self: flex-start;
-    }
-
-    .nav-l2-back:hover {
-        color: var(--text-primary);
-        background: rgba(255, 255, 255, 0.06);
-    }
-
-    .nav-l2-back-icon {
-        font-size: 1.25em;
-        line-height: 1;
-    }
-
-    .nav-l2-title {
-        padding: 0 12px 8px;
-        font-family: var(--font-display);
-        font-size: 0.72rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
         color: var(--accent-red);
-        border-bottom: 1px solid var(--border-subtle);
-        margin-bottom: 6px;
+        opacity: 0;
+        transform: translateX(-8px);
+        transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+    }
+
+    .nav-item.has-dropdown > .nav-link:hover::after,
+    .nav-item.has-dropdown > .nav-link:focus-visible::after {
+        opacity: 1;
+        transform: none;
     }
 
     .nav-l2-list {

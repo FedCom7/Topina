@@ -10,6 +10,8 @@
  * prende il posto del primo, con "Indietro" per tornare.
  */
 
+import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=1';
+
 const MOBILE_MQ = '(max-width: 768px)';
 
 export function initNavbar() {
@@ -21,6 +23,66 @@ export function initNavbar() {
     });
 
     initDropdowns(navbar);
+    initSearch(navbar);
+}
+
+/**
+ * Lente di ricerca mobile: overlay a tutta pagina che cerca giocatori (storico
+ * Topina) e squadre NFL, con la stessa logica della sezione Players. Lente e
+ * menu hamburger sono mutuamente esclusivi: aprirne uno chiude l'altro.
+ */
+function initSearch(navbar) {
+    const btn = document.getElementById('nav-search-btn');
+    const box = document.getElementById('nav-search');
+    const input = document.getElementById('nav-search-input');
+    const results = document.getElementById('nav-search-results');
+    if (!btn || !box || !input || !results) return;
+
+    const navLinks = navbar.querySelector('.nav-links');
+
+    const closeSearch = () => {
+        box.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    };
+
+    btn.addEventListener('click', () => {
+        const willOpen = !box.classList.contains('open');
+        // Aprendo la lente si chiude il menu (e viceversa: vedi hamburger)
+        navbar.classList.remove('l2-open');
+        navLinks?.classList.remove('open');
+        box.classList.toggle('open', willOpen);
+        btn.setAttribute('aria-expanded', String(willOpen));
+        if (willOpen) input.focus();
+    });
+
+    // Aprendo il menu si chiude la lente
+    document.getElementById('nav-hamburger')?.addEventListener('click', closeSearch);
+
+    // Scelto un risultato si naviga (hash link) e si chiude tutto
+    results.addEventListener('click', (e) => { if (e.target.closest('a')) closeSearch(); });
+
+    const teamsGroup = (t) => t.length ? `<div class="ps-group"><h3 class="pp-cat-title">Squadre NFL</h3>${t.map(resultRow).join('')}</div>` : '';
+    const playersGroup = (p) => p.length ? `<div class="ps-group"><h3 class="pp-cat-title">Giocatori</h3>${p.map(resultRow).join('')}</div>` : '';
+
+    input.addEventListener('input', async () => {
+        const q = input.value.trim();
+        if (q.length < 2) {
+            results.innerHTML = q.length
+                ? '<p class="pm-empty">Scrivi almeno 2 caratteri.</p>'
+                : '<p class="pm-empty">Inizia a scrivere per cercare — es. un nome, o "Chiefs".</p>';
+            return;
+        }
+        // Le squadre sono un lookup statico: si mostrano subito, senza attendere
+        // l'indice giocatori (buildPlayerIndex legge tutte le stagioni da Firebase).
+        const teams = teamResults(q);
+        results.innerHTML = teamsGroup(teams) || '<p class="pm-empty">Ricerca giocatori...</p>';
+
+        const index = await buildPlayerIndex();
+        if (input.value.trim() !== q) return; // l'utente ha già scritto altro
+        const players = playerResults(q, index);
+        if (!teams.length && !players.length) { results.innerHTML = '<p class="pm-empty">Nessun risultato.</p>'; return; }
+        results.innerHTML = `${teamsGroup(teams)}${playersGroup(players)}`;
+    });
 }
 
 function initDropdowns(navbar) {
@@ -34,9 +96,11 @@ function initDropdowns(navbar) {
     };
     const backToLevel1 = () => navbar.classList.remove('l2-open');
 
-    level2.back.addEventListener('click', backToLevel1);
+    // Freccia "indietro" in alto a sinistra (speculare alla X): torna al livello 1
+    document.getElementById('nav-back')?.addEventListener('click', backToLevel1);
 
-    // Chiusa la tendina, il secondo livello non deve restare "armato"
+    // La X (hamburger) chiude tutto il menu; il secondo livello non deve
+    // restare "armato" per la prossima apertura.
     document.getElementById('nav-hamburger')?.addEventListener('click', backToLevel1);
 
     // Scelta una voce del secondo livello: si naviga e si chiude tutto
@@ -83,30 +147,22 @@ function initDropdowns(navbar) {
     });
 }
 
-/** Contenitore del secondo livello, creato una volta sola. */
+/** Contenitore del secondo livello, creato una volta sola. Il controllo
+ *  "indietro" vive nella barra in alto (#nav-back), non qui dentro. */
 function buildLevel2(navbar) {
     const el = document.createElement('div');
     el.className = 'nav-l2';
-    el.innerHTML = `
-        <button class="nav-l2-back" type="button">
-            <span class="nav-l2-back-icon" aria-hidden="true">‹</span>
-            <span class="nav-l2-back-label">Indietro</span>
-        </button>
-        <span class="nav-l2-title"></span>
-        <ul class="nav-l2-list"></ul>`;
+    el.innerHTML = `<ul class="nav-l2-list"></ul>`;
     navbar.appendChild(el);
 
     return {
         el,
-        back: el.querySelector('.nav-l2-back'),
-        title: el.querySelector('.nav-l2-title'),
         list: el.querySelector('.nav-l2-list'),
     };
 }
 
 /** Riempie il secondo livello con le voci del pannello della categoria. */
 function fillLevel2(level2, item, panel) {
-    level2.title.textContent = item.querySelector('.nav-link')?.textContent.trim() || '';
     level2.list.replaceChildren();
 
     panel.querySelectorAll('.nav-dp-item').forEach(a => {

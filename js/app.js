@@ -9,7 +9,7 @@ import { initDraftGrades } from './sections/draftgrades.js?v=27';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=25';
 import { initPlayerPage } from './sections/player-page.js?v=52';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=12';
-import { initPlayersSearch } from './sections/players-search.js?v=9';
+import { initPlayersSearch } from './sections/players-search.js?v=10';
 import { initStats } from './sections/stats.js?v=57';
 import { initHistory } from './sections/history.js?v=33';
 import { initHonors } from './sections/honors.js?v=13';
@@ -20,7 +20,7 @@ import { initTeams } from './sections/teams.js?v=13';
 import { initGame } from './sections/game.js?v=26';
 import { initAnalysis } from './sections/analysis.js?v=26';
 import { initMagazine } from './sections/magazine.js?v=27';
-import { initNavbar } from './ui/navbar.js?v=12';
+import { initNavbar } from './ui/navbar.js?v=14';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 
 const SECTIONS = {
