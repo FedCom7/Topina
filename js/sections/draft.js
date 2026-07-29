@@ -4,9 +4,9 @@
  */
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=32';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=23';
+import { TEAMS } from './team.js?v=25';
 import { playerImageService } from '../services/player-image-service.js?v=15';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=25';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=26';
 import { db } from '../firebase-config.js';
 
 let loaded = false;
@@ -38,12 +38,12 @@ function renderYearSelector() {
 async function loadYear(year) {
     currentYear = year; // Update global
     const grid = document.getElementById('draft-grid');
-    grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento draft ${year}...</p></div>`;
+    grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year} draft...</p></div>`;
 
     try {
         const data = await fetchDraftData(year);
         if (!data) {
-            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun draft per il ${year}</p></div>`;
+            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No draft for ${year}</p></div>`;
             document.getElementById('dr-round-selector').innerHTML = '';
             return;
         }
@@ -51,7 +51,7 @@ async function loadYear(year) {
         currentPicks = flattenDraft(data);
 
         if (!currentPicks.length) {
-            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Dati draft non disponibili</p></div>`;
+            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Draft data not available</p></div>`;
             return;
         }
 
@@ -60,13 +60,13 @@ async function loadYear(year) {
         renderCards('all');
     } catch (e) {
         console.error(`[Draft] Error loading year ${year}:`, e);
-        grid.innerHTML = `<div class="error-state"><p>Errore nel caricamento: ${e.message}</p></div>`;
+        grid.innerHTML = `<div class="error-state"><p>Error loading: ${e.message}</p></div>`;
     }
 }
 
 function renderRoundSelector(maxRound) {
     const container = document.getElementById('dr-round-selector');
-    let html = `<button class="round-pill active" data-round="all">Tutti</button>`;
+    let html = `<button class="round-pill active" data-round="all">All</button>`;
     for (let r = 1; r <= maxRound; r++) {
         html += `<button class="round-pill" data-round="${r}">R${r}</button>`;
     }

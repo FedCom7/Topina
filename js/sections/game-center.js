@@ -1,7 +1,7 @@
 import { fetchFantasyData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=32';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=23';
-import { initPlayerModal } from '../components/player-modal.js?v=25';
+import { TEAMS } from './team.js?v=25';
+import { initPlayerModal } from '../components/player-modal.js?v=26';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let currentData = null;
@@ -55,11 +55,11 @@ function renderYearSelector() {
 async function loadYear(year) {
     currentYear = year;
     const grid = document.getElementById('gc-matchup-grid');
-    grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento ${year}...</p></div>`;
+    grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year}...</p></div>`;
 
     currentData = await fetchFantasyData(year);
     if (!currentData?.weeks) {
-        grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
         document.getElementById('gc-week-selector').innerHTML = '';
         return;
     }
@@ -116,7 +116,7 @@ function renderMatchups() {
     const grid = document.getElementById('gc-matchup-grid');
     const weekData = currentData?.weeks?.[String(currentWeek)];
     if (!weekData?.matchups?.length) {
-        grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun matchup per ${weekLabel(currentWeek)}</p></div>`;
+        grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No matchups for ${weekLabel(currentWeek)}</p></div>`;
         return;
     }
 
@@ -145,7 +145,7 @@ function renderMatchups() {
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${idx}">
             <a class="gc-banner" href="#game/${currentYear}/${currentWeek}/${idx}"
-               style="--tc1:${c1};--tc2:${c2}" title="Apri l'analisi della partita">
+               style="--tc1:${c1};--tc2:${c2}" title="Open the game analysis">
                 <img class="gc-banner-wm gc-banner-wm-l" src="${logo1}" alt="" aria-hidden="true">
                 <img class="gc-banner-wm gc-banner-wm-r" src="${logo2}" alt="" aria-hidden="true">
                 <div class="gc-banner-inner">
@@ -155,7 +155,7 @@ function renderMatchups() {
                     <span class="gc-banner-score${w1 ? ' winner' : ''}">${m.team1.score}</span>
                     <div class="gc-banner-mid">
                         <span class="gc-banner-vs">vs</span>
-                        <span class="gc-banner-cta">Analisi <span aria-hidden="true">→</span></span>
+                        <span class="gc-banner-cta">Analysis <span aria-hidden="true">→</span></span>
                     </div>
                     <span class="gc-banner-score${!w1 ? ' winner' : ''}">${m.team2.score}</span>
                     <div class="gc-banner-side gc-banner-side-r">

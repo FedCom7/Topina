@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=14';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=15';
-import { TEAMS } from '../sections/team.js?v=23';
+import { TEAMS } from '../sections/team.js?v=25';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { getPlayerInfo } from '../data/player-full.js?v=13';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=13';
@@ -78,8 +78,8 @@ function ensureDom() {
     _overlay.className = 'pm-overlay';
     _overlay.hidden = true;
     _overlay.innerHTML = `
-        <div class="pm-dialog" role="dialog" aria-modal="true" aria-label="Scheda giocatore">
-            <button class="pm-close" aria-label="Chiudi">✕</button>
+        <div class="pm-dialog" role="dialog" aria-modal="true" aria-label="Player card">
+            <button class="pm-close" aria-label="Close">✕</button>
             <div class="pm-content"></div>
         </div>`;
     _overlay.addEventListener('click', (e) => {
@@ -125,7 +125,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         <div class="pm-layout">
             <div class="pm-left">${paniniCard({ name, pos, nfl })}</div>
             <div class="pm-right">
-                <div class="loading-state"><div class="spinner"></div><p>Apertura della scheda...</p></div>
+                <div class="loading-state"><div class="spinner"></div><p>Opening card...</p></div>
             </div>
         </div>`;
     hydrateHeadshot(content, name, nfl, pos, year);
@@ -144,7 +144,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         if (token !== _openToken) return;
         content.querySelector('.loading-state')?.replaceWith(
             Object.assign(document.createElement('p'), {
-                className: 'pm-error', textContent: 'Errore nel caricamento della scheda.',
+                className: 'pm-error', textContent: 'Error loading the card.',
             }));
     }
 }
@@ -172,35 +172,35 @@ function gameStatCells(pos, s = {}) {
     switch ((pos || '').toUpperCase()) {
         case 'QB':
             return [
-                cell('Yd lancio', n(s.pass_yds)), cell('TD lancio', n(s.pass_td)),
-                cell('INT', n(s.pass_int)), cell('Yd corsa', n(s.rush_yds)),
-                cell('TD corsa', n(s.rush_td)),
+                cell('Pass yd', n(s.pass_yds)), cell('Pass TD', n(s.pass_td)),
+                cell('INT', n(s.pass_int)), cell('Rush yd', n(s.rush_yds)),
+                cell('Rush TD', n(s.rush_td)),
             ];
         case 'RB':
             return [
-                cell('Yd corsa', n(s.rush_yds)), cell('TD corsa', n(s.rush_td)),
-                cell('Ricezioni', n(s.rec)), cell('Yd ricezione', n(s.rec_yds)),
-                cell('TD ricezione', n(s.rec_td)),
+                cell('Rush yd', n(s.rush_yds)), cell('Rush TD', n(s.rush_td)),
+                cell('Receptions', n(s.rec)), cell('Rec yd', n(s.rec_yds)),
+                cell('Rec TD', n(s.rec_td)),
             ];
         case 'WR':
         case 'TE':
         case 'W/R':
             return [
-                cell('Ricezioni', n(s.rec)), cell('Yd ricezione', n(s.rec_yds)),
-                cell('TD ricezione', n(s.rec_td)), cell('Yd corsa', n(s.rush_yds)),
+                cell('Receptions', n(s.rec)), cell('Rec yd', n(s.rec_yds)),
+                cell('Rec TD', n(s.rec_td)), cell('Rush yd', n(s.rush_yds)),
             ];
         case 'K': {
             const fg = n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus);
             return [
-                cell('Field goal', fg), cell('Extra point', n(s.pat_made)),
-                cell('FG da 50+', n(s.fg_50_plus)),
+                cell('Field goals', fg), cell('Extra points', n(s.pat_made)),
+                cell('FG 50+', n(s.fg_50_plus)),
             ];
         }
         case 'DEF':
             return [
-                cell('Sack', n(s.sack)), cell('Intercetti', n(s.def_int)),
-                cell('Fumble rec.', n(s.fum_rec)), cell('TD difensivi', n(s.def_td)),
-                cell('Punti subiti', n(s.pts_allow)),
+                cell('Sacks', n(s.sack)), cell('Interceptions', n(s.def_int)),
+                cell('Fumble rec.', n(s.fum_rec)), cell('Def. TDs', n(s.def_td)),
+                cell('Points allowed', n(s.pts_allow)),
             ];
         default:
             return [];
@@ -211,13 +211,13 @@ function gameBlockHtml(game, pos) {
     const { pts = 0, opponent = '', status = '', week, year, started, stats } = game;
     const cells = gameStatCells(pos, stats);
     const fumble = Number(stats?.fum_lost) || 0;
-    if (fumble) cells.push({ label: 'Fumble persi', value: fumble });
+    if (fumble) cells.push({ label: 'Fumbles lost', value: fumble });
 
     const meta = [
         week ? `Week ${week}` : '',
         year || '',
         opponent ? `vs ${opponent}` : '',
-        started ? 'Titolare' : 'Panchina',
+        started ? 'Starter' : 'Bench',
     ].filter(Boolean).join(' · ');
 
     const grid = cells.length
@@ -226,11 +226,11 @@ function gameBlockHtml(game, pos) {
                 <span class="pm-game-cell-val">${c.value}</span>
                 <span class="pm-game-cell-lbl">${c.label}</span>
             </div>`).join('')}</div>`
-        : '<p class="pm-game-empty">Nessuna statistica registrata per questa partita.</p>';
+        : '<p class="pm-game-empty">No stats recorded for this game.</p>';
 
     return `
     <section class="pm-block pm-game">
-        <h3 class="pm-block-title">Questa partita</h3>
+        <h3 class="pm-block-title">This game</h3>
         <div class="pm-game-head">
             <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small></span>
             <span class="pm-game-meta">${meta}</span>
@@ -247,7 +247,7 @@ function gameBlockHtml(game, pos) {
 function appendFullStatsLink(content, { name, pos, year }) {
     const y = year || new Date().getFullYear();
     content.insertAdjacentHTML('beforeend',
-        `<a class="pm-fullstats" href="#player/${y}/${pos || ''}/${encodeURIComponent(name)}">Apri tutte le statistiche →</a>`);
+        `<a class="pm-fullstats" href="#player/${y}/${pos || ''}/${encodeURIComponent(name)}">Open full stats →</a>`);
 }
 
 function hydrateHeadshot(content, name, nfl, pos, year) {
@@ -378,7 +378,7 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
     const gold = !!hofYear;
     const stars = career?.sbWins ? '★'.repeat(Math.min(career.sbWins, 5)) : '';
     const bio = bioLine(info);
-    const seasons = career ? `${career.seasons.size} stagion${career.seasons.size === 1 ? 'e' : 'i'} Topina` : '';
+    const seasons = career ? `${career.seasons.size} Topina season${career.seasons.size === 1 ? '' : 's'}` : '';
     const showBubble = !compact && (bio || seasons);
 
     return `
@@ -408,11 +408,11 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
 function bigStatsBlock(career) {
     if (!career) return '';
     const items = [
-        [fmt0(career.totPts), 'Punti fantasy'],
-        [career.seasons.size, 'Stagioni'],
-        [fmt0(career.gamesStarted), 'Da titolare'],
+        [fmt0(career.totPts), 'Fantasy points'],
+        [career.seasons.size, 'Seasons'],
+        [fmt0(career.gamesStarted), 'Starts'],
     ];
-    if (career.sbWins) items.push([`×${career.sbWins}`, 'Anelli SB']);
+    if (career.sbWins) items.push([`×${career.sbWins}`, 'SB rings']);
     return `
     <div class="pm-big-stats">
         ${items.map(([v, l]) => `<div class="pm-big-stat"><span class="pm-big-stat-value">${v}</span><span class="pm-big-stat-label">${l}</span></div>`).join('')}
@@ -474,14 +474,14 @@ function careerTableBlock(name, pos, years, byYear, career) {
     if (!rows) return '';
     return `
     <section class="pm-block">
-        <span class="mc-kicker">Statistiche per stagione</span>
+        <span class="mc-kicker">Stats by season</span>
         <div class="pm-table-wrap">
             <table class="pm-table">
-                <thead><tr><th>Anno</th><th>NFL</th><th>GP</th><th>Proj</th><th>Punti</th><th>Rank</th><th>Topina</th><th>Titolare</th></tr></thead>
+                <thead><tr><th>Year</th><th>NFL</th><th>GP</th><th>Proj</th><th>Points</th><th>Rank</th><th>Topina</th><th>Starts</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
-        <p class="pm-note">Punti nello scoring della lega: reali Topina dove disponibili, altrimenti ricalcolati da Sleeper. «Proj» è la proiezione preseason (dal 2018).</p>
+        <p class="pm-note">Points in the league's scoring: real Topina points where available, otherwise recalculated from Sleeper. "Proj" is the preseason projection (from 2018).</p>
     </section>`;
 }
 
@@ -491,8 +491,8 @@ export function topinaBlock(career) {
     if (!career) {
         return `
         <section class="pm-block">
-            <span class="mc-kicker">Carriera Topina</span>
-            <p class="pm-empty">Mai schierato in Topina League.</p>
+            <span class="mc-kicker">Topina Career</span>
+            <p class="pm-empty">Never fielded in Topina League.</p>
         </section>`;
     }
 
@@ -505,13 +505,13 @@ export function topinaBlock(career) {
             .join('');
         const dr = career.draftedBy.find(d => d.year === y);
         const drLabel = dr && TEAMS[dr.teamKey]
-            ? `draftato #${dr.pick} (R${dr.round}) da ${TEAMS[dr.teamKey].name}` : 'non draftato (waiver/mercato)';
+            ? `drafted #${dr.pick} (R${dr.round}) by ${TEAMS[dr.teamKey].name}` : 'undrafted (waiver/market)';
         return `
         <div class="pm-season-row">
             <span class="pm-season-year">${y}</span>
             <span class="pm-season-logos">${logos}</span>
             <span class="pm-season-pts">${fmt0(bs.pts)} pt</span>
-            <span class="pm-season-note">${bs.gamesStarted} da titolare · ${drLabel}</span>
+            <span class="pm-season-note">${bs.gamesStarted} starts · ${drLabel}</span>
         </div>`;
     }).join('');
 
@@ -522,16 +522,16 @@ export function topinaBlock(career) {
             <span class="pm-season-year">${d.year}</span>
             <span class="pm-season-logos"><img class="pm-team-logo" src="${TEAMS[d.teamKey].logo}" alt="" onerror="this.style.display='none'"></span>
             <span class="pm-season-pts">—</span>
-            <span class="pm-season-note">draftato #${d.pick} (R${d.round}) da ${TEAMS[d.teamKey].name}</span>
+            <span class="pm-season-note">drafted #${d.pick} (R${d.round}) by ${TEAMS[d.teamKey].name}</span>
         </div>`).join('');
 
     return `
     <section class="pm-block">
-        <span class="mc-kicker">Carriera Topina</span>
+        <span class="mc-kicker">Topina Career</span>
         <div class="pm-ministats">
-            <div class="ministat"><span class="ministat-value">${fmt0(career.totPts)}</span><span class="ministat-label">Punti fantasy</span></div>
-            <div class="ministat"><span class="ministat-value">${career.seasons.size}</span><span class="ministat-label">Stagioni</span></div>
-            <div class="ministat"><span class="ministat-value">${fmt0(career.gamesStarted)}</span><span class="ministat-label">Da titolare</span></div>
+            <div class="ministat"><span class="ministat-value">${fmt0(career.totPts)}</span><span class="ministat-label">Fantasy points</span></div>
+            <div class="ministat"><span class="ministat-value">${career.seasons.size}</span><span class="ministat-label">Seasons</span></div>
+            <div class="ministat"><span class="ministat-value">${fmt0(career.gamesStarted)}</span><span class="ministat-label">Starts</span></div>
         </div>
         <div class="pm-seasons">${seasonRows}${upcoming}</div>
     </section>`;
@@ -545,22 +545,22 @@ export function awardsBlock(career, awards) {
         chips.push(`<span class="pm-award">${a.name} <b>${a.year}</b></span>`);
     }
     if (awards.allProFirst.length) {
-        chips.push(`<span class="pm-award pm-award--gold">All-Pro 1° Team <b>${awards.allProFirst.join(', ')}</b></span>`);
+        chips.push(`<span class="pm-award pm-award--gold">All-Pro 1st Team <b>${awards.allProFirst.join(', ')}</b></span>`);
     }
     if (awards.allProSecond.length) {
-        chips.push(`<span class="pm-award">All-Pro 2° Team <b>${awards.allProSecond.join(', ')}</b></span>`);
+        chips.push(`<span class="pm-award">All-Pro 2nd Team <b>${awards.allProSecond.join(', ')}</b></span>`);
     }
     if (career?.sbWins) {
-        chips.push(`<span class="pm-award pm-award--gold">Anell${career.sbWins === 1 ? 'o' : 'i'} Super Bowl ×${career.sbWins}</span>`);
+        chips.push(`<span class="pm-award pm-award--gold">Super Bowl ring${career.sbWins === 1 ? '' : 's'} ×${career.sbWins}</span>`);
     }
     if (career?.top1Count) {
-        chips.push(`<span class="pm-award">Top 1 di ruolo ×${career.top1Count}</span>`);
+        chips.push(`<span class="pm-award">Position top 1 ×${career.top1Count}</span>`);
     }
 
     return `
     <section class="pm-block">
-        <span class="mc-kicker">Bacheca premi</span>
+        <span class="mc-kicker">Trophy case</span>
         ${chips.length ? `<div class="pm-awards">${chips.join('')}</div>`
-            : `<p class="pm-empty">Nessun premio in bacheca (per ora).</p>`}
+            : `<p class="pm-empty">No awards in the trophy case (yet).</p>`}
     </section>`;
 }

@@ -5,7 +5,7 @@
  *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
 import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=32';
-import { TEAMS } from './team.js?v=23';
+import { TEAMS } from './team.js?v=25';
 
 let loadedStandings = false;
 let loadedPlayoffs = false;
@@ -32,8 +32,8 @@ async function getSeason() {
 }
 
 const spinner = (label) =>
-    `<div class="loading-state"><div class="spinner"></div><p>Caricamento ${label}...</p></div>`;
-const noData = '<div class="empty-state"><p class="empty-state-text">Dati non disponibili</p></div>';
+    `<div class="loading-state"><div class="spinner"></div><p>Loading ${label}...</p></div>`;
+const noData = '<div class="empty-state"><p class="empty-state-text">Data not available</p></div>';
 
 export async function initStandings() {
     if (loadedStandings) return;
@@ -43,7 +43,7 @@ export async function initStandings() {
     if (selector) selector.style.display = 'none';
 
     const wrap = document.getElementById('standings-table-wrap');
-    wrap.innerHTML = spinner('Classifica');
+    wrap.innerHTML = spinner('Standings');
 
     const s = await getSeason();
     if (!s) { wrap.innerHTML = noData; return; }
@@ -74,14 +74,14 @@ export async function initPlayoffs() {
    ============================================================ */
 
 function bracketDescription(standings, data, config, playoffsStarted) {
-    const base = `Il tabellone dei playoff: 1ª contro 4ª e 2ª contro 3ª in semifinale (W${config.playoffWeek}), le vincenti al Super Bowl (W${config.superBowlWeek}).`;
+    const base = `The playoff bracket: 1st vs 4th and 2nd vs 3rd in the semifinals (W${config.playoffWeek}), the winners meet in the Super Bowl (W${config.superBowlWeek}).`;
     return playoffsStarted
-        ? `${base} In grigio le eliminate, in oro il campione.`
-        : `${base} Proiezione basata sulla classifica attuale.`;
+        ? `${base} Eliminated teams in grey, the champion in gold.`
+        : `${base} Projection based on the current standings.`;
 }
 
 function rankingDescription() {
-    return `La classifica della stagione, ordinata per record: il numero grande è il seed playoff. Clicca una card per aprire la pagina del franchise.`;
+    return `This season's standings, ordered by record: the big number is the playoff seed. Click a card to open the franchise page.`;
 }
 
 /* ============================================================
@@ -232,13 +232,13 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
 
     const pobSemi = (side, tA, tB, scores, winnerName) => `
         <div class="pob-semi pob-semi--${side}">
-            <span class="pob-label">Semifinale</span>
+            <span class="pob-label">Semifinal</span>
             ${pobTeam(tA, scores, winnerName, !!winnerName)}
             ${pobTeam(tB, scores, winnerName, !!winnerName)}
         </div>`;
 
     const projectionNote = !playoffsStarted
-        ? `<p class="st-bracket-note">Proiezione basata sulla classifica attuale — i playoff iniziano alla W${config.playoffWeek}</p>`
+        ? `<p class="st-bracket-note">Projection based on the current standings — playoffs start at W${config.playoffWeek}</p>`
         : '';
 
     return `
@@ -246,9 +246,9 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
         <!-- ===== DESKTOP: griglia a loghi ===== -->
         <div class="playoff-desktop">
             <div class="playoff-rounds">
-                <span class="playoff-round-label">Semifinale</span>
+                <span class="playoff-round-label">Semifinal</span>
                 <span class="playoff-round-label playoff-round-label--final">Topina Bowl</span>
-                <span class="playoff-round-label">Semifinale</span>
+                <span class="playoff-round-label">Semifinal</span>
             </div>
             <div class="playoff-grid-explicit">
                 <!-- LEFT COLUMN: 1 vs 4 -->

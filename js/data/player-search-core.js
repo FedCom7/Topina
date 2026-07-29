@@ -49,7 +49,7 @@ export function playerResults(query, index) {
         .slice(0, 20)
         .map(p => ({
             type: 'player', name: p.name, pos: p.pos, year: p.year,
-            sub: `${p.seasonsCount} stagion${p.seasonsCount === 1 ? 'e' : 'i'} Topina${p.nflTeam ? ` · ${esc(p.nflTeam)}` : ''}`,
+            sub: `${p.seasonsCount} Topina season${p.seasonsCount === 1 ? '' : 's'}${p.nflTeam ? ` · ${esc(p.nflTeam)}` : ''}`,
         }));
 }
 
@@ -60,7 +60,7 @@ export function resultRow(r) {
             <img class="ps-row-logo" src="${teamLogoUrl(r.abbr)}" alt="" onerror="this.style.display='none'">
             <span class="ps-row-name">${esc(r.name)}</span>
             <span class="ps-row-sub">${esc(r.sub)}</span>
-            <span class="ps-row-badge">Squadra NFL</span>
+            <span class="ps-row-badge">NFL Team</span>
         </a>`;
     }
     return `
@@ -68,6 +68,6 @@ export function resultRow(r) {
         <span class="pp-lb-pos">${esc(r.pos || '—')}</span>
         <span class="ps-row-name">${esc(r.name)}</span>
         <span class="ps-row-sub">${r.sub}</span>
-        <span class="ps-row-badge ps-row-badge--player">Giocatore</span>
+        <span class="ps-row-badge ps-row-badge--player">Player</span>
     </a>`;
 }

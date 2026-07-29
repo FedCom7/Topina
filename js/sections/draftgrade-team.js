@@ -15,19 +15,19 @@
 
 import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=32';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=23';
-import { getHonorsBundle } from '../data/honors.js?v=13';
+import { TEAMS } from './team.js?v=25';
+import { getHonorsBundle } from '../data/honors.js?v=14';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=15';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=25';
+import { initPlayerModal } from '../components/player-modal.js?v=26';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge, computeVorGrades,
-} from './draftgrades.js?v=27';
+} from './draftgrades.js?v=28';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=4';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=1';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=2';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -80,11 +80,11 @@ export async function initDraftGradeTeam() {
     const [, year, teamKey] = location.hash.slice(1).split('/');
     const team = TEAMS[teamKey];
     if (!team || !year) {
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Squadra o anno non trovati</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Team or year not found</p></div></div>`;
         return;
     }
 
-    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Apertura del fascicolo draft ${year}...</p></div></div>`;
+    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Opening the ${year} draft file...</p></div></div>`;
 
     initPlayerModal();
 
@@ -132,7 +132,7 @@ export async function initDraftGradeTeam() {
         render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed, sos, vor });
     } catch (e) {
         console.error('[draftgrade-team]', e);
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Error loading the analysis</p></div></div>`;
     }
 }
 
@@ -175,8 +175,8 @@ async function buildWeeklySeries(year, teamPicks) {
 
 const SOS_DIMS = ['teamOffense', 'volume', 'efficiency', 'schedule', 'playoff', 'trend', 'ageCurve', 'durability'];
 const SOS_LABELS = {
-    teamOffense: 'Attacco NFL', volume: 'Volume', efficiency: 'Efficienza', schedule: 'Calendario',
-    playoff: 'Calendario playoff', trend: 'Trend carriera', ageCurve: 'Età / curva', durability: 'Durabilità',
+    teamOffense: 'NFL Offense', volume: 'Volume', efficiency: 'Efficiency', schedule: 'Schedule',
+    playoff: 'Playoff schedule', trend: 'Career trend', ageCurve: 'Age curve', durability: 'Durability',
 };
 
 /** Attacca p.ctx a ogni pick d'attacco e calcola gli aggregati del roster. */
@@ -224,15 +224,15 @@ function sosCard(ctx) {
         .sort((a, b) => b.ctx.bustProb - a.ctx.bustProb);
     const notes = `
         <div class="dgt-sos-notes">
-            ${top ? `<span class="dgt-chip dgt-chip--up">Profilo migliore: ${top.player} · SOS+ ${top.ctx.contextScore}</span>` : ''}
-            ${flopRisk.map(p => `<span class="dgt-chip dgt-chip--down">Rischio flop: ${p.player} · ${Math.round(p.ctx.bustProb * 100)}%</span>`).join('')}
+            ${top ? `<span class="dgt-chip dgt-chip--up">Best profile: ${top.player} · SOS+ ${top.ctx.contextScore}</span>` : ''}
+            ${flopRisk.map(p => `<span class="dgt-chip dgt-chip--down">Flop risk: ${p.player} · ${Math.round(p.ctx.bustProb * 100)}%</span>`).join('')}
         </div>`;
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">Contesto oltre le proiezioni · dati NFL avanzati (nflverse)</span>
-        <h2 class="mc-title">Player Context Score <small class="dgt-sos-big">SOS+ medio ${sos.sosAvg}</small></h2>
-        <p class="dgt-card-sub">Profilo medio dell'attacco su 8 dimensioni (0-100, percentili dell'anno precedente): qualità dell'attacco NFL dei giocatori, volume atteso, efficienza, difficoltà del calendario per ruolo, calendario nelle settimane playoff, trend, curva d'età e durabilità. Pesi di riferimento fissi; il modello conferma le proiezioni sul valore e aggiunge la probabilità di flop.</p>
+        <span class="mc-kicker">Context beyond the projections · advanced NFL data (nflverse)</span>
+        <h2 class="mc-title">Player Context Score <small class="dgt-sos-big">avg SOS+ ${sos.sosAvg}</small></h2>
+        <p class="dgt-card-sub">Average offense profile across 8 dimensions (0-100, previous year's percentiles): players' NFL offense quality, expected volume, efficiency, schedule difficulty by position, playoff-week schedule, trend, age curve and durability. Fixed reference weights; the model confirms the value projections and adds flop probability.</p>
         <div class="dgt-sos-bars">${bars}</div>
         ${notes}
     </div>`;
@@ -265,21 +265,21 @@ function teamStrengthCard(ctx) {
         </div>`;
     }).join('');
 
-    const riskLevel = g.tsiRisk >= 60 ? 'alto' : g.tsiRisk >= 40 ? 'medio' : 'contenuto';
+    const riskLevel = g.tsiRisk >= 60 ? 'high' : g.tsiRisk >= 40 ? 'medium' : 'low';
     const notes = `
         <div class="dgt-sos-notes">
-            <span class="dgt-chip">Titolari: ${fmt0(g.starterValue)} pt proiettati</span>
-            <span class="dgt-chip dgt-chip--${g.tsiRisk >= 55 ? 'down' : 'up'}">Rischio roster: ${riskLevel} (${g.tsiRisk}/100)</span>
-            ${g.tsiSub?.balance != null && g.tsiSub.balance <= 45 ? `<span class="dgt-chip dgt-chip--down">Costruzione sbilanciata</span>` : ''}
-            ${g.tsiSub?.stack != null && g.tsiSub.stack >= 70 ? `<span class="dgt-chip dgt-chip--up">Stack QB-ricevitore</span>` : ''}
-            ${g.byesKnown === false ? `<span class="dgt-chip">Bye week non disponibili</span>` : ''}
+            <span class="dgt-chip">Starters: ${fmt0(g.starterValue)} projected pt</span>
+            <span class="dgt-chip dgt-chip--${g.tsiRisk >= 55 ? 'down' : 'up'}">Roster risk: ${riskLevel} (${g.tsiRisk}/100)</span>
+            ${g.tsiSub?.balance != null && g.tsiSub.balance <= 45 ? `<span class="dgt-chip dgt-chip--down">Unbalanced construction</span>` : ''}
+            ${g.tsiSub?.stack != null && g.tsiSub.stack >= 70 ? `<span class="dgt-chip dgt-chip--up">QB-receiver stack</span>` : ''}
+            ${g.byesKnown === false ? `<span class="dgt-chip">Bye weeks not available</span>` : ''}
         </div>`;
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">Quanto è forte la rosa · valutazione del roster</span>
-        <h2 class="mc-title">Team Strength Index <small class="dgt-sos-big dgt-tsi-big">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}ª lega` : ''}</small></h2>
-        <p class="dgt-card-sub">Indice 0-100 che valuta la <b>rosa</b>, non la somma delle pick: forza dei titolari, vantaggio posizionale slot-per-slot, scarsità (valore sopra il replacement della lega a 4 squadre), profondità della panchina, rischio, bilanciamento, ottimizzazione delle bye, stack e contesto offensivo NFL. È un indice di lettura (pesi di design, 50 ≈ media lega) affiancato al voto ufficiale, che <b>non</b> cambia.</p>
+        <span class="mc-kicker">How strong is the roster · roster evaluation</span>
+        <h2 class="mc-title">Team Strength Index <small class="dgt-sos-big dgt-tsi-big">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}${g.tsiRank === 1 ? 'st' : g.tsiRank === 2 ? 'nd' : g.tsiRank === 3 ? 'rd' : 'th'} in league` : ''}</small></h2>
+        <p class="dgt-card-sub">A 0-100 index that evaluates the <b>roster</b>, not the sum of picks: starter strength, slot-by-slot positional advantage, scarcity (value above the 4-team league replacement level), bench depth, risk, balance, bye optimization, stacking and NFL offensive context. It's a read-only index (design weights, 50 ≈ league average) shown alongside the official grade, which <b>does not</b> change.</p>
         <div class="dgt-sos-bars">${bars}</div>
         ${notes}
     </div>`;
@@ -300,18 +300,18 @@ function priorLine(p, prevStats, prevYear, expAtDraft) {
     const s = matchProjection(prevStats, p.player, p.pos);
     if (!s) {
         return expAtDraft === 0
-            ? `Rookie — nessuna stagione NFL alle spalle: pura proiezione`
-            : `${prevYear}: nessun dato stagionale`;
+            ? `Rookie — no prior NFL season: pure projection`
+            : `${prevYear}: no season data`;
     }
     const pts = s.ptsHalf ?? s.ptsStd;
     const bits = [`${fmt0(pts)} pt half-PPR`];
     if (s.posRank) bits.push(`${p.pos}${s.posRank}`);
-    if (p.pos === 'QB' && s.passYd) bits.push(`${fmt0(s.passYd)} yd e ${fmt0(s.passTd || 0)} TD al lancio`);
-    else if (p.pos === 'RB' && s.rushYd != null) bits.push(`${fmt0(s.rushYd)} yd su corsa${s.rec ? ` + ${fmt0(s.rec)} rec` : ''}`);
-    else if ((p.pos === 'WR' || p.pos === 'TE') && s.rec != null) bits.push(`${fmt0(s.rec)} rec${s.tgt ? ` su ${fmt0(s.tgt)} target` : ''}${s.recYd ? `, ${fmt0(s.recYd)} yd` : ''}`);
+    if (p.pos === 'QB' && s.passYd) bits.push(`${fmt0(s.passYd)} pass yd and ${fmt0(s.passTd || 0)} pass TD`);
+    else if (p.pos === 'RB' && s.rushYd != null) bits.push(`${fmt0(s.rushYd)} rush yd${s.rec ? ` + ${fmt0(s.rec)} rec` : ''}`);
+    else if ((p.pos === 'WR' || p.pos === 'TE') && s.rec != null) bits.push(`${fmt0(s.rec)} rec${s.tgt ? ` on ${fmt0(s.tgt)} targets` : ''}${s.recYd ? `, ${fmt0(s.recYd)} yd` : ''}`);
     else if (p.pos === 'K' && s.fgm != null) bits.push(`${fmt0(s.fgm)} FG + ${fmt0(s.xpm || 0)} XP`);
-    else if (p.pos === 'DEF' && s.sacks != null) bits.push(`${fmt0(s.sacks)} sack, ${fmt0(s.defInt || 0)} INT`);
-    if (s.gp) bits.push(`${fmt0(s.gp)} partite`);
+    else if (p.pos === 'DEF' && s.sacks != null) bits.push(`${fmt0(s.sacks)} sacks, ${fmt0(s.defInt || 0)} INT`);
+    if (s.gp) bits.push(`${fmt0(s.gp)} games`);
     return `${prevYear}: ${bits.join(' · ')}`;
 }
 
@@ -337,9 +337,9 @@ function render(section, ctx) {
         <header class="mosaic-card mc-wide dgt-hero mc-in">
             <img class="dgt-hero-logo" src="${team.logo}" alt="${team.name}" onerror="this.style.display='none'">
             <div class="dgt-hero-info">
-                <span class="mc-kicker">Draft ${year} · Analisi completa</span>
+                <span class="mc-kicker">${year} Draft · Full analysis</span>
                 <h1 class="mc-title">${team.name}</h1>
-                <span class="dg-head-meta">${fmt0(g.total)} pt proiettati · attesi ${fmt0(g.expected)} · resa ${(g.ratio * 100).toFixed(0)}% · ${rank + 1}° draft della lega</span>
+                <span class="dg-head-meta">${fmt0(g.total)} projected pt · expected ${fmt0(g.expected)} · yield ${(g.ratio * 100).toFixed(0)}% · ${rank + 1}${rank + 1 === 1 ? 'st' : rank + 1 === 2 ? 'nd' : rank + 1 === 3 ? 'rd' : 'th'} draft in the league</span>
                 <p class="dgt-hero-strategy">${strategyLine(g.list)}</p>
                 <p class="dg-comment">${comment}</p>
             </div>
@@ -353,7 +353,7 @@ function render(section, ctx) {
         ${picksSection(ctx, prevYear)}
         ${seasonPlayed ? verdictSection(ctx) : ''}
 
-        <p class="dg-footnote">Analisi basata su proiezioni preseason ${year} e statistiche reali di carriera (fino a 6 stagioni, Rotowire/Sleeper) convertite nello scoring della lega${g.list.some(p => p.adp) ? ', ADP half-PPR per reach e steal' : ' (ADP non disponibile per questa annata)'}. Per kicker e difese il valore pesa anche la produzione reale recente (60% e 35%, pesi calibrati sulle 419 pick 2019-2025); per l'attacco le proiezioni si sono dimostrate più affidabili di ogni metrica storica, e lo storico alimenta trend e segnali di rischio. Alternative calcolate solo tra i giocatori draftati dopo ogni pick.</p>
+        <p class="dg-footnote">Analysis based on ${year} preseason projections and real career stats (up to 6 seasons, Rotowire/Sleeper) converted into the league's scoring${g.list.some(p => p.adp) ? ', half-PPR ADP for reach and steal' : ' (ADP not available for this year)'}. For kicker and defense the value also weighs recent real production (60% and 35%, weights calibrated on the 419 picks from 2019-2025); for offense the projections have proven more reliable than any historical metric, and history feeds trend and risk signals. Alternatives calculated only among players drafted after each pick.</p>
     </div>`;
 
     bindCurve(section.querySelector('#dgt-curve'));
@@ -418,9 +418,9 @@ function curveCard(g, team) {
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in" id="dgt-curve">
-        <span class="mc-kicker">Round per round</span>
-        <h2 class="mc-title">La curva del draft</h2>
-        <p class="dgt-card-sub">La linea colorata è chi è stato scelto; quella tratteggiata il miglior giocatore di pari ruolo ancora sul board (draftato poi da un'altra squadra). L'area è il valore lasciato sul tavolo: <b>${fmt0(leftOnBoard)} pt proiettati</b>.</p>
+        <span class="mc-kicker">Round by round</span>
+        <h2 class="mc-title">The draft curve</h2>
+        <p class="dgt-card-sub">The colored line is who was picked; the dashed one is the best player of the same position still on the board (later drafted by another team). The area is the value left on the table: <b>${fmt0(leftOnBoard)} projected pt</b>.</p>
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${CV.w} ${CV.h}" class="an-svg" data-rounds='${dataAttr}'>
                 ${grid}${xTicks}${area}${altLine}${takenLine}${dots}
@@ -471,8 +471,8 @@ function bindCurve(container) {
             row.append(val, name);
             tooltip.appendChild(row);
         };
-        mk('Scelto', r.taken);
-        if (r.alt) mk('Sul board', r.alt);
+        mk('Picked', r.taken);
+        if (r.alt) mk('On the board', r.alt);
         tooltip.hidden = false;
 
         const crect = container.getBoundingClientRect();
@@ -521,10 +521,10 @@ function rosterCard(ctx) {
     const ageNote = known ? pickSeeded(AGE_NOTES[ageKind], (+year) * 7 + g.key.length)(team.name) : '';
     const ageChips = known ? `
         <div class="dgt-age-chips">
-            ${rookies ? `<span class="dgt-chip">${rookies} rookie</span>` : ''}
-            ${young ? `<span class="dgt-chip">${young} al 1°-2° anno</span>` : ''}
-            ${prime ? `<span class="dgt-chip">${prime} nel prime (3-6 anni)</span>` : ''}
-            ${vets ? `<span class="dgt-chip">${vets} ${vets === 1 ? 'veterano' : 'veterani'} (7+ anni)</span>` : ''}
+            ${rookies ? `<span class="dgt-chip">${rookies} rookie${rookies === 1 ? '' : 's'}</span>` : ''}
+            ${young ? `<span class="dgt-chip">${young} in year 1-2</span>` : ''}
+            ${prime ? `<span class="dgt-chip">${prime} in their prime (3-6 years)</span>` : ''}
+            ${vets ? `<span class="dgt-chip">${vets} veteran${vets === 1 ? '' : 's'} (7+ years)</span>` : ''}
         </div>` : '';
 
     // letture dallo storico: trend, breakout e profili a rischio del roster
@@ -540,15 +540,15 @@ function rosterCard(ctx) {
         });
         const risky = details.filter(x => x.d.risk?.level === 'alto');
         const chips = [
-            rising.length ? `<span class="dgt-chip dgt-chip--up">${rising.length} in ascesa</span>` : '',
-            falling.length ? `<span class="dgt-chip dgt-chip--down">${falling.length} in declino</span>` : '',
+            rising.length ? `<span class="dgt-chip dgt-chip--up">${rising.length} on the rise</span>` : '',
+            falling.length ? `<span class="dgt-chip dgt-chip--down">${falling.length} declining</span>` : '',
             breakouts.length ? `<span class="dgt-chip">breakout: ${breakouts.map(x => x.p.player).join(', ')}</span>` : '',
         ].filter(Boolean).join('');
         const riskNote = risky.length
-            ? `<p class="dg-comment">Veteran${risky.length === 1 ? 'o' : 'i'} in parabola discendente: ${risky.map(x => x.p.player).join(', ')} — nei numeri storici della lega questo profilo ha floppato il 36% delle volte.</p>` : '';
+            ? `<p class="dg-comment">Veteran${risky.length === 1 ? '' : 's'} on a downward curve: ${risky.map(x => x.p.player).join(', ')} — in the league's historical numbers this profile has flopped 36% of the time.</p>` : '';
         if (chips || riskNote) {
             histBlock = `
-            <span class="mc-kicker">Letture dallo storico</span>
+            <span class="mc-kicker">Reading the history</span>
             <div class="dgt-age-chips">${chips}</div>
             ${riskNote}`;
         }
@@ -561,7 +561,7 @@ function rosterCard(ctx) {
             .filter(x => x.hit?.injuryStatus);
         if (injured.length) {
             injuryBlock = `
-            <span class="mc-kicker">Infermeria</span>
+            <span class="mc-kicker">Injury report</span>
             <div class="dgt-injuries">${injured.map(({ p, hit }) => `
                 <div class="dgt-injury"><b>${p.player}</b> — ${hit.injuryStatus}${hit.injuryBodyPart ? ` (${hit.injuryBodyPart})` : ''}${hit.injuryNotes ? `: ${hit.injuryNotes}` : ''}</div>`).join('')}
             </div>`;
@@ -570,15 +570,15 @@ function rosterCard(ctx) {
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">Reparti e anagrafica</span>
-        <h2 class="mc-title">Costruzione del roster</h2>
+        <span class="mc-kicker">Positions and age</span>
+        <h2 class="mc-title">Roster construction</h2>
         <div class="dg-body">
             <div class="dg-col">
-                <span class="mc-kicker">Punti proiettati vs mediana lega</span>
+                <span class="mc-kicker">Projected points vs league median</span>
                 <div class="dg-bars">${bars}</div>
             </div>
             <div class="dg-col">
-                <span class="mc-kicker">Registro anagrafico</span>
+                <span class="mc-kicker">Age profile</span>
                 ${ageChips}
                 ${ageNote ? `<p class="dg-comment">${ageNote}</p>` : ''}
                 ${histBlock}
@@ -615,34 +615,34 @@ function picksSection(ctx, prevYear) {
         // voto della singola pick: valore raccolto vs atteso della slot,
         // stessa scala dei voti squadra
         const pickLetter = letterFor(p.expected ? p.value / p.expected : 0, 1);
-        const pickGrade = `<span class="dg-letter dgt-pick-grade dg-letter--${gradeBand(pickLetter)}" title="Voto della pick: ${fmt0(p.value)} pt vs ${fmt0(p.expected)} attesi allo slot #${p.pick}">${pickLetter}</span>`;
+        const pickGrade = `<span class="dg-letter dgt-pick-grade dg-letter--${gradeBand(pickLetter)}" title="Pick grade: ${fmt0(p.value)} pt vs ${fmt0(p.expected)} expected at slot #${p.pick}">${pickLetter}</span>`;
 
         const altTeamKey = p.alt ? TEAM_KEYS[displayName(p.alt.team)] : null;
-        const altWho = p.alt ? `<b>${p.alt.player}</b> (proj ${fmt0(p.alt.value)} pt, poi #${p.alt.pick}${altTeamKey ? ` a ${TEAMS[altTeamKey].name}` : ''})` : '';
+        const altWho = p.alt ? `<b>${p.alt.player}</b> (proj ${fmt0(p.alt.value)} pt, later #${p.alt.pick}${altTeamKey ? ` to ${TEAMS[altTeamKey].name}` : ''})` : '';
         const altLine = !p.alt
-            ? `Nessun altro ${p.pos} draftato dopo: sul board era l'ultima occasione nel reparto`
+            ? `No other ${p.pos} drafted afterward: this was the last chance at the position on the board`
             : p.alt.value > p.value * 1.1
-                ? `Sul board c'era ancora ${altWho}: nel reparto il board offriva di più`
+                ? `${altWho} was still on the board: the position had more to offer`
                 : p.alt.value > p.value
-                    ? `Miglior ${p.pos} rimasto: ${altWho} — differenza minima, scelta difendibile`
-                    : `Miglior ${p.pos} scelto da lì in poi: nessun ${p.pos} preso dopo proiettava di più`;
+                    ? `Best ${p.pos} left: ${altWho} — minimal difference, a defensible pick`
+                    : `Best ${p.pos} picked from that point on: no ${p.pos} taken afterward projected higher`;
 
         const actualLine = seasonPlayed && p.actual != null
-            ? `<span class="dg-pick-actual">poi: ${fmt0(p.actual)} pt reali ${outcomeBadge(p)}</span>` : '';
+            ? `<span class="dg-pick-actual">then: ${fmt0(p.actual)} real pt ${outcomeBadge(p)}</span>` : '';
 
         // carriera oltre l'anno precedente + picco («quando è stato ad alto livello»)
         const d = meta.detailOf?.(p);
         const older = d?.hist?.seasons?.filter(s => s.back >= 2) || [];
         const peak = d?.hist?.peak?.back >= 2 ? peakNote(d.hist, p.pos) : '';
         const olderLine = older.length
-            ? `<p class="dgt-pick-hist">Prima ancora — ${historyLine({ seasons: older }, p.pos, 5)}${peak ? ` · <b>${peak}</b>` : ''}</p>` : '';
+            ? `<p class="dgt-pick-hist">Even earlier — ${historyLine({ seasons: older }, p.pos, 5)}${peak ? ` · <b>${peak}</b>` : ''}</p>` : '';
         const riskChip = p.riskIndex != null
-            ? `<span class="dgt-chip dgt-chip--${p.riskIndex >= 60 ? 'down' : p.riskIndex <= 35 ? 'up' : ''}" title="Risk Index composito: bust, volatilità, durabilità ed età">Rischio ${p.riskIndex}</span>` : '';
+            ? `<span class="dgt-chip dgt-chip--${p.riskIndex >= 60 ? 'down' : p.riskIndex <= 35 ? 'up' : ''}" title="Composite Risk Index: bust, volatility, durability and age">Risk ${p.riskIndex}</span>` : '';
         const badges = [
             d?.hist ? trendBadge(d.hist) : '',
-            d?.hist?.consistency >= 0.75 ? `<span class="dgt-chip">costante</span>` : '',
+            d?.hist?.consistency >= 0.75 ? `<span class="dgt-chip">consistent</span>` : '',
             riskChip,
-            d?.risk?.level === 'alto' ? `<span class="dg-badge dg-badge--down" title="${d.risk.label}">profilo a rischio</span>` : '',
+            d?.risk?.level === 'alto' ? `<span class="dg-badge dg-badge--down" title="${d.risk.label}">at-risk profile</span>` : '',
         ].filter(Boolean).join(' ');
 
         return `
@@ -654,7 +654,7 @@ function picksSection(ctx, prevYear) {
                      data-player-name="${p.player}" data-team="${p.nfl}" data-pos="${p.pos}">
                 <div class="dg-pick-info">
                     <span class="dg-pick-name">${p.player} <small>${p.pos}${p.nfl ? ` · ${p.nfl}` : ''} · round ${p.round}</small></span>
-                    <span class="dg-pick-val">${fmt0(p.value)} pt ${d?.wHist ? 'attesi (proiezione + storico)' : 'proiettati'} <small>vs ${fmt0(p.expected)} attesi (${p.delta >= 0 ? '+' : ''}${fmt0(p.delta)})</small></span>
+                    <span class="dg-pick-val">${fmt0(p.value)} pt ${d?.wHist ? 'expected (projection + history)' : 'projected'} <small>vs ${fmt0(p.expected)} expected (${p.delta >= 0 ? '+' : ''}${fmt0(p.delta)})</small></span>
                     ${actualLine}
                 </div>
                 ${adpLabel}
@@ -671,8 +671,8 @@ function picksSection(ctx, prevYear) {
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">Il fascicolo completo</span>
-        <h2 class="mc-title">Pick per pick</h2>
+        <span class="mc-kicker">The full dossier</span>
+        <h2 class="mc-title">Pick by pick</h2>
         <div class="dgt-picks">${rows}</div>
     </div>`;
 }
@@ -691,15 +691,15 @@ function verdictSection(ctx) {
     const eosBlock = eos ? `
         <div class="dgt-eos-grades">
             <div class="dgt-eos-item">
-                <span class="mc-kicker">Voto post-draft</span>
+                <span class="mc-kicker">Post-draft grade</span>
                 <span class="dg-letter dg-letter--${gradeBand(postLetter)}">${postLetter}</span>
-                <small>sulle proiezioni del giorno del draft</small>
+                <small>on draft-day projections</small>
             </div>
             <div class="dgt-eos-arrow" aria-hidden="true">→</div>
             <div class="dgt-eos-item">
-                <span class="mc-kicker">Voto di fine stagione</span>
+                <span class="mc-kicker">End-of-season grade</span>
                 <span class="dg-letter dg-letter--${gradeBand(eos.letter)}">${eos.letter}</span>
-                <small>${eos.rank + 1}ª lega su base VOR (resa reale)</small>
+                <small>${eos.rank + 1}${eos.rank + 1 === 1 ? 'st' : eos.rank + 1 === 2 ? 'nd' : eos.rank + 1 === 3 ? 'rd' : 'th'} in league on VOR basis (real yield)</small>
             </div>
         </div>` : '';
 
@@ -722,8 +722,8 @@ function verdictSection(ctx) {
         const gx = PB.l + i * groupW + (groupW - barW * 2 - 2) / 2;
         const lastName = p.player.split(' ').pop();
         return `
-        <rect x="${gx}" y="${y(p.value)}" width="${barW}" height="${Math.max(0, PB.t + plotH - y(p.value))}" class="dgt-bar-proj" rx="2"><title>${p.player} — proiettati ${fmt0(p.value)}</title></rect>
-        <rect x="${gx + barW + 2}" y="${y(p.actual)}" width="${barW}" height="${Math.max(0, PB.t + plotH - y(p.actual))}" fill="${team.color}" rx="2"><title>${p.player} — reali ${fmt0(p.actual)}</title></rect>
+        <rect x="${gx}" y="${y(p.value)}" width="${barW}" height="${Math.max(0, PB.t + plotH - y(p.value))}" class="dgt-bar-proj" rx="2"><title>${p.player} — projected ${fmt0(p.value)}</title></rect>
+        <rect x="${gx + barW + 2}" y="${y(p.actual)}" width="${barW}" height="${Math.max(0, PB.t + plotH - y(p.actual))}" fill="${team.color}" rx="2"><title>${p.player} — real ${fmt0(p.actual)}</title></rect>
         <text x="${gx + barW + 1}" y="${PB.h - 30}" class="an-tick dgt-bar-label" text-anchor="end" transform="rotate(-38 ${gx + barW + 1} ${PB.h - 30})">${lastName}</text>`;
     }).join('');
 
@@ -753,21 +753,21 @@ function verdictSection(ctx) {
     const chip = (p, up) => `<span class="dgt-chip dgt-chip--${up ? 'up' : 'down'}">${p.player}: ${fmt0(p.value)} → ${fmt0(p.actual)} pt</span>`;
     const recap = (revs.length || flops.length) ? `
         <div class="dgt-recap">
-            ${revs.length ? `<div class="dgt-recap-row"><span class="mc-kicker">Rivelazioni</span>${revs.map(p => chip(p, true)).join('')}</div>` : ''}
-            ${flops.length ? `<div class="dgt-recap-row"><span class="mc-kicker">Flop</span>${flops.map(p => chip(p, false)).join('')}</div>` : ''}
+            ${revs.length ? `<div class="dgt-recap-row"><span class="mc-kicker">Breakouts</span>${revs.map(p => chip(p, true)).join('')}</div>` : ''}
+            ${flops.length ? `<div class="dgt-recap-row"><span class="mc-kicker">Flops</span>${flops.map(p => chip(p, false)).join('')}</div>` : ''}
         </div>` : '';
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">Com'è andata davvero</span>
-        <h2 class="mc-title">Il verdetto del campo</h2>
-        <p class="dgt-card-sub">Barre grigie: punti proiettati preseason. Barre colorate: punti reali della stagione ${year}.</p>
+        <span class="mc-kicker">How it really went</span>
+        <h2 class="mc-title">The verdict from the field</h2>
+        <p class="dgt-card-sub">Grey bars: preseason projected points. Colored bars: real points from the ${year} season.</p>
         ${eosBlock}
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${PB.w} ${PB.h}" class="an-svg">${grid}${bars}</svg>
         </div>
         ${weeklyChart ? `
-        <span class="mc-kicker" style="margin-top:18px">La corsa dei top pick (punti cumulati)</span>
+        <span class="mc-kicker" style="margin-top:18px">The top picks' race (cumulative points)</span>
         <div class="dgt-chart-wrap">${weeklyChart}</div>` : ''}
         ${recap}
         ${accuracyBlock(ctx)}
@@ -790,22 +790,22 @@ function accuracyBlock(ctx) {
         .sort((a, b) => b.ctx.bustProb - a.ctx.bustProb);
     const callChips = calls.map(p => {
         const flopped = ratio(p) <= 0.6;
-        return `<span class="dgt-chip dgt-chip--${flopped ? 'up' : 'down'}">${p.player}: flop ${Math.round(p.ctx.bustProb * 100)}% → ${flopped ? 'confermato ✓' : 'smentito ✗'}</span>`;
+        return `<span class="dgt-chip dgt-chip--${flopped ? 'up' : 'down'}">${p.player}: flop ${Math.round(p.ctx.bustProb * 100)}% → ${flopped ? 'confirmed ✓' : 'disproven ✗'}</span>`;
     });
     // (2) rivelazioni reali che avevano un profilo SOS+ alto
     const revChips = off.filter(p => p.value >= 15 && ratio(p) >= 1.35 && p.ctx.contextScore >= 62)
-        .map(p => `<span class="dgt-chip dgt-chip--up">${p.player}: rivelazione con SOS+ alto (${p.ctx.contextScore}) ✓</span>`);
+        .map(p => `<span class="dgt-chip dgt-chip--up">${p.player}: breakout with high SOS+ (${p.ctx.contextScore}) ✓</span>`);
 
     const rows = [...callChips, ...revChips];
     const lead = calls.length
-        ? `Le chiamate "flop" del modello (rischio ≥ 40%) alla prova dei fatti${revChips.length ? ', più le rivelazioni che avevano già un profilo SOS+ alto' : ''}.`
+        ? `The model's "flop" calls (risk ≥ 40%) put to the test${revChips.length ? ', plus the breakouts that already had a high SOS+ profile' : ''}.`
         : (revChips.length
-            ? 'Nessuna pick ad alto rischio flop; le rivelazioni della stagione avevano già un profilo SOS+ alto.'
-            : 'Roster prudente: il modello non aveva segnalato pick ad alto rischio flop.');
+            ? "No high flop-risk picks; this season's breakouts already had a high SOS+ profile."
+            : "Cautious roster: the model hadn't flagged any high flop-risk picks.");
 
     return `
     <div class="dgt-accuracy">
-        <span class="mc-kicker">Il modello ci aveva visto?</span>
+        <span class="mc-kicker">Did the model call it right?</span>
         <p class="dgt-card-sub">${lead}</p>
         ${rows.length ? `<div class="dgt-recap-row">${rows.join('')}</div>` : ''}
     </div>`;

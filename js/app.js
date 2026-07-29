@@ -1,26 +1,26 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=47';
-import { initGameCenter } from './sections/game-center.js?v=44';
-import { initStandings, initPlayoffs } from './sections/standings.js?v=46';
-import { initDraft } from './sections/draft.js?v=43';
-import { initDraftGrades } from './sections/draftgrades.js?v=27';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=25';
-import { initPlayerPage } from './sections/player-page.js?v=52';
+import { initHome } from './sections/home.js?v=48';
+import { initGameCenter } from './sections/game-center.js?v=45';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=47';
+import { initDraft } from './sections/draft.js?v=44';
+import { initDraftGrades } from './sections/draftgrades.js?v=28';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=26';
+import { initPlayerPage } from './sections/player-page.js?v=53';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=13';
-import { initPlayersSearch } from './sections/players-search.js?v=10';
-import { initStats } from './sections/stats.js?v=57';
-import { initHistory } from './sections/history.js?v=33';
-import { initHonors } from './sections/honors.js?v=13';
-import { initAllPro } from './sections/allpro.js?v=14';
-import { initHallOfFame } from './sections/halloffame.js?v=28';
-import { initTeam } from './sections/team.js?v=23';
+import { initPlayersSearch } from './sections/players-search.js?v=11';
+import { initStats } from './sections/stats.js?v=58';
+import { initHistory } from './sections/history.js?v=34';
+import { initHonors } from './sections/honors.js?v=15';
+import { initAllPro } from './sections/allpro.js?v=15';
+import { initHallOfFame } from './sections/halloffame.js?v=29';
+import { initTeam } from './sections/team.js?v=25';
 import { initTeams } from './sections/teams.js?v=14';
-import { initGame } from './sections/game.js?v=26';
-import { initAnalysis } from './sections/analysis.js?v=26';
-import { initMagazine } from './sections/magazine.js?v=28';
-import { initNavbar } from './ui/navbar.js?v=14';
+import { initGame } from './sections/game.js?v=27';
+import { initAnalysis } from './sections/analysis.js?v=27';
+import { initMagazine } from './sections/magazine.js?v=29';
+import { initNavbar } from './ui/navbar.js?v=15';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 
 const SECTIONS = {

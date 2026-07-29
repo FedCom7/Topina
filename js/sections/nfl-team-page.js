@@ -27,7 +27,7 @@ import {
     teamYearPicker, bindTeamYearSelector, fetchTeamSeasonData,
     teamPerfBlocksHtml, teamScheduleBlocksHtml,
     fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=52';
+} from './player-page.js?v=53';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');
@@ -40,11 +40,11 @@ export async function initNflTeamPage() {
     const identity = abbr ? getTeamIdentity(abbr) : null;
 
     if (!abbr || !identity) {
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">🏈</div><p class="empty-state-text">Squadra non trovata</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">🏈</div><p class="empty-state-text">Team not found</p></div></div>`;
         return;
     }
 
-    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Caricamento ${esc(identity.name)}...</p></div></div>`;
+    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Loading ${esc(identity.name)}...</p></div></div>`;
 
     try {
         const year = requestedYear || TEAM_HISTORY_YEARS[TEAM_HISTORY_YEARS.length - 1];
@@ -72,7 +72,7 @@ export async function initNflTeamPage() {
     } catch (e) {
         console.error('[nfl-team-page]', e);
         if (location.hash !== myHash) return;
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Errore nel caricamento della squadra</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">Error loading the team</p></div></div>`;
     }
 }
 
@@ -113,15 +113,15 @@ function render(section, ctx) {
         <div class="section-header nfl-year-header">
             <h1 class="section-title nfl-year-title" id="nfl-year-side">${year}</h1>
         </div>
-        <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Indietro</a>
+        <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Back</a>
 
-        <h2 class="pp-section-title"><small>01</small> Identità squadra</h2>
+        <h2 class="pp-section-title"><small>01</small> Team identity</h2>
         <header class="mosaic-card mc-wide pp-hero mc-in">
             <div class="pp-recap">
                 <img class="pp-recap-photo" style="border-radius:var(--radius-lg);object-fit:contain;background:transparent;border:none"
                     src="${teamLogo(abbr)}" alt="${esc(identity.name)}">
                 <div class="pp-recap-body">
-                    <div class="pp-recap-name"><span class="mc-kicker">Squadra NFL</span></div>
+                    <div class="pp-recap-name"><span class="mc-kicker">NFL Team</span></div>
                     <h1 class="mc-title">${esc(identity.name)}</h1>
                     <div class="pp-recap-team"><span class="pp-team-div" style="color:${identity.color}">${esc(identity.conf)} · ${esc(identity.division)}</span></div>
                     ${recChip ? `<div class="pp-fact-chips" style="margin-top:10px">${recChip}</div>` : ''}
@@ -130,21 +130,21 @@ function render(section, ctx) {
         </header>
         <div id="nfl-identity-extra">${identityExtraBlock(live)}</div>
 
-        <h2 class="pp-section-title"><small>02</small> Rendimento stagione</h2>
+        <h2 class="pp-section-title"><small>02</small> Season performance</h2>
         ${teamYearPicker(year)}
         <div id="pp-team-perf">${teamPerfBlocksHtml(abbr, 'TEAM', ctx)}</div>
         <div id="nfl-live-perf">${fpiBlock(live)}${teamLeadersBlock(live)}${seasonStatsBlock(live)}</div>
 
-        <h2 class="pp-section-title"><small>03</small> Rosa e calendario</h2>
+        <h2 class="pp-section-title"><small>03</small> Roster and schedule</h2>
         <div id="pp-team-roster">${teamScheduleBlocksHtml(abbr, 'TEAM', ctx)}</div>
         <div id="nfl-live-sched">${depthChartBlock(live)}${scheduleBlock(live)}${gameDetailBlock(live)}${transactionsBlock(live)}</div>
 
-        <h2 class="pp-section-title"><small>04</small> Storia e franchigia</h2>
+        <h2 class="pp-section-title"><small>04</small> History and franchise</h2>
         ${teamHistoryBlock(ctx)}
         ${teamExtrasBlock(ctx)}
         <div id="nfl-live-extra">${futuresBlock(live)}${newsBlock(live)}</div>
 
-        <p class="dg-footnote">Dati squadra: nflverse (storico, calendario, depth chart, draft, trade) con integrazione ESPN dal vivo (profilo/stadio/coach, Football Power Index, statistiche ufficiali, calendario, transactions, odds).</p>
+        <p class="dg-footnote">Team data: nflverse (history, schedule, depth chart, draft, trades) with live ESPN integration (profile/stadium/coach, Football Power Index, official stats, schedule, transactions, odds).</p>
     </div>`;
 
     bindBack(section);
@@ -189,10 +189,10 @@ function identityExtraBlock({ profile }) {
     const rs = p.recordSplits || {};
     const chips = [
         p.standingSummary ? factChip(esc(p.standingSummary), '') : '',
-        rs.home ? factChip(esc(rs.home), 'in casa') : '',
-        rs.road ? factChip(esc(rs.road), 'in trasferta') : '',
-        rs.div ? factChip(esc(rs.div), 'in divisione') : '',
-        rs.conf ? factChip(esc(rs.conf), 'in conference') : '',
+        rs.home ? factChip(esc(rs.home), 'home') : '',
+        rs.road ? factChip(esc(rs.road), 'away') : '',
+        rs.div ? factChip(esc(rs.div), 'division') : '',
+        rs.conf ? factChip(esc(rs.conf), 'conference') : '',
     ].filter(Boolean).join('');
 
     const co = p.coach;
@@ -203,16 +203,16 @@ function identityExtraBlock({ profile }) {
                 <span class="mc-kicker">Head coach</span>
                 <b>${esc(co.name)}</b>
                 <span class="pm-note" style="margin-top:2px">${[
-                    co.experience != null ? `${co.experience}ª stagione in carriera` : '',
-                    co.teamTenure != null ? `${co.teamTenure}ª con ${esc(p.abbr)}` : '',
-                    co.age != null ? `${co.age} anni` : '',
+                    co.experience != null ? `${ord(co.experience)} career season` : '',
+                    co.teamTenure != null ? `${ord(co.teamTenure)} with ${esc(p.abbr)}` : '',
+                    co.age != null ? `${co.age} yrs` : '',
                     co.college ? esc(co.college) : '',
                     co.birthPlace ? esc(co.birthPlace) : '',
                 ].filter(Boolean).join(' · ')}</span>
-                ${(co.recordTotal || co.recordRegular || co.recordPost) ? `<span class="pm-note" style="margin-top:2px">Record da capo-allenatore: ${[
-                    co.recordTotal ? `${esc(co.recordTotal)} totale` : '',
+                ${(co.recordTotal || co.recordRegular || co.recordPost) ? `<span class="pm-note" style="margin-top:2px">Head coach record: ${[
+                    co.recordTotal ? `${esc(co.recordTotal)} total` : '',
                     co.recordRegular ? `${esc(co.recordRegular)} regular` : '',
-                    co.recordPost ? `${esc(co.recordPost)} playoff` : '',
+                    co.recordPost ? `${esc(co.recordPost)} playoffs` : '',
                 ].filter(Boolean).join(' · ')}</span>` : ''}
             </div>
         </div>` : '';
@@ -222,16 +222,16 @@ function identityExtraBlock({ profile }) {
         <div class="pp-stadium">
             ${v.image ? `<img class="pp-stadium-img" src="${esc(v.image)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
             <div class="pp-stadium-body">
-                <span class="mc-kicker">Stadio</span>
+                <span class="mc-kicker">Stadium</span>
                 <b>${esc(v.name)}</b>
-                <span class="pm-note" style="margin-top:2px">${[v.city && v.state ? `${esc(v.city)}, ${esc(v.state)}` : '', v.capacity ? `${(+v.capacity).toLocaleString('it-IT')} posti` : '', v.indoor ? 'coperto' : 'all\'aperto', v.grass ? 'erba naturale' : 'sintetico'].filter(Boolean).join(' · ')}</span>
+                <span class="pm-note" style="margin-top:2px">${[v.city && v.state ? `${esc(v.city)}, ${esc(v.state)}` : '', v.capacity ? `${(+v.capacity).toLocaleString('it-IT')} seats` : '', v.indoor ? 'indoor' : 'outdoor', v.grass ? 'natural grass' : 'turf'].filter(Boolean).join(' · ')}</span>
             </div>
         </div>` : '';
 
     const ne = p.nextEvent;
     const nextHtml = ne?.name ? `
         <div class="pp-nextgame">
-            <span class="mc-kicker">Prossima partita</span>
+            <span class="mc-kicker">Next game</span>
             <b>${esc(ne.shortName || ne.name)}</b>
             <span class="pm-note" style="margin-top:2px">${[ne.week, ne.date ? new Date(ne.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : '', ne.venue].filter(Boolean).join(' · ')}</span>
         </div>` : '';
@@ -241,7 +241,7 @@ function identityExtraBlock({ profile }) {
     <section class="pm-block pp-block">
         ${chips ? `<div class="pp-fact-chips" style="margin-bottom:12px">${chips}</div>` : ''}
         <div class="pp-identity-grid">${coachHtml}${venueHtml}${nextHtml}</div>
-        <p class="pm-note">Record con split (casa/trasferta/divisione/conference), head coach, stadio e prossima partita — fonti ESPN canoniche.</p>
+        <p class="pm-note">Record with splits (home/away/division/conference), head coach, stadium and next game — canonical ESPN sources.</p>
     </section>`;
 }
 
@@ -250,15 +250,15 @@ function fpiBlock({ fpi }) {
     if (!fpi || fpi.fpi == null) return '';
     const tiles = [
         tile(fmt1(fpi.fpi), 'FPI (net points)'),
-        fpi.rank != null ? tile(ord(fpi.rank), 'Rank FPI (su 32)') : '',
-        fpi.projW != null && fpi.projL != null ? tile(`${Math.round(fpi.projW)}-${Math.round(fpi.projL)}${fpi.projT ? `-${Math.round(fpi.projT)}` : ''}`, 'Record proiettato') : '',
+        fpi.rank != null ? tile(ord(fpi.rank), 'FPI Rank (of 32)') : '',
+        fpi.projW != null && fpi.projL != null ? tile(`${Math.round(fpi.projW)}-${Math.round(fpi.projL)}${fpi.projT ? `-${Math.round(fpi.projT)}` : ''}`, 'Projected record') : '',
     ].filter(Boolean).join('');
     if (!tiles) return '';
     return `
     <section class="pm-block pp-block">
         <span class="mc-kicker">Football Power Index · ESPN</span>
         <div class="pm-tiles pp-tiles">${tiles}</div>
-        <p class="pm-note">Il FPI misura la forza netta della squadra (margine punti atteso contro un avversario medio); rank e record proiettato dalla stessa run ESPN.</p>
+        <p class="pm-note">FPI measures the team's net strength (expected point margin against an average opponent); rank and projected record from the same ESPN run.</p>
     </section>`;
 }
 
@@ -271,7 +271,7 @@ function seasonStatsBlock({ seasonStats }) {
             <h3 class="pp-cat-title">${esc(c.label)}</h3>
             <div class="pm-table-wrap pp-scroll">
                 <table class="pm-table pp-table">
-                    <thead><tr><th>Statistica</th><th>Valore</th><th>Rank NFL</th></tr></thead>
+                    <thead><tr><th>Stat</th><th>Value</th><th>NFL Rank</th></tr></thead>
                     <tbody>${c.stats.map(s => `<tr><td>${esc(s.label)}</td><td class="pm-td-strong">${esc(s.value)}</td><td>${esc(s.rank)}</td></tr>`).join('')}</tbody>
                 </table>
             </div>
@@ -280,14 +280,14 @@ function seasonStatsBlock({ seasonStats }) {
     const rest = seasonStats.filter(c => !PRIMARY.has(c.key));
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Statistiche ufficiali · ESPN ${''}</span>
+        <span class="mc-kicker">Official stats · ESPN ${''}</span>
         ${(primary.length ? primary : seasonStats).map(catTable).join('')}
         ${primary.length && rest.length ? `
         <details class="pp-recap-ids" style="margin-top:6px">
-            <summary>Altre categorie (${rest.length})</summary>
+            <summary>Other categories (${rest.length})</summary>
             ${rest.map(catTable).join('')}
         </details>` : ''}
-        <p class="pm-note">Stat sheet ufficiale ESPN con rank 1-32 su tutte le 32 squadre (regular season).</p>
+        <p class="pm-note">Official ESPN stat sheet with 1-32 rank across all 32 teams (regular season).</p>
     </section>`;
 }
 
@@ -303,14 +303,14 @@ function depthChartBlock({ depthChart }) {
             </div>`).join('');
         return `<div class="pp-starters-col"><h3 class="pp-cat-title">${label}</h3>${rows}</div>`;
     };
-    const html = col(depthChart.offense, 'Attacco') + col(depthChart.defense, 'Difesa');
+    const html = col(depthChart.offense, 'Offense') + col(depthChart.defense, 'Defense');
     if (!html) return '';
     const build = depthChart.source === 'build';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Depth chart completo · ${build ? 'nflverse' : 'ESPN dal vivo'}</span>
+        <span class="mc-kicker">Full depth chart · ${build ? 'nflverse' : 'live ESPN'}</span>
         <div class="pp-starters-grid">${html}</div>
-        <p class="pm-note">Profondità ordinata per slot (titolare in grassetto, poi le riserve). ${build ? 'Ricostruito dal roster nflverse della stagione (ordine per snap%): accurato anche sulle stagioni passate.' : 'Fonte ESPN dal vivo: fotografia attuale, non storica.'}</p>
+        <p class="pm-note">Depth ordered by slot (starter in bold, then backups). ${build ? "Rebuilt from the season's nflverse roster (ordered by snap%): accurate even for past seasons." : 'Live ESPN source: current snapshot, not historical.'}</p>
     </section>`;
 }
 
@@ -332,10 +332,10 @@ function scheduleBlock({ schedule }) {
     }).join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Calendario · ESPN</span>
+        <span class="mc-kicker">Schedule · ESPN</span>
         <div class="pm-table-wrap pp-scroll">
             <table class="pm-table pp-table">
-                <thead><tr><th>Settimana</th><th>Avversario</th><th>Esito</th></tr></thead>
+                <thead><tr><th>Week</th><th>Opponent</th><th>Result</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
@@ -352,9 +352,9 @@ function teamLeadersBlock({ leaders }) {
         </div>`).join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Leader di squadra · ESPN</span>
+        <span class="mc-kicker">Team leaders · ESPN</span>
         <div class="pm-tiles pp-tiles">${tiles}</div>
-        <p class="pm-note">Giocatore in testa alla squadra per categoria nella stagione (regular season).</p>
+        <p class="pm-note">Team's leading player per category for the season (regular season).</p>
     </section>`;
 }
 
@@ -363,7 +363,7 @@ function newsBlock({ news }) {
     if (!news?.length) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Ultime notizie · ESPN</span>
+        <span class="mc-kicker">Latest news · ESPN</span>
         <ul class="pp-news-list">${news.slice(0, 8).map(n => `
             <li>${n.link ? `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.headline)}</a>` : esc(n.headline)}${n.published ? ` <span class="pm-note">· ${new Date(n.published).toLocaleDateString('it-IT')}</span>` : ''}</li>`).join('')}</ul>
     </section>`;
@@ -371,7 +371,7 @@ function newsBlock({ news }) {
 
 /** Dettaglio partita (game summary): punteggio, confronto squadre, segnature, info gara, win prob. */
 function renderGameSummary(s) {
-    if (!s) return '<p class="pm-note">Dettaglio non disponibile per questa gara.</p>';
+    if (!s) return '<p class="pm-note">Detail not available for this game.</p>';
     const away = s.competitors.find(c => !c.home), home = s.competitors.find(c => c.home);
     const scoreLine = (away && home) ? `
         <div class="pp-gs-score">
@@ -388,12 +388,12 @@ function renderGameSummary(s) {
         const homeByLabel = Object.fromEntries(homeStats.stats.map(x => [x.label, x.value]));
         const rows = awayStats.stats.map(a => `<tr><td class="pp-gs-a">${esc(a.value)}</td><td class="pp-gs-lbl">${esc(a.label)}</td><td class="pp-gs-h">${esc(homeByLabel[a.label] ?? '—')}</td></tr>`).join('');
         cmp = `<div class="pm-table-wrap pp-scroll"><table class="pm-table pp-table pp-gs-table">
-            <thead><tr><th>${esc(awayStats.abbr)}</th><th>Statistica</th><th>${esc(homeStats.abbr)}</th></tr></thead>
+            <thead><tr><th>${esc(awayStats.abbr)}</th><th>Stat</th><th>${esc(homeStats.abbr)}</th></tr></thead>
             <tbody>${rows}</tbody></table></div>`;
     }
 
     const scoring = s.scoring?.length ? `
-        <h3 class="pp-cat-title" style="margin-top:16px">Segnature</h3>
+        <h3 class="pp-cat-title" style="margin-top:16px">Scoring plays</h3>
         <div class="pp-gs-scoring">${s.scoring.map(p => `
             <div class="pp-gs-play"><span class="pp-lb-pos">Q${p.q ?? ''}</span><span class="pp-gs-clock">${esc(p.clock || '')}</span><span class="pp-gs-text">${esc(p.team || '')} · ${esc(p.text || p.type || '')}</span><span class="pp-gs-sc">${p.away ?? ''}-${p.home ?? ''}</span></div>`).join('')}</div>` : '';
 
@@ -402,12 +402,12 @@ function renderGameSummary(s) {
     if ((s.prediction && s.prediction.homePct != null) || s.odds || s.homeWinPctStart != null) {
         const chips = [];
         if (s.prediction?.homePct != null && away && home) {
-            chips.push(factChip(`${Math.round(s.prediction.awayPct)}%`, `proiez. ${away.abbr}`));
-            chips.push(factChip(`${Math.round(s.prediction.homePct)}%`, `proiez. ${home.abbr}`));
+            chips.push(factChip(`${Math.round(s.prediction.awayPct)}%`, `proj. ${away.abbr}`));
+            chips.push(factChip(`${Math.round(s.prediction.homePct)}%`, `proj. ${home.abbr}`));
         }
-        if (s.homeWinPctStart != null && home) chips.push(factChip(`${Math.round(s.homeWinPctStart * 100)}%`, `win prob iniziale ${home.abbr}`));
-        if (s.homeWinPct != null && home) chips.push(factChip(`${Math.round(s.homeWinPct * 100)}%`, `win prob finale ${home.abbr}`));
-        if (s.odds?.details) chips.push(factChip(esc(s.odds.details), s.odds.provider ? esc(s.odds.provider) : 'linea'));
+        if (s.homeWinPctStart != null && home) chips.push(factChip(`${Math.round(s.homeWinPctStart * 100)}%`, `initial win prob ${home.abbr}`));
+        if (s.homeWinPct != null && home) chips.push(factChip(`${Math.round(s.homeWinPct * 100)}%`, `final win prob ${home.abbr}`));
+        if (s.odds?.details) chips.push(factChip(esc(s.odds.details), s.odds.provider ? esc(s.odds.provider) : 'line'));
         if (s.odds?.overUnder != null) chips.push(factChip(`O/U ${esc(String(s.odds.overUnder))}`, ''));
         const c = chips.filter(Boolean).join('');
         if (c) predHtml = `<div class="pp-fact-chips" style="margin:10px 0">${c}</div>`;
@@ -434,12 +434,12 @@ function renderGameSummary(s) {
     const totalPlays = s.drives?.reduce((n, d) => n + (d.plays?.length || 0), 0) || 0;
     const drivesHtml = s.drives?.length ? `
         <details class="pp-recap-ids" style="margin-top:12px">
-            <summary>Play-by-play — ${s.drives.length} drive, ${totalPlays} giocate</summary>
+            <summary>Play-by-play — ${s.drives.length} drives, ${totalPlays} plays</summary>
             <div class="pp-pbp" style="margin-top:8px">${s.drives.map(driveGroup).join('')}</div>
         </details>` : '';
 
     const gi = s.gameInfo || {};
-    const info = [gi.venue ? `${esc(gi.venue)}${gi.city ? `, ${esc(gi.city)}` : ''}` : '', gi.attendance ? `${(+gi.attendance).toLocaleString('it-IT')} spettatori` : '', gi.officials?.length ? `${gi.officials.length} arbitri` : ''].filter(Boolean).join(' · ');
+    const info = [gi.venue ? `${esc(gi.venue)}${gi.city ? `, ${esc(gi.city)}` : ''}` : '', gi.attendance ? `${(+gi.attendance).toLocaleString('it-IT')} attendance` : '', gi.officials?.length ? `${gi.officials.length} officials` : ''].filter(Boolean).join(' · ');
 
     return `${scoreLine}${predHtml}${cmp}${scoring}${drivesHtml}${info ? `<p class="pm-note">${info}</p>` : ''}`;
 }
@@ -450,7 +450,7 @@ function detailedBoxHtml(cats) {
     const nVoci = cats.reduce((n, c) => n + c.stats.length, 0);
     return `
     <details class="pp-recap-ids" style="margin-top:12px">
-        <summary>Statistiche dettagliate della squadra (${nVoci} voci)</summary>
+        <summary>Detailed team stats (${nVoci} entries)</summary>
         <div style="margin-top:8px">${cats.map(c => `
             <div class="pp-statcat">
                 <h3 class="pp-cat-title">${esc(c.label)}</h3>
@@ -471,20 +471,20 @@ function gameDetailBlock({ schedule, game }) {
     if (!played.length) return '';
     const opt = (g) => {
         const at = g.homeAway === 'away' ? '@' : 'vs';
-        const wl = g.winner === true ? 'V' : g.winner === false ? 'S' : '';
+        const wl = g.winner === true ? 'W' : g.winner === false ? 'L' : '';
         const score = (g.score != null && g.oppScore != null) ? ` (${wl} ${g.score}-${g.oppScore})` : '';
         const sel = game && g.eventId === game.eventId ? ' selected' : '';
         return `<option value="${esc(g.eventId)}"${sel}>${esc(g.week || '')} ${at} ${esc(g.opp || g.oppName || '')}${score}</option>`;
     };
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Dettaglio partita · ESPN</span>
+        <span class="mc-kicker">Game detail · ESPN</span>
         <div class="pp-year-picker" style="margin:8px 0 4px">
-            <label for="nfl-game-sel">Partita</label>
+            <label for="nfl-game-sel">Game</label>
             <select id="nfl-game-sel">${played.map(opt).join('')}</select>
         </div>
         <div id="nfl-game-body">${gameBodyHtml(game?.summary, game?.boxCats)}</div>
-        <p class="pm-note">Punteggio, confronto statistico squadra vs squadra, segnature, info gara, win probability e statistiche dettagliate della squadra. Scegli un'altra partita per aggiornare.</p>
+        <p class="pm-note">Score, team vs team statistical comparison, scoring plays, game info, win probability and detailed team stats. Pick another game to update.</p>
     </section>`;
 }
 
@@ -516,9 +516,9 @@ function transactionsBlock({ transactions }) {
         </div>`).join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Movimenti roster · ESPN</span>
+        <span class="mc-kicker">Roster moves · ESPN</span>
         ${rows}
-        <p class="pm-note">Firme, tagli e waiver più recenti secondo ESPN.</p>
+        <p class="pm-note">Latest signings, cuts and waivers according to ESPN.</p>
     </section>`;
 }
 
@@ -527,9 +527,9 @@ function futuresBlock({ futures }) {
     if (!futures || futures.odds == null) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Odds Super Bowl · ESPN</span>
-        <div class="pm-tiles pp-tiles">${tile(esc(String(futures.odds)), `Vittoria Super Bowl${futures.provider ? ` · ${esc(futures.provider)}` : ''}`)}</div>
-        <p class="pm-note">Quota (moneyline americana) per la vittoria del titolo secondo il book ESPN indicato.</p>
+        <span class="mc-kicker">Super Bowl odds · ESPN</span>
+        <div class="pm-tiles pp-tiles">${tile(esc(String(futures.odds)), `Super Bowl win${futures.provider ? ` · ${esc(futures.provider)}` : ''}`)}</div>
+        <p class="pm-note">Odds (American moneyline) to win the title according to the indicated ESPN book.</p>
     </section>`;
 }
 

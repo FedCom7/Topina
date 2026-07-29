@@ -52,9 +52,9 @@ export const TSI_WEIGHTS = {
 };
 
 export const TSI_LABELS = {
-    projection: 'Projection', starter: 'Titolari', posAdv: 'Vantaggio posizionale',
-    vor: 'Scarsità (VOR)', bench: 'Panchina', risk: 'Rischio', balance: 'Costruzione',
-    context: 'Contesto NFL', bye: 'Bye week', stack: 'Stack', consistency: 'Consistenza',
+    projection: 'Projection', starter: 'Starters', posAdv: 'Positional advantage',
+    vor: 'Scarcity (VOR)', bench: 'Bench', risk: 'Risk', balance: 'Construction',
+    context: 'NFL Context', bye: 'Bye week', stack: 'Stack', consistency: 'Consistency',
     ceiling: 'Upside',
 };
 

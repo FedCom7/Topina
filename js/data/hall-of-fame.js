@@ -10,7 +10,7 @@
  */
 
 import { SEASONS, CURRENT_SEASON } from '../data.js?v=32';
-import { getHonorsBundle } from './honors.js?v=13';
+import { getHonorsBundle } from './honors.js?v=14';
 import { buildCareers } from './careers.js?v=14';
 
 export const FIRST_CLASS_YEAR = 2025;

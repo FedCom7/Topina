@@ -6,8 +6,8 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=32';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=13';
-import { TEAMS } from './team.js?v=23';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=14';
+import { TEAMS } from './team.js?v=25';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -37,24 +37,24 @@ function renderYearSelector() {
 async function loadYear(year) {
     currentYear = year;
     const wrap = document.getElementById('honors-content');
-    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento Honors ${year}...</p></div>`;
+    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year} Honors...</p></div>`;
 
     const bundle = await getHonorsBundle(year);
     if (!bundle) {
-        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
         return;
     }
 
     if (!bundle.rsComplete) {
         wrap.innerHTML = teaserHTML(year,
-            'La corsa ai premi è ancora aperta',
-            'I Topina Honors si assegnano a regular season conclusa e vengono svelati alla vigilia del Super Bowl.');
+            'The race for the awards is still open',
+            'Topina Honors are given out once the regular season ends, and are revealed on Super Bowl eve.');
         return;
     }
 
     wrap.innerHTML = `
         <div class="honors-stage">${bundle.awards.map((a, i) => awardCard(a, bundle.revealed, i)).join('')}</div>
-        ${bundle.revealed ? '' : `<p class="honors-sealed-note">Le buste si aprono alla vigilia del Super Bowl ${year} — per ora solo i finalisti.</p>`}
+        ${bundle.revealed ? '' : `<p class="honors-sealed-note">The envelopes open on the eve of the ${year} Super Bowl — for now, only the finalists.</p>`}
     `;
 }
 
@@ -111,7 +111,7 @@ function awardCard(award, revealed, i) {
         </div>` : `
         <div class="honors-winner honors-winner--sealed">
             <span class="honors-winner-name">?</span>
-            <span class="honors-winner-stat">Vincitore non ancora svelato</span>
+            <span class="honors-winner-stat">Winner not yet revealed</span>
         </div>`;
 
     const finalistRows = finalists.map(f => `
@@ -131,7 +131,7 @@ function awardCard(award, revealed, i) {
         ${winnerBlock}
         ${finalistRows ? `
         <div class="honors-finalists">
-            <span class="honors-finalists-label">${revealed ? 'Finalisti' : 'I candidati'}</span>
+            <span class="honors-finalists-label">${revealed ? 'Finalists' : 'The candidates'}</span>
             <ul>${finalistRows}</ul>
         </div>` : ''}
     </article>`;

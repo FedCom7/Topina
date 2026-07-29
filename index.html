@@ -22,7 +22,7 @@
             <a href="#home" class="nav-logo">
                 <span class="logo-text">Topina</span>
             </a>
-            <button class="nav-back" id="nav-back" aria-label="Indietro" type="button">
+            <button class="nav-back" id="nav-back" aria-label="Back" type="button">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
@@ -49,7 +49,7 @@
                 </li>
             </ul>
             <div class="nav-actions">
-                <button class="nav-search-btn" id="nav-search-btn" aria-label="Cerca" aria-expanded="false">
+                <button class="nav-search-btn" id="nav-search-btn" aria-label="Search" aria-expanded="false">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
@@ -65,10 +65,10 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                <input type="search" id="nav-search-input" class="nav-search-input" placeholder="Cerca giocatore o squadra..." autocomplete="off">
+                <input type="search" id="nav-search-input" class="nav-search-input" placeholder="Search player or team..." autocomplete="off">
             </div>
             <div class="nav-search-results" id="nav-search-results">
-                <p class="pm-empty">Inizia a scrivere per cercare — es. un nome, o "Chiefs".</p>
+                <p class="pm-empty">Start typing to search — e.g. a name, or "Chiefs".</p>
             </div>
         </div>
         <!-- Dropdown panels — direct children of .navbar for CSS :has() expansion -->
@@ -109,7 +109,7 @@
         <div id="home-showcase">
             <div class="loading-state">
                 <div class="spinner"></div>
-                <p>Caricamento...</p>
+                <p>Loading...</p>
             </div>
         </div>
     </section>
@@ -119,14 +119,14 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Game Center</h1>
-                <p class="section-subtitle">Tutti i matchup, settimana per settimana</p>
+                <p class="section-subtitle">Every matchup, week by week</p>
             </div>
             <div class="year-selector" id="gc-year-selector"></div>
             <div class="week-selector" id="gc-week-selector"></div>
             <div class="matchup-grid" id="gc-matchup-grid">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento matchup...</p>
+                    <p>Loading matchups...</p>
                 </div>
             </div>
         </div>
@@ -138,7 +138,7 @@
             <div id="magazine-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento magazine...</p>
+                    <p>Loading magazine...</p>
                 </div>
             </div>
         </div>
@@ -149,13 +149,13 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Regular Season</h1>
-                <p class="section-subtitle">Classifica della stagione</p>
+                <p class="section-subtitle">This season's standings</p>
             </div>
             <div class="year-selector" id="st-year-selector"></div>
             <div class="standings-table-wrap" id="standings-table-wrap">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento classifica...</p>
+                    <p>Loading standings...</p>
                 </div>
             </div>
         </div>
@@ -166,12 +166,12 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Playoff Picture</h1>
-                <p class="section-subtitle">Il tabellone verso il Super Bowl</p>
+                <p class="section-subtitle">The bracket to the Super Bowl</p>
             </div>
             <div class="standings-table-wrap" id="playoffs-wrap">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento Playoff Picture...</p>
+                    <p>Loading Playoff Picture...</p>
                 </div>
             </div>
         </div>
@@ -182,12 +182,12 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Teams</h1>
-                <p class="section-subtitle">I quattro franchise della Topina League</p>
+                <p class="section-subtitle">The four franchises of Topina League</p>
             </div>
             <div class="teams-index" id="teams-index">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento teams...</p>
+                    <p>Loading teams...</p>
                 </div>
             </div>
         </div>
@@ -198,14 +198,14 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Draft Recap</h1>
-                <p class="section-subtitle">Tutte le scelte, anno per anno</p>
+                <p class="section-subtitle">Every pick, year by year</p>
             </div>
             <div class="year-selector" id="dr-year-selector"></div>
             <div class="round-selector" id="dr-round-selector"></div>
             <div class="draft-grid" id="draft-grid">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento draft...</p>
+                    <p>Loading draft...</p>
                 </div>
             </div>
         </div>
@@ -216,13 +216,13 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Draft Grades</h1>
-                <p class="section-subtitle">Le pagelle della war-room, squadra per squadra</p>
+                <p class="section-subtitle">War-room report cards, team by team</p>
             </div>
             <div class="year-selector" id="dg-year-selector"></div>
             <div id="draftgrades-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Correzione dei compiti...</p>
+                    <p>Grading the homework...</p>
                 </div>
             </div>
         </div>
@@ -272,12 +272,12 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">League History</h1>
-                <p class="section-subtitle">Ogni stagione, dal primo all'ultimo snap</p>
+                <p class="section-subtitle">Every season, from the first snap to the last</p>
             </div>
             <div class="history-timeline" id="history-timeline">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento storico...</p>
+                    <p>Loading history...</p>
                 </div>
             </div>
         </div>
@@ -288,13 +288,13 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Topina Honors</h1>
-                <p class="section-subtitle">I premi della stagione</p>
+                <p class="section-subtitle">The season's awards</p>
             </div>
             <div class="year-selector" id="hn-year-selector"></div>
             <div id="honors-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento premi...</p>
+                    <p>Loading awards...</p>
                 </div>
             </div>
         </div>
@@ -305,13 +305,13 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">All-Pro Team</h1>
-                <p class="section-subtitle">La formazione ideale dell'anno</p>
+                <p class="section-subtitle">The year's ideal lineup</p>
             </div>
             <div class="year-selector" id="ap-year-selector"></div>
             <div id="allpro-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento All-Pro...</p>
+                    <p>Loading All-Pro...</p>
                 </div>
             </div>
         </div>
@@ -322,12 +322,12 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Hall of Fame</h1>
-                <p class="section-subtitle">Le leggende della Topina League</p>
+                <p class="section-subtitle">The legends of Topina League</p>
             </div>
             <div id="hof-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento Hall of Fame...</p>
+                    <p>Loading Hall of Fame...</p>
                 </div>
             </div>
         </div>
@@ -338,14 +338,14 @@
         <div class="section-inner">
             <div class="section-header">
                 <h1 class="section-title">Analysis</h1>
-                <p class="section-subtitle">Roster, draft e mercato sotto la lente</p>
+                <p class="section-subtitle">Rosters, drafts and the market under the microscope</p>
             </div>
             <div class="year-selector" id="an-year-selector"></div>
             <div class="an-team-selector" id="an-team-selector"></div>
             <div id="analysis-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Caricamento analisi...</p>
+                    <p>Loading analysis...</p>
                 </div>
             </div>
         </div>
@@ -362,7 +362,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=139"></script>
+    <script type="module" src="js/app.js?v=140"></script>
 </body>
 
 </html>

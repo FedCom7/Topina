@@ -7,9 +7,9 @@
 
 import { CURRENT_SEASON } from '../data.js?v=32';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
-import { computeTeamBadges } from '../data/badges.js?v=11';
+import { computeTeamBadges } from '../data/badges.js?v=12';
 import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=18';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=25';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=26';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
@@ -30,32 +30,32 @@ export const TEAMS = {
         name: 'Capi dei Pianeti',
         color: '#FF6600',
         logo: 'Team%20Logo/team_capi_transparent.png',
-        uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        bio: `Fondati nel 2019 con la visione di chi guarda lontano, i Capi dei Pianeti hanno sempre operato su una scala diversa. Il loro arancione brucia come il sole di un sistema solare lontano: impossibile ignorarlo, impossibile non riconoscerlo. Ogni draft è stato un'invasione pianificata, ogni stagione una conquista. Non giocano in una lega — governano un universo.`,
+        uniform: 'Team%20Uniform/CDP_Uniform.jpg',
+        bio: `Founded in 2019 with the vision of those who look far ahead, Capi dei Pianeti have always operated on a different scale. Their orange burns like the sun of a distant solar system: impossible to ignore, impossible not to recognize. Every draft has been a planned invasion, every season a conquest. They don't play in a league — they rule a universe.`,
     },
     lasers: {
         key: 'lasers',
         name: 'Lasers',
         color: '#D4AF37',
         logo: 'Team%20Logo/team_lasers_transparent.png',
-        uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        bio: `I Lasers non gridano. Tagliano. Dal 2019, questo franchise ha costruito la propria identità sulla precisione assoluta: ogni scelta di draft una mossa calcolata, ogni lineup una formula perfetta. L'oro del loro simbolo non è ornamento — è la firma di chi non sbaglia. Quando i Lasers accendono il raggio, la partita è già decisa.`,
+        uniform: 'Team%20Uniform/LASERS_Uniform.jpg',
+        bio: `The Lasers don't shout. They cut. Since 2019, this franchise has built its identity on absolute precision: every draft pick a calculated move, every lineup a perfect formula. The gold in their emblem isn't decoration — it's the signature of those who don't make mistakes. When the Lasers fire the beam, the game is already decided.`,
     },
     oscurus: {
         key: 'oscurus',
         name: 'Oscurus',
         color: '#800020',
         logo: 'Team%20Logo/team_oscurus_transparent.png',
-        uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        bio: `Dal buio nascono i dominatori. Oscurus esiste dal 2019 come una forza silenziosa che cresce nell'ombra fino a quando è troppo tardi per fermarla. Il bordeaux scuro del loro stemma parla di sangue versato in ogni week, di difese infrante e di vittorie costruite col ferro. Non cercano l'amore della folla — cercano l'anello. E quando lo trovano, nessuno è sorpreso.`,
+        uniform: 'Team%20Uniform/OBSCURUS__Uniform.jpg',
+        bio: `From darkness rise the dominators. Oscurus has existed since 2019 as a silent force that grows in the shadows until it's too late to stop it. Their dark maroon crest speaks of blood spilled every week, of broken defenses and victories built with iron. They don't seek the crowd's love — they seek the ring. And when they find it, no one is surprised.`,
     },
     sommo: {
         key: 'sommo',
         name: 'Sommo',
         color: '#1c4750',
         logo: 'Team%20Logo/team_sommo_transparent.png',
-        uniform: 'Team%20Uniform/Philadelphia_Eagles_Uniforms_(2024).png',
-        bio: `Il nome non mente. Sommo è, fin dal 2019, il franchise che ha scelto la strada della strategia dove altri sceglievano l'istinto. Il verde profondo del loro colore è quello degli oceani inesplorati, dei piani a lungo termine, delle decisioni che si capiscono solo con il senno di poi. Non serve urlare quando sei già il più forte nella stanza.`,
+        uniform: 'Team%20Uniform/SOMMO__Uniform.jpg',
+        bio: `The name doesn't lie. Sommo has been, since 2019, the franchise that chose the path of strategy where others chose instinct. Their deep green is that of unexplored oceans, of long-term plans, of decisions that only make sense in hindsight. There's no need to shout when you're already the strongest in the room.`,
     },
 };
 
@@ -92,7 +92,7 @@ export function initTeam() {
         </header>
         <div class="section-inner team-bento" id="team-bento">
             <div class="bento-cell cell-history" style="--cell-i:0">
-                <div class="bento-cell-head"><h2 class="bento-cell-title">Storia</h2></div>
+                <div class="bento-cell-head"><h2 class="bento-cell-title">History</h2></div>
                 <div id="team-history">${spinner}</div>
             </div>
             <div class="bento-cell cell-stats" style="--cell-i:1">
@@ -104,25 +104,25 @@ export function initTeam() {
                     <img src="${team.logo}" alt="${team.name}" class="team-identity-logo"
                          onerror="this.style.display='none'">
                     <div>
-                        <h2 class="bento-cell-title">Il Franchise</h2>
-                        <span class="team-identity-sub">Dal 2019</span>
+                        <h2 class="bento-cell-title">The Franchise</h2>
+                        <span class="team-identity-sub">Since 2019</span>
                     </div>
                 </div>
                 <p class="team-bio">${team.bio}</p>
             </div>
             <div class="bento-cell cell-h2h" style="--cell-i:3">
-                <div class="bento-cell-head"><h2 class="bento-cell-title">Rivalità</h2></div>
+                <div class="bento-cell-head"><h2 class="bento-cell-title">Rivalry</h2></div>
                 <div id="team-h2h">${spinner}</div>
             </div>
             <div class="bento-cell cell-uniform" style="--cell-i:4">
-                <div class="bento-cell-head"><h2 class="bento-cell-title">Divisa</h2></div>
+                <div class="bento-cell-head"><h2 class="bento-cell-title">Uniform</h2></div>
                 <img src="${team.uniform}" alt="${team.name} Uniform" class="team-uniform-img"
                      onerror="this.style.display='none'">
             </div>
             <div class="bento-cell cell-players" style="--cell-i:5">
                 <div class="bento-cell-head">
                     <h2 class="bento-cell-title">Franchise Players</h2>
-                    <span class="bento-cell-sub">Draftati in 2+ stagioni</span>
+                    <span class="bento-cell-sub">Drafted in 2+ seasons</span>
                 </div>
                 <div class="team-flags" id="team-flags">${spinner}</div>
             </div>
@@ -168,8 +168,8 @@ function renderQuickStats(at) {
     const chips = [
         { label: 'Record', value: `${at.w}–${at.l}${at.t ? `–${at.t}` : ''}` },
         { label: 'Win %', value: `${winPct.toFixed(1)}%`, count: winPct, decimals: 1, suffix: '%' },
-        { label: 'Titoli', value: String(at.sbWins.length), count: at.sbWins.length, decimals: 0 },
-        { label: 'Punti fatti', value: fmtPts(at.pf), count: at.pf, decimals: 0 },
+        { label: 'Titles', value: String(at.sbWins.length), count: at.sbWins.length, decimals: 0 },
+        { label: 'Points scored', value: fmtPts(at.pf), count: at.pf, decimals: 0 },
     ];
     el.innerHTML = chips.map((c, i) => `
         <div class="th-chip" style="--chip-i:${i}">
@@ -234,14 +234,14 @@ function _renderStickers(badges, isReigningChamp, champYear) {
     if (isReigningChamp) {
         _badgesByTile['reigning-champ'] = {
             badge: {
-                name: 'Campione in carica',
-                description: `Detentore del titolo Topina League ${champYear}.`,
-                instances: [{ season: champYear, detail: 'Regna finché qualcuno non lo detronizza' }],
+                name: 'Reigning Champion',
+                description: `Holder of the ${champYear} Topina League title.`,
+                instances: [{ season: champYear, detail: 'Reigns until someone dethrones them' }],
             },
         };
         // Al CENTRO della rosa: è il primo della spirale
         items.unshift({
-            id: 'reigning-champ', name: 'Campione in carica', svg: champStickerSVG(), champ: true,
+            id: 'reigning-champ', name: 'Reigning Champion', svg: champStickerSVG(), champ: true,
         });
     }
 
@@ -397,7 +397,7 @@ function bindStickerPop(section) {
         const list = instances.length
             ? `<ul class="badge-pop-list">${instances.map(i =>
                 `<li>${i.season ? `<strong>${i.season}</strong> · ` : ''}${i.detail || ''}</li>`).join('')}</ul>`
-            : '<p class="badge-pop-locked">Non ancora sbloccato</p>';
+            : '<p class="badge-pop-locked">Not unlocked yet</p>';
         pop.innerHTML = `
             <div class="badge-pop-name">${badge.name}</div>
             <div class="badge-pop-desc">${badge.description}</div>
@@ -450,16 +450,16 @@ function renderAllTime(at) {
     const winPct = at.games ? (at.w / at.games * 100) : 0;
     el.innerHTML = `
         <div class="at-record">${at.w}<span class="at-record-sep">–</span>${at.l}${at.t ? `<span class="at-record-sep">–</span>${at.t}` : ''}</div>
-        <div class="at-record-label">Record all-time</div>
+        <div class="at-record-label">All-time record</div>
         <div class="at-winbar"><div class="at-winbar-fill" style="width:${winPct.toFixed(1)}%"></div></div>
-        <div class="at-winbar-label">${winPct.toFixed(1)}% vittorie</div>
+        <div class="at-winbar-label">${winPct.toFixed(1)}% wins</div>
         <div class="at-ministats">
-            <div class="at-ministat"><span class="at-ms-value">${fmtPts(at.pf)}</span><span class="at-ms-label">Punti fatti</span></div>
-            <div class="at-ministat"><span class="at-ms-value">${fmtPts(at.pa)}</span><span class="at-ms-label">Punti subiti</span></div>
-            <div class="at-ministat"><span class="at-ms-value">${at.sbApps.length}</span><span class="at-ms-label">Finali giocate</span></div>
-            <div class="at-ministat"><span class="at-ms-value">${at.bestStreak.len || '—'}</span><span class="at-ms-label">Streak max</span></div>
-            <div class="at-ministat"><span class="at-ms-value">${at.highGame ? fmtScore(at.highGame.pts) : '—'}</span><span class="at-ms-label">Miglior gara${at.highGame ? ` · ${at.highGame.season}` : ''}</span></div>
-            <div class="at-ministat"><span class="at-ms-value">${at.games ? fmtScore(at.pf / at.games) : '—'}</span><span class="at-ms-label">Media punti</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${fmtPts(at.pf)}</span><span class="at-ms-label">Points scored</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${fmtPts(at.pa)}</span><span class="at-ms-label">Points allowed</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.sbApps.length}</span><span class="at-ms-label">Finals played</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.bestStreak.len || '—'}</span><span class="at-ms-label">Best streak</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.highGame ? fmtScore(at.highGame.pts) : '—'}</span><span class="at-ms-label">Best game${at.highGame ? ` · ${at.highGame.season}` : ''}</span></div>
+            <div class="at-ministat"><span class="at-ms-value">${at.games ? fmtScore(at.pf / at.games) : '—'}</span><span class="at-ms-label">Avg. points</span></div>
         </div>
     `;
 }
@@ -476,7 +476,7 @@ function renderHistory(league, teamKey) {
         if (!t || !t.games.length) return '';
         let chip;
         if (!s.complete) {
-            chip = '<span class="hist-chip hist-chip--live">In corso</span>';
+            chip = '<span class="hist-chip hist-chip--live">In progress</span>';
         } else if (t.sbWin) {
             chip = '<span class="hist-chip hist-chip--champ">Champion</span>';
         } else if (t.sbAppearance) {
@@ -494,7 +494,7 @@ function renderHistory(league, teamKey) {
             ${chip}
         </div>`;
     }).join('');
-    el.innerHTML = rows || '<p class="empty-state-text">Nessuna stagione disputata.</p>';
+    el.innerHTML = rows || '<p class="empty-state-text">No seasons played.</p>';
 }
 
 function renderH2H(at, teamKey) {
@@ -522,7 +522,7 @@ function renderFlags(players) {
     const container = document.getElementById('team-flags');
     if (!container) return;
     if (!players.length) {
-        container.innerHTML = `<p class="empty-state-text">Nessun giocatore ripescato in più stagioni.</p>`;
+        container.innerHTML = `<p class="empty-state-text">No player drafted in multiple seasons.</p>`;
         return;
     }
 

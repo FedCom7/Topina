@@ -61,26 +61,26 @@ function initSearch(navbar) {
     // Scelto un risultato si naviga (hash link) e si chiude tutto
     results.addEventListener('click', (e) => { if (e.target.closest('a')) closeSearch(); });
 
-    const teamsGroup = (t) => t.length ? `<div class="ps-group"><h3 class="pp-cat-title">Squadre NFL</h3>${t.map(resultRow).join('')}</div>` : '';
-    const playersGroup = (p) => p.length ? `<div class="ps-group"><h3 class="pp-cat-title">Giocatori</h3>${p.map(resultRow).join('')}</div>` : '';
+    const teamsGroup = (t) => t.length ? `<div class="ps-group"><h3 class="pp-cat-title">NFL Teams</h3>${t.map(resultRow).join('')}</div>` : '';
+    const playersGroup = (p) => p.length ? `<div class="ps-group"><h3 class="pp-cat-title">Players</h3>${p.map(resultRow).join('')}</div>` : '';
 
     input.addEventListener('input', async () => {
         const q = input.value.trim();
         if (q.length < 2) {
             results.innerHTML = q.length
-                ? '<p class="pm-empty">Scrivi almeno 2 caratteri.</p>'
-                : '<p class="pm-empty">Inizia a scrivere per cercare — es. un nome, o "Chiefs".</p>';
+                ? '<p class="pm-empty">Type at least 2 characters.</p>'
+                : '<p class="pm-empty">Start typing to search — e.g. a name, or "Chiefs".</p>';
             return;
         }
         // Le squadre sono un lookup statico: si mostrano subito, senza attendere
         // l'indice giocatori (buildPlayerIndex legge tutte le stagioni da Firebase).
         const teams = teamResults(q);
-        results.innerHTML = teamsGroup(teams) || '<p class="pm-empty">Ricerca giocatori...</p>';
+        results.innerHTML = teamsGroup(teams) || '<p class="pm-empty">Searching players...</p>';
 
         const index = await buildPlayerIndex();
         if (input.value.trim() !== q) return; // l'utente ha già scritto altro
         const players = playerResults(q, index);
-        if (!teams.length && !players.length) { results.innerHTML = '<p class="pm-empty">Nessun risultato.</p>'; return; }
+        if (!teams.length && !players.length) { results.innerHTML = '<p class="pm-empty">No results.</p>'; return; }
         results.innerHTML = `${teamsGroup(teams)}${playersGroup(players)}`;
     });
 }
@@ -152,7 +152,13 @@ function initDropdowns(navbar) {
 function buildLevel2(navbar) {
     const el = document.createElement('div');
     el.className = 'nav-l2';
-    el.innerHTML = `<ul class="nav-l2-list"></ul>`;
+    el.innerHTML = `
+        <button class="nav-l2-back" type="button">
+            <span class="nav-l2-back-icon" aria-hidden="true">‹</span>
+            <span class="nav-l2-back-label">Back</span>
+        </button>
+        <span class="nav-l2-title"></span>
+        <ul class="nav-l2-list"></ul>`;
     navbar.appendChild(el);
 
     return {

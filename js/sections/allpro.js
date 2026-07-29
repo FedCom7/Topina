@@ -5,9 +5,9 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=32';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=13';
-import { TEAMS } from './team.js?v=23';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=25';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=14';
+import { TEAMS } from './team.js?v=25';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=26';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
@@ -41,19 +41,19 @@ function renderYearSelector() {
 async function loadYear(year) {
     currentYear = year;
     const wrap = document.getElementById('allpro-content');
-    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento All-Pro ${year}...</p></div>`;
+    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year} All-Pro...</p></div>`;
 
     const bundle = await getHonorsBundle(year);
     if (!bundle) {
-        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato per la stagione ${year}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
         return;
     }
 
     if (!bundle.rsComplete) {
         wrap.innerHTML = `
         <div class="honors-teaser">
-            <h2 class="honors-teaser-title">Selezioni in corso</h2>
-            <p class="honors-teaser-text">L'All-Pro Team viene selezionato a regular season conclusa, insieme ai Topina Honors.</p>
+            <h2 class="honors-teaser-title">Selections in progress</h2>
+            <p class="honors-teaser-text">The All-Pro Team is selected once the regular season ends, together with the Topina Honors.</p>
         </div>`;
         return;
     }
@@ -74,8 +74,8 @@ function allProTeamHTML(label, team, tier) {
         <div class="allpro-car-head">
             <h2 class="allpro-team-label">${label}</h2>
             <div class="allpro-car-nav">
-                <button class="allpro-car-btn" data-dir="-1" aria-label="Precedente">‹</button>
-                <button class="allpro-car-btn" data-dir="1" aria-label="Successivo">›</button>
+                <button class="allpro-car-btn" data-dir="-1" aria-label="Previous">‹</button>
+                <button class="allpro-car-btn" data-dir="1" aria-label="Next">›</button>
             </div>
         </div>
         <div class="allpro-track">${figs}</div>
