@@ -3,7 +3,7 @@
  */
 import { initHome } from './sections/home.js?v=48';
 import { initGameCenter } from './sections/game-center.js?v=45';
-import { initStandings, initPlayoffs } from './sections/standings.js?v=47';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=50';
 import { initDraft } from './sections/draft.js?v=44';
 import { initDraftGrades } from './sections/draftgrades.js?v=28';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=26';

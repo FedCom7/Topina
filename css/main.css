@@ -2803,23 +2803,12 @@ img {
         display: flex;
     }
 
-    /* Bracket: semifinale | Topina Bowl (rialzata) | semifinale */
-    .pob-bracket {
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 22px 2px 10px;
-    }
-
-    .pob-semi {
-        flex: 1 1 0;
-        min-width: 0;
+    /* Bracket ad angoli: squadre ai bordi sx/dx, vincitori al centro, righe collegate da linee */
+    .pob-corners {
         display: flex;
         flex-direction: column;
-        background: var(--surface-card);
-        border: 1px solid var(--border-subtle);
-        border-radius: 12px;
-        padding: 6px 6px 4px;
+        gap: 26px;
+        padding: 16px 2px 10px;
     }
 
     .pob-label {
@@ -2829,50 +2818,92 @@ img {
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: var(--text-muted);
-        padding: 2px 4px 6px;
+        text-align: center;
     }
 
-    .pob-final {
-        flex: 1.2 1 0;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        background: color-mix(in srgb, var(--surface-card) 90%, #000);
-        border: 1px solid color-mix(in srgb, var(--accent-amber) 32%, var(--border-subtle));
-        border-radius: 14px;
-        padding: 6px;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
-        transform: translateY(-14px);
-        z-index: 2;
+    .pob-corners-divider {
+        font-family: var(--font-display);
+        font-size: 0.66rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent-amber);
+        text-align: center;
     }
 
-    .pob-trophy {
+    .pob-corner-row {
         position: relative;
         display: flex;
         align-items: center;
-        justify-content: center;
-        padding: 4px 0 8px;
+        justify-content: space-between;
+        gap: 22px;
     }
 
-    .pob-trophy-img {
-        width: 66px;
-        height: 66px;
-        object-fit: contain;
-        filter: drop-shadow(0 3px 9px rgba(0, 0, 0, 0.6));
+    .pob-corner-team {
+        position: relative;
+        flex: 1 1 0;
+        min-width: 0;
     }
 
-    .pob-trophy-year {
+    .pob-corner-team--left {
+        border-left: 3px solid var(--team-color);
+        padding-left: 6px;
+    }
+
+    .pob-corner-team--right {
+        border-right: 3px solid var(--team-color);
+        padding-right: 6px;
+    }
+
+    .pob-corner-team--right .pob-team {
+        flex-direction: row-reverse;
+        text-align: right;
+    }
+
+    /* Linee di collegamento verso la card centrale */
+    .pob-corner-team--left::after,
+    .pob-corner-team--right::before {
+        content: '';
         position: absolute;
-        top: 46%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-family: var(--font-display);
-        font-size: 0.5rem;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        color: #fff;
-        opacity: 0.9;
-        pointer-events: none;
+        top: 50%;
+        width: 22px;
+        height: 2px;
+        background: var(--team-color);
+        opacity: 0.7;
+    }
+
+    .pob-corner-team--left::after {
+        right: -22px;
+    }
+
+    .pob-corner-team--right::before {
+        left: -22px;
+    }
+
+    .pob-corner-team--lose::after,
+    .pob-corner-team--lose::before {
+        opacity: 0.3;
+        filter: grayscale(60%);
+    }
+
+    .pob-corner-mid {
+        flex: 0 0 auto;
+        width: 74px;
+        background: color-mix(in srgb, var(--surface-card) 90%, #000);
+        border: 1px solid color-mix(in srgb, var(--accent-amber) 30%, var(--border-subtle));
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    .pob-corner-mid .pob-team {
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 4px;
+        text-align: center;
+    }
+
+    .pob-corner-mid .pob-abbr {
+        white-space: normal;
     }
 
     /* Riga squadra */
@@ -5278,8 +5309,18 @@ img {
     }
 
     .allpro-fig {
-        flex-basis: 150px;
-        width: 150px;
+        flex-basis: 64vw;
+        width: 64vw;
+        max-width: 250px;
+        scroll-snap-align: center;
+    }
+
+    .allpro-fig:first-child {
+        margin-left: calc(50% - min(32vw, 125px));
+    }
+
+    .allpro-fig:last-child {
+        margin-right: calc(50% - min(32vw, 125px));
     }
 
     .allpro-car-btn {
