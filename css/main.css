@@ -810,6 +810,8 @@ img {
     border-radius: var(--radius-lg);
     /* Ensure it scales properly */
     object-fit: contain;
+    /* scurisce lo sfondo così le foto e i punteggi risaltano */
+    filter: brightness(0.62) saturate(0.92);
 }
 
 .field-overlay {
@@ -926,6 +928,36 @@ img {
     border-color: #fbbf24;
 }
 
+/* Game Center — giocatori in campo con foto tonda e nome/punti sotto, come
+   nella pagina Live. Panchine (.bench-slot) e marcatori OL restano invariati. */
+.matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    backdrop-filter: none;
+}
+
+.matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x):hover {
+    box-shadow: none;
+}
+
+.matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-photo {
+    width: clamp(34px, 4.4vw, 60px);
+    height: clamp(34px, 4.4vw, 60px);
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    margin: 0 auto 2px;
+}
+
+.matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-name,
+.matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-pts {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+}
+
 /* SPECIAL SLOTS (DEF/K) - Absolute Positioning */
 .special-slot {
     position: absolute;
@@ -1027,11 +1059,11 @@ img {
     /* Bright white border */
     color: rgba(255, 255, 255, 1);
     /* Bright white X */
-    font-size: 0.85rem;
+    font-size: 0.68rem;
     font-weight: 900;
-    min-width: 22px;
-    max-width: 22px;
-    padding: 4px 0;
+    min-width: 17px;
+    max-width: 17px;
+    padding: 2px 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1289,10 +1321,10 @@ img {
     }
 
     .formation-slot.oline-x {
-        min-width: 16px;
-        max-width: 16px;
+        min-width: 13px;
+        max-width: 13px;
         padding: 1px 0;
-        font-size: 0.6rem;
+        font-size: 0.5rem;
     }
 
     /* DEF/K: flow in layout (no absolute positioning on mobile) */
@@ -10909,5 +10941,957 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     .section-inner > .section-header.nfl-year-header {
         position: fixed;
         top: 110px;
+    }
+}
+
+/* ================================
+   LIVE MATCHUP CENTER (#live)
+   Palette dedicata stile "regia ESPN": dark, glow colorato, glassmorphism
+   leggero. Riusa gb-live-dot/mosaic-card dove possibile invece di duplicare.
+   ================================ */
+
+.live-page-inner {
+    --live-bg: #080808;
+    --live-card: #151515;
+    --live-border: #2a2a2a;
+    --live-red: #ef4444;
+    --live-yellow: #eab308;
+    --live-blue: #3b82f6;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.live-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 2px 20px;
+    flex-wrap: wrap;
+}
+
+.live-header-kicker {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-green);
+}
+
+.live-header-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-top: 4px;
+}
+
+.live-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.live-header-updated {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.live-refresh-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--live-border);
+    background: var(--live-card);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.live-refresh-btn:hover {
+    transform: rotate(45deg);
+    border-color: var(--accent-green);
+}
+
+.live-team-selector {
+    margin-bottom: 18px;
+}
+
+.live-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+}
+
+.live-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+/* ── Matchup card ── */
+.live-matchup-card {
+    position: relative;
+    background: var(--live-card);
+    border: 1px solid var(--live-border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.live-matchup-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 60% 100% at 0% 50%, color-mix(in srgb, var(--tc1) 18%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 100% at 100% 50%, color-mix(in srgb, var(--tc2) 18%, transparent) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.live-mc-teams {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.live-mc-side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.live-mc-side--right {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.live-mc-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.live-mc-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.live-mc-scores {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.live-mc-score {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    transition: color var(--dur-med) var(--ease);
+}
+
+.live-mc-score.winner {
+    color: var(--text-primary);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--accent-green) 40%, transparent);
+}
+
+.live-mc-sep {
+    color: var(--text-muted);
+    font-size: 1.4rem;
+}
+
+.live-mc-probbar {
+    position: relative;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tc2) 30%, var(--live-border));
+    margin-top: 18px;
+    overflow: hidden;
+}
+
+.live-mc-probfill {
+    height: 100%;
+    background: var(--tc1);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--tc1) 60%, transparent);
+    transition: width var(--dur-med) var(--ease);
+}
+
+.live-mc-probLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ── Campo (una sola squadra, stessa formazione a colonne di Game Center) ── */
+.live-field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.live-field-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-primary);
+}
+
+/* i nomi squadra usano .tname (display:block): qui devono restare in linea */
+.live-field-label .tname {
+    display: inline-block;
+    width: auto;
+}
+
+.live-field-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-compare-btn {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--live-border);
+    background: var(--live-card);
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.live-compare-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-green);
+}
+
+.live-compare-btn--on {
+    color: #fff;
+    border-color: var(--accent-green);
+    background: color-mix(in srgb, var(--accent-green) 22%, var(--live-card));
+}
+
+/* Palco che contiene campo/confronto + freccia laterale */
+.live-stage {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 22px;
+}
+
+.live-stage > .live-field-solo,
+.live-stage > .live-compare {
+    margin-bottom: 0;
+}
+
+/* Freccia accanto all'immagine: destra sulla prima squadra, sinistra sull'avversario */
+.live-swap-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 4;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(10, 10, 10, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.live-swap-btn--right { right: 12px; }
+.live-swap-btn--left { left: 12px; }
+
+.live-swap-btn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: rgba(0, 0, 0, 0.85);
+}
+
+/* Entrata della scheda avversaria dal lato della freccia */
+@keyframes live-slide-from-right {
+    from { opacity: 0.4; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes live-slide-from-left {
+    from { opacity: 0.4; transform: translateX(-100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.live-slide-right { animation: live-slide-from-right 0.42s var(--ease) both; }
+.live-slide-left { animation: live-slide-from-left 0.42s var(--ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+    .live-slide-right,
+    .live-slide-left { animation: none; }
+}
+
+/* ── Vista confronto titolari ── */
+.live-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 10px;
+    border: 1px solid var(--live-border);
+    border-radius: var(--radius-lg);
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--tc1) 12%, transparent) 0%, transparent 32%,
+            transparent 68%, color-mix(in srgb, var(--tc2) 12%, transparent) 100%),
+        var(--live-card);
+    margin-bottom: 22px;
+}
+
+.live-cmp-vs {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* foto | nome | stats | punti | ruolo | punti | stats | nome | foto
+   I nomi stanno ai bordi, le stats accostate al punteggio centrale. */
+.live-cmp-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.live-cmp-who {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.live-cmp-who--r {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.live-cmp-meta {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.live-cmp-row:last-child {
+    border-bottom: none;
+}
+
+.live-cmp-photo {
+    width: clamp(38px, 4.4vw, 54px);
+    height: clamp(38px, 4.4vw, 54px);
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.live-cmp-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.live-cmp-photo--empty {
+    opacity: 0.25;
+}
+
+.live-cmp-slot {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-align: center;
+    min-width: 44px;
+}
+
+.live-cmp-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Punti al centro della riga, come in Game Center */
+.live-cmp-pts {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    min-width: 52px;
+    text-align: center;
+    opacity: 0.45;
+}
+
+.live-cmp-pts--win {
+    color: var(--accent-green);
+    opacity: 1;
+}
+
+/* Riquadri stat stile Game Center: valore sopra, etichetta micro sotto.
+   Spenti di default, accesi per chi ha fatto più punti nella riga. */
+.live-cmp-stats {
+    display: flex;
+    gap: 2px 12px;
+    opacity: 0.45;
+    white-space: nowrap;
+}
+
+.live-cmp-stats--l { justify-content: flex-end; }
+.live-cmp-stats--r { justify-content: flex-start; }
+.live-cmp-stats--win { opacity: 1; }
+
+.live-cmp-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.05;
+}
+
+.live-cmp-mini b {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.live-cmp-mini i {
+    font-style: normal;
+    font-size: 0.52rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.live-cmp-empty {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+    .live-cmp-row {
+        gap: 6px;
+    }
+
+    .live-cmp-slot {
+        min-width: 30px;
+        font-size: 0.6rem;
+    }
+
+    .live-cmp-name {
+        font-size: 0.7rem;
+    }
+
+    .live-cmp-pts {
+        font-size: 0.9rem;
+    }
+}
+
+/* Campo orizzontale con l'immagine nel suo verso naturale (end zone in alto,
+   yard line orizzontali); i giocatori stanno su righe orizzontali parallele
+   alle yard line: scrimmage → QB → RB → K/DEF. */
+/* Campo largo quanto il banner del punteggio sopra. Il rapporto è più alto
+   del 16:9 perché deve contenere 4 file di figurine senza tagliarle. */
+.live-field-solo {
+    aspect-ratio: 16 / 11;
+    background: #0d1214;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    margin-bottom: 22px;
+}
+
+.live-field-solo .field-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    filter: brightness(0.55) saturate(0.88);
+}
+
+/* Reparti spinti verso il basso: K/DEF restano in end zone, il resto scende. */
+.live-formation-stack {
+    position: absolute;
+    inset: 17% 3% 2%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.live-row--backfield {
+    gap: clamp(14px, 3vw, 46px);
+}
+
+/* Squadra selezionata: contorno del nome nel colore del team. */
+/* La squadra non selezionata resta "spenta" */
+.live-scorebar .gc-banner-name {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+/* Il contorno segue la squadra selezionata (--tc-sel), non il lato del banner. */
+.live-scorebar .gc-banner-name.live-name-selected {
+    opacity: 1;
+    color: #fff;
+    /* schiarito: colori scuri come il bordeaux di Oscurus sparirebbero sul fondo nero */
+    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--tc-sel) 62%, #fff);
+    paint-order: stroke fill; /* il contorno resta fuori, l'interno bianco pieno */
+    text-shadow: 0 0 20px color-mix(in srgb, var(--tc-sel) 55%, transparent);
+}
+
+/* K/DEF in cima (verso la end zone), tutto il resto compattato in basso. */
+.live-formation-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.2vh, 14px);
+    margin-top: auto; /* spinge attacco e backfield verso il fondo campo */
+}
+
+.live-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 0.8vw, 12px);
+}
+
+.live-row--line {
+    gap: clamp(2px, 0.5vw, 8px);
+}
+
+/* ── Giocatore sul campo: foto tonda + nome/punti + riquadro stats, senza card ── */
+.live-field-solo .formation-slot.live-slot {
+    position: relative;
+    width: clamp(74px, 9.2vw, 118px);
+    min-width: 74px;
+    max-width: 118px;
+    padding: 0;
+    gap: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow: visible;
+}
+
+.live-field-solo .formation-slot.live-slot .slot-photo {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    margin: 0 auto;
+    /* vetro smerigliato: il campo si intravede ma sfocato */
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+
+.live-field-solo .formation-slot.live-slot .slot-name {
+    display: block;
+    font-size: clamp(0.75rem, 1vw, 0.95rem);
+    font-weight: 800;
+    padding: 4px 2px 0;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+}
+
+.live-field-solo .formation-slot.live-slot .slot-pts {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(0.72rem, 0.95vw, 0.92rem);
+    font-weight: 900;
+    color: var(--accent-green);
+    line-height: 1.1;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+/* Statistiche in un riquadro sotto la foto */
+/* Riquadro statistiche identico per tutti: griglia fissa 2×2. */
+.live-slot-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px 4px;
+    padding: 3px 4px;
+    margin: 3px 0 0;
+    line-height: 1.2;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.live-stat {
+    font-size: clamp(0.56rem, 0.72vw, 0.7rem);
+    color: rgba(255, 255, 255, 0.72);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+.live-stat b {
+    color: #fff;
+    font-weight: 700;
+}
+
+.live-stat--zero {
+    opacity: 0.4;
+}
+
+/* chi sta giocando ora: anello oro attorno alla foto */
+.live-field-solo .formation-slot.live-slot--live .slot-photo {
+    border-color: var(--accent-amber);
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5);
+}
+
+.live-slot-dot {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    margin: 0;
+    z-index: 3;
+}
+
+.live-slot-inj {
+    display: block;
+    font-size: 0.48rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--live-yellow);
+    padding-bottom: 2px;
+}
+
+.live-field-solo .formation-slot.oline-x {
+    min-width: 15px;
+    max-width: 15px;
+    width: 15px;
+    padding: 1px 0;
+    font-size: 0.6rem;
+}
+
+/* ── Scontrini ── */
+.live-receipts-card {
+    max-height: 620px;
+    display: flex;
+    flex-direction: column;
+}
+
+.live-receipts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.live-receipt {
+    border: 1px dashed var(--live-border);
+    border-radius: 8px;
+    padding: 10px;
+    background: #101010;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+.live-receipt--big {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--accent-amber) 45%, var(--live-border));
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent-amber) 12%, transparent);
+}
+
+/* "stampa" dello scontrino appena arrivato */
+.live-receipt--new {
+    animation: live-print 0.45s var(--ease) backwards;
+}
+
+@keyframes live-print {
+    from { opacity: 0; transform: translateY(-10px) scaleY(0.7); transform-origin: top; }
+    to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-receipt--new { animation: none; }
+}
+
+.live-receipt-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    border-bottom: 1px dashed var(--live-border);
+    padding-bottom: 6px;
+}
+
+.live-receipt-type {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-primary);
+}
+
+.live-receipt-time {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+.live-receipt-player {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 6px 0;
+}
+
+.live-receipt-team {
+    color: var(--text-muted);
+    font-size: 0.65rem;
+}
+
+.live-receipt-lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.live-receipt-lines li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.live-receipt-lines b.pos { color: var(--accent-green); }
+.live-receipt-lines b.neg { color: var(--live-red); }
+
+.live-receipt-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--live-border);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.live-receipt-total.pos b { color: var(--accent-green); }
+.live-receipt-total.neg b { color: var(--live-red); }
+.live-receipt-total.flat b { color: var(--text-muted); }
+
+/* ── Chip giocatore ── */
+.live-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1c1c1c;
+    border: 1px solid var(--live-border);
+    border-radius: 12px;
+    padding: 6px 10px 6px 6px;
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+    min-width: 0;
+}
+
+.live-chip:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-green);
+}
+
+.live-chip--empty {
+    visibility: hidden;
+}
+
+.live-chip--live {
+    border-color: color-mix(in srgb, var(--accent-green) 55%, var(--live-border));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-green) 25%, transparent);
+}
+
+.live-chip--injury {
+    opacity: 0.75;
+}
+
+.live-chip-photo {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #000;
+}
+
+.live-chip-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.live-chip-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    margin: 0;
+}
+
+.live-chip-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+}
+
+.live-chip-pts {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.live-chip-injury-badge {
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--live-yellow);
+}
+
+/* ── Roster live / sidebar ── */
+.live-card {
+    background: var(--live-card);
+    border-color: var(--live-border);
+}
+
+.live-roster-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.live-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.live-side-card {
+    background: var(--live-card);
+    border-color: var(--live-border);
+    padding: 16px;
+}
+
+.live-side-player {
+    margin-top: 10px;
+}
+
+.live-side-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.live-injury-tag {
+    color: var(--live-yellow);
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .live-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .live-header-title {
+        font-size: 1.4rem;
+    }
+
+    .live-mc-score {
+        font-size: 1.6rem;
+    }
+
+    .live-mc-name {
+        font-size: 0.8rem;
+    }
+
+    .live-chip-name {
+        max-width: 60px;
     }
 }

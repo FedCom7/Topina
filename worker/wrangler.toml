@@ -1,0 +1,5 @@
+name = "topina-espn-live-proxy"
+main = "espn-live-proxy.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (mai in questo file): wrangler secret put ESPN_S2 / ESPN_SWID

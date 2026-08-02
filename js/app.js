@@ -20,6 +20,7 @@ import { initTeams } from './sections/teams.js?v=14';
 import { initGame } from './sections/game.js?v=27';
 import { initAnalysis } from './sections/analysis.js?v=27';
 import { initMagazine } from './sections/magazine.js?v=29';
+import { initLive } from './sections/live.js?v=18';
 import { initNavbar } from './ui/navbar.js?v=15';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 
@@ -39,6 +40,7 @@ const SECTIONS = {
     'halloffame': initHallOfFame,
     'magazine': initMagazine,
     'players': initPlayersSearch,
+    'live': initLive,
 };
 
 // Sezioni raggiungibili solo dai dropdown: nel nav si evidenzia la voce madre

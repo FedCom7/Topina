@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=176">
+    <link rel="stylesheet" href="css/main.css?v=210">
 </head>
 
 <body>
@@ -32,6 +32,7 @@
                 <li class="nav-item has-dropdown" data-dropdown="game-center">
                     <a href="#game-center" class="nav-link" data-section="game-center">Game Center</a>
                 </li>
+                <li class="nav-item"><a href="#live" class="nav-link" data-section="live">Live</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="standings">
                     <a href="#standings" class="nav-link" data-section="standings">Standings</a>
                 </li>
@@ -127,6 +128,18 @@
                 <div class="loading-state">
                     <div class="spinner"></div>
                     <p>Loading matchups...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== LIVE MATCHUP CENTER ====== -->
+    <section class="page-section" id="live">
+        <div class="section-inner live-page-inner">
+            <div id="live-root">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading live matchups...</p>
                 </div>
             </div>
         </div>
@@ -362,7 +375,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=143"></script>
+    <script type="module" src="js/app.js?v=160"></script>
 </body>
 
 </html>
