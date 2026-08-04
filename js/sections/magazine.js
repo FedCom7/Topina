@@ -16,7 +16,7 @@
 import {
     fetchFantasyData, displayName, SEASONS, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
-} from '../data.js?v=32';
+} from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=25';
 import { getLeagueData } from '../data/league-data.js?v=11';

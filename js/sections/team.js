@@ -5,7 +5,7 @@
  * identità, franchise players, rivalità, divisa.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=32';
+import { CURRENT_SEASON } from '../data.js?v=33';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
 import { computeTeamBadges } from '../data/badges.js?v=12';
 import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=18';

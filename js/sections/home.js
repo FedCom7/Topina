@@ -16,7 +16,7 @@
  * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=32';
+import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=33';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
 import { getHonorsBundle } from '../data/honors.js?v=14';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=13';

@@ -1,10 +1,20 @@
 name: Sync ESPN Fantasy Data
 
+# DISATTIVATO: nessuna esecuzione automatica.
+#
+# I dati di lega li produce e carica su Firebase lo script Python esterno; se
+# anche questo workflow scrivesse sugli stessi nodi, l'ultimo a girare
+# sovrascriverebbe l'altro (è già successo il 2026-08-04: qui è finito lo
+# scheletro ESPN a punteggi 0.00 al posto dei dati dello scraper).
+#
+# Resta solo l'avvio manuale (Actions → Run workflow), per i test. Per
+# riattivare la sincronizzazione settimanale basta togliere il commento al
+# blocco `schedule` qui sotto — ma prima va deciso quale dei due produttori
+# è quello ufficiale.
 on:
-  schedule:
-    # Martedì 09:00 UTC (dopo Monday Night Football) — settimana in-season.
-    # ESPN non ha overhead sensibile per una lega da 4 team: un run/settimana basta.
-    - cron: '0 9 * * 2'
+  # schedule:
+  #   # Martedì 09:00 UTC (dopo Monday Night Football)
+  #   - cron: '0 9 * * 2'
   workflow_dispatch:
     inputs:
       season:
@@ -18,12 +28,17 @@ on:
 jobs:
   sync-espn:
     runs-on: ubuntu-latest
+    # Serve per il `git push` finale: senza, il token di default è in sola
+    # lettura e il commit dei JSON fallisce con 403 (i dati su Firebase invece
+    # vengono caricati lo stesso, perché quel passo viene prima).
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: 'npm'

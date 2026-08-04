@@ -4,7 +4,7 @@
  * (QB, RB×2, WR×2, TE, FLEX, K, DEF), da js/data/honors.js.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=32';
+import { CURRENT_SEASON } from '../data.js?v=33';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=14';
 import { TEAMS } from './team.js?v=25';
 import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=26';

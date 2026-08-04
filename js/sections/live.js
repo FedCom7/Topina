@@ -12,7 +12,7 @@
  * scontrini, timeline, notifiche — vedi piano di sessione.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=32';
+import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=25';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
@@ -96,6 +96,13 @@ function teamOf(rawName) {
 
 const P = (m) => parseFloat(m) || 0;
 const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// Projections: before kickoff (started === false) show the projected value.
+// Older/real data without `started`/`projected_*` falls back to real points.
+const pIsProjected = (p) => p && p.started === false && p.projected_points != null;
+const effPts = (p) => P(pIsProjected(p) ? p.projected_points : p.fantasy_points);
+// Effective team score: projected total pre-game, real once points exist.
+const teamEffScore = (t) => (P(t.score) === 0 && t.projected_score != null ? P(t.projected_score) : P(t.score));
 
 export async function initLive() {
     if (loaded) return;
@@ -381,7 +388,9 @@ function teamSwitcherHTML(entries) {
 function matchupCardHTML(entry) {
     const { m, team: selected } = entry;
     const left = m.team1, right = m.team2;
-    const s1 = P(left.score), s2 = P(right.score);
+    const proj1 = P(left.score) === 0 && left.projected_score != null;
+    const proj2 = P(right.score) === 0 && right.projected_score != null;
+    const s1 = teamEffScore(left), s2 = teamEffScore(right);
     const t1 = teamOf(left.name), t2 = teamOf(right.name);
     const total = s1 + s2;
     const pct1 = total > 0 ? Math.round((s1 / total) * 100) : 50;
@@ -396,11 +405,11 @@ function matchupCardHTML(entry) {
                 <div class="gc-banner-side">
                     <span class="gc-banner-name${selLeft ? ' live-name-selected' : ''}">${teamNameHTML(t1?.name || left.name)}</span>
                 </div>
-                <span class="gc-banner-score${s1 >= s2 ? ' winner' : ''}">${fmt(s1)}</span>
+                <span class="gc-banner-score${s1 >= s2 ? ' winner' : ''}">${proj1 ? `<span class="proj-pts">${fmt(s1)}</span>` : fmt(s1)}</span>
                 <div class="gc-banner-mid">
                     <span class="gc-banner-vs">${isLiveSource ? 'live' : 'vs'}</span>
                 </div>
-                <span class="gc-banner-score${s2 >= s1 ? ' winner' : ''}">${fmt(s2)}</span>
+                <span class="gc-banner-score${s2 >= s1 ? ' winner' : ''}">${proj2 ? `<span class="proj-pts">${fmt(s2)}</span>` : fmt(s2)}</span>
                 <div class="gc-banner-side gc-banner-side-r">
                     <span class="gc-banner-name${selLeft ? '' : ' live-name-selected'}">${teamNameHTML(t2?.name || right.name)}</span>
                 </div>
@@ -430,7 +439,7 @@ function chip(p, side) {
             ${live ? '<i class="gb-live-dot live-chip-dot"></i>' : ''}
         </span>
         <span class="live-chip-name">${shortName(p)}</span>
-        <span class="live-chip-pts">${fmt(P(p.fantasy_points))}</span>
+        <span class="live-chip-pts">${pIsProjected(p) ? `<span class="proj-pts">${fmt(effPts(p))}</span>` : fmt(effPts(p))}</span>
         ${injury ? `<span class="live-chip-injury-badge">${injury}</span>` : ''}
     </div>`;
 }
@@ -473,7 +482,8 @@ function statLineHTML(p) {
     if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX') role = 'WR';
     if (role === 'D/ST') role = 'DEF';
     const keys = STATS_BY_ROLE[role] || STATS_BY_ROLE.WR;
-    const stats = p.stats || {};
+    // Before kickoff show the projected stat line (real stats are all zero).
+    const stats = (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {};
     return keys.map(k => {
         const v = statValue(stats, k);
         return `<span class="live-stat${v === 0 ? ' live-stat--zero' : ''}">
@@ -508,7 +518,7 @@ function fieldSlot(p, extraClass = '') {
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
         <span class="slot-name">${shortName(p)}</span>
-        <span class="slot-pts">${fmt(P(p.fantasy_points))}</span>
+        <span class="slot-pts">${pIsProjected(p) ? `<span class="proj-pts">${fmt(effPts(p))}</span>` : fmt(effPts(p))}</span>
         <span class="live-slot-stats">${statLineHTML(p)}</span>
         ${injury ? `<span class="live-slot-inj">${escAttr(injury)}</span>` : ''}
     </div>`;
@@ -598,8 +608,15 @@ function comparePhoto(p) {
  * in Game Center: i primi due valori escono sempre, il resto solo se > 0.
  */
 function compareStatsHTML(p) {
-    const s = p?.stats || {};
-    const n = (v) => Number(v) || 0;
+    // Prima del kickoff le stat reali sono tutte a zero: si mostrano le proiezioni
+    // (stesso criterio dei punti, vedi pIsProjected).
+    const proj = pIsProjected(p);
+    const s = (proj ? p?.projected_stats : p?.stats) || p?.stats || {};
+    // le proiezioni sono decimali (es. 2.52 ricezioni): una cifra basta
+    const n = (v) => {
+        const x = Number(v) || 0;
+        return proj ? Math.round(x * 10) / 10 : x;
+    };
     let role = (p?.position_in_team || p?.position || '').toUpperCase();
     if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX') role = 'WR';
     if (role === 'D/ST') role = 'DEF';
@@ -613,7 +630,8 @@ function compareStatsHTML(p) {
         DEF: [[n(s.sack), 'sack'], [n(s.def_int) + n(s.fum_rec), 'to'], [n(s.def_td), 'td']],
     };
     const list = (CANDIDATES[role] || CANDIDATES.WR).filter(([v], i) => i < 2 || v > 0).slice(0, 3);
-    return list.map(([v, l]) => `<span class="live-cmp-mini"><b>${v}</b><i>${l}</i></span>`).join('');
+    return list.map(([v, l]) =>
+        `<span class="live-cmp-mini"><b${proj ? ' class="proj-pts"' : ''}>${v}</b><i>${l}</i></span>`).join('');
 }
 
 /** Nome + ruolo/squadra, sul bordo esterno della riga. */
@@ -656,7 +674,7 @@ function compareHTML(team, opp) {
     <div class="live-stage">
     <div class="live-compare${slideClass()}" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
         ${pairs.map(({ slot, a, b }) => {
-        const pa = P(a?.fantasy_points), pb = P(b?.fantasy_points);
+        const pa = a ? effPts(a) : 0, pb = b ? effPts(b) : 0;
         const aWin = !!a && pa >= pb;
         const bWin = !!b && pb >= pa;
         return `
@@ -664,9 +682,9 @@ function compareHTML(team, opp) {
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}
-            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}">${a ? fmt(pa) : '—'}</span>
+            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}">${a ? (pIsProjected(a) ? `<span class="proj-pts">${fmt(pa)}</span>` : fmt(pa)) : '—'}</span>
             <span class="live-cmp-slot">${slot}</span>
-            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}">${b ? fmt(pb) : '—'}</span>
+            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}">${b ? (pIsProjected(b) ? `<span class="proj-pts">${fmt(pb)}</span>` : fmt(pb)) : '—'}</span>
             ${compareStatsBlock(b, bWin, 'r')}
             ${compareName(b, 'r')}
             ${comparePhoto(b)}
@@ -839,7 +857,7 @@ function flashNewReceipts(events) {
 
 function sidebarHTML(team, opp) {
     const all = [...(team.starters || []), ...(opp.starters || [])];
-    const top = all.reduce((best, p) => (P(p.fantasy_points) > P(best?.fantasy_points || 0) ? p : best), null);
+    const top = all.reduce((best, p) => (effPts(p) > (best ? effPts(best) : 0) ? p : best), null);
     const injuries = all.filter(p => p.injuryStatus && p.injuryStatus !== 'ACTIVE');
 
     return `

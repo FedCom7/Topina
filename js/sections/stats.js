@@ -1,4 +1,4 @@
-import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=32';
+import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=25';
 import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=27';

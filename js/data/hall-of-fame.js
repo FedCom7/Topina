@@ -9,7 +9,7 @@
  * negli anni successivi. Un eletto all'anno dal FIRST_CLASS_YEAR.
  */
 
-import { SEASONS, CURRENT_SEASON } from '../data.js?v=32';
+import { SEASONS, CURRENT_SEASON } from '../data.js?v=33';
 import { getHonorsBundle } from './honors.js?v=14';
 import { buildCareers } from './careers.js?v=14';
 

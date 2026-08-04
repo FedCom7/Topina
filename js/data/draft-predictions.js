@@ -16,7 +16,7 @@
  * RNG seedato per anno: risultati stabili tra i reload.
  */
 
-import { getSeasonConfig } from '../data.js?v=32';
+import { getSeasonConfig } from '../data.js?v=33';
 import { getTeamStats } from './nfl-team-stats.js?v=11';
 import { canonAbbr } from './nfl-schedule.js?v=11';
 import { resolveDefAbbrSync } from './player-full.js?v=13';

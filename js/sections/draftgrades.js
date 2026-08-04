@@ -20,7 +20,7 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=32';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=25';
 import { getHonorsBundle } from '../data/honors.js?v=14';

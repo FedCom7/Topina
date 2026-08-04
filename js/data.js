@@ -5,9 +5,41 @@
 import { db } from './firebase-config.js';
 import { ref, child, get } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js';
 
-// Available seasons in the database
-export const SEASONS = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
-export const CURRENT_SEASON = '2025';
+/**
+ * Stagioni disponibili — lette da Firebase all'avvio, non più scritte a mano.
+ *
+ * Lo script che carica i dati crea nodi `fantasy/fantasy_data_YYYY`: qui si
+ * chiede solo l'ELENCO delle chiavi (`?shallow=true`, poche centinaia di byte,
+ * non i ~750 KB di una stagione), così appena una nuova stagione viene
+ * caricata il sito la mostra senza toccare il codice.
+ *
+ * È un top-level await: data.js è importato da tutti gli altri moduli, quindi
+ * quando loro partono SEASONS e CURRENT_SEASON hanno già il valore giusto
+ * (diversi moduli li copiano in variabili al primo caricamento).
+ */
+const RTDB_URL = 'https://topina-9cd75-default-rtdb.firebaseio.com';
+const FALLBACK_SEASONS = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+
+async function discoverSeasons() {
+    try {
+        const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Request timed out')), 6000));
+        const res = await Promise.race([fetch(`${RTDB_URL}/fantasy.json?shallow=true`), timeout]);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const years = Object.keys(await res.json() || {})
+            .map(k => k.match(/^fantasy_data_(\d{4})$/)?.[1])
+            .filter(Boolean)
+            .sort();
+        return years.length ? years : FALLBACK_SEASONS;
+    } catch (e) {
+        // Rete/regole KO: si continua con l'elenco statico invece di lasciare il sito vuoto.
+        console.warn('[data] elenco stagioni non recuperabile, uso la lista statica:', e.message);
+        return FALLBACK_SEASONS;
+    }
+}
+
+export const SEASONS = await discoverSeasons();
+export const CURRENT_SEASON = SEASONS[SEASONS.length - 1];
 
 // Team display-name mapping (Firebase name → display name)
 const TEAM_DISPLAY_NAMES = {

@@ -6,7 +6,7 @@
  */
 
 import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=8';
-import { CURRENT_SEASON } from '../data.js?v=32';
+import { CURRENT_SEASON } from '../data.js?v=33';
 import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=1';
 
 function render(section) {

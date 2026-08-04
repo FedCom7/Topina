@@ -1,8 +1,8 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=48';
-import { initGameCenter } from './sections/game-center.js?v=45';
+import { initHome } from './sections/home.js?v=50';
+import { initGameCenter } from './sections/game-center.js?v=46';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=50';
 import { initDraft } from './sections/draft.js?v=44';
 import { initDraftGrades } from './sections/draftgrades.js?v=28';
@@ -20,7 +20,7 @@ import { initTeams } from './sections/teams.js?v=14';
 import { initGame } from './sections/game.js?v=27';
 import { initAnalysis } from './sections/analysis.js?v=27';
 import { initMagazine } from './sections/magazine.js?v=29';
-import { initLive } from './sections/live.js?v=18';
+import { initLive } from './sections/live.js?v=19';
 import { initNavbar } from './ui/navbar.js?v=15';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 
@@ -114,8 +114,21 @@ document.getElementById('nav-hamburger')?.addEventListener('click', () => {
 
 // Route on hash change and initial load
 window.addEventListener('hashchange', navigate);
-document.addEventListener('DOMContentLoaded', () => {
+
+/**
+ * Avvio. Non basta ascoltare DOMContentLoaded: data.js risolve le stagioni da
+ * Firebase con un top-level await, quindi questo modulo può essere eseguito
+ * quando l'evento è GIÀ scattato — in quel caso il listener non partirebbe mai
+ * e la pagina iniziale resterebbe in "Loading...".
+ */
+function boot() {
     initNavbar();
     startAutoAbbr();
     navigate();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+} else {
+    boot();
+}

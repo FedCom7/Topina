@@ -8,7 +8,7 @@
  * (1° e 2° team). Un eletto all'anno.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=32';
+import { CURRENT_SEASON } from '../data.js?v=33';
 import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=13';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=26';

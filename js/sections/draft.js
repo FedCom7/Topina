@@ -2,7 +2,7 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=32';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=25';
 import { playerImageService } from '../services/player-image-service.js?v=15';

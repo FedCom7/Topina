@@ -760,6 +760,23 @@ img {
     color: var(--text-primary);
 }
 
+/* Projected value (game not yet kicked off): dimmed + italic so it reads as an
+   estimate rather than a final score. */
+.proj-pts {
+    font-style: italic;
+    opacity: 0.7;
+    font-weight: inherit;
+}
+.proj-pts::after {
+    content: " PROI";
+    font-size: 0.6em;
+    font-style: normal;
+    letter-spacing: 0.05em;
+    vertical-align: super;
+    opacity: 0.85;
+}
+.slot-pts .proj-pts::after { content: "*"; vertical-align: baseline; }
+
 .gc-banner-mid {
     display: flex;
     flex-direction: column;

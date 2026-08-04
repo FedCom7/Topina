@@ -1,4 +1,4 @@
-import { fetchFantasyData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=32';
+import { fetchFantasyData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
 import { TEAMS } from './team.js?v=25';
 import { initPlayerModal } from '../components/player-modal.js?v=26';
@@ -28,6 +28,28 @@ function getFieldImage(team1Name, team2Name) {
     const k2 = TEAM_FIELD_KEYS[displayName(team2Name)];
     const file = (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
     return `${file}?v=${FIELD_IMG_VERSION}`;
+}
+
+// --- Solo dati REALI ---------------------------------------------------
+// Dal 2026 i dati portano anche `projected_points`/`projected_score`, ma qui
+// non si usano mai: il Game Center è il resoconto di quello che è successo
+// davvero, quindi prima del kickoff mostra zero. Le proiezioni stanno nella
+// pagina Live.
+function pEffPts(p) {
+    return parseFloat(p?.fantasy_points) || 0;
+}
+function pPtsHTML(p) {
+    return p.fantasy_points;
+}
+/** Matchup concluso: i dati vecchi non hanno `winner`, quindi sono sempre finali. */
+function mIsFinal(m) {
+    return !('winner' in m) || m.winner !== 'UNDECIDED';
+}
+function teamEffScore(t) {
+    return parseFloat(t?.score) || 0;
+}
+function teamScoreHTML(t) {
+    return t.score;
 }
 
 export async function initGameCenter() {
@@ -132,9 +154,10 @@ function renderMatchups() {
     }
 
     grid.innerHTML = matchups.map(({ m, idx }, i) => {
-        const s1 = parseFloat(m.team1.score);
-        const s2 = parseFloat(m.team2.score);
-        const w1 = s1 >= s2;
+        const s1 = teamEffScore(m.team1);
+        const s2 = teamEffScore(m.team2);
+        const w1 = mIsFinal(m) && s1 >= s2;
+        const w2 = mIsFinal(m) && s2 > s1;
 
         const logo1 = TEAM_LOGOS[displayName(m.team1.name)] || 'images/nfl_logo.png';
         const logo2 = TEAM_LOGOS[displayName(m.team2.name)] || 'images/nfl_logo.png';
@@ -152,12 +175,12 @@ function renderMatchups() {
                     <div class="gc-banner-side">
                         <span class="gc-banner-name">${teamNameHTML(m.team1.name)}</span>
                     </div>
-                    <span class="gc-banner-score${w1 ? ' winner' : ''}">${m.team1.score}</span>
+                    <span class="gc-banner-score${w1 ? ' winner' : ''}">${teamScoreHTML(m.team1)}</span>
                     <div class="gc-banner-mid">
                         <span class="gc-banner-vs">vs</span>
                         <span class="gc-banner-cta">Analysis <span aria-hidden="true">→</span></span>
                     </div>
-                    <span class="gc-banner-score${!w1 ? ' winner' : ''}">${m.team2.score}</span>
+                    <span class="gc-banner-score${w2 ? ' winner' : ''}">${teamScoreHTML(m.team2)}</span>
                     <div class="gc-banner-side gc-banner-side-r">
                         <span class="gc-banner-name">${teamNameHTML(m.team2.name)}</span>
                     </div>
@@ -230,7 +253,7 @@ function specialSlot(p, side, type) {
  */
 function modalAttrs(p, isBench = false) {
     const game = {
-        pts: parseFloat(p.fantasy_points) || 0,
+        pts: pEffPts(p),
         opponent: p.opponent || '',
         status: p.status || '',
         week: currentWeek,
@@ -266,7 +289,7 @@ function slotContent(p) {
                 data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}"
                 data-pos="${role}" data-year="${currentYear}"></span>
             <span class="slot-name">${shortName(p)}</span>
-            <span class="slot-pts">${p.fantasy_points}</span>`;
+            <span class="slot-pts">${pPtsHTML(p)}</span>`;
 }
 
 /** Riempie le foto degli slot dopo il render, senza bloccare (pattern draft/home). */

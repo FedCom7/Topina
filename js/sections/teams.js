@@ -7,7 +7,7 @@
 
 import { TEAMS } from './team.js?v=25';
 import { getLeagueData } from '../data/league-data.js?v=11';
-import { teamNameHTML } from '../data.js?v=32';
+import { teamNameHTML } from '../data.js?v=33';
 
 let loaded = false;
 

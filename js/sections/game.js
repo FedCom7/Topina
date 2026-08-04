@@ -6,7 +6,7 @@
  * confronto stats di squadra + difference maker → player notes.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=32';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
 import { getLeagueData } from '../data/league-data.js?v=11';
 import { getHonorsBundle } from '../data/honors.js?v=14';
