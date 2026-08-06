@@ -11259,8 +11259,10 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 
-.live-swap-btn--right { right: 12px; }
-.live-swap-btn--left { left: 12px; }
+/* La freccia vive dentro al campo (che ha overflow: hidden), quindi va tenuta
+   un po' più interna per non essere tagliata dal bordo arrotondato. */
+.live-swap-btn--right { right: 14px; }
+.live-swap-btn--left { left: 14px; }
 
 .live-swap-btn:hover {
     border-color: var(--accent-green);

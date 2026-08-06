@@ -651,10 +651,12 @@ function fieldHTML(team) {
                         ${fieldFormationHTML(team)}
                     </div>
                 </div>
+                <!-- la freccia sta DENTRO il campo: così resta centrata su di
+                     esso e non sull'insieme campo+panchina -->
+                ${swapArrowHTML()}
             </div>
             ${benchHTML(team)}
         </div>
-        ${swapArrowHTML()}
     </div>`;
 }
 
