@@ -760,22 +760,14 @@ img {
     color: var(--text-primary);
 }
 
-/* Projected value (game not yet kicked off): dimmed + italic so it reads as an
-   estimate rather than a final score. */
+/* Valore proiettato (partita non ancora iniziata): corsivo e attenuato, così
+   si legge come stima e non come punteggio definitivo. Nessuna etichetta
+   accanto al numero — lo stato è indicato dal badge in cima alla pagina. */
 .proj-pts {
     font-style: italic;
     opacity: 0.7;
     font-weight: inherit;
 }
-.proj-pts::after {
-    content: " PROI";
-    font-size: 0.6em;
-    font-style: normal;
-    letter-spacing: 0.05em;
-    vertical-align: super;
-    opacity: 0.85;
-}
-.slot-pts .proj-pts::after { content: "*"; vertical-align: baseline; }
 
 .gc-banner-mid {
     display: flex;
@@ -964,6 +956,7 @@ img {
     height: clamp(34px, 4.4vw, 60px);
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.35);
+    /* vetro smerigliato: il campo si intravede ma sfocato */
     background: rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(7px);
     -webkit-backdrop-filter: blur(7px);
@@ -10987,11 +10980,22 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     flex-wrap: wrap;
 }
 
+/* Titolo e stato sulla stessa riga: "2026 · Week 1"  [PROJECTED] */
+.live-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .live-header-kicker {
     display: inline-flex;
     align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
     font-family: var(--font-display);
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -11003,7 +11007,6 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     font-size: 1.8rem;
     font-weight: 800;
     color: var(--text-primary);
-    margin-top: 4px;
 }
 
 .live-header-right {
@@ -11276,12 +11279,105 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     to { opacity: 1; transform: translateX(0); }
 }
 
-.live-slide-right { animation: live-slide-from-right 0.42s var(--ease) both; }
-.live-slide-left { animation: live-slide-from-left 0.42s var(--ease) both; }
+/* entrata morbida: decelera dolcemente invece di frenare di colpo */
+.live-slide-right { animation: live-slide-from-right 0.46s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.live-slide-left { animation: live-slide-from-left 0.46s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
     .live-slide-right,
     .live-slide-left { animation: none; }
+}
+
+/* campo + panchina si muovono insieme durante lo scambio squadra */
+.live-field-slider {
+    will-change: transform, opacity;
+}
+
+/* ── Panchina sotto il campo (nessun riquadro: le card stanno sul fondo pagina) ── */
+/* Un solo riquadro attorno a tutta la panchina; i singoli giocatori dentro
+   non hanno box, come sul campo. */
+.live-bench {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--live-border);
+    border-radius: var(--radius-lg);
+    background: var(--live-card);
+}
+
+.live-bench-label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.live-bench-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px 18px;
+}
+
+/* Giocatori in panchina identici a quelli in campo: stessa larghezza, stessa
+   foto tonda grande, stesse statistiche — e nessun riquadro attorno al singolo
+   (lo stile base di .formation-slot ne disegnerebbe uno). */
+.live-bench .formation-slot.live-slot {
+    width: clamp(78px, 10vw, 132px);
+    min-width: 78px;
+    max-width: 132px;
+    padding: 0;
+    gap: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow: visible;
+    animation: none;
+}
+
+.live-bench .formation-slot.live-slot .slot-photo {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    margin: 0 auto;
+    /* vetro smerigliato: il campo si intravede ma sfocato */
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+
+.live-bench .formation-slot.live-slot .slot-name {
+    display: block;
+    font-size: clamp(0.75rem, 1vw, 0.95rem);
+    font-weight: 800;
+    padding: 4px 2px 0;
+    color: #fff;
+}
+
+.live-bench .formation-slot.live-slot .slot-pts {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(0.72rem, 0.95vw, 0.92rem);
+    font-weight: 900;
+    color: var(--accent-green);
+    line-height: 1.1;
+}
+
+/* icona "proiezione" nel badge di stato in cima */
+.live-proj-icon {
+    vertical-align: -2px;
+    margin-right: 3px;
+}
+
+.live-header-kicker:has(.live-proj-icon) {
+    color: var(--live-blue);
 }
 
 /* ── Vista confronto titolari ── */
@@ -11537,9 +11633,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 /* ── Giocatore sul campo: foto tonda + nome/punti + riquadro stats, senza card ── */
 .live-field-solo .formation-slot.live-slot {
     position: relative;
-    width: clamp(74px, 9.2vw, 118px);
-    min-width: 74px;
-    max-width: 118px;
+    width: clamp(78px, 10vw, 132px);
+    min-width: 78px;
+    max-width: 132px;
     padding: 0;
     gap: 0;
     border: none;
@@ -11548,6 +11644,21 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     box-shadow: none;
     backdrop-filter: none;
     overflow: visible;
+}
+
+/* Niente scale sull'hover: un transform sull'antenato disattiva il
+   backdrop-filter del cerchio, che così "perdeva" il vetro smerigliato
+   proprio mentre ci passavi sopra. Si evidenzia solo il bordo della foto. */
+.live-field-solo .formation-slot.live-slot:hover,
+.live-bench .formation-slot.live-slot:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.live-field-solo .formation-slot.live-slot:hover .slot-photo,
+.live-bench .formation-slot.live-slot:hover .slot-photo {
+    border-color: var(--accent-amber);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-amber) 45%, transparent);
 }
 
 .live-field-solo .formation-slot.live-slot .slot-photo {
@@ -11583,7 +11694,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 
 /* Statistiche in un riquadro sotto la foto */
-/* Riquadro statistiche identico per tutti: griglia fissa 2×2. */
+/* Riquadro statistiche identico per tutti: griglia fissa 2×3 (6 voci). */
 .live-slot-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;

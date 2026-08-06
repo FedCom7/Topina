@@ -34,28 +34,30 @@ const POLL_MS = 10000;
 /** Etichette leggibili + segno atteso per ogni statistica tracciata. */
 const STAT_LABELS = {
     pass_yds: 'Pass yds', pass_td: 'Passing TD', pass_int: 'Interception',
-    rush_yds: 'Rush yds', rush_td: 'Rushing TD',
-    rec: 'Reception', rec_yds: 'Rec yds', rec_td: 'Receiving TD',
+    pass_att: 'Pass attempts', pass_comp: 'Completions',
+    rush_yds: 'Rush yds', rush_td: 'Rushing TD', rush_att: 'Carries',
+    rec: 'Reception', rec_yds: 'Rec yds', rec_td: 'Receiving TD', targets: 'Target',
     ret_td: 'Return TD', fum_td: 'Fumble TD', two_pt: '2-PT', fum_lost: 'Fumble lost',
-    pat_made: 'Extra point', fg_0_19: 'FG 0-19', fg_20_29: 'FG 20-29',
-    fg_30_39: 'FG 30-39', fg_40_49: 'FG 40-49', fg_50_plus: 'FG 50+',
+    pat_made: 'Extra point', fg_made: 'Field goal', fg_att: 'FG attempt',
+    fg_0_39: 'FG 0-39', fg_40_49: 'FG 40-49', fg_50_plus: 'FG 50+',
     sack: 'Sack', def_int: 'DEF interception', fum_rec: 'Fumble recovery',
     safety: 'Safety', def_td: 'DEF TD', def_2pt_ret: 'DEF 2-PT return',
-    def_ret_td: 'DEF return TD', pts_allowed: 'Points allowed',
+    def_ret_td: 'DEF return TD', pts_allowed: 'Points allowed', yds_allowed: 'Yards allowed',
 };
 
 /**
- * Statistiche mostrate sulla card: sempre 4 per ruolo, così tutti i riquadri
- * hanno la stessa dimensione (i valori a 0 diventano un trattino).
- * `fg_made` è virtuale: somma dei field goal di tutte le distanze.
+ * Statistiche mostrate sulla card: sempre 6 per ruolo (griglia 2×3), così tutti
+ * i riquadri hanno la stessa dimensione e i valori a 0 diventano un trattino.
+ * Le chiavi sono quelle reali dei dati 2026+ (fg_made/fg_att sono già forniti,
+ * non vanno più ricalcolati sommando le fasce di distanza).
  */
 const STATS_BY_ROLE = {
-    QB: ['pass_yds', 'pass_td', 'pass_int', 'rush_yds'],
-    RB: ['rush_yds', 'rush_td', 'rec', 'rec_yds'],
-    WR: ['rec', 'rec_yds', 'rec_td', 'rush_yds'],
-    TE: ['rec', 'rec_yds', 'rec_td', 'rush_yds'],
-    K: ['pat_made', 'fg_made', 'fg_50_plus', 'fg_0_19'],
-    DEF: ['sack', 'def_int', 'fum_rec', 'pts_allowed'],
+    QB: ['pass_comp', 'pass_att', 'pass_yds', 'pass_td', 'pass_int', 'rush_yds'],
+    RB: ['rush_att', 'rush_yds', 'rush_td', 'targets', 'rec', 'rec_yds'],
+    WR: ['targets', 'rec', 'rec_yds', 'rec_td', 'rush_yds', 'rush_td'],
+    TE: ['targets', 'rec', 'rec_yds', 'rec_td', 'rush_yds', 'rush_td'],
+    K: ['pat_made', 'fg_made', 'fg_att', 'fg_0_39', 'fg_40_49', 'fg_50_plus'],
+    DEF: ['sack', 'def_int', 'fum_rec', 'def_td', 'pts_allowed', 'yds_allowed'],
 };
 
 /** Eventi "grossi": meritano evidenza nello scontrino. */
@@ -88,6 +90,16 @@ function teamEntries() {
         entries.push({ team: m.team2, opp: m.team1, m });
     }
     return entries;
+}
+
+/**
+ * Stato infortunio del giocatore, o null se sta bene. I dati usano
+ * `injury_status` (snake_case); il vecchio schema NFL.com usava `injuryStatus`,
+ * quindi si accettano entrambi. NORMAL/ACTIVE significano "nessun problema".
+ */
+function injuryOf(p) {
+    const v = p?.injury_status ?? p?.injuryStatus;
+    return v && !['ACTIVE', 'NORMAL'].includes(v) ? v : null;
 }
 
 function teamOf(rawName) {
@@ -147,7 +159,7 @@ async function loadData({ silent = false } = {}) {
             if (Array.isArray(json.matchups) && json.matchups.length) {
                 matchups = json.matchups;
                 isLiveSource = true;
-                weekLabelText = `Week ${currentEspnWeek(year)} · ${year}`;
+                weekLabelText = `${year} · Week ${currentEspnWeek(year)}`;
                 await hydrateScheduleAndRender(String(year), currentEspnWeek(year));
                 startPolling();
                 return;
@@ -173,9 +185,9 @@ async function loadData({ silent = false } = {}) {
     }
     matchups = data.weeks[String(pickedWeek)]?.matchups || [];
     const config = getSeasonConfig(CURRENT_SEASON);
-    weekLabelText = pickedWeek === config.superBowlWeek ? 'Super Bowl'
+    const roundLabel = pickedWeek === config.superBowlWeek ? 'Super Bowl'
         : pickedWeek === config.playoffWeek ? 'Playoffs' : `Week ${pickedWeek}`;
-    weekLabelText += ` · ${CURRENT_SEASON} (preview, not live)`;
+    weekLabelText = `${CURRENT_SEASON} · ${roundLabel}`;
     await hydrateScheduleAndRender(CURRENT_SEASON, pickedWeek);
 }
 
@@ -334,9 +346,25 @@ function showOpponent() {
     const goingForward = teamIdx % 2 === 0;
     const next = entries.findIndex(e => e.team === opp);
     if (next >= 0) teamIdx = next;
-    slideFrom = goingForward ? 'right' : 'left';
-    render();
-    slideFrom = null;
+
+    const swap = () => {
+        slideFrom = goingForward ? 'right' : 'left';
+        render();
+        slideFrom = null;
+    };
+
+    // La scheda corrente esce prima (sfuma e scivola dal lato opposto), poi
+    // entra quella nuova: il ricambio è continuo invece di uno scatto secco.
+    const outgoing = document.querySelector('[data-swipe]');
+    if (!outgoing || !outgoing.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        swap();
+        return;
+    }
+    const anim = outgoing.animate([
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: `translateX(${goingForward ? '-38%' : '38%'})`, opacity: 0 },
+    ], { duration: 260, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' });
+    anim.onfinish = swap;
 }
 
 /** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
@@ -352,6 +380,29 @@ function bindSwipe(el) {
     }, { passive: true });
 }
 
+/**
+ * Stato in alto: pallino pulsante quando ci sono partite in corso, icona di
+ * proiezione quando i numeri mostrati sono stime pre-kickoff.
+ */
+function statusBadgeHTML() {
+    const entries = teamEntries();
+    const shown = entries[teamIdx];
+    const players = shown
+        ? [...(shown.team.starters || []), ...(shown.opp.starters || [])]
+        : [];
+    const anyLive = players.some(p => p && p.started === true);
+    const anyProjected = players.some(pIsProjected);
+
+    if (anyLive) return '<i class="gb-live-dot"></i> LIVE';
+    if (anyProjected) return `
+        <svg class="live-proj-icon" viewBox="0 0 24 24" width="13" height="13" fill="none"
+             stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 17 9 11 13 15 21 7"></polyline>
+            <polyline points="15 7 21 7 21 13"></polyline>
+        </svg> PROJECTED`;
+    return 'FINAL';
+}
+
 function headerHTML() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
@@ -359,8 +410,8 @@ function headerHTML() {
     return `
     <div class="live-header">
         <div class="live-header-left">
-            <span class="live-header-kicker">${isLiveSource ? '<i class="gb-live-dot"></i> LIVE' : 'PREVIEW'}</span>
             <h1 class="live-header-title">${weekLabelText}</h1>
+            <span class="live-header-kicker">${statusBadgeHTML()}</span>
         </div>
         <div class="live-header-right">
             <span class="live-header-updated">Updated ${hh}:${mm}</span>
@@ -429,7 +480,7 @@ function chip(p, side) {
     if (!p) return '<div class="live-chip live-chip--empty"></div>';
     const role = (p.position_in_team || p.position || '').toUpperCase();
     const live = liveNow(p);
-    const injury = p.injuryStatus && p.injuryStatus !== 'ACTIVE' ? p.injuryStatus : null;
+    const injury = injuryOf(p);
     return `
     <div class="live-chip${live ? ' live-chip--live' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}">
@@ -470,7 +521,10 @@ function byPos(starters, pos, nth = 0) {
 /** Valore di una statistica, con la somma dei field goal per la chiave virtuale fg_made. */
 function statValue(stats, key) {
     if (key === 'fg_made') {
-        return ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_40_49', 'fg_50_plus']
+        // I dati 2026+ forniscono già il totale; le fasce si sommano solo per
+        // il vecchio schema NFL.com, che non aveva fg_made.
+        if (stats.fg_made != null) return stats.fg_made;
+        return ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_0_39', 'fg_40_49', 'fg_50_plus']
             .reduce((s, k) => s + (stats[k] || 0), 0);
     }
     return stats[key] || 0;
@@ -483,9 +537,14 @@ function statLineHTML(p) {
     if (role === 'D/ST') role = 'DEF';
     const keys = STATS_BY_ROLE[role] || STATS_BY_ROLE.WR;
     // Before kickoff show the projected stat line (real stats are all zero).
-    const stats = (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {};
+    const proj = pIsProjected(p);
+    const stats = (proj ? p.projected_stats : p.stats) || p.stats || {};
     return keys.map(k => {
-        const v = statValue(stats, k);
+        const raw = statValue(stats, k);
+        // Le proiezioni arrivano con due decimali (es. 83.48): troppo lunghe per
+        // la card, verrebbero troncate. Interi per i conteggi, un decimale per
+        // le frazioni piccole.
+        const v = proj ? (raw >= 10 ? Math.round(raw) : Math.round(raw * 10) / 10) : raw;
         return `<span class="live-stat${v === 0 ? ' live-stat--zero' : ''}">
             <b>${v === 0 ? '–' : v}</b> ${shortStatLabel(k)}</span>`;
     }).join('');
@@ -497,10 +556,11 @@ function shortStatLabel(k) {
         pass_yds: 'PaYd', pass_td: 'PaTD', pass_int: 'INT',
         rush_yds: 'RuYd', rush_td: 'RuTD',
         rec: 'Rec', rec_yds: 'ReYd', rec_td: 'ReTD',
-        pat_made: 'XP', fg_made: 'FG', fg_0_19: 'FG0-19', fg_20_29: 'FG20',
-        fg_30_39: 'FG30', fg_40_49: 'FG40', fg_50_plus: 'FG50+',
+        pass_att: 'Att', pass_comp: 'Cmp', rush_att: 'Car', targets: 'Tgt',
+        pat_made: 'XP', fg_made: 'FG', fg_att: 'FGA',
+        fg_0_39: 'FG0-39', fg_40_49: 'FG40', fg_50_plus: 'FG50+',
         sack: 'Sck', def_int: 'INT', fum_rec: 'FR', def_td: 'TD',
-        safety: 'SAF', pts_allowed: 'PA',
+        safety: 'SAF', pts_allowed: 'PA', yds_allowed: 'YdA',
     })[k] || k;
 }
 
@@ -509,7 +569,7 @@ function fieldSlot(p, extraClass = '') {
     if (!p) return '';
     const role = (p.position_in_team || p.position || '').toUpperCase();
     const live = liveNow(p);
-    const injury = p.injuryStatus && !['ACTIVE', 'NORMAL'].includes(p.injuryStatus) ? p.injuryStatus : null;
+    const injury = injuryOf(p);
     return `
     <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${extraClass}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
@@ -583,15 +643,31 @@ function fieldHTML(team) {
         </div>
     </div>
     <div class="live-stage">
-        <div class="matchup-field-horizontal live-field-solo${slideClass()}" data-swipe>
-            <img src="Wallpapers/IMG_5984.PNG" class="field-bg" alt="">
-            <div class="field-overlay">
-                <div class="live-formation-stack">
-                    ${fieldFormationHTML(team)}
+        <div class="live-field-slider${slideClass()}" data-swipe>
+            <div class="matchup-field-horizontal live-field-solo">
+                <img src="Wallpapers/IMG_5984.PNG" class="field-bg" alt="">
+                <div class="field-overlay">
+                    <div class="live-formation-stack">
+                        ${fieldFormationHTML(team)}
+                    </div>
                 </div>
             </div>
+            ${benchHTML(team)}
         </div>
         ${swapArrowHTML()}
+    </div>`;
+}
+
+/** Panchina in riga sotto al campo: stesse card, in formato ridotto. */
+function benchHTML(team) {
+    const bench = team.bench || [];
+    if (!bench.length) return '';
+    return `
+    <div class="live-bench">
+        <span class="live-bench-label">Bench</span>
+        <div class="live-bench-row">
+            ${bench.map(p => fieldSlot(p, ' live-slot--bench')).join('')}
+        </div>
     </div>`;
 }
 
@@ -839,6 +915,23 @@ function receiptsPanelHTML() {
     </div>`;
 }
 
+/**
+ * Conteggio animato: il numero sale/scende invece di cambiare di scatto.
+ * `from` è il valore precedente, `to` quello nuovo già scritto nel DOM.
+ */
+function countUp(el, from, to, ms = 900) {
+    if (!el || from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t0 = performance.now();
+    const step = (now) => {
+        const k = Math.min(1, (now - t0) / ms);
+        const eased = 1 - Math.pow(1 - k, 3); // decelera verso il valore finale
+        el.textContent = fmt(from + (to - from) * eased);
+        if (k < 1) requestAnimationFrame(step);
+        else el.textContent = fmt(to);
+    };
+    requestAnimationFrame(step);
+}
+
 /** Evidenzia sul campo i giocatori appena aggiornati + fa "stampare" lo scontrino. */
 function flashNewReceipts(events) {
     for (const ev of events) {
@@ -850,25 +943,29 @@ function flashNewReceipts(events) {
                 { boxShadow: `0 0 22px 4px ${color}` },
                 { boxShadow: '0 0 0 0 transparent' },
             ], { duration: 1600, easing: 'ease-out' });
+            // i punti salgono progressivamente dal valore precedente a quello nuovo
+            const ptsEl = slot.querySelector('.slot-pts');
+            if (ptsEl && ev.ptsDelta) {
+                const to = P(ptsEl.textContent);
+                countUp(ptsEl, to - ev.ptsDelta, to);
+            }
         }
         document.querySelector(`[data-receipt="${ev.id}"]`)?.classList.add('live-receipt--new');
     }
 }
 
 function sidebarHTML(team, opp) {
-    const all = [...(team.starters || []), ...(opp.starters || [])];
-    const top = all.reduce((best, p) => (effPts(p) > (best ? effPts(best) : 0) ? p : best), null);
-    const injuries = all.filter(p => p.injuryStatus && p.injuryStatus !== 'ACTIVE');
+    const all = [...(team.starters || []), ...(team.bench || []),
+    ...(opp.starters || []), ...(opp.bench || [])];
+    // il campo nei dati è injury_status (snake_case), non injuryStatus
+    const injuries = all.filter(p => injuryOf(p));
 
     return `
     <div class="mosaic-card mc-in live-side-card">
-        <span class="mc-kicker">Top scorer</span>
-        ${top ? `<div class="live-side-player">${chip(top)}</div>` : '<p class="pm-empty">—</p>'}
-    </div>
-    <div class="mosaic-card mc-in live-side-card">
         <span class="mc-kicker">Injury report</span>
         ${injuries.length
-            ? `<ul class="live-side-list">${injuries.map(p => `<li>${escAttr(p.name)} — <span class="live-injury-tag">${p.injuryStatus}</span></li>`).join('')}</ul>`
+            ? `<ul class="live-side-list">${injuries.map(p =>
+                `<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(injuryOf(p))}</span></li>`).join('')}</ul>`
             : '<p class="pm-empty">No injuries reported.</p>'}
     </div>`;
 }
