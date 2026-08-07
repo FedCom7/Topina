@@ -940,10 +940,12 @@ function flashNewReceipts(events) {
         const slot = document.querySelector(`[data-slot-player="${CSS.escape(ev.name)}"]`);
         if (slot) {
             const color = ev.ptsDelta > 0 ? 'var(--accent-green)' : ev.ptsDelta < 0 ? 'var(--live-red)' : 'var(--live-yellow)';
-            slot.animate([
-                { boxShadow: '0 0 0 0 transparent' },
-                { boxShadow: `0 0 22px 4px ${color}` },
-                { boxShadow: '0 0 0 0 transparent' },
+            // lampeggia solo il cerchio della foto, non tutta la card
+            const photo = slot.querySelector('.slot-photo');
+            photo?.animate([
+                { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)' },
+                { boxShadow: `0 0 20px 5px ${color}`, borderColor: color },
+                { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)' },
             ], { duration: 1600, easing: 'ease-out' });
             // i punti salgono progressivamente dal valore precedente a quello nuovo
             const ptsEl = slot.querySelector('.slot-pts');

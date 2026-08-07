@@ -11,7 +11,7 @@ import { initPlayerPage } from './sections/player-page.js?v=53';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=13';
 import { initPlayersSearch } from './sections/players-search.js?v=11';
 import { initStats } from './sections/stats.js?v=58';
-import { initHistory } from './sections/history.js?v=34';
+import { initHistory } from './sections/history.js?v=35';
 import { initHonors } from './sections/honors.js?v=15';
 import { initAllPro } from './sections/allpro.js?v=15';
 import { initHallOfFame } from './sections/halloffame.js?v=29';
@@ -20,7 +20,7 @@ import { initTeams } from './sections/teams.js?v=14';
 import { initGame } from './sections/game.js?v=27';
 import { initAnalysis } from './sections/analysis.js?v=27';
 import { initMagazine } from './sections/magazine.js?v=29';
-import { initLive } from './sections/live.js?v=24';
+import { initLive } from './sections/live.js?v=25';
 import { initNavbar } from './ui/navbar.js?v=15';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 

@@ -1235,8 +1235,14 @@ img {
         overflow: visible;
     }
 
-    /* ---- Vertical field on mobile ---- */
-    .matchup-field-horizontal {
+    /* ---- Vertical field on mobile ----
+       Solo Game Center: le sue immagini sono campi visti di lato (end zone a
+       destra e sinistra), quindi ruotandole di 90° le end zone finiscono sopra
+       e sotto, com'è giusto per un campo verticale.
+       Il campo della pagina Live (.live-field-solo) è escluso: la sua immagine
+       ha già l'end zone in alto, allineata a dove stanno kicker e difesa, e
+       ruotandola si scollegherebbe dalla formazione. */
+    .matchup-field-horizontal:not(.live-field-solo) {
         min-width: 0;
         position: relative;
         border-radius: var(--radius-lg);
@@ -1245,7 +1251,7 @@ img {
     }
 
     /* Show the img tag with rotation for vertical field */
-    .matchup-field-horizontal .field-bg {
+    .matchup-field-horizontal:not(.live-field-solo) .field-bg {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -1320,6 +1326,17 @@ img {
         gap: 2px;
     }
 
+    /* Le colonne QB/RB conservavano la larghezza fissa del desktop (55px): i due
+       RB non ci stavano affiancati e andavano a capo, incolonnandosi. Qui si
+       lasciano espandere, così restano uno di fianco all'altro dietro il QB. */
+    .matchup-field-horizontal:not(.live-field-solo) .formation-col.col-rb,
+    .matchup-field-horizontal:not(.live-field-solo) .formation-col.col-qb {
+        min-width: 0;
+        width: auto;
+        max-width: none;
+        gap: 6px;
+    }
+
     /* Player slots — compact for mobile */
     .formation-slot {
         min-width: 44px;
@@ -1330,6 +1347,38 @@ img {
         gap: 0;
     }
 
+    /* Game Center: su mobile i giocatori in campo erano troppo piccoli per
+       essere letti (foto da 34px). Ingranditi qui e non nella regola generica
+       sopra, che vale anche per panchina e marcatori della linea. */
+    /* Misure in vw, non in pixel fissi: allargando la finestra il campo cresce
+       e i giocatori crescono con lui invece di restare piccoli. I limiti di
+       clamp() tengono la card leggibile a 360px e la fermano prima che diventi
+       sproporzionata avvicinandosi ai 768px. */
+    .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) {
+        min-width: 54px;
+        width: 16vw;
+        max-width: 104px;
+        padding: 2px 3px;
+    }
+
+    .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-photo {
+        width: clamp(42px, 11.5vw, 74px);
+        height: clamp(42px, 11.5vw, 74px);
+    }
+
+    /* Senza min-width:0 il nome, in un contenitore flex, non si restringe sotto
+       la propria larghezza naturale: allargherebbe la card fino a far sbordare
+       l'intera riga di scrimmage. Meglio troncarlo. */
+    .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-name {
+        font-size: clamp(0.72rem, 2.1vw, 0.95rem);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-pts {
+        font-size: clamp(0.72rem, 2vw, 0.9rem);
+    }
+
     .formation-slot.oline-x {
         min-width: 13px;
         max-width: 13px;
@@ -1337,22 +1386,50 @@ img {
         font-size: 0.5rem;
     }
 
-    /* DEF/K: flow in layout (no absolute positioning on mobile) */
-    .special-slot {
+    /* DEF/K: nel flusso finivano in colonna fuori dal campo, in alto a sinistra.
+       Su mobile il campo è verticale, quindi vanno nelle due end zone: la
+       squadra di casa in quella in alto, l'ospite in quella in basso. */
+    .matchup-field-horizontal:not(.live-field-solo) .special-slot {
+        position: absolute;
+        margin: 0;
+        z-index: 5;
+    }
+
+    .matchup-field-horizontal:not(.live-field-solo) .left-def {
+        top: 8%;
+        left: 9% !important;
+        right: auto !important;
+        bottom: auto;
+    }
+
+    .matchup-field-horizontal:not(.live-field-solo) .left-k {
+        top: 8%;
+        right: 9% !important;
+        left: auto !important;
+        bottom: auto;
+    }
+
+    .matchup-field-horizontal:not(.live-field-solo) .right-def {
+        bottom: 8%;
+        left: 9% !important;
+        right: auto !important;
+        top: auto;
+    }
+
+    .matchup-field-horizontal:not(.live-field-solo) .right-k {
+        bottom: 8%;
+        right: 9% !important;
+        left: auto !important;
+        top: auto;
+    }
+
+    /* Il campo Live non usa .special-slot: le sue regole restano quelle sopra */
+    .live-field-solo .special-slot {
         position: relative;
         bottom: auto;
         left: auto !important;
         right: auto !important;
-        align-self: flex-start;
         margin: 2px 0;
-    }
-
-    .left-def,
-    .left-k,
-    .right-def,
-    .right-k {
-        left: auto;
-        right: auto;
     }
 
     /* Bench: outside the field, side by side with team labels */
@@ -11566,7 +11643,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 /* Campo largo quanto il banner del punteggio sopra. Il rapporto è più alto
    del 16:9 perché deve contenere 4 file di figurine senza tagliarle. */
 .live-field-solo {
-    aspect-ratio: 16 / 11;
+    aspect-ratio: 16 / 12;
     background: #0d1214;
     width: 100%;
     border-radius: var(--radius-lg);
@@ -11772,6 +11849,26 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     margin-top: 10px;
     overflow-y: auto;
     padding-right: 4px;
+    /* barra di scorrimento nera e sottile, invece di quella chiara di sistema */
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.live-receipts::-webkit-scrollbar {
+    width: 6px;
+}
+
+.live-receipts::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.live-receipts::-webkit-scrollbar-thumb {
+    background: #2f2f2f;
+    border-radius: 3px;
+}
+
+.live-receipts::-webkit-scrollbar-thumb:hover {
+    background: #444;
 }
 
 .live-receipt {
@@ -12024,4 +12121,86 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     .live-chip-name {
         max-width: 60px;
     }
+}
+
+/* ── Live su schermo stretto ──────────────────────────────────────────
+   Il rapporto fisso 16:11 dà un campo troppo basso per le tre file di card
+   (che qui restano della stessa dimensione): backfield e linea di scrimmage
+   finivano tagliati sotto. Il campo cresce quindi in base al contenuto —
+   l'immagine di sfondo è in posizione assoluta e si adatta comunque.
+   Questo blocco sta in fondo al file perché deve vincere sulle regole
+   .live-field-solo definite più sopra, a parità di specificità. */
+@media (max-width: 640px) {
+    .live-field-solo {
+        aspect-ratio: auto;
+    }
+
+    /* i marcatori della linea offensiva sono decorativi: su schermo stretto
+       rubano lo spazio che serve ai giocatori, che finivano tagliati ai lati */
+    .live-field-solo .formation-slot.oline-x {
+        display: none;
+    }
+
+    .live-field-solo .field-overlay {
+        position: relative;
+        padding: 7% 3% 4%;
+    }
+
+    .live-field-solo .live-formation-stack {
+        position: static;
+        inset: auto;
+        gap: 10px;
+    }
+}
+
+/* Nome dentro la card: in un contenitore flex il testo non si restringe sotto
+   la propria larghezza naturale (min-width:auto), quindi i nomi lunghi come
+   "New England Patriots" sbordavano sopra le card vicine. */
+.live-slot .slot-name,
+.live-slot .slot-pts {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* ── Confronto Live su schermo stretto ────────────────────────────────
+   Le 9 colonne della riga (foto, nome, stat, punti, ruolo, punti, stat,
+   nome, foto) chiedono ~516px: su 358 i nomi venivano schiacciati a zero.
+   Qui la riga diventa a due livelli — sopra foto/nome/punti/ruolo, sotto le
+   statistiche — così ci sta tutto senza rimpicciolire il testo. */
+@media (max-width: 640px) {
+    .live-cmp-row {
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
+        grid-template-rows: auto auto;
+        gap: 3px 5px;
+        padding: 8px 2px;
+    }
+
+    .live-cmp-row > :nth-child(1) { grid-area: 1 / 1; }        /* foto sinistra */
+    .live-cmp-row > :nth-child(2) { grid-area: 1 / 2; }        /* nome sinistra */
+    .live-cmp-row > :nth-child(3) { grid-area: 2 / 1 / 3 / 4; } /* stat sinistra */
+    .live-cmp-row > :nth-child(4) { grid-area: 1 / 3; }        /* punti sinistra */
+    .live-cmp-row > :nth-child(5) { grid-area: 1 / 4 / 3 / 5; } /* ruolo, su due righe */
+    .live-cmp-row > :nth-child(6) { grid-area: 1 / 5; }        /* punti destra */
+    .live-cmp-row > :nth-child(7) { grid-area: 2 / 5 / 3 / 8; } /* stat destra */
+    .live-cmp-row > :nth-child(8) { grid-area: 1 / 6; }        /* nome destra */
+    .live-cmp-row > :nth-child(9) { grid-area: 1 / 7; }        /* foto destra */
+
+    .live-cmp-photo {
+        width: 34px;
+        height: 34px;
+    }
+
+    .live-cmp-pts {
+        min-width: 42px;
+        font-size: 1rem;
+    }
+
+    .live-cmp-stats {
+        gap: 2px 8px;
+    }
+
+    .live-cmp-mini b { font-size: 0.8rem; }
+    .live-cmp-mini i { font-size: 0.48rem; }
+
+    .live-cmp-meta { display: none; }
 }

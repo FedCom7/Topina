@@ -35,8 +35,8 @@ export async function initHistory() {
         })
     );
 
-    // Filter out empty results and render newest first
-    const seasons = results.filter(Boolean).reverse();
+    // Solo le stagioni davvero concluse, dalla più recente
+    const seasons = results.filter(s => s && seasonIsComplete(s.sbMatchup)).reverse();
 
     if (!seasons.length) {
         container.innerHTML = `<div class="empty-state"><p class="empty-state-text">No historical data available</p></div>`;
@@ -44,6 +44,25 @@ export async function initHistory() {
     }
 
     container.innerHTML = seasons.map((s, i) => renderSeasonCard(s, i)).join('');
+}
+
+/**
+ * Stagione da mostrare in questa pagina: il Super Bowl dev'essere stato
+ * giocato per davvero. Serve perché una stagione appena caricata esiste già
+ * a calendario, con tutte le settimane e i punteggi a zero: senza questo
+ * filtro comparirebbe in cima con un campione inventato dal generatore di
+ * recap.
+ *
+ * Tre condizioni: la finale esiste, non è data per ancora da giocare
+ * (`winner: UNDECIDED`, campo presente solo dal 2026), ed entrambe le
+ * finaliste hanno segnato punti.
+ */
+function seasonIsComplete(sbMatchup) {
+    if (!sbMatchup?.team1 || !sbMatchup?.team2) return false;
+    if (sbMatchup.winner === 'UNDECIDED') return false;
+    const s1 = parseFloat(sbMatchup.team1.score) || 0;
+    const s2 = parseFloat(sbMatchup.team2.score) || 0;
+    return s1 > 0 && s2 > 0;
 }
 
 /**
