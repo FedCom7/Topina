@@ -277,6 +277,7 @@ function playToCard(play, idx) {
         if (own) mine = true;
         actors.push({
             espnId, role, own,
+            mine: !!own, // vera appartenenza alla rosa: la demo finge `own`, non questo
             pts: c ? c.pts : null,
             line: c ? c.line : '',
         });
@@ -287,7 +288,7 @@ function playToCard(play, idx) {
         const own = idx.byDefTeam.get(c.defTeamId);
         if (!own) continue;
         mine = true;
-        actors.push({ espnId: null, defTeamId: c.defTeamId, role: c.role, own, pts: c.pts, line: c.line });
+        actors.push({ espnId: null, defTeamId: c.defTeamId, role: c.role, own, mine: true, pts: c.pts, line: c.line });
     }
 
     // In demo non c'è una rosa da filtrare: si mostra tutto, con i protagonisti
@@ -546,12 +547,12 @@ function render() {
     ${teamSwitcherHTML(entries)}
     ${matchupCardHTML(entry)}
     ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
+    ${playFeedHTML()}
     <div class="live-layout">
         <div class="live-main">
             ${rosterLiveHTML(team, opp)}
         </div>
         <aside class="live-sidebar">
-            ${playFeedHTML()}
             ${receiptsPanelHTML()}
             ${sidebarHTML(team, opp)}
         </aside>
@@ -1111,7 +1112,12 @@ function playActorHTML(a) {
 function playCardHTML(c) {
     const label = PLAY_LABEL[c.type] || c.type || 'Play';
     const when = [c.period ? `Q${c.period}` : '', c.clock].filter(Boolean).join(' ');
-    const total = c.actors.reduce((s, a) => s + (a.own && a.pts ? a.pts : 0), 0);
+    // Il totale ha senso solo se in quella giocata ci sono DUE miei giocatori
+    // (il lancio del mio QB al mio ricevitore): con uno solo ripeterebbe il
+    // numero già scritto sulla sua riga, e sommare i punti di un avversario
+    // non vorrebbe dire niente.
+    const ours = c.actors.filter(a => a.mine && a.pts);
+    const total = ours.length >= 2 ? ours.reduce((s, a) => s + a.pts, 0) : 0;
     return `
     <article class="pbp-card${c.scoring ? ' pbp-card--score' : ''}" data-play="${c.id}">
         <header class="pbp-card-head">

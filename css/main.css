@@ -12380,6 +12380,13 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 /* ── Live · widget play-by-play ──────────────────────────────────
    Pila di card: ogni azione dei nostri giocatori entra dall'alto con i
    protagonisti (foto, ruolo, yard) e i punti fantasy che ha prodotto. */
+/* Sotto il campo/panchina, non più nella colonna di destra: resta accostata a
+   sinistra e larga quanto una card, invece di stirarsi su tutta la riga. */
+.pbp-card-stack {
+    width: min(380px, 100%);
+    margin-right: auto;
+}
+
 .pbp-stack {
     display: flex;
     flex-direction: column;
