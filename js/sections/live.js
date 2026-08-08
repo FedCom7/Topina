@@ -450,7 +450,7 @@ async function pollPlays() {
             // in stagione reagisce ai dati del Worker. Così in demo si accendono
             // anche scoring feed, lampeggi sul campo, conteggi e referto medico.
             const events = updateReceipts();
-            render();
+            refreshInPlace(events);
             if (events.length) flashNewReceipts(events);
         }
         // Al primo giro la pila si riempie in blocco: animare tutto sarebbe
@@ -550,7 +550,10 @@ async function hydrateScheduleAndRender(year, week) {
     }
     if (teamIdx >= teamEntries().length) teamIdx = 0;
     const fresh = updateReceipts();
-    render();
+    // Al primo giro la pagina va costruita; dai successivi si toccano solo i
+    // numeri, altrimenti a ogni poll sparirebbero e ricomparirebbero le foto.
+    if (document.getElementById('live-root')?.querySelector('.live-header')) refreshInPlace(fresh);
+    else render();
     if (fresh.length) flashNewReceipts(fresh);
     if (!pbpTimer) startPlayPolling();
 }
@@ -630,6 +633,81 @@ function headlineOf(changes) {
         if (changes.some(c => c.key === key && c.delta > 0)) return key;
     }
     return null; // receiptHTML mostra "Update"
+}
+
+// ─── Aggiornamento senza ridisegno ───────────────────────────────
+//
+// A ogni poll cambiano dei numeri, non la pagina. Rifare l'HTML da capo
+// ricostruiva anche tutte le foto, che sparivano e ricomparivano: la pagina
+// resta ferma e si toccano solo i valori.
+
+/** Tutti i giocatori del turno corrente, per nome. */
+function playersByName() {
+    const map = new Map();
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                if (p?.name) map.set(p.name, p);
+            }
+        }
+    }
+    return map;
+}
+
+/** Scrive un punteggio conservando lo stile "proiezione" quando serve. */
+function writePts(el, p) {
+    const val = fmt(effPts(p));
+    const html = pIsProjected(p) ? `<span class="proj-pts">${val}</span>` : val;
+    if (el.innerHTML !== html) el.innerHTML = html;
+}
+
+function refreshInPlace(events = []) {
+    const root = document.getElementById('live-root');
+    const entry = teamEntries()[teamIdx];
+    if (!root || !entry) return;
+    const byName = playersByName();
+
+    // punteggi di squadra nel banner
+    const { m } = entry;
+    const scores = root.querySelectorAll('.gc-banner-score');
+    const s = [teamEffScore(m.team1), teamEffScore(m.team2)];
+    scores.forEach((el, i) => {
+        const proj = P(m[`team${i + 1}`].score) === 0 && m[`team${i + 1}`].projected_score != null;
+        const from = P(el.textContent);
+        el.innerHTML = proj ? `<span class="proj-pts">${fmt(s[i])}</span>` : fmt(s[i]);
+        el.classList.toggle('winner', s[i] >= s[1 - i]);
+        if (!proj && from !== s[i]) countUp(el, from, s[i]);
+    });
+
+    // punti e statistiche di ogni giocatore a schermo (campo, panchina, chip,
+    // righe di confronto: tutti marcati con la stessa chiave)
+    root.querySelectorAll('[data-slot-player]').forEach(el => {
+        const p = byName.get(el.dataset.slotPlayer);
+        if (!p) return;
+        if (el.classList.contains('live-cmp-pts')) { writePts(el, p); return; }
+        const pts = el.querySelector('.slot-pts, .live-chip-pts');
+        if (pts) writePts(pts, p);
+        const stats = el.querySelector('.live-slot-stats');
+        if (stats) stats.innerHTML = statLineHTML(p);
+        el.setAttribute('data-game', gameAttr(p).slice('data-game="'.length, -1));
+    });
+
+    root.querySelectorAll('[data-cmp-stats]').forEach(el => {
+        const p = byName.get(el.dataset.cmpStats);
+        if (p) el.innerHTML = compareStatsHTML(p, el.dataset.cmpSide);
+    });
+
+    // scoring feed: si accodano i nuovi in cima, senza rifare la lista
+    const feed = document.getElementById('live-receipts');
+    if (feed && events.length) {
+        if (feed.querySelector('.pm-empty')) feed.innerHTML = '';
+        feed.insertAdjacentHTML('afterbegin', events.map(receiptHTML).join(''));
+        while (feed.children.length > 40) feed.lastElementChild.remove();
+    }
+
+    // referto medico: nessuna immagine, si può riscrivere per intero
+    const inj = document.getElementById('live-injuries');
+    if (inj) inj.innerHTML = injuriesHTML(entry.team, entry.opp);
 }
 
 /** Aggiorna lo storico scontrini dopo un poll (tenuti gli ultimi 40). */
@@ -882,10 +960,11 @@ function chip(p, side) {
     const injury = injuryOf(p);
     return `
     <div class="live-chip${live ? ' live-chip--live' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
+         data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
         <span class="live-chip-photo">
-            <img src="images/fallback-player.svg" alt="" loading="lazy"
+            <img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
                  data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-chip-dot"></i>' : ''}
         </span>
@@ -975,7 +1054,7 @@ function fieldSlot(p, extraClass = '') {
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
-        <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
+        <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
         <span class="slot-name">${shortName(p)}</span>
@@ -1074,7 +1153,7 @@ function benchHTML(team) {
 function comparePhoto(p) {
     if (!p) return '<span class="live-cmp-photo live-cmp-photo--empty"></span>';
     const role = (p.position_in_team || p.position || '').toUpperCase();
-    return `<span class="live-cmp-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
+    return `<span class="live-cmp-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
         data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>`;
 }
 
@@ -1142,7 +1221,7 @@ function compareStatsBlock(p, win, side) {
     const inner = p
         ? compareStatsHTML(p, side)
         : `<span class="live-cmp-mini live-cmp-mini--pad"></span>`.repeat(CMP_STAT_COLS);
-    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}">${inner}</span>`;
+    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}"${p ? ` data-cmp-stats="${escAttr(p.name)}" data-cmp-side="${side}"` : ''}>${inner}</span>`;
 }
 
 /**
@@ -1172,9 +1251,9 @@ function compareHTML(team, opp) {
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}
-            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}">${a ? (pIsProjected(a) ? `<span class="proj-pts">${fmt(pa)}</span>` : fmt(pa)) : '—'}</span>
+            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}"${a ? ` data-slot-player="${escAttr(a.name)}"` : ''}>${a ? (pIsProjected(a) ? `<span class="proj-pts">${fmt(pa)}</span>` : fmt(pa)) : '—'}</span>
             <span class="live-cmp-slot">${slot}</span>
-            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}">${b ? (pIsProjected(b) ? `<span class="proj-pts">${fmt(pb)}</span>` : fmt(pb)) : '—'}</span>
+            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}"${b ? ` data-slot-player="${escAttr(b.name)}"` : ''}>${b ? (pIsProjected(b) ? `<span class="proj-pts">${fmt(pb)}</span>` : fmt(pb)) : '—'}</span>
             ${compareStatsBlock(b, bWin, 'r')}
             ${compareName(b, 'r')}
             ${comparePhoto(b)}
@@ -1440,25 +1519,42 @@ function flashNewReceipts(events) {
 }
 
 function sidebarHTML(team, opp) {
-    const all = [...(team.starters || []), ...(team.bench || []),
-    ...(opp.starters || []), ...(opp.bench || [])];
-    // il campo nei dati è injury_status (snake_case), non injuryStatus
-    const injuries = all.filter(p => injuryOf(p));
-
     return `
     <div class="mosaic-card mc-in live-side-card">
         <span class="mc-kicker">Injury report</span>
-        ${injuries.length
-            ? `<ul class="live-side-list">${injuries.map(p =>
-                `<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(injuryOf(p))}</span></li>`).join('')}</ul>`
-            : '<p class="pm-empty">No injuries reported.</p>'}
+        <div id="live-injuries">${injuriesHTML(team, opp)}</div>
     </div>`;
 }
+
+/** Solo l'elenco: è la parte che cambia, aggiornata senza toccare il resto. */
+function injuriesHTML(team, opp) {
+    const all = [...(team.starters || []), ...(team.bench || []),
+    ...(opp.starters || []), ...(opp.bench || [])];
+    const injuries = all.filter(p => injuryOf(p));
+    return injuries.length
+        ? `<ul class="live-side-list">${injuries.map(p =>
+            `<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(injuryOf(p))}</span></li>`).join('')}</ul>`
+        : '<p class="pm-empty">No injuries reported.</p>';
+}
+
+/**
+ * Foto già risolte in questa sessione. Servono a scriverle direttamente
+ * nell'HTML: se si ripartisse sempre dal segnaposto, ogni ridisegno farebbe
+ * sparire e ricomparire tutte le facce.
+ */
+const headshotCache = new Map();
+const cachedHeadshot = (name) => headshotCache.get(name) || 'images/fallback-player.svg';
 
 function hydrateHeadshots(root) {
     root.querySelectorAll('img[data-headshot]').forEach(img => {
         img.onerror = () => { if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg'; };
+        const known = headshotCache.get(img.dataset.playerName);
+        if (known) { if (img.src !== known) img.src = known; return; }
         playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, img.dataset.pos, CURRENT_SEASON)
-            .then(url => { if (url) img.src = url; }).catch(() => {});
+            .then(url => {
+                if (!url) return;
+                headshotCache.set(img.dataset.playerName, url);
+                img.src = url;
+            }).catch(() => {});
     });
 }
