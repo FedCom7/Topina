@@ -5831,10 +5831,13 @@ img {
 .mc-vs-row--w1 { --w1-mix: 26%; }
 .mc-vs-row--w2 { --w2-mix: 26%; }
 
+/* La cella resta di dimensione fissa e uguale per tutti — è quella che tiene
+   incolonnati i punteggi delle righe — mentre il logo dentro viene ingrandito
+   di --crest-scale. Larga più che alta per lasciare spazio all'ingrandimento. */
 .mc-vs-crest {
     display: grid;
     place-items: center;
-    width: clamp(60px, 7.4vw, 98px);
+    width: clamp(76px, 9.4vw, 124px);
     height: clamp(60px, 7.4vw, 98px);
 }
 
@@ -5845,6 +5848,7 @@ img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    scale: var(--crest-scale, 1); /* proporzioni intatte: è una scala uniforme */
     opacity: 0.55;
     filter: drop-shadow(0 0 26px color-mix(in srgb, var(--team-color, #000) 55%, transparent));
     transition: opacity var(--dur-med) var(--ease);

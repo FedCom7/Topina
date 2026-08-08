@@ -21,6 +21,7 @@ import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
 import { getHonorsBundle } from '../data/honors.js?v=14';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=13';
 import { TEAMS } from './team.js?v=31';
+import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=32';
 import { teamsCardsHTML } from './teams.js?v=14';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
@@ -417,7 +418,9 @@ function cardLastWeek({ season, phase }) {
 function teamCrest(key) {
     const t = TEAMS[key];
     if (!t) return '<span class="mc-vs-crest"></span>';
-    return `<span class="mc-vs-crest" style="--team-color:${t.color}" title="${t.name}">
+    // --crest-scale pareggia la dimensione *disegnata* dei loghi (vedi
+    // TEAM_LOGO_SCALE): senza, Sommo sembra molto più piccolo degli altri.
+    return `<span class="mc-vs-crest" style="--team-color:${t.color};--crest-scale:${TEAM_LOGO_SCALE[key] || 1}" title="${t.name}">
         <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'"></span>`;
 }
 

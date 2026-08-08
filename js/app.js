@@ -1,7 +1,7 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=51';
+import { initHome } from './sections/home.js?v=52';
 import { initGameCenter } from './sections/game-center.js?v=49';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=50';
 import { initDraft } from './sections/draft.js?v=47';
