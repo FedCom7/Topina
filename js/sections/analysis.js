@@ -7,7 +7,7 @@
  */
 
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=33';
-import { TEAMS } from './team.js?v=31';
+import { TEAMS } from './team.js?v=38';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;

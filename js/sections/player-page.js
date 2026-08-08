@@ -12,22 +12,22 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=13';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=21';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=12';
 import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=11';
-import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=14';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=30';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=15';
+import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=22';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=38';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=24';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { canonAbbr } from '../data/nfl-schedule.js?v=11';
 import { CURRENT_SEASON } from '../data.js?v=33';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers } from '../data/context-score.js?v=4';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers } from '../data/context-score.js?v=12';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries } from '../data/nfl-team-extras.js?v=7';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries } from '../data/nfl-team-extras.js?v=14';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=1';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=1';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=5';
-import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=8';
+import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=16';
 
 export const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 export const TEAM_HISTORY_YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];

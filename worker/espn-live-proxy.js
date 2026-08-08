@@ -41,7 +41,9 @@ const TEAM_ID_TO_NAME = {
     4: 'Capi dei Pianeti',
 };
 
-/** statId ESPN → chiave legacy in starters[].stats{} */
+/** statId ESPN → chiave legacy in starters[].stats{}
+ *  Copia di scripts/espn/league-config.mjs (il Worker è autoconsistente):
+ *  se cambia lì, va cambiato anche qui. */
 const STAT_ID_MAP = {
     3: 'pass_yds', 4: 'pass_td', 20: 'pass_int',
     24: 'rush_yds', 25: 'rush_td',
@@ -49,9 +51,10 @@ const STAT_ID_MAP = {
     72: 'fum_lost',
     19: 'two_pt', 26: 'two_pt', 44: 'two_pt',
     101: 'ret_td', 102: 'ret_td', 103: 'ret_td', 104: 'ret_td',
-    83: 'pat_made',
-    77: 'fg_0_19', 78: 'fg_20_29', 79: 'fg_30_39', 80: 'fg_40_49', 81: 'fg_50_plus',
-    99: 'sack', 95: 'def_int', 96: 'fum_rec', 98: 'safety', 97: 'def_td',
+    74: 'fg_50_plus', 77: 'fg_40_49', 80: 'fg_0_39',
+    83: 'fg_made', 84: 'fg_att', 86: 'pat_made',
+    99: 'sack', 95: 'def_int', 96: 'fum_rec', 98: 'safety',
+    105: 'def_td', 205: 'def_2pt_ret', 120: 'pts_allowed',
 };
 
 const SLOT_ID_MAP = {

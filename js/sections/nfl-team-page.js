@@ -13,8 +13,8 @@
 
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=1';
-import { getTeamDraftHistory } from '../data/context-score.js?v=4';
-import { getTeamDepthChart } from '../data/nfl-team-extras.js?v=7';
+import { getTeamDraftHistory } from '../data/context-score.js?v=12';
+import { getTeamDepthChart } from '../data/nfl-team-extras.js?v=14';
 import { canonAbbr } from '../data/nfl-schedule.js?v=11';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive,
@@ -27,7 +27,7 @@ import {
     teamYearPicker, bindTeamYearSelector, fetchTeamSeasonData,
     teamPerfBlocksHtml, teamScheduleBlocksHtml,
     fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=56';
+} from './player-page.js?v=64';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

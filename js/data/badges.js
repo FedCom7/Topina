@@ -9,7 +9,7 @@
  *  - seasonal  : sbloccabile ogni stagione, si resetta l'anno dopo
  */
 import { SEASONS } from '../data.js?v=33';
-import { TEAM_KEYS } from './team-config.js?v=31';
+import { TEAM_KEYS } from './team-config.js?v=33';
 import { TEAM_KEY_LIST } from './league-data.js?v=11';
 
 // chiave team → nome display

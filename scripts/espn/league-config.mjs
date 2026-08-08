@@ -26,10 +26,19 @@ export const TEAM_ID_TO_NAME = {
 };
 
 /**
- * statId ESPN → chiave legacy in starters[].stats{}. Gli ID base (yardaggio,
- * TD, ricezioni) sono stabili e concordi tra le fonti community; fumble,
- * 2-pt e return-TD vanno verificati contro un boxscore reale prima di
- * fidarsi (vedi Step 4.3 del blueprint — validare i totali fantasy_points).
+ * statId ESPN → chiave legacy in starters[].stats{}.
+ *
+ * Verificati il 2026-08-08 contro due fonti reali, non più contro le fonti
+ * community: le voci di punteggio ufficiali della lega
+ * (`?view=mSettings` → settings.scoringSettings.scoringItems, 30 voci) e
+ * l'insieme di statId realmente presenti in un boxscore per posizione.
+ * Il punteggio associato a ogni ID combacia con SCORING in
+ * js/data/league-rules.js, che era stato dedotto per regressione: è la
+ * conferma incrociata che quei coefficienti erano corretti.
+ *
+ * Correzioni rispetto alla versione precedente (indovinata): kicker
+ * 74/77/80/86 al posto di 77-81/83, DEF TD 105 al posto di 97, aggiunto
+ * il ritorno di un 2-pt avversario (205).
  */
 export const STAT_ID_MAP = {
     3: 'pass_yds',
@@ -41,19 +50,53 @@ export const STAT_ID_MAP = {
     42: 'rec_yds',
     43: 'rec_td',
     72: 'fum_lost',
-    // 2-pt conversion (pass/rush/rec) — sommati in un solo two_pt legacy
+    // 2-pt conversion (pass/rush/rec) — sommati in un solo two_pt legacy.
+    // A punteggio la lega usa una voce unica (62); qui restano i tre ID di
+    // conteggio grezzo, tutti presenti nel boxscore.
     19: 'two_pt', 26: 'two_pt', 44: 'two_pt',
-    // Return/fumble TD — da confermare, ID incerti nelle fonti community
+    // Return/fumble TD — nessuna voce di punteggio dedicata nelle impostazioni
+    // (la lega usa la voce unica 63 da 6 punti): questi restano gli ID di
+    // conteggio, da confermare su una partita giocata.
     101: 'ret_td', 102: 'ret_td', 103: 'ret_td', 104: 'ret_td',
-    // Kicker
-    83: 'pat_made',
-    77: 'fg_0_19', 78: 'fg_20_29', 79: 'fg_30_39', 80: 'fg_40_49', 81: 'fg_50_plus',
-    // Defense/IDP
+    // Kicker: 74/77/80 sono i FG riusciti per fascia (50+, 40-49, 0-39),
+    // 83/84 il totale fatti/tentati, 86 gli extra point.
+    74: 'fg_50_plus', 77: 'fg_40_49', 80: 'fg_0_39',
+    83: 'fg_made', 84: 'fg_att', 86: 'pat_made',
+    // Defense/ST
     99: 'sack',
     95: 'def_int',
     96: 'fum_rec',
     98: 'safety',
-    97: 'def_td',
+    105: 'def_td',
+    205: 'def_2pt_ret',
+    120: 'pts_allowed',
+};
+
+/**
+ * Voci di punteggio ufficiali della lega, lette da
+ * `?view=mSettings` il 2026-08-08 (statId → punti). Serve come riferimento
+ * per non re-indovinare gli ID: chi calcola punti usa SCORING in
+ * js/data/league-rules.js, che dice le stesse cose in chiave leggibile.
+ *
+ * Le fasce di punti subiti dalla difesa sono le nove standard ESPN:
+ * 0 / 1-6 / 7-13 / 14-17 / 18-21 / 22-27 / 28-34 / 35-45 / 46+.
+ */
+export const LEAGUE_SCORING_ITEMS = {
+    8: 1,    // ogni 25 yard su passaggio
+    4: 4,    // TD su passaggio
+    20: -2,  // intercetto subito
+    28: 1,   // ogni 10 yard su corsa
+    25: 6,   // TD su corsa
+    48: 1,   // ogni 10 yard su ricezione
+    53: 1,   // ricezione (PPR pieno)
+    43: 6,   // TD su ricezione
+    72: -2,  // fumble perso
+    62: 2,   // conversione da 2 punti
+    63: 6,   // TD su ritorno / fumble recuperato
+    74: 5, 77: 3, 80: 3, 86: 1,                    // kicker
+    99: 1, 95: 2, 96: 2, 98: 2, 105: 6, 205: 2,    // difesa
+    89: 10, 90: 7, 91: 4, 92: 1,                   // punti subiti 0 / 1-6 / 7-13 / 14-17
+    121: 1, 122: 0, 123: -1, 124: -4, 125: -4,     // 18-21 / 22-27 / 28-34 / 35-45 / 46+
 };
 
 /**

@@ -27,7 +27,7 @@
  * forward-looking diventano neutre (50), il TSI resta calcolabile dal roster.
  */
 
-import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=11';
+import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=20';
 import { getTeamStats } from './nfl-team-stats.js?v=11';
 import { canonAbbr } from './nfl-schedule.js?v=11';
 

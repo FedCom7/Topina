@@ -166,6 +166,17 @@ img {
     gap: 4px;
 }
 
+/* Ruotando il telefono si attraversa il breakpoint mobile: le regole del menu
+   cambiano di colpo e le transizioni animerebbero il salto (tornando in
+   verticale il menu chiuso partiva dallo stato desktop "visibile" e sfumava
+   via, sembrando aprirsi e richiudersi da solo). navbar.js applica questa
+   classe per il tempo di un frame, giusto per assorbire il cambio. */
+.navbar.no-anim,
+.navbar.no-anim *,
+.navbar.no-anim::after {
+    transition: none !important;
+}
+
 .nav-link {
     padding: 8px 16px;
     border-radius: var(--pill-radius);

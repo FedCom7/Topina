@@ -59,7 +59,12 @@ export const SCORING = {
     def_two_pt_ret: 2, // difesa che ritorna un 2pt conversion avversario
     safety: 2,
     // punti subiti dalla difesa per gara: [maxPuntiSubiti, punti]
+    // Le fasce sono le nove standard ESPN (0 / 1-6 / 7-13 / 14-17 / 18-21 /
+    // 22-27 / 28-34 / 35-45 / 46+), verificate contro le impostazioni
+    // ufficiali della lega il 2026-08-08; quelle a pari punteggio sono
+    // accorpate. Il confine era 20 al posto di 21: una difesa che concedeva
+    // esattamente 21 punti prendeva 0 invece di 1.
     def_pts_allowed_tiers: [
-        [0, 10], [6, 7], [13, 4], [20, 1], [27, 0], [34, -1], [Infinity, -4],
+        [0, 10], [6, 7], [13, 4], [21, 1], [27, 0], [34, -1], [Infinity, -4],
     ],
 };

@@ -10,7 +10,7 @@
  * prende il posto del primo, con "Indietro" per tornare.
  */
 
-import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=1';
+import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=9';
 
 const MOBILE_MQ = '(max-width: 768px)';
 
@@ -108,8 +108,22 @@ function initDropdowns(navbar) {
         if (e.target.closest('a')) closeMenu();
     });
 
-    // Tornando a schermo largo, il drill-down non ha più senso
-    mq.addEventListener('change', (e) => { if (!e.matches) closeMenu(); });
+    // Rotazione del telefono: si attraversa il breakpoint e le regole del menu
+    // cambiano in blocco. Senza precauzioni il browser ANIMA quel salto — in
+    // verticale il menu chiuso ripartiva dallo stato desktop (visibile) e
+    // sfumava via, come se si aprisse e si richiudesse da solo. Quindi:
+    // si riparte sempre da menu e lente chiusi, con le transizioni sospese
+    // per un frame in modo che il nuovo layout compaia già a regime.
+    mq.addEventListener('change', () => {
+        navbar.classList.add('no-anim');
+        closeMenu();
+        document.getElementById('nav-search')?.classList.remove('open');
+        document.getElementById('nav-search-btn')?.setAttribute('aria-expanded', 'false');
+        void navbar.offsetWidth; // flush degli stili senza transizione
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => navbar.classList.remove('no-anim'));
+        });
+    });
 
     navbar.querySelectorAll('.nav-item.has-dropdown').forEach(item => {
         const panelName = item.dataset.dropdown;

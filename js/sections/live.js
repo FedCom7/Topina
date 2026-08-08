@@ -13,11 +13,11 @@
  */
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
-import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=31';
+import { TEAM_KEYS } from '../data/team-config.js?v=33';
+import { TEAMS } from './team.js?v=38';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=30';
+import { initPlayerModal } from '../components/player-modal.js?v=38';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
