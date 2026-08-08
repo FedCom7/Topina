@@ -1495,27 +1495,54 @@ function countUp(el, from, to, ms = 900) {
 }
 
 /** Evidenzia sul campo i giocatori appena aggiornati + fa "stampare" lo scontrino. */
+const FLASH_MS = 3200;   // quanto resta accesa la bolla del giocatore
+const POP_DELAY_MS = 1000; // attesa prima che il totale in basso assorba i punti
+
 function flashNewReceipts(events) {
     for (const ev of events) {
-        const slot = document.querySelector(`[data-slot-player="${CSS.escape(ev.name)}"]`);
-        if (slot) {
+        // stesso giocatore può stare in più punti (campo, panchina, confronto)
+        for (const slot of document.querySelectorAll(`[data-slot-player="${CSS.escape(ev.name)}"]`)) {
             const color = ev.ptsDelta > 0 ? 'var(--accent-green)' : ev.ptsDelta < 0 ? 'var(--live-red)' : 'var(--live-yellow)';
-            // lampeggia solo il cerchio della foto, non tutta la card
-            const photo = slot.querySelector('.slot-photo');
+            // si accende solo il cerchio della foto, non tutta la card
+            const photo = slot.querySelector('.slot-photo, .live-chip-photo, .live-cmp-photo');
             photo?.animate([
-                { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)' },
-                { boxShadow: `0 0 20px 5px ${color}`, borderColor: color },
-                { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)' },
-            ], { duration: 1600, easing: 'ease-out' });
-            // i punti salgono progressivamente dal valore precedente a quello nuovo
-            const ptsEl = slot.querySelector('.slot-pts');
+                { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)', offset: 0 },
+                { boxShadow: `0 0 22px 6px ${color}`, borderColor: color, offset: 0.12 },
+                { boxShadow: `0 0 18px 5px ${color}`, borderColor: color, offset: 0.72 },
+                { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)', offset: 1 },
+            ], { duration: FLASH_MS, easing: 'ease-out' });
+
+            if (ev.ptsDelta) popPoints(slot, ev.ptsDelta);
+
+            // Il totale non si muove subito: prima si legge quanto è arrivato
+            // accanto alla foto, poi il numero in basso lo assorbe salendo.
+            const ptsEl = slot.querySelector('.slot-pts, .live-chip-pts')
+                || (slot.classList.contains('live-cmp-pts') ? slot : null);
             if (ptsEl && ev.ptsDelta) {
                 const to = P(ptsEl.textContent);
-                countUp(ptsEl, to - ev.ptsDelta, to);
+                const from = +(to - ev.ptsDelta).toFixed(2);
+                ptsEl.textContent = fmt(from);
+                setTimeout(() => countUp(ptsEl, from, to), POP_DELAY_MS);
             }
         }
         document.querySelector(`[data-receipt="${ev.id}"]`)?.classList.add('live-receipt--new');
     }
+}
+
+/** Etichetta volante accanto alla bolla: quanti punti ha portato l'azione. */
+function popPoints(slot, delta) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const tag = document.createElement('span');
+    tag.className = `live-pop ${delta > 0 ? 'pos' : 'neg'}`;
+    tag.textContent = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`;
+    slot.appendChild(tag);
+    tag.animate([
+        { transform: 'translateY(6px) scale(0.85)', opacity: 0 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.15 },
+        { transform: 'translateY(-2px) scale(1)', opacity: 1, offset: 0.7 },
+        { transform: 'translateY(-14px) scale(0.95)', opacity: 0 },
+    ], { duration: FLASH_MS - 400, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' })
+        .onfinish = () => tag.remove();
 }
 
 function sidebarHTML(team, opp) {
