@@ -5834,15 +5834,24 @@ img {
 .mc-vs-crest {
     display: grid;
     place-items: center;
-    width: clamp(52px, 6.4vw, 84px);
-    height: clamp(52px, 6.4vw, 84px);
+    width: clamp(60px, 7.4vw, 98px);
+    height: clamp(60px, 7.4vw, 98px);
 }
 
+/* Stemma in trasparenza con alone nel colore squadra, come le filigrane delle
+   card franchise: qui però deve restare riconoscibile, quindi molto più opaco
+   di .teams-card-watermark. Si accende passando sulla riga. */
 .mc-vs-crest img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 3px 14px color-mix(in srgb, var(--team-color, #000) 45%, transparent));
+    opacity: 0.55;
+    filter: drop-shadow(0 0 26px color-mix(in srgb, var(--team-color, #000) 55%, transparent));
+    transition: opacity var(--dur-med) var(--ease);
+}
+
+.mc-vs-row:hover .mc-vs-crest img {
+    opacity: 0.85;
 }
 
 .mc-vs-score {
