@@ -127,7 +127,31 @@ export function scorePlay(play) {
 
     const passTD = type === 'Passing Touchdown';
     const rushTD = type === 'Rushing Touchdown';
-    const retTD = /Return Touchdown/i.test(type);
+    const retTD = /Return Touchdown/i.test(type) && !/Interception/i.test(type);
+
+    // Su un fumble la giocata che lo precede conta comunque: chi ha ricevuto
+    // tiene ricezione e yard, chi correva tiene le sue. Il tipo però è
+    // "Fumble Recovery (…)", non "Pass Reception", e senza questo ramo quelle
+    // statistiche sparivano (misurato: -2.50 su una ricezione da 15 yard).
+    const fumble = /^Fumble Recovery|^Sack Opp Fumble/i.test(type);
+    if (fumble) {
+        if (actors.receiver) {
+            add(actors.receiver, 'receiver', S.rec + yards * S.rec_yd, `${yards} yd · 1 rec`,
+                { targets: 1, rec: 1, rec_yds: yards });
+            add(actors.passer, 'passer', yards * S.pass_yd, `${yards} yd`,
+                { pass_att: 1, pass_comp: 1, pass_yds: yards });
+        } else if (actors.rusher) {
+            add(actors.rusher, 'rusher', yards * S.rush_yd, `${yards} yd`,
+                { rush_att: 1, rush_yds: yards });
+        }
+        // Il fumble perso pesa su chi aveva la palla, che ESPN non marca fra i
+        // partecipanti: si prende il protagonista della giocata.
+        if (/Opponent|Sack Opp Fumble/i.test(type)) {
+            add(actors.receiver || actors.rusher || actors.passer, 'fumble',
+                S.fum_lost, 'fumble lost', { fum_lost: 1 });
+        }
+        return out;
+    }
 
     if (type === 'Pass Reception' || passTD) {
         add(actors.passer, 'passer', yards * S.pass_yd + (passTD ? S.pass_td : 0), `${yards} yd`,
@@ -140,9 +164,12 @@ export function scorePlay(play) {
     } else if (type === 'Pass Incompletion') {
         add(actors.passer, 'passer', 0, 'incomplete', { pass_att: 1 });
         add(actors.receiver, 'receiver', 0, 'target', { targets: 1 });
-    } else if (type === 'Pass Interception Return') {
+    } else if (/^Pass Interception Return|^Interception Return Touchdown/i.test(type)) {
+        // il pick-six resta un intercetto per il quarterback
         add(actors.passer, 'passer', S.pass_int, 'intercepted', { pass_att: 1, pass_int: 1 });
-        addDef('def_int', S.def_int, 'interception', { def_int: 1 });
+        const six = /Touchdown/i.test(type);
+        addDef('def_int', S.def_int + (six ? S.def_td : 0), six ? 'pick six' : 'interception',
+            { def_int: 1, def_td: six ? 1 : 0 });
     } else if (type === 'Sack') {
         add(actors.passer, 'passer', 0, `sacked · ${yards} yd`, {});
         addDef('sack', S.sack, 'sack', { sack: 1 });
