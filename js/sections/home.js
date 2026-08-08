@@ -20,7 +20,7 @@ import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSup
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
 import { getHonorsBundle } from '../data/honors.js?v=14';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=13';
-import { TEAMS } from './team.js?v=25';
+import { TEAMS } from './team.js?v=28';
 import { teamsCardsHTML } from './teams.js?v=14';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 

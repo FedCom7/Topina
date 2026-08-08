@@ -14,10 +14,10 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=25';
+import { TEAMS } from './team.js?v=28';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=26';
+import { initPlayerModal } from '../components/player-modal.js?v=28';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -75,6 +75,7 @@ let matchups = [];
 let teamIdx = 0; // indice nell'elenco "piatto" delle 4 squadre (teamEntries())
 let isLiveSource = false;
 let weekLabelText = '';
+let currentWeekNum = 1;  // settimana mostrata, passata alla scheda giocatore
 let liveSchedule = null; // Map abbr → {start,end} per la settimana corrente (liveNow)
 
 /**
@@ -104,6 +105,25 @@ function injuryOf(p) {
 
 function teamOf(rawName) {
     return TEAMS[TEAM_KEYS[displayName(rawName)]] || null;
+}
+
+/**
+ * Contesto partita per la scheda giocatore: nel Live conta la gara in corso,
+ * non la carriera, quindi si passano punti e statistiche mostrati (proiezione
+ * prima del kickoff, reali da lì in poi).
+ */
+function gameAttr(p) {
+    const payload = {
+        pts: effPts(p),
+        projected: pIsProjected(p),
+        opponent: p.opponent || '',
+        status: p.status || '',
+        week: currentWeekNum,
+        year: CURRENT_SEASON,
+        started: true,
+        stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
+    };
+    return `data-game="${encodeURIComponent(JSON.stringify(payload))}"`;
 }
 
 const P = (m) => parseFloat(m) || 0;
@@ -184,6 +204,7 @@ async function loadData({ silent = false } = {}) {
         if (wk?.matchups?.some(m => P(m.team1?.score) > 0 || P(m.team2?.score) > 0)) pickedWeek = w;
     }
     matchups = data.weeks[String(pickedWeek)]?.matchups || [];
+    currentWeekNum = pickedWeek;
     const config = getSeasonConfig(CURRENT_SEASON);
     const roundLabel = pickedWeek === config.superBowlWeek ? 'Super Bowl'
         : pickedWeek === config.playoffWeek ? 'Playoffs' : `Week ${pickedWeek}`;
@@ -310,7 +331,6 @@ function render() {
     ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
     <div class="live-layout">
         <div class="live-main">
-            ${chartHTML(team, opp)}
             ${rosterLiveHTML(team, opp)}
         </div>
         <aside class="live-sidebar">
@@ -483,7 +503,8 @@ function chip(p, side) {
     const injury = injuryOf(p);
     return `
     <div class="live-chip${live ? ' live-chip--live' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
-         data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}">
+         data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
+         ${gameAttr(p)}>
         <span class="live-chip-photo">
             <img src="images/fallback-player.svg" alt="" loading="lazy"
                  data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
@@ -573,7 +594,8 @@ function fieldSlot(p, extraClass = '') {
     return `
     <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${extraClass}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
-         data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}">
+         data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
+         ${gameAttr(p)}>
         <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
@@ -721,7 +743,8 @@ function compareName(p, side) {
     return `
     <div class="live-cmp-who live-cmp-who--${side}"
          data-player-modal data-player-name="${escAttr(p.name)}"
-         data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}">
+         data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
+         ${gameAttr(p)}>
         <span class="live-cmp-name">${escAttr(p.name)}</span>
         <span class="live-cmp-meta">${escAttr(meta)}</span>
     </div>`;
@@ -770,95 +793,6 @@ function compareHTML(team, opp) {
     }).join('')}
     </div>
     ${swapArrowHTML()}
-    </div>`;
-}
-
-/**
- * Andamento punti nel weekend: i punti di ogni titolare si accumulano
- * linearmente dentro la finestra della sua partita NFL reale (kickoff→fine da
- * nfl-schedule). Stessa tecnica del grafico in game.js, qui per la squadra
- * selezionata contro l'avversario. Riusa le classi .gbc-* già esistenti.
- */
-function chartHTML(team, opp) {
-    if (!liveSchedule) return '';
-    const t1 = teamOf(team.name), t2 = teamOf(opp.name);
-    const colors = [t1?.color || 'var(--accent-red)', t2?.color || 'var(--accent-blue)'];
-
-    const mkSeries = (t) => (t.starters || []).map(p => ({
-        pts: P(p.fantasy_points), name: p.name,
-        win: liveSchedule.get(canonAbbr(p.nfl_team)) || null,
-    }));
-    const series = [mkSeries(team), mkSeries(opp)];
-
-    const matched = series.flat().filter(x => x.win);
-    if (!matched.length) return '';
-
-    const t0 = Math.min(...matched.map(x => x.win.start.getTime()));
-    const tEnd = Math.max(...matched.map(x => x.win.end.getTime()));
-    series.forEach(list => list.forEach(x => {
-        if (!x.win) x.win = { start: new Date(t0), end: new Date(tEnd) };
-    }));
-    const pad = 25 * 60 * 1000;
-    const T0 = t0 - pad, T1 = tEnd + pad;
-
-    const valueAt = (list, t) => list.reduce((s, x) => {
-        const a = x.win.start.getTime(), b = x.win.end.getTime();
-        const f = t <= a ? 0 : t >= b ? 1 : (t - a) / (b - a);
-        return s + x.pts * f;
-    }, 0);
-
-    const times = [...new Set([T0, T1, ...series.flat().flatMap(x => [x.win.start.getTime(), x.win.end.getTime()])])].sort((a, b) => a - b);
-    const maxV = Math.max(valueAt(series[0], T1), valueAt(series[1], T1));
-    const yTop = Math.max(25, Math.ceil(maxV * 1.06 / 25) * 25);
-
-    const W = 920, H = 300, padL = 6, padR = 42, padT = 12, padB = 44;
-    const X = (t) => padL + (t - T0) / (T1 - T0) * (W - padL - padR);
-    const Y = (v) => padT + (1 - v / yTop) * (H - padT - padB);
-
-    let grid = '';
-    for (let v = 0; v <= yTop; v += 25) {
-        grid += `<line x1="${padL}" y1="${Y(v)}" x2="${W - padR}" y2="${Y(v)}" class="gbc-grid"/>
-                 <text x="${W - padR + 8}" y="${Y(v) + 4}" class="gbc-ylabel">${v}</text>`;
-    }
-
-    const kicks = [...new Set(matched.map(x => x.win.start.getTime()))].sort((a, b) => a - b);
-    const dayFmt = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
-    const hourFmt = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    let lastKept = -Infinity, ticks = '';
-    kicks.forEach(k => {
-        if (k - lastKept < 40 * 60 * 1000) return;
-        lastKept = k;
-        const d = new Date(k);
-        ticks += `<line x1="${X(k)}" y1="${padT}" x2="${X(k)}" y2="${H - padB}" class="gbc-tickline"/>
-                  <text x="${X(k)}" y="${H - padB + 16}" class="gbc-xlabel">${hourFmt.format(d)}</text>
-                  <text x="${X(k)}" y="${H - padB + 30}" class="gbc-xlabel gbc-xday">${dayFmt.format(d)}</text>`;
-    });
-
-    const line = (list, color) =>
-        `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"
-            points="${times.map(t => `${X(t).toFixed(1)},${Y(valueAt(list, t)).toFixed(1)}`).join(' ')}"/>`;
-
-    const dots = (list, color) => list.filter(x => x.pts !== 0).map(x => {
-        const te = x.win.end.getTime();
-        return `<circle cx="${X(te).toFixed(1)}" cy="${Y(valueAt(list, te)).toFixed(1)}" r="4.5"
-                    fill="${color}" stroke="var(--bg-primary)" stroke-width="1.5" class="gbc-dot">
-                <title>${escAttr(x.name)} · ${x.pts.toFixed(1)} pt</title></circle>`;
-    }).join('');
-
-    return `
-    <div class="mosaic-card mc-wide mc-in live-card">
-        <span class="mc-kicker">Weekend trend</span>
-        <div class="gbc-legend">
-            <span class="gbc-legend-item"><i style="background:${colors[0]}"></i>${teamNameHTML(t1?.name || team.name)}</span>
-            <span class="gbc-legend-item"><i style="background:${colors[1]}"></i>${teamNameHTML(t2?.name || opp.name)}</span>
-        </div>
-        <div class="gbc-wrap">
-            <svg viewBox="0 0 ${W} ${H}" class="gbc-svg" role="img" aria-label="Points trend across the weekend">
-                ${grid}${ticks}
-                ${line(series[0], colors[0])}${line(series[1], colors[1])}
-                ${dots(series[0], colors[0])}${dots(series[1], colors[1])}
-            </svg>
-        </div>
     </div>`;
 }
 

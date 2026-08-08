@@ -9851,24 +9851,27 @@ body.pm-open { overflow: hidden; }
     color: var(--text-secondary);
 }
 
+/* Statistiche di gara senza riquadri: valori affiancati separati da una linea
+   sottile, come i riepiloghi del confronto. Il numero sopra, l'etichetta sotto. */
 .pm-game-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
-    gap: 1px;
-    margin-top: 4px;
-    background: var(--border-subtle);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    overflow: hidden;
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+    gap: 14px 4px;
+    margin-top: 12px;
 }
 
 .pm-game-cell {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 10px 6px;
-    background: var(--bg-primary);
+    gap: 1px;
+    padding: 0 6px;
+    border-left: 1px solid var(--border-subtle);
+}
+
+/* niente linea a inizio riga, qualunque sia il numero di colonne */
+.pm-game-cell:first-child {
+    border-left: none;
 }
 
 .pm-game-cell-val {

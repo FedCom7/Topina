@@ -15,7 +15,7 @@ import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=13';
-import { TEAMS } from './team.js?v=25';
+import { TEAMS } from './team.js?v=28';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 const _fantasyCache = {};

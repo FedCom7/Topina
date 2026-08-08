@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=14';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=15';
-import { TEAMS } from '../sections/team.js?v=25';
+import { TEAMS } from '../sections/team.js?v=28';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { getPlayerInfo } from '../data/player-full.js?v=13';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=13';
@@ -158,53 +158,69 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
  * Sono alternativi: nel Game Center conta la partita, non la carriera.
  */
 function appendContextBlocks(content, { game, pos, career, awards }) {
+    // Aperto da Game Center / Live: conta la partita, non la carriera. Via i
+    // totali di carriera e la tabella per stagione, che restano in tutte le
+    // altre pagine (l'HTML di buildCard è cachato, quindi si potano qui).
+    if (game) {
+        content.querySelector('.pm-big-stats')?.remove();
+        content.querySelectorAll('.pm-block').forEach(b => {
+            if (/stats by season/i.test(b.querySelector('.mc-kicker')?.textContent || '')) b.remove();
+        });
+    }
+
     const html = game
         ? gameBlockHtml(game, pos)
         : (awards ? awardsBlock(career, awards) : '');
     if (html) content.insertAdjacentHTML('beforeend', html);
 }
 
-/** Statistiche rilevanti della singola gara, per ruolo. */
-function gameStatCells(pos, s = {}) {
-    const n = (v) => Number(v) || 0;
-    const cell = (label, value) => ({ label, value });
+/** Etichetta leggibile per ogni statistica di gara conosciuta. */
+const GAME_STAT_LABELS = {
+    pass_comp: 'Completions', pass_att: 'Attempts', pass_yds: 'Pass yd',
+    pass_td: 'Pass TD', pass_int: 'INT',
+    rush_att: 'Carries', rush_yds: 'Rush yd', rush_td: 'Rush TD',
+    targets: 'Targets', rec: 'Receptions', rec_yds: 'Rec yd', rec_td: 'Rec TD',
+    ret_td: 'Return TD', fum_td: 'Fumble TD', fum_lost: 'Fumbles lost', two_pt: '2-PT',
+    pat_made: 'Extra points', fg_made: 'Field goals', fg_att: 'FG attempts',
+    fg_0_19: 'FG 0-19', fg_20_29: 'FG 20-29', fg_30_39: 'FG 30-39',
+    fg_0_39: 'FG 0-39', fg_40_49: 'FG 40-49', fg_50_plus: 'FG 50+',
+    sack: 'Sacks', def_int: 'Interceptions', fum_rec: 'Fumble rec.',
+    def_td: 'Def. TDs', safety: 'Safeties', def_2pt_ret: '2-PT return',
+    def_ret_td: 'Return TD', pts_allowed: 'Points allowed', pts_allow: 'Points allowed',
+    yds_allowed: 'Yards allowed',
+};
 
-    switch ((pos || '').toUpperCase()) {
-        case 'QB':
-            return [
-                cell('Pass yd', n(s.pass_yds)), cell('Pass TD', n(s.pass_td)),
-                cell('INT', n(s.pass_int)), cell('Rush yd', n(s.rush_yds)),
-                cell('Rush TD', n(s.rush_td)),
-            ];
-        case 'RB':
-            return [
-                cell('Rush yd', n(s.rush_yds)), cell('Rush TD', n(s.rush_td)),
-                cell('Receptions', n(s.rec)), cell('Rec yd', n(s.rec_yds)),
-                cell('Rec TD', n(s.rec_td)),
-            ];
-        case 'WR':
-        case 'TE':
-        case 'W/R':
-            return [
-                cell('Receptions', n(s.rec)), cell('Rec yd', n(s.rec_yds)),
-                cell('Rec TD', n(s.rec_td)), cell('Rush yd', n(s.rush_yds)),
-            ];
-        case 'K': {
-            const fg = n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus);
-            return [
-                cell('Field goals', fg), cell('Extra points', n(s.pat_made)),
-                cell('FG 50+', n(s.fg_50_plus)),
-            ];
-        }
-        case 'DEF':
-            return [
-                cell('Sacks', n(s.sack)), cell('Interceptions', n(s.def_int)),
-                cell('Fumble rec.', n(s.fum_rec)), cell('Def. TDs', n(s.def_td)),
-                cell('Points allowed', n(s.pts_allow)),
-            ];
-        default:
-            return [];
-    }
+/** Ordine di presentazione preferito per ruolo; il resto segue come si trova. */
+const GAME_STAT_ORDER = {
+    QB: ['pass_comp', 'pass_att', 'pass_yds', 'pass_td', 'pass_int', 'rush_att', 'rush_yds', 'rush_td'],
+    RB: ['rush_att', 'rush_yds', 'rush_td', 'targets', 'rec', 'rec_yds', 'rec_td'],
+    WR: ['targets', 'rec', 'rec_yds', 'rec_td', 'rush_att', 'rush_yds', 'rush_td'],
+    K: ['fg_made', 'fg_att', 'pat_made', 'fg_0_39', 'fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_40_49', 'fg_50_plus'],
+    DEF: ['sack', 'def_int', 'fum_rec', 'def_td', 'safety', 'pts_allowed', 'yds_allowed'],
+};
+
+/**
+ * TUTTE le statistiche registrate per la gara, non una selezione: si mostra
+ * quello che i dati contengono davvero, ordinato per ruolo e con le voci ignote
+ * in coda (così una chiave nuova non sparisce silenziosamente).
+ */
+function gameStatCells(pos, s = {}) {
+    let role = (pos || '').toUpperCase();
+    if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX' || role === 'TE') role = role === 'TE' ? 'WR' : 'WR';
+    if (role === 'D/ST') role = 'DEF';
+
+    const present = Object.keys(s).filter(k => s[k] != null);
+    const preferred = (GAME_STAT_ORDER[role] || []).filter(k => present.includes(k));
+    const rest = present.filter(k => !preferred.includes(k));
+
+    const round = (v) => {
+        const n = Number(v) || 0;
+        return Number.isInteger(n) ? n : Math.round(n * 10) / 10;
+    };
+    return [...preferred, ...rest].map(k => ({
+        label: GAME_STAT_LABELS[k] || k.replace(/_/g, ' '),
+        value: round(s[k]),
+    }));
 }
 
 function gameBlockHtml(game, pos) {
