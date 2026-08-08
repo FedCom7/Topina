@@ -13148,22 +13148,8 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     background: #444;
 }
 
-.live-receipt {
-    border: 1px dashed var(--live-border);
-    border-radius: 8px;
-    padding: 10px;
-    background: #101010;
-    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-}
-
-.live-receipt--big {
-    border-style: solid;
-    border-color: color-mix(in srgb, var(--accent-amber) 45%, var(--live-border));
-    box-shadow: 0 0 18px color-mix(in srgb, var(--accent-amber) 12%, transparent);
-}
-
-/* "stampa" dello scontrino appena arrivato */
-.live-receipt--new {
+/* La card appena arrivata "stampa" entrando dall'alto. */
+.pbp-card.live-receipt--new {
     animation: live-print 0.45s var(--ease) backwards;
 }
 
@@ -13173,82 +13159,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .live-receipt--new { animation: none; }
+    .pbp-card.live-receipt--new { animation: none; }
 }
 
-.live-receipt-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-    border-bottom: 1px dashed var(--live-border);
-    padding-bottom: 6px;
-}
-
-.live-receipt-type {
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-primary);
-}
-
-.live-receipt-time {
-    font-size: 0.62rem;
-    color: var(--text-muted);
-}
-
-.live-receipt-player {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    margin: 6px 0;
-}
-
-.live-receipt-team {
-    color: var(--text-muted);
-    font-size: 0.65rem;
-}
-
-.live-receipt-lines {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.live-receipt-lines li {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 0.68rem;
-    color: var(--text-muted);
-}
-
-.live-receipt-lines b.pos { color: var(--accent-green); }
-.live-receipt-lines b.neg { color: var(--live-red); }
-
-.live-receipt-total {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px dashed var(--live-border);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-}
-
-.live-receipt-total.pos b { color: var(--accent-green); }
-.live-receipt-total.neg b { color: var(--live-red); }
-.live-receipt-total.flat b { color: var(--text-muted); }
-
-/* ── Chip giocatore ── */
 .live-chip {
     display: flex;
     align-items: center;
