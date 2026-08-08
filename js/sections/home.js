@@ -252,13 +252,18 @@ function cardNumbers({ league }) {
     const totalPts = TEAM_KEY_LIST.reduce((s, k) => s + league.allTime[k].pf, 0);
     const most = TEAM_KEY_LIST.map(k => ({ k, n: league.allTime[k].sbWins.length }))
         .sort((a, b) => b.n - a.n)[0];
+    // Il nome della squadra è il dato, il conteggio è una postilla: "Lasers ×3"
+    // si legge meglio di "Lasers (3)", dove la parentesi sembrava un anno.
     const tiles = [
         [league.seasons.length, 'Seasons'],
         [fmtInt(totalGames), 'Games'],
         [fmtInt(totalPts), 'Total points'],
-        [`${TEAMS[most.k].name} (${most.n})`, 'Most titles'],
-    ].map(([v, l]) => `
-        <div class="mc-num"><span class="mc-num-value">${v}</span><span class="mc-num-label">${l}</span></div>`).join('');
+        [TEAMS[most.k].name, 'Most titles', `×${most.n}`],
+    ].map(([v, l, note]) => `
+        <div class="mc-num">
+            <span class="mc-num-value">${v}${note ? `<small class="mc-num-note">${note}</small>` : ''}</span>
+            <span class="mc-num-label">${l}</span>
+        </div>`).join('');
     return card({
         kicker: 'Since 2019',
         title: 'The league by the numbers',
@@ -387,22 +392,33 @@ function cardLastWeek({ season, phase }) {
         const g = season.perTeam[key]?.games.find(x => x.week === phase.week);
         if (!g || !g.opp) return;
         seen.add(key); seen.add(g.opp);
-        const winSide = g.won ? 'mc-score-row--w1' : 'mc-score-row--w2';
+        const winSide = g.won ? 'mc-vs-row--w1' : 'mc-vs-row--w2';
         rows.push(`
-        <div class="mc-score-row mc-score-row--vs ${winSide}"
+        <div class="mc-vs-row ${winSide}"
              style="--t1:${TEAMS[key]?.color || 'transparent'};--t2:${TEAMS[g.opp]?.color || 'transparent'}">
-            ${teamChip(key)}
-            <span class="mc-score"><b class="${g.won ? 'w' : ''}">${fmtScore(g.pts)}</b> – <b class="${!g.won ? 'w' : ''}">${fmtScore(g.oppPts)}</b></span>
-            ${teamChip(g.opp)}
+            ${teamCrest(key)}
+            <span class="mc-vs-score mc-vs-score--l${g.won ? ' w' : ''}">${fmtScore(g.pts)}</span>
+            <span class="mc-vs-dash">–</span>
+            <span class="mc-vs-score mc-vs-score--r${!g.won ? ' w' : ''}">${fmtScore(g.oppPts)}</span>
+            ${teamCrest(g.opp)}
         </div>`);
     });
     if (!rows.length) return '';
     return card({
+        cls: 'mc-results-card',
         kicker: `Week ${phase.week}`,
         title: 'Latest results',
-        body: `<div class="mc-rows">${rows.join('')}</div>`,
+        body: `<div class="mc-vs-rows">${rows.join('')}</div>`,
         cta: 'Game Center', href: '#game-center',
     });
+}
+
+/** Solo lo stemma, grande: nei risultati il logo basta a dire chi è. */
+function teamCrest(key) {
+    const t = TEAMS[key];
+    if (!t) return '<span class="mc-vs-crest"></span>';
+    return `<span class="mc-vs-crest" style="--team-color:${t.color}" title="${t.name}">
+        <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'"></span>`;
 }
 
 function cardStandings({ season }) {

@@ -5455,12 +5455,34 @@ img {
    ================================ */
 
 .mosaic {
+    position: relative;
+    /* il fondale sborda di proposito oltre la griglia: va tagliato qui, o
+       allarga la pagina in orizzontale. `clip` invece di `hidden` per non
+       trasformare la griglia in un contenitore di scorrimento. */
+    overflow-x: clip;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 16px;
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px 24px 90px;
+}
+
+/* Fondale ambientale: aloni morbidi nei colori della lega, dietro le card.
+   Senza qualcosa da sfocare il vetro delle card non si distinguerebbe da un
+   pannello opaco. È un ::before (primo figlio in ordine di pittura) mentre le
+   card sono `position: relative`, quindi restano sopra senza bisogno di
+   z-index negativi, che finirebbero dietro allo sfondo della pagina. */
+.mosaic::before {
+    content: '';
+    position: absolute;
+    inset: -6% -12%;
+    pointer-events: none;
+    background:
+        radial-gradient(38% 26% at 14% 6%, color-mix(in srgb, var(--accent-red) 26%, transparent), transparent 70%),
+        radial-gradient(34% 22% at 88% 22%, rgba(228, 178, 62, 0.17), transparent 70%),
+        radial-gradient(40% 26% at 74% 62%, rgba(78, 118, 226, 0.17), transparent 70%),
+        radial-gradient(36% 24% at 20% 88%, color-mix(in srgb, var(--accent-red) 16%, transparent), transparent 70%);
 }
 
 /* ── Card base: stessa ricetta delle card All Teams ── */
@@ -5476,8 +5498,19 @@ img {
     min-height: 250px;
     min-width: 0;
     border-radius: var(--radius-xl);
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-card);
+    /* Vetro liquido, come la scheda giocatore: pannello traslucido con riflesso
+       interno in alto a fare da spessore. Il blur è dichiarato ma resta un
+       dettaglio: dietro la home c'è un fondo piatto, e durante il reveal la
+       transform sulla card lo disattiverebbe comunque. */
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
+        rgba(14, 14, 16, 0.62);
+    backdrop-filter: blur(26px) saturate(170%);
+    -webkit-backdrop-filter: blur(26px) saturate(170%);
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .mosaic-card::before {
@@ -5528,7 +5561,8 @@ img {
     transform: translateY(-4px);
     border-color: color-mix(in srgb, var(--card-glow) 40%, transparent);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45),
-        0 0 50px color-mix(in srgb, var(--card-glow) 13%, transparent);
+        0 0 50px color-mix(in srgb, var(--card-glow) 13%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5759,6 +5793,80 @@ img {
     font-weight: 800;
 }
 
+/* ── Latest results: solo stemmi, grandi, a riempire la card ──
+   Le righe si dividono l'altezza disponibile (mc-body cresce), e le colonne
+   sono fisse: stemma | punti a destra | trattino | punti a sinistra | stemma.
+   Così i punteggi di righe diverse cadono sulla stessa colonna. */
+.mc-results-card .mc-body {
+    flex: 1;
+    display: flex;
+    margin-top: 6px;
+}
+
+.mc-vs-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.mc-vs-row {
+    --w1-mix: 12%;
+    --w2-mix: 12%;
+    flex: 1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    /* i colori delle due squadre sfumano dai bordi verso il centro, più accesi
+       dal lato di chi ha vinto */
+    background: linear-gradient(90deg,
+            color-mix(in srgb, var(--t1, transparent) var(--w1-mix), transparent),
+            transparent 35% 65%,
+            color-mix(in srgb, var(--t2, transparent) var(--w2-mix), transparent));
+}
+
+.mc-vs-row--w1 { --w1-mix: 26%; }
+.mc-vs-row--w2 { --w2-mix: 26%; }
+
+.mc-vs-crest {
+    display: grid;
+    place-items: center;
+    width: clamp(52px, 6.4vw, 84px);
+    height: clamp(52px, 6.4vw, 84px);
+}
+
+.mc-vs-crest img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 14px color-mix(in srgb, var(--team-color, #000) 45%, transparent));
+}
+
+.mc-vs-score {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.6vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.mc-vs-score--l { text-align: right; }
+.mc-vs-score--r { text-align: left; }
+
+.mc-vs-score.w {
+    color: var(--accent-green);
+    font-weight: 900;
+}
+
+.mc-vs-dash {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
 /* ── Campione ── */
 /* Logo del campione: immagine "di lato" a tutta altezza della card,
    figlia diretta dell'article (come .mc-watermark/.mc-bg) così può
@@ -5856,6 +5964,17 @@ img {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* Postilla accanto al valore (es. "×3" dei titoli): il fill trasparente del
+   gradiente va annullato, altrimenti eredita e sparisce. */
+.mc-num-note {
+    -webkit-text-fill-color: initial;
+    margin-left: 6px;
+    font-size: 0.62em;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0;
 }
 
 .mc-num-label {
@@ -5978,8 +6097,14 @@ img {
     gap: 6px;
     padding: 20px;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-card);
+    /* stesso vetro delle card del mosaico */
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
+        rgba(14, 14, 16, 0.62);
+    backdrop-filter: blur(26px) saturate(170%);
+    -webkit-backdrop-filter: blur(26px) saturate(170%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
     transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
 }
 
@@ -5998,7 +6123,8 @@ img {
     transform: translateY(-4px);
     border-color: color-mix(in srgb, var(--card-glow) 45%, transparent);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4),
-        0 0 36px color-mix(in srgb, var(--card-glow) 14%, transparent);
+        0 0 36px color-mix(in srgb, var(--card-glow) 14%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .mc-rail-top {
