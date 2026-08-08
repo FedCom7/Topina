@@ -39,6 +39,19 @@ All Firebase RTDB reads go through this module. Key exports:
 ### Data Flow
 Firebase RTDB → `data.js` fetch/process → `sections/*.js` render to DOM
 
+**Chi scrive su Firebase (deciso 2026-08-09): solo lo script Python esterno**
+`NFL_Fantasy_Dash`, che legge l'API fantasy ESPN e carica i dati di lega.
+È l'unico produttore: non aggiungerne altri senza prima ritirare questo,
+perché scrivono sugli stessi nodi e l'ultimo sovrascrive l'altro (successo il
+2026-08-04). Di conseguenza sono disattivati sull'automatico i workflow
+`sync-espn.yml` e `deploy-data.yml`, e il Cloudflare Worker in `worker/` non
+è pubblicato — resta come riferimento, il sito non lo usa.
+
+Il live play-by-play della pagina `#live` è l'eccezione e **non passa da
+Firebase**: `js/data/nfl-plays.js` legge in diretta dal browser l'endpoint
+pubblico `sports.core.api.espn.com/.../plays`, che non richiede cookie. Non
+scrive niente e non dipende da nessuno dei due produttori.
+
 ### Team Name Mapping
 Firebase stores team names differently from display names (e.g., `riccardo97com` → `Oscurus`, `FedCom` → `Sommo`). Mapping lives in `data.js:TEAM_DISPLAY_NAMES`. Team keys, logos, and stadium images are in `js/data/team-config.js`.
 
