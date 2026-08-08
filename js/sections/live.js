@@ -70,7 +70,6 @@ const BIG_EVENTS = new Set(['pass_td', 'rush_td', 'rec_td', 'ret_td', 'fum_td', 
 let prevSnapshot = null;   // { playerName: { pts, stats } }
 let receipts = [];         // storico scontrini (più recenti in testa)
 let compareMode = false;   // false = campo, true = confronto titolari
-let slideFrom = null;      // 'right' | 'left': direzione di entrata dopo uno swap
 
 let loaded = false;
 let pollTimer = null;
@@ -588,24 +587,52 @@ function showOpponent() {
     const next = entries.findIndex(e => e.team === opp);
     if (next >= 0) teamIdx = next;
 
-    const swap = () => {
-        slideFrom = goingForward ? 'right' : 'left';
-        render();
-        slideFrom = null;
-    };
-
-    // La scheda corrente esce prima (sfuma e scivola dal lato opposto), poi
-    // entra quella nuova: il ricambio è continuo invece di uno scatto secco.
+    // Dissolvenza incrociata: le due schede si muovono INSIEME, quella che
+    // esce sfuma mentre l'altra entra dal lato opposto. Prima uscivano una
+    // dopo l'altra, e in mezzo restava un istante di vuoto.
+    //
+    // Il contenuto vecchio non si può animare dopo render(), che riscrive
+    // tutta la pagina: se ne tiene una copia sovrapposta al nuovo, e sparisce
+    // a fine transizione.
     const outgoing = document.querySelector('[data-swipe]');
-    if (!outgoing || !outgoing.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        swap();
+    const stage = outgoing?.closest('.live-stage');
+    if (!outgoing || !stage || !outgoing.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        render();
         return;
     }
-    const anim = outgoing.animate([
+
+    const ghost = outgoing.cloneNode(true);
+    ghost.classList.add('live-ghost');
+    ghost.removeAttribute('data-swipe');
+    const frozenHeight = stage.getBoundingClientRect().height;
+
+    render();
+
+    const newStage = document.querySelector('.live-stage');
+    const incoming = document.querySelector('[data-swipe]');
+    if (!newStage || !incoming) return;
+    // la copia è fuori flusso: senza questo il palco collasserebbe per un
+    // istante all'altezza del nuovo contenuto non ancora disegnato
+    newStage.style.minHeight = `${frozenHeight}px`;
+    newStage.appendChild(ghost);
+
+    const D = 440;
+    const E = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const out = goingForward ? '-42%' : '42%';
+    const inFrom = goingForward ? '42%' : '-42%';
+
+    ghost.animate([
         { transform: 'translateX(0)', opacity: 1 },
-        { transform: `translateX(${goingForward ? '-38%' : '38%'})`, opacity: 0 },
-    ], { duration: 260, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' });
-    anim.onfinish = swap;
+        { transform: `translateX(${out})`, opacity: 0 },
+    ], { duration: D, easing: E, fill: 'forwards' }).onfinish = () => {
+        ghost.remove();
+        newStage.style.minHeight = '';
+    };
+
+    incoming.animate([
+        { transform: `translateX(${inFrom})`, opacity: 0 },
+        { transform: 'none', opacity: 1 },
+    ], { duration: D, easing: E });
 }
 
 /** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
@@ -872,10 +899,6 @@ function swapArrowHTML() {
 }
 
 /** Classe di animazione da applicare al riquadro dopo uno swap. */
-function slideClass() {
-    return slideFrom ? ` live-slide-${slideFrom}` : '';
-}
-
 /** Campo di una singola squadra, orizzontale, sfondo campo visibile (stile Game Center). */
 function fieldHTML(team) {
     return `
@@ -886,7 +909,7 @@ function fieldHTML(team) {
         </div>
     </div>
     <div class="live-stage">
-        <div class="live-field-slider${slideClass()}" data-swipe>
+        <div class="live-field-slider" data-swipe>
             <div class="matchup-field-horizontal live-field-solo">
                 <img src="Wallpapers/IMG_5984.PNG" class="field-bg" alt="">
                 <div class="field-overlay">
@@ -1008,7 +1031,7 @@ function compareHTML(team, opp) {
         </div>
     </div>
     <div class="live-stage">
-    <div class="live-compare${slideClass()}" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
+    <div class="live-compare" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
         ${pairs.map(({ slot, a, b }) => {
         const pa = a ? effPts(a) : 0, pb = b ? effPts(b) : 0;
         const aWin = !!a && pa >= pb;

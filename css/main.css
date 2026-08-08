@@ -11505,24 +11505,17 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     background: rgba(0, 0, 0, 0.85);
 }
 
-/* Entrata della scheda avversaria dal lato della freccia */
-@keyframes live-slide-from-right {
-    from { opacity: 0.4; transform: translateX(100%); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes live-slide-from-left {
-    from { opacity: 0.4; transform: translateX(-100%); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* entrata morbida: decelera dolcemente invece di frenare di colpo */
-.live-slide-right { animation: live-slide-from-right 0.46s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.live-slide-left { animation: live-slide-from-left 0.46s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-@media (prefers-reduced-motion: reduce) {
-    .live-slide-right,
-    .live-slide-left { animation: none; }
+/* Copia della scheda uscente durante il cambio squadra: sta sopra la nuova e
+   sfuma mentre quella entra dal lato opposto (dissolvenza incrociata, animata
+   da showOpponent con la Web Animations API). Fuori flusso, così le due si
+   sovrappongono invece di accodarsi. */
+.live-ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    pointer-events: none;
 }
 
 /* campo + panchina si muovono insieme durante lo scambio squadra */
