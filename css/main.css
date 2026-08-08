@@ -9261,9 +9261,11 @@ body.pm-open { overflow: hidden; }
        un suo antenato) disattiva backdrop-filter, e il vetro sparirebbe per
        tutta la durata dell'animazione. */
     border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(30px) saturate(180%);
-    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
+        rgba(14, 14, 16, 0.62);
+    backdrop-filter: blur(34px) saturate(180%);
+    -webkit-backdrop-filter: blur(34px) saturate(180%);
     box-shadow:
         0 24px 60px rgba(0, 0, 0, 0.55),
         inset 0 1px 0 rgba(255, 255, 255, 0.22);
