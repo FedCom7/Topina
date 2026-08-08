@@ -6,9 +6,9 @@
  * (ui/navbar.js), così esiste una sola fonte di verità.
  */
 
-import { buildCareers } from './careers.js?v=64';
+import { buildCareers } from './careers.js?v=70';
 import { NFL_TEAMS } from './nfl-teams.js?v=1';
-import { normName } from './projections.js?v=69';
+import { normName } from './projections.js?v=76';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const teamLogoUrl = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${(abbr || '').toLowerCase()}.png`;

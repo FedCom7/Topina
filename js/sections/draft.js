@@ -4,9 +4,9 @@
  */
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=78';
+import { TEAMS } from './team.js?v=83';
 import { playerImageService } from '../services/player-image-service.js?v=15';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=81';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=87';
 import { db } from '../firebase-config.js';
 
 let loaded = false;

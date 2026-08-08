@@ -114,6 +114,12 @@ export function scorePlay(play) {
     if (!play) return [];
     const S = LEAGUE_SCORING;
     const { type = '', text = '', yards = 0, actors = {}, defenseTeamId } = play;
+
+    // Penalità che annulla l'azione: il tipo resta "Pass Reception" o "Rush",
+    // ma la giocata non è mai avvenuta e a nessuno conta niente. Senza questo
+    // controllo a Mahomes finivano 31 yard di passaggio e 14 di corsa mai
+    // realizzate (misurato contro i punti veri della lega, week 3 2025).
+    if (/No Play/i.test(text)) return [];
     const out = [];
     // `stats` sono gli incrementi grezzi della giocata (una ricezione, otto
     // yard...): servono a chi deve aggiornare un totale, non solo a mostrare
