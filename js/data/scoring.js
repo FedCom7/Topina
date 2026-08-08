@@ -115,11 +115,14 @@ export function scorePlay(play) {
     const S = LEAGUE_SCORING;
     const { type = '', text = '', yards = 0, actors = {}, defenseTeamId } = play;
     const out = [];
-    const add = (espnId, role, pts, line) => {
-        if (espnId) out.push({ espnId, role, pts: +(+pts).toFixed(2), line });
+    // `stats` sono gli incrementi grezzi della giocata (una ricezione, otto
+    // yard...): servono a chi deve aggiornare un totale, non solo a mostrare
+    // i punti.
+    const add = (espnId, role, pts, line, stats) => {
+        if (espnId) out.push({ espnId, role, pts: +(+pts).toFixed(2), line, stats: stats || {} });
     };
-    const addDef = (role, pts, line) => {
-        if (defenseTeamId) out.push({ defTeamId: String(defenseTeamId), role, pts: +(+pts).toFixed(2), line });
+    const addDef = (role, pts, line, stats) => {
+        if (defenseTeamId) out.push({ defTeamId: String(defenseTeamId), role, pts: +(+pts).toFixed(2), line, stats: stats || {} });
     };
 
     const passTD = type === 'Passing Touchdown';
@@ -127,30 +130,35 @@ export function scorePlay(play) {
     const retTD = /Return Touchdown/i.test(type);
 
     if (type === 'Pass Reception' || passTD) {
-        add(actors.passer, 'passer', yards * S.pass_yd + (passTD ? S.pass_td : 0), `${yards} yd`);
-        add(actors.receiver, 'receiver', S.rec + yards * S.rec_yd + (passTD ? S.rec_td : 0), `${yards} yd · 1 rec`);
+        add(actors.passer, 'passer', yards * S.pass_yd + (passTD ? S.pass_td : 0), `${yards} yd`,
+            { pass_att: 1, pass_comp: 1, pass_yds: yards, pass_td: passTD ? 1 : 0 });
+        add(actors.receiver, 'receiver', S.rec + yards * S.rec_yd + (passTD ? S.rec_td : 0), `${yards} yd · 1 rec`,
+            { targets: 1, rec: 1, rec_yds: yards, rec_td: passTD ? 1 : 0 });
     } else if (type === 'Rush' || rushTD) {
-        add(actors.rusher, 'rusher', yards * S.rush_yd + (rushTD ? S.rush_td : 0), `${yards} yd`);
+        add(actors.rusher, 'rusher', yards * S.rush_yd + (rushTD ? S.rush_td : 0), `${yards} yd`,
+            { rush_att: 1, rush_yds: yards, rush_td: rushTD ? 1 : 0 });
     } else if (type === 'Pass Incompletion') {
-        add(actors.passer, 'passer', 0, 'incomplete');
-        add(actors.receiver, 'receiver', 0, 'target');
+        add(actors.passer, 'passer', 0, 'incomplete', { pass_att: 1 });
+        add(actors.receiver, 'receiver', 0, 'target', { targets: 1 });
     } else if (type === 'Pass Interception Return') {
-        add(actors.passer, 'passer', S.pass_int, 'intercepted');
-        addDef('def_int', S.def_int, 'interception');
+        add(actors.passer, 'passer', S.pass_int, 'intercepted', { pass_att: 1, pass_int: 1 });
+        addDef('def_int', S.def_int, 'interception', { def_int: 1 });
     } else if (type === 'Sack') {
-        add(actors.passer, 'passer', 0, `sacked · ${yards} yd`);
-        addDef('sack', S.sack, 'sack');
+        add(actors.passer, 'passer', 0, `sacked · ${yards} yd`, {});
+        addDef('sack', S.sack, 'sack', { sack: 1 });
     } else if (type === 'Field Goal Good') {
         const pts = yards >= 50 ? S.fg_50_plus : yards >= 40 ? S.fg_40_49 : S.fg_30_39;
-        add(actors.kicker, 'kicker', pts, `${yards} yd FG`);
+        const band = yards >= 50 ? 'fg_50_plus' : yards >= 40 ? 'fg_40_49' : 'fg_0_39';
+        add(actors.kicker, 'kicker', pts, `${yards} yd FG`,
+            { fg_made: 1, fg_att: 1, [band]: 1 });
     } else if (retTD) {
-        add(actors.returner, 'returner', S.ret_td, `${yards} yd return`);
+        add(actors.returner, 'returner', S.ret_td, `${yards} yd return`, { ret_td: 1 });
     }
 
     // L'extra point sta nella stessa giocata del touchdown, non in una sua.
     // Si accredita solo se il testo dice che è andato dentro.
     if ((passTD || rushTD || retTD) && /extra point is good/i.test(text)) {
-        add(actors.patScorer || actors.kicker, 'kicker', S.pat_made, 'extra point');
+        add(actors.patScorer || actors.kicker, 'kicker', S.pat_made, 'extra point', { pat_made: 1 });
     }
 
     return out;

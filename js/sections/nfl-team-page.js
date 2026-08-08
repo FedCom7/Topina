@@ -13,21 +13,21 @@
 
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=9';
-import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=21';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=23';
+import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=50';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=51';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=19';
 import { canonAbbr } from '../data/nfl-schedule.js?v=20';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=38';
+} from '../data/nfl-team-live.js?v=37';
 import {
     esc, teamLogo, factChip, tile, fmt0, fmt1, fmt2, ord, TEAM_HISTORY_YEARS,
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, matchupChip,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=73';
+} from './player-page.js?v=300';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

@@ -18,11 +18,11 @@
 
 import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=33';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
-import { getHonorsBundle } from '../data/honors.js?v=29';
-import { electHallOfFame } from '../data/hall-of-fame.js?v=26';
-import { TEAMS } from './team.js?v=44';
+import { getHonorsBundle } from '../data/honors.js?v=57';
+import { electHallOfFame } from '../data/hall-of-fame.js?v=55';
+import { TEAMS } from './team.js?v=73';
 import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=33';
-import { teamsCardsHTML } from './teams.js?v=25';
+import { teamsCardsHTML } from './teams.js?v=53';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;

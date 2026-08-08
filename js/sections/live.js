@@ -14,13 +14,13 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=44';
+import { TEAMS } from './team.js?v=73';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=1';
-import { scorePlay } from '../data/scoring.js?v=29';
+import { scorePlay } from '../data/scoring.js?v=61';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=45';
+import { initPlayerModal } from '../components/player-modal.js?v=75';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -70,7 +70,6 @@ const BIG_EVENTS = new Set(['pass_td', 'rush_td', 'rec_td', 'ret_td', 'fum_td', 
 let prevSnapshot = null;   // { playerName: { pts, stats } }
 let receipts = [];         // storico scontrini (più recenti in testa)
 let compareMode = false;   // false = campo, true = confronto titolari
-let slideFrom = null;      // 'right' | 'left': direzione di entrata dopo uno swap
 
 let loaded = false;
 let pollTimer = null;
@@ -234,6 +233,104 @@ function rosterIndex() {
  * corso, senza filtrare per rosa. Serve a vedere il widget fuori stagione —
  * fuori da qui non cambia niente del comportamento reale.
  */
+/**
+ * Solo in demo: i protagonisti della partita riprodotta vengono assegnati ai
+ * giocatori delle nostre rose con lo stesso ruolo, e i numeri della giocata
+ * finiscono davvero nei loro totali. Da lì in poi si accende TUTTO il resto
+ * della pagina — punteggi che salgono, cerchi che lampeggiano, scontrini nello
+ * scoring feed, infortuni — perché legge gli stessi dati di sempre.
+ *
+ * I numeri che compaiono a schermo in questo stato NON sono della lega: è per
+ * questo che l'intestazione mostra un bollino DEMO ben visibile.
+ */
+const DEMO_ROLE_POS = {
+    passer: ['QB'], rusher: ['RB'], receiver: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'],
+    kicker: ['K'], returner: ['WR', 'RB'],
+};
+let demoActorMap = new Map(); // espnId → giocatore di una nostra rosa
+let demoNextTeam = 0;
+
+/** Un giocatore nostro con quel ruolo, sempre lo stesso per lo stesso atleta. */
+function demoPlayerFor(espnId, role) {
+    if (demoActorMap.has(espnId)) return demoActorMap.get(espnId);
+    const wanted = DEMO_ROLE_POS[role] || [];
+    const entries = teamEntries();
+    // alterna le squadre, così il punteggio si muove da entrambe le parti
+    for (let k = 0; k < entries.length; k++) {
+        const t = entries[(demoNextTeam + k) % entries.length].team;
+        const cand = (t.starters || []).filter(p =>
+            wanted.includes((p.position_in_team || p.position || '').toUpperCase()) &&
+            ![...demoActorMap.values()].includes(p));
+        if (cand.length) {
+            demoNextTeam = (demoNextTeam + k + 1) % entries.length;
+            demoActorMap.set(espnId, cand[0]);
+            return cand[0];
+        }
+    }
+    demoActorMap.set(espnId, null);
+    return null;
+}
+
+/**
+ * Azzera il tabellone all'inizio della demo: tutti i titolari "in campo" e a
+ * zero punti, come al kickoff. Senza questo il banner sommerebbe punti reali
+ * mentre le card dei giocatori mostrano ancora le proiezioni, e i due numeri
+ * non tornerebbero mai.
+ */
+let demoBoardReady = false;
+function resetDemoBoard() {
+    if (demoBoardReady) return;
+    demoBoardReady = true;
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                p.started = true;
+                p.fantasy_points = 0;
+                p.stats = {};
+                delete p.injury_status;
+            }
+        }
+    }
+}
+
+/** Riversa i numeri di una giocata sui giocatori mappati (solo demo). */
+function applyDemoPlay(play, contribs) {
+    resetDemoBoard();
+    const touched = [];
+    for (const c of contribs) {
+        if (!c.espnId) continue;
+        const p = demoPlayerFor(c.espnId, c.role);
+        if (!p) continue;
+        touched.push(p);
+        p.stats = p.stats || {};
+        for (const [k, v] of Object.entries(c.stats || {})) {
+            if (v) p.stats[k] = (parseFloat(p.stats[k]) || 0) + v;
+        }
+        p.fantasy_points = +((parseFloat(p.fantasy_points) || 0) + c.pts).toFixed(2);
+    }
+
+    // Il referto medico si riempie da solo: il testo delle giocate segnala
+    // davvero chi resta a terra ("... was injured during the play"). Si segna
+    // uno dei protagonisti di QUESTA giocata, non uno a caso dello storico.
+    if (touched.length && /was injured during the play/i.test(play.text || '')) {
+        // Il referto mostra solo il matchup a schermo: si preferisce un
+        // giocatore di quello, altrimenti la voce non si vedrebbe mai.
+        const shown = teamEntries()[teamIdx];
+        const inView = touched.find(p =>
+            [...(shown.team.starters || []), ...(shown.opp.starters || [])].includes(p));
+        (inView || touched[touched.length - 1]).injury_status = 'QUESTIONABLE';
+    }
+
+    // il punteggio di squadra è la somma dei titolari
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            const t = m[side];
+            if (!t) continue;
+            t.score = (t.starters || []).reduce((s, p) => s + (parseFloat(p.fantasy_points) || 0), 0).toFixed(2);
+        }
+    }
+}
+
 const pbpDemo = () => {
     if (typeof window === 'undefined') return '';
     // ?pbpdemo=401772842 così basta un link, senza toccare index.html
@@ -334,6 +431,7 @@ async function pollPlays() {
             for (const play of plays) {
                 if (pbpSeen.has(play.id)) continue;
                 pbpSeen.add(play.id);
+                if (pbpDemo()) applyDemoPlay(play, scorePlay(play));
                 const card = playToCard(play, idx);
                 if (card) fresh.push(card);
             }
@@ -346,6 +444,15 @@ async function pollPlays() {
         fresh.sort((a, b) => a.ts - b.ts); // le più vecchie prima: entrano sotto
         for (const c of fresh) pbpCards.unshift(c);
         pbpCards = pbpCards.slice(0, PBP_MAX_CARDS);
+
+        if (pbpDemo()) {
+            // I totali sono cambiati: si passa dal percorso normale, quello che
+            // in stagione reagisce ai dati del Worker. Così in demo si accendono
+            // anche scoring feed, lampeggi sul campo, conteggi e referto medico.
+            const events = updateReceipts();
+            refreshInPlace(events);
+            if (events.length) flashNewReceipts(events);
+        }
         // Al primo giro la pila si riempie in blocco: animare tutto sarebbe
         // rumore. In demo invece ogni giro è "nuovo" per definizione.
         paintPlayCards(pbpFirstRun && !pbpDemo() ? [] : fresh.map(c => c.id));
@@ -443,7 +550,10 @@ async function hydrateScheduleAndRender(year, week) {
     }
     if (teamIdx >= teamEntries().length) teamIdx = 0;
     const fresh = updateReceipts();
-    render();
+    // Al primo giro la pagina va costruita; dai successivi si toccano solo i
+    // numeri, altrimenti a ogni poll sparirebbero e ricomparirebbero le foto.
+    if (document.getElementById('live-root')?.querySelector('.live-header')) refreshInPlace(fresh);
+    else render();
     if (fresh.length) flashNewReceipts(fresh);
     if (!pbpTimer) startPlayPolling();
 }
@@ -499,10 +609,105 @@ function detectEvents(prev, curr) {
             id: `${name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name, team: now.team, pos: now.pos, nfl: now.nfl,
             changes, ptsDelta, ts: Date.now(),
-            headline: changes.find(c => c.big)?.key || changes[0]?.key || null,
+            headline: headlineOf(changes),
         });
     }
     return out;
+}
+
+/**
+ * Titolo dello scontrino. Prima gli eventi grossi, poi le azioni che si
+ * raccontano da sole, e solo alla fine il ripiego. Senza questa scala il
+ * titolo era la prima statistica che capitava, e si leggevano scontrini
+ * intitolati "PASS ATTEMPTS" o "TARGET" — cioè niente.
+ */
+const HEADLINE_ORDER = [
+    'fg_made', 'pat_made', 'sack', 'def_int', 'fum_rec',
+    'rec', 'rec_yds', 'rush_yds', 'pass_yds', 'rush_att',
+];
+
+function headlineOf(changes) {
+    const big = changes.find(c => c.big);
+    if (big) return big.key;
+    for (const key of HEADLINE_ORDER) {
+        if (changes.some(c => c.key === key && c.delta > 0)) return key;
+    }
+    return null; // receiptHTML mostra "Update"
+}
+
+// ─── Aggiornamento senza ridisegno ───────────────────────────────
+//
+// A ogni poll cambiano dei numeri, non la pagina. Rifare l'HTML da capo
+// ricostruiva anche tutte le foto, che sparivano e ricomparivano: la pagina
+// resta ferma e si toccano solo i valori.
+
+/** Tutti i giocatori del turno corrente, per nome. */
+function playersByName() {
+    const map = new Map();
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                if (p?.name) map.set(p.name, p);
+            }
+        }
+    }
+    return map;
+}
+
+/** Scrive un punteggio conservando lo stile "proiezione" quando serve. */
+function writePts(el, p) {
+    const val = fmt(effPts(p));
+    const html = pIsProjected(p) ? `<span class="proj-pts">${val}</span>` : val;
+    if (el.innerHTML !== html) el.innerHTML = html;
+}
+
+function refreshInPlace(events = []) {
+    const root = document.getElementById('live-root');
+    const entry = teamEntries()[teamIdx];
+    if (!root || !entry) return;
+    const byName = playersByName();
+
+    // punteggi di squadra nel banner
+    const { m } = entry;
+    const scores = root.querySelectorAll('.gc-banner-score');
+    const s = [teamEffScore(m.team1), teamEffScore(m.team2)];
+    scores.forEach((el, i) => {
+        const proj = P(m[`team${i + 1}`].score) === 0 && m[`team${i + 1}`].projected_score != null;
+        const from = P(el.textContent);
+        el.innerHTML = proj ? `<span class="proj-pts">${fmt(s[i])}</span>` : fmt(s[i]);
+        el.classList.toggle('winner', s[i] >= s[1 - i]);
+        if (!proj && from !== s[i]) countUp(el, from, s[i]);
+    });
+
+    // punti e statistiche di ogni giocatore a schermo (campo, panchina, chip,
+    // righe di confronto: tutti marcati con la stessa chiave)
+    root.querySelectorAll('[data-slot-player]').forEach(el => {
+        const p = byName.get(el.dataset.slotPlayer);
+        if (!p) return;
+        if (el.classList.contains('live-cmp-pts')) { writePts(el, p); return; }
+        const pts = el.querySelector('.slot-pts, .live-chip-pts');
+        if (pts) writePts(pts, p);
+        const stats = el.querySelector('.live-slot-stats');
+        if (stats) stats.innerHTML = statLineHTML(p);
+        el.setAttribute('data-game', gameAttr(p).slice('data-game="'.length, -1));
+    });
+
+    root.querySelectorAll('[data-cmp-stats]').forEach(el => {
+        const p = byName.get(el.dataset.cmpStats);
+        if (p) el.innerHTML = compareStatsHTML(p, el.dataset.cmpSide);
+    });
+
+    // scoring feed: si accodano i nuovi in cima, senza rifare la lista
+    const feed = document.getElementById('live-receipts');
+    if (feed && events.length) {
+        if (feed.querySelector('.pm-empty')) feed.innerHTML = '';
+        feed.insertAdjacentHTML('afterbegin', events.map(receiptHTML).join(''));
+        while (feed.children.length > 40) feed.lastElementChild.remove();
+    }
+
+    // referto medico: nessuna immagine, si può riscrivere per intero
+    const inj = document.getElementById('live-injuries');
+    if (inj) inj.innerHTML = injuriesHTML(entry.team, entry.opp);
 }
 
 /** Aggiorna lo storico scontrini dopo un poll (tenuti gli ultimi 40). */
@@ -588,24 +793,52 @@ function showOpponent() {
     const next = entries.findIndex(e => e.team === opp);
     if (next >= 0) teamIdx = next;
 
-    const swap = () => {
-        slideFrom = goingForward ? 'right' : 'left';
-        render();
-        slideFrom = null;
-    };
-
-    // La scheda corrente esce prima (sfuma e scivola dal lato opposto), poi
-    // entra quella nuova: il ricambio è continuo invece di uno scatto secco.
+    // Dissolvenza incrociata: le due schede si muovono INSIEME, quella che
+    // esce sfuma mentre l'altra entra dal lato opposto. Prima uscivano una
+    // dopo l'altra, e in mezzo restava un istante di vuoto.
+    //
+    // Il contenuto vecchio non si può animare dopo render(), che riscrive
+    // tutta la pagina: se ne tiene una copia sovrapposta al nuovo, e sparisce
+    // a fine transizione.
     const outgoing = document.querySelector('[data-swipe]');
-    if (!outgoing || !outgoing.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        swap();
+    const stage = outgoing?.closest('.live-stage');
+    if (!outgoing || !stage || !outgoing.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        render();
         return;
     }
-    const anim = outgoing.animate([
+
+    const ghost = outgoing.cloneNode(true);
+    ghost.classList.add('live-ghost');
+    ghost.removeAttribute('data-swipe');
+    const frozenHeight = stage.getBoundingClientRect().height;
+
+    render();
+
+    const newStage = document.querySelector('.live-stage');
+    const incoming = document.querySelector('[data-swipe]');
+    if (!newStage || !incoming) return;
+    // la copia è fuori flusso: senza questo il palco collasserebbe per un
+    // istante all'altezza del nuovo contenuto non ancora disegnato
+    newStage.style.minHeight = `${frozenHeight}px`;
+    newStage.appendChild(ghost);
+
+    const D = 440;
+    const E = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const out = goingForward ? '-42%' : '42%';
+    const inFrom = goingForward ? '42%' : '-42%';
+
+    ghost.animate([
         { transform: 'translateX(0)', opacity: 1 },
-        { transform: `translateX(${goingForward ? '-38%' : '38%'})`, opacity: 0 },
-    ], { duration: 260, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' });
-    anim.onfinish = swap;
+        { transform: `translateX(${out})`, opacity: 0 },
+    ], { duration: D, easing: E, fill: 'forwards' }).onfinish = () => {
+        ghost.remove();
+        newStage.style.minHeight = '';
+    };
+
+    incoming.animate([
+        { transform: `translateX(${inFrom})`, opacity: 0 },
+        { transform: 'none', opacity: 1 },
+    ], { duration: D, easing: E });
 }
 
 /** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
@@ -652,7 +885,10 @@ function headerHTML() {
     <div class="live-header">
         <div class="live-header-left">
             <h1 class="live-header-title">${weekLabelText}</h1>
-            <span class="live-header-kicker">${statusBadgeHTML()}</span>
+            <span class="live-header-kicker">
+                ${pbpDemo() ? '<span class="live-demo-badge">DEMO · numeri non reali</span>' : ''}
+                ${statusBadgeHTML()}
+            </span>
         </div>
         <div class="live-header-right">
             <span class="live-header-updated">Updated ${hh}:${mm}</span>
@@ -724,10 +960,11 @@ function chip(p, side) {
     const injury = injuryOf(p);
     return `
     <div class="live-chip${live ? ' live-chip--live' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
+         data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
         <span class="live-chip-photo">
-            <img src="images/fallback-player.svg" alt="" loading="lazy"
+            <img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
                  data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-chip-dot"></i>' : ''}
         </span>
@@ -817,7 +1054,7 @@ function fieldSlot(p, extraClass = '') {
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
-        <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
+        <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
         <span class="slot-name">${shortName(p)}</span>
@@ -872,10 +1109,6 @@ function swapArrowHTML() {
 }
 
 /** Classe di animazione da applicare al riquadro dopo uno swap. */
-function slideClass() {
-    return slideFrom ? ` live-slide-${slideFrom}` : '';
-}
-
 /** Campo di una singola squadra, orizzontale, sfondo campo visibile (stile Game Center). */
 function fieldHTML(team) {
     return `
@@ -886,7 +1119,7 @@ function fieldHTML(team) {
         </div>
     </div>
     <div class="live-stage">
-        <div class="live-field-slider${slideClass()}" data-swipe>
+        <div class="live-field-slider" data-swipe>
             <div class="matchup-field-horizontal live-field-solo">
                 <img src="Wallpapers/IMG_5984.PNG" class="field-bg" alt="">
                 <div class="field-overlay">
@@ -920,7 +1153,7 @@ function benchHTML(team) {
 function comparePhoto(p) {
     if (!p) return '<span class="live-cmp-photo live-cmp-photo--empty"></span>';
     const role = (p.position_in_team || p.position || '').toUpperCase();
-    return `<span class="live-cmp-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
+    return `<span class="live-cmp-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
         data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>`;
 }
 
@@ -988,7 +1221,7 @@ function compareStatsBlock(p, win, side) {
     const inner = p
         ? compareStatsHTML(p, side)
         : `<span class="live-cmp-mini live-cmp-mini--pad"></span>`.repeat(CMP_STAT_COLS);
-    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}">${inner}</span>`;
+    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}"${p ? ` data-cmp-stats="${escAttr(p.name)}" data-cmp-side="${side}"` : ''}>${inner}</span>`;
 }
 
 /**
@@ -1008,7 +1241,7 @@ function compareHTML(team, opp) {
         </div>
     </div>
     <div class="live-stage">
-    <div class="live-compare${slideClass()}" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
+    <div class="live-compare" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
         ${pairs.map(({ slot, a, b }) => {
         const pa = a ? effPts(a) : 0, pb = b ? effPts(b) : 0;
         const aWin = !!a && pa >= pb;
@@ -1018,9 +1251,9 @@ function compareHTML(team, opp) {
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}
-            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}">${a ? (pIsProjected(a) ? `<span class="proj-pts">${fmt(pa)}</span>` : fmt(pa)) : '—'}</span>
+            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}"${a ? ` data-slot-player="${escAttr(a.name)}"` : ''}>${a ? (pIsProjected(a) ? `<span class="proj-pts">${fmt(pa)}</span>` : fmt(pa)) : '—'}</span>
             <span class="live-cmp-slot">${slot}</span>
-            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}">${b ? (pIsProjected(b) ? `<span class="proj-pts">${fmt(pb)}</span>` : fmt(pb)) : '—'}</span>
+            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}"${b ? ` data-slot-player="${escAttr(b.name)}"` : ''}>${b ? (pIsProjected(b) ? `<span class="proj-pts">${fmt(pb)}</span>` : fmt(pb)) : '—'}</span>
             ${compareStatsBlock(b, bWin, 'r')}
             ${compareName(b, 'r')}
             ${comparePhoto(b)}
@@ -1286,25 +1519,42 @@ function flashNewReceipts(events) {
 }
 
 function sidebarHTML(team, opp) {
-    const all = [...(team.starters || []), ...(team.bench || []),
-    ...(opp.starters || []), ...(opp.bench || [])];
-    // il campo nei dati è injury_status (snake_case), non injuryStatus
-    const injuries = all.filter(p => injuryOf(p));
-
     return `
     <div class="mosaic-card mc-in live-side-card">
         <span class="mc-kicker">Injury report</span>
-        ${injuries.length
-            ? `<ul class="live-side-list">${injuries.map(p =>
-                `<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(injuryOf(p))}</span></li>`).join('')}</ul>`
-            : '<p class="pm-empty">No injuries reported.</p>'}
+        <div id="live-injuries">${injuriesHTML(team, opp)}</div>
     </div>`;
 }
+
+/** Solo l'elenco: è la parte che cambia, aggiornata senza toccare il resto. */
+function injuriesHTML(team, opp) {
+    const all = [...(team.starters || []), ...(team.bench || []),
+    ...(opp.starters || []), ...(opp.bench || [])];
+    const injuries = all.filter(p => injuryOf(p));
+    return injuries.length
+        ? `<ul class="live-side-list">${injuries.map(p =>
+            `<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(injuryOf(p))}</span></li>`).join('')}</ul>`
+        : '<p class="pm-empty">No injuries reported.</p>';
+}
+
+/**
+ * Foto già risolte in questa sessione. Servono a scriverle direttamente
+ * nell'HTML: se si ripartisse sempre dal segnaposto, ogni ridisegno farebbe
+ * sparire e ricomparire tutte le facce.
+ */
+const headshotCache = new Map();
+const cachedHeadshot = (name) => headshotCache.get(name) || 'images/fallback-player.svg';
 
 function hydrateHeadshots(root) {
     root.querySelectorAll('img[data-headshot]').forEach(img => {
         img.onerror = () => { if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg'; };
+        const known = headshotCache.get(img.dataset.playerName);
+        if (known) { if (img.src !== known) img.src = known; return; }
         playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, img.dataset.pos, CURRENT_SEASON)
-            .then(url => { if (url) img.src = url; }).catch(() => {});
+            .then(url => {
+                if (!url) return;
+                headshotCache.set(img.dataset.playerName, url);
+                img.src = url;
+            }).catch(() => {});
     });
 }
