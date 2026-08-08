@@ -30,7 +30,7 @@ import { initPlayerModal } from '../components/player-modal.js?v=45';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import { predictSeason } from '../data/draft-predictions.js?v=29';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=20';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=21';
 import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=19';
 
 let initialized = false;

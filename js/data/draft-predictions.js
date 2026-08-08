@@ -21,7 +21,7 @@ import { getTeamStats } from './nfl-team-stats.js?v=19';
 import { canonAbbr } from './nfl-schedule.js?v=20';
 import { resolveDefAbbrSync } from './player-full.js?v=29';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=20';
-import { perGameCv } from './context-score.js?v=20';
+import { perGameCv } from './context-score.js?v=21';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // FLEX gestito a parte (pool RB/WR)
 const FLEX_POS = FLEX_ELIGIBLE;
