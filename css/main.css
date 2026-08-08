@@ -5831,14 +5831,15 @@ img {
 .mc-vs-row--w1 { --w1-mix: 26%; }
 .mc-vs-row--w2 { --w2-mix: 26%; }
 
-/* La cella resta di dimensione fissa e uguale per tutti — è quella che tiene
-   incolonnati i punteggi delle righe — mentre il logo dentro viene ingrandito
-   di --crest-scale. Larga più che alta per lasciare spazio all'ingrandimento. */
+/* La cella è uguale per tutti — è quella che tiene incolonnati i punteggi —
+   ed è generosa: i loghi vengono rimpiccioliti di --crest-scale per pareggiare
+   la dimensione disegnata, quindi il riquadro deve stare largo quanto serve al
+   logo con più margine interno. */
 .mc-vs-crest {
     display: grid;
     place-items: center;
-    width: clamp(76px, 9.4vw, 124px);
-    height: clamp(60px, 7.4vw, 98px);
+    width: clamp(96px, 11.5vw, 150px);
+    height: clamp(84px, 10.5vw, 140px);
 }
 
 /* Stemma in trasparenza con alone nel colore squadra, come le filigrane delle

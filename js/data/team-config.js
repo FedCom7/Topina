@@ -47,15 +47,16 @@ export const TEAM_LOGOS = {
  * lasers 79% dell'altezza, oscurus 74%, capi 70%, sommo 59%). Affiancati alla
  * stessa dimensione, Sommo sembra piccolo e Lasers grande.
  *
- * Il fattore riporta tutti all'altezza disegnata di Lasers, che è il più
- * grande, quindi si scala solo verso l'alto. Da applicare come `scale` sul
- * logo — le proporzioni restano quelle originali.
+ * I fattori pareggiano l'altezza disegnata e sono tutti <= 1, cioè si scala
+ * solo verso il basso: scalando verso l'alto il logo uscirebbe dal proprio
+ * riquadro e verrebbe tagliato. Per ingrandirli si allarga il riquadro, non
+ * questi valori. Da applicare come `scale` — proporzioni intatte.
  */
 export const TEAM_LOGO_SCALE = {
-    capi: 1.14,
-    lasers: 1,
-    oscurus: 1.07,
-    sommo: 1.34,
+    capi: 0.845,
+    lasers: 0.744,
+    oscurus: 0.794,
+    sommo: 1,
 };
 
 // Stadium background images for Super Bowl matchups
