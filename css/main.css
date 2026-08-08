@@ -12376,3 +12376,164 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     .pm-game-cell:nth-child(4n + 1) { border-left: 1px solid var(--border-subtle); }
     .pm-game-cell:nth-child(3n + 1) { border-left: none; }
 }
+
+/* ── Live · widget play-by-play ──────────────────────────────────
+   Pila di card: ogni azione dei nostri giocatori entra dall'alto con i
+   protagonisti (foto, ruolo, yard) e i punti fantasy che ha prodotto. */
+.pbp-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 4px;
+    /* stessa scrollbar minimale dello scoring feed */
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.pbp-stack::-webkit-scrollbar { width: 6px; }
+.pbp-stack::-webkit-scrollbar-track { background: transparent; }
+.pbp-stack::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 999px; }
+
+.pbp-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* giocata da punti: bordo acceso sul lato, senza urlare */
+.pbp-card--score {
+    border-color: color-mix(in srgb, var(--accent-green) 45%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent-green);
+}
+
+.pbp-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pbp-card-type {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.pbp-card-when {
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.pbp-card-actors {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Protagonisti non nostri: presenti ma spenti — servono a capire l'azione
+   (chi ha lanciato), non sono loro il motivo per cui guardi la card. */
+.pbp-actor {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    opacity: 0.45;
+}
+
+.pbp-actor--own { opacity: 1; }
+
+.pbp-actor-photo {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.pbp-actor--own .pbp-actor-photo {
+    border-color: color-mix(in srgb, var(--accent-green) 60%, transparent);
+}
+
+.pbp-actor-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.pbp-actor-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.pbp-actor-meta b {
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pbp-actor-meta i {
+    font-style: normal;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.pbp-actor-pts {
+    margin-left: auto;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.pbp-actor-pts.pos { color: var(--accent-green); }
+.pbp-actor-pts.neg { color: var(--accent-red); }
+.pbp-actor-pts.flat { color: var(--text-muted); }
+
+.pbp-card-text {
+    margin: 0;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+}
+
+.pbp-card-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-top: 7px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.pbp-card-total b {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.pbp-card-total b.pos { color: var(--accent-green); }
+.pbp-card-total b.neg { color: var(--accent-red); }

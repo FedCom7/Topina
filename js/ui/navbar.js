@@ -10,7 +10,7 @@
  * prende il posto del primo, con "Indietro" per tornare.
  */
 
-import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=9';
+import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=15';
 
 const MOBILE_MQ = '(max-width: 768px)';
 

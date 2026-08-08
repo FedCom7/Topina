@@ -11,7 +11,7 @@
  *   stesso principio di NFLData per gli endpoint "documentati ma morti".
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=11';
+import { canonAbbr } from './nfl-schedule.js?v=20';
 import { ESPN_TEAM_IDS } from './player-map.js?v=13';
 
 let _trades; // Promise<{teams}> | undefined

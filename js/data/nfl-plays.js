@@ -1,0 +1,135 @@
+/**
+ * Play-by-play NFL da ESPN, con i protagonisti identificati.
+ *
+ * Endpoint (host con `Access-Control-Allow-Origin: *`, quindi chiamabile
+ * direttamente dal browser come gli altri di nfl-team-live.js):
+ *
+ *   sports.core.api.espn.com/v2/.../events/{id}/competitions/{id}/plays
+ *
+ * A differenza del `summary` del sito, qui ogni giocata porta `participants[]`
+ * con l'ID atleta ESPN e il ruolo avuto nell'azione (passer, receiver, rusher,
+ * kicker, returner, sackedBy...). È quello che permette di dire "questo
+ * passaggio è di Love per Golden" invece di leggerlo dal testo.
+ *
+ * Costi misurati su una partita conclusa (189 giocate): tutte insieme 39 KB
+ * gzip, l'ultima pagina da 20 giocate 2 KB. Il polling usa la seconda forma.
+ */
+
+const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl';
+
+/** Ruoli che ci interessano; gli altri (tackler, assistedBy, penalized...) si scartano. */
+const KEEP_ROLES = new Set([
+    'passer', 'receiver', 'rusher', 'kicker', 'punter', 'returner',
+    'sackedBy', 'passDefender', 'scorer', 'patScorer',
+]);
+
+const athleteId = (ref) => (String(ref || '').match(/\/athletes\/(\d+)/) || [])[1] || null;
+const teamId = (ref) => (String(ref || '').match(/\/teams\/(\d+)/) || [])[1] || null;
+
+/**
+ * Giocata normalizzata:
+ *   { id, seq, type, text, yards, scoring, period, clock, ts,
+ *     actors: { passer: '11252', receiver: '3123076', ... },
+ *     offenseTeamId, defenseTeamId }
+ */
+function normalizePlay(p) {
+    const actors = {};
+    for (const part of p.participants || []) {
+        if (!KEEP_ROLES.has(part.type)) continue;
+        const id = athleteId(part.athlete?.$ref);
+        // primo attore per ruolo: su una giocata sola non ce ne sono due
+        if (id && !actors[part.type]) actors[part.type] = id;
+    }
+    const tp = p.teamParticipants || [];
+    return {
+        id: String(p.id),
+        seq: Number(p.sequenceNumber) || 0,
+        type: p.type?.text || '',
+        text: p.text || '',
+        yards: Number(p.statYardage) || 0,
+        scoring: !!p.scoringPlay,
+        period: p.period?.number ?? null,
+        clock: p.clock?.displayValue || null,
+        ts: p.wallclock ? Date.parse(p.wallclock) : Date.now(),
+        actors,
+        offenseTeamId: teamId(tp.find(t => t.type === 'offense')?.team?.$ref) || tp.find(t => t.type === 'offense')?.id || null,
+        defenseTeamId: teamId(tp.find(t => t.type === 'defense')?.team?.$ref) || tp.find(t => t.type === 'defense')?.id || null,
+    };
+}
+
+/**
+ * Ultime giocate di una partita. Senza `all` scarica solo l'ultima pagina
+ * (~2 KB): abbastanza per un polling ogni 10s, dove tra un giro e l'altro
+ * nascono al massimo un paio di azioni.
+ *
+ * Ritorna [] su qualsiasi errore: il widget non deve rompersi se una singola
+ * partita non risponde.
+ */
+export async function fetchPlays(eventId, { all = false, pageSize = 25 } = {}) {
+    if (!eventId) return [];
+    const base = `${CORE}/events/${eventId}/competitions/${eventId}/plays`;
+    try {
+        if (all) {
+            const res = await fetch(`${base}?limit=400`);
+            if (!res.ok) throw new Error(`ESPN ${res.status}`);
+            return ((await res.json()).items || []).map(normalizePlay);
+        }
+        // Una prima richiesta minima serve solo a sapere quante pagine ci sono;
+        // la risposta utile è la seconda, sull'ultima pagina.
+        const head = await fetch(`${base}?limit=${pageSize}`);
+        if (!head.ok) throw new Error(`ESPN ${head.status}`);
+        const meta = await head.json();
+        const last = Math.max(1, Number(meta.pageCount) || 1);
+        if (last === 1) return (meta.items || []).map(normalizePlay);
+        const res = await fetch(`${base}?limit=${pageSize}&page=${last}`);
+        if (!res.ok) throw new Error(`ESPN ${res.status}`);
+        return ((await res.json()).items || []).map(normalizePlay);
+    } catch (e) {
+        console.warn(`[nfl-plays] giocate non disponibili per ${eventId}:`, e.message);
+        return [];
+    }
+}
+
+// ─── Anagrafica atleti ───────────────────────────────────────────
+
+const ATHLETE_CACHE_KEY = 'topina-espn-athletes';
+let _athletes = null;
+
+function athleteCache() {
+    if (_athletes) return _athletes;
+    try { _athletes = JSON.parse(localStorage.getItem(ATHLETE_CACHE_KEY)) || {}; }
+    catch { _athletes = {}; }
+    return _athletes;
+}
+
+/** Foto ufficiale ESPN: URL deterministico dall'ID, nessuna chiamata. */
+export const headshotUrl = (espnId) =>
+    espnId ? `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png` : '';
+
+/**
+ * Nome e ruolo di un atleta dal suo ID ESPN, per i protagonisti che non
+ * stanno in PLAYER_ID_MAP (rookie: quella mappa è generata da dati Sleeper
+ * più vecchi). Una chiamata per atleta, poi localStorage — i giocatori che
+ * ricorrono in una partita sono poche decine.
+ */
+export async function resolveAthlete(espnId) {
+    if (!espnId) return null;
+    const cache = athleteCache();
+    if (cache[espnId]) return cache[espnId];
+    try {
+        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/${espnId}`);
+        if (!res.ok) throw new Error(`ESPN ${res.status}`);
+        const a = (await res.json()).athlete || {};
+        const info = {
+            name: a.displayName || a.fullName || '',
+            pos: a.position?.abbreviation || '',
+            team: a.team?.abbreviation || '',
+        };
+        if (!info.name) return null;
+        cache[espnId] = info;
+        try { localStorage.setItem(ATHLETE_CACHE_KEY, JSON.stringify(cache)); } catch { /* quota */ }
+        return info;
+    } catch {
+        return null;
+    }
+}

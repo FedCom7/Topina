@@ -5,9 +5,9 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=33';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=24';
-import { TEAMS } from './team.js?v=38';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=38';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=29';
+import { TEAMS } from './team.js?v=44';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=45';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;

@@ -4,7 +4,7 @@
  * da scripts/build-nfl-team-stats.mjs — vedi lì per lo schema.
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=11';
+import { canonAbbr } from './nfl-schedule.js?v=20';
 
 const _mem = {};
 

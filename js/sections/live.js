@@ -14,10 +14,13 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=38';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
+import { TEAMS } from './team.js?v=44';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=1';
+import { scorePlay } from '../data/scoring.js?v=29';
+import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=38';
+import { initPlayerModal } from '../components/player-modal.js?v=45';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -146,11 +149,14 @@ export async function initLive() {
     if (!root) return;
 
     window.addEventListener('hashchange', () => {
-        if (!location.hash.startsWith('#live')) stopPolling();
+        if (!location.hash.startsWith('#live')) { stopPolling(); stopPlayPolling(); }
     });
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden) stopPolling();
-        else if (isLiveSource) startPolling();
+        if (document.hidden) { stopPolling(); stopPlayPolling(); }
+        else {
+            if (isLiveSource) startPolling();
+            startPlayPolling();
+        }
     });
 
     await loadData();
@@ -164,6 +170,211 @@ function startPolling() {
     stopPolling();
     pollTimer = setInterval(() => loadData({ silent: true }), POLL_MS);
 }
+
+/** Il play-by-play non dipende dal Worker: gli bastano il calendario NFL e
+ *  le partite in corso, quindi vive di vita propria rispetto al feed fantasy. */
+function stopPlayPolling() {
+    if (pbpTimer) { clearInterval(pbpTimer); pbpTimer = null; }
+}
+
+function startPlayPolling() {
+    stopPlayPolling();
+    if (!gamesToWatch().length) return;
+    pollPlays();
+    pbpTimer = setInterval(pollPlays, PBP_POLL_MS);
+}
+
+// ─── Play-by-play: una card per ogni azione dei nostri giocatori ──
+//
+// Il feed a delta (scontrini) sa solo che un totale è cambiato. Qui invece si
+// legge il play-by-play vero di ESPN, dove ogni azione porta con sé i suoi
+// protagonisti (chi ha lanciato, chi ha ricevuto) e le yard: da lì si ricava
+// il tipo di giocata e — ricalcolandoli con lo scoring della lega — i punti
+// che quella singola azione ha fruttato.
+//
+// I punti sulla card sono un NOSTRO ricalcolo: il totale del giocatore resta
+// quello ufficiale del feed fantasy, che non viene mai toccato da qui.
+
+const PBP_POLL_MS = 10000;
+const PBP_MAX_CARDS = 30;
+
+let pbpTimer = null;
+let pbpSeen = new Set();   // id giocate già trasformate in card
+let pbpCards = [];         // card pronte, più recenti in testa
+let pbpFirstRun = true;    // al primo giro si riempie senza animare
+let pbpBusy = false;
+
+/** ESPN athlete id → giocatore di una nostra rosa. */
+function rosterIndex() {
+    const byAthlete = new Map();
+    const byDefTeam = new Map();
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            const t = m[side];
+            if (!t) continue;
+            for (const p of [...(t.starters || []), ...(t.bench || [])]) {
+                const pos = (p.position_in_team || p.position || '').toUpperCase();
+                const entry = { name: p.name, team: t.name, pos, nfl: canonAbbr(p.nfl_team || '') };
+                if (pos === 'DEF' || pos === 'D/ST') {
+                    const id = ESPN_TEAM_IDS[entry.nfl];
+                    if (id) byDefTeam.set(String(id), entry);
+                } else {
+                    const id = PLAYER_ID_MAP[p.name];
+                    if (id) byAthlete.set(String(id), entry);
+                }
+            }
+        }
+    }
+    return { byAthlete, byDefTeam };
+}
+
+/**
+ * Modalità dimostrativa: `window.TOPINA_PBP_DEMO = '401772842'` (un id partita
+ * ESPN) fa scorrere il play-by-play di una gara già giocata come se fosse in
+ * corso, senza filtrare per rosa. Serve a vedere il widget fuori stagione —
+ * fuori da qui non cambia niente del comportamento reale.
+ */
+const pbpDemo = () => (typeof window !== 'undefined' && window.TOPINA_PBP_DEMO) || '';
+let pbpDemoQueue = null;
+
+/** Partite NFL in corso in cui gioca almeno un nostro tesserato. */
+function gamesToWatch() {
+    if (pbpDemo()) return [pbpDemo()];
+    if (!liveSchedule) return [];
+    const ids = new Map();
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                const g = liveSchedule.get(canonAbbr(p.nfl_team || ''));
+                if (g?.eventId && g.state === 'in') ids.set(g.eventId, true);
+            }
+        }
+    }
+    return [...ids.keys()];
+}
+
+/**
+ * Da giocata ESPN a card, se coinvolge qualcuno delle nostre rose.
+ * Ritorna null se la giocata non ci riguarda.
+ */
+function playToCard(play, idx) {
+    const contribs = scorePlay(play);
+    const actors = [];
+    let mine = false;
+
+    // I due protagonisti dell'azione, nell'ordine in cui è avvenuta
+    const order = ['passer', 'rusher', 'receiver', 'kicker', 'returner'];
+    for (const role of order) {
+        const espnId = play.actors[role];
+        if (!espnId) continue;
+        const own = idx.byAthlete.get(String(espnId)) || null;
+        const c = contribs.find(x => x.espnId === espnId) || null;
+        if (own) mine = true;
+        actors.push({
+            espnId, role, own,
+            pts: c ? c.pts : null,
+            line: c ? c.line : '',
+        });
+    }
+
+    // Difesa: il merito è dell'unità, non del singolo (sack, intercetto)
+    for (const c of contribs.filter(x => x.defTeamId)) {
+        const own = idx.byDefTeam.get(c.defTeamId);
+        if (!own) continue;
+        mine = true;
+        actors.push({ espnId: null, defTeamId: c.defTeamId, role: c.role, own, pts: c.pts, line: c.line });
+    }
+
+    // In demo non c'è una rosa da filtrare: si mostra tutto, con i protagonisti
+    // accesi come se fossero nostri.
+    if (pbpDemo()) {
+        if (!actors.length) return null;
+        actors.forEach(a => { a.own = a.own || { name: a.name || '', team: '', pos: '', nfl: '' }; });
+    } else if (!mine) {
+        return null;
+    }
+    return {
+        id: play.id,
+        type: play.type,
+        text: play.text,
+        yards: play.yards,
+        scoring: play.scoring,
+        period: play.period,
+        clock: play.clock,
+        ts: play.ts,
+        actors,
+    };
+}
+
+/** Un giro di polling: legge le nuove giocate e infila le card in cima. */
+async function pollPlays() {
+    if (pbpBusy) return;
+    const games = gamesToWatch();
+    if (!games.length) return;
+    pbpBusy = true;
+    try {
+        const idx = rosterIndex();
+        let lists;
+        if (pbpDemo()) {
+            // La partita è già finita: si scarica una volta e si rilasciano
+            // poche giocate per giro, per riprodurre il ritmo del vivo.
+            if (!pbpDemoQueue) pbpDemoQueue = await fetchPlays(games[0], { all: true });
+            lists = [pbpDemoQueue.splice(0, 3)];
+        } else {
+            lists = await Promise.all(games.map(id => fetchPlays(id, { all: pbpFirstRun })));
+        }
+        const fresh = [];
+        for (const plays of lists) {
+            for (const play of plays) {
+                if (pbpSeen.has(play.id)) continue;
+                pbpSeen.add(play.id);
+                const card = playToCard(play, idx);
+                if (card) fresh.push(card);
+            }
+        }
+        if (!fresh.length) return;
+
+        // nomi mancanti dalla mappa locale (rookie): risolti una volta sola
+        await hydrateActorNames(fresh);
+
+        fresh.sort((a, b) => a.ts - b.ts); // le più vecchie prima: entrano sotto
+        for (const c of fresh) pbpCards.unshift(c);
+        pbpCards = pbpCards.slice(0, PBP_MAX_CARDS);
+        // Al primo giro la pila si riempie in blocco: animare tutto sarebbe
+        // rumore. In demo invece ogni giro è "nuovo" per definizione.
+        paintPlayCards(pbpFirstRun && !pbpDemo() ? [] : fresh.map(c => c.id));
+    } finally {
+        pbpFirstRun = false;
+        pbpBusy = false;
+    }
+}
+
+/** Nome leggibile per ogni protagonista: prima la mappa locale, poi ESPN. */
+async function hydrateActorNames(cards) {
+    const missing = new Set();
+    for (const c of cards) {
+        for (const a of c.actors) {
+            if (a.own?.name || !a.espnId) continue;
+            a.name = ESPN_ID_TO_NAME.get(String(a.espnId)) || null;
+            if (!a.name) missing.add(String(a.espnId));
+        }
+    }
+    if (!missing.size) return;
+    const found = new Map();
+    await Promise.all([...missing].map(async id => {
+        const info = await resolveAthlete(id);
+        if (info?.name) found.set(id, info.name);
+    }));
+    for (const c of cards) {
+        for (const a of c.actors) {
+            if (!a.name && a.espnId) a.name = found.get(String(a.espnId)) || '';
+        }
+    }
+}
+
+/** Mappa inversa nome→id, costruita una volta sola alla prima richiesta. */
+const ESPN_ID_TO_NAME = new Map(
+    Object.entries(PLAYER_ID_MAP).map(([name, id]) => [String(id), name]));
 
 async function loadData({ silent = false } = {}) {
     const root = document.getElementById('live-root');
@@ -228,6 +439,7 @@ async function hydrateScheduleAndRender(year, week) {
     const fresh = updateReceipts();
     render();
     if (fresh.length) flashNewReceipts(fresh);
+    if (!pbpTimer) startPlayPolling();
 }
 
 // ─── Motore eventi (delta tra due poll) ──────────────────────────
@@ -334,6 +546,7 @@ function render() {
             ${rosterLiveHTML(team, opp)}
         </div>
         <aside class="live-sidebar">
+            ${playFeedHTML()}
             ${receiptsPanelHTML()}
             ${sidebarHTML(team, opp)}
         </aside>
@@ -849,6 +1062,92 @@ function receiptHTML(r) {
             <b>${r.ptsDelta > 0 ? '+' : ''}${r.ptsDelta.toFixed(2)}</b>
         </div>
     </div>`;
+}
+
+// ─── Widget play-by-play: HTML ───────────────────────────────────
+
+/** Etichetta breve del tipo di giocata. */
+const PLAY_LABEL = {
+    'Pass Reception': 'Reception',
+    'Passing Touchdown': 'Passing TD',
+    'Rushing Touchdown': 'Rushing TD',
+    'Pass Incompletion': 'Incomplete',
+    'Pass Interception Return': 'Interception',
+    'Field Goal Good': 'Field goal',
+    'Rush': 'Rush',
+    'Sack': 'Sack',
+};
+
+const ROLE_LABEL = {
+    passer: 'QB', receiver: 'REC', rusher: 'RUSH',
+    kicker: 'K', returner: 'RET', sack: 'DEF', def_int: 'DEF',
+};
+
+function playActorHTML(a) {
+    const name = a.own?.name || a.name || '—';
+    const photo = a.defTeamId
+        ? (TEAMS[TEAM_KEYS[displayName(a.own?.team || '')]]?.logo || '')
+        : headshotUrl(a.espnId);
+    const pts = a.pts == null ? '' :
+        `<span class="pbp-actor-pts ${a.pts > 0 ? 'pos' : a.pts < 0 ? 'neg' : 'flat'}">${a.pts > 0 ? '+' : ''}${a.pts.toFixed(2)}</span>`;
+    return `
+    <div class="pbp-actor${a.own ? ' pbp-actor--own' : ''}">
+        <span class="pbp-actor-photo">
+            <img src="${photo}" alt="" loading="lazy" onerror="this.src='images/fallback-player.svg'">
+        </span>
+        <span class="pbp-actor-meta">
+            <b>${escAttr(name)}</b>
+            <i>${ROLE_LABEL[a.role] || a.role}${a.line ? ` · ${escAttr(a.line)}` : ''}</i>
+        </span>
+        ${pts}
+    </div>`;
+}
+
+function playCardHTML(c) {
+    const label = PLAY_LABEL[c.type] || c.type || 'Play';
+    const when = [c.period ? `Q${c.period}` : '', c.clock].filter(Boolean).join(' ');
+    const total = c.actors.reduce((s, a) => s + (a.own && a.pts ? a.pts : 0), 0);
+    return `
+    <article class="pbp-card${c.scoring ? ' pbp-card--score' : ''}" data-play="${c.id}">
+        <header class="pbp-card-head">
+            <span class="pbp-card-type">${escAttr(label)}</span>
+            <span class="pbp-card-when">${escAttr(when)}</span>
+        </header>
+        <div class="pbp-card-actors">${c.actors.map(playActorHTML).join('')}</div>
+        <p class="pbp-card-text">${escAttr(c.text)}</p>
+        ${total ? `<div class="pbp-card-total"><span>Fantasy</span><b class="${total > 0 ? 'pos' : 'neg'}">${total > 0 ? '+' : ''}${total.toFixed(2)}</b></div>` : ''}
+    </article>`;
+}
+
+function playFeedHTML() {
+    return `
+    <div class="mosaic-card mc-in live-side-card pbp-card-stack">
+        <span class="mc-kicker">Live plays</span>
+        <div class="pbp-stack" id="pbp-stack">
+            ${pbpCards.length
+            ? pbpCards.map(playCardHTML).join('')
+            : `<p class="pm-empty">${gamesToWatch().length
+                ? 'Waiting for the next play...'
+                : 'No NFL game in progress with your players.'}</p>`}
+        </div>
+    </div>`;
+}
+
+/**
+ * Ridisegna la pila e fa entrare dall'alto solo le card nuove: le altre
+ * restano ferme, altrimenti a ogni giro l'intera colonna rianimerebbe.
+ */
+function paintPlayCards(newIds = []) {
+    const stack = document.getElementById('pbp-stack');
+    if (!stack) return;
+    stack.innerHTML = pbpCards.map(playCardHTML).join('');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const id of newIds) {
+        stack.querySelector(`[data-play="${CSS.escape(String(id))}"]`)?.animate([
+            { transform: 'translateY(-14px)', opacity: 0 },
+            { transform: 'translateY(0)', opacity: 1 },
+        ], { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    }
 }
 
 function receiptsPanelHTML() {
