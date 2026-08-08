@@ -12940,7 +12940,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 /* Reparti spinti verso il basso: K/DEF restano in end zone, il resto scende. */
 .live-formation-stack {
     position: absolute;
-    inset: 17% 3% 2%;
+    /* margine laterale largo: le etichette esterne del primo e ultimo
+       giocatore stanno fuori dallo slot e verrebbero tagliate dal bordo */
+    inset: 17% 6% 2%;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -13845,5 +13847,142 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .live-cmp-row .live-pop {
     top: -2px;
     left: 34px;
+    margin-left: 0;
+}
+
+/* ── Statistiche in corona attorno alla foto (campo e panchina) ───
+   Le sei voci non stanno più in un riquadro sotto la foto ma le girano
+   intorno: due sopra, due ai lati, due sotto. Le laterali escono di proposito
+   dalla larghezza dello slot — è per questo che le righe hanno un passo molto
+   più largo di prima, altrimenti toccherebbero il giocatore vicino. */
+.live-field-solo .live-slot .slot-orbit,
+.live-bench .live-slot .slot-orbit {
+    position: relative;
+    display: block;
+    width: 100%;
+    /* spazio riservato in alto e in basso alle due coppie di etichette */
+    padding: 1.5em 0;
+}
+
+.live-field-solo .live-slot .live-slot-stats,
+.live-bench .live-slot .live-slot-stats {
+    position: absolute;
+    inset: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    pointer-events: none;
+}
+
+.live-field-solo .live-slot .live-stat,
+.live-bench .live-slot .live-stat {
+    position: absolute;
+    display: block;
+    white-space: nowrap;
+    overflow: visible;
+    /* leggibili sopra l'erba senza riquadro */
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+/* sopra */
+.live-field-solo .live-slot .live-stat:nth-child(1),
+.live-bench .live-slot .live-stat:nth-child(1) { top: 0; right: 56%; }
+
+.live-field-solo .live-slot .live-stat:nth-child(2),
+.live-bench .live-slot .live-stat:nth-child(2) { top: 0; left: 56%; }
+
+/* ai lati, a metà altezza della foto */
+.live-field-solo .live-slot .live-stat:nth-child(3),
+.live-bench .live-slot .live-stat:nth-child(3) {
+    top: 50%;
+    right: 100%;
+    margin-right: 6px;
+    transform: translateY(-50%);
+    text-align: right;
+}
+
+.live-field-solo .live-slot .live-stat:nth-child(4),
+.live-bench .live-slot .live-stat:nth-child(4) {
+    top: 50%;
+    left: 100%;
+    margin-left: 6px;
+    transform: translateY(-50%);
+    text-align: left;
+}
+
+/* sotto */
+.live-field-solo .live-slot .live-stat:nth-child(5),
+.live-bench .live-slot .live-stat:nth-child(5) { bottom: 0; right: 56%; }
+
+.live-field-solo .live-slot .live-stat:nth-child(6),
+.live-bench .live-slot .live-stat:nth-child(6) { bottom: 0; left: 56%; }
+
+/* Le etichette laterali sporgono fuori dallo slot: senza allargare il passo
+   finirebbero addosso al giocatore accanto. */
+.live-field-solo .live-row { gap: clamp(56px, 7.5vw, 124px); }
+.live-field-solo .live-row--backfield { gap: clamp(64px, 8.5vw, 132px); }
+/* La panchina va a capo da sola: il passo orizzontale deve bastare a due
+   etichette laterali affiancate (~112px), o i vicini si toccano. */
+.live-bench .live-bench-row { gap: 26px clamp(114px, 9vw, 144px); }
+
+/* La linea offensiva è decorativa: sta stretta in un gruppo suo, così il passo
+   largo della riga separa i ricevitori invece di sprecarsi fra le crocette. */
+.live-oline {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Sotto i 900px la corona non ci sta: sei etichette attorno a ogni foto si
+   accavallano fra giocatori vicini. Le statistiche tornano nel riquadro sotto
+   la foto, dov'erano. `display: contents` scioglie il contenitore della corona
+   così le voci ridiventano figlie dello slot e possono tornare in fondo. */
+@media (max-width: 900px) {
+    .live-field-solo .live-slot .slot-orbit,
+    .live-bench .live-slot .slot-orbit {
+        display: contents;
+    }
+
+    .live-field-solo .live-slot .live-slot-stats,
+    .live-bench .live-slot .live-slot-stats {
+        position: static;
+        order: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px 4px;
+        margin: 3px 0 0;
+        padding: 3px 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.72);
+        pointer-events: auto;
+    }
+
+    .live-field-solo .live-slot .live-stat,
+    .live-bench .live-slot .live-stat {
+        position: static;
+        transform: none;
+        margin: 0;
+        text-align: center;
+        text-shadow: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* passo di prima: senza etichette laterali non serve distanziarli */
+    .live-field-solo .live-row { gap: clamp(4px, 0.8vw, 12px); }
+    .live-field-solo .live-row--backfield { gap: clamp(14px, 3vw, 46px); }
+    .live-bench .live-bench-row { gap: 14px 18px; }
+    .live-formation-stack { inset: 17% 3% 2%; }
+}
+
+/* Con la corona attiva l'etichetta dei punti va sull'angolo alto-destro della
+   foto, che è libero: i lati e il centro sopra/sotto sono occupati dalle
+   statistiche. */
+.slot-orbit .live-pop {
+    top: 1.35em;
+    left: 66%;
     margin-left: 0;
 }

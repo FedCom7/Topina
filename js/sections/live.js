@@ -1054,12 +1054,14 @@ function fieldSlot(p, extraClass = '') {
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
-        <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
-            data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
-            ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
+        <span class="slot-orbit">
+            <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
+                data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
+                ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
+            <span class="live-slot-stats">${statLineHTML(p)}</span>
+        </span>
         <span class="slot-name">${shortName(p)}</span>
         <span class="slot-pts">${pIsProjected(p) ? `<span class="proj-pts">${fmt(effPts(p))}</span>` : fmt(effPts(p))}</span>
-        <span class="live-slot-stats">${statLineHTML(p)}</span>
         ${injury ? `<span class="live-slot-inj">${escAttr(injury)}</span>` : ''}
     </div>`;
 }
@@ -1079,7 +1081,7 @@ function fieldFormationHTML(team) {
     <div class="live-formation-bottom">
         <div class="live-row live-row--line">
             ${fieldSlot(byPos(s, 'WR', 0))}${fieldSlot(byPos(s, 'TE'))}
-            ${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}
+            <span class="live-oline">${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}</span>
             ${fieldSlot(byPos(s, 'FLEX'))}${fieldSlot(byPos(s, 'WR', 1))}
         </div>
         <div class="live-row live-row--backfield">
@@ -1541,7 +1543,9 @@ function popPoints(slot, delta, onDone = () => { }) {
     const tag = document.createElement('span');
     tag.className = `live-pop ${delta > 0 ? 'pos' : 'neg'}`;
     tag.textContent = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`;
-    slot.appendChild(tag);
+    // dentro la corona, se c'è: così l'etichetta sta accanto alla foto e non
+    // dove ora stanno le statistiche
+    (slot.querySelector('.slot-orbit') || slot).appendChild(tag);
     // Compare subito, resta piena quasi fino in fondo e sparisce in fretta:
     // l'ultimo 8% è la dissolvenza, e appena finita parte la somma.
     tag.animate([
