@@ -26,7 +26,7 @@ import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge, computeVorGrades,
 } from './draftgrades.js?v=27';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=4';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=7';
 import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=1';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');

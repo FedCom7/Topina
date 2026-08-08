@@ -450,6 +450,9 @@ img {
         transform: rotate(180deg);
         z-index: 2;
         pointer-events: none;
+        /* Una sola colonna verticale: senza nowrap un titolo lungo andrebbe a capo
+           su più colonne sconfinando sul contenuto (es. barra di ricerca Players). */
+        white-space: nowrap;
     }
 
     .section-inner > .section-header .section-title {
@@ -459,9 +462,11 @@ img {
         -webkit-text-stroke-width: 1px;
     }
 
+    /* Nel watermark verticale il sottotitolo è decorativo e illeggibile; se lungo
+       (es. Players) va a capo su più colonne e copre il contenuto. Lo nascondo
+       qui: resta comunque visibile su mobile, dove l'header è orizzontale. */
     .section-inner > .section-header .section-subtitle {
-        order: 0;
-        letter-spacing: 0.2em;
+        display: none;
     }
 
     .section-inner:has(> .section-header)::before {
@@ -9845,6 +9850,68 @@ body.pm-open { overflow: hidden; }
     color: var(--text-muted);
 }
 
+/* ─── Barra tab sticky (Panoramica / Rendimento / Carriera / …) ─────────
+   L'identità (recap card) resta sopra; i pannelli si alternano sotto. */
+/* Barra tab scheda giocatore: stesse pill sticky della nav squadra (.nfl-secnav). */
+.pp-tabsbar {
+    position: sticky;
+    top: var(--nav-height);
+    z-index: 40;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 9px 0;
+    margin: 4px 0 10px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.pp-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 5px 13px;
+    cursor: pointer;
+    transition: .15s;
+}
+.pp-tab:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.06); }
+.pp-tab.is-active {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-subtle);
+}
+
+/* Pannelli: replicano il gap verticale del container (.gb-page) al loro interno */
+.pp-tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: mc-in var(--dur-med) var(--ease) both;
+}
+.pp-tab-panel[hidden] { display: none; }
+
+/* Band KPI etichettate (metriche): primaria in evidenza, sotto-gruppi con label */
+.pp-kpi-group { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; }
+.pp-kpi-grouplabel {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+.pp-kpi--primary .summary-stat-value { font-size: clamp(1.5rem, 3.2vw, 2.1rem); }
+.pp-kpi-group .pp-kpi--sec { margin-top: 4px; padding-top: 0; border-top: 0; }
+
 /* Selettore stagione per Contesto squadra */
 .pp-year-picker {
     display: flex;
@@ -10135,6 +10202,194 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-cmp-leg i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
 .pp-cmp-selhint { margin: 6px 0 12px; font-size: 0.8rem; color: var(--text-muted); }
 .pp-cmp-selhint b { color: var(--accent-amber); font-variant-numeric: tabular-nums; }
+
+/* Forma game-by-game (player · Rendimento) */
+.pp-form-chart { position: relative; }
+.pp-form-svg { width: 100%; height: auto; }
+.pp-form-line { fill: none; stroke: var(--accent-blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; }
+.pp-form-roll { fill: none; stroke: var(--accent-red); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+.pp-form-dot { fill: var(--accent-blue); stroke: #000; stroke-width: 1.2; transition: r 0.12s ease; }
+.pp-form-g { cursor: default; }
+.pp-form-g:hover .pp-form-dot { r: 5; fill: #fff; stroke: var(--accent-blue); stroke-width: 2; }
+.pp-form-proj { stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.7; }
+.pp-form-projlbl { fill: var(--text-muted); }
+.pp-cmp-leg i.pp-form-lg-area { width: 12px; height: 10px; border-radius: 2px; background: linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 42%, transparent), transparent); }
+.pp-cmp-leg i.pp-form-lg-roll { width: 14px; height: 3px; border-radius: 2px; background: var(--accent-red); }
+.pp-cmp-leg i.pp-form-lg-proj { width: 14px; height: 0; border-top: 2px dashed var(--text-muted); background: none; }
+
+/* Ridgeline distribuzione punti per stagione (player · Rendimento) */
+.pp-ridge-svg { width: 100%; height: auto; }
+.pp-ridge-shape { stroke: none; transition: fill-opacity 0.12s ease; }
+.pp-ridge-line { fill: none; stroke: #6aa4ff; stroke-width: 1.6; stroke-linejoin: round; }
+.pp-ridge-median { stroke: var(--text-primary); stroke-width: 1.6; opacity: 0.8; }
+.pp-ridge-base { stroke: var(--border-subtle); stroke-width: 1; }
+.pp-ridge-ylbl { fill: var(--text-secondary); font-weight: 600; }
+.pp-ridge-g:hover .pp-ridge-shape { fill-opacity: 1.15; }
+.pp-ridge-g:hover .pp-ridge-line { stroke-width: 2.4; }
+
+/* Radar avanzato di ruolo (player · Rendimento) */
+.pp-radar { display: flex; justify-content: center; margin: 10px 0 4px; }
+.pp-radar-svg { width: 100%; max-width: 420px; height: auto; }
+.pp-radar-ring { fill: none; stroke: var(--border-subtle); stroke-width: 1; }
+.pp-radar-spoke { stroke: var(--border-subtle); stroke-width: 1; }
+.pp-radar-axl { fill: var(--text-secondary); font-size: 11px; font-weight: 600; }
+.pp-radar-area { fill: color-mix(in srgb, var(--accent-blue) 20%, transparent); stroke: var(--accent-blue); stroke-width: 2; stroke-linejoin: round; }
+.pp-radar-dot { fill: var(--accent-blue); stroke: #000; stroke-width: 1; cursor: default; }
+
+/* Traiettoria proiettato→reale per stagione (player · Carriera & arco) */
+.pp-pp-svg { width: 100%; height: auto; max-width: 620px; display: block; margin: 0 auto; }
+.pp-pp-diag { stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.7; }
+.pp-pp-diaglbl { fill: var(--accent-green); font-size: 11px; font-weight: 700; }
+.pp-pp-line { fill: none; stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: 0.7; stroke-linejoin: round; }
+.pp-pp-dot { stroke: #000; stroke-width: 1.4; cursor: default; }
+.pp-pp-dot--up { fill: var(--accent-green); }
+.pp-pp-dot--down { fill: var(--accent-red); }
+.pp-pp-dot--recent { stroke-width: 2.4; }
+.pp-pp-lbl { fill: var(--text-secondary); font-size: 10.5px; font-weight: 600; }
+.pp-pp-axl { fill: var(--text-secondary); font-weight: 700; }
+
+/* Coordinate parallele · confronto con simili (player · Confronto) */
+.pp-pc-svg { width: 100%; height: auto; }
+
+/* Slope chart · evoluzione avanzate anno→anno (player · Carriera & arco) */
+.pp-slope-svg { width: 100%; height: auto; max-width: 560px; display: block; margin: 0 auto; }
+.pp-slope-yr { fill: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.pp-slope-ax { fill: var(--text-muted); font-size: 9px; }
+.pp-slope-line { stroke-width: 2; }
+.pp-slope-up .pp-slope-line { stroke: #22c55e; }
+.pp-slope-up .pp-slope-dot { fill: #22c55e; }
+.pp-slope-down .pp-slope-line { stroke: var(--accent-red); }
+.pp-slope-down .pp-slope-dot { fill: var(--accent-red); }
+.pp-slope-lbl { fill: var(--text-secondary); font-size: 11px; }
+.pp-slope-v { fill: var(--text-primary); font-weight: 700; font-size: 11px; }
+/* mini sparkline nel widget trend */
+.pp-trend-spark { width: 78px; height: 20px; margin: 3px auto 0; display: block; }
+
+/* Confronto simili · selettori + serie evidenziabili (player) */
+.pp-cmp-selectors { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 12px; }
+.pp-cmp-selectors .lc-field { flex: 1 1 180px; }
+.pp-cmp-series { transition: opacity 0.12s ease; cursor: default; }
+.pp-cmp-leg { cursor: default; }
+
+/* Impronta rank · statistiche ufficiali ESPN (squadra) */
+.ts-fp-svg { width: 100%; height: auto; }
+.ts-fp-track { stroke: var(--border-subtle); stroke-width: 1; }
+.ts-fp-lbl { fill: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.ts-fp-zone-good { fill: rgba(34, 197, 94, 0.06); }
+.ts-fp-zone-bad { fill: rgba(224, 87, 76, 0.06); }
+
+/* Bump chart · rank attacco vs difesa negli anni (squadra) */
+.ts-bump-svg { width: 100%; height: auto; }
+.ts-bump-endlbl { font-size: 11px; font-weight: 700; }
+
+/* Season ribbon · calendario (squadra) */
+.nfl-ribbon { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 6px; margin: 8px 0 4px; }
+.nfl-rib-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 4px 6px;
+    border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-top: 3px solid var(--border-subtle); }
+.nfl-rib-w { border-top-color: #22c55e; }
+.nfl-rib-l { border-top-color: var(--accent-red); }
+.nfl-rib-t { border-top-color: var(--text-muted); }
+.nfl-rib-wk { font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: .02em; }
+.nfl-rib-opp { display: flex; align-items: center; gap: 3px; }
+.nfl-rib-opp i { font-style: normal; font-size: 10px; color: var(--text-muted); }
+.nfl-rib-opp img { width: 22px; height: 22px; object-fit: contain; }
+.nfl-rib-abbr { font-size: 11px; font-weight: 700; color: var(--text-primary); }
+.nfl-rib-score { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.nfl-rib-w .nfl-rib-score { color: #22c55e; }
+.nfl-rib-l .nfl-rib-score { color: var(--accent-red); }
+.nfl-rib-bye { justify-content: center; opacity: 0.55; }
+.nfl-rib-byelbl { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.nfl-rib-diff { width: 82%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+.nfl-rib-diff i { display: block; height: 100%; background: var(--accent-amber); border-radius: 2px; }
+
+/* Infermeria · card con stripe di gravità (squadra / DEF) */
+.pp-injc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 10px; margin: 8px 0 4px; }
+.pp-injc { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-left: 3px solid var(--text-muted); border-radius: 10px; padding: 10px 12px; }
+.pp-injc--out { border-left-color: var(--accent-red); }
+.pp-injc--doubt { border-left-color: var(--accent-red); }
+.pp-injc--quest { border-left-color: var(--accent-amber); }
+.pp-injc--ok { border-left-color: #22c55e; }
+.pp-injc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pp-injc-name { font-weight: 600; font-size: 13px; }
+.pp-injc-det { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; }
+.pp-injc-det small { color: var(--text-muted); }
+.pp-injc .pp-inj-history { margin-top: 8px; }
+
+/* Timeline disponibilità · settimana per settimana (squadra / DEF) */
+.pp-av-wrap { margin: 6px 0 16px; }
+.pp-av-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; font-size: 11.5px; color: var(--text-secondary); }
+.pp-av-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.pp-av-legend .pp-av-cell { width: 14px; height: 14px; }
+.pp-av { display: grid; gap: 3px; min-width: 520px; }
+.pp-av-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 10px; }
+.pp-av-name { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-av-track { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; }
+.pp-av-cell { display: block; height: 16px; border-radius: 3px; background: rgba(255, 255, 255, 0.05); }
+.pp-av-wk { font-size: 9px; color: var(--text-muted); text-align: center; }
+.pp-av-head .pp-av-track { align-items: end; }
+.av-out { background: var(--accent-red); }
+.av-doubt { background: #d1685a; }
+.av-quest { background: var(--accent-amber); }
+.av-active { background: rgba(34, 197, 94, 0.4); }
+.av-none { background: rgba(255, 255, 255, 0.05); }
+
+/* Ledger stagioni · bar-code franchigia (squadra) */
+.nfl-ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(36px, 1fr)); gap: 6px; align-items: end; margin: 12px 0 4px; }
+.nfl-led-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.nfl-led-bar-wrap { height: 72px; width: 18px; display: flex; align-items: flex-end; background: rgba(255, 255, 255, 0.04); border-radius: 4px; overflow: hidden; }
+.nfl-led-bar { width: 100%; border-radius: 4px 4px 0 0; }
+.nfl-led-good { background: #22c55e; }
+.nfl-led-mid { background: var(--accent-amber); }
+.nfl-led-bad { background: var(--accent-red); }
+.nfl-led-rec { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.nfl-led-yr { font-size: 10px; color: var(--text-muted); }
+
+/* Timeline verticale · ere/traguardi franchigia (squadra / DEF) */
+.pp-tline { position: relative; margin: 8px 0 4px; }
+.pp-tline-node { position: relative; display: flex; align-items: baseline; gap: 10px; padding: 5px 0 5px 20px; }
+.pp-tline-node::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--border-subtle); }
+.pp-tline-node:first-child::before { top: 9px; }
+.pp-tline-node:last-child::before { bottom: calc(100% - 13px); }
+.pp-tline-dot { position: absolute; left: 0; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-red); box-shadow: 0 0 0 2px var(--bg-primary, #000); }
+.pp-tline-yr { font-weight: 700; font-size: 12.5px; color: var(--text-primary); min-width: 44px; font-variant-numeric: tabular-nums; }
+.pp-tline-txt { font-size: 13px; color: var(--text-secondary); }
+
+/* Nav di sezione sticky (squadra) */
+.nfl-secnav { position: sticky; top: var(--nav-height); z-index: 20; display: flex; gap: 6px; flex-wrap: wrap;
+    padding: 9px 0; margin: 4px 0 10px; background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle); }
+.nfl-secnav button { font-size: 12.5px; font-weight: 600; color: var(--text-muted); background: transparent;
+    border: 1px solid transparent; border-radius: 999px; padding: 5px 13px; cursor: pointer; transition: .15s; }
+.nfl-secnav button:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.06); }
+.nfl-secnav button.is-active { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); border-color: var(--border-subtle); }
+
+/* Power ranking · classifica composita (Lega / #players) */
+.lc-prwrap { margin: 4px 0 18px; }
+.lc-pr { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 22px; margin: 10px 0; }
+.lc-pr-row { display: grid; grid-template-columns: 22px auto 1fr 30px; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 6px; text-decoration: none; color: inherit; }
+.lc-pr-row:hover { background: rgba(255, 255, 255, 0.05); }
+.lc-pr-rank { font-size: 11px; color: var(--text-muted); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.lc-pr-team { display: flex; align-items: center; gap: 5px; }
+.lc-pr-team img { width: 18px; height: 18px; object-fit: contain; }
+.lc-pr-team b { font-size: 12px; }
+.lc-pr-track { height: 7px; background: rgba(255, 255, 255, 0.06); border-radius: 999px; overflow: hidden; }
+.lc-pr-fill { display: block; height: 100%; border-radius: 999px; }
+.lc-pr-good { background: #22c55e; }
+.lc-pr-mid { background: var(--accent-amber); }
+.lc-pr-bad { background: var(--accent-red); }
+.lc-pr-val { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.lc-strip-wrap { margin: 4px 0 14px; }
+.lc-strip-svg { width: 100%; height: auto; }
+
+/* Split statistici · small multiples (player) */
+.pp-split-mini { margin: 6px 0 2px; }
+.pp-split-metric { display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.pp-split-row { display: grid; grid-template-columns: 140px 1fr 56px; align-items: center; gap: 10px; padding: 2px 0; }
+.pp-split-lbl { font-size: 12.5px; color: var(--text-secondary); }
+.pp-split-track { height: 8px; background: rgba(255, 255, 255, 0.06); border-radius: 999px; overflow: hidden; }
+.pp-split-fill { display: block; height: 100%; background: var(--accent-blue); border-radius: 999px; }
+.pp-split-val { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .pp-split-row { grid-template-columns: 100px 1fr 48px; } }
 
 .pp-cmp-bars { margin-top: 6px; }
 .pp-cmp-row {
@@ -10733,6 +10988,18 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-depth-player.pp-depth-starter { color: var(--text-primary); font-weight: 600; }
 .pp-depth-player small { color: var(--text-muted); }
 .pp-depth-sep { color: var(--text-muted); opacity: 0.6; }
+/* Flag infortunio (da ESPN): pastiglia con la sigla (Q/D/O/IR…). */
+.pp-depth-inj {
+    display: inline-block; margin-left: 3px; padding: 0 4px;
+    font-size: 0.58rem; font-weight: 800; line-height: 1.5; vertical-align: middle;
+    border-radius: 4px; color: var(--accent-amber);
+    background: color-mix(in srgb, var(--accent-amber) 18%, transparent);
+}
+.pp-depth-inj.pp-depth-inj-out { color: var(--accent-red); background: color-mix(in srgb, var(--accent-red) 18%, transparent); }
+/* Special Teams: sotto Attacco/Difesa, a tutta larghezza, slot su più colonne. */
+.pp-depth-special { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+.pp-depth-special .pp-starters-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 24px; }
+.pp-depth-special .pp-cat-title { grid-column: 1 / -1; }
 
 /* Sezione lega sotto la ricerca in Players */
 .ps-league { margin-top: 28px; }
@@ -10786,6 +11053,36 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-gs-table td.pp-gs-a { text-align: left; font-weight: 600; }
 .pp-gs-table td.pp-gs-h { text-align: right; font-weight: 600; }
 .pp-gs-table thead th:nth-child(2) { text-align: center; }
+
+/* ── Team Stats stile ESPN: header loghi/legenda + barre proporzionali ── */
+.pp-ts { display: flex; flex-direction: column; }
+.pp-ts-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 14px; margin-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.pp-ts-lg { display: flex; align-items: center; gap: 8px; }
+.pp-ts-lglogo { width: 30px; height: 30px; object-fit: contain; flex: none; }
+.pp-ts-lgab { font-weight: 800; font-size: 0.9rem; letter-spacing: 0.02em; color: var(--text-secondary); }
+.pp-ts-sw { width: 22px; height: 15px; border-radius: 3px; flex: none; border: 1px solid var(--border-card); }
+.pp-ts-sw-hatch { background: repeating-linear-gradient(-45deg, var(--text-muted) 0 1.5px, transparent 1.5px 5px); }
+.pp-ts-sw-solid { border-color: transparent; }
+
+.pp-ts-row { padding: 14px 0; border-bottom: 1px solid var(--border-subtle); }
+.pp-ts-row:last-child { border-bottom: 0; }
+.pp-ts-vals { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.pp-ts-a, .pp-ts-h { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pp-ts-a { text-align: left; }
+.pp-ts-h { text-align: right; }
+.pp-ts-lbl { text-align: center; font-size: 0.86rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+.pp-ts-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--bg-glass); }
+.pp-ts-bar-a { height: 100%; background: repeating-linear-gradient(-45deg, var(--text-muted) 0 1.5px, transparent 1.5px 6px); }
+.pp-ts-bar-h { height: 100%; }
+@media (max-width: 480px) {
+    .pp-ts-a, .pp-ts-h { font-size: 1.25rem; }
+    .pp-ts-lbl { font-size: 0.76rem; }
+    .pp-ts-lglogo { width: 24px; height: 24px; }
+}
 .pp-gs-scoring { display: flex; flex-direction: column; gap: 4px; }
 .pp-gs-play {
     display: flex; align-items: baseline; gap: 8px;
@@ -10816,7 +11113,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 
 /* ═══ Play-by-play (dettaglio partita) — nfl-team-page.js ═══ */
 .pp-pbp { display: flex; flex-direction: column; gap: 12px; }
-.pp-pbp-drive { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; }
+.pp-pbp-drive { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; flex: none; }
 .pp-pbp-dhead {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 10px; background: var(--surface); font-size: 0.82rem;
@@ -10824,10 +11121,11 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-pbp-ddesc { flex: 1; color: var(--text-secondary); }
 .pp-pbp-plays { display: flex; flex-direction: column; }
 .pp-pbp-play {
-    display: flex; align-items: baseline; gap: 8px;
+    display: flex; align-items: center; gap: 8px;
     padding: 5px 10px; border-top: 1px solid var(--border-subtle); font-size: 0.8rem;
+    line-height: 1.4;
 }
-.pp-pbp-dd { color: var(--text-muted); min-width: 78px; font-variant-numeric: tabular-nums; font-size: 0.72rem; }
+.pp-pbp-dd { color: var(--text-muted); min-width: 78px; font-variant-numeric: tabular-nums; font-size: 0.72rem; align-self: flex-start; }
 .pp-pbp-text { flex: 1; color: var(--text-secondary); }
 .pp-pbp-play.pp-pbp-score { background: color-mix(in srgb, var(--accent-green) 10%, transparent); }
 .pp-pbp-play.pp-pbp-score .pp-pbp-text { color: var(--text-primary); font-weight: 600; }
@@ -10854,19 +11152,846 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 
 /* Anno selezionato grande e ROSSO sul bordo sinistro della pagina squadra NFL
    (stesso posizionamento verticale del titolo di sezione delle altre pagine,
-   ma pieno rosso come i "total points" di Analysis, non in contorno). */
-.section-inner > .section-header .nfl-year-title {
+   ma pieno rosso come i "total points" di Analysis, non in contorno). Ora è
+   anche il SELETTORE stagione: un <button> senza chrome, cliccabile anche dove
+   l'header padre ha pointer-events:none (desktop, testo verticale). */
+.nfl-year-title {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 0;
+    padding: 0;
     background: none;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: opacity var(--dur-fast) var(--ease);
+}
+.nfl-year-title:hover { opacity: 0.82; }
+
+.section-inner > .section-header .nfl-year-title,
+.nfl-year-header .nfl-year-title {
     color: var(--accent-red);
     -webkit-text-fill-color: var(--accent-red);
     -webkit-text-stroke: 0;
 }
 
-/* L'anno della pagina squadra NFL resta FISSO durante lo scroll (solo desktop,
-   dove è il titolo verticale a sinistra) così è sempre visibile. */
+/* Il selettore stagione "classico" è sostituito dal grande anno cliccabile:
+   il <select> resta nel DOM come motore dei listener, ma nascosto. */
+#nfl-team-page .pp-year-picker:has(> #pp-team-year) { display: none; }
+
+/* Menu delle stagioni che si apre al click sull'anno (posizionato via JS). */
+.nfl-year-menu {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 92px;
+    padding: 6px;
+    background: var(--bg-card);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+    max-height: min(60vh, 340px);
+    overflow-y: auto;
+    animation: fadeUp 0.16s var(--ease) both;
+}
+.nfl-year-menu[hidden] { display: none; }
+.nfl-year-menu button {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.nfl-year-menu button:hover { background: var(--bg-glass); color: var(--text-primary); }
+.nfl-year-menu button[aria-selected="true"] {
+    color: var(--accent-red);
+    background: var(--bg-glass);
+}
+
+/* L'anno della pagina squadra NFL resta FISSO durante lo scroll (desktop:
+   titolo verticale a sinistra) così è sempre visibile. Essendo `fixed` è
+   relativo al viewport: allineo il `left` al bordo sinistro della colonna
+   centrata (max-width 1200) + 26px, così sta VICINO ai quadri come i titoli
+   verticali di sezione delle altre pagine, invece che al bordo schermo. */
 @media (min-width: 768px) {
     .section-inner > .section-header.nfl-year-header {
         position: fixed;
         top: 110px;
+        left: calc(max((100vw - 1200px) / 2, 0px) + 26px);
     }
 }
+
+/* Mobile: l'anno diventa una pill fissa in alto a destra, sotto la nav, così
+   accompagna lo scroll ed è sempre visibile (e cliccabile per la stagione). */
+@media (max-width: 767px) {
+    .nfl-year-header {
+        position: fixed;
+        top: calc(var(--nav-height) + 8px);
+        right: 12px;
+        left: auto;
+        margin: 0;
+        z-index: 40;
+    }
+    .nfl-year-header .nfl-year-title {
+        font-size: 1.5rem;
+        line-height: 1;
+        padding: 4px 13px;
+        border-radius: 999px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+}
+
+/* ═══ Pagina squadra NFL: header stile ESPN ═══════════════════════════════
+   1) La barra squadra (.pp-hero) è full-bleed e ATTACCATA alla navbar in alto
+      (nessuno spazio sopra), con una tinta del colore squadra (--team-color).
+   2) La freccia "Indietro" sta DENTRO la barra, in alto a sinistra.
+   3) L'anno grande rosso è VERTICALE e FISSO nel margine sinistro, abbassato
+      sotto la barra, accanto al blocco principale della tab selezionata; resta
+      il selettore stagione. */
+
+/* La barra tocca la navbar: via il padding-top della colonna contenuti. */
+#nfl-team-page .section-inner.nfl-team-inner { padding-top: 0; }
+
+/* Guard: nessun overflow orizzontale dal full-bleed (clip non crea scroll
+   container, quindi la nav a tab sticky resta invariata e l'anno fixed pure). */
+#nfl-team-page { overflow-x: clip; }
+
+/* Barra full-bleed (tutte le larghezze): sfonda il container centrato con la
+   tecnica "bulletproof". Il contenuto interno resta incolonnato. */
+#nfl-team-page .pp-hero {
+    align-self: stretch;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    margin-top: 0;
+    border-radius: 0;
+    border: 0;
+    padding: 20px 0 24px;
+    background:
+        linear-gradient(103deg,
+            color-mix(in srgb, var(--team-color, var(--accent-red)) 26%, var(--bg-card)) 0%,
+            color-mix(in srgb, var(--team-color, var(--accent-red)) 6%, var(--bg-card)) 34%,
+            var(--bg-card) 66%);
+}
+/* Colonna interna centrata (max 1200): back-link + recap allineati alla colonna. */
+#nfl-team-page .pp-hero-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+#nfl-team-page .pp-hero .gb-back { align-self: flex-start; }
+
+/* Anno grande rosso VERTICALE e fisso nel margine sinistro, abbassato sotto la
+   barra. Sovrascrive la posizione fissa "in alto" definita più sopra. La
+   verticalità è ereditata dalla base `.section-inner > .section-header`. */
+@media (min-width: 768px) {
+    /* Gutter simmetrico: full-bleed pulito (container centrato nel viewport) +
+       spazio a sinistra per l'anno verticale, così non si sovrappone mai ai
+       contenuti nemmeno sui desktop stretti (768–1252px). */
+    #nfl-team-page .section-inner.nfl-team-inner { padding-inline: 48px; }
+
+    #nfl-team-page .section-inner.nfl-team-inner > .section-header.nfl-year-header {
+        /* Allineato al top del primo riquadro della tab (misurato via JS in
+           --nfl-year-top); fallback statico se non ancora calcolato. */
+        top: var(--nfl-year-top, calc(var(--nav-height) + 328px));
+        left: max(calc((100vw - 1200px) / 2 - 26px), 4px);
+    }
+}
+
+/* Righe del calendario "Calendario e matchup" che hanno un evento ESPN
+   collegato: cliccabili per espandere il dettaglio partita INLINE. */
+.nfl-cal-clickable tbody tr.pp-game-row { cursor: pointer; }
+.nfl-cal-clickable tbody tr.pp-game-row:hover { background: var(--bg-glass); }
+.nfl-cal-clickable tbody tr.pp-game-row--active {
+    background: var(--bg-glass);
+    box-shadow: inset 3px 0 0 var(--accent-red);
+}
+
+/* ═══ Calendario stile ESPN (teamScheduleBlock) ═══════════════════════════
+   Gruppi Preseason / Regular Season / Postseason. Tipografia compatta come su
+   ESPN (piccola e serrata) ma con i colori del tema. */
+.nfl-sched-group {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin: 16px 0 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-card);
+}
+.nfl-sched-group:first-of-type { margin-top: 4px; }
+
+/* Intestazioni colonna in stile ESPN: minute, maiuscole, spaziate, grigie. */
+.nfl-sched thead th {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+    padding: 6px 10px;
+}
+/* Righe compatte: testo piccolo e serrato. */
+.nfl-sched tbody td {
+    font-size: 0.8rem;
+    line-height: 1.25;
+    padding: 6px 10px;
+    vertical-align: middle;
+}
+.nfl-sched .nfl-sched-wk { font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.nfl-sched .nfl-sched-date { color: var(--text-secondary); white-space: nowrap; text-transform: capitalize; }
+.nfl-sched .nfl-sched-rec { font-weight: 700; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.nfl-sched .nfl-sched-ha { color: var(--text-muted); font-weight: 600; }
+.nfl-sched .pp-opp { display: flex; align-items: center; gap: 5px; }
+.nfl-sched .pp-opp-logo { width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin: 0; }
+.nfl-sched .pp-opp-rec { color: var(--text-muted); font-weight: 500; }
+.nfl-sched .nfl-sched-sched { color: var(--text-muted); }
+.nfl-sched .pp-res { font-size: 0.8rem; }
+/* Colonna TIME (gare future): ET in evidenza, italiano sotto in piccolo. */
+.nfl-sched .nfl-sched-time { display: flex; flex-direction: column; line-height: 1.15; white-space: nowrap; }
+.nfl-sched .nfl-sched-time b { font-weight: 700; color: var(--text-primary); }
+.nfl-sched .nfl-sched-time span { font-size: 0.68rem; color: var(--text-muted); }
+/* Colonna TV: rete come piccola pill. */
+.nfl-sched .nfl-sched-tv {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: 5px;
+    padding: 2px 7px;
+    white-space: nowrap;
+}
+
+/* ═══ Analisi Target share: scatter, radar, heatmap (nfl-team-page.js) ═══ */
+.ts-charts {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 16px;
+    margin-top: 14px;
+}
+@media (max-width: 720px) { .ts-charts { grid-template-columns: 1fr; } }
+.ts-charts-2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 720px) { .ts-charts-2 { grid-template-columns: 1fr; } }
+.ts-card {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    min-width: 0;
+}
+.ts-card .pp-cat-title { margin: 0 0 8px; }
+.ts-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ts-tick { font-size: 10px; fill: var(--text-muted); }
+.ts-axl { font-size: 11px; font-weight: 600; fill: var(--text-secondary); }
+.ts-dotlbl { font-size: 10px; font-weight: 600; fill: var(--text-secondary); }
+.ts-guide { stroke: var(--accent-red); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.55; }
+.ts-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 6px; }
+.ts-leg { display: inline-flex; align-items: center; font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
+.ts-leg i { width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+.ts-heat td { text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ts-heat td.ts-hname { text-align: left; font-weight: 600; }
+.ts-heat td.ts-hname .pp-lb-pos { margin-right: 6px; }
+.ts-heat th { text-align: center; white-space: nowrap; }
+.ts-sub { margin: 2px 0 12px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+.ts-xlab { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
+.ts-heat-stack { display: flex; flex-direction: column; gap: 16px; margin-top: 14px; }
+.ts-spark-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; }
+.ts-spark-cell { background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 10px; }
+.ts-spark-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+.ts-spark-lbl { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
+.ts-spark-val { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ts-spark-val small { font-weight: 700; }
+.ts-spark { width: 100%; height: 34px; display: block; }
+.ts-good-t { color: var(--accent-green, #3fb950); }
+.ts-mid-t { color: var(--accent-amber, #f0b429); }
+.ts-bad-t { color: var(--accent-red); }
+.ts-ranks { display: flex; flex-direction: column; gap: 10px; }
+.ts-rankrow { display: grid; grid-template-columns: minmax(90px, 1.1fr) 3fr auto; align-items: center; gap: 10px; }
+.ts-rankl { font-size: 0.8rem; color: var(--text-secondary); }
+.ts-ranktrack { height: 8px; border-radius: 999px; background: var(--bg-glass); overflow: hidden; }
+.ts-rankfill { display: block; height: 100%; border-radius: 999px; }
+.ts-rankfill.ts-good { background: var(--accent-green, #3fb950); }
+.ts-rankfill.ts-mid { background: var(--accent-amber, #f0b429); }
+.ts-rankfill.ts-bad { background: var(--accent-red); }
+.ts-rankv { font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ts-rankv small { color: var(--text-muted); font-weight: 600; margin-left: 2px; }
+
+/* ─── Confronto lega · scatter grandi interattivi ───────────────────────── */
+.lc-svg { width: 100%; height: auto; display: block; }
+.lc-chart-host { position: relative; }
+.lc-hero-wrap { margin-top: 6px; }
+.lc-cfg-wrap { margin-top: 26px; }
+.lc-toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin: 8px 0 12px; }
+.lc-field { display: flex; flex-direction: column; gap: 5px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-muted); }
+.lc-field select {
+    font-family: var(--font-body); font-size: 0.82rem; font-weight: 600; color: var(--text-primary);
+    background: var(--bg-glass); border: 1px solid var(--border-card); border-radius: var(--radius-sm);
+    padding: 7px 10px; cursor: pointer; min-width: 200px;
+}
+.lc-field-wide { flex: 1 1 100%; }
+.lc-field-wide select { width: 100%; max-width: 560px; }
+.lc-check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; padding-bottom: 6px; }
+.lc-check input { width: 15px; height: 15px; accent-color: var(--accent-red); cursor: pointer; }
+.lc-tip {
+    position: absolute; pointer-events: none; z-index: 6; max-width: 240px;
+    background: rgba(24, 24, 26, 0.97); border: 1px solid var(--bg-glass-border);
+    border-radius: var(--radius-sm); padding: 8px 11px; font-size: 0.72rem; line-height: 1.45;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.lc-tip[hidden] { display: none; }
+.lc-tip b { display: block; color: var(--text-primary); font-weight: 800; margin-bottom: 3px; }
+.lc-tip span { display: block; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lc-legend { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 2px 0 10px; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+.lc-legend-lbl { color: var(--text-secondary); }
+.lc-legend-bar { flex: 1; min-width: 120px; max-width: 220px; height: 10px; border-radius: 999px; }
+.lc-legend i { font-style: normal; }
+@media (max-width: 640px) { .lc-field select { min-width: 150px; } .lc-field, .lc-check { font-size: 0.62rem; } }
+
+/* ─── Dashboard giocatori di lega (.lp-*) ─────────────────────────── */
+.lp-toolbar-top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin: 10px 0 16px; }
+.lp-pos-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-card); }
+.lp-pos-btn {
+    padding: 7px 16px; font-family: var(--font-display); font-size: 0.9rem; font-weight: 700;
+    color: var(--text-secondary); background: transparent; border: 0; border-radius: var(--radius-sm);
+    cursor: pointer; transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.lp-pos-btn:hover { color: var(--text-primary); }
+.lp-pos-btn.active { color: var(--text-primary); background: var(--bg-glass); box-shadow: inset 0 0 0 1px var(--border-card); }
+
+.lp-leads-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; margin: 22px 0 6px; }
+.lp-lead { display: flex; flex-direction: column; }
+.lp-lead-note { margin: 2px 0 10px; }
+.lp-lead-row {
+    display: grid; grid-template-columns: 20px minmax(0, 1fr) 64px auto; align-items: center; gap: 10px;
+    padding: 6px 4px; border-radius: var(--radius-sm); text-decoration: none;
+    transition: background var(--dur-fast) var(--ease);
+}
+.lp-lead-row:hover { background: var(--bg-glass); }
+.lp-lead-rank { font-family: var(--font-display); font-weight: 800; font-size: 0.82rem; color: var(--text-muted); text-align: center; }
+.lp-lead-name { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.lp-lead-name b { color: var(--text-primary); font-size: 0.88rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-lead-name small { color: var(--text-muted); font-size: 0.7rem; }
+.lp-lead-bar { height: 7px; border-radius: 999px; background: var(--border-subtle); overflow: hidden; }
+.lp-lead-bar > span { display: block; height: 100%; border-radius: 999px; }
+.lp-lead-val { font-family: var(--font-display); font-weight: 800; font-size: 0.9rem; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .lp-pos-btn { padding: 6px 12px; font-size: 0.82rem; } }
+
+.ts-traj { display: flex; flex-direction: column; }
+.ts-traj-row { display: grid; grid-template-columns: 52px 132px 52px 1fr; align-items: baseline; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border-subtle); font-size: 0.86rem; }
+.ts-traj-row:first-child { border-top: none; }
+.ts-traj-year { font-family: var(--font-display); font-weight: 800; color: var(--text-primary); }
+.ts-traj-forza { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.ts-traj-forza b { color: var(--text-primary); }
+.ts-traj-rec { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ts-traj-drv { color: var(--text-secondary); }
+.ts-up { color: var(--accent-green, #3fb950); font-weight: 700; }
+.ts-down { color: var(--accent-red); font-weight: 700; }
+.ts-flat { color: var(--text-muted); }
+@media (max-width: 600px) {
+    .ts-traj-row { grid-template-columns: 46px 1fr auto; row-gap: 2px; }
+    .ts-traj-drv { grid-column: 1 / -1; }
+}
+
+/* Riga di dettaglio partita espansa dentro il calendario (accordion). */
+.nfl-cal-clickable tbody tr.pp-game-detail-row > td {
+    padding: 0;
+    background: rgba(0, 0, 0, 0.28);
+    box-shadow: inset 3px 0 0 var(--accent-red);
+}
+.pp-game-detail-inner {
+    padding: 14px 16px 18px;
+    animation: fadeUp 0.18s var(--ease) both;
+    /* Il dettaglio è dentro un <td colspan> di una tabella larga (scroll
+       orizzontale): lo si àncora al bordo sinistro dell'area visibile e gli si
+       dà (via JS) la larghezza del wrapper, così non si stira quanto la tabella. */
+    position: sticky;
+    left: 0;
+    box-sizing: border-box;
+}
+
+/* ═══ Header dettaglio partita stile ESPN ═════════════════════════════════
+   away (sx): logo · nome/record · punteggio | linescore al centro | home (dx):
+   punteggio · nome/record · logo. */
+.pp-gh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 3vw, 28px);
+    flex-wrap: wrap;
+    padding: 4px 0 16px;
+}
+.pp-gh-team { display: flex; align-items: center; gap: 10px; }
+.pp-gh-home { flex-direction: row-reverse; }
+.pp-gh-logo { width: 46px; height: 46px; object-fit: contain; flex: none; }
+.pp-gh-meta { display: flex; flex-direction: column; line-height: 1.15; }
+.pp-gh-away .pp-gh-meta { align-items: flex-start; text-align: left; }
+.pp-gh-home .pp-gh-meta { align-items: flex-end; text-align: right; }
+.pp-gh-name { font-family: var(--font-display); font-size: 1.02rem; font-weight: 800; color: var(--text-secondary); }
+.pp-gh-rec { font-size: 0.74rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pp-gh-score {
+    font-family: var(--font-display);
+    font-size: 2.3rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-muted);
+    min-width: 1.4em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+/* Vincente evidenziato. */
+.pp-gh-win .pp-gh-name { color: var(--text-primary); }
+.pp-gh-win .pp-gh-score { color: var(--text-primary); }
+
+.pp-gh-center { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pp-gh-line { border-collapse: collapse; }
+.pp-gh-line th {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 1px 9px;
+    text-align: center;
+}
+.pp-gh-line td {
+    font-size: 0.82rem;
+    padding: 3px 9px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+.pp-gh-line .pp-gh-lt { font-weight: 700; color: var(--text-primary); text-align: left; }
+.pp-gh-line .pp-gh-lt-tot { font-weight: 800; color: var(--text-primary); }
+.pp-gh-line tbody tr + tr td { border-top: 1px solid var(--border-subtle); }
+.pp-gh-status { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.pp-gh-info { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin: 8px 0 0; }
+
+@media (max-width: 560px) {
+    .pp-gh { gap: 10px; }
+    .pp-gh-name { font-size: 0.86rem; }
+    .pp-gh-score { font-size: 1.7rem; }
+    .pp-gh-logo { width: 36px; height: 36px; }
+    .pp-gh-center { order: 3; flex-basis: 100%; margin-top: 4px; }
+}
+
+/* ═══ Menu dettaglio partita (Game Center / Box Score / Team Stats) ════════ */
+.pp-gd-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-card);
+    margin: 4px 0 12px;
+    padding-bottom: 6px;
+}
+.pp-gd-tab {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.pp-gd-tab:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.06); }
+.pp-gd-tab.is-active { color: var(--text-primary); background: var(--bg-glass); border-color: var(--border-subtle); }
+.pp-gd-panel[hidden] { display: none; }
+
+/* ── Win probability ── */
+.pp-wp { position: relative; cursor: crosshair; touch-action: pan-y; }
+.pp-wp-svg { width: 100%; height: 132px; display: block; overflow: visible; }
+.pp-wp-area { stroke: none; opacity: 0.13; }
+.pp-wp-mid { stroke: var(--border-card); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.pp-wp-line { fill: none; stroke: var(--accent-red); stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.pp-wp-cursor { stroke: var(--text-secondary); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.pp-wp-dot { fill: var(--accent-red); stroke: var(--bg-card); stroke-width: 1.5; }
+.pp-wp-qdiv { stroke: var(--border-subtle); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pp-wp-dtick { stroke: var(--text-muted); stroke-width: 1; opacity: 0.5; vector-effect: non-scaling-stroke; }
+/* Overlay HTML (non deformato dallo stretch dell'SVG): label quarti + segnature. */
+.pp-wp-overlay { position: absolute; inset: 0; pointer-events: none; }
+.pp-wp-qlab {
+    position: absolute; bottom: 2px; transform: translateX(-50%);
+    font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em;
+    color: var(--text-muted); background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+    padding: 0 4px; border-radius: 3px;
+}
+.pp-wp-score {
+    position: absolute; width: 8px; height: 8px; transform: translate(-50%, -50%);
+    background: var(--accent-amber); border: 1.5px solid var(--bg-card); border-radius: 50%;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--accent-amber) 70%, transparent);
+}
+
+/* ── Scorebug broadcast (tra il selettore e il campo): barra compatta, stretta,
+   centrata, stile scorebug NFL. ── */
+.pp-sb {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+    max-width: 420px; margin: 6px auto 12px;
+    padding: 6px 12px;
+    background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 999px;
+}
+.pp-sb-team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pp-sb-away { justify-content: flex-start; }
+.pp-sb-home { justify-content: flex-end; }
+.pp-sb-logo { width: 26px; height: 26px; object-fit: contain; flex: none; }
+.pp-sb-meta { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+.pp-sb-home .pp-sb-meta { align-items: flex-end; }
+.pp-sb-abbr { font-weight: 800; font-size: 0.82rem; color: var(--text-primary); letter-spacing: 0.02em; }
+.pp-sb-wp { font-size: 0.62rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pp-sb-team.pp-sb-lead .pp-sb-wp { color: var(--text-secondary); }
+.pp-sb-score {
+    font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; line-height: 1;
+    color: var(--text-primary); font-variant-numeric: tabular-nums; min-width: 1.3em; text-align: center;
+}
+.pp-sb-team.pp-sb-lead .pp-sb-score { color: var(--text-primary); }
+.pp-sb-team:not(.pp-sb-lead) .pp-sb-score { color: var(--text-secondary); }
+/* Indicatore di possesso: pallino ambra visibile solo a chi ha la palla. */
+.pp-sb-poss { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-amber); flex: none; opacity: 0; transition: opacity 0.12s; }
+.pp-sb-team.pp-sb-has-ball .pp-sb-poss { opacity: 1; }
+.pp-sb-center { text-align: center; min-width: 84px; padding: 0 4px; }
+.pp-sb-time { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+.pp-sb-q { font-size: 0.68rem; font-weight: 800; color: var(--text-secondary); }
+.pp-sb-clock { font-family: var(--font-display); font-size: 0.95rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pp-sb-dd { font-size: 0.64rem; font-weight: 600; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) {
+    .pp-sb { padding: 5px 9px; gap: 5px; }
+    .pp-sb-logo { width: 22px; height: 22px; }
+    .pp-sb-score { font-size: 1.2rem; }
+    .pp-sb-abbr { font-size: 0.74rem; }
+    .pp-sb-center { min-width: 70px; }
+    .pp-sb-clock { font-size: 0.85rem; }
+}
+
+/* ── Striscia dei drive (sopra il grafico WP, allineata alle x) ── */
+.pp-gc-wp { margin-top: 18px; }
+.pp-gc-wplabel { display: block; margin-bottom: 8px; }
+.pp-ds { position: relative; height: 24px; margin-bottom: 2px; }
+.pp-ds-ev {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    font-size: 0.56rem; font-weight: 800; letter-spacing: 0.02em;
+    color: var(--text-secondary); background: var(--bg-glass);
+    border: 1.5px solid var(--border-subtle); border-radius: 999px; padding: 2px 6px;
+    cursor: pointer; white-space: nowrap; transition: transform 0.1s, box-shadow 0.1s;
+}
+.pp-ds-ev:hover { transform: translate(-50%, -50%) scale(1.08); }
+.pp-ds-ev.is-active { color: #fff; box-shadow: 0 0 0 2px var(--bg-card), 0 2px 8px rgba(0, 0, 0, 0.4); }
+/* Colori esito drive (condivisi con la timeline classica pp-fdseg-*) */
+.pp-ds-ev.pp-fdseg-td { border-color: var(--accent-green); }
+.pp-ds-ev.pp-fdseg-td.is-active { background: var(--accent-green); }
+.pp-ds-ev.pp-fdseg-fg { border-color: var(--accent-amber); }
+.pp-ds-ev.pp-fdseg-fg.is-active { background: var(--accent-amber); }
+.pp-ds-ev.pp-fdseg-to { border-color: var(--accent-red); }
+.pp-ds-ev.pp-fdseg-to.is-active { background: var(--accent-red); }
+.pp-ds-ev.pp-fdseg-punt, .pp-ds-ev.pp-fdseg-end { border-color: var(--border-card); }
+.pp-ds-ev.pp-fdseg-punt.is-active, .pp-ds-ev.pp-fdseg-end.is-active { background: var(--text-muted); }
+.pp-wp-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.pp-wp-tip {
+    position: absolute;
+    top: -4px;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: 260px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 3;
+}
+.pp-wp-tip b { color: var(--text-primary); }
+.pp-wp-tip span { display: block; white-space: normal; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Game leaders ── */
+.pp-gl { display: flex; flex-direction: column; gap: 2px; }
+.pp-gl-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-top: 1px solid var(--border-subtle);
+}
+.pp-gl-row:first-child { border-top: 0; }
+.pp-gl-side { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.pp-gl-a { justify-content: flex-start; }
+.pp-gl-h { justify-content: flex-end; }
+.pp-gl-ath { color: var(--text-secondary); font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-gl-val { color: var(--text-primary); font-size: 0.82rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pp-gl-cat {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* ── Game Leaders (tab dedicato, stile ESPN) ── */
+.pp-gl2-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 12px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.pp-gl2-head .pp-gl2-cat { min-width: 72px; }
+.pp-gl2-team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pp-gl2-team-a { justify-content: flex-start; }
+.pp-gl2-team-h { justify-content: flex-end; }
+.pp-gl2-hlogo { width: 30px; height: 30px; object-fit: contain; flex: none; }
+.pp-gl2-habbr { font-weight: 800; font-size: 0.98rem; letter-spacing: 0.02em; color: var(--text-primary); }
+
+.pp-gl2 { display: flex; flex-direction: column; }
+.pp-gl2-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.pp-gl2-row:last-child { border-bottom: 0; }
+.pp-gl2-cat {
+    min-width: 72px;
+    text-align: center;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text-primary);
+}
+.pp-gl2-side { min-width: 0; }
+.pp-gl2-top { display: flex; align-items: center; gap: 12px; }
+.pp-gl2-a .pp-gl2-top { flex-direction: row; }
+.pp-gl2-h .pp-gl2-top { flex-direction: row-reverse; }
+.pp-gl2-h { text-align: right; }
+.pp-gl2-ph {
+    width: 56px; height: 56px; border-radius: 50%;
+    object-fit: cover; object-position: top center;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    flex: none;
+}
+.pp-gl2-ph.is-off { background: var(--bg-glass); }
+.pp-gl2-val {
+    font-family: var(--font-display);
+    font-size: 1.9rem; font-weight: 800; line-height: 1;
+    color: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+.pp-gl2-name {
+    margin-top: 8px;
+    font-size: 0.92rem; font-weight: 700; color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pp-gl2-pos { color: var(--text-muted); font-weight: 500; }
+.pp-gl2-detail {
+    margin-top: 2px;
+    font-size: 0.8rem; color: var(--text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pp-gl2-empty { color: var(--text-muted); text-align: center; }
+@media (max-width: 640px) {
+    .pp-gl2-head, .pp-gl2-row { gap: 8px; }
+    .pp-gl2-head .pp-gl2-cat, .pp-gl2-cat { min-width: 52px; font-size: 0.72rem; }
+    .pp-gl2-top { gap: 8px; }
+    .pp-gl2-ph { width: 42px; height: 42px; }
+    .pp-gl2-val { font-size: 1.45rem; }
+    .pp-gl2-name { font-size: 0.8rem; }
+    .pp-gl2-detail { font-size: 0.72rem; }
+    .pp-gl2-hlogo { width: 24px; height: 24px; }
+    .pp-gl2-habbr { font-size: 0.85rem; }
+}
+
+/* ── Play-by-play unificato ── */
+.pp-pbp-toolbar { display: flex; gap: 6px; margin: 4px 0 8px; }
+.pp-pbp-filter {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    padding: 3px 11px;
+    cursor: pointer;
+}
+.pp-pbp-filter.is-active { color: var(--text-primary); background: var(--bg-glass); border-color: var(--border-card); }
+.pp-pbp-scroll { max-height: 440px; overflow-y: auto; }
+.pp-pbp--scoring .pp-pbp-play:not(.pp-pbp-score) { display: none; }
+.pp-pbp--scoring .pp-pbp-drive:not(.pp-has-score) { display: none; }
+
+/* ── Box score giocatori ── */
+.pp-bs { display: flex; flex-direction: column; gap: 18px; }
+.pp-bs-group { margin-top: 8px; }
+.pp-bs-gtitle {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 0 0 4px;
+}
+/* Header e celle centrati con lo stesso padding: i numeri cadono sotto il
+   titolo di colonna. La prima colonna (Giocatore) resta a sinistra. */
+.pp-bs-table th { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); white-space: nowrap; text-align: center; }
+.pp-bs-table td { font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: center; }
+.pp-bs-table th:first-child, .pp-bs-table td.pp-bs-name { text-align: left; }
+.pp-bs-name { color: var(--text-primary); font-weight: 600; }
+.pp-bs-num { color: var(--text-muted); font-weight: 600; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.pp-bs-pos { color: var(--text-muted); font-weight: 500; font-size: 0.72rem; }
+.pp-bs-tot td { font-weight: 700; color: var(--text-secondary); border-top: 1px solid var(--border-card); }
+/* Titolo squadra col logo davanti */
+.pp-bs-teamtitle { display: flex; align-items: center; gap: 8px; }
+.pp-bs-teamlogo { width: 22px; height: 22px; object-fit: contain; flex: none; }
+
+/* ── Game Center: win probability (sx) + game leaders (dx) ── */
+.pp-gc-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.pp-gc-split > .pm-block { margin: 0; }
+@media (max-width: 640px) { .pp-gc-split { grid-template-columns: 1fr; } }
+
+/* ── Campo interattivo (drive & azioni) ── */
+.pp-fd-svg { width: 100%; height: auto; display: block; }
+/* Campo NFL in prospettiva */
+.pp-fd3 { filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.5)); }
+.pp-fd3-grass-a { fill: #2c7a45; }
+.pp-fd3-grass-b { fill: #25693b; }
+.pp-fd3-ez { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pp-fd3-yl { stroke: rgba(255, 255, 255, 0.5); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pp-fd3-yl10 { stroke: rgba(255, 255, 255, 0.82); stroke-width: 1.6; }
+.pp-fd3-hash { stroke: rgba(255, 255, 255, 0.5); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pp-fd3-num { fill: rgba(255, 255, 255, 0.82); font-weight: 800; font-family: var(--font-display); letter-spacing: -0.02em; paint-order: stroke; stroke: rgba(0, 0, 0, 0.25); stroke-width: 0.6px; }
+.pp-fd3-logo { opacity: 0.92; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
+/* Goalpost NFL (giallo) */
+.pp-fd-gp line { stroke: #f7c948; stroke-linecap: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55)); }
+.pp-fd-gp-pole { stroke-width: 3; }
+.pp-fd-gp-bar { stroke-width: 3; }
+.pp-fd-gp-up { stroke-width: 2.6; }
+/* Nastri adagiati sul campo: banda riempita (larghezza in yard → prospettiva),
+   bordo scuro sottile, come nastro dipinto sull'erba. */
+.pp-fd-rib { stroke: rgba(0, 0, 0, 0.5); stroke-width: 1; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.pp-fd-rib.pp-fd-gain { fill: var(--accent-green); }
+.pp-fd-rib.pp-fd-loss, .pp-fd-rib.pp-fd-to { fill: var(--accent-red); }
+.pp-fd-rib.pp-fd-sc { fill: var(--accent-amber); }
+.pp-fd-rib.pp-fd-none { fill: var(--text-muted); }
+.pp-fd-arrow.pp-fd-gain, .pp-fd-dot.pp-fd-gain { stroke: var(--accent-green); }
+.pp-fd-arrow.pp-fd-loss, .pp-fd-arrow.pp-fd-to { stroke: var(--accent-red); }
+.pp-fd-arrow.pp-fd-sc { stroke: var(--accent-amber); }
+.pp-fd-arrow.pp-fd-none { stroke: var(--text-muted); }
+.pp-fd-dot { stroke: none; }
+.pp-fd-dot.pp-fd-gain { fill: var(--accent-green); }
+.pp-fd-dot.pp-fd-loss, .pp-fd-dot.pp-fd-to { fill: var(--accent-red); }
+.pp-fd-dot.pp-fd-sc { fill: var(--accent-amber); }
+.pp-fd-dot.pp-fd-none { fill: var(--text-muted); }
+.pp-fd-mk.pp-fd-gain { fill: var(--accent-green); }
+.pp-fd-mk.pp-fd-loss, .pp-fd-mk.pp-fd-to { fill: var(--accent-red); }
+.pp-fd-mk.pp-fd-sc { fill: var(--accent-amber); }
+.pp-fd-mk.pp-fd-none { fill: var(--text-muted); }
+/* Scrubbing unificato: l'azione del momento resta a colori, le altre si spengono. */
+.pp-fd-rib.is-dim, .pp-fd-dot.is-dim { fill: var(--text-muted); opacity: 0.22; transition: opacity 0.12s; }
+.pp-fd-rib.is-cur { opacity: 1; filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.55)); }
+.pp-fd-dot.is-cur { opacity: 1; }
+.pp-fd-info {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.82rem; color: var(--text-secondary); margin-top: 6px; min-height: 22px;
+}
+.pp-fd-info b { color: var(--text-primary); }
+.pp-fd-info .pp-fd-clogo { width: 18px; height: 18px; }
+.pp-fd-ires { color: var(--text-muted); font-weight: 700; }
+/* Timeline temporale (60 min): pastiglie con sigla dell'esito, sfalsate. */
+.pp-fd-timeline { width: 100%; margin-top: 16px; }
+.pp-fd-tl { position: relative; height: 76px; }
+.pp-fd-tl-axis { position: absolute; left: 0; right: 0; top: 50%; height: 2px; border-radius: 2px; background: var(--border-card); transform: translateY(-50%); }
+.pp-fd-tl-tick { position: absolute; top: calc(50% - 9px); height: 18px; width: 1px; background: var(--border-card); transform: translateX(-50%); }
+.pp-fd-tl-ql { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 0.6rem; font-weight: 800; color: var(--text-muted); background: var(--bg-card); padding: 0 5px; letter-spacing: 0.03em; }
+.pp-fd-ev {
+    position: absolute; transform: translateX(-50%);
+    font-size: 0.56rem; font-weight: 800; letter-spacing: 0.02em;
+    color: var(--text-secondary); background: var(--bg-glass);
+    border: 1.5px solid var(--border-subtle); border-radius: 999px; padding: 2px 6px;
+    cursor: pointer; white-space: nowrap; min-width: 20px; text-align: center;
+    transition: transform var(--dur-fast) var(--ease);
+}
+.pp-fd-ev-up { top: 3px; }
+.pp-fd-ev-down { bottom: 3px; }
+.pp-fd-ev::after { content: ''; position: absolute; left: 50%; width: 1.5px; height: 15px; background: var(--border-subtle); transform: translateX(-50%); }
+.pp-fd-ev-up::after { top: 100%; }
+.pp-fd-ev-down::after { bottom: 100%; }
+.pp-fd-ev.pp-fdseg-td, .pp-fd-ev.pp-fdseg-fg { border-color: var(--accent-green); color: var(--accent-green); }
+.pp-fd-ev.pp-fdseg-punt { border-color: var(--text-muted); color: var(--text-muted); }
+.pp-fd-ev.pp-fdseg-to { border-color: var(--accent-red); color: var(--accent-red); }
+.pp-fd-ev.pp-fdseg-end { border-color: var(--border-card); color: var(--text-muted); }
+.pp-fd-ev:hover { z-index: 4; }
+.pp-fd-ev.is-active { background: var(--accent-red); color: #fff; border-color: var(--accent-red); z-index: 5; }
+.pp-fd-clogo { width: 16px; height: 16px; object-fit: contain; }
+/* Selettore Play by play / Signature */
+.pp-fd-modes { display: inline-flex; gap: 4px; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 999px; padding: 3px; margin: 2px 0 12px; }
+.pp-fd-mode { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); background: transparent; border: 0; border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+.pp-fd-mode:hover { color: var(--text-secondary); }
+.pp-fd-mode.is-active { color: var(--text-primary); background: color-mix(in srgb, var(--accent-red) 16%, var(--bg-card)); }
+.pp-fd-mp[hidden] { display: none; }
+/* Lista giocate del drive selezionato */
+.pp-fd-plays { margin-top: 12px; max-height: 360px; overflow-y: auto; }
+.pp-fd-plays .pp-pbp { gap: 0; }
+.pp-fd-plays .pp-pbp-play:first-child { border-top: 0; }
+/* Riga giocata evidenziata dallo scrubbing */
+.pp-fd-plays .pp-pbp-play.is-cur {
+    background: var(--bg-glass);
+    box-shadow: inset 3px 0 0 var(--accent-amber);
+    border-radius: 4px;
+}
+/* Segnature */
+.pp-sig { display: flex; flex-direction: column; }
+.pp-sig-row { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-top: 1px solid var(--border-subtle); font-size: 0.85rem; }
+.pp-sig-row:first-child { border-top: 0; }
+.pp-sig-when { display: flex; flex-direction: column; align-items: center; min-width: 42px; color: var(--text-muted); font-weight: 700; font-size: 0.72rem; line-height: 1.1; }
+.pp-sig-when small { font-weight: 500; font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+.pp-sig-logo { width: 26px; height: 26px; object-fit: contain; flex: none; }
+.pp-sig-main { flex: 1; min-width: 0; }
+.pp-sig-head { display: flex; align-items: center; gap: 8px; }
+.pp-sig-team { color: var(--text-primary); }
+.pp-sig-type {
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--accent-amber); background: color-mix(in srgb, var(--accent-amber) 14%, transparent);
+    border-radius: 5px; padding: 1px 6px;
+}
+.pp-sig-pos { font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pp-sig-text { color: var(--text-secondary); margin-top: 1px; }
+.pp-sig-score { color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pp-sig-score b { color: var(--text-primary); }

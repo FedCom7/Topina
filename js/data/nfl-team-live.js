@@ -242,19 +242,88 @@ export async function getTeamScheduleLive(abbr, season) {
     });
 }
 
-// ─── Transactions (firme/tagli/waiver) ───────────────────────────────────
-
-/** Movimenti roster recenti. Spesso vuoto lato ESPN (specie in stagione). */
-export async function getTeamTransactions(abbr) {
+/**
+ * Calendario COMPLETO stile ESPN: preseason (seasontype 1), regular (2) e
+ * postseason (3) in un'unica lista, ognuno con tipo stagione, data e risultato.
+ * ESPN separa le tre stagioni per parametro, quindi 3 fetch in parallelo.
+ */
+export async function getTeamScheduleFull(abbr, season) {
     const A = canonAbbr(abbr);
     const teamId = ESPN_TEAM_IDS[A];
     if (!teamId) return [];
-    return cached(`txn-${teamId}`, async () => {
-        const data = await fetchJson(`${SITE}/teams/${teamId}/transactions`);
-        return (data?.transactions || data?.items || []).map(t => ({
-            date: t.date || null,
-            description: t.description || t.displayText || null,
-        })).filter(t => t.description);
+    return cached(`schedfull-${teamId}-${season}`, async () => {
+        const parts = await Promise.all([1, 2, 3].map(st =>
+            fetchJson(`${SITE}/teams/${teamId}/schedule?season=${season}&seasontype=${st}`)));
+        const out = [];
+        parts.forEach((data, i) => {
+            for (const ev of (data?.events || [])) {
+                const comp = ev.competitions?.[0] || {};
+                const cs = comp.competitors || [];
+                const me = cs.find(c => c.team?.id === teamId) || null;
+                const opp = cs.find(c => c !== me) || null;
+                const scoreOf = (c) => {
+                    const s = c?.score;
+                    if (s == null) return null;
+                    return typeof s === 'object' ? (s.displayValue ?? s.value ?? null) : s;
+                };
+                out.push({
+                    eventId: ev.id || comp.id || null,
+                    seasonType: ev.seasonType?.type || (i + 1),   // 1 pre · 2 reg · 3 post
+                    weekText: ev.week?.text || null,
+                    weekNum: ev.week?.number ?? null,
+                    date: ev.date || null,
+                    opp: opp?.team?.abbreviation ? canonAbbr(opp.team.abbreviation) : null,
+                    oppName: opp?.team?.displayName || null,
+                    homeAway: me?.homeAway || null,
+                    completed: !!comp.status?.type?.completed,
+                    state: comp.status?.type?.state || null,       // pre · in · post
+                    timeValid: ev.timeValid !== false,             // false = orario TBD (flex)
+                    tv: comp.broadcasts?.[0]?.media?.shortName || null,
+                    winner: me?.winner ?? null,
+                    score: scoreOf(me), oppScore: scoreOf(opp),
+                });
+            }
+        });
+        return out;
+    });
+}
+
+// ─── Transactions (firme/tagli/waiver) ───────────────────────────────────
+
+/**
+ * Movimenti roster per stagione (come la pagina transactions di ESPN, filtrabile
+ * per anno). L'endpoint per-squadra ESPN (`/teams/{id}/transactions`) è rotto e
+ * ritorna `{}`; quello di lega (`/transactions?season=YYYY`, ordinato per data
+ * desc) funziona e ha su ogni voce `team.id` ma non filtra per squadra lato
+ * server. Si paginano (100/pagina) le pagine dell'anno finché non si raccolgono
+ * ~20 movimenti della squadra, con un tetto di pagine per limitare le richieste.
+ */
+export async function getTeamTransactions(abbr, year) {
+    const A = canonAbbr(abbr);
+    const teamId = String(ESPN_TEAM_IDS[A] || '');
+    if (!teamId) return [];
+    const seasonQ = year ? `&season=${year}` : '';
+    return cached(`txn-${teamId}-${year || 'latest'}`, async () => {
+        const MAX_PAGES = 12, WANT = 20, BATCH = 3;
+        const out = [];
+        const collect = (d) => {
+            for (const t of (d?.transactions || [])) {
+                if (String(t.team?.id) === teamId && (t.description || t.displayText))
+                    out.push({ date: t.date || null, description: t.description || t.displayText });
+            }
+        };
+        const first = await fetchJson(`${SITE}/transactions?limit=100&page=1${seasonQ}`);
+        if (!first) return [];
+        const pageCount = Math.min(first.pageCount || 1, MAX_PAGES);
+        collect(first);
+        let p = 2;
+        while (out.length < WANT && p <= pageCount) {
+            const batch = [];
+            for (let i = 0; i < BATCH && p <= pageCount; i++, p++)
+                batch.push(fetchJson(`${SITE}/transactions?limit=100&page=${p}${seasonQ}`));
+            (await Promise.all(batch)).forEach(collect);
+        }
+        return out.slice(0, WANT);
     });
 }
 
@@ -335,9 +404,12 @@ export async function getGameSummary(eventId) {
         const comp = d.header?.competitions?.[0] || {};
         const competitors = (comp.competitors || []).map(c => ({
             abbr: canonAbbr(c.team?.abbreviation || ''),
+            name: c.team?.nickname || c.team?.shortDisplayName || c.team?.displayName || null,
             home: c.homeAway === 'home',
             score: c.score ?? null,
             winner: c.winner ?? null,
+            record: (c.record || []).find(r => r.type === 'total')?.summary || c.record?.[0]?.summary || null,
+            line: (c.linescores || []).map(x => x.displayValue ?? x.value ?? ''),   // punti per quarto
         }));
         const homeAbbr = competitors.find(c => c.home)?.abbr || null;
 
@@ -347,12 +419,21 @@ export async function getGameSummary(eventId) {
             stats: (t.statistics || []).map(s => ({ label: s.label || s.name, value: s.displayValue ?? '' })),
         }));
 
+        // Down&distance + posizione in campo delle segnature: le scoringPlays non
+        // li hanno, si recuperano dalle giocate dei drive (downDistanceText, es.
+        // "4th & 7 at NE 14"), agganciando per punteggio progressivo (chiave univoca).
+        const scPos = {};
+        for (const dr of (d.drives?.previous || [])) for (const pl of (dr.plays || [])) {
+            if (!pl.scoringPlay) continue;
+            scPos[`${pl.awayScore}-${pl.homeScore}`] = pl.start?.downDistanceText || pl.start?.shortDownDistanceText || pl.start?.possessionText || null;
+        }
         const scoring = (d.scoringPlays || []).map(p => ({
             q: p.period?.number ?? null,
             clock: p.clock?.displayValue || null,
             team: canonAbbr(p.team?.abbreviation || ''),
             type: p.scoringType?.displayName || null,
             text: p.text || null,
+            pos: scPos[`${p.awayScore}-${p.homeScore}`] || null,   // down&distance + posizione ("4th & 7 at NE 14")
             home: p.homeScore ?? null, away: p.awayScore ?? null,
         }));
 
@@ -368,23 +449,31 @@ export async function getGameSummary(eventId) {
         const firstWp = wp[0] || null;
 
         // Drive chart (#1): riassunto drive-per-drive + play-by-play (ogni snap).
-        const drives = (d.drives?.previous || []).map(dr => ({
+        // playLoc mappa playId → {di, pi} (indice drive + indice giocata) per
+        // sincronizzare lo scrubbing della win probability con campo e tabella.
+        const playLoc = {};
+        const drives = (d.drives?.previous || []).map((dr, di) => ({
             team: canonAbbr(dr.team?.abbreviation || ''),
             desc: dr.description || null,
             result: dr.displayResult || dr.result || null,
             yards: dr.yards ?? null,
             playCount: dr.plays?.length ?? dr.offensivePlays ?? null,
             start: dr.start?.text || null, end: dr.end?.text || null,
-            plays: (dr.plays || []).map(p => ({
-                q: p.period?.number ?? null,
-                clock: p.clock?.displayValue || null,
-                dd: p.start?.downDistanceText || null,
-                text: p.text || null,
-                scoring: !!p.scoringPlay,
-                penalty: !!p.isPenalty,
-                turnover: !!p.isTurnover,
-                away: p.awayScore ?? null, home: p.homeScore ?? null,
-            })),
+            plays: (dr.plays || []).map((p, pi) => {
+                if (p.id) playLoc[p.id] = { di, pi };
+                return {
+                    q: p.period?.number ?? null,
+                    clock: p.clock?.displayValue || null,
+                    dd: p.start?.downDistanceText || null,
+                    text: p.text || null,
+                    scoring: !!p.scoringPlay,
+                    penalty: !!p.isPenalty,
+                    turnover: !!p.isTurnover,
+                    away: p.awayScore ?? null, home: p.homeScore ?? null,
+                    s2e: p.start?.yardsToEndzone ?? null, e2e: p.end?.yardsToEndzone ?? null, // posizione sul campo
+                    gain: p.statYardage ?? null, type: p.type?.text || null,             // yard guadagnate + tipo giocata
+                };
+            }),
         }));
 
         // Proiezione ESPN + linea (#5): il predictor funziona anche a gara
@@ -400,12 +489,75 @@ export async function getGameSummary(eventId) {
             spread: o.spread ?? null, overUnder: o.overUnder ?? null,
         } : null;
 
+        // Game leaders (per squadra): lancio/corsa/ricezione + sack/tackle, in
+        // stile ESPN: numero grande (value), linea di dettaglio (displayValue
+        // senza le YDS), foto/ruolo dell'atleta.
+        const LEADER_CATS = ['passingYards', 'rushingYards', 'receivingYards', 'sacks', 'totalTackles'];
+        const leaders = (d.leaders || []).map(tl => ({
+            abbr: canonAbbr(tl.team?.abbreviation || ''),
+            home: canonAbbr(tl.team?.abbreviation || '') === homeAbbr,
+            cats: (tl.leaders || []).filter(c => LEADER_CATS.includes(c.name)).map(c => {
+                const ld = c.leaders?.[0] || {};
+                const ath = ld.athlete || {};
+                const big = ld.value != null ? String(ld.value).replace(/\.0$/, '') : (ld.displayValue || '');
+                // Dettaglio = linea completa senza il segmento "N YDS"; scarto se
+                // resta solo un numero (es. tackle "11" → nessun dettaglio).
+                let detail = (ld.displayValue || '')
+                    .replace(/\s*\d+(?:\.\d+)?\s*YDS,?/i, '')
+                    .replace(/\s{2,}/g, ' ')
+                    .replace(/^[,\s]+|[,\s]+$/g, '')
+                    .trim();
+                if (!/[a-z]/i.test(detail)) detail = '';
+                return {
+                    key: c.name, value: big, detail,
+                    athlete: ath.shortName || ath.displayName || '',
+                    pos: ath.position?.abbreviation || '',
+                    headshot: ath.headshot?.href || '',
+                };
+            }).filter(c => c.athlete),
+        })).filter(t => t.cats.length);
+
+        // Box score giocatori per squadra e categoria (passing/rushing/receiving/…).
+        const boxPlayers = (d.boxscore?.players || []).map(tp => ({
+            abbr: canonAbbr(tp.team?.abbreviation || ''),
+            home: canonAbbr(tp.team?.abbreviation || '') === homeAbbr,
+            groups: (tp.statistics || []).map(g => ({
+                name: g.name, label: g.text || g.name, labels: g.labels || [],
+                athletes: (g.athletes || []).map(a => ({
+                    name: a.athlete?.displayName || a.athlete?.shortName || '',
+                    pos: a.athlete?.position?.abbreviation || '',
+                    jersey: a.athlete?.jersey || '',
+                    stats: a.stats || [],
+                })).filter(a => a.name),
+                totals: g.totals || null,
+            })).filter(g => g.athletes.length),
+        })).filter(t => t.groups.length);
+
+        // Win probability arricchito con l'azione: ogni campione porta down&distance,
+        // punteggio progressivo, quarto/orologio e gli indici drive/play (di, pi)
+        // così lo scrubbing del grafico guida scorebug, campo e tabella.
+        const playById = {};
+        for (const dr of (d.drives?.previous || [])) for (const p of (dr.plays || [])) if (p.id) playById[p.id] = p;
+        const winprob = wp.map(x => {
+            const p = playById[x.playId];
+            const loc = x.playId ? playLoc[x.playId] : null;
+            return {
+                homePct: x.homeWinPercentage != null ? x.homeWinPercentage : null,
+                q: p?.period?.number ?? null, clock: p?.clock?.displayValue || null,
+                dd: p?.start?.downDistanceText || p?.start?.shortDownDistanceText || null,
+                away: p?.awayScore ?? null, home: p?.homeScore ?? null,
+                text: p?.text || null, scoring: !!p?.scoringPlay,
+                di: loc?.di ?? null, pi: loc?.pi ?? null,
+            };
+        }).filter(x => x.homePct != null);
+
         return {
             status: comp.status?.type?.description || null,
             week: d.header?.week ?? null,
             season: d.header?.season?.year ?? null,
             date: comp.date || null,
             competitors, homeAbbr, teamStats, scoring, gameInfo, drives, prediction, odds,
+            leaders, boxPlayers, winprob,
             homeWinPct: lastWp?.homeWinPercentage ?? null,
             homeWinPctStart: firstWp?.homeWinPercentage ?? null,
         };

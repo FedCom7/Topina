@@ -21,17 +21,23 @@ import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/p
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { canonAbbr } from '../data/nfl-schedule.js?v=11';
 import { CURRENT_SEASON } from '../data.js?v=32';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers } from '../data/context-score.js?v=4';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=8';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries } from '../data/nfl-team-extras.js?v=7';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=12';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=1';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=1';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=5';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=8';
 
 export const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
-export const TEAM_HISTORY_YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
-export const fmt0 = (n) => n == null ? '—' : Math.round(n).toLocaleString('it-IT');
+// Da 2019 alla stagione NFL corrente (calcolata dalla data): così l'anno nuovo
+// (es. 2026 in preseason) compare da solo nei selettori appena inizia.
+const _FIRST_HISTORY_YEAR = 2019;
+export const TEAM_HISTORY_YEARS = Array.from(
+    { length: Math.max(1, currentNflSeason() - _FIRST_HISTORY_YEAR + 1) },
+    (_, i) => _FIRST_HISTORY_YEAR + i,
+);
+export const fmt0 = (n) => n == null ? '—' : Math.round(n).toLocaleString('en-US');
 export const fmt1 = (n) => n == null ? '—' : (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 export const fmt2 = (n) => n == null ? '—' : (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -53,7 +59,7 @@ export async function initPlayerPage() {
     const year = parts[1], pos = (parts[2] || '').toUpperCase().replace('W/R', 'WR');
 
     if (!name || !year) {
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Giocatore non trovato</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Player not found</p></div></div>`;
         return;
     }
 
@@ -110,6 +116,18 @@ export async function initPlayerPage() {
             if (provisional.length) advSeasons = [...advSeasons, ...provisional];
         }
         const advTeam = abbr ? await getTeamAdvanced(abbr, ctx?.season || +year).catch(() => null) : null;
+        if (location.hash !== myHash) return;
+
+        // Pool NFL pari-ruolo delle DUE ultime stagioni avanzate REALI (non
+        // provvisorie): la più recente per il radar, entrambe per lo slope
+        // chart (variazione percentile anno→anno). Cache adv_players già calda.
+        const realAdvYears = [...new Set((advSeasons || []).filter(a => !a.provisional).map(a => +a.year))].sort((a, b) => b - a);
+        const advYear = realAdvYears[0] ?? null;
+        const advYear2 = realAdvYears[1] ?? null;
+        const [advPool, advPool2] = await Promise.all([
+            advYear != null ? getAdvancedPool(pos, advYear).catch(() => []) : Promise.resolve([]),
+            advYear2 != null ? getAdvancedPool(pos, advYear2).catch(() => []) : Promise.resolve([]),
+        ]);
         if (location.hash !== myHash) return;
 
         // Cronologia infortuni personale (anno per anno, anche cambi squadra) —
@@ -210,11 +228,11 @@ export async function initPlayerPage() {
         }
 
         if (pos === 'DEF') renderDefPage(section, { name, year, pos, abbr, full, career, awards, ctx, advTeam, teamRoster, teamInjuries, teamStarters, teamExtras, teamHistory });
-        else renderPlayerPage(section, { name, year, pos, abbr, full, career, awards, projEntry, nextSeasonProj, nextSeason, ctx, advSeasons, advTeam, teamRoster, teamInjuries, teamStarters, playerInjuries, causesByYear, combineDraft, awardsEspn, contract, draftPeers, projByYear, teamHistory, compare, overview, espnExtra, recordsEspn, splits, qbr });
+        else renderPlayerPage(section, { name, year, pos, abbr, full, career, awards, projEntry, nextSeasonProj, nextSeason, ctx, advSeasons, advPool, advYear, advPool2, advYear2, advTeam, teamRoster, teamInjuries, teamStarters, playerInjuries, causesByYear, combineDraft, awardsEspn, contract, draftPeers, projByYear, teamHistory, compare, overview, espnExtra, recordsEspn, splits, qbr });
     } catch (e) {
         console.error('[player-page]', e);
         if (location.hash !== myHash) return;
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento delle statistiche</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Error loading stats</p></div></div>`;
     }
 }
 
@@ -224,40 +242,64 @@ function renderPlayerPage(section, ctx) {
     const { name, year, pos, abbr, full, career, awards, projEntry, advSeasons, nextSeasonProj, nextSeason } = ctx;
     const seasons = full.seasons; // dalla più recente
 
+    // Identità persistente (recapCard) + barra tab sticky: i blocchi restano gli
+    // stessi, raggruppati in pannelli. Nessun cambio di dati/routing — solo UI.
     section.innerHTML = `
     <div class="section-inner gb-page pp-page">
-        <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Indietro</a>
+        <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Back</a>
 
-        <h2 class="pp-section-title"><small>01</small> Recap giocatore</h2>
         ${recapCard(ctx)}
-        ${careerTeamsBlock(full, ctx.combineDraft)}
-        ${topinaBoxBlock(career, awards)}
-        ${outlookNewsBlock(ctx)}
-        ${recordsBlock(ctx)}
-        ${full.resolved && seasons.length ? '' : noStatsBlock(full, projEntry, year)}
 
-        <h2 class="pp-section-title"><small>02</small> Rendimento &amp; metriche</h2>
-        ${metricsBlock(seasons, pos, nextSeasonProj, nextSeason)}
-        ${qbrBlock(ctx)}
-        ${leagueComparisonBlock(ctx)}
-        ${advancedNflverseBlock(advSeasons, pos)}
-        ${splitsBlock(ctx)}
-        ${playerInjuriesBlock(ctx)}
+        <nav class="pp-tabsbar" role="tablist" aria-label="Player card sections">
+            <button class="pp-tab is-active" role="tab" aria-selected="true" data-tab="stats">Stats</button>
+            <button class="pp-tab" role="tab" aria-selected="false" data-tab="analysis">Analysis</button>
+            <button class="pp-tab" role="tab" aria-selected="false" data-tab="news">News</button>
+            <button class="pp-tab" role="tab" aria-selected="false" data-tab="bio">Bio</button>
+            <button class="pp-tab" role="tab" aria-selected="false" data-tab="splits">Splits</button>
+            <button class="pp-tab" role="tab" aria-selected="false" data-tab="gamelog">Game Log</button>
+        </nav>
 
-        <h2 class="pp-section-title"><small>03</small> Statistiche di carriera</h2>
-        ${categoryTables(seasons, pos)}
-        ${careerTotalsPfrBlock(ctx.combineDraft)}
-        ${gamelogBlock(seasons, pos)}
+        <div class="pp-tab-panel" role="tabpanel" data-panel="stats">
+            ${metricsBlock(seasons, pos, nextSeasonProj, nextSeason, ctx.projByYear)}
+            ${categoryTables(seasons, pos)}
+            ${careerTotalsPfrBlock(ctx.combineDraft)}
+            ${qbrBlock(ctx)}
+            ${full.resolved && seasons.length ? '' : noStatsBlock(full, projEntry, year)}
+        </div>
 
-        <h2 class="pp-section-title"><small>04</small> Proiezioni &amp; valore draft</h2>
-        ${projectionsTableBlock({ seasons, projByYear: ctx.projByYear, nextSeasonProj, nextSeason })}
-        ${projectedStatsBlock({ projByYear: ctx.projByYear, nextSeasonProj, nextSeason })}
-        ${projVsActualBlock({ seasons, projByYear: ctx.projByYear })}
-        ${perfExplainBlock(ctx)}
-        ${draftScatterBlock(ctx)}
+        <div class="pp-tab-panel" role="tabpanel" data-panel="analysis" hidden>
+            ${advancedRadarBlock(ctx)}
+            ${advancedNflverseBlock(advSeasons, pos)}
+            ${advancedSlopeBlock(ctx)}
+            ${perfExplainBlock(ctx)}
+            ${draftScatterBlock(ctx)}
+            ${similarPlayersBlock(ctx)}
+            ${teamContextCompact(ctx)}
+            ${outlookBlock(ctx)}
+            ${leagueComparisonBlock(ctx)}
+            ${projVsActualBlock({ seasons, projByYear: ctx.projByYear })}
+            ${projectionTablesBlock(ctx)}
+            ${topinaBoxBlock(career, awards)}
+        </div>
 
-        <h2 class="pp-section-title"><small>05</small> Squadra</h2>
-        ${teamContextCompact(ctx)}
+        <div class="pp-tab-panel" role="tabpanel" data-panel="news" hidden>
+            ${playerNewsBlock(ctx)}
+        </div>
+
+        <div class="pp-tab-panel" role="tabpanel" data-panel="bio" hidden>
+            ${profiloDetailBlock(ctx)}
+            ${careerTeamsBlock(full, ctx.combineDraft)}
+            ${recordsBlock(ctx)}
+            ${playerInjuriesBlock(ctx)}
+        </div>
+
+        <div class="pp-tab-panel" role="tabpanel" data-panel="splits" hidden>
+            ${splitsBlock(ctx)}
+        </div>
+
+        <div class="pp-tab-panel" role="tabpanel" data-panel="gamelog" hidden>
+            ${gamelogBlock(seasons, pos)}
+        </div>
 
         ${footnote()}
     </div>`;
@@ -268,6 +310,43 @@ function renderPlayerPage(section, ctx) {
     bindCategoryTabs(section);
     bindComparisonChart(section, ctx);
     bindViolinHover(section);
+    bindFormHover(section);
+    bindSimilarPlayers(section);
+    bindTabs(section);
+}
+
+/**
+ * Barra tab della scheda: mostra un pannello per volta (show/hide puro, nessun
+ * cambio di hash o di dati). I tab con pannello vuoto — blocchi che rendono ''
+ * per mancanza di dati — vengono nascosti così non si aprono su una vista bianca.
+ */
+function bindTabs(section) {
+    const tabs = [...section.querySelectorAll('.pp-tab')];
+    const panels = [...section.querySelectorAll('.pp-tab-panel')];
+    tabs.forEach(tab => {
+        const panel = panels.find(p => p.dataset.panel === tab.dataset.tab);
+        if (panel && !panel.textContent.trim()) { tab.hidden = true; panel.hidden = true; }
+    });
+    const activate = (id) => {
+        tabs.forEach(t => {
+            const on = t.dataset.tab === id;
+            t.classList.toggle('is-active', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        panels.forEach(p => { p.hidden = p.dataset.panel !== id; });
+    };
+    // Se il primo tab è vuoto, attiva il primo tab davvero disponibile.
+    const firstVisible = tabs.find(t => !t.hidden);
+    if (firstVisible && !firstVisible.classList.contains('is-active')) activate(firstVisible.dataset.tab);
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+        activate(tab.dataset.tab);
+        // Risali sotto la barra sticky solo se si è già scrollati oltre — così
+        // cambiare tab dall'alto non provoca salti.
+        const bar = section.querySelector('.pp-tabsbar');
+        if (!bar) return;
+        const top = bar.getBoundingClientRect().top + window.scrollY - 72;
+        if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' });
+    }));
 }
 
 /** Tooltip sul violin plot: mostra i valori della stagione sotto il cursore. */
@@ -281,8 +360,8 @@ function bindViolinHover(section) {
             if (!g) { tip.hidden = true; return; }
             const d = g.dataset;
             tip.innerHTML = d.proj
-                ? `<b>${d.year}</b> · proiezione<br>media ${d.mean} pt/gara`
-                : `<b>${d.year}</b> · ${d.n} gare<br>media <b>${d.media}</b> · mediana <b>${d.med}</b><br>25°–75°: ${d.q1}–${d.q3}<br>min ${d.min} · max ${d.max}`;
+                ? `<b>${d.year}</b> · projection<br>avg ${d.mean} pts/game`
+                : `<b>${d.year}</b> · ${d.n} games<br>avg <b>${d.media}</b> · median <b>${d.med}</b><br>25°–75°: ${d.q1}–${d.q3}<br>min ${d.min} · max ${d.max}`;
             tip.hidden = false;
             const r = chart.getBoundingClientRect();
             const x = e.clientX - r.left, y = e.clientY - r.top;
@@ -311,7 +390,7 @@ function heroBlock({ name, pos, abbr, full, career, year }) {
     <header class="mosaic-card mc-wide dgt-hero pp-hero mc-in">
         <img class="pp-headshot" src="images/fallback-player.svg" alt="${esc(name)}">
         <div class="dgt-hero-info">
-            <span class="mc-kicker">Scheda completa · Draft ${year}</span>
+            <span class="mc-kicker">Full card · Draft ${year}</span>
             <h1 class="mc-title">${esc(name)}</h1>
             <div class="pm-chips pp-hero-chips">${chips}</div>
         </div>
@@ -321,8 +400,8 @@ function heroBlock({ name, pos, abbr, full, career, year }) {
 
 function noStatsBlock(full, projEntry, year) {
     const msg = !full.resolved
-        ? 'Statistiche NFL dettagliate non disponibili per questo giocatore (nessuna corrispondenza su Sleeper).'
-        : 'Nessuna partita NFL registrata: statistiche disponibili dal 2015 in poi.';
+        ? 'Detailed NFL stats not available for this player (no match on Sleeper).'
+        : 'No NFL games recorded: stats available from 2015 onward.';
     return `<section class="pm-block pp-block"><p class="pm-empty">${msg}</p></section>`;
 }
 
@@ -368,39 +447,16 @@ function recapCard(ctx) {
     const hIn = parseFloat(info.height);
     const wLb = parseFloat(info.weight);
     const height = hIn ? `${Math.floor(hIn / 12)}'${Math.round(hIn % 12)}"` : (espnExtra?.displayHeight || null);
-    const born = info.birth_date ? new Date(info.birth_date).toLocaleDateString('it-IT') : null;
-
-    // Vitali: età, altezza/peso, college, esperienza, status — tutto in una riga di chip
-    // (età: Sleeper se presente, altrimenti dallo schema v3 ESPN già calcolato)
-    const birthPlace = [info.birth_city, info.birth_state, info.birth_country].filter(Boolean).join(', ');
+    // Vitali essenziali: età, altezza/peso, college, esperienza, status, numero.
+    // Nascita, high school, combine, contratto e ID sono nel tab Profilo (profiloDetailBlock).
     const vitals = [
         factChip(info.age ?? espnExtra?.age, 'anni'),
         factChip(height, wLb ? `· ${Math.round(wLb)} lbs` : null),
         factChip(info.college ? esc(info.college) : null, null),
-        factChip(born, null),
-        birthPlace ? factChip(esc(birthPlace), null) : '',
-        info.high_school ? factChip(esc(info.high_school), 'high school') : '',
-        info.years_exp != null ? factChip(`${info.years_exp}ª`, 'stagione NFL') : '',
+        info.years_exp != null ? factChip(`${info.years_exp}`, 'NFL seasons') : '',
         info.status ? factChip(esc(info.status), null) : '',
         info.number != null ? factChip(`#${info.number}`, null) : '',
-        info.practice_description ? factChip(esc(info.practice_description), 'practice') : '',
     ].filter(Boolean).join('');
-
-    // Combine NFL: solo se presente, come chip compatti (non 6 tile enormi)
-    const combineChips = combine ? [
-        combine.forty != null ? factChip(`${combine.forty}s`, '40yd') : '',
-        combine.vertical != null ? factChip(`${combine.vertical}"`, 'vertical') : '',
-        combine.bench != null ? factChip(`${combine.bench}`, 'bench') : '',
-        combine.broadJump != null ? factChip(`${combine.broadJump}"`, 'broad jump') : '',
-        combine.cone != null ? factChip(`${combine.cone}s`, '3-cone') : '',
-        combine.shuttle != null ? factChip(`${combine.shuttle}s`, 'shuttle') : '',
-    ].filter(Boolean).join('') : '';
-    // Blocco infermeria del collega (mantenuto per compatibilità).
-    const injury = info.injury_status ? `
-        <div class="pp-injury">
-            <span class="pp-injury-title">Infermeria (stato attuale)</span>
-            <span>${esc(info.injury_status)}${info.injury_body_part ? ` — ${esc(info.injury_body_part)}` : ''}${info.injury_notes ? ` · ${esc(info.injury_notes)}` : ''}${info.injury_start_date ? ` · dal ${new Date(info.injury_start_date).toLocaleDateString('it-IT')}` : ''}</span>
-        </div>` : '';
 
     // Draft NFL reale + accolades di carriera, in una riga
     const draftChips = [
@@ -412,26 +468,6 @@ function recapCard(ctx) {
         d?.posPercentile != null ? factChip(`${d.posPercentile}%`, `tra i ${pos} del draft ${d.season} (${ord(d.posRank)}/${d.posCount})`, 'pp-fact-chip--accent') : '',
     ].filter(Boolean).join('');
     const awardChips = tallyAwards(awardsEspn).map(([n, c]) => factChip(c > 1 ? `×${c}` : '🏆', n, 'pp-fact-chip--accent')).join('');
-
-    // Contratto: OTC (build, un valore riassuntivo) o, in mancanza, storico
-    // anno-per-anno ESPN live (un valore per stagione di carriera).
-    const money = (v) => v == null ? null : `$${Math.round(v / 1e6)}M`;
-    const isOtc = contract && !Array.isArray(contract);
-    const contractArr = Array.isArray(contract) ? contract : null;
-    const latestContractYear = contractArr ? (contractArr.find(c => c.active) || contractArr[contractArr.length - 1]) : null;
-    const contractChip = isOtc
-        ? factChip(money(contract.apy), `APY · ${contract.years} anni · ${money(contract.guaranteed)} garantiti`)
-        : (latestContractYear ? factChip(money(latestContractYear.salary), `stipendio ${latestContractYear.season} · scad. ${latestContractYear.signedThrough}`) : '');
-    const contractHistory = contractArr && contractArr.length > 1 ? `
-        <details class="pp-recap-ids" style="margin-top:6px">
-            <summary>Storico contratto (${contractArr.length} anni, ESPN)</summary>
-            <div class="pm-table-wrap pp-scroll" style="margin-top:8px">
-                <table class="pm-table pp-table">
-                    <thead><tr><th>Anno</th><th>Stipendio</th><th>Bonus</th><th>Scadenza</th></tr></thead>
-                    <tbody>${contractArr.map(c => `<tr><td>${c.season ?? '—'}</td><td>${money(c.salary) ?? '—'}</td><td>${money(c.bonus) ?? '—'}</td><td>${c.signedThrough ?? '—'}</td></tr>`).join('')}</tbody>
-                </table>
-            </div>
-        </details>` : '';
 
     // Squadra e ruolo Topina/NFL
     const depth = info.depth_chart_position ? `${esc(info.depth_chart_position)}${info.depth_chart_order ?? ''}` : null;
@@ -452,16 +488,6 @@ function recapCard(ctx) {
             severityClass(info.injury_status) ? 'pp-fact-chip--out' : 'pp-fact-chip--warn')
         : '';
 
-    const idsSummary = [
-        info.espn_id ? `<a class="pp-id" href="https://www.espn.com/nfl/player/_/id/${info.espn_id}" target="_blank" rel="noopener">ESPN ${info.espn_id}</a>` : '',
-        info.yahoo_id ? `<span class="pp-id">Yahoo ${info.yahoo_id}</span>` : '',
-        info.sportradar_id ? `<span class="pp-id">Sportradar ${esc(info.sportradar_id)}</span>` : '',
-        info.rotowire_id ? `<span class="pp-id">Rotowire ${info.rotowire_id}</span>` : '',
-        info.fantasy_data_id ? `<span class="pp-id">FantasyData ${info.fantasy_data_id}</span>` : '',
-        info.player_id ? `<span class="pp-id">Sleeper ${esc(info.player_id)}</span>` : '',
-        info.gsis_id ? `<span class="pp-id">GSIS ${esc(info.gsis_id)}</span>` : '',
-    ].filter(Boolean).join('');
-
     return `
     <header class="mosaic-card mc-wide pp-hero mc-in">
         <div class="pp-recap">
@@ -473,27 +499,18 @@ function recapCard(ctx) {
                 </div>
                 <h1 class="mc-title">${esc(name)} ${pos ? `<span class="allpro-pos pos-${pos.toLowerCase()}">${pos}</span>` : ''}</h1>
                 ${abbr ? `
-                <a class="pp-recap-team pp-recap-team--link" href="#nfl-team/${abbr}" title="Vai alla scheda squadra">
+                <a class="pp-recap-team pp-recap-team--link" href="#nfl-team/${abbr}" title="Go to team page">
                     <img src="${teamLogo(abbr)}" alt="" onerror="this.style.display='none'">
                     <b>${identity ? esc(identity.name) : abbr}</b>
                     ${identity ? `<span class="pp-team-div" style="color:${identity.color}">${esc(identity.division)}</span>` : ''}
                     <span class="pp-recap-team-arrow" aria-hidden="true">→</span>
                 </a>` : ''}
 
-                ${factGroup('Anagrafica', vitals)}
-                ${factGroup('Combine NFL', combineChips)}
-                ${factGroup('Ruolo', roleChips)}
-                ${factGroup('Draft NFL reale e carriera', draftChips + awardChips)}
-                ${contractChip ? `
-                <div class="pp-fact-group">
-                    <span class="pp-fact-label">Contratto${isOtc ? ' · Over The Cap' : ' · ESPN'}</span>
-                    <div class="pp-fact-chips">${contractChip}</div>
-                    ${contractHistory}
-                </div>` : ''}
+                ${factGroup('Bio', vitals)}
+                ${factGroup('Position', roleChips)}
+                ${factGroup('Real NFL draft and career', draftChips + awardChips)}
                 ${nextProjChips ? factGroup(`Prospettive ${nextSeason} (preseason)`, nextProjChips) : ''}
                 ${injuryChip ? factGroup('Stato attuale (live, Sleeper)', injuryChip) : ''}
-
-                ${idsSummary ? `<details class="pp-recap-ids"><summary>ID esterni</summary><div class="pp-ids">${idsSummary}</div></details>` : ''}
             </div>
         </div>
     </header>`;
@@ -516,6 +533,85 @@ function seasonTeams(s) {
  * senza dati mostrano la squadra stimata (draft o carry-forward, tratteggiata).
  * Riusa `full.seasons` già caricate — nessuna fetch.
  */
+/**
+ * Full bio e profilo (tab Profilo): nascita, high school, pratica,
+ * combine NFL, contratto (+ storico) e ID esterni — tutto ciò che è stato tolto
+ * dall'hero per tenerlo snello. Nessun dato perso, solo spostato.
+ */
+function profiloDetailBlock(ctx) {
+    const { full, combineDraft, contract } = ctx;
+    const info = full.info || {};
+    const combine = combineDraft?.combine;
+
+    const born = info.birth_date ? new Date(info.birth_date).toLocaleDateString('en-US') : null;
+    const birthPlace = [info.birth_city, info.birth_state, info.birth_country].filter(Boolean).join(', ');
+    const bioChips = [
+        born ? factChip(born, 'nascita') : '',
+        birthPlace ? factChip(esc(birthPlace), null) : '',
+        info.high_school ? factChip(esc(info.high_school), 'high school') : '',
+        info.practice_description ? factChip(esc(info.practice_description), 'practice') : '',
+    ].filter(Boolean).join('');
+
+    const combineChips = combine ? [
+        combine.forty != null ? factChip(`${combine.forty}s`, '40yd') : '',
+        combine.vertical != null ? factChip(`${combine.vertical}"`, 'vertical') : '',
+        combine.bench != null ? factChip(`${combine.bench}`, 'bench') : '',
+        combine.broadJump != null ? factChip(`${combine.broadJump}"`, 'broad jump') : '',
+        combine.cone != null ? factChip(`${combine.cone}s`, '3-cone') : '',
+        combine.shuttle != null ? factChip(`${combine.shuttle}s`, 'shuttle') : '',
+    ].filter(Boolean).join('') : '';
+
+    const money = (v) => v == null ? null : `$${Math.round(v / 1e6)}M`;
+    const isOtc = contract && !Array.isArray(contract);
+    const contractArr = Array.isArray(contract) ? contract : null;
+    const latestContractYear = contractArr ? (contractArr.find(c => c.active) || contractArr[contractArr.length - 1]) : null;
+    const contractChip = isOtc
+        ? factChip(money(contract.apy), `APY · ${contract.years} anni · ${money(contract.guaranteed)} garantiti`)
+        : (latestContractYear ? factChip(money(latestContractYear.salary), `stipendio ${latestContractYear.season} · scad. ${latestContractYear.signedThrough}`) : '');
+    const contractHistory = contractArr && contractArr.length > 1 ? `
+        <details class="pp-recap-ids" style="margin-top:6px">
+            <summary>Contract history (${contractArr.length} yrs, ESPN)</summary>
+            <div class="pm-table-wrap pp-scroll" style="margin-top:8px">
+                <table class="pm-table pp-table">
+                    <thead><tr><th>Year</th><th>Salary</th><th>Bonus</th><th>Through</th></tr></thead>
+                    <tbody>${contractArr.map(c => `<tr><td>${c.season ?? '—'}</td><td>${money(c.salary) ?? '—'}</td><td>${money(c.bonus) ?? '—'}</td><td>${c.signedThrough ?? '—'}</td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+        </details>` : '';
+
+    const idsSummary = [
+        info.espn_id ? `<a class="pp-id" href="https://www.espn.com/nfl/player/_/id/${info.espn_id}" target="_blank" rel="noopener">ESPN ${info.espn_id}</a>` : '',
+        info.yahoo_id ? `<span class="pp-id">Yahoo ${info.yahoo_id}</span>` : '',
+        info.sportradar_id ? `<span class="pp-id">Sportradar ${esc(info.sportradar_id)}</span>` : '',
+        info.rotowire_id ? `<span class="pp-id">Rotowire ${info.rotowire_id}</span>` : '',
+        info.fantasy_data_id ? `<span class="pp-id">FantasyData ${info.fantasy_data_id}</span>` : '',
+        info.player_id ? `<span class="pp-id">Sleeper ${esc(info.player_id)}</span>` : '',
+        info.gsis_id ? `<span class="pp-id">GSIS ${esc(info.gsis_id)}</span>` : '',
+    ].filter(Boolean).join('');
+
+    const groups = [
+        factGroup('Full bio', bioChips),
+        factGroup('Combine NFL', combineChips),
+        contractChip ? `
+        <div class="pp-fact-group">
+            <span class="pp-fact-label">Contratto${isOtc ? ' · Over The Cap' : ' · ESPN'}</span>
+            <div class="pp-fact-chips">${contractChip}</div>
+            ${contractHistory}
+        </div>` : '',
+        idsSummary ? `
+        <div class="pp-fact-group">
+            <span class="pp-fact-label">ID esterni</span>
+            <div class="pp-ids">${idsSummary}</div>
+        </div>` : '',
+    ].filter(Boolean).join('');
+    if (!groups.trim()) return '';
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Bio and profile</span>
+        <div class="pp-recap-body" style="margin-top:10px">${groups}</div>
+    </section>`;
+}
+
 function careerTeamsBlock(full, combineDraft) {
     if (!full?.seasons?.length) return '';
     const dataByYear = new Map();
@@ -555,7 +651,7 @@ function careerTeamsBlock(full, combineDraft) {
         prevPrimary = n.teams[n.teams.length - 1];
         const logos = n.teams.map(t => `<img src="${teamLogo(t)}" alt="" onerror="this.style.display='none'">`).join('');
         return `
-        <div class="pp-tl-node${n.inferred ? ' pp-tl-node--inferred' : ''}${n.teams.length > 1 ? ' pp-tl-node--multi' : ''}" style="--team:${color};--conn:${same ? color : 'var(--border-subtle)'}"${n.inferred ? ' title="Stagione senza dati: squadra stimata"' : ''}>
+        <div class="pp-tl-node${n.inferred ? ' pp-tl-node--inferred' : ''}${n.teams.length > 1 ? ' pp-tl-node--multi' : ''}" style="--team:${color};--conn:${same ? color : 'var(--border-subtle)'}"${n.inferred ? ' title="Season with no data: estimated team"' : ''}>
             <span class="pp-tl-logo">${logos}</span>
             <span class="pp-tl-abbr">${esc(n.teams.join('→'))}</span>
             <span class="pp-tl-year">${n.year}</span>
@@ -565,9 +661,9 @@ function careerTeamsBlock(full, combineDraft) {
     const hasInferred = nodes.some(n => n.inferred && n.teams.length);
     return `
     <section class="pm-block pp-block pp-cth">
-        <span class="mc-kicker">Squadre di carriera · ${draftYear ? `dal draft ${draftYear} · ` : ''}${distinct.length} ${distinct.length === 1 ? 'franchigia' : 'franchigie'}</span>
+        <span class="mc-kicker">Career teams · ${draftYear ? `since the ${draftYear} draft · ` : ''}${distinct.length} ${distinct.length === 1 ? 'franchise' : 'franchises'}</span>
         <div class="pp-tl pp-scroll">${html}</div>
-        <p class="pm-note">Timeline anno per anno dalla stagione del draft NFL; statistiche per stagione dal ${FIRST_STATS_YEAR}.${hasInferred ? ' Le stagioni tratteggiate (precedenti o senza dati) mostrano la squadra stimata.' : ''} Più loghi nello stesso anno = scambio in stagione.</p>
+        <p class="pm-note">Year-by-year timeline from the NFL draft season; per-season stats from ${FIRST_STATS_YEAR}.${hasInferred ? ' Dashed seasons (earlier or without data) show the estimated team.' : ''} Multiple logos in the same year = in-season trade.</p>
     </section>`;
 }
 
@@ -585,15 +681,16 @@ function topinaBoxBlock(career, awards) {
  * Outlook Rotowire, prossima partita e ultime notizie (ESPN overview).
  * Categorie che né Sleeper né il build espongono.
  */
-function outlookNewsBlock({ overview }) {
+/** Outlook Rotowire + prossima partita (senza notizie: quelle vanno nel tab News). */
+function outlookBlock({ overview }) {
     if (!overview) return '';
-    const { rotowire, nextGame, news } = overview;
+    const { rotowire, nextGame } = overview;
 
     const nextHtml = nextGame?.date ? `
         <div class="pp-nextgame">
-            <span class="mc-kicker">Prossima partita</span>
+            <span class="mc-kicker">Next game</span>
             <b>${esc(nextGame.name || '—')}</b>
-            <span class="pm-note" style="margin-top:2px">${[nextGame.week, new Date(nextGame.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })].filter(Boolean).join(' · ')}</span>
+            <span class="pm-note" style="margin-top:2px">${[nextGame.week, new Date(nextGame.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })].filter(Boolean).join(' · ')}</span>
         </div>` : '';
 
     const rwHtml = rotowire?.story ? `
@@ -601,19 +698,26 @@ function outlookNewsBlock({ overview }) {
             <span class="mc-kicker">Outlook · Rotowire</span>
             ${rotowire.headline ? `<b>${esc(rotowire.headline)}</b>` : ''}
             <p class="pp-outlook-story">${esc(rotowire.story)}</p>
-            ${rotowire.published ? `<span class="pm-note">Aggiornato ${new Date(rotowire.published).toLocaleDateString('it-IT')}</span>` : ''}
+            ${rotowire.published ? `<span class="pm-note">Aggiornato ${new Date(rotowire.published).toLocaleDateString('en-US')}</span>` : ''}
         </div>` : '';
 
-    const newsHtml = news?.length ? `
-        <span class="mc-kicker" style="margin-top:14px">Ultime notizie</span>
-        <ul class="pp-news-list">${news.map(n => `
-            <li>${n.link ? `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.headline)}</a>` : esc(n.headline)}${n.published ? ` <span class="pm-note">· ${new Date(n.published).toLocaleDateString('it-IT')}</span>` : ''}</li>`).join('')}</ul>` : '';
-
-    if (!nextHtml && !rwHtml && !newsHtml) return '';
+    if (!nextHtml && !rwHtml) return '';
     return `
     <section class="pm-block pp-block">
-        ${nextHtml}${rwHtml}${newsHtml}
-        <p class="pm-note">Outlook Rotowire, prossima partita e notizie da ESPN dal vivo.</p>
+        ${nextHtml}${rwHtml}
+        <p class="pm-note">Rotowire outlook and next game from live ESPN.</p>
+    </section>`;
+}
+
+/** Ultime notizie ESPN sul giocatore (tab News). Auto-nascosto se ESPN non ne restituisce. */
+function playerNewsBlock({ overview }) {
+    const news = overview?.news;
+    if (!news?.length) return '';
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Latest news · ESPN</span>
+        <ul class="pp-news-list">${news.map(n => `
+            <li>${n.link ? `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.headline)}</a>` : esc(n.headline)}${n.published ? ` <span class="pm-note">· ${new Date(n.published).toLocaleDateString('en-US')}</span>` : ''}</li>`).join('')}</ul>
     </section>`;
 }
 
@@ -628,7 +732,7 @@ function qbrBlock({ qbr, ctx }) {
             ${tile(fmt1(qbr.qbr), 'Total QBR (0-100)')}
             ${qbr.rank != null ? tile(ord(qbr.rank), 'Rank tra i QB') : ''}
         </div>
-        <p class="pm-note">Total QBR ESPN: sintesi 0-100 dell'impatto del QB (lancio, corsa, penalità), corretta per il contesto delle giocate.</p>
+        <p class="pm-note">ESPN Total QBR: 0-100 summary of the QB's impact (passing, rushing, penalties), adjusted for play context.</p>
     </section>`;
 }
 
@@ -636,27 +740,52 @@ function qbrBlock({ qbr, ctx }) {
  * Split statistici ESPN (casa/trasferta, per avversario, per condizione).
  * Tabelle per gruppo con le colonne native ESPN.
  */
+/** Small multiple di un gruppo di split: mini-barre orizzontali sulla prima
+ *  colonna numerica confrontabile. `null` se nessuna colonna è numerica pura. */
+function _splitMini(g, labels) {
+    const numCol = labels.findIndex((_, ci) =>
+        g.rows.length && g.rows.every(r => {
+            const v = r.stats[ci];
+            return v != null && /^-?\d+([.,]\d+)?$/.test(String(v).trim());
+        }));
+    if (numCol < 0) return null;
+    const vals = g.rows.map(r => parseFloat(String(r.stats[numCol]).replace(',', '.')));
+    const max = Math.max(...vals.map(v => Math.abs(v)), 1);
+    const bars = g.rows.map((r, i) => `
+        <div class="pp-split-row">
+            <span class="pp-split-lbl">${esc(r.label)}</span>
+            <span class="pp-split-track"><span class="pp-split-fill" style="width:${Math.max(3, Math.abs(vals[i]) / max * 100).toFixed(0)}%"></span></span>
+            <span class="pp-split-val">${esc(String(r.stats[numCol]))}</span>
+        </div>`).join('');
+    return `<div class="pp-split-mini"><span class="pp-split-metric">${esc(labels[numCol])}</span>${bars}</div>`;
+}
+
 function splitsBlock({ splits }) {
     if (!splits?.groups?.length) return '';
     const cols = splits.labels || [];
-    const groupHtml = (g) => `
+    const tableOf = (g) => `
+        <div class="pm-table-wrap pp-scroll">
+            <table class="pm-table pp-table">
+                <thead><tr><th>Split</th>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+                <tbody>${g.rows.map(r => `<tr><td>${esc(r.label)}</td>${r.stats.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+    const groupHtml = (g) => {
+        const mini = _splitMini(g, cols);
+        return `
         <div class="pp-statcat">
             <h3 class="pp-cat-title">${esc(g.name)}</h3>
-            <div class="pm-table-wrap pp-scroll">
-                <table class="pm-table pp-table">
-                    <thead><tr><th>Split</th>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
-                    <tbody>${g.rows.map(r => `<tr><td>${esc(r.label)}</td>${r.stats.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody>
-                </table>
-            </div>
+            ${mini ? `${mini}<details class="pp-recap-ids" style="margin-top:8px"><summary>All columns</summary><div style="margin-top:8px">${tableOf(g)}</div></details>` : tableOf(g)}
         </div>`;
+    };
     const primary = splits.groups.slice(0, 2);
     const rest = splits.groups.slice(2);
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Split statistici · ESPN</span>
+        <span class="mc-kicker">Stat splits · ESPN</span>
         ${primary.map(groupHtml).join('')}
-        ${rest.length ? `<details class="pp-recap-ids" style="margin-top:6px"><summary>Altri split (${rest.length})</summary>${rest.map(groupHtml).join('')}</details>` : ''}
-        <p class="pm-note">Ripartizione statistica per casa/trasferta, avversario e condizioni di gara (ESPN, stagione corrente).</p>
+        ${rest.length ? `<details class="pp-recap-ids" style="margin-top:6px"><summary>Other splits (${rest.length})</summary>${rest.map(groupHtml).join('')}</details>` : ''}
+        <p class="pm-note">Stat breakdown by home/away, opponent and conditions (ESPN, current season). The mini-bars compare splits on the first numeric metric; the full detail is in "All columns".</p>
     </section>`;
 }
 
@@ -665,7 +794,7 @@ function recordsBlock({ recordsEspn }) {
     if (!recordsEspn?.length) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Record di carriera · ESPN</span>
+        <span class="mc-kicker">Career record · ESPN</span>
         <ul class="pp-awards-list">${recordsEspn.map(r => `<li><b>${esc(r.value ?? '')}</b> ${esc(r.name)}</li>`).join('')}</ul>
     </section>`;
 }
@@ -685,14 +814,55 @@ export function startersBlock({ teamStarters, abbr }) {
             </div>`).join('');
         return `<div class="pp-starters-col"><h3 class="pp-cat-title">${label}</h3>${rows}</div>`;
     };
-    const html = side(teamStarters.offense, 'Attacco titolare') + side(teamStarters.defense, 'Difesa titolare');
+    const html = side(teamStarters.offense, 'Starting offense') + side(teamStarters.defense, 'Starting defense');
     if (!html) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Formazione titolare · ${abbr}</span>
+        <span class="mc-kicker">Starting lineup · ${abbr}</span>
         <div class="pp-starters-grid">${html}</div>
-        <p class="pm-note">${teamStarters.source === 'espn-live' ? 'Depth chart dal vivo (ESPN) — la stagione richiesta non è ancora coperta dal build periodico nflverse.' : 'Ultimo depth chart della regular season disponibile (nflverse).'} Pt lega/gara solo dove il dato fantasy esiste (ruoli offensivi).</p>
+        <p class="pm-note">${teamStarters.source === 'espn-live' ? 'Live depth chart (ESPN) — the requested season is not covered yet by the periodic nflverse build.' : 'Latest available regular-season depth chart (nflverse).'} Pt lega/gara solo dove il dato fantasy esiste (ruoli offensivi).</p>
     </section>`;
+}
+
+/** Tabella "rosa completa con statistiche" dentro un <details> — condivisa dai
+ *  Compagni di squadra (pagina giocatore) e dal blocco depth chart della pagina
+ *  squadra (dove il click allarga il blocco alla rosa intera). */
+export function rosterTableDetails(teamRoster, summaryLabel) {
+    const heightDisplay = (h) => {
+        const hIn = parseFloat(h);
+        return hIn ? `${Math.floor(hIn / 12)}'${Math.round(hIn % 12)}"` : '—';
+    };
+    // Esperienza: 0 = rookie ("R"), altrimenti anni. Stipendio: base ESPN, compatto.
+    const expDisplay = (y) => y == null ? '—' : (y === 0 ? 'R' : String(y));
+    const salaryDisplay = (v) => {
+        if (v == null) return '—';
+        if (v >= 1e6) return `$${(v / 1e6).toFixed(2).replace(/\.?0+$/, '')}M`;
+        if (v >= 1e3) return `$${Math.round(v / 1e3)}k`;
+        return `$${v}`;
+    };
+    const allRows = teamRoster.players.map(p => `
+        <tr>
+            <td>${esc(p.name)}</td><td>${esc(p.pos || '—')}</td>
+            <td>${p.jersey != null ? `#${p.jersey}` : '—'}</td>
+            <td>${p.status ? esc(p.status) : '—'}</td>
+            <td>${expDisplay(p.yearsExp)}</td>
+            <td>${salaryDisplay(p.salary)}</td>
+            <td>${p.snapPct != null ? fmt1(p.snapPct) + '%' : '—'}</td>
+            <td>${p.fpgLeague != null ? fmt1(p.fpgLeague) : '—'}</td>
+            <td>${p.college ? esc(p.college) : '—'}</td>
+            <td>${p.height ? heightDisplay(p.height) : '—'}${p.weight ? ` · ${p.weight}lbs` : ''}${p.age != null ? ` · ${p.age}a` : ''}</td>
+            <td>${p.draftClub && p.draftNumber ? `${esc(p.draftClub)} #${p.draftNumber}` : (p.rookieYear ? `UDFA ${p.rookieYear}` : '—')}</td>
+        </tr>`).join('');
+    return `
+        <details class="pp-recap-ids" style="margin-top:14px">
+            <summary>${summaryLabel || `Full roster (${teamRoster.players.length} players)`}</summary>
+            <div class="pm-table-wrap pp-scroll" style="margin-top:10px">
+                <table class="pm-table pp-table">
+                    <thead><tr><th>Name</th><th>Pos</th><th>Jersey</th><th>Status</th><th>Exp</th><th>Salary</th><th>Snap%</th><th>League pts/game</th><th>College</th><th>Measurables</th><th>Draft</th></tr></thead>
+                    <tbody>${allRows}</tbody>
+                </table>
+            </div>
+        </details>`;
 }
 
 /** Leaderboard skill player per uso/pt-lega (meter), + rosa completa in un dettaglio. */
@@ -707,36 +877,12 @@ export function teammatesBlock({ teamRoster, abbr }) {
             <span class="dgt-sos-val">${fmt1(p.fpgLeague)}</span>
         </div>`).join('');
 
-    const heightDisplay = (h) => {
-        const hIn = parseFloat(h);
-        return hIn ? `${Math.floor(hIn / 12)}'${Math.round(hIn % 12)}"` : '—';
-    };
-    const allRows = teamRoster.players.map(p => `
-        <tr>
-            <td>${esc(p.name)}</td><td>${esc(p.pos || '—')}</td>
-            <td>${p.jersey != null ? `#${p.jersey}` : '—'}</td>
-            <td>${p.status ? esc(p.status) : '—'}</td>
-            <td>${p.snapPct != null ? fmt1(p.snapPct) + '%' : '—'}</td>
-            <td>${p.fpgLeague != null ? fmt1(p.fpgLeague) : '—'}</td>
-            <td>${p.college ? esc(p.college) : '—'}</td>
-            <td>${p.height ? heightDisplay(p.height) : '—'}${p.weight ? ` · ${p.weight}lbs` : ''}${p.age != null ? ` · ${p.age}a` : ''}</td>
-            <td>${p.draftClub && p.draftNumber ? `${esc(p.draftClub)} #${p.draftNumber}` : (p.rookieYear ? `UDFA ${p.rookieYear}` : '—')}</td>
-        </tr>`).join('');
-
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Compagni di squadra · ${abbr}</span>
+        <span class="mc-kicker">Teammates · ${abbr}</span>
         ${lbRows ? `<div class="dgt-sos-bars" style="grid-template-columns:1fr">${lbRows}</div>` : ''}
-        <details class="pp-recap-ids" style="margin-top:14px">
-            <summary>Rosa completa (${teamRoster.players.length} giocatori)</summary>
-            <div class="pm-table-wrap pp-scroll" style="margin-top:10px">
-                <table class="pm-table pp-table">
-                    <thead><tr><th>Nome</th><th>Pos</th><th>Maglia</th><th>Status</th><th>Snap%</th><th>Pt lega/gara</th><th>College</th><th>Fisico</th><th>Draft</th></tr></thead>
-                    <tbody>${allRows}</tbody>
-                </table>
-            </div>
-        </details>
-        <p class="pm-note">${teamRoster.source === 'espn-live' ? 'Rosa dal vivo (ESPN) — la stagione richiesta non è ancora coperta dal build periodico nflverse.' : 'Pt lega/gara e snap% disponibili solo per i ruoli offensivi (QB/RB/WR/TE/K); il resto della rosa è nella tabella completa.'}</p>
+        ${rosterTableDetails(teamRoster)}
+        <p class="pm-note">${teamRoster.source === 'espn-live' ? 'Live roster (ESPN) — the requested season is not covered yet by the periodic nflverse build.' : 'League pts/game and snap% available only for offensive positions (QB/RB/WR/TE/K); the rest of the roster is in the full table.'}</p>
     </section>`;
 }
 
@@ -770,38 +916,86 @@ export function injuryHistoryDetails(weeks) {
         const statuses = [...new Set(g.weeks.map(w => w.status).filter(Boolean))];
         const range = g.from === g.to ? `W${g.from}` : `W${g.from}–W${g.to}`;
         const returned = i < groups.length - 1 ? ' <span style="color:var(--accent-green)">· rientrato</span>' : '';
-        return `<div class="pp-inj-hist-row"><b>${range}</b> ${esc(g.injury)}${statuses.length ? ` · ${statuses.map(esc).join(' → ')}` : ' · gestito, mai in dubbio per gara'}${returned}</div>`;
+        return `<div class="pp-inj-hist-row"><b>${range}</b> ${esc(g.injury)}${statuses.length ? ` · ${statuses.map(esc).join(' → ')}` : ' · managed, never in doubt for a game'}${returned}</div>`;
     }).join('');
     return `
     <details class="pp-recap-ids" style="margin-top:2px">
-        <summary>Cronologia stagione (${groups.length} infortuni)</summary>
+        <summary>Season history (${groups.length} injuries)</summary>
         ${rows}
     </details>`;
 }
 
+/**
+ * Timeline disponibilità: una striscia W1→Wfine per i giocatori che hanno avuto
+ * una designazione (Out/Doubtful/Questionable) nella stagione — un segmento per
+ * settimana colorato per stato, vuoto = non nel report (disponibile). Richiede i
+ * report settimanali (fonte nflverse); '' con la sola fonte ESPN dal vivo.
+ */
+function _availabilityTimeline(players) {
+    const sev = s => /out|injured reserve|reserve|\bpup\b/i.test(s || '') ? 3 : /doubtful/i.test(s || '') ? 2 : /questionable/i.test(s || '') ? 1 : (s ? 0.5 : 0);
+    const withWeeks = (players || []).filter(p => (p.weeks?.length || 0) >= 1);
+    if (!withWeeks.length) return '';
+    const maxWeek = Math.max(1, ...withWeeks.flatMap(p => p.weeks.map(w => +w.week || 0)));
+    const rows = withWeeks.map(p => ({
+        p, byWeek: new Map(p.weeks.map(w => [+w.week, w])),
+        maxSev: Math.max(0, ...p.weeks.map(w => sev(w.status))),
+    })).filter(r => r.maxSev >= 1).sort((a, b) => b.maxSev - a.maxSev).slice(0, 14);
+    if (!rows.length) return '';
+    const weeks = Array.from({ length: maxWeek }, (_, i) => i + 1);
+    const cls = w => { if (!w) return 'av-none'; const s = sev(w.status); return s >= 3 ? 'av-out' : s >= 2 ? 'av-doubt' : s >= 1 ? 'av-quest' : 'av-none'; };
+    const head = `<div class="pp-av-row pp-av-head"><span class="pp-av-name"></span><span class="pp-av-track">${weeks.map(w => `<i class="pp-av-wk">${w % 2 === 1 ? w : ''}</i>`).join('')}</span></div>`;
+    const body = rows.map(({ p, byWeek }) => {
+        const cells = weeks.map(w => {
+            const e = byWeek.get(w);
+            return `<i class="pp-av-cell ${cls(e)}" title="${esc(`W${w}${e ? ' · ' + (e.status || e.primaryInjury || 'in report') : ' · available'}`)}"></i>`;
+        }).join('');
+        return `<div class="pp-av-row"><span class="pp-av-name"><span class="pp-lb-pos">${esc(p.pos || '')}</span>${esc(p.name)}</span><span class="pp-av-track">${cells}</span></div>`;
+    }).join('');
+    const legend = `<div class="pp-av-legend"><span><i class="pp-av-cell av-out"></i>Out/IR</span><span><i class="pp-av-cell av-doubt"></i>Doubtful</span><span><i class="pp-av-cell av-quest"></i>Questionable</span><span><i class="pp-av-cell av-none"></i>available</span></div>`;
+    return `<div class="pp-av-wrap"><h3 class="pp-cat-title">Season availability</h3>${legend}<div class="pm-table-wrap pp-scroll"><div class="pp-av">${head}${body}</div></div><p class="pm-note">Who had an injury designation, week by week. Empty = not on the report (available). Hover a cell for details.</p></div>`;
+}
+
 export function teamInjuriesBlock({ teamInjuries, abbr }) {
     if (!teamInjuries?.players?.length) return '';
-    const rows = teamInjuries.players.map(p => {
+    // card ordinate per gravità (Out/IR prima), con stripe di severità a colore.
+    const sevRank = (s) => /out|injured reserve|reserve|\bpup\b/i.test(s || '') ? 3 : /doubtful/i.test(s || '') ? 2 : /questionable/i.test(s || '') ? 1 : 0;
+    const sorted = [...teamInjuries.players].sort((a, b) => sevRank(b.status) - sevRank(a.status));
+    const cardOf = (p) => {
         // designazione in allenamento: si mostra solo se aggiunge informazione
         // (spesso coincide col report ufficiale — niente ripetizione inutile)
         const practiceInjury = [p.practicePrimaryInjury, p.practiceSecondaryInjury].filter(Boolean).join(', ');
         const showPracticeInjury = practiceInjury && practiceInjury !== [p.primaryInjury, p.secondaryInjury].filter(Boolean).join(', ');
-        const updated = p.dateModified ? new Date(p.dateModified).toLocaleDateString('it-IT') : null;
+        const updated = p.dateModified ? new Date(p.dateModified).toLocaleDateString('en-US') : null;
+        const injury = [p.primaryInjury, p.secondaryInjury].filter(Boolean).join(', ');
+        const sv = sevRank(p.status);
+        const sevKey = sv >= 3 ? 'out' : sv === 2 ? 'doubt' : sv === 1 ? 'quest' : 'ok';
+        const detail = `${injury ? esc(injury) : ''}${p.practiceStatus ? `${injury ? ' · ' : ''}${esc(p.practiceStatus)}` : ''}${showPracticeInjury ? ` <small>(all.: ${esc(practiceInjury)})</small>` : ''}${updated ? ` <small>· agg. W${p.week ?? '?'}</small>` : ''}`;
         return `
-        <div class="pp-inj-row">
-            <span class="pp-inj-name"><span class="pp-lb-pos">${esc(p.pos || '')}</span> ${esc(p.name)}</span>
-            <span class="pp-inj-detail">${p.primaryInjury ? esc(p.primaryInjury) : ''}${p.secondaryInjury ? `, ${esc(p.secondaryInjury)}` : ''}${p.practiceStatus ? ` · ${esc(p.practiceStatus)}` : ''}${showPracticeInjury ? ` (infortunio in allenamento: ${esc(practiceInjury)})` : ''}${updated ? ` · agg. W${p.week ?? '?'}` : ''}</span>
-            ${p.status ? `<span class="pp-inj-status${severityClass(p.status)}">${esc(p.status)}</span>` : ''}
-        </div>
-        ${injuryHistoryDetails(p.weeks)}`;
-    }).join('');
+        <div class="pp-injc pp-injc--${sevKey}">
+            <div class="pp-injc-top">
+                <span class="pp-injc-name"><span class="pp-lb-pos">${esc(p.pos || '')}</span> ${esc(p.name)}</span>
+                ${p.status ? `<span class="pp-inj-status${severityClass(p.status)}">${esc(p.status)}</span>` : ''}
+            </div>
+            ${detail.trim() ? `<div class="pp-injc-det">${detail}</div>` : ''}
+            ${injuryHistoryDetails(p.weeks)}
+        </div>`;
+    };
+    const concerns = sorted.filter(p => sevRank(p.status) >= 1);
+    const rest = sorted.filter(p => sevRank(p.status) < 1);
+    const mainGrid = concerns.length
+        ? `<div class="pp-injc-grid">${concerns.map(cardOf).join('')}</div>`
+        : '<p class="pm-note">No player with an Out/Doubtful/Questionable designation in the latest report.</p>';
+    const restGrid = rest.length
+        ? `<details class="pp-recap-ids" style="margin-top:10px"><summary>Altri ${rest.length} · partecipazione piena / rientrati</summary><div class="pp-injc-grid" style="margin-top:10px">${rest.map(cardOf).join('')}</div></details>`
+        : '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Infermeria squadra · ${abbr}</span>
-        ${rows}
+        <span class="mc-kicker">Team injury report · ${abbr}</span>
+        ${_availabilityTimeline(teamInjuries.players)}
+        ${mainGrid}${restGrid}
         <p class="pm-note">${teamInjuries.source === 'espn-live'
-            ? 'Report dal vivo (ESPN) — solo lo stato attuale, nessuna cronologia stagionale disponibile per questa fonte.'
-            : `Ultimo stato di ogni giocatore nel report infortuni dell'intera regular season (fino alla W${Math.max(...teamInjuries.players.map(p => p.week || 0))}); apri "Cronologia stagione" per vedere quando si è fatto male, cosa, e se è rientrato.`}</p>
+            ? 'Live report (ESPN) — current status only, no season history available for this source.'
+            : `Latest status of each player in the injury report for the whole regular season (through W${Math.max(...teamInjuries.players.map(p => p.week || 0))}); open "Season history" to see when he got hurt, with what, and whether he returned.`}</p>
     </section>`;
 }
 
@@ -829,13 +1023,13 @@ function playerInjuriesBlock({ playerInjuries }) {
         const yrs = seasons.map(s => s.year);
         return `
         <section class="pm-block pp-block">
-            <span class="mc-kicker">Storico infortuni</span>
+            <span class="mc-kicker">Injury history</span>
             <p class="pm-note">Nessun infortunio nei report ufficiali ${Math.min(...yrs)}–${Math.max(...yrs)}: profilo finora molto affidabile.</p>
         </section>`;
     }
 
     const rows = seasons.map(s => {
-        const summary = s.clean ? 'nessun infortunio segnalato'
+        const summary = s.clean ? 'no injuries reported'
             : s.injuries.join(', ') + (s.anyOut ? ' · ha saltato gare' : '');
         const head = `<div class="pp-inj-yr-head"><b>${s.year}</b> <span class="pp-lb-pos">${esc(s.team)}</span> · ${esc(summary)}</div>`;
         const gRows = s.groups.map((g, i) => {
@@ -849,9 +1043,9 @@ function playerInjuriesBlock({ playerInjuries }) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Storico infortuni · stagione per stagione</span>
+        <span class="mc-kicker">Injury history · season by season</span>
         ${rows}
-        <p class="pm-note">Dai report infortuni settimanali ufficiali (nflverse, dal 2019): quando è finito nel report e con quale problema. Settimane consecutive con lo stesso infortunio sono unite. Nota: le assenze lunghe da <b>Injured Reserve</b> possono non comparire come "Out" nel report.</p>
+        <p class="pm-note">From official weekly injury reports (nflverse, since 2019): when he appeared on the report and with what issue. Consecutive weeks with the same injury are merged. Note: long absences from <b>Injured Reserve</b> possono non comparire come "Out" nel report.</p>
     </section>`;
 }
 
@@ -969,7 +1163,7 @@ function bindTrendChart(container, unit = container.dataset.unit) {
         val.textContent = `${fmt1(p.y)}${unit ? ` ${unit}` : ''}`;
         const name = document.createElement('span');
         name.className = 'an-tt-name';
-        name.textContent = p.extra || (p.projected ? 'proiezione preseason' : (p.gp != null ? `${p.gp} partite` : ''));
+        name.textContent = p.extra || (p.projected ? 'preseason projection' : (p.gp != null ? `${p.gp} games` : ''));
         row.append(key, val, name);
         tooltip.appendChild(row);
         tooltip.hidden = false;
@@ -1019,7 +1213,7 @@ function buildGroupedBarChart(rows, chartId) {
 
     return `
     <div class="an-chart-legend">
-        <span class="an-legend-item"><span class="an-legend-key" style="background:var(--text-muted)"></span>Proiettati (preseason)</span>
+        <span class="an-legend-item"><span class="an-legend-key" style="background:var(--text-muted)"></span>Projected (preseason)</span>
         <span class="an-legend-item"><span class="an-legend-key" style="background:#B8433A"></span>Reali</span>
     </div>
     <div class="an-chart" id="${chartId}" data-chart="bars">
@@ -1123,16 +1317,30 @@ export function hydrateCharts(section) {
 // ─── Metriche avanzate ───────────────────────────────────────────
 
 /** Widget trend: freccia direzionale grande sopra, variazione pt/settimana sotto. */
-function trendWidget(trend) {
+/** Mini sparkline degli ultimi punteggi, colore per direzione del trend. */
+function _miniSpark(vals, dir) {
+    if (!vals || vals.length < 3) return '';
+    const W = 78, H = 20, pad = 2, n = vals.length;
+    const min = Math.min(...vals), max = Math.max(...vals), r = (max - min) || 1;
+    const x = i => pad + (n > 1 ? i / (n - 1) : 0.5) * (W - 2 * pad);
+    const y = v => pad + (1 - (v - min) / r) * (H - 2 * pad);
+    const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const col = dir === 'up' ? '#22c55e' : dir === 'down' ? 'var(--accent-red)' : 'var(--text-muted)';
+    return `<svg viewBox="0 0 ${W} ${H}" class="pp-trend-spark" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${x(n - 1).toFixed(1)}" cy="${y(vals[n - 1]).toFixed(1)}" r="1.8" fill="${col}"/></svg>`;
+}
+
+function trendWidget(trend, spark) {
     if (!trend) return '';
     const dir = trend.label === 'up' ? 'up' : trend.label === 'down' ? 'down' : 'flat';
     const icon = dir === 'up' ? '↗' : dir === 'down' ? '↘' : '→';
     const word = dir === 'up' ? 'in crescita' : dir === 'down' ? 'in calo' : 'stabile';
     const rate = `${trend.slope > 0 ? '+' : ''}${fmt1(trend.slope)} pt/sett.`;
+    const sparkSvg = _miniSpark(spark, dir);
     return `
     <div class="summary-stat pp-trend pp-trend--${dir}">
         <div class="pp-trend-arrow" aria-hidden="true">${icon}</div>
         <div class="summary-stat-value pp-trend-word">${rate}</div>
+        ${sparkSvg}
         <div class="summary-stat-label">${word}</div>
     </div>`;
 }
@@ -1151,8 +1359,6 @@ const quantile = (sorted, q) => {
     return sorted[base + 1] != null ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
 };
 
-const BP_CHART = { w: 720, h: 250, l: 30, r: 14, t: 12, b: 28 };
-
 /** Densità gaussiana (KDE) in un punto y su un campione di valori. */
 const kdeAt = (vals, y, bw) => {
     let s = 0;
@@ -1160,15 +1366,19 @@ const kdeAt = (vals, y, bw) => {
     return s / (vals.length * bw * Math.sqrt(2 * Math.PI));
 };
 
+const RIDGE = { w: 720, l: 52, r: 16, t: 16, b: 30, rowStep: 44, amp: 60 };
+
 /**
- * Violin plot della distribuzione dei punti per stagione: la forma (densità
- * KDE) mostra dove si concentrano i punteggi, con mediana e media, ed eventuale
- * media proiettata per la stagione in arrivo. Hover → tooltip coi valori.
+ * Ridgeline (joyplot) della distribuzione dei punti per stagione: una cresta di
+ * densità (KDE) per anno, impilate con la più recente in alto — mostra la forma
+ * della distribuzione e, a colpo d'occhio, l'arco di carriera. Tacca = mediana,
+ * punto = media; per la stagione in arrivo un rombo alla media proiettata. Hover
+ * → valori (riusa bindViolinHover via classe .pp-bp-chart e attributi data-bpv).
  */
-function seasonViolinChart(seasons, nextSeasonProj, nextSeason) {
+function seasonRidgeline(seasons, nextSeasonProj, nextSeason) {
     const cols = [...seasons]
         .filter(s => (s.weekly || []).filter(g => g.pts != null).length >= 3)
-        .sort((a, b) => a.year - b.year)
+        .sort((a, b) => b.year - a.year) // più recente in alto
         .map(s => {
             const pts = s.weekly.map(g => g.pts).filter(v => v != null).sort((a, b) => a - b);
             const n = pts.length;
@@ -1181,84 +1391,199 @@ function seasonViolinChart(seasons, nextSeasonProj, nextSeason) {
                 bw: Math.max(1.3, 1.06 * std * Math.pow(n, -0.2)),
             };
         });
-    if (cols.length < 1) return '';
+    if (!cols.length) return '';
 
     const projMean = (() => {
         const v = nextSeasonProj?.projPts ?? nextSeasonProj?.ptsStd;
         return v != null ? v / 17 : null;
     })();
-    const all = projMean != null ? [...cols, { year: nextSeason, mean: projMean, proj: true }] : cols;
+    const hasProj = projMean != null;
 
-    const C = BP_CHART, plotW = C.w - C.l - C.r, plotH = C.h - C.t - C.b;
-    const yMax = Math.max(5, Math.ceil((Math.max(...cols.map(c => c.max + c.bw), projMean || 0)) / 5) * 5);
-    const slotW = plotW / all.length;
-    const xAt = i => C.l + (i + 0.5) * slotW;
-    const yAt = v => C.t + (1 - v / yMax) * plotH;
-    const halfW = Math.min(26, slotW * 0.42);
+    const C = RIDGE, plotW = C.w - C.l - C.r;
+    const N = cols.length + (hasProj ? 1 : 0);
+    const H = C.t + C.amp + (N - 1) * C.rowStep + C.b + 4;
+    const xMax = Math.max(5, Math.ceil((Math.max(...cols.map(c => c.max), projMean || 0)) / 5) * 5);
+    const xAt = v => C.l + (v / xMax) * plotW;
+    const baseY = i => C.t + C.amp + i * C.rowStep; // i=0 = riga in alto
 
     const defs = `<defs>
-        <linearGradient id="pp-bp-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6aa4ff" stop-opacity="0.62"/>
-            <stop offset="100%" stop-color="#5a9bff" stop-opacity="0.20"/>
+        <linearGradient id="pp-ridge-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6aa4ff" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#5a9bff" stop-opacity="0.10"/>
         </linearGradient>
-        <filter id="pp-bp-soft" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#000" flood-opacity="0.35"/>
-        </filter>
     </defs>`;
 
-    // sfondo uniforme dell'area del grafico (stesso colore per tutti gli anni)
-    const bg = `<rect x="${C.l}" y="${C.t}" width="${plotW.toFixed(1)}" height="${plotH.toFixed(1)}" rx="8" class="pp-bp-bg"/>`;
+    const axisY = baseY(N - 1) + 14;
+    const grid = [0, 0.25, 0.5, 0.75, 1].map(f => {
+        const v = Math.round(xMax * f);
+        return `<line x1="${xAt(v).toFixed(1)}" y1="${C.t}" x2="${xAt(v).toFixed(1)}" y2="${axisY.toFixed(1)}" class="an-gridline"/>
+        <text x="${xAt(v).toFixed(1)}" y="${(axisY + 14).toFixed(1)}" class="an-tick" text-anchor="middle">${v}</text>`;
+    }).join('');
+    const axLabel = `<text x="${(C.l + plotW).toFixed(1)}" y="${(axisY + 14).toFixed(1)}" class="an-tick" text-anchor="end">pt/gara</text>`;
+
+    // creste stagionali (dalla più recente); disegnate prima, la proiezione sopra
+    let seasonRows = '';
+    cols.forEach((c, k) => {
+        const by = baseY(hasProj ? k + 1 : k);
+        const STEPS = 48;
+        const xs = Array.from({ length: STEPS + 1 }, (_, j) => xMax * j / STEPS);
+        const dens = xs.map(x => kdeAt(c.pts, x, c.bw));
+        const maxD = Math.max(...dens, 1e-9);
+        const top = xs.map((x, j) => `${xAt(x).toFixed(1)},${(by - dens[j] / maxD * C.amp).toFixed(1)}`);
+        const path = `M${xAt(0).toFixed(1)},${by.toFixed(1)} L${top.join(' L')} L${xAt(xMax).toFixed(1)},${by.toFixed(1)} Z`;
+        const medY = by - kdeAt(c.pts, c.med, c.bw) / maxD * C.amp;
+        seasonRows += `<g class="pp-bp-g pp-ridge-g" data-bpv data-year="${c.year}" data-media="${fmt1(c.mean)}" data-med="${fmt1(c.med)}" data-q1="${fmt1(c.q1)}" data-q3="${fmt1(c.q3)}" data-min="${fmt1(c.min)}" data-max="${fmt1(c.max)}" data-n="${c.n}">
+            <path d="${path}" fill="url(#pp-ridge-grad)" class="pp-ridge-shape"/>
+            <polyline points="${top.join(' ')}" class="pp-ridge-line"/>
+            <line x1="${xAt(c.med).toFixed(1)}" y1="${by.toFixed(1)}" x2="${xAt(c.med).toFixed(1)}" y2="${medY.toFixed(1)}" class="pp-ridge-median"/>
+            <circle cx="${xAt(c.mean).toFixed(1)}" cy="${by.toFixed(1)}" r="3" class="pp-bp-mean"/>
+            <text x="${(C.l - 8)}" y="${(by + 4).toFixed(1)}" class="an-tick pp-ridge-ylbl" text-anchor="end">${c.year}</text>
+        </g>`;
+    });
+
+    let projRow = '';
+    if (hasProj) {
+        const by = baseY(0), x = xAt(projMean), s = 5.5;
+        projRow = `<g class="pp-bp-g" data-bpv data-proj="1" data-year="${nextSeason}" data-mean="${fmt1(projMean)}">
+            <line x1="${C.l}" y1="${by.toFixed(1)}" x2="${(C.l + plotW).toFixed(1)}" y2="${by.toFixed(1)}" class="pp-ridge-base"/>
+            <path d="M${x.toFixed(1)} ${(by - s).toFixed(1)} L${(x + s).toFixed(1)} ${by.toFixed(1)} L${x.toFixed(1)} ${(by + s).toFixed(1)} L${(x - s).toFixed(1)} ${by.toFixed(1)} Z" class="pp-bp-proj"/>
+            <text x="${(C.l - 8)}" y="${(by + 4).toFixed(1)}" class="an-tick pp-bp-projlbl" text-anchor="end">${nextSeason}</text>
+        </g>`;
+    }
+
+    const legend = `
+    <div class="pp-cmp-legend">
+        <span class="pp-cmp-leg"><i class="pp-bp-lg-box"></i>density (per season)</span>
+        <span class="pp-cmp-leg"><i class="pp-bp-lg-med"></i>median</span>
+        <span class="pp-cmp-leg"><i class="pp-bp-lg-mean"></i>media</span>
+        ${hasProj ? `<span class="pp-cmp-leg"><i class="pp-bp-lg-proj"></i>proiez. ${nextSeason}</span>` : ''}
+    </div>`;
+
+    return `
+    <div class="pp-cmp-chart pp-bp-chart pp-ridge-chart">
+        <svg viewBox="0 0 ${C.w} ${H.toFixed(0)}" class="an-svg pp-ridge-svg" preserveAspectRatio="xMidYMid meet">
+            ${defs}${grid}${axLabel}${seasonRows}${projRow}
+        </svg>
+        <div class="pp-chart-tip" hidden></div>
+    </div>
+    ${legend}`;
+}
+
+const FORM_CHART = { w: 720, h: 250, l: 34, r: 16, t: 16, b: 30 };
+
+/**
+ * Forma game-by-game della stagione più recente con game log: punti-lega per
+ * gara (area sfumata), media mobile a 4 gare (linea accento) e — se disponibile
+ * — la media proiettata preseason come riferimento tratteggiato. Hover su una
+ * gara → settimana, avversario e snap%. Fonte: weekly (stessi dati del game log).
+ */
+function seasonFormChart(seasons, projByYear) {
+    const season = [...(seasons || [])]
+        .filter(s => (s.weekly || []).filter(g => g.pts != null).length >= 4)
+        .sort((a, b) => b.year - a.year)[0];
+    if (!season) return '';
+    const games = [...season.weekly].filter(g => g.pts != null).sort((a, b) => a.week - b.week);
+    const vals = games.map(g => g.pts);
+    const n = vals.length;
+
+    // media mobile a 4 gare (trailing)
+    const WIN = 4;
+    const roll = vals.map((_, i) => {
+        const slice = vals.slice(Math.max(0, i - WIN + 1), i + 1);
+        return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+
+    // riferimento: media proiettata preseason di quella stagione (pt/gara)
+    const proj = projByYear?.[season.year];
+    const projMean = (() => {
+        const v = proj?.projPts ?? proj?.ptsStd;
+        return v != null ? v / (proj?.gp || 17) : null;
+    })();
+
+    const C = FORM_CHART, plotW = C.w - C.l - C.r, plotH = C.h - C.t - C.b;
+    const yMax = Math.max(5, Math.ceil(Math.max(...vals, projMean || 0) / 5) * 5);
+    const xAt = i => C.l + (n > 1 ? i / (n - 1) : 0.5) * plotW;
+    const yAt = v => C.t + (1 - v / yMax) * plotH;
 
     const grid = [0, 0.25, 0.5, 0.75, 1].map(f => {
         const v = Math.round(yMax * f), y = yAt(v);
         return `<line x1="${C.l}" y1="${y.toFixed(1)}" x2="${C.l + plotW}" y2="${y.toFixed(1)}" class="an-gridline"/>
         <text x="${C.l - 6}" y="${(y + 3).toFixed(1)}" class="an-tick" text-anchor="end">${v}</text>`;
     }).join('');
+    const step = n > 12 ? 2 : 1;
+    const xLabels = games.map((g, i) => i % step === 0
+        ? `<text x="${xAt(i).toFixed(1)}" y="${C.h - 8}" class="an-tick" text-anchor="middle">${g.week}</text>` : '').join('');
 
-    const violins = all.map((c, i) => {
-        const cx = xAt(i);
-        if (c.proj) {
-            const y = yAt(c.mean), s = 5.5;
-            return `<g class="pp-bp-g" data-bpv data-proj="1" data-year="${c.year}" data-mean="${fmt1(c.mean)}">
-                <path d="M${cx} ${(y - s).toFixed(1)} L${(cx + s).toFixed(1)} ${y.toFixed(1)} L${cx} ${(y + s).toFixed(1)} L${(cx - s).toFixed(1)} ${y.toFixed(1)} Z" class="pp-bp-proj"/></g>`;
-        }
-        const STEPS = 28;
-        const y0 = Math.max(0, c.min - c.bw), y1 = c.max + c.bw;
-        const ys = Array.from({ length: STEPS + 1 }, (_, k) => y0 + (y1 - y0) * k / STEPS);
-        const dens = ys.map(y => kdeAt(c.pts, y, c.bw));
-        const maxD = Math.max(...dens, 1e-9);
-        const wpx = dens.map(d => (d / maxD) * halfW);
-        const left = ys.map((y, k) => `${(cx - wpx[k]).toFixed(1)},${yAt(y).toFixed(1)}`);
-        const right = ys.map((y, k) => `${(cx + wpx[k]).toFixed(1)},${yAt(y).toFixed(1)}`).reverse();
-        const path = `M${left.join(' L')} L${right.join(' L')} Z`;
-        const medW = Math.max(3, (dens[Math.round((c.med - y0) / (y1 - y0) * STEPS)] || maxD) / maxD * halfW);
-        return `<g class="pp-bp-g pp-bp-violin" data-bpv data-year="${c.year}" data-media="${fmt1(c.mean)}" data-med="${fmt1(c.med)}" data-q1="${fmt1(c.q1)}" data-q3="${fmt1(c.q3)}" data-min="${fmt1(c.min)}" data-max="${fmt1(c.max)}" data-n="${c.n}">
-            <path d="${path}" fill="url(#pp-bp-grad)" class="pp-bp-shape"/>
-            <line x1="${(cx - medW).toFixed(1)}" y1="${yAt(c.med).toFixed(1)}" x2="${(cx + medW).toFixed(1)}" y2="${yAt(c.med).toFixed(1)}" class="pp-bp-median"/>
-            <circle cx="${cx}" cy="${yAt(c.mean).toFixed(1)}" r="3.4" class="pp-bp-mean"/>
+    const areaPath = `M${xAt(0).toFixed(1)},${yAt(0).toFixed(1)} `
+        + games.map((g, i) => `L${xAt(i).toFixed(1)},${yAt(g.pts).toFixed(1)}`).join(' ')
+        + ` L${xAt(n - 1).toFixed(1)},${yAt(0).toFixed(1)} Z`;
+    const linePts = games.map((g, i) => `${xAt(i).toFixed(1)},${yAt(g.pts).toFixed(1)}`).join(' ');
+    const rollPts = roll.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+
+    const projLine = projMean != null
+        ? `<line x1="${C.l}" y1="${yAt(projMean).toFixed(1)}" x2="${C.l + plotW}" y2="${yAt(projMean).toFixed(1)}" class="pp-form-proj"/>
+           <text x="${(C.l + plotW).toFixed(1)}" y="${(yAt(projMean) - 5).toFixed(1)}" class="an-tick pp-form-projlbl" text-anchor="end">attesa ${fmt1(projMean)}</text>` : '';
+
+    const dots = games.map((g, i) => {
+        const snap = snapSharePct(g);
+        const tip = `${g.week}|${g.opponent || ''}|${g.isAway ? '@' : 'v'}|${fmt1(g.pts)}|${snap != null ? snap : ''}`;
+        return `<g class="pp-form-g" data-fg="${esc(tip)}">
+            <circle cx="${xAt(i).toFixed(1)}" cy="${yAt(g.pts).toFixed(1)}" r="3.2" class="pp-form-dot"/>
+            <circle cx="${xAt(i).toFixed(1)}" cy="${yAt(g.pts).toFixed(1)}" r="12" fill="transparent"/>
         </g>`;
     }).join('');
 
-    const xLabels = all.map((c, i) => `<text x="${xAt(i).toFixed(1)}" y="${C.h - 8}" class="an-tick${c.proj ? ' pp-bp-projlbl' : ''}" text-anchor="middle">${c.year}</text>`).join('');
-
+    const defs = `<defs>
+        <linearGradient id="pp-form-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6aa4ff" stop-opacity="0.42"/>
+            <stop offset="100%" stop-color="#5a9bff" stop-opacity="0.04"/>
+        </linearGradient>
+    </defs>`;
+    const bg = `<rect x="${C.l}" y="${C.t}" width="${plotW.toFixed(1)}" height="${plotH.toFixed(1)}" rx="8" class="pp-bp-bg"/>`;
     const legend = `
     <div class="pp-cmp-legend">
-        <span class="pp-cmp-leg"><i class="pp-bp-lg-box"></i>distribuzione</span>
-        <span class="pp-cmp-leg"><i class="pp-bp-lg-med"></i>mediana</span>
-        <span class="pp-cmp-leg"><i class="pp-bp-lg-mean"></i>media</span>
-        ${projMean != null ? `<span class="pp-cmp-leg"><i class="pp-bp-lg-proj"></i>proiez. ${nextSeason}</span>` : ''}
+        <span class="pp-cmp-leg"><i class="pp-form-lg-area"></i>pt/gara</span>
+        <span class="pp-cmp-leg"><i class="pp-form-lg-roll"></i>4-game moving avg</span>
+        ${projMean != null ? `<span class="pp-cmp-leg"><i class="pp-form-lg-proj"></i>preseason expectation</span>` : ''}
     </div>`;
 
     return `
-    <div class="pp-cmp-chart pp-bp-chart">
-        <svg viewBox="0 0 ${C.w} ${C.h}" class="an-svg pp-bp-svg" preserveAspectRatio="xMidYMid meet">
-            ${defs}${bg}${grid}${violins}${xLabels}
+    <div class="pp-cmp-chart pp-form-chart" data-form-year="${season.year}">
+        <svg viewBox="0 0 ${C.w} ${C.h}" class="an-svg pp-form-svg" preserveAspectRatio="xMidYMid meet">
+            ${defs}${bg}${grid}
+            <path d="${areaPath}" fill="url(#pp-form-grad)" class="pp-form-area"/>
+            <polyline points="${linePts}" class="pp-form-line"/>
+            <polyline points="${rollPts}" class="pp-form-roll"/>
+            ${projLine}${dots}${xLabels}
         </svg>
         <div class="pp-chart-tip" hidden></div>
-    </div>`;
+    </div>
+    ${legend}`;
 }
 
-function metricsBlock(seasons, pos, nextSeasonProj, nextSeason) {
+/** Hover sul grafico forma: settimana, avversario, punti e snap% della gara. */
+function bindFormHover(section) {
+    section.querySelectorAll('.pp-form-chart').forEach(chart => {
+        const tip = chart.querySelector('.pp-chart-tip');
+        const svg = chart.querySelector('svg');
+        if (!tip || !svg) return;
+        const move = (e) => {
+            const g = e.target.closest('[data-fg]');
+            if (!g) { tip.hidden = true; return; }
+            const [wk, opp, ha, pts, snap] = g.dataset.fg.split('|');
+            tip.innerHTML = `<b>Settimana ${esc(wk)}</b>${opp ? ` · ${ha === '@' ? '@' : 'vs'} ${esc(opp)}` : ''}<br><b>${esc(pts)}</b> pt lega${snap ? ` · snap ${esc(snap)}%` : ''}`;
+            tip.hidden = false;
+            const r = chart.getBoundingClientRect();
+            const x = e.clientX - r.left, y = e.clientY - r.top;
+            tip.style.left = Math.max(4, Math.min(x + 14, r.width - tip.offsetWidth - 6)) + 'px';
+            tip.style.top = Math.max(4, y - tip.offsetHeight - 10) + 'px';
+        };
+        svg.addEventListener('pointermove', move);
+        svg.addEventListener('pointerleave', () => { tip.hidden = true; });
+    });
+}
+
+function metricsBlock(seasons, pos, nextSeasonProj, nextSeason, projByYear) {
     // Metriche di CARRIERA: distribuzione su tutte le gare (in ordine cronologico).
     const careerGames = [...seasons].sort((a, b) => a.year - b.year).flatMap(s => s.weekly || []);
     const m = computeSeasonMetrics(careerGames);
@@ -1275,29 +1600,44 @@ function metricsBlock(seasons, pos, nextSeasonProj, nextSeason) {
     const eff = computeEfficiency(careerTotals, pos, careerPts);
     const nSeasons = new Set(seasons.filter(s => (s.weekly?.length || 0) >= 1).map(s => s.year)).size;
 
-    const kpis = [
-        kpi(fmt1(m.media), 'Media pt/gara', true), kpi(fmt1(m.mediana), 'Mediana'),
-        kpi(fmt1(m.ceiling), 'Ceiling'), kpi(fmt1(m.floor), 'Floor'),
+    // KPI primari: le metriche di forma su cui si decide (media, range, affidabilità).
+    // 6 KPI in evidenza (le più decisive); il resto nell'espandibile "Più metriche".
+    const heroKpis = [
+        kpi(fmt1(m.media), 'Avg pts/game', true),
+        kpi(fmt1(m.ceiling), 'Ceiling'),
+        kpi(fmt1(m.floor), 'Floor'),
         kpi(m.consistency != null ? fmt0(m.consistency * 100) + '%' : null, 'Consistenza'),
-        trendWidget(m.trend),
         kpi(m.boomPct != null ? m.boomPct + '%' : null, 'Boom'),
-        kpi(m.bustPct != null ? m.bustPct + '%' : null, 'Bust'),
+        trendWidget(m.trend, careerGames.slice(-10).map(g => g.pts).filter(v => v != null)),
     ].join('');
-
-    // Seconda riga di widget, stessa estetica KPI della prima riga.
     const moreKpis = [
+        kpi(fmt1(m.mediana), 'Median'),
+        kpi(m.bustPct != null ? m.bustPct + '%' : null, 'Bust'),
         kpi(fmt0(m.gp), 'Partite totali'),
         kpi(fmt1(m.devStd), 'Dev. standard'),
         kpi(m.cv != null ? fmt1(m.cv * 100) + '%' : null, 'Coeff. variazione'),
-        kpi(fmt1(m.last5Avg), 'Ultime 5'),
-        kpi(fmt1(m.homeAvg), 'Media in casa'), kpi(fmt1(m.awayAvg), 'Media in trasferta'),
-        kpi(eff?.ydsPerTouch != null ? fmt1(eff.ydsPerTouch) : null, 'Yard per tocco'),
-        kpi(eff?.tdPerTouch != null ? fmt1(eff.tdPerTouch * 100) + '%' : null, 'TD per tocco'),
-        kpi(eff?.fpPerTouch != null ? fmt1(eff.fpPerTouch) : null, 'FP per tocco'),
-        kpi(eff?.fpPerTarget != null ? fmt1(eff.fpPerTarget) : null, 'FP per target'),
-        kpi(eff?.catchPct != null ? eff.catchPct + '%' : null, 'Catch %'),
-        kpi(eff?.ydsPerAtt != null ? fmt1(eff.ydsPerAtt) : null, 'Yard per lancio'),
+        kpi(fmt1(m.last5Avg), 'Last 5'),
+        kpi(fmt1(m.homeAvg), 'Avg at home'), kpi(fmt1(m.awayAvg), 'Avg away'),
     ].join('');
+
+    // Efficienza filtrata per ruolo: un QB non ha target/ricezioni, quindi Catch%
+    // e FP-per-target sono rumore (divisioni per ~0). Ogni ruolo mostra solo le
+    // metriche di efficienza che lo descrivono davvero.
+    const effRender = {
+        ydsPerAtt: () => kpi(eff?.ydsPerAtt != null ? fmt1(eff.ydsPerAtt) : null, 'Yds/pass att'),
+        ydsPerTouch: () => kpi(eff?.ydsPerTouch != null ? fmt1(eff.ydsPerTouch) : null, 'Yard per tocco'),
+        tdPerTouch: () => kpi(eff?.tdPerTouch != null ? fmt1(eff.tdPerTouch * 100) + '%' : null, 'TD per tocco'),
+        fpPerTouch: () => kpi(eff?.fpPerTouch != null ? fmt1(eff.fpPerTouch) : null, 'FP per tocco'),
+        fpPerTarget: () => kpi(eff?.fpPerTarget != null ? fmt1(eff.fpPerTarget) : null, 'FP per target'),
+        catchPct: () => kpi(eff?.catchPct != null ? eff.catchPct + '%' : null, 'Catch %'),
+    };
+    const EFF_BY_POS = {
+        QB: ['ydsPerAtt'],
+        RB: ['ydsPerTouch', 'tdPerTouch', 'fpPerTouch'],
+        WR: ['catchPct', 'fpPerTarget', 'ydsPerTouch', 'fpPerTouch'],
+        TE: ['catchPct', 'fpPerTarget', 'ydsPerTouch', 'fpPerTouch'],
+    };
+    const effKpis = (EFF_BY_POS[pos] || []).map(k => effRender[k]()).filter(Boolean).join('');
 
     // Tabella completa per stagione, espandibile (come negli altri blocchi).
     const tableRows = [...seasons].filter(s => (s.weekly?.length || 0) >= 2).sort((a, b) => b.year - a.year).map(s => {
@@ -1307,24 +1647,37 @@ function metricsBlock(seasons, pos, nextSeasonProj, nextSeason) {
     }).filter(Boolean).join('');
     const table = tableRows ? `
         <details class="pp-recap-ids pp-metrics-table">
-            <summary>Tabella completa per stagione</summary>
+            <summary>Full table by season</summary>
             <div class="pm-table-wrap pp-scroll" style="margin-top:8px">
                 <table class="pm-table pp-table">
-                    <thead><tr><th>Anno</th><th>GP</th><th>Media</th><th>Mediana</th><th>Floor</th><th>Ceiling</th><th>Dev.std</th><th>Boom</th><th>Bust</th><th>Consist.</th></tr></thead>
+                    <thead><tr><th>Year</th><th>GP</th><th>Avg</th><th>Median</th><th>Floor</th><th>Ceiling</th><th>Std dev</th><th>Boom</th><th>Bust</th><th>Consist.</th></tr></thead>
                     <tbody>${tableRows}</tbody>
                 </table>
             </div>
         </details>` : '';
 
+    const formChart = seasonFormChart(seasons, projByYear);
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Metriche avanzate · carriera (${m.gp} gare${nSeasons > 1 ? `, ${nSeasons} stagioni` : ''})</span>
-        <div class="pp-kpi">${kpis}</div>
-        <div class="pp-kpi pp-kpi--sec">${moreKpis}</div>
-        <h3 class="pp-cat-title" style="margin-top:20px">Distribuzione punti per stagione</h3>
-        ${seasonViolinChart(seasons, nextSeasonProj, nextSeason)}
+        <span class="mc-kicker">Advanced metrics · career (${m.gp} games${nSeasons > 1 ? `, ${nSeasons} seasons` : ''})</span>
+        <div class="pp-kpi pp-kpi--primary">${heroKpis}</div>
+        <details class="pp-recap-ids pp-kpi-more" style="margin-top:12px">
+            <summary>More metrics · form, context${effKpis ? ', efficiency' : ''}</summary>
+            <div class="pp-kpi-group" style="margin-top:10px">
+                <span class="pp-kpi-grouplabel">Forma &amp; contesto</span>
+                <div class="pp-kpi pp-kpi--sec">${moreKpis}</div>
+            </div>
+            ${effKpis ? `
+            <div class="pp-kpi-group">
+                <span class="pp-kpi-grouplabel">Efficienza · ${esc(pos)}</span>
+                <div class="pp-kpi pp-kpi--sec">${effKpis}</div>
+            </div>` : ''}
+        </details>
+        ${formChart ? `<h3 class="pp-cat-title" style="margin-top:20px">Form · game by game (last season)</h3>${formChart}` : ''}
+        <h3 class="pp-cat-title" style="margin-top:20px">Points distribution by season</h3>
+        ${seasonRidgeline(seasons, nextSeasonProj, nextSeason)}
         ${table}
-        <p class="pm-note">Widget riferiti all'intera carriera NFL (dal ${FIRST_STATS_YEAR}). Violin plot: la larghezza è la densità dei punteggi (dove si concentrano), linea = mediana, punto = media.${nextSeasonProj ? ` Il rombo tratteggiato è la media proiettata ${nextSeason} (Rotowire via Sleeper).` : ''} Passa il mouse su una stagione per i valori.</p>
+        <p class="pm-note">Widgets refer to the whole NFL career (since ${FIRST_STATS_YEAR}). Ridgeline: each ridge is the density of a season's scores (where they cluster), tick = median, dot = mean.${nextSeasonProj ? ` The dashed diamond is the projected average ${nextSeason} (Rotowire via Sleeper).` : ''} Hover a season for the values.</p>
     </section>`;
 }
 
@@ -1332,11 +1685,11 @@ function metricsBlock(seasons, pos, nextSeasonProj, nextSeason) {
 
 /** Metriche di confronto per ruolo (per-gara), dai campi di getSeasonStats. */
 const CMP_METRICS = {
-    QB: [['Pt lega/gara', 'ptsLeague'], ['Yard lancio/gara', 'passYd'], ['TD lancio/gara', 'passTd'], ['Yard corsa/gara', 'rushYd']],
-    RB: [['Pt lega/gara', 'ptsLeague'], ['Yard corsa/gara', 'rushYd'], ['Ricezioni/gara', 'rec'], ['Yard ricez./gara', 'recYd']],
-    WR: [['Pt lega/gara', 'ptsLeague'], ['Yard ricez./gara', 'recYd'], ['Ricezioni/gara', 'rec'], ['Target/gara', 'tgt']],
-    TE: [['Pt lega/gara', 'ptsLeague'], ['Yard ricez./gara', 'recYd'], ['Ricezioni/gara', 'rec'], ['Target/gara', 'tgt']],
-    K: [['Pt lega/gara', 'ptsLeague'], ['Field goal/gara', 'fgm'], ['Extra point/gara', 'xpm']],
+    QB: [['Pt lega/gara', 'ptsLeague'], ['Pass yds/game', 'passYd'], ['Pass TD/game', 'passTd'], ['Rush yds/game', 'rushYd']],
+    RB: [['Pt lega/gara', 'ptsLeague'], ['Rush yds/game', 'rushYd'], ['Receptions/game', 'rec'], ['Rec yds/game', 'recYd']],
+    WR: [['Pt lega/gara', 'ptsLeague'], ['Rec yds/game', 'recYd'], ['Receptions/game', 'rec'], ['Targets/game', 'tgt']],
+    TE: [['Pt lega/gara', 'ptsLeague'], ['Rec yds/game', 'recYd'], ['Receptions/game', 'rec'], ['Targets/game', 'tgt']],
+    K: [['Pt lega/gara', 'ptsLeague'], ['Field goals/game', 'fgm'], ['Extra points/game', 'xpm']],
 };
 
 /**
@@ -1409,7 +1762,7 @@ function leagueComparisonBody(name, pos, year, seasonStats, careersAll) {
             <span class="pp-cmp-dist-me" style="left:${at(d.mv).toFixed(1)}%"><i></i><span class="pp-cmp-dist-me-val">${fmt1(d.mv)}</span></span>
         </div>
         <div class="pp-cmp-dist-scale"><span>min ${fmt1(d.min)}</span><span>mediana ${fmt1(d.median)}</span><span>max ${fmt1(d.max)}</span></div>
-        <p class="pp-cmp-rank">Pt lega/gara: <b>${d.rank}º su ${d.n}</b> ${pos} della lega · <b>${d.p}°</b> percentile</p>`;
+        <p class="pp-cmp-rank">League pts/game: <b>${d.rank}º su ${d.n}</b> ${pos} della lega · <b>${d.p}°</b> percentile</p>`;
     }
 
     if (!bars && !dist) return '';
@@ -1507,9 +1860,9 @@ function leagueComparisonBlock(ctx) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Confronto con la lega · ${pos} · percentili per stagione</span>
+        <span class="mc-kicker">Comparison with the league · ${pos} · percentiles by season</span>
         ${chart}
-        <div class="pp-cmp-selhint">${chart ? 'Clicca una stagione sul grafico. ' : ''}Dettaglio: <b id="pp-cmp-selyear">${selYear}</b></div>
+        <div class="pp-cmp-selhint">${chart ? 'Click a season on the chart. ' : ''}Detail: <b id="pp-cmp-selyear">${selYear}</b></div>
         <div id="pp-cmp-body">${body}</div>
     </section>`;
 }
@@ -1546,18 +1899,18 @@ function advCols(pos) {
     const n2 = (v) => v == null ? '—' : (+v).toFixed(2);
     if (pos === 'RB') return [
         ['Snap%', s => pct(s.snapPct)], ['Rush share', s => pct(s.rushShare)], ['Target%', s => pct(s.targetShare)],
-        ['Yd/corsa', s => n1(s.ydsPerCarry)], ['YBC/att', s => n2(s.ybcPerAtt)], ['YAC/att', s => n2(s.yacPerAtt)],
+        ['Yds/carry', s => n1(s.ydsPerCarry)], ['YBC/att', s => n2(s.ybcPerAtt)], ['YAC/att', s => n2(s.yacPerAtt)],
         ['RYOE/att', s => n2(s.ryoePerAtt)], ['Broken tk', s => fmt0(s.rushBrokenTk)], ['Catch%', s => pct(s.catchRate)],
         ['Yd/target', s => n1(s.ydsPerTgt)], ['YAC/ric', s => n1(s.yacPerRec)],
-        ['% box 8+', s => pp(s.pctAtt8Def)], ['Time to LOS', s => n2(s.timeToLos)], ['EPA/gara', s => n2(s.epaPerGame)],
+        ['% box 8+', s => pp(s.pctAtt8Def)], ['Time to LOS', s => n2(s.timeToLos)], ['EPA/game', s => n2(s.epaPerGame)],
     ];
     if (pos === 'QB') return [
         ['Snap%', s => pct(s.snapPct)], ['CPOE', s => n1(s.cpoe)], ['Compl. attesa%', s => pp(s.expComplPct)],
-        ['EPA/gara', s => n2(s.epaPerGame)], ['Time to throw', s => n2(s.timeToThrow)], ['Aggress.%', s => pp(s.aggressiveness)],
+        ['EPA/game', s => n2(s.epaPerGame)], ['Time to throw', s => n2(s.timeToThrow)], ['Aggress.%', s => pp(s.aggressiveness)],
         ['Air→sticks', s => n2(s.airYdToSticks)], ['Bad throw%', s => pct(s.qbBadThrowPct)], ['Pressed%', s => pct(s.qbPressuredPct)],
         ['Sack subiti', s => fmt0(s.qbSacked)], ['Blitz', s => fmt0(s.qbBlitzed)], ['Hurried', s => fmt0(s.qbHurried)],
         ['QB hit', s => fmt0(s.qbHit)], ['Pass yd', s => fmt0(s.passYd)], ['Pass TD', s => fmt0(s.passTd)],
-        ['Corse/gara', s => n1(s.carriesPerGame)], ['Yd/corsa', s => n1(s.ydsPerCarry)],
+        ['Carries/game', s => n1(s.carriesPerGame)], ['Yds/carry', s => n1(s.ydsPerCarry)],
     ];
     if (pos === 'K') return [
         ['FG fatti', s => fmt0(s.fgMade)], ['FG tentati', s => fmt0(s.fgAtt)], ['Pt lega/gara', s => n1(s.fpgLeague)],
@@ -1568,8 +1921,301 @@ function advCols(pos) {
         ['Yd/target', s => n1(s.ydsPerTgt)], ['YAC/ric', s => n1(s.yacPerRec)], ['Separaz. (yd)', s => n1(s.sep)],
         ['Cushion (yd)', s => n1(s.cushion)], ['YAC±att', s => n1(s.yacOE)], ['Air yd int.', s => n1(s.intendedAirYd)],
         ['Drop', s => fmt0(s.recDrops)], ['Drop%', s => pct(s.recDropPct)], ['Broken tk', s => fmt0(s.recBrokenTk)],
-        ['EPA/gara', s => n2(s.epaPerGame)],
+        ['EPA/game', s => n2(s.epaPerGame)],
     ];
+}
+
+// ─── Radar avanzato · percentili di ruolo NFL ────────────────────
+const _advP = v => v == null ? '—' : Math.round(v * 100) + '%'; // frazione 0-1 → %
+const _advPP = v => v == null ? '—' : fmt1(v) + '%';            // già in percentuale
+
+/** Assi del radar avanzato per ruolo (dir −1 = più basso è meglio → invertito). */
+const ADV_RADAR = {
+    QB: [
+        { key: 'cpoe', label: 'CPOE', dir: 1, fmt: fmt1 },
+        { key: 'epaPerGame', label: 'EPA/g', dir: 1, fmt: fmt2 },
+        { key: 'aggressiveness', label: 'Aggress.', dir: 1, fmt: _advPP },
+        { key: 'airYdToSticks', label: 'Air→sticks', dir: 1, fmt: fmt2 },
+        { key: 'qbBadThrowPct', label: 'Bad throw', dir: -1, fmt: _advP },
+        { key: 'qbPressuredPct', label: 'Pressed', dir: -1, fmt: _advP },
+        { key: 'snapPct', label: 'Snap%', dir: 1, fmt: _advP },
+    ],
+    RB: [
+        { key: 'snapPct', label: 'Snap%', dir: 1, fmt: _advP },
+        { key: 'rushShare', label: 'Rush%', dir: 1, fmt: _advP },
+        { key: 'targetShare', label: 'Tgt%', dir: 1, fmt: _advP },
+        { key: 'ryoePerAtt', label: 'RYOE/att', dir: 1, fmt: fmt2 },
+        { key: 'yacPerAtt', label: 'YAC/att', dir: 1, fmt: fmt2 },
+        { key: 'rushBrokenTk', label: 'Broken tk', dir: 1, fmt: fmt0 },
+        { key: 'ydsPerCarry', label: 'Yds/carry', dir: 1, fmt: fmt1 },
+        { key: 'epaPerGame', label: 'EPA/g', dir: 1, fmt: fmt2 },
+    ],
+    WR: [
+        { key: 'targetShare', label: 'Tgt%', dir: 1, fmt: _advP },
+        { key: 'airYardsShare', label: 'Air yd%', dir: 1, fmt: _advP },
+        { key: 'wopr', label: 'WOPR', dir: 1, fmt: fmt2 },
+        { key: 'racr', label: 'RACR', dir: 1, fmt: fmt2 },
+        { key: 'catchRate', label: 'Catch%', dir: 1, fmt: _advP },
+        { key: 'ydsPerTgt', label: 'Yd/tgt', dir: 1, fmt: fmt1 },
+        { key: 'sep', label: 'Separaz.', dir: 1, fmt: fmt1 },
+        { key: 'recDropPct', label: 'Drop%', dir: -1, fmt: _advP },
+    ],
+};
+ADV_RADAR.TE = ADV_RADAR.WR;
+
+/** Radar a serie singola: un vertice per asse, raggio = percentile 0-100. */
+function advancedRadarChart(items) {
+    const N = items.length;
+    const W = 400, H = 360, cx = W / 2, cy = H / 2 + 6, R = 116;
+    const ang = i => -Math.PI / 2 + i * 2 * Math.PI / N;
+    const pt = (i, r) => [cx + Math.cos(ang(i)) * R * r, cy + Math.sin(ang(i)) * R * r];
+    const rings = [0.25, 0.5, 0.75, 1].map(r =>
+        `<polygon points="${items.map((_, i) => pt(i, r).map(n => n.toFixed(1)).join(',')).join(' ')}" class="pp-radar-ring"/>`).join('');
+    const spokes = items.map((it, i) => {
+        const [x, y] = pt(i, 1), [lx, ly] = pt(i, 1.17);
+        return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="pp-radar-spoke"/>
+            <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" class="pp-radar-axl" text-anchor="middle">${esc(it.label)}</text>`;
+    }).join('');
+    const poly = items.map((it, i) => pt(i, Math.max(0.02, (it.pct ?? 0) / 100)).map(n => n.toFixed(1)).join(',')).join(' ');
+    const dots = items.map((it, i) => {
+        const [x, y] = pt(i, Math.max(0.02, (it.pct ?? 0) / 100));
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" class="pp-radar-dot"><title>${esc(it.label)}: ${esc(it.val)}${it.pct == null ? '' : ` · ${ord(it.pct)} percentile`}</title></circle>`;
+    }).join('');
+    return `<div class="pp-radar"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-radar-svg" role="img" aria-label="Player advanced radar">${rings}${spokes}<polygon points="${poly}" class="pp-radar-area"/>${dots}</svg></div>`;
+}
+
+/**
+ * Profilo avanzato di ruolo: radar dei percentili NFL del giocatore nell'ultima
+ * stagione avanzata reale, contro il pool pari-ruolo (adv_players). Solo gli assi
+ * con dato del giocatore e copertura di pool sufficiente; sotto resta la tabella.
+ */
+function advancedRadarBlock({ advSeasons, pos, advPool, advYear }) {
+    const def = ADV_RADAR[pos];
+    if (!def || !advSeasons?.length || !advPool?.length || advYear == null) return '';
+    const row = advSeasons.find(a => +a.year === +advYear);
+    if (!row) return '';
+    const pctile = (vals, x, hb) => {
+        const a = vals.filter(v => v != null).sort((p, q) => p - q);
+        if (!a.length || x == null) return null;
+        const pr = a.filter(v => v <= x).length / a.length * 100;
+        return Math.round(hb ? pr : 100 - pr);
+    };
+    const items = def.map(ax => {
+        const x = row[ax.key];
+        const vals = advPool.map(p => p[ax.key]).filter(v => v != null);
+        if (x == null || vals.length < 8) return null;
+        return { label: ax.label, pct: pctile(vals, x, ax.dir > 0), val: ax.fmt(x) };
+    }).filter(Boolean);
+    if (items.length < 4) return '';
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Advanced profile · ${esc(pos)} ${advYear} · NFL percentiles</span>
+        ${advancedRadarChart(items)}
+        <p class="pm-note">Each axis is the player's NFL percentile in that advanced metric (${advPool.length} ${esc(pos)} with ≥4 games, ${advYear}); farther from center = better. "Negative" metrics (bad throw%, pressures, drop%) are inverted, so outward = better. Exact values on hover and in the table below.</p>
+    </section>`;
+}
+
+// ─── Confronto con giocatori simili ──────────────────────────────
+const SERIES_COLORS = ['#B8433A', '#4f8cff', '#f59e0b', '#22c55e']; // me + 3 comparabili
+
+/** Radar multi-serie: un poligono per giocatore, raggio = percentile 0-100. */
+function overlaidRadarChart(series, labels) {
+    const N = labels.length;
+    const W = 420, H = 384, cx = W / 2, cy = H / 2 + 8, R = 116;
+    const ang = i => -Math.PI / 2 + i * 2 * Math.PI / N;
+    const pt = (i, r) => [cx + Math.cos(ang(i)) * R * r, cy + Math.sin(ang(i)) * R * r];
+    const rings = [0.25, 0.5, 0.75, 1].map(r =>
+        `<polygon points="${labels.map((_, i) => pt(i, r).map(n => n.toFixed(1)).join(',')).join(' ')}" class="pp-radar-ring"/>`).join('');
+    const spokes = labels.map((lab, i) => {
+        const [x, y] = pt(i, 1), [lx, ly] = pt(i, 1.18);
+        return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="pp-radar-spoke"/>
+            <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" class="pp-radar-axl" text-anchor="middle">${esc(lab)}</text>`;
+    }).join('');
+    const polys = series.map((s, si) => {
+        const poly = s.items.map((it, i) => pt(i, Math.max(0.02, (it.pct ?? 0) / 100)).map(n => n.toFixed(1)).join(',')).join(' ');
+        const dots = s.items.map((it, i) => {
+            const [x, y] = pt(i, Math.max(0.02, (it.pct ?? 0) / 100));
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="${s.color}"><title>${esc(s.name)} · ${esc(it.label)}: ${esc(it.val)}${it.pct == null ? '' : ` · ${ord(it.pct)} pct`}</title></circle>`;
+        }).join('');
+        return `<g class="pp-cmp-series" data-s="${si}"><polygon points="${poly}" fill="${s.color}" fill-opacity="0.10" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>${dots}</g>`;
+    }).join('');
+    return `<div class="pp-radar"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-radar-svg" role="img" aria-label="Radar di confronto">${rings}${spokes}${polys}</svg></div>`;
+}
+
+/** Coordinate parallele: un asse verticale per metrica (percentile 0-100), una spezzata per giocatore. */
+function parallelCoordsChart(series, axes) {
+    const N = axes.length;
+    const W = 680, H = 300, m = { l: 24, r: 24, t: 42, b: 22 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const xAt = i => m.l + (N > 1 ? i / (N - 1) : 0.5) * pw;
+    const yAt = pct => m.t + (1 - (pct ?? 0) / 100) * ph;
+    const grid = [0, 50, 100].map(p =>
+        `<line x1="${m.l}" y1="${yAt(p).toFixed(1)}" x2="${(m.l + pw).toFixed(1)}" y2="${yAt(p).toFixed(1)}" class="an-gridline"/>
+        <text x="${(m.l - 4).toFixed(1)}" y="${(yAt(p) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${p}</text>`).join('');
+    const axesSvg = axes.map((ax, i) => {
+        const x = xAt(i);
+        return `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(m.t + ph).toFixed(1)}" class="pp-radar-spoke"/>
+            <text x="${x.toFixed(1)}" y="${(m.t - 11).toFixed(1)}" class="pp-radar-axl" text-anchor="middle">${esc(ax.label)}</text>`;
+    }).join('');
+    const lines = series.map((s, si) => {
+        const poly = s.items.map((it, i) => `${xAt(i).toFixed(1)},${yAt(it.pct).toFixed(1)}`).join(' ');
+        const dots = s.items.map((it, i) =>
+            `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(it.pct).toFixed(1)}" r="3" fill="${s.color}"><title>${esc(s.name)} · ${esc(it.label)}: ${esc(it.val)}${it.pct == null ? '' : ` · ${ord(it.pct)} pct`}</title></circle>`).join('');
+        return `<g class="pp-cmp-series" data-s="${si}"><polyline points="${poly}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" opacity="0.9"/>${dots}</g>`;
+    }).join('');
+    return `<div class="pp-cmp-chart"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-pc-svg" role="img" aria-label="Coordinate parallele di confronto">${grid}${axesSvg}${lines}</svg></div>`;
+}
+
+let _simState = null;
+
+/** Ricostruisce le serie (me + selezionati) in percentile NFL dallo stato stashato. */
+function _simSeries(names) {
+    const st = _simState;
+    if (!st) return [];
+    const pctile = (vals, x, hb) => { const a = vals.filter(v => v != null).sort((p, q) => p - q); if (!a.length || x == null) return null; const pr = a.filter(v => v <= x).length / a.length * 100; return Math.round(hb ? pr : 100 - pr); };
+    const rows = [{ name: st.meDisplay, row: st.me }, ...names.map(n => st.byName.get(n)).filter(Boolean).map(p => ({ name: p.name, row: p }))];
+    return rows.map((s, i) => ({
+        name: s.name, color: SERIES_COLORS[i % SERIES_COLORS.length],
+        items: st.axes.map(ax => { const x = s.row[ax.key]; return { label: ax.label, pct: x == null ? null : pctile(ax.poolVals, x, ax.dir > 0), val: x == null ? '—' : ax.fmt(x) }; }),
+    }));
+}
+
+/** Legenda + radar sovrapposto + coordinate parallele + tabella per un set di serie. */
+function _simRender(series, axes) {
+    const legend = `<div class="pp-cmp-legend">${series.map((s, i) =>
+        `<span class="pp-cmp-leg" data-series="${i}"><i style="background:${s.color};width:12px;height:12px;border-radius:3px"></i>${esc(s.name)}</span>`).join('')}</div>`;
+    const tbl = `
+        <details class="pp-recap-ids" style="margin-top:12px">
+            <summary>Valori a confronto (${axes.length} metriche)</summary>
+            <div class="pm-table-wrap pp-scroll" style="margin-top:10px">
+                <table class="pm-table pp-table">
+                    <thead><tr><th>Metrica</th>${series.map(s => `<th>${esc(s.name.split(' ').slice(-1)[0])}</th>`).join('')}</tr></thead>
+                    <tbody>${axes.map((ax, ai) => `<tr><td>${esc(ax.label)}</td>${series.map(s => `<td>${esc(s.items[ai].val)}${s.items[ai].pct == null ? '' : ` <small>${ord(s.items[ai].pct)}</small>`}</td>`).join('')}</tr>`).join('')}</tbody>
+                </table>
+            </div>
+        </details>`;
+    return `${legend}
+        <div class="ts-charts">
+            <div class="ts-card"><h4 class="ts-sub">Radar sovrapposto</h4>${overlaidRadarChart(series, axes.map(a => a.label))}</div>
+            <div class="ts-card"><h4 class="ts-sub">Coordinate parallele</h4>${parallelCoordsChart(series, axes)}</div>
+        </div>
+        ${tbl}`;
+}
+
+/**
+ * Confronto con simili: seleziona fino a 3 pari-ruolo (default: produzione più
+ * vicina) e sovrappone radar + coordinate parallele in percentili NFL. La
+ * selezione è modificabile a runtime (bindSimilarPlayers) e l'hover su una serie
+ * la evidenzia. Tabella dei valori come Livello 2. Riusa ADV_RADAR.
+ */
+function similarPlayersBlock(ctx) {
+    const { advSeasons, pos, advPool, advYear, name } = ctx;
+    const def = ADV_RADAR[pos];
+    if (!def || !advSeasons?.length || !advPool?.length || advYear == null) return '';
+    const me = advSeasons.find(a => +a.year === +advYear);
+    if (!me || me.fpgLeague == null) return '';
+    const norm = s => (s || '').toLowerCase().replace(/[.'`]/g, '').replace(/\s+/g, ' ').trim();
+    const meName = norm(name);
+    const pool = advPool.filter(p => p.fpgLeague != null && norm(p.name) !== meName)
+        .sort((a, b) => Math.abs(a.fpgLeague - me.fpgLeague) - Math.abs(b.fpgLeague - me.fpgLeague));
+    if (!pool.length) return '';
+    const axes = def.filter(ax => {
+        const vals = advPool.map(p => p[ax.key]).filter(v => v != null);
+        return vals.length >= 8 && me[ax.key] != null;
+    }).map(ax => ({ ...ax, poolVals: advPool.map(p => p[ax.key]).filter(v => v != null) }));
+    if (axes.length < 4) return '';
+
+    const defaults = pool.slice(0, 3).map(p => p.name);
+    _simState = { me, meDisplay: name, axes, byName: new Map(pool.map(p => [p.name, p])) };
+
+    const optionsFor = (sel) => ['<option value="">— none —</option>'].concat(
+        pool.map(p => `<option value="${esc(p.name)}"${p.name === sel ? ' selected' : ''}>${esc(p.name)} · ${fmt1(p.fpgLeague)} pt/g</option>`)).join('');
+    const selectors = `<div class="pp-cmp-selectors">${[0, 1, 2].map(i =>
+        `<label class="lc-field"><span>Comparabile ${i + 1}</span><select class="pp-cmp-sel" data-slot="${i}">${optionsFor(defaults[i])}</select></label>`).join('')}</div>`;
+
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Comparison with peers · ${esc(pos)} ${advYear}</span>
+        <p class="pm-note">Pick up to 3 position peers (default: closest production, ${advYear}). Each axis is the position's NFL percentile: farther from center (radar) or higher (parallel) = better. "Negative" metrics already inverted. Hover a series (legend or line) to highlight it.</p>
+        ${selectors}
+        <div id="pp-cmp-host"></div>
+    </section>`;
+}
+
+/** Interazioni del Confronto: selezione comparabili (re-render) + hover-highlight. */
+function bindSimilarPlayers(section) {
+    const host = section.querySelector('#pp-cmp-host');
+    if (!host || !_simState) return;
+    const sels = [...section.querySelectorAll('.pp-cmp-sel')];
+    const draw = () => {
+        host.innerHTML = _simRender(_simSeries(sels.map(s => s.value).filter(Boolean)), _simState.axes);
+        bindCmpHover(host);
+    };
+    sels.forEach(s => s.addEventListener('change', draw));
+    draw();
+}
+
+/** Hover su legenda o linea → evidenzia quella serie, attenua le altre. */
+function bindCmpHover(host) {
+    const all = [...host.querySelectorAll('.pp-cmp-series')];
+    const set = (idx) => all.forEach(el => { el.style.opacity = (idx == null || el.dataset.s === String(idx)) ? '' : '0.12'; });
+    host.querySelectorAll('.pp-cmp-leg[data-series]').forEach(l => {
+        l.addEventListener('mouseenter', () => set(+l.dataset.series));
+        l.addEventListener('mouseleave', () => set(null));
+    });
+    all.forEach(el => {
+        el.addEventListener('mouseenter', () => set(+el.dataset.s));
+        el.addEventListener('mouseleave', () => set(null));
+    });
+}
+
+// ─── Slope chart · evoluzione avanzate anno→anno ─────────────────
+/** Slope: una linea per metrica in percentile NFL, dallo scorso anno a quest'anno. */
+function advancedSlopeChart(items, yearA, yearB) {
+    const W = 560, H = Math.max(170, 44 + items.length * 26), m = { l: 210, r: 30, t: 30, b: 14 };
+    const ph = H - m.t - m.b, xA = m.l, xB = W - m.r;
+    const yAt = pct => m.t + (1 - pct / 100) * ph;
+    const headers = `
+        <text x="${xA}" y="16" text-anchor="middle" class="pp-slope-yr">${yearA}</text>
+        <text x="${xB}" y="16" text-anchor="middle" class="pp-slope-yr">${yearB}</text>
+        <text x="6" y="${(m.t + 4).toFixed(0)}" class="pp-slope-ax">100th elite</text>
+        <text x="6" y="${(m.t + ph).toFixed(0)}" class="pp-slope-ax">0°</text>`;
+    const lines = items.map(it => {
+        const yA = yAt(it.pA), yB = yAt(it.pB), cls = it.up ? 'up' : 'down';
+        return `<g class="pp-slope-g pp-slope-${cls}">
+            <line x1="${xA}" y1="${yA.toFixed(1)}" x2="${xB}" y2="${yB.toFixed(1)}" class="pp-slope-line"/>
+            <circle cx="${xA}" cy="${yA.toFixed(1)}" r="3.4" class="pp-slope-dot"/><circle cx="${xB}" cy="${yB.toFixed(1)}" r="3.4" class="pp-slope-dot"/>
+            <text x="${(xA - 9).toFixed(0)}" y="${(yA + 3.5).toFixed(1)}" text-anchor="end" class="pp-slope-lbl">${esc(it.label)} · <tspan class="pp-slope-v">${esc(it.vA)} → ${esc(it.vB)}</tspan></text>
+        </g>`;
+    }).join('');
+    return `<div class="pp-cmp-chart"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-slope-svg" role="img" aria-label="Evoluzione metriche avanzate ${yearA} vs ${yearB}">${headers}${lines}</svg></div>`;
+}
+
+/** Confronta le metriche avanzate di ruolo tra le due ultime stagioni (percentile NFL). */
+function advancedSlopeBlock(ctx) {
+    const { advSeasons, pos, advPool, advYear, advPool2, advYear2 } = ctx;
+    const def = ADV_RADAR[pos];
+    if (!def || advYear == null || advYear2 == null || !advPool?.length || !advPool2?.length) return '';
+    const rowA = advSeasons.find(a => +a.year === +advYear2), rowB = advSeasons.find(a => +a.year === +advYear);
+    if (!rowA || !rowB) return '';
+    const pctile = (vals, x, hb) => { const a = vals.filter(v => v != null).sort((p, q) => p - q); if (!a.length || x == null) return null; const pr = a.filter(v => v <= x).length / a.length * 100; return Math.round(hb ? pr : 100 - pr); };
+    const items = def.map(ax => {
+        const vA = rowA[ax.key], vB = rowB[ax.key];
+        if (vA == null || vB == null) return null;
+        const poolA = advPool2.map(p => p[ax.key]).filter(v => v != null), poolB = advPool.map(p => p[ax.key]).filter(v => v != null);
+        if (poolA.length < 8 || poolB.length < 8) return null;
+        const pA = pctile(poolA, vA, ax.dir > 0), pB = pctile(poolB, vB, ax.dir > 0);
+        if (pA == null || pB == null) return null;
+        return { label: ax.label, pA, pB, vA: ax.fmt(vA), vB: ax.fmt(vB), up: pB >= pA };
+    }).filter(Boolean);
+    if (items.length < 3) return '';
+    const improved = items.filter(i => i.up).length;
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Advanced evolution · ${advYear2} → ${advYear}</span>
+        ${advancedSlopeChart(items, advYear2, advYear)}
+        <p class="pm-note">Each line is an advanced position metric in <b>NFL percentile</b>: rises (<b style="color:#22c55e">green</b>) if improved vs the prior year, falls (<b style="color:var(--accent-red)">red</b>) if worsened. <b>${improved}/${items.length}</b> metrics improving between ${advYear2} and ${advYear}.</p>
+    </section>`;
 }
 
 function advancedNflverseBlock(advSeasons, pos) {
@@ -1580,14 +2226,14 @@ function advancedNflverseBlock(advSeasons, pos) {
     const hasProv = advSeasons.some(s => s.provisional);
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Metriche avanzate · nflverse (snap counts, Next Gen Stats, PFR advanced)</span>
+        <span class="mc-kicker">Advanced metrics · nflverse (snap counts, Next Gen Stats, PFR advanced)</span>
         <div class="pm-table-wrap pp-scroll">
             <table class="pm-table pp-table">
-                <thead><tr><th>Anno</th><th>GP</th>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead>
+                <thead><tr><th>Year</th><th>GP</th>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
-        <p class="pm-note">Dati NFL avanzati assenti su Sleeper — quota target/snap, WOPR, EPA, separazione e cushion (Next Gen Stats), YBC/YAC e broken tackle, drop, pressioni QB (PFR). Alcuni campi tracking/PFR partono dal 2016-2018 e possono mancare per le stagioni più recenti se nflverse non li ha ancora pubblicati. Stessi dati che alimentano il Player Context Score (SOS+) nei Draft Grades.${hasProv ? ' <b>Le stagioni con *</b> sono provvisorie: calcolate dal box score Sleeper in attesa dei dati nflverse (solo snap%, catch%, resa per target/corsa); le metriche tracking/EPA/share compaiono da sé quando nflverse pubblica.' : ''}</p>
+        <p class="pm-note">Advanced NFL data missing on Sleeper — target/snap share, WOPR, EPA, separation and cushion (Next Gen Stats), YBC/YAC and broken tackles, drops, QB pressures (PFR). Some tracking/PFR fields start from 2016-2018 and may be missing for the most recent seasons if nflverse has not published them yet. Same data that powers the Player Context Score (SOS+) in Draft Grades.${hasProv ? ' <b>Seasons marked *</b> are provisional: computed from the Sleeper box score while awaiting nflverse data (only snap%, catch%, per-target/carry production); tracking/EPA/share metrics appear on their own once nflverse publishes.' : ''}</p>
     </section>`;
 }
 
@@ -1609,15 +2255,15 @@ const CATEGORIES = [
     },
     {
         title: 'Corsa', has: s => (s.rush_att || 0) > 0,
-        head: ['Att', 'Yard', 'Media', 'TD', 'Lunga', '1st down', 'RZ att', 'YAC'],
+        head: ['Att', 'Yds', 'Avg', 'TD', 'Long', '1st down', 'RZ att', 'YAC'],
         cells: s => [
             g0(s, 'rush_att'), g0(s, 'rush_yd'), g1(s, 'rush_ypa'), g0(s, 'rush_td'),
             g0(s, 'rush_lng'), g0(s, 'rush_fd'), g0(s, 'rush_rz_att'), g0(s, 'rush_yac')],
-        chartLabel: 'Yard di corsa', chartValue: s => s.rush_yd, chartUnit: 'yard',
+        chartLabel: 'Rushing yards', chartValue: s => s.rush_yd, chartUnit: 'yard',
     },
     {
         title: 'Ricezione', has: s => (s.rec_tgt || 0) > 0 || (s.rec || 0) > 0,
-        head: ['Target', 'Rec', 'Yard', 'Media', 'TD', 'Lunga', 'Air yd', 'YAC', '1st down', 'RZ tgt', 'Drop'],
+        head: ['Target', 'Rec', 'Yds', 'Avg', 'TD', 'Long', 'Air yd', 'YAC', '1st down', 'RZ tgt', 'Drop'],
         cells: s => [
             g0(s, 'rec_tgt'), g0(s, 'rec'), g0(s, 'rec_yd'), g1(s, 'rec_ypr'), g0(s, 'rec_td'),
             g0(s, 'rec_lng'), g0(s, 'rec_air_yd'), g0(s, 'rec_yar'), g0(s, 'rec_fd'),
@@ -1636,7 +2282,7 @@ const CATEGORIES = [
         chartLabel: 'Field goal realizzati', chartValue: s => s.fgm, chartUnit: 'FG',
     },
     {
-        title: 'Difesa individuale (IDP)', has: s => (s.idp_tkl || 0) > 0 || (s.idp_sack || 0) > 0,
+        title: 'Individual defense (IDP)', has: s => (s.idp_tkl || 0) > 0 || (s.idp_sack || 0) > 0,
         head: ['Tackle', 'Solo', 'Sack', 'INT', 'FF', 'Fum rec', 'Pass dif.', 'QB hit', 'TFL', 'TD', 'Safety'],
         cells: s => [
             g0(s, 'idp_tkl'), g0(s, 'idp_tkl_solo'), g1(s, 'idp_sack'), g0(s, 'idp_int'),
@@ -1668,14 +2314,14 @@ function categoryTables(seasons, pos) {
         const table = `
             <div class="pm-table-wrap pp-scroll">
                 <table class="pm-table pp-table">
-                    <thead><tr><th>Anno</th><th>GP</th><th>Pt lega</th><th>Std</th><th>Half</th><th>PPR</th><th>Rank</th><th>Snap %</th></tr></thead>
+                    <thead><tr><th>Year</th><th>GP</th><th>League pts</th><th>Std</th><th>Half</th><th>PPR</th><th>Rank</th><th>Snap %</th></tr></thead>
                     <tbody>${body}</tbody>
                 </table>
             </div>`;
         const points = [...fRows].sort((a, b) => a.year - b.year)
             .map(s => ({ x: s.year, y: s.totals.pts })).filter(p => p.y != null);
         const chart = points.length >= 2 ? buildTrendChart(points, '#B8433A', 'pp-cat-chart-fantasy') : '';
-        panels.push({ key: 'fantasy', label: 'Fantasy', html: `${table}${chart ? `<h3 class="pp-cat-title" style="margin-top:18px">Pt lega per stagione</h3>${chart}` : ''}` });
+        panels.push({ key: 'fantasy', label: 'Fantasy', html: `${table}${chart ? `<h3 class="pp-cat-title" style="margin-top:18px">League pts per season</h3>${chart}` : ''}` });
     }
 
     for (const cat of CATEGORIES) {
@@ -1685,7 +2331,7 @@ function categoryTables(seasons, pos) {
         const table = `
             <div class="pm-table-wrap pp-scroll">
                 <table class="pm-table pp-table">
-                    <thead><tr><th>Anno</th>${cat.head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                    <thead><tr><th>Year</th>${cat.head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                     <tbody>${body}</tbody>
                 </table>
             </div>`;
@@ -1701,7 +2347,7 @@ function categoryTables(seasons, pos) {
     const bodies = panels.map((p, i) => `<div class="pp-cat" data-cat-panel="${p.key}"${i === 0 ? '' : ' hidden'}>${p.html}</div>`).join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Carriera NFL per categoria</span>
+        <span class="mc-kicker">NFL career by category</span>
         <div class="an-ptbl-mode-toggle pp-cat-toggle">${buttons}</div>
         ${bodies}
     </section>`;
@@ -1743,20 +2389,20 @@ function careerTotalsPfrBlock(combineDraft) {
             <div class="pm-table-wrap pp-scroll">
                 <table class="pm-table pp-table">
                     <thead><tr><th></th>${cat.head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                    <tbody><tr><td>Totale carriera</td>${cat.cells(s).map(c => `<td>${c}</td>`).join('')}</tr></tbody>
+                    <tbody><tr><td>Career total</td>${cat.cells(s).map(c => `<td>${c}</td>`).join('')}</tr></tbody>
                 </table>
             </div>
         </div>`;
     }).filter(Boolean).join('');
     if (!blocks) return '';
     const av = [
-        combineDraft.draft?.careerAV != null ? factChip(combineDraft.draft.careerAV, 'AV carriera') : '',
+        combineDraft.draft?.careerAV != null ? factChip(combineDraft.draft.careerAV, 'Career AV') : '',
         combineDraft.draft?.weightedAV != null ? factChip(combineDraft.draft.weightedAV, 'AV pesato') : '',
-        combineDraft.draft?.lastSeason != null ? factChip(combineDraft.draft.lastSeason, 'ultima stagione') : '',
+        combineDraft.draft?.lastSeason != null ? factChip(combineDraft.draft.lastSeason, 'last season') : '',
     ].filter(Boolean).join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Carriera totale · Pro Football Reference</span>
+        <span class="mc-kicker">Career total · Pro Football Reference</span>
         ${blocks}
         ${av ? `<div class="pp-fact-chips" style="margin-top:10px">${av}</div>` : ''}
         <p class="pm-note">Totali dell'intera carriera NFL (anche le stagioni precedenti al ${FIRST_STATS_YEAR}, non coperte da Sleeper qui sopra).</p>
@@ -1771,9 +2417,9 @@ function draftScatterBlock({ combineDraft, draftPeers, name }) {
     if (!chart) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Draft ${d.season} · ${d.team}${d.round ? ` — tutti i ${draftPeers.length} ${combineDraft.pos || ''} scelti quell'anno` : ''}</span>
+        <span class="mc-kicker">Draft ${d.season} · ${d.team}${d.round ? ` — all ${draftPeers.length} ${combineDraft.pos || ''} picked that year` : ''}</span>
         ${chart}
-        <p class="pm-note">Pick overall (asse x) vs Approximate Value di carriera — PFR (asse y). Punto rosso più grande = questo giocatore.</p>
+        <p class="pm-note">Overall pick (x axis) vs career Approximate Value — PFR (y axis). Larger red dot = this player.</p>
     </section>`;
 }
 
@@ -1783,6 +2429,19 @@ function draftScatterBlock({ combineDraft, draftPeers, name }) {
  * (scoring lega e standard), ADP, partite proiettate, punti reali e delta.
  * Include la stagione in arrivo (solo proiezione). Dati Rotowire via Sleeper.
  */
+/** Proiezioni · tabelle unite (punti + statistiche per anno) in un solo <details> L2. */
+function projectionTablesBlock(ctx) {
+    const args = { seasons: ctx.full.seasons, projByYear: ctx.projByYear, nextSeasonProj: ctx.nextSeasonProj, nextSeason: ctx.nextSeason };
+    const t = projectionsTableBlock(args);
+    const s = projectedStatsBlock({ projByYear: ctx.projByYear, nextSeasonProj: ctx.nextSeasonProj, nextSeason: ctx.nextSeason });
+    if (!t && !s) return '';
+    return `
+    <details class="pp-recap-ids" style="margin-top:14px">
+        <summary>Projections · full tables (points and stats by year)</summary>
+        <div style="margin-top:8px">${t}${s}</div>
+    </details>`;
+}
+
 function projectionsTableBlock({ seasons, projByYear, nextSeasonProj, nextSeason }) {
     if (!projByYear) return '';
     const actualByYear = {};
@@ -1814,15 +2473,51 @@ function projectionsTableBlock({ seasons, projByYear, nextSeasonProj, nextSeason
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Proiezioni preseason · anno per anno</span>
+        <span class="mc-kicker">Preseason projections · year by year</span>
         <div class="pm-table-wrap pp-scroll">
             <table class="pm-table pp-table">
-                <thead><tr><th>Anno</th><th>Pt lega proiett.</th><th>Pt std proiett.</th><th>ADP</th><th>GP proiett.</th><th>Pt reali</th><th>Δ</th></tr></thead>
+                <thead><tr><th>Year</th><th>Proj league pts</th><th>Proj std pts</th><th>ADP</th><th>Proj GP</th><th>Actual pts</th><th>Δ</th></tr></thead>
                 <tbody>${body}</tbody>
             </table>
         </div>
-        <p class="pm-note">Proiezioni preseason Rotowire (via Sleeper) e ADP half-PPR (dal 2018). Δ = punti reali − proiettati (verde = sopra la proiezione, rosso = sotto).</p>
+        <p class="pm-note">Rotowire preseason projections (via Sleeper) and half-PPR ADP (since 2018). Δ = actual − projected points (green = above projection, red = below).</p>
     </section>`;
+}
+
+const PROJPATH = { w: 560, h: 380, l: 46, r: 20, t: 20, b: 40 };
+
+/**
+ * Traiettoria proiettato→reale: uno scatter con X = punti proiettati, Y = punti
+ * reali, un punto per stagione connesso in ordine cronologico. La diagonale y=x
+ * è l'attesa: sopra = ha reso oltre, sotto = sotto. Verde/rosso per lato, la
+ * stagione più recente evidenziata. `rows` = [{x:year, projected, actual}].
+ */
+function projActualPathChart(rows) {
+    const pts = rows.filter(r => r.projected != null && r.actual != null).sort((a, b) => a.x - b.x);
+    if (pts.length < 2) return '';
+    const C = PROJPATH, pw = C.w - C.l - C.r, ph = C.h - C.t - C.b;
+    const vals = pts.flatMap(p => [p.projected, p.actual]);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = (hi - lo) * 0.1 || 10; lo = Math.max(0, lo - pad); hi += pad;
+    const X = v => C.l + (v - lo) / (hi - lo) * pw;
+    const Y = v => C.t + (1 - (v - lo) / (hi - lo)) * ph;
+    const ticks = niceTicks(lo, hi);
+    const grid = ticks.map(v => `
+        <line x1="${C.l}" y1="${Y(v).toFixed(1)}" x2="${(C.l + pw).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="an-gridline"/>
+        <text x="${C.l - 6}" y="${(Y(v) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${v}</text>
+        <text x="${X(v).toFixed(1)}" y="${(C.t + ph + 18).toFixed(1)}" class="an-tick" text-anchor="middle">${v}</text>`).join('');
+    const diag = `<line x1="${X(lo).toFixed(1)}" y1="${Y(lo).toFixed(1)}" x2="${X(hi).toFixed(1)}" y2="${Y(hi).toFixed(1)}" class="pp-pp-diag"/>
+        <text x="${(X(hi) - 4).toFixed(1)}" y="${(Y(hi) + 15).toFixed(1)}" class="pp-pp-diaglbl" text-anchor="end">above = beat expectations</text>`;
+    const line = `<polyline points="${pts.map(p => `${X(p.projected).toFixed(1)},${Y(p.actual).toFixed(1)}`).join(' ')}" class="pp-pp-line"/>`;
+    const dots = pts.map((p, i) => {
+        const beat = p.actual >= p.projected, recent = i === pts.length - 1, r = recent ? 6 : 4.5;
+        const d = p.actual - p.projected;
+        return `<g class="pp-pp-g"><circle cx="${X(p.projected).toFixed(1)}" cy="${Y(p.actual).toFixed(1)}" r="${r}" class="pp-pp-dot pp-pp-dot--${beat ? 'up' : 'down'}${recent ? ' pp-pp-dot--recent' : ''}"><title>${p.x}: reale ${fmt0(p.actual)} vs proiettato ${fmt0(p.projected)} (${d >= 0 ? '+' : ''}${fmt0(d)})</title></circle>
+            <text x="${(X(p.projected) + r + 3).toFixed(1)}" y="${(Y(p.actual) + 3).toFixed(1)}" class="pp-pp-lbl">${p.x}</text></g>`;
+    }).join('');
+    const axl = `<text x="${(C.l + pw).toFixed(1)}" y="${C.h - 6}" class="an-tick pp-pp-axl" text-anchor="end">proiettato →</text>
+        <text x="${(C.l - 40).toFixed(1)}" y="${(C.t + 8).toFixed(1)}" class="an-tick pp-pp-axl" text-anchor="start">actual ↑</text>`;
+    return `<div class="pp-cmp-chart"><svg viewBox="0 0 ${C.w} ${C.h}" class="an-svg pp-pp-svg" role="img" aria-label="Projected vs actual by season">${grid}${diag}${line}${dots}${axl}</svg></div>`;
 }
 
 function projVsActualBlock({ seasons, projByYear }) {
@@ -1836,16 +2531,17 @@ function projVsActualBlock({ seasons, projByYear }) {
             return { x: s.year, projected, actual };
         })
         .filter(r => r.projected != null || r.actual != null);
-    if (rows.length < 2) return '';
-    const chart = buildGroupedBarChart(rows, 'pp-proj-actual-chart');
-    if (!chart) return '';
     const withBoth = rows.filter(r => r.projected != null && r.actual != null);
-    const avgDelta = withBoth.length ? withBoth.reduce((s, r) => s + (r.actual - r.projected), 0) / withBoth.length : null;
+    if (withBoth.length < 2) return '';
+    const chart = projActualPathChart(rows);
+    if (!chart) return '';
+    const avgDelta = withBoth.reduce((s, r) => s + (r.actual - r.projected), 0) / withBoth.length;
+    const beats = withBoth.filter(r => r.actual >= r.projected).length;
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Proiettato vs reale · anno per anno</span>
+        <span class="mc-kicker">Projected vs actual · trajectory by season</span>
         ${chart}
-        <p class="pm-note">Proiezioni preseason Rotowire (via Sleeper) contro i punti lega realmente segnati.${avgDelta != null ? ` In media ${avgDelta >= 0 ? 'ha superato' : 'ha mancato'} la proiezione di ${fmt1(Math.abs(avgDelta))} pt/stagione.` : ''}</p>
+        <p class="pm-note">Each dot is a season: X = preseason projected points (Rotowire via Sleeper), Y = actual league points; the line connects seasons chronologically. Above the diagonal = overperformed expectations (green), below = underperformed (red). Beat the projection in <b>${beats}/${withBoth.length}</b> seasons${avgDelta != null ? `, on average ${avgDelta >= 0 ? '+' : ''}${fmt1(avgDelta)} pts/season` : ''}. Exact numbers in the projections table below.</p>
     </section>`;
 }
 
@@ -1902,7 +2598,7 @@ function perfExplainBlock(ctx) {
             ? `<div class="pp-pe-readouts">${dec.readouts.map(r => `${r.label}: ${r.proj != null ? `${r.proj}<span class="pp-pe-arr">→</span>` : ''}<b>${r.actual}</b>`).join(' · ')}</div>`
             : '';
         const causesHtml = causeItems.length
-            ? `<div class="pp-pe-causes"><span class="pp-pe-causes-lbl">Perché</span>${causeItems.map(c => `<div class="pp-pe-cause"><span class="pp-pe-cause-ic">${c.icon}</span> ${c.text}</div>`).join('')}</div>`
+            ? `<div class="pp-pe-causes"><span class="pp-pe-causes-lbl">Why</span>${causeItems.map(c => `<div class="pp-pe-cause"><span class="pp-pe-cause-ic">${c.icon}</span> ${c.text}</div>`).join('')}</div>`
             : '';
 
         const missed = dec.gpP - dec.gpA;
@@ -1919,9 +2615,9 @@ function perfExplainBlock(ctx) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Perché ha reso così · proiettato vs reale, stat per stat</span>
+        <span class="mc-kicker">Why he performed this way · projected vs actual, stat by stat</span>
         ${seasons}
-        <p class="pm-note">Ogni riga è una statistica: <b>proiettato → reale</b> (totali stagionali) e l'impatto in punti-lega (differenza × valore nello scoring). Le voci sommano ESATTAMENTE all'errore (reale − proiettato). Le gare saltate non sono una riga a sé — riducono i totali di volume — ma sono segnalate a parte. La sezione <b>Perché</b> collega i cambiamenti al contesto reale: infortuni dei compagni di reparto, mosse di mercato, rendimento dell'attacco e difficoltà del calendario.</p>
+        <p class="pm-note">Each row is a stat: <b>projected → actual</b> (season totals) and the league-points impact (difference × scoring value). The items add up EXACTLY to the error (actual − projected). Missed games are not a separate row — they reduce volume totals — but are flagged separately. The <b>Why</b> section ties the changes to the real context: teammates' injuries, roster moves, offensive performance and schedule difficulty.</p>
     </section>`;
 }
 
@@ -1956,7 +2652,7 @@ function projectedStatsBlock({ projByYear, nextSeasonProj, nextSeason }) {
             <h3 class="pp-cat-title">${cat.title}</h3>
             <div class="pm-table-wrap pp-scroll">
                 <table class="pm-table pp-table">
-                    <thead><tr><th>Anno</th>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                    <thead><tr><th>Year</th>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                     <tbody>${body}</tbody>
                 </table>
             </div>
@@ -1965,7 +2661,7 @@ function projectedStatsBlock({ projByYear, nextSeasonProj, nextSeason }) {
     if (!blocks) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Statistiche proiettate · anno per anno</span>
+        <span class="mc-kicker">Projected stats · year by year</span>
         ${blocks}
         <p class="pm-note">Proiezioni preseason Rotowire (via Sleeper) — yard, TD, ricezioni ecc. proiettati per stagione; ultima riga (evidenziata) = stagione in arrivo ${nextSeason}, non ancora giocata.</p>
     </section>`;
@@ -1980,7 +2676,7 @@ function logCols(pos) {
             g0(s, 'pass_yd'), g0(s, 'pass_td'), g0(s, 'pass_int'), g1(s, 'pass_rtg')],
     };
     if (pos === 'RB') return {
-        head: ['Att', 'Yd corsa', 'TD', 'Rec', 'Yd rec'],
+        head: ['Att', 'Rush yds', 'TD', 'Rec', 'Rec yds'],
         cells: s => [g0(s, 'rush_att'), g0(s, 'rush_yd'),
             fmt0((s.rush_td || 0) + (s.rec_td || 0)), g0(s, 'rec'), g0(s, 'rec_yd')],
     };
@@ -2017,10 +2713,10 @@ function gamelogBlock(seasons, pos) {
         }).join('');
         return `
         <details class="pp-gamelog"${i === 0 ? ' open' : ''}>
-            <summary>Stagione ${s.year} <span class="pp-gamelog-meta">${s.weekly.length} partite${s.totals?.pts != null ? ` · ${fmt1(s.totals.pts)} pt lega` : ''}</span></summary>
+            <summary>Season ${s.year} <span class="pp-gamelog-meta">${s.weekly.length} games${s.totals?.pts != null ? ` · ${fmt1(s.totals.pts)} league pts` : ''}</span></summary>
             <div class="pm-table-wrap pp-scroll">
                 <table class="pm-table pp-table pp-table--compact">
-                    <thead><tr><th>Sett.</th><th>Avv.</th>${cols.head.map(h => `<th>${h}</th>`).join('')}<th>Snap</th><th>Pt lega</th><th>Half</th></tr></thead>
+                    <thead><tr><th>Sett.</th><th>Avv.</th>${cols.head.map(h => `<th>${h}</th>`).join('')}<th>Snap</th><th>League pts</th><th>Half</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
             </div>
@@ -2029,7 +2725,7 @@ function gamelogBlock(seasons, pos) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Game log · tutte le stagioni</span>
+        <span class="mc-kicker">Game log · all seasons</span>
         ${details}
     </section>`;
 }
@@ -2071,9 +2767,9 @@ export function teamHistoryBlock({ teamHistory, abbr }) {
     if (!chart) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Storia squadra · punti/gara per stagione · ${abbr}</span>
+        <span class="mc-kicker">Team history · points/game by season · ${abbr}</span>
         ${chart}
-        <p class="pm-note">Punti/gara di squadra dal calendario reale di ogni stagione; nel tooltip anche record, rank PPG e QB titolare di quell'anno (depth chart).</p>
+        <p class="pm-note">Team points/game from each season's real schedule; the tooltip also shows record, PPG rank and that year's starting QB (depth chart).</p>
     </section>`;
 }
 
@@ -2130,16 +2826,19 @@ export function teamPerfBlocksHtml(abbr, pos, data) {
         : (teamContextBlock(wrap) + defStatsBlock(wrap) + fpaBlock(wrap));
 }
 
-/** Solo i blocchi rosa/calendario (titolari, compagni, infermeria, matchup) — pagina squadra, sezione 03. */
+/** Solo i blocchi infermeria + calendario — pagina squadra, sezione 03. Il depth
+ *  chart e la rosa completa (con il click che allarga alla rosa intera) sono un
+ *  unico blocco montato da nfl-team-page sopra questi. La formazione titolare è
+ *  stata rimossa (duplicava il depth chart) e la classifica compagni non c'è. */
 export function teamScheduleBlocksHtml(abbr, pos, data) {
     const wrap = { ...data, abbr, pos };
-    return `${startersBlock(wrap)}${teammatesBlock(wrap)}${teamInjuriesBlock(wrap)}${matchupBlock(wrap)}`;
+    return `${teamInjuriesBlock(wrap)}${matchupBlock(wrap)}`;
 }
 
 export function teamYearPicker(selectedYear) {
     return `
     <div class="pp-year-picker">
-        <label for="pp-team-year">Stagione squadra</label>
+        <label for="pp-team-year">Team season</label>
         <select id="pp-team-year">
             ${TEAM_HISTORY_YEARS.map(y => `<option value="${y}"${y === selectedYear ? ' selected' : ''}>${y}</option>`).join('')}
         </select>
@@ -2185,30 +2884,30 @@ export function teamContextBlock({ ctx, abbr, pos, advTeam }) {
         a.offEpaPerPlay != null ? factChip(fmt2(a.offEpaPerPlay), 'EPA/gioco') : '',
         a.successRate != null ? factChip(fmt0(a.successRate * 100) + '%', 'success rate') : '',
         a.proe != null ? factChip((a.proe >= 0 ? '+' : '') + fmt1(a.proe) + '%', 'PROE') : '',
-        o.passRate != null ? factChip(fmt0(o.passRate * 100) + '%', 'giochi su lancio') : '',
+        o.passRate != null ? factChip(fmt0(o.passRate * 100) + '%', 'pass plays') : '',
     ].filter(Boolean).join('');
 
     const offMeters = [
-        meterBar('Punti/gara', fmt1(o.ppg), r.ppg),
-        meterBar('Yard totali/gara', fmt1(o.totYdsPg), r.totYdsPg),
-        meterBar('Yard lancio/gara', fmt1(o.passYdsPg), r.passYdsPg),
-        meterBar('Yard corsa/gara', fmt1(o.rushYdsPg), r.rushYdsPg),
+        meterBar('Points/game', fmt1(o.ppg), r.ppg),
+        meterBar('Total yards/game', fmt1(o.totYdsPg), r.totYdsPg),
+        meterBar('Pass yds/game', fmt1(o.passYdsPg), r.passYdsPg),
+        meterBar('Rush yds/game', fmt1(o.rushYdsPg), r.rushYdsPg),
         meterBar('Yard/gioco', fmt1(o.ydsPerPlay), r.ydsPerPlay),
-        meterBar('Giocate/gara (pace)', fmt1(o.playsPg), r.playsPg),
-        meterBar('Giocate red zone/gara', fmt1(o.rzPlaysPg), r.rzPlaysPg),
+        meterBar('Plays/game (pace)', fmt1(o.playsPg), r.playsPg),
+        meterBar('Red zone plays/game', fmt1(o.rzPlaysPg), r.rzPlaysPg),
         meterBar('Palloni persi', fmt0(o.turnovers), r.turnovers),
         meterBar('Sack concessi', fmt0(o.sacksAllowed), r.sacksAllowed),
-        meterBar('TD su lancio', fmt0(o.passTd), r.passTd),
-        meterBar('TD su corsa', fmt0(o.rushTd), r.rushTd),
+        meterBar('Passing TD', fmt0(o.passTd), r.passTd),
+        meterBar('Rushing TD', fmt0(o.rushTd), r.rushTd),
     ].join('');
 
     // difesa della squadra (stessi dati team_stats, prima non mostrati)
     const d = ctx.team.defense, rd = ctx.team.ranks?.defense || {};
     const defMeters = d ? [
-        meterBar('Punti subiti/gara', fmt1(d.papg), rd.papg),
-        meterBar('Yard concesse/gara', fmt1(d.totYdsAllowedPg), rd.totYdsAllowedPg),
-        meterBar('Yard lancio concesse', fmt1(d.passYdsAllowedPg), rd.passYdsAllowedPg),
-        meterBar('Yard corsa concesse', fmt1(d.rushYdsAllowedPg), rd.rushYdsAllowedPg),
+        meterBar('Points allowed/game', fmt1(d.papg), rd.papg),
+        meterBar('Yards allowed/game', fmt1(d.totYdsAllowedPg), rd.totYdsAllowedPg),
+        meterBar('Passing yds allowed', fmt1(d.passYdsAllowedPg), rd.passYdsAllowedPg),
+        meterBar('Rushing yds allowed', fmt1(d.rushYdsAllowedPg), rd.rushYdsAllowedPg),
         meterBar('Sack', fmt0(d.sacks), rd.sacks),
         meterBar('Intercetti', fmt0(d.interceptions), rd.interceptions),
         meterBar('Palloni recuperati', fmt0(d.takeaways), rd.takeaways),
@@ -2217,11 +2916,11 @@ export function teamContextBlock({ ctx, abbr, pos, advTeam }) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Forza squadra · attacco ${abbr} ${ctx.season}${ctx.fallback ? ' (stagione più recente disponibile)' : ''}</span>
+        <span class="mc-kicker">Team strength · offense ${abbr} ${ctx.season}${ctx.fallback ? ' (most recent available season)' : ''}</span>
         ${factChips ? `<div class="pp-fact-chips" style="margin:8px 0 12px">${factChips}</div>` : ''}
         <div class="dgt-sos-bars">${offMeters}</div>
         ${defMeters ? `
-        <span class="mc-kicker" style="margin-top:18px">Difesa ${abbr}</span>
+        <span class="mc-kicker" style="margin-top:18px">Defense ${abbr}</span>
         <div class="dgt-sos-bars">${defMeters}</div>` : ''}
         <p class="pm-note">Meter = percentile su 32 squadre (pieno = 1ª, vuoto = 32ª); verde = tra le prime 10, rosso = tra le ultime 10.${advTeam ? ' EPA/success/PROE dal play-by-play nflverse.' : ''}</p>
     </section>`;
@@ -2258,27 +2957,27 @@ export function matchupBlock({ ctx, pos, abbr }) {
     }).join('');
 
     const head = vsOffense
-        ? '<th>PPG attacco</th><th>Yard/gara</th><th>Palloni persi</th>'
-        : `<th>FPA ${P}/gara</th><th>Matchup</th><th>Pt subiti/gara</th>`;
+        ? '<th>Off PPG</th><th>Yards/game</th><th>Turnovers</th>'
+        : `<th>FPA ${P}/gara</th><th>Matchup</th><th>Pts allowed/game</th>`;
 
     const sosVal = ctx.sos?.[P];
     const sosLine = sosVal != null
-        ? `<p class="pp-sos">Strength of schedule vs ${P}: rank FPA medio degli avversari <b>${fmt1(sosVal)}</b> — ${sosVal <= 13 ? 'calendario favorevole' : sosVal >= 20 ? 'calendario difficile' : 'calendario nella media'} (rank basso = difese che concedono di più).</p>`
+        ? `<p class="pp-sos">Strength of schedule vs ${P}: avg opponent FPA rank <b>${fmt1(sosVal)}</b> — ${sosVal <= 13 ? 'favorable schedule' : sosVal >= 20 ? 'hard schedule' : 'average schedule'} (low rank = defenses that allow more).</p>`
         : '';
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Calendario e matchup · ${ctx.season}${ctx.fallback ? ' (stagione più recente disponibile)' : ''}</span>
+        <span class="mc-kicker">Schedule and matchups · ${ctx.season}${ctx.fallback ? ' (most recent available season)' : ''}</span>
         ${sosLine}
         <div class="pm-table-wrap pp-scroll">
             <table class="pm-table pp-table">
-                <thead><tr><th>Sett.</th><th>Avversario</th><th>Risultato</th>${head}</tr></thead>
+                <thead><tr><th>Sett.</th><th>Avversario</th><th>Result</th>${head}</tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
         <p class="pm-note">${vsOffense
-            ? 'Per una difesa il matchup dipende dall\'attacco avversario: PPG e yard con il rank offensivo (1ª = attacco migliore).'
-            : `FPA = fantasy points concessi dalla difesa avversaria ai ${P} (scoring lega, per gara). Rank 1ª = concede di più = matchup morbido.`}</p>
+            ? 'For a defense the matchup depends on the opposing offense: PPG and yards with the offensive rank (1st = best offense).'
+            : `FPA = fantasy points allowed by the opposing defense to ${P}s (league scoring, per game). Rank 1st = allows the most = soft matchup.`}</p>
     </section>`;
 }
 
@@ -2301,13 +3000,13 @@ function teamContextCompact(data) {
     const a = advTeam || {};
 
     const header = `
-        <a class="pp-tcc-head" href="#nfl-team/${abbr}" title="Vai alla scheda squadra completa">
+        <a class="pp-tcc-head" href="#nfl-team/${abbr}" title="Go to full team page">
             <img class="pp-tcc-logo" src="${teamLogo(abbr)}" alt="" onerror="this.style.display='none'">
             <span class="pp-tcc-id">
                 <b>${identity ? esc(identity.name) : abbr}</b>
-                <span class="pp-tcc-sub">${rec ? `${rec.w}-${rec.l}${rec.t ? '-' + rec.t : ''} · ` : ''}${ctx.season}${ctx.fallback ? ' (ultima disp.)' : ''}</span>
+                <span class="pp-tcc-sub">${rec ? `${rec.w}-${rec.l}${rec.t ? '-' + rec.t : ''} · ` : ''}${ctx.season}${ctx.fallback ? ' (latest avail.)' : ''}</span>
             </span>
-            <span class="pp-tcc-cta">Scheda squadra completa →</span>
+            <span class="pp-tcc-cta">Full team page →</span>
         </a>`;
 
     // Prossimo impegno: primo game ancora da giocare (senza risultato); fallback al primo del calendario.
@@ -2324,8 +3023,8 @@ function teamContextCompact(data) {
     const sosVal = ctx.sos?.[P];
     const sosHtml = sosVal != null ? `
         <div class="pp-tcc-item">
-            <span class="pp-tcc-lbl">Forza calendario · ${P}</span>
-            <span class="pp-tcc-sosval">rank FPA medio avversari <b>${fmt1(sosVal)}</b> · ${sosVal <= 13 ? 'favorevole' : sosVal >= 20 ? 'difficile' : 'nella media'}</span>
+            <span class="pp-tcc-lbl">Schedule strength · ${P}</span>
+            <span class="pp-tcc-sosval">avg opponent FPA rank <b>${fmt1(sosVal)}</b> · ${sosVal <= 13 ? 'favorable' : sosVal >= 20 ? 'hard' : 'average'}</span>
         </div>` : '';
 
     // Forza squadra sintetica per ruolo (2-4 chip col rank)
@@ -2333,32 +3032,32 @@ function teamContextCompact(data) {
     let chips;
     if (pos === 'QB' || pos === 'WR' || pos === 'TE') {
         chips = [
-            rankChip(fmt1(o.passYdsPg), 'yard lancio/gara', r.passYdsPg),
-            o.passRate != null ? factChip(fmt0(o.passRate * 100) + '%', 'giochi su lancio') : '',
-            rankChip(fmt1(o.playsPg), 'giochi/gara', r.playsPg),
+            rankChip(fmt1(o.passYdsPg), 'passing yds/game', r.passYdsPg),
+            o.passRate != null ? factChip(fmt0(o.passRate * 100) + '%', 'pass plays') : '',
+            rankChip(fmt1(o.playsPg), 'plays/game', r.playsPg),
             a.proe != null ? factChip((a.proe >= 0 ? '+' : '') + fmt1(a.proe) + '%', 'PROE') : '',
         ];
     } else if (pos === 'RB') {
         chips = [
-            rankChip(fmt1(o.rushYdsPg), 'yard corsa/gara', r.rushYdsPg),
-            rankChip(fmt0(o.rushTd), 'TD corsa', r.rushTd),
-            rankChip(fmt1(o.rzPlaysPg), 'giochi RZ/gara', r.rzPlaysPg),
+            rankChip(fmt1(o.rushYdsPg), 'rushing yds/game', r.rushYdsPg),
+            rankChip(fmt0(o.rushTd), 'rush TD', r.rushTd),
+            rankChip(fmt1(o.rzPlaysPg), 'RZ plays/game', r.rzPlaysPg),
         ];
     } else if (pos === 'K') {
         chips = [
-            rankChip(fmt1(o.ppg), 'punti/gara', r.ppg),
-            rankChip(fmt1(o.rzPlaysPg), 'giochi RZ/gara', r.rzPlaysPg),
+            rankChip(fmt1(o.ppg), 'points/game', r.ppg),
+            rankChip(fmt1(o.rzPlaysPg), 'RZ plays/game', r.rzPlaysPg),
         ];
     } else {
         chips = [
-            rankChip(fmt1(o.ppg), 'punti/gara', r.ppg),
-            rankChip(fmt1(o.totYdsPg), 'yard totali/gara', r.totYdsPg),
+            rankChip(fmt1(o.ppg), 'points/game', r.ppg),
+            rankChip(fmt1(o.totYdsPg), 'total yds/game', r.totYdsPg),
         ];
     }
     const chipsHtml = chips.filter(Boolean).join('');
     const strengthHtml = chipsHtml ? `
         <div class="pp-tcc-item">
-            <span class="pp-tcc-lbl">Forza squadra · attacco</span>
+            <span class="pp-tcc-lbl">Team strength · offense</span>
             <div class="pp-fact-chips">${chipsHtml}</div>
         </div>` : '';
 
@@ -2367,7 +3066,7 @@ function teamContextCompact(data) {
     <section class="pm-block pp-block pp-tcc">
         ${header}
         <div class="pp-tcc-body">${nextHtml}${sosHtml}${strengthHtml}</div>
-        <p class="pm-note">Sintesi del contesto squadra per un ${P}. Rosa completa, difesa, calendario e storia nella <a href="#nfl-team/${abbr}">scheda squadra</a>.</p>
+        <p class="pm-note">Sintesi del contesto squadra per un ${P}. Rosa completa, difesa, calendario e storia nella <a href="#nfl-team/${abbr}">team page</a>.</p>
     </section>`;
 }
 
@@ -2379,15 +3078,15 @@ function renderDefPage(section, ctx) {
 
     section.innerHTML = `
     <div class="section-inner gb-page pp-page">
-        <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Indietro</a>
+        <a class="gb-back" href="#" data-pp-back><span aria-hidden="true">←</span> Back</a>
 
-        <h2 class="pp-section-title"><small>01</small> Recap squadra</h2>
+        <h2 class="pp-section-title"><small>01</small> Team recap</h2>
         <header class="mosaic-card mc-wide pp-hero mc-in">
             <div class="pp-recap">
                 <img class="pp-recap-photo" style="border-radius:var(--radius-lg);object-fit:contain;background:transparent;border:none"
                     src="${abbr ? teamLogo(abbr) : 'images/fallback-player.svg'}" alt="${esc(name)}">
                 <div class="pp-recap-body">
-                    <div class="pp-recap-name"><span class="mc-kicker">Difesa · Draft Topina ${year}</span></div>
+                    <div class="pp-recap-name"><span class="mc-kicker">Defense · Draft Topina ${year}</span></div>
                     <h1 class="mc-title">${esc(name)} <span class="allpro-pos pos-def">DEF</span></h1>
                     ${identity ? `<div class="pp-recap-team"><span class="pp-team-div" style="color:${identity.color}">${esc(identity.conf)} · ${esc(identity.division)}</span></div>` : ''}
                     ${factGroup('Topina', [
@@ -2402,7 +3101,7 @@ function renderDefPage(section, ctx) {
         ${teamHistoryBlock(ctx)}
         ${gamelogBlock(full.seasons, 'DEF')}
 
-        <h2 class="pp-section-title"><small>03</small> Contesto squadra</h2>
+        <h2 class="pp-section-title"><small>03</small> Team context</h2>
         ${abbr ? teamYearPicker(ctx.ctx?.season || +year) : ''}
         <div id="pp-team-season-blocks">${teamSeasonBlocksHtml(abbr, 'DEF', ctx)}</div>
         ${teamExtrasBlock(ctx)}
@@ -2420,14 +3119,14 @@ export function defStatsBlock({ ctx, abbr }) {
     if (!ctx?.team?.defense) return '';
     const d = ctx.team.defense, r = ctx.team.ranks?.defense || {};
     const meters = [
-        meterBar('Punti subiti/gara', fmt1(d.papg), r.papg),
-        meterBar('Yard concesse/gara', fmt1(d.totYdsAllowedPg), r.totYdsAllowedPg),
-        meterBar('Yard lancio concesse', fmt1(d.passYdsAllowedPg), r.passYdsAllowedPg),
-        meterBar('Yard corsa concesse', fmt1(d.rushYdsAllowedPg), r.rushYdsAllowedPg),
+        meterBar('Points allowed/game', fmt1(d.papg), r.papg),
+        meterBar('Yards allowed/game', fmt1(d.totYdsAllowedPg), r.totYdsAllowedPg),
+        meterBar('Passing yds allowed', fmt1(d.passYdsAllowedPg), r.passYdsAllowedPg),
+        meterBar('Rushing yds allowed', fmt1(d.rushYdsAllowedPg), r.rushYdsAllowedPg),
         meterBar('Sack', fmt0(d.sacks), r.sacks),
         meterBar('Intercetti', fmt0(d.interceptions), r.interceptions),
-        meterBar('Fumble forzati', fmt0(d.fumblesForced), r.fumblesForced),
-        meterBar('Turnover forzati', fmt0(d.takeaways), r.takeaways),
+        meterBar('Forced fumbles', fmt0(d.fumblesForced), r.fumblesForced),
+        meterBar('Forced turnovers', fmt0(d.takeaways), r.takeaways),
         meterBar('TD difensivi', fmt0(d.defTds), r.defTds),
         meterBar('Passaggi difesi', fmt0(d.passDefended), r.passDefended),
         meterBar('Tackle for loss', fmt0(d.tacklesForLoss), r.tacklesForLoss),
@@ -2440,14 +3139,16 @@ export function defStatsBlock({ ctx, abbr }) {
     ].join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">La difesa · ${abbr} ${ctx.season}${ctx.fallback ? ' (stagione più recente disponibile)' : ''}</span>
+        <span class="mc-kicker">The defense · ${abbr} ${ctx.season}${ctx.fallback ? ' (most recent available season)' : ''}</span>
         <div class="dgt-sos-bars">${meters}</div>
         <div class="pp-fact-chips" style="margin-top:12px">${extraChips}</div>
-        <p class="pm-note">Meter = percentile su 32 squadre; verde = tra le prime 10, rosso = tra le ultime 10.</p>
+        <p class="pm-note">Meter = percentile out of 32 teams; green = top 10, red = bottom 10.</p>
     </section>`;
 }
 
-export function fpaBlock({ ctx }) {
+/** Solo la tabella FPA (senza wrapper): riusata dal blocco fpaBlock e dal blocco
+ *  Analisi difesa della pagina squadra (dove è la parte "fantasy concessi"). */
+export function fpaTableHtml(ctx) {
     if (!ctx?.team?.fpa) return '';
     const rows = POS_LIST.filter(p => p !== 'DEF').map(p => {
         const f = ctx.team.fpa[p];
@@ -2456,15 +3157,22 @@ export function fpaBlock({ ctx }) {
     }).filter(Boolean).join('');
     if (!rows) return '';
     return `
-    <section class="pm-block pp-block">
-        <span class="mc-kicker">Fantasy points concessi per ruolo</span>
         <div class="pm-table-wrap pp-scroll">
             <table class="pm-table pp-table">
-                <thead><tr><th>Ruolo</th><th>FPA lega/gara</th><th>FPA half/gara</th><th>Rank</th></tr></thead>
+                <thead><tr><th>Position</th><th>FPA league/game</th><th>FPA half/game</th><th>Rank</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
-        <p class="pm-note">Rank 1ª = la difesa che concede più punti fantasy a quel ruolo (matchup morbido per gli avversari).</p>
+        <p class="pm-note">Rank 1st = the defense that allows the most fantasy points to that position (soft matchup for opponents).</p>`;
+}
+
+export function fpaBlock({ ctx }) {
+    const table = fpaTableHtml(ctx);
+    if (!table) return '';
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Fantasy points allowed per position</span>
+        ${table}
     </section>`;
 }
 
@@ -2474,7 +3182,7 @@ export function teamExtrasBlock({ teamExtras, abbr }) {
     const { trades, ats, history, draftHistory } = teamExtras;
 
     // Anteprima visibile + il resto in un dettaglio espandibile (mai troncato senza modo di vedere tutto)
-    const tradeRow = t => `<tr><td>${t.date ? new Date(t.date).toLocaleDateString('it-IT') : '—'}</td><td>${t.received ? esc(t.received) : '—'}</td><td>${t.player ? esc(t.player) : (t.pick ? esc(t.pick) : '—')}${t.conditional ? ' <small style="color:var(--text-muted)">(condizionale)</small>' : ''}</td></tr>`;
+    const tradeRow = t => `<tr><td>${t.date ? new Date(t.date).toLocaleDateString('en-US') : '—'}</td><td>${t.received ? esc(t.received) : '—'}</td><td>${t.player ? esc(t.player) : (t.pick ? esc(t.pick) : '—')}${t.conditional ? ' <small style="color:var(--text-muted)">(condizionale)</small>' : ''}</td></tr>`;
     const tradesHtml = trades?.length ? `
         <span class="mc-kicker">Trade recenti</span>
         <div class="pm-table-wrap pp-scroll">
@@ -2492,20 +3200,20 @@ export function teamExtrasBlock({ teamExtras, abbr }) {
         </details>` : ''}` : '';
 
     const atsTiles = ats ? [
-        tile(`${ats.wins}-${ats.losses}${ats.pushes ? `-${ats.pushes}` : ''}`, 'Record ATS complessivo'),
-        ats.home ? tile(`${ats.home.wins}-${ats.home.losses}`, 'ATS in casa') : '',
-        ats.away ? tile(`${ats.away.wins}-${ats.away.losses}`, 'ATS in trasferta') : '',
+        tile(`${ats.wins}-${ats.losses}${ats.pushes ? `-${ats.pushes}` : ''}`, 'Overall ATS record'),
+        ats.home ? tile(`${ats.home.wins}-${ats.home.losses}`, 'ATS at home') : '',
+        ats.away ? tile(`${ats.away.wins}-${ats.away.losses}`, 'ATS away') : '',
         ats.favorite ? tile(`${ats.favorite.wins}-${ats.favorite.losses}`, 'ATS da favorita') : '',
         ats.underdog ? tile(`${ats.underdog.wins}-${ats.underdog.losses}`, 'ATS da underdog') : '',
     ].filter(Boolean).join('') : '';
-    const atsHtml = atsTiles ? `<span class="mc-kicker" style="margin-top:16px">Record contro lo spread (ESPN)</span><div class="pm-tiles pp-tiles">${atsTiles}</div>` : '';
+    const atsHtml = atsTiles ? `<span class="mc-kicker" style="margin-top:16px">Record against the spread (ESPN)</span><div class="pm-tiles pp-tiles">${atsTiles}</div>` : '';
 
     const draftRow = p => `<tr><td>${p.season ?? '—'}</td><td>${p.round ?? '—'}</td><td>${p.pick ?? '—'}</td><td>${esc(p.name)}</td><td>${esc(p.pos || '—')}</td><td>${p.college ? esc(p.college) : '—'}</td><td>${p.careerAV ?? '—'}</td></tr>`;
     const draftHtml = draftHistory?.length ? `
-        <span class="mc-kicker" style="margin-top:16px">Draft NFL storico della squadra</span>
+        <span class="mc-kicker" style="margin-top:16px">Team historical NFL draft</span>
         <div class="pm-table-wrap pp-scroll">
             <table class="pm-table pp-table">
-                <thead><tr><th>Anno</th><th>Round</th><th>Pick</th><th>Nome</th><th>Pos</th><th>College</th><th>AV carriera</th></tr></thead>
+                <thead><tr><th>Year</th><th>Round</th><th>Pick</th><th>Name</th><th>Pos</th><th>College</th><th>Career AV</th></tr></thead>
                 <tbody>${draftHistory.slice(0, 8).map(draftRow).join('')}</tbody>
             </table>
         </div>
@@ -2517,16 +3225,22 @@ export function teamExtrasBlock({ teamExtras, abbr }) {
             </div>
         </details>` : ''}` : '';
 
+    const histNode = (h) => {
+        const yr = h.season?.year ?? h.year ?? (typeof h.season === 'number' ? h.season : null);
+        const label = h.displayName || h.name || h.season?.displayName || '';
+        if (!label && yr == null) return '';
+        return `<div class="pp-tline-node"><span class="pp-tline-dot"></span>${yr != null ? `<span class="pp-tline-yr">${esc(String(yr))}</span>` : ''}<span class="pp-tline-txt">${esc(String(label))}</span></div>`;
+    };
     const historyHtml = history?.length ? `
-        <span class="mc-kicker" style="margin-top:16px">Storia franchigia (ESPN)</span>
-        <ul class="pp-awards-list">${history.slice(0, 10).map(h => `<li>${esc(h.displayName || h.name || JSON.stringify(h))}</li>`).join('')}</ul>` : '';
+        <span class="mc-kicker" style="margin-top:16px">Franchise history (ESPN)</span>
+        <div class="pp-tline">${history.slice(0, 12).map(histNode).filter(Boolean).join('')}</div>` : '';
 
     if (!tradesHtml && !atsHtml && !draftHtml && !historyHtml) return '';
     return `
     <section class="pm-block pp-block">
         <span class="mc-kicker">Franchigia · ${abbr}</span>
         ${tradesHtml}${atsHtml}${draftHtml}${historyHtml}
-        <p class="pm-note">Trade e draft storico da nflverse (Pro Football Reference); ATS e storia franchigia da ESPN dal vivo.</p>
+        <p class="pm-note">Trades and historical draft from nflverse (Pro Football Reference); ATS and franchise history from live ESPN.</p>
     </section>`;
 }
 
