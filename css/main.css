@@ -13804,3 +13804,46 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
+
+/* Etichetta volante dei punti appena fatti, accanto alla bolla del giocatore.
+   Sta nello slot e non dentro .slot-photo, che ha overflow: hidden per
+   ritagliare la foto tonda e la taglierebbe via. */
+.live-slot,
+.live-chip,
+.live-cmp-row {
+    position: relative;
+}
+
+.live-pop {
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    margin-left: 16px;
+    z-index: 6;
+    padding: 1px 6px;
+    border-radius: var(--pill-radius);
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.live-pop.pos {
+    color: var(--accent-green);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-green) 55%, transparent);
+}
+
+.live-pop.neg {
+    color: var(--live-red, var(--accent-red));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-red) 55%, transparent);
+}
+
+/* nel confronto la riga è orizzontale: l'etichetta va sopra la foto */
+.live-cmp-row .live-pop {
+    top: -2px;
+    left: 34px;
+    margin-left: 0;
+}
