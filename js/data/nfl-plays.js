@@ -27,6 +27,24 @@ const athleteId = (ref) => (String(ref || '').match(/\/athletes\/(\d+)/) || [])[
 const teamId = (ref) => (String(ref || '').match(/\/teams\/(\d+)/) || [])[1] || null;
 
 /**
+ * Yard da accreditare al giocatore.
+ *
+ * Di norma `statYardage`. Ma quando la giocata ha una penalità accettata quel
+ * campo diventa il risultato NETTO dell'azione (guadagno meno l'arretramento),
+ * mentre al giocatore le statistiche contano le yard davvero fatte — quelle
+ * scritte nel testo. Verificato su una partita intera contro il box score
+ * ufficiale: senza questa distinzione una ricezione da 3 yard con penalità
+ * veniva contata −17, e sballava sia il ricevitore sia il quarterback.
+ */
+function playYards(p, text) {
+    const raw = Number(p.statYardage) || 0;
+    if (!p.isPenalty) return raw;
+    const m = text.match(/for (-?\d+) yards?/i);
+    if (m) return Number(m[1]);
+    return /for no gain/i.test(text) ? 0 : raw;
+}
+
+/**
  * Giocata normalizzata:
  *   { id, seq, type, text, yards, scoring, period, clock, ts,
  *     actors: { passer: '11252', receiver: '3123076', ... },
@@ -41,12 +59,13 @@ function normalizePlay(p) {
         if (id && !actors[part.type]) actors[part.type] = id;
     }
     const tp = p.teamParticipants || [];
+    const text = p.text || '';
     return {
         id: String(p.id),
         seq: Number(p.sequenceNumber) || 0,
         type: p.type?.text || '',
-        text: p.text || '',
-        yards: Number(p.statYardage) || 0,
+        text,
+        yards: playYards(p, text),
         scoring: !!p.scoringPlay,
         period: p.period?.number ?? null,
         clock: p.clock?.displayValue || null,

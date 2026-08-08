@@ -16,7 +16,7 @@ import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonC
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
 import { TEAMS } from './team.js?v=73';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=1';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=9';
 import { scorePlay } from '../data/scoring.js?v=61';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
