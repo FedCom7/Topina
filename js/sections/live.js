@@ -234,7 +234,12 @@ function rosterIndex() {
  * corso, senza filtrare per rosa. Serve a vedere il widget fuori stagione —
  * fuori da qui non cambia niente del comportamento reale.
  */
-const pbpDemo = () => (typeof window !== 'undefined' && window.TOPINA_PBP_DEMO) || '';
+const pbpDemo = () => {
+    if (typeof window === 'undefined') return '';
+    // ?pbpdemo=401772842 così basta un link, senza toccare index.html
+    const fromUrl = new URLSearchParams(location.search).get('pbpdemo');
+    return fromUrl || window.TOPINA_PBP_DEMO || '';
+};
 let pbpDemoQueue = null;
 
 /** Partite NFL in corso in cui gioca almeno un nostro tesserato. */
