@@ -20,7 +20,7 @@ import { initTeams } from './sections/teams.js?v=53';
 import { initGame } from './sections/game.js?v=71';
 import { initAnalysis } from './sections/analysis.js?v=66';
 import { initMagazine } from './sections/magazine.js?v=70';
-import { initLive } from './sections/live.js?v=175';
+import { initLive } from './sections/live.js?v=151';
 import { initNavbar } from './ui/navbar.js?v=58';
 import { startAutoAbbr } from './utils/team-abbr.js?v=1';
 
