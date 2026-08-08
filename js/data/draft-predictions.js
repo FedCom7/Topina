@@ -16,12 +16,12 @@
  * RNG seedato per anno: risultati stabili tra i reload.
  */
 
-import { getSeasonConfig } from '../data.js?v=32';
-import { getTeamStats } from './nfl-team-stats.js?v=11';
-import { canonAbbr } from './nfl-schedule.js?v=11';
-import { resolveDefAbbrSync } from './player-full.js?v=13';
-import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=11';
-import { perGameCv } from './context-score.js?v=7';
+import { getSeasonConfig } from '../data.js?v=33';
+import { getTeamStats } from './nfl-team-stats.js?v=19';
+import { canonAbbr } from './nfl-schedule.js?v=20';
+import { resolveDefAbbrSync } from './player-full.js?v=29';
+import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=20';
+import { perGameCv } from './context-score.js?v=20';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // FLEX gestito a parte (pool RB/WR)
 const FLEX_POS = FLEX_ELIGIBLE;

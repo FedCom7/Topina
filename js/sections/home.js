@@ -16,12 +16,13 @@
  * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=32';
+import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=33';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
-import { getHonorsBundle } from '../data/honors.js?v=13';
-import { electHallOfFame } from '../data/hall-of-fame.js?v=13';
-import { TEAMS } from './team.js?v=23';
-import { teamsCardsHTML } from './teams.js?v=14';
+import { getHonorsBundle } from '../data/honors.js?v=29';
+import { electHallOfFame } from '../data/hall-of-fame.js?v=26';
+import { TEAMS } from './team.js?v=44';
+import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=33';
+import { teamsCardsHTML } from './teams.js?v=25';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
@@ -53,7 +54,7 @@ export async function initHome() {
         hydrateHeadshots(wrap); // fire-and-forget: il mosaico dipinge subito coi fallback
     } catch (e) {
         console.error('Home load error:', e);
-        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Impossibile caricare i dati della lega</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Could not load league data</p></div>`;
     }
 }
 
@@ -70,13 +71,13 @@ function detectPhase(season, bundle) {
 
 function phaseLabel({ phase, season }) {
     switch (phase.type) {
-        case 'REGULAR_SEASON': return `Stagione ${season.year} · Week ${phase.week}`;
+        case 'REGULAR_SEASON': return `Season ${season.year} · Week ${phase.week}`;
         case 'PLAYOFFS': return `Playoffs ${season.year}`;
         case 'SB_WEEK': return `Super Bowl Week ${season.year}`;
         default: {
             const days = daysToKickoff(season.year);
             return days > 0
-                ? `⏳ Offseason · Kickoff ${+season.year + 1} tra ${days} giorni`
+                ? `⏳ Offseason · Kickoff ${+season.year + 1} in ${days} days`
                 : '⏳ Offseason';
         }
     }
@@ -227,7 +228,7 @@ function cardHero(ctx) {
                 <span class="mc-word mc-word--outline">Topina</span>
                 <span class="mc-word mc-word--fill">League</span>
             </h1>
-            <p class="mc-tagline">Quattro franchise. Una corona. Dal 2019.</p>
+            <p class="mc-tagline">Four franchises. One crown. Since 2019.</p>
         </div>
     </article>`;
 }
@@ -238,10 +239,10 @@ function cardTeams({ league }) {
     <div class="mc-rail mc-teams-block">
         <header class="mc-rail-head">
             <div>
-                <span class="mc-kicker">I franchise</span>
-                <h2 class="mc-title">Quattro contendenti</h2>
+                <span class="mc-kicker">The franchises</span>
+                <h2 class="mc-title">Four contenders</h2>
             </div>
-            <a class="mc-cta" href="#teams">Tutti i franchise <span aria-hidden="true">→</span></a>
+            <a class="mc-cta" href="#teams">All franchises <span aria-hidden="true">→</span></a>
         </header>
         <div class="teams-index">${teamsCardsHTML(league)}</div>
     </div>`;
@@ -252,18 +253,23 @@ function cardNumbers({ league }) {
     const totalPts = TEAM_KEY_LIST.reduce((s, k) => s + league.allTime[k].pf, 0);
     const most = TEAM_KEY_LIST.map(k => ({ k, n: league.allTime[k].sbWins.length }))
         .sort((a, b) => b.n - a.n)[0];
+    // Il nome della squadra è il dato, il conteggio è una postilla: "Lasers ×3"
+    // si legge meglio di "Lasers (3)", dove la parentesi sembrava un anno.
     const tiles = [
-        [league.seasons.length, 'Stagioni'],
-        [fmtInt(totalGames), 'Partite'],
-        [fmtInt(totalPts), 'Punti totali'],
-        [`${TEAMS[most.k].name} (${most.n})`, 'Più titoli'],
-    ].map(([v, l]) => `
-        <div class="mc-num"><span class="mc-num-value">${v}</span><span class="mc-num-label">${l}</span></div>`).join('');
+        [league.seasons.length, 'Seasons'],
+        [fmtInt(totalGames), 'Games'],
+        [fmtInt(totalPts), 'Total points'],
+        [TEAMS[most.k].name, 'Most titles', `×${most.n}`],
+    ].map(([v, l, note]) => `
+        <div class="mc-num">
+            <span class="mc-num-value">${v}${note ? `<small class="mc-num-note">${note}</small>` : ''}</span>
+            <span class="mc-num-label">${l}</span>
+        </div>`).join('');
     return card({
-        kicker: 'Dal 2019',
-        title: 'La lega in numeri',
+        kicker: 'Since 2019',
+        title: 'The league by the numbers',
         body: `<div class="mc-nums">${tiles}</div>`,
-        cta: 'Record e statistiche', href: '#stats',
+        cta: 'Records & stats', href: '#stats',
     });
 }
 
@@ -306,9 +312,9 @@ function cardHonors({ bundle, season }) {
         }).join('');
     return card({
         kicker: `Topina Honors ${season.year}`,
-        title: 'I premiati della stagione',
+        title: "This season's award winners",
         body: `<div class="mc-rows">${rows}</div>`,
-        cta: 'Tutti i premi', href: '#honors',
+        cta: 'All the awards', href: '#honors',
     });
 }
 
@@ -321,15 +327,15 @@ async function cardHallOfFame({ season }) {
     const team = teamKey ? TEAMS[teamKey] : null;
     return card({
         glow: team?.color,
-        kicker: `Hall of Fame · Classe ${latest.year}`,
-        title: 'L’ultimo eletto',
+        kicker: `Hall of Fame · Class of ${latest.year}`,
+        title: 'The latest inductee',
         body: `
         <div class="mc-hof-feature" style="--team-color:${team?.color || 'var(--accent-amber)'}">
             ${playerAvatar(p.name, p.nflTeam, p.position, p.lastSeason, 'mc-avatar--gold mc-avatar--hof')}
             <span class="mc-hof-name">${p.name}</span>
             <span class="mc-hof-role">${p.position}</span>
         </div>`,
-        cta: 'La Hall of Fame', href: '#halloffame',
+        cta: 'The Hall of Fame', href: '#halloffame',
     });
 }
 
@@ -337,9 +343,9 @@ function cardHonorsSealed({ season }) {
     return card({
         glow: 'var(--accent-amber)',
         kicker: `Topina Honors ${season.year}`,
-        title: 'Le buste sono sigillate',
-        body: `<p class="mc-text">Regular season in archivio: i premi sono decisi e si svelano alla vigilia del Super Bowl.</p>`,
-        cta: 'Guarda i finalisti', href: '#honors',
+        title: 'The envelopes are sealed',
+        body: `<p class="mc-text">Regular season in the books: the winners are set and will be revealed on Super Bowl eve.</p>`,
+        cta: 'See the finalists', href: '#honors',
     });
 }
 
@@ -357,9 +363,9 @@ function cardAllPro({ bundle, season }) {
         </div>`).join('');
     return card({
         kicker: `All-Pro Team ${season.year}`,
-        title: 'La formazione ideale',
+        title: 'The ideal lineup',
         body: `<div class="mc-rows">${rows}</div>`,
-        cta: 'First e Second Team', href: '#allpro',
+        cta: 'First and Second Team', href: '#allpro',
     });
 }
 
@@ -368,14 +374,14 @@ function cardCountdown({ season }) {
     if (days <= 0) return '';
     return card({
         span: 'wide', cls: 'mc-center', parallax: true,
-        kicker: 'Prossimo capitolo',
-        title: `Stagione ${+season.year + 1}`,
+        kicker: 'Next chapter',
+        title: `Season ${+season.year + 1}`,
         body: `
         <div class="mc-countdown" data-depth="0.08">
             <span class="mc-countdown-days">${days}</span>
-            <span class="mc-countdown-label">giorni al kickoff</span>
+            <span class="mc-countdown-label">days to kickoff</span>
         </div>`,
-        cta: 'Ripassa i draft del passato', href: '#draft',
+        cta: 'Look back at past drafts', href: '#draft',
     });
 }
 
@@ -387,22 +393,35 @@ function cardLastWeek({ season, phase }) {
         const g = season.perTeam[key]?.games.find(x => x.week === phase.week);
         if (!g || !g.opp) return;
         seen.add(key); seen.add(g.opp);
-        const winSide = g.won ? 'mc-score-row--w1' : 'mc-score-row--w2';
+        const winSide = g.won ? 'mc-vs-row--w1' : 'mc-vs-row--w2';
         rows.push(`
-        <div class="mc-score-row mc-score-row--vs ${winSide}"
+        <div class="mc-vs-row ${winSide}"
              style="--t1:${TEAMS[key]?.color || 'transparent'};--t2:${TEAMS[g.opp]?.color || 'transparent'}">
-            ${teamChip(key)}
-            <span class="mc-score"><b class="${g.won ? 'w' : ''}">${fmtScore(g.pts)}</b> – <b class="${!g.won ? 'w' : ''}">${fmtScore(g.oppPts)}</b></span>
-            ${teamChip(g.opp)}
+            ${teamCrest(key)}
+            <span class="mc-vs-score mc-vs-score--l${g.won ? ' w' : ''}">${fmtScore(g.pts)}</span>
+            <span class="mc-vs-dash">–</span>
+            <span class="mc-vs-score mc-vs-score--r${!g.won ? ' w' : ''}">${fmtScore(g.oppPts)}</span>
+            ${teamCrest(g.opp)}
         </div>`);
     });
     if (!rows.length) return '';
     return card({
+        cls: 'mc-results-card',
         kicker: `Week ${phase.week}`,
-        title: 'Gli ultimi risultati',
-        body: `<div class="mc-rows">${rows.join('')}</div>`,
+        title: 'Latest results',
+        body: `<div class="mc-vs-rows">${rows.join('')}</div>`,
         cta: 'Game Center', href: '#game-center',
     });
+}
+
+/** Solo lo stemma, grande: nei risultati il logo basta a dire chi è. */
+function teamCrest(key) {
+    const t = TEAMS[key];
+    if (!t) return '<span class="mc-vs-crest"></span>';
+    // --crest-scale pareggia la dimensione *disegnata* dei loghi (vedi
+    // TEAM_LOGO_SCALE): senza, Sommo sembra molto più piccolo degli altri.
+    return `<span class="mc-vs-crest" style="--team-color:${t.color};--crest-scale:${TEAM_LOGO_SCALE[key] || 1}" title="${t.name}">
+        <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'"></span>`;
 }
 
 function cardStandings({ season }) {
@@ -418,10 +437,10 @@ function cardStandings({ season }) {
     }).join('');
     return card({
         watermarkKey: keyOf(season.standings[0]?.name),
-        kicker: `Stagione ${season.year}`,
-        title: 'La corsa ai playoff',
+        kicker: `Season ${season.year}`,
+        title: 'The playoff race',
         body: `<div class="mc-rows">${rows}</div>`,
-        cta: 'Classifica completa', href: '#standings',
+        cta: 'Full standings', href: '#standings',
     });
 }
 
@@ -441,9 +460,9 @@ function cardMvpRace({ bundle, season }) {
         </div>`).join('');
     return card({
         kicker: `Topina Honors ${season.year}`,
-        title: 'La corsa all’MVP',
+        title: 'The MVP race',
         body: `<div class="mc-rows">${rows}</div>`,
-        cta: 'Tutti i premi', href: '#honors',
+        cta: 'All the awards', href: '#honors',
     });
 }
 
@@ -469,9 +488,9 @@ async function cardPlayoffs({ season }) {
     return card({
         span: 'wide',
         kicker: `Playoffs ${season.year}`,
-        title: 'Semifinali: dentro o fuori',
+        title: 'Semifinals: win or go home',
         body: `<div class="mc-rows">${body}</div>`,
-        cta: 'La playoff picture', href: '#standings',
+        cta: 'The playoff picture', href: '#standings',
     });
 }
 
@@ -499,10 +518,10 @@ async function cardSuperBowl({ season }) {
     const bg = k1 && k2 ? `Wallpapers/sb_${[k1, k2].sort().join('_')}.png` : 'Wallpapers/stadium_bg.png';
     return card({
         span: 'wide', cls: 'mc-center', parallax: true, bg,
-        kicker: `Super Bowl · Stagione ${season.year}`,
-        title: 'Tutto in una notte',
+        kicker: `Super Bowl · Season ${season.year}`,
+        title: 'It all comes down to one night',
         body: `<div class="mc-sb">${chip(t1)}<span class="mc-sb-vs">VS</span>${chip(t2)}</div>`,
-        cta: 'Segui nel Game Center', href: '#game-center',
+        cta: 'Follow it in the Game Center', href: '#game-center',
     });
 }
 
@@ -524,10 +543,10 @@ function railChampions({ league }) {
             });
         });
     return rail({
-        kicker: 'Albo d\'oro',
-        title: 'Tutti i campioni',
+        kicker: 'Hall of champions',
+        title: 'Every champion',
         cards,
-        cta: 'La storia completa', href: '#history',
+        cta: 'The full history', href: '#history',
     });
 }
 
@@ -553,11 +572,11 @@ async function railTopPerformances({ season, phase }) {
         media: playerAvatar(p.name, p.nfl, p.pos, season.year, 'mc-avatar--rail')
             + `<span class="mc-rail-big mc-rail-big--sm">${fmtPts(p.pts)}</span>`,
         title: p.name,
-        sub: 'punti fantasy',
+        sub: 'fantasy points',
     }));
     return rail({
         kicker: `Week ${phase.week}`,
-        title: 'Top performance',
+        title: 'Top performances',
         cards,
         cta: 'Game Center', href: '#game-center',
     });
@@ -575,13 +594,13 @@ function railMvpRace({ bundle, season }) {
             media: playerAvatar(p.name, p.nfl, p.pos, season?.year, `mc-avatar--rail${i === 0 ? ' mc-avatar--gold' : ''}`)
                 + `<span class="mc-rail-big mc-rail-big--sm">${fmtPts(p.total)}</span>`,
             title: p.name,
-            sub: 'punti in stagione',
+            sub: 'season points',
         }));
     return rail({
         kicker: 'Topina Honors',
-        title: 'La corsa all\'MVP',
+        title: 'The MVP race',
         cards,
-        cta: 'I finalisti', href: '#honors',
+        cta: 'The finalists', href: '#honors',
     });
 }
 
@@ -605,9 +624,9 @@ function railHonors({ bundle, season }) {
         });
     return rail({
         kicker: 'Topina Honors',
-        title: 'I premiati',
+        title: 'The award winners',
         cards,
-        cta: 'La cerimonia completa', href: '#honors',
+        cta: 'The full ceremony', href: '#honors',
     });
 }
 

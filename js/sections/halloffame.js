@@ -8,11 +8,11 @@
  * (1° e 2° team). Un eletto all'anno.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=32';
-import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=13';
+import { CURRENT_SEASON } from '../data.js?v=33';
+import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=26';
 import { playerImageService } from '../services/player-image-service.js?v=15';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=25';
-import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=13';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=45';
+import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=29';
 
 let initialized = false;
 
@@ -26,7 +26,7 @@ export function initHallOfFame() {
 async function load() {
     const wrap = document.getElementById('hof-content');
     if (!wrap) return;
-    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Spoglio delle schede...</p></div>`;
+    wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Counting the ballots...</p></div>`;
 
     try {
         const classes = await electHallOfFame();
@@ -45,7 +45,7 @@ async function load() {
         render(wrap, inductees);
     } catch (e) {
         console.error('Hall of Fame error:', e);
-        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Errore nel caricamento: ${e.message}</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Error loading: ${e.message}</p></div>`;
     }
 }
 
@@ -55,7 +55,7 @@ async function load() {
 
 function render(wrap, inductees) {
     if (!inductees.length) {
-        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun giocatore ancora eletto</p></div>`;
+        wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No player inducted yet</p></div>`;
         return;
     }
 
@@ -63,18 +63,18 @@ function render(wrap, inductees) {
     <div class="hof-grid">
         ${inductees.map(({ career: c, year, info }, i) => `
         <div class="hof-card-wrap" style="--card-i:${i}">
-            <div class="hof-card-click" role="button" tabindex="0" aria-label="${c.name} — apri la scheda"
+            <div class="hof-card-click" role="button" tabindex="0" aria-label="${c.name} — open the card"
                  data-player-modal data-player-name="${c.name}" data-pos="${c.position || ''}"
                  data-nfl="${c.nflTeam || ''}" data-year="${c.lastSeason || CURRENT_SEASON}">
                 ${paniniCard({ name: c.name, pos: c.position, nfl: c.nflTeam, info, career: c, hofYear: year })}
             </div>
             <div class="hof-caption">
                 <span class="hof-caption-name">${c.name}</span>
-                <span class="hof-caption-class">Classe ${year}</span>
+                <span class="hof-caption-class">Class of ${year}</span>
             </div>
         </div>`).join('')}
     </div>
-    <p class="hof-footnote">Eleggibilità: 2 anni dal ritiro, minimo ${MIN_SEASONS} stagioni in lega. Un eletto all'anno dal ${FIRST_CLASS_YEAR}; i candidati non eletti restano in ballottaggio. Clicca una carta per aprire la scheda.</p>`;
+    <p class="hof-footnote">Eligibility: 2 years after retirement, minimum ${MIN_SEASONS} seasons in the league. One inductee per year since ${FIRST_CLASS_YEAR}; candidates not elected stay on the ballot. Click a card to open the profile.</p>`;
 
     hydrateImages(wrap);
 }

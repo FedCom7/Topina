@@ -16,11 +16,11 @@
 import {
     fetchFantasyData, displayName, SEASONS, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
-} from '../data.js?v=32';
-import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=23';
+} from '../data.js?v=33';
+import { TEAM_KEYS } from '../data/team-config.js?v=33';
+import { TEAMS } from './team.js?v=44';
 import { getLeagueData } from '../data/league-data.js?v=11';
-import { getHonorsBundle } from '../data/honors.js?v=13';
+import { getHonorsBundle } from '../data/honors.js?v=29';
 import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=13';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
@@ -89,7 +89,7 @@ export function initMagazine() {
     container.innerHTML = `
         <div class="year-selector" id="mg-year-selector"></div>
         <div class="week-selector" id="mg-week-selector"></div>
-        <div id="mg-paper"><div class="loading-state"><div class="spinner"></div><p>In stampa...</p></div></div>`;
+        <div id="mg-paper"><div class="loading-state"><div class="spinner"></div><p>Printing...</p></div></div>`;
 
     document.getElementById('mg-year-selector').innerHTML = SEASONS.map(y =>
         `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`).join('');
@@ -107,12 +107,12 @@ export function initMagazine() {
 async function loadYear(year) {
     currentYear = year;
     const paper = document.getElementById('mg-paper');
-    paper.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>In stampa l'edizione ${year}...</p></div>`;
+    paper.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Printing the ${year} edition...</p></div>`;
 
     if (!_cache[year]) _cache[year] = await fetchFantasyData(year);
     const data = _cache[year];
     if (!data?.weeks) {
-        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessuna edizione per il ${year}</p></div>`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">No edition for ${year}</p></div>`;
         document.getElementById('mg-week-selector').innerHTML = '';
         return;
     }
@@ -124,7 +124,7 @@ async function loadYear(year) {
         if (wk?.matchups?.some(m => m.team1 && m.team2 && (P(m.team1.score) > 0 || P(m.team2.score) > 0))) played.push(w);
     }
     if (!played.length) {
-        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">Stagione ${year} non ancora iniziata</p></div>`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">${year} season not started yet</p></div>`;
         document.getElementById('mg-week-selector').innerHTML = '';
         return;
     }
@@ -179,7 +179,7 @@ async function renderEdition() {
         second = sorted[1] || null;
     }
     if (!main) {
-        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessuna partita in questa week</p></div>`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">No matchup this week</p></div>`;
         return;
     }
 

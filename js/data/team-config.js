@@ -41,6 +41,24 @@ export const TEAM_LOGOS = {
     'Sommo': 'Team Logo/team_sommo_transparent.png'
 };
 
+/**
+ * Correzione ottica dei loghi: i quattro PNG sono quadrati, ma il disegno
+ * occupa una porzione diversa della tela (misurata sul bounding box opaco:
+ * lasers 79% dell'altezza, oscurus 74%, capi 70%, sommo 59%). Affiancati alla
+ * stessa dimensione, Sommo sembra piccolo e Lasers grande.
+ *
+ * I fattori pareggiano l'altezza disegnata e sono tutti <= 1, cioè si scala
+ * solo verso il basso: scalando verso l'alto il logo uscirebbe dal proprio
+ * riquadro e verrebbe tagliato. Per ingrandirli si allarga il riquadro, non
+ * questi valori. Da applicare come `scale` — proporzioni intatte.
+ */
+export const TEAM_LOGO_SCALE = {
+    capi: 0.845,
+    lasers: 0.744,
+    oscurus: 0.794,
+    sommo: 1,
+};
+
 // Stadium background images for Super Bowl matchups
 export const STADIUM_IMAGES = {
     'capi_lasers': 'images/sb_capi_lasers.png',

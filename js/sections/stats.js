@@ -1,7 +1,7 @@
-import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=32';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=23';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=26';
+import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=33';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=33';
+import { TEAMS } from './team.js?v=44';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=38';
 
 let loaded = false;
 
@@ -608,8 +608,8 @@ function renderRecords(stats) {
 
         <div class="an-avg-toggle st-record-mode-toggle">
             <button class="an-avg-pill st-record-mode-pill${recordMode === 'game' ? ' active' : ''}" data-record-mode="game">Per Game</button>
-            <button class="an-avg-pill st-record-mode-pill${recordMode === 'season' ? ' active' : ''}" data-record-mode="season">Per Stagione</button>
-            <button class="an-avg-pill st-record-mode-pill${recordMode === 'career' ? ' active' : ''}" data-record-mode="career">Per Carriera</button>
+            <button class="an-avg-pill st-record-mode-pill${recordMode === 'season' ? ' active' : ''}" data-record-mode="season">Per Season</button>
+            <button class="an-avg-pill st-record-mode-pill${recordMode === 'career' ? ' active' : ''}" data-record-mode="career">Per Career</button>
         </div>
         <div class="record-tiles">${playerTiles.join('')}</div>
 
@@ -633,7 +633,7 @@ function renderRecords(stats) {
             ${leaderPanel('Extra Points — K', stats.top5.kPat)}
         </div>
 
-        <h3 class="an-sub-title st-leader-sub">Punti Fantasy di Carriera per Ruolo</h3>
+        <h3 class="an-sub-title st-leader-sub">Career Fantasy Points by Position</h3>
         <div class="st-leader-grid st-leader-grid--3">
             ${leaderPanel('QB', stats.top5.ptsQB, 1)}
             ${leaderPanel('RB', stats.top5.ptsRB, 1)}
@@ -854,7 +854,7 @@ function renderPlayerProdCharts() {
         <h3 class="an-sub-title">Player Production by Role</h3>
         ${legendOf(roleSeries)}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, chartMarkersCache)}<div class="an-chart-tooltip" hidden></div></div>
-        <p class="an-footnote">${playerViewMode === 'starters' ? 'Solo titolari.' : 'Player production includes bench points.'}</p>
+        <p class="an-footnote">${playerViewMode === 'starters' ? 'Starters only.' : 'Player production includes bench points.'}</p>
     `;
     el.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
 }
@@ -879,9 +879,9 @@ function renderRoleDistChart() {
     if (!roleDist) return;
     const byRole = playerViewMode === 'starters' ? byRoleStartersCache : byRoleCache;
     roleDist.innerHTML = `
-        <h3 class="an-sub-title">Punteggi settimanali per ruolo</h3>
+        <h3 class="an-sub-title">Weekly scores by position</h3>
         <div class="an-chart">${buildRoleDistribution(byRole)}</div>
-        <p class="an-footnote">Ogni punto è una prestazione settimanale (${playerViewMode === 'starters' ? 'solo titolari' : 'titolari e panchina'}, tutte le stagioni). La banda è ±1 deviazione standard attorno alla media (linea verticale).</p>
+        <p class="an-footnote">Each dot is a weekly performance (${playerViewMode === 'starters' ? 'starters only' : 'starters and bench'}, all seasons). The band is ±1 standard deviation around the average (vertical line).</p>
     `;
 }
 
@@ -902,7 +902,7 @@ function renderCharts(stats) {
         if (diff !== 0) {
             markers.push({
                 x: seasons[i],
-                label: `${diff > 0 ? '+' : '−'}${Math.abs(diff)} giornat${Math.abs(diff) === 1 ? 'a' : 'e'}`,
+                label: `${diff > 0 ? '+' : '−'}${Math.abs(diff)} week${Math.abs(diff) === 1 ? '' : 's'}`,
             });
         }
     }
@@ -920,24 +920,24 @@ function renderCharts(stats) {
     el.innerHTML = `
         <h2 class="records-title">Trends</h2>
 
-        <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:8px;">Andamento Squadre</h2>
-        <p class="st-block-desc">I punteggi delle 4 squadre stagione per stagione: quanto rendono in campo, quanto è costante il loro punteggio, e come si comportano le loro scelte di gestione (draft, mercato, panchina) nel tempo.</p>
+        <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:8px;">Team Trends</h2>
+        <p class="st-block-desc">The 4 teams' scores season by season: how they perform on the field, how consistent their scoring is, and how their management choices (draft, market, bench) hold up over time.</p>
 
         <h3 class="an-sub-title">Team Points by Season</h3>
         ${legendOf(teamSeries)}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(teamSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
-        <p class="an-footnote">Playoffs and Super Bowl included. Dashed lines mark seasons where the number of giornate changed.</p>
+        <p class="an-footnote">Playoffs and Super Bowl included. Dashed lines mark seasons where the number of weeks changed.</p>
 
         <div id="charts-team-rest">
-            <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
+            <div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>
         </div>
 
-        <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Andamento Giocatori</h2>
-        <p class="st-block-desc">Quanti punti producono complessivamente i giocatori della lega ogni anno, e come si ripartiscono tra i ruoli (QB, RB, WR, TE, K, DEF).</p>
+        <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Player Trends</h2>
+        <p class="st-block-desc">How many points the league's players produce overall each year, and how they split across positions (QB, RB, WR, TE, K, DEF).</p>
 
         <div class="an-avg-toggle st-player-mode-toggle">
-            <button class="an-avg-pill st-player-mode-pill${playerViewMode === 'all' ? ' active' : ''}" data-player-mode="all">Tutti</button>
-            <button class="an-avg-pill st-player-mode-pill${playerViewMode === 'starters' ? ' active' : ''}" data-player-mode="starters">Solo Titolari</button>
+            <button class="an-avg-pill st-player-mode-pill${playerViewMode === 'all' ? ' active' : ''}" data-player-mode="all">All</button>
+            <button class="an-avg-pill st-player-mode-pill${playerViewMode === 'starters' ? ' active' : ''}" data-player-mode="starters">Starters Only</button>
         </div>
         <div id="player-trend-charts"></div>
 
@@ -1101,9 +1101,9 @@ async function renderAdvancedCharts(markers) {
             ${legendOf(benchSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
 
-            <h3 class="an-sub-title">Margine: Vittorie vs Sconfitte</h3>
+            <h3 class="an-sub-title">Margin: Wins vs Losses</h3>
             <div class="an-chart">${buildMarginDotPlot(teamMarginStats)}</div>
-            <p class="an-footnote">Ogni punto è una partita: a destra (+) le vittorie, a sinistra (−) le sconfitte, distanza dallo 0 = margine. Il segno verticale è la media, la banda è ±1 deviazione standard.</p>
+            <p class="an-footnote">Each dot is a game: to the right (+) wins, to the left (−) losses, distance from 0 = margin. The vertical mark is the average, the band is ±1 standard deviation.</p>
         `;
         teamRest.querySelectorAll('.st-trend-chart').forEach(bindSeasonChart);
     }
@@ -1112,15 +1112,15 @@ async function renderAdvancedCharts(markers) {
 
     if (draftSection) {
         draftSection.innerHTML = `
-            <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Andamento Draft</h2>
-            <p class="st-block-desc">Il valore di ogni pick del draft su tutte le stagioni: dove cadono gli affari e i bust rispetto alla media della lega per quel numero di chiamata.</p>
+            <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Draft Trends</h2>
+            <p class="st-block-desc">The value of every draft pick across all seasons: where the steals and busts land relative to the league average for that pick number.</p>
 
             <h3 class="an-sub-title">Draft: Value per Pick (All Years)</h3>
             <div class="an-chart-legend">
-                <span class="an-legend-item"><span class="an-legend-key" style="background:#f5d576"></span>Media per pick</span>
+                <span class="an-legend-item"><span class="an-legend-key" style="background:#f5d576"></span>Average per pick</span>
             </div>
             <div class="an-chart" id="draft-scatter-all">${buildDraftScatterAll(draftPoints)}<div class="an-chart-tooltip" hidden></div></div>
-            <p class="an-footnote">Ogni punto è un giocatore draftato in una stagione, posizionato per numero di pick e punti fatti per il team. La linea dorata è la media dei punti per ogni numero di pick su tutti gli anni.</p>
+            <p class="an-footnote">Each dot is a player drafted in a season, positioned by pick number and points scored for the team. The gold line is the average points for each pick number across all years.</p>
         `;
         const scatterAll = draftSection.querySelector('#draft-scatter-all');
         if (scatterAll) bindDraftScatterAll(scatterAll);
@@ -1152,7 +1152,7 @@ function buildConsistencyChart(rows) {
             </span>
         </div>`).join('')}
     </div>
-    <p class="an-footnote">Intervallo min–max dei punteggi settimanali (tutte le stagioni, playoff inclusi); il segno verticale è la mediana. Barra più corta = squadra più costante.</p>`;
+    <p class="an-footnote">Min–max range of weekly scores (all seasons, playoffs included); the vertical mark is the median. Shorter bar = more consistent team.</p>`;
 }
 
 /* ---------- Line chart per stagioni (SVG, x categorico = anni) ---------- */
@@ -1302,7 +1302,7 @@ const DSC = { w: 800, h: 340, l: 48, r: 12, t: 16, b: 34 };
 const fmtN = (n, dec = 0) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
 function buildDraftScatterAll(points) {
-    if (!points.length) return '<div class="empty-state"><p class="empty-state-text">Nessun dato draft disponibile</p></div>';
+    if (!points.length) return '<div class="empty-state"><p class="empty-state-text">No draft data available</p></div>';
 
     const maxPick = Math.max(...points.map(p => p.pick), 1);
     const maxPts = Math.max(...points.map(p => p.pts), 1);
@@ -1386,7 +1386,7 @@ const RDP = { w: 800, l: 52, r: 16, t: 14, b: 28, lane: 46 };
 
 function buildRoleDistribution(byRole) {
     const roles = Object.keys(ROLE_COLORS).filter(r => (byRole[r] || []).length);
-    if (!roles.length) return '<div class="empty-state"><p class="empty-state-text">Nessun dato disponibile</p></div>';
+    if (!roles.length) return '<div class="empty-state"><p class="empty-state-text">No data available</p></div>';
 
     const allPts = roles.flatMap(r => byRole[r]);
     const maxPts = Math.max(...allPts, 1);
@@ -1456,7 +1456,7 @@ function buildMarginDotPlot(teamMarginStats) {
         return { key, name: SHORT_TEAM_NAME[key] || TEAMS[key].name, wins: stat.wins, losses: stat.losses, win: meanStd(stat.wins), loss: meanStd(stat.losses) };
     });
     const allMargins = rows.flatMap(r => [...r.wins, ...r.losses]);
-    if (!allMargins.length) return '<div class="empty-state"><p class="empty-state-text">Nessun dato disponibile</p></div>';
+    if (!allMargins.length) return '<div class="empty-state"><p class="empty-state-text">No data available</p></div>';
 
     const maxAbs = Math.max(...allMargins, 1);
     const magTicks = chartNiceTicks(0, maxAbs).filter(v => v > 0);

@@ -8,9 +8,9 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
-} from '../data.js?v=32';
-import { TEAM_KEYS } from './team-config.js?v=31';
-import { FLEX_ELIGIBLE } from './league-rules.js?v=11';
+} from '../data.js?v=33';
+import { TEAM_KEYS } from './team-config.js?v=33';
+import { FLEX_ELIGIBLE } from './league-rules.js?v=20';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')
 function toKey(rawName) {
@@ -229,10 +229,10 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
 
     const awards = [
         playerAward('mvp', 'MVP', 'Most Valuable Player',
-            'Il giocatore con più punti fantasy della regular season.',
+            'The player with the most fantasy points in the regular season.',
             p => p.pos !== 'DEF'),
         playerAward('opoy', 'OPOY', 'Offensive Player of the Year',
-            'Il miglior skill player (RB/WR/TE) della stagione.',
+            'The best skill player (RB/WR/TE) of the season.',
             p => ['RB', 'WR', 'TE'].includes(p.pos)),
     ];
 
@@ -245,7 +245,7 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
         if (rookies.length) {
             awards.push({
                 id: 'oroy', abbr: 'OROY', name: 'Offensive Rookie of the Year',
-                desc: 'Il rookie offensive con più punti fantasy: al suo primo anno nella lega.',
+                desc: "The offensive rookie with the most fantasy points: in their first year in the league.",
                 kind: 'player',
                 winner: rookies[0] || null,
                 finalists: rookies.slice(0, 3),
@@ -256,7 +256,7 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
 
     awards.push(
         playerAward('dpoy', 'DPOY', 'Defensive Player of the Year',
-            'La difesa che ha portato più punti alla propria squadra.',
+            'The defense that brought the most points to its team.',
             p => p.pos === 'DEF'),
     );
 
@@ -266,11 +266,11 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
         .sort((a, b) => b.efficiency - a.efficiency);
     awards.push({
         id: 'coach', abbr: 'COTY', name: 'Coach of the Year',
-        desc: 'Il manager con la miglior lineup efficiency: punti schierati rispetto alla lineup ottimale.',
+        desc: 'The manager with the best lineup efficiency: points started vs the optimal lineup.',
         kind: 'coach',
         winner: coaches[0] || null,
         finalists: coaches,
-        statLine: (c) => `${c.efficiency.toFixed(1)}% efficiency · ${fmtPts(c.optimal - c.actual)} pt lasciati in panchina`,
+        statLine: (c) => `${c.efficiency.toFixed(1)}% efficiency · ${fmtPts(c.optimal - c.actual)} pt left on the bench`,
     });
 
     // Comeback Player of the Year — il salto di punti più grande rispetto alla stagione precedente.
@@ -283,11 +283,11 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
         if (withDelta.length) {
             awards.push({
                 id: 'cpoy', abbr: 'CPOY', name: 'Comeback Player of the Year',
-                desc: 'Il salto di punti fantasy più grande rispetto alla stagione precedente.',
+                desc: "The biggest jump in fantasy points compared to the previous season.",
                 kind: 'player',
                 winner: withDelta[0] || null,
                 finalists: withDelta.slice(0, 3),
-                statLine: (p) => `${fmtPts(p.total)} pt (${p.delta >= 0 ? '+' : ''}${fmtPts(p.delta)} vs anno prima)`,
+                statLine: (p) => `${fmtPts(p.total)} pt (${p.delta >= 0 ? '+' : ''}${fmtPts(p.delta)} vs prior year)`,
             });
         }
     }
@@ -302,7 +302,7 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
             .sort((a, b) => b.total - a.total);
         awards.push({
             id: 'steal', name: 'Steal of the Draft',
-            desc: 'La pescata più redditizia della metà bassa del draft.',
+            desc: 'The most rewarding pick from the bottom half of the draft.',
             kind: 'player',
             winner: steals[0] || null,
             finalists: steals.slice(0, 3),
@@ -320,7 +320,7 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
     ];
     POS_AWARDS.forEach(([id, name, pos]) => {
         awards.push(playerAward(id, null, name,
-            `Il miglior ${pos} della regular season.`, p => p.pos === pos));
+            `The best ${pos} of the regular season.`, p => p.pos === pos));
     });
 
     return awards;

@@ -27,9 +27,9 @@
  * forward-looking diventano neutre (50), il TSI resta calcolabile dal roster.
  */
 
-import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=11';
-import { getTeamStats } from './nfl-team-stats.js?v=11';
-import { canonAbbr } from './nfl-schedule.js?v=11';
+import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=20';
+import { getTeamStats } from './nfl-team-stats.js?v=19';
+import { canonAbbr } from './nfl-schedule.js?v=20';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1}
 const NUM_TEAMS = 4;
@@ -52,9 +52,9 @@ export const TSI_WEIGHTS = {
 };
 
 export const TSI_LABELS = {
-    projection: 'Projection', starter: 'Titolari', posAdv: 'Vantaggio posizionale',
-    vor: 'Scarsità (VOR)', bench: 'Panchina', risk: 'Rischio', balance: 'Costruzione',
-    context: 'Contesto NFL', bye: 'Bye week', stack: 'Stack', consistency: 'Consistenza',
+    projection: 'Projection', starter: 'Starters', posAdv: 'Positional advantage',
+    vor: 'Scarcity (VOR)', bench: 'Bench', risk: 'Risk', balance: 'Construction',
+    context: 'NFL Context', bye: 'Bye week', stack: 'Stack', consistency: 'Consistency',
     ceiling: 'Upside',
 };
 

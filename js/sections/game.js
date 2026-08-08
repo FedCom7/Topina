@@ -6,16 +6,16 @@
  * confronto stats di squadra + difference maker → player notes.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=32';
-import { TEAM_KEYS } from '../data/team-config.js?v=31';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=33';
+import { TEAM_KEYS } from '../data/team-config.js?v=33';
 import { getLeagueData } from '../data/league-data.js?v=11';
-import { getHonorsBundle } from '../data/honors.js?v=13';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
+import { getHonorsBundle } from '../data/honors.js?v=29';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=13';
-import { TEAMS } from './team.js?v=23';
+import { TEAMS } from './team.js?v=44';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 const _fantasyCache = {};
@@ -33,7 +33,7 @@ export async function initGame() {
     // #game/2025/17/0
     const [, year, weekStr, idxStr] = location.hash.slice(1).split('/');
     const week = parseInt(weekStr), idx = parseInt(idxStr);
-    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Caricamento analisi...</p></div></div>`;
+    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Loading analysis...</p></div></div>`;
 
     try {
         if (!_fantasyCache[year]) _fantasyCache[year] = await fetchFantasyData(year);
@@ -41,7 +41,7 @@ export async function initGame() {
         const weekData = data?.weeks?.[String(week)];
         const m = weekData?.matchups?.[idx];
         if (!m?.team1 || !m?.team2) {
-            section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Matchup non trovato</p></div></div>`;
+            section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Matchup not found</p></div></div>`;
             return;
         }
 
@@ -89,10 +89,10 @@ export async function initGame() {
             ${anyLive ? '' : articleHTML(article, weekLabel)}
             ${outcomeHTML(m, liveNow)}
             <div class="mosaic-card mc-wide gb-card mc-in" id="gb-chart-card">
-                <span class="mc-kicker">Andamento del weekend</span>
+                <span class="mc-kicker">Weekend trend</span>
                 <h2 class="mc-title">Punto a punto</h2>
                 <div class="mc-body" id="gb-chart">
-                    <div class="loading-state"><div class="spinner"></div><p>Caricamento calendario NFL...</p></div>
+                    <div class="loading-state"><div class="spinner"></div><p>Loading NFL schedule...</p></div>
                 </div>
             </div>
             ${roleCompareHTML(m)}
@@ -108,7 +108,7 @@ export async function initGame() {
         renderChart(m, year, week);
     } catch (e) {
         console.error('[Game] errore analisi:', e);
-        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Errore nel caricamento dell'analisi</p></div></div>`;
+        section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Error loading the analysis</p></div></div>`;
     }
 }
 
@@ -133,7 +133,7 @@ function scoreBugHTML(m, weekLabel, year, isLive = false) {
             <div class="gb-bug-mid">
                 ${isLive
                     ? '<span class="gb-bug-final gb-bug-final--live"><i class="gb-live-dot"></i> Live</span>'
-                    : '<span class="gb-bug-final">Finale</span>'}
+                    : '<span class="gb-bug-final">Final</span>'}
                 <span class="gb-bug-week">${weekLabel} · ${year}</span>
             </div>
             <span class="gb-bug-score${s2 >= s1 ? ' winner' : ''}">${fmt(s2)}</span>
@@ -166,7 +166,7 @@ function roleCompareHTML(m) {
     return `
     <div class="mosaic-card mc-wide gb-card mc-in">
         <span class="mc-kicker">Testa a testa</span>
-        <h2 class="mc-title">Punti per ruolo</h2>
+        <h2 class="mc-title">Points by position</h2>
         <div class="mc-body gb-role-scroll">
             <table class="gb-role-table">
                 <thead><tr><th></th>${pairs.map(p => `<th>${p.slot}</th>`).join('')}<th>TOT</th></tr></thead>
@@ -202,7 +202,7 @@ function buildChartSVG(m, sched) {
     const series = [mkSeries(m.team1), mkSeries(m.team2)];
 
     const matched = series.flat().filter(x => x.win);
-    if (!matched.length) return '<p class="mc-text">Calendario non disponibile per questa settimana.</p>';
+    if (!matched.length) return '<p class="mc-text">Schedule not available for this week.</p>';
     let t0 = Math.min(...matched.map(x => x.win.start.getTime()));
     let tEnd = Math.max(...matched.map(x => x.win.end.getTime()));
     series.forEach(list => list.forEach(x => {
@@ -261,7 +261,7 @@ function buildChartSVG(m, sched) {
         <div class="gbc-legend">
             <span class="gbc-legend-item"><i style="background:${colors[0]}"></i>${t1?.name || displayName(m.team1.name)}</span>
             <span class="gbc-legend-item"><i style="background:${colors[1]}"></i>${t2?.name || displayName(m.team2.name)}</span>
-            <span class="gbc-legend-hint">· i punti si accumulano durante le partite reali dei titolari, un pallino a fine partita</span>
+            <span class="gbc-legend-hint">· points accumulate during starters' real games, a dot marks the end of each game</span>
         </div>`;
 
     return `${legend}
@@ -349,7 +349,7 @@ function outcomeHTML(m, liveNow = () => false) {
     for (let i = 0; i < maxBench; i++) {
         benchRows += rowFor('BN', bench1[i] || null, bench2[i] || null, ' gb-out-row--bn');
     }
-    if (benchRows) benchRows = `<div class="gb-out-sep">Panchina</div>${benchRows}`;
+    if (benchRows) benchRows = `<div class="gb-out-sep">Bench</div>${benchRows}`;
 
     return `
     <aside class="mosaic-card gb-card gb-outcome mc-in">
@@ -378,8 +378,8 @@ function statBarsHTML(m) {
     }).join('');
     return `
     <div class="mosaic-card gb-card mc-in">
-        <span class="mc-kicker">Confronto squadre</span>
-        <h2 class="mc-title">Le cifre dei titolari</h2>
+        <span class="mc-kicker">Team comparison</span>
+        <h2 class="mc-title">The starters' numbers</h2>
         <div class="mc-body gb-statbars">${rows}</div>
     </div>`;
 }

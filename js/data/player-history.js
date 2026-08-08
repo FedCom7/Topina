@@ -25,7 +25,7 @@
  * ultime 3 stagioni (finestra su cui è stato calibrato).
  */
 
-import { getSeasonStats, matchProjection } from './projections.js?v=15';
+import { getSeasonStats, matchProjection } from './projections.js?v=31';
 
 const BLEND_DEPTH = 3;              // finestra del blend/trend (calibrata)
 const CAREER_DEPTH = 6;             // stagioni mostrate/analizzate

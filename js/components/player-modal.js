@@ -13,12 +13,12 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=14';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=15';
-import { TEAMS } from '../sections/team.js?v=23';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=28';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=31';
+import { TEAMS } from '../sections/team.js?v=44';
 import { playerImageService } from '../services/player-image-service.js?v=15';
-import { getPlayerInfo } from '../data/player-full.js?v=13';
-import { getHallOfFameYear } from '../data/hall-of-fame.js?v=13';
+import { getPlayerInfo } from '../data/player-full.js?v=29';
+import { getHallOfFameYear } from '../data/hall-of-fame.js?v=26';
 
 const MAX_NFL_YEARS = 5;
 const FIRST_PROJ_YEAR = 2018; // Sleeper non ha proiezioni prima
@@ -78,8 +78,8 @@ function ensureDom() {
     _overlay.className = 'pm-overlay';
     _overlay.hidden = true;
     _overlay.innerHTML = `
-        <div class="pm-dialog" role="dialog" aria-modal="true" aria-label="Scheda giocatore">
-            <button class="pm-close" aria-label="Chiudi">✕</button>
+        <div class="pm-dialog" role="dialog" aria-modal="true" aria-label="Player card">
+            <button class="pm-close" aria-label="Close">✕</button>
             <div class="pm-content"></div>
         </div>`;
     _overlay.addEventListener('click', (e) => {
@@ -125,7 +125,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         <div class="pm-layout">
             <div class="pm-left">${paniniCard({ name, pos, nfl })}</div>
             <div class="pm-right">
-                <div class="loading-state"><div class="spinner"></div><p>Apertura della scheda...</p></div>
+                <div class="loading-state"><div class="spinner"></div><p>Opening card...</p></div>
             </div>
         </div>`;
     hydrateHeadshot(content, name, nfl, pos, year);
@@ -144,7 +144,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         if (token !== _openToken) return;
         content.querySelector('.loading-state')?.replaceWith(
             Object.assign(document.createElement('p'), {
-                className: 'pm-error', textContent: 'Errore nel caricamento della scheda.',
+                className: 'pm-error', textContent: 'Error loading the card.',
             }));
     }
 }
@@ -158,66 +158,86 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
  * Sono alternativi: nel Game Center conta la partita, non la carriera.
  */
 function appendContextBlocks(content, { game, pos, career, awards }) {
-    const html = game
-        ? gameBlockHtml(game, pos)
-        : (awards ? awardsBlock(career, awards) : '');
+    // Aperto da Game Center / Live: conta la partita, non la carriera. Via i
+    // totali di carriera e la tabella per stagione, che restano in tutte le
+    // altre pagine (l'HTML di buildCard è cachato, quindi si potano qui).
+    if (game) {
+        content.querySelector('.pm-big-stats')?.remove();
+        content.querySelectorAll('.pm-block').forEach(b => {
+            if (/stats by season/i.test(b.querySelector('.mc-kicker')?.textContent || '')) b.remove();
+        });
+    }
+
+    // Il blocco partita prende il posto lasciato libero nella colonna destra,
+    // così sta a fianco della figurina invece che sotto tutta la scheda.
+    if (game) {
+        const col = content.querySelector('.pm-right');
+        (col || content).insertAdjacentHTML('beforeend', gameBlockHtml(game, pos));
+        return;
+    }
+
+    const html = awards ? awardsBlock(career, awards) : '';
     if (html) content.insertAdjacentHTML('beforeend', html);
 }
 
-/** Statistiche rilevanti della singola gara, per ruolo. */
-function gameStatCells(pos, s = {}) {
-    const n = (v) => Number(v) || 0;
-    const cell = (label, value) => ({ label, value });
+/** Etichetta leggibile per ogni statistica di gara conosciuta. */
+const GAME_STAT_LABELS = {
+    pass_comp: 'Completions', pass_att: 'Attempts', pass_yds: 'Pass yd',
+    pass_td: 'Pass TD', pass_int: 'INT',
+    rush_att: 'Carries', rush_yds: 'Rush yd', rush_td: 'Rush TD',
+    targets: 'Targets', rec: 'Receptions', rec_yds: 'Rec yd', rec_td: 'Rec TD',
+    ret_td: 'Return TD', fum_td: 'Fumble TD', fum_lost: 'Fumbles lost', two_pt: '2-PT',
+    pat_made: 'Extra points', fg_made: 'Field goals', fg_att: 'FG attempts',
+    fg_0_19: 'FG 0-19', fg_20_29: 'FG 20-29', fg_30_39: 'FG 30-39',
+    fg_0_39: 'FG 0-39', fg_40_49: 'FG 40-49', fg_50_plus: 'FG 50+',
+    sack: 'Sacks', def_int: 'Interceptions', fum_rec: 'Fumble rec.',
+    def_td: 'Def. TDs', safety: 'Safeties', def_2pt_ret: '2-PT return',
+    def_ret_td: 'Return TD', pts_allowed: 'Points allowed', pts_allow: 'Points allowed',
+    yds_allowed: 'Yards allowed',
+};
 
-    switch ((pos || '').toUpperCase()) {
-        case 'QB':
-            return [
-                cell('Yd lancio', n(s.pass_yds)), cell('TD lancio', n(s.pass_td)),
-                cell('INT', n(s.pass_int)), cell('Yd corsa', n(s.rush_yds)),
-                cell('TD corsa', n(s.rush_td)),
-            ];
-        case 'RB':
-            return [
-                cell('Yd corsa', n(s.rush_yds)), cell('TD corsa', n(s.rush_td)),
-                cell('Ricezioni', n(s.rec)), cell('Yd ricezione', n(s.rec_yds)),
-                cell('TD ricezione', n(s.rec_td)),
-            ];
-        case 'WR':
-        case 'TE':
-        case 'W/R':
-            return [
-                cell('Ricezioni', n(s.rec)), cell('Yd ricezione', n(s.rec_yds)),
-                cell('TD ricezione', n(s.rec_td)), cell('Yd corsa', n(s.rush_yds)),
-            ];
-        case 'K': {
-            const fg = n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus);
-            return [
-                cell('Field goal', fg), cell('Extra point', n(s.pat_made)),
-                cell('FG da 50+', n(s.fg_50_plus)),
-            ];
-        }
-        case 'DEF':
-            return [
-                cell('Sack', n(s.sack)), cell('Intercetti', n(s.def_int)),
-                cell('Fumble rec.', n(s.fum_rec)), cell('TD difensivi', n(s.def_td)),
-                cell('Punti subiti', n(s.pts_allow)),
-            ];
-        default:
-            return [];
-    }
+/** Ordine di presentazione preferito per ruolo; il resto segue come si trova. */
+const GAME_STAT_ORDER = {
+    QB: ['pass_comp', 'pass_att', 'pass_yds', 'pass_td', 'pass_int', 'rush_att', 'rush_yds', 'rush_td'],
+    RB: ['rush_att', 'rush_yds', 'rush_td', 'targets', 'rec', 'rec_yds', 'rec_td'],
+    WR: ['targets', 'rec', 'rec_yds', 'rec_td', 'rush_att', 'rush_yds', 'rush_td'],
+    K: ['fg_made', 'fg_att', 'pat_made', 'fg_0_39', 'fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_40_49', 'fg_50_plus'],
+    DEF: ['sack', 'def_int', 'fum_rec', 'def_td', 'safety', 'pts_allowed', 'yds_allowed'],
+};
+
+/**
+ * TUTTE le statistiche registrate per la gara, non una selezione: si mostra
+ * quello che i dati contengono davvero, ordinato per ruolo e con le voci ignote
+ * in coda (così una chiave nuova non sparisce silenziosamente).
+ */
+function gameStatCells(pos, s = {}) {
+    let role = (pos || '').toUpperCase();
+    if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX' || role === 'TE') role = role === 'TE' ? 'WR' : 'WR';
+    if (role === 'D/ST') role = 'DEF';
+
+    const present = Object.keys(s).filter(k => s[k] != null);
+    const preferred = (GAME_STAT_ORDER[role] || []).filter(k => present.includes(k));
+    const rest = present.filter(k => !preferred.includes(k));
+
+    const round = (v) => {
+        const n = Number(v) || 0;
+        return Number.isInteger(n) ? n : Math.round(n * 10) / 10;
+    };
+    return [...preferred, ...rest].map(k => ({
+        label: GAME_STAT_LABELS[k] || k.replace(/_/g, ' '),
+        value: round(s[k]),
+    }));
 }
 
 function gameBlockHtml(game, pos) {
     const { pts = 0, opponent = '', status = '', week, year, started, stats } = game;
-    const cells = gameStatCells(pos, stats);
-    const fumble = Number(stats?.fum_lost) || 0;
-    if (fumble) cells.push({ label: 'Fumble persi', value: fumble });
+    const cells = gameStatCells(pos, stats); // include già fum_lost se presente
 
     const meta = [
         week ? `Week ${week}` : '',
         year || '',
         opponent ? `vs ${opponent}` : '',
-        started ? 'Titolare' : 'Panchina',
+        started ? 'Starter' : 'Bench',
     ].filter(Boolean).join(' · ');
 
     const grid = cells.length
@@ -226,11 +246,11 @@ function gameBlockHtml(game, pos) {
                 <span class="pm-game-cell-val">${c.value}</span>
                 <span class="pm-game-cell-lbl">${c.label}</span>
             </div>`).join('')}</div>`
-        : '<p class="pm-game-empty">Nessuna statistica registrata per questa partita.</p>';
+        : '<p class="pm-game-empty">No stats recorded for this game.</p>';
 
     return `
     <section class="pm-block pm-game">
-        <h3 class="pm-block-title">Questa partita</h3>
+        <h3 class="pm-block-title">This game</h3>
         <div class="pm-game-head">
             <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small></span>
             <span class="pm-game-meta">${meta}</span>
@@ -247,7 +267,7 @@ function gameBlockHtml(game, pos) {
 function appendFullStatsLink(content, { name, pos, year }) {
     const y = year || new Date().getFullYear();
     content.insertAdjacentHTML('beforeend',
-        `<a class="pm-fullstats" href="#player/${y}/${pos || ''}/${encodeURIComponent(name)}">Apri tutte le statistiche →</a>`);
+        `<a class="pm-fullstats" href="#player/${y}/${pos || ''}/${encodeURIComponent(name)}">Open full stats →</a>`);
 }
 
 function hydrateHeadshot(content, name, nfl, pos, year) {
@@ -378,7 +398,7 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
     const gold = !!hofYear;
     const stars = career?.sbWins ? '★'.repeat(Math.min(career.sbWins, 5)) : '';
     const bio = bioLine(info);
-    const seasons = career ? `${career.seasons.size} stagion${career.seasons.size === 1 ? 'e' : 'i'} Topina` : '';
+    const seasons = career ? `${career.seasons.size} Topina season${career.seasons.size === 1 ? '' : 's'}` : '';
     const showBubble = !compact && (bio || seasons);
 
     return `
@@ -408,11 +428,11 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
 function bigStatsBlock(career) {
     if (!career) return '';
     const items = [
-        [fmt0(career.totPts), 'Punti fantasy'],
-        [career.seasons.size, 'Stagioni'],
-        [fmt0(career.gamesStarted), 'Da titolare'],
+        [fmt0(career.totPts), 'Fantasy points'],
+        [career.seasons.size, 'Seasons'],
+        [fmt0(career.gamesStarted), 'Starts'],
     ];
-    if (career.sbWins) items.push([`×${career.sbWins}`, 'Anelli SB']);
+    if (career.sbWins) items.push([`×${career.sbWins}`, 'SB rings']);
     return `
     <div class="pm-big-stats">
         ${items.map(([v, l]) => `<div class="pm-big-stat"><span class="pm-big-stat-value">${v}</span><span class="pm-big-stat-label">${l}</span></div>`).join('')}
@@ -474,14 +494,14 @@ function careerTableBlock(name, pos, years, byYear, career) {
     if (!rows) return '';
     return `
     <section class="pm-block">
-        <span class="mc-kicker">Statistiche per stagione</span>
+        <span class="mc-kicker">Stats by season</span>
         <div class="pm-table-wrap">
             <table class="pm-table">
-                <thead><tr><th>Anno</th><th>NFL</th><th>GP</th><th>Proj</th><th>Punti</th><th>Rank</th><th>Topina</th><th>Titolare</th></tr></thead>
+                <thead><tr><th>Year</th><th>NFL</th><th>GP</th><th>Proj</th><th>Points</th><th>Rank</th><th>Topina</th><th>Starts</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
-        <p class="pm-note">Punti nello scoring della lega: reali Topina dove disponibili, altrimenti ricalcolati da Sleeper. «Proj» è la proiezione preseason (dal 2018).</p>
+        <p class="pm-note">Points in the league's scoring: real Topina points where available, otherwise recalculated from Sleeper. "Proj" is the preseason projection (from 2018).</p>
     </section>`;
 }
 
@@ -491,8 +511,8 @@ export function topinaBlock(career) {
     if (!career) {
         return `
         <section class="pm-block">
-            <span class="mc-kicker">Carriera Topina</span>
-            <p class="pm-empty">Mai schierato in Topina League.</p>
+            <span class="mc-kicker">Topina Career</span>
+            <p class="pm-empty">Never fielded in Topina League.</p>
         </section>`;
     }
 
@@ -505,13 +525,13 @@ export function topinaBlock(career) {
             .join('');
         const dr = career.draftedBy.find(d => d.year === y);
         const drLabel = dr && TEAMS[dr.teamKey]
-            ? `draftato #${dr.pick} (R${dr.round}) da ${TEAMS[dr.teamKey].name}` : 'non draftato (waiver/mercato)';
+            ? `drafted #${dr.pick} (R${dr.round}) by ${TEAMS[dr.teamKey].name}` : 'undrafted (waiver/market)';
         return `
         <div class="pm-season-row">
             <span class="pm-season-year">${y}</span>
             <span class="pm-season-logos">${logos}</span>
             <span class="pm-season-pts">${fmt0(bs.pts)} pt</span>
-            <span class="pm-season-note">${bs.gamesStarted} da titolare · ${drLabel}</span>
+            <span class="pm-season-note">${bs.gamesStarted} starts · ${drLabel}</span>
         </div>`;
     }).join('');
 
@@ -522,16 +542,16 @@ export function topinaBlock(career) {
             <span class="pm-season-year">${d.year}</span>
             <span class="pm-season-logos"><img class="pm-team-logo" src="${TEAMS[d.teamKey].logo}" alt="" onerror="this.style.display='none'"></span>
             <span class="pm-season-pts">—</span>
-            <span class="pm-season-note">draftato #${d.pick} (R${d.round}) da ${TEAMS[d.teamKey].name}</span>
+            <span class="pm-season-note">drafted #${d.pick} (R${d.round}) by ${TEAMS[d.teamKey].name}</span>
         </div>`).join('');
 
     return `
     <section class="pm-block">
-        <span class="mc-kicker">Carriera Topina</span>
+        <span class="mc-kicker">Topina Career</span>
         <div class="pm-ministats">
-            <div class="ministat"><span class="ministat-value">${fmt0(career.totPts)}</span><span class="ministat-label">Punti fantasy</span></div>
-            <div class="ministat"><span class="ministat-value">${career.seasons.size}</span><span class="ministat-label">Stagioni</span></div>
-            <div class="ministat"><span class="ministat-value">${fmt0(career.gamesStarted)}</span><span class="ministat-label">Da titolare</span></div>
+            <div class="ministat"><span class="ministat-value">${fmt0(career.totPts)}</span><span class="ministat-label">Fantasy points</span></div>
+            <div class="ministat"><span class="ministat-value">${career.seasons.size}</span><span class="ministat-label">Seasons</span></div>
+            <div class="ministat"><span class="ministat-value">${fmt0(career.gamesStarted)}</span><span class="ministat-label">Starts</span></div>
         </div>
         <div class="pm-seasons">${seasonRows}${upcoming}</div>
     </section>`;
@@ -545,22 +565,22 @@ export function awardsBlock(career, awards) {
         chips.push(`<span class="pm-award">${a.name} <b>${a.year}</b></span>`);
     }
     if (awards.allProFirst.length) {
-        chips.push(`<span class="pm-award pm-award--gold">All-Pro 1° Team <b>${awards.allProFirst.join(', ')}</b></span>`);
+        chips.push(`<span class="pm-award pm-award--gold">All-Pro 1st Team <b>${awards.allProFirst.join(', ')}</b></span>`);
     }
     if (awards.allProSecond.length) {
-        chips.push(`<span class="pm-award">All-Pro 2° Team <b>${awards.allProSecond.join(', ')}</b></span>`);
+        chips.push(`<span class="pm-award">All-Pro 2nd Team <b>${awards.allProSecond.join(', ')}</b></span>`);
     }
     if (career?.sbWins) {
-        chips.push(`<span class="pm-award pm-award--gold">Anell${career.sbWins === 1 ? 'o' : 'i'} Super Bowl ×${career.sbWins}</span>`);
+        chips.push(`<span class="pm-award pm-award--gold">Super Bowl ring${career.sbWins === 1 ? '' : 's'} ×${career.sbWins}</span>`);
     }
     if (career?.top1Count) {
-        chips.push(`<span class="pm-award">Top 1 di ruolo ×${career.top1Count}</span>`);
+        chips.push(`<span class="pm-award">Position top 1 ×${career.top1Count}</span>`);
     }
 
     return `
     <section class="pm-block">
-        <span class="mc-kicker">Bacheca premi</span>
+        <span class="mc-kicker">Trophy case</span>
         ${chips.length ? `<div class="pm-awards">${chips.join('')}</div>`
-            : `<p class="pm-empty">Nessun premio in bacheca (per ora).</p>`}
+            : `<p class="pm-empty">No awards in the trophy case (yet).</p>`}
     </section>`;
 }

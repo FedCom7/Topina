@@ -12,7 +12,7 @@
  * "Players".
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=11';
+import { canonAbbr } from './nfl-schedule.js?v=20';
 import { ESPN_TEAM_IDS } from './player-map.js?v=13';
 
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';

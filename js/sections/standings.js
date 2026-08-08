@@ -4,8 +4,8 @@
  *   #standings → Regular Season (card di classifica col seed gigante)
  *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
-import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=32';
-import { TEAMS } from './team.js?v=23';
+import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=33';
+import { TEAMS } from './team.js?v=44';
 
 let loadedStandings = false;
 let loadedPlayoffs = false;
@@ -32,8 +32,8 @@ async function getSeason() {
 }
 
 const spinner = (label) =>
-    `<div class="loading-state"><div class="spinner"></div><p>Caricamento ${label}...</p></div>`;
-const noData = '<div class="empty-state"><p class="empty-state-text">Dati non disponibili</p></div>';
+    `<div class="loading-state"><div class="spinner"></div><p>Loading ${label}...</p></div>`;
+const noData = '<div class="empty-state"><p class="empty-state-text">Data not available</p></div>';
 
 export async function initStandings() {
     if (loadedStandings) return;
@@ -43,7 +43,7 @@ export async function initStandings() {
     if (selector) selector.style.display = 'none';
 
     const wrap = document.getElementById('standings-table-wrap');
-    wrap.innerHTML = spinner('Classifica');
+    wrap.innerHTML = spinner('Standings');
 
     const s = await getSeason();
     if (!s) { wrap.innerHTML = noData; return; }
@@ -74,14 +74,14 @@ export async function initPlayoffs() {
    ============================================================ */
 
 function bracketDescription(standings, data, config, playoffsStarted) {
-    const base = `Il tabellone dei playoff: 1ª contro 4ª e 2ª contro 3ª in semifinale (W${config.playoffWeek}), le vincenti al Super Bowl (W${config.superBowlWeek}).`;
+    const base = `The playoff bracket: 1st vs 4th and 2nd vs 3rd in the semifinals (W${config.playoffWeek}), the winners meet in the Super Bowl (W${config.superBowlWeek}).`;
     return playoffsStarted
-        ? `${base} In grigio le eliminate, in oro il campione.`
-        : `${base} Proiezione basata sulla classifica attuale.`;
+        ? `${base} Eliminated teams in grey, the champion in gold.`
+        : `${base} Projection based on the current standings.`;
 }
 
 function rankingDescription() {
-    return `La classifica della stagione, ordinata per record: il numero grande è il seed playoff. Clicca una card per aprire la pagina del franchise.`;
+    return `This season's standings, ordered by record: the big number is the playoff seed. Click a card to open the franchise page.`;
 }
 
 /* ============================================================
@@ -230,15 +230,23 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
         </a>`;
     };
 
-    const pobSemi = (side, tA, tB, scores, winnerName) => `
-        <div class="pob-semi pob-semi--${side}">
-            <span class="pob-label">Semifinale</span>
-            ${pobTeam(tA, scores, winnerName, !!winnerName)}
-            ${pobTeam(tB, scores, winnerName, !!winnerName)}
+    // Riga a "angoli": squadra sx — vincitore (con punteggio finale) al centro — squadra dx
+    const pobCornerRow = (tA, tB, scores, winnerName, midTeam) => {
+        const decided = !!winnerName;
+        const infoA = teamInfo(nameOf(tA));
+        const infoB = teamInfo(nameOf(tB));
+        const clsA = decided ? (nameOf(tA) === winnerName ? ' pob-corner-team--win' : ' pob-corner-team--lose') : '';
+        const clsB = decided ? (nameOf(tB) === winnerName ? ' pob-corner-team--win' : ' pob-corner-team--lose') : '';
+        return `
+        <div class="pob-corner-row">
+            <div class="pob-corner-team pob-corner-team--left${clsA}" style="--team-color:${infoA.color}">${pobTeam(tA, scores, winnerName, decided)}</div>
+            <div class="pob-corner-mid">${pobTeam(midTeam, sbScores, champion, !!champion)}</div>
+            <div class="pob-corner-team pob-corner-team--right${clsB}" style="--team-color:${infoB.color}">${pobTeam(tB, scores, winnerName, decided)}</div>
         </div>`;
+    };
 
     const projectionNote = !playoffsStarted
-        ? `<p class="st-bracket-note">Proiezione basata sulla classifica attuale — i playoff iniziano alla W${config.playoffWeek}</p>`
+        ? `<p class="st-bracket-note">Projection based on the current standings — playoffs start at W${config.playoffWeek}</p>`
         : '';
 
     return `
@@ -246,9 +254,9 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
         <!-- ===== DESKTOP: griglia a loghi ===== -->
         <div class="playoff-desktop">
             <div class="playoff-rounds">
-                <span class="playoff-round-label">Semifinale</span>
+                <span class="playoff-round-label">Semifinal</span>
                 <span class="playoff-round-label playoff-round-label--final">Topina Bowl</span>
-                <span class="playoff-round-label">Semifinale</span>
+                <span class="playoff-round-label">Semifinal</span>
             </div>
             <div class="playoff-grid-explicit">
                 <!-- LEFT COLUMN: 1 vs 4 -->
@@ -270,18 +278,13 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
             </div>
         </div>
 
-        <!-- ===== MOBILE: bracket a card-matchup (semi | Topina Bowl | semi) ===== -->
-        <div class="playoff-mobile pob-bracket">
-            ${pobSemi('left', seed1, seed4, sf1Scores, nameOf(winner1v4))}
-            <div class="pob-final">
-                <div class="pob-trophy">
-                    <img class="pob-trophy-img" src="Wallpapers/superbowl_vii_logo.png" alt="Topina Bowl" onerror="this.style.display='none'">
-                    <span class="pob-trophy-year">${CURRENT_SEASON}</span>
-                </div>
-                ${pobTeam(winner1v4, sbScores, champion, !!champion)}
-                ${pobTeam(winner2v3, sbScores, champion, !!champion)}
-            </div>
-            ${pobSemi('right', seed2, seed3, sf2Scores, nameOf(winner2v3))}
+        <!-- ===== MOBILE: bracket ad angoli (squadre ai bordi, vincitori al centro) ===== -->
+        <div class="playoff-mobile pob-corners">
+            <span class="pob-label">Semifinal</span>
+            ${pobCornerRow(seed1, seed4, sf1Scores, nameOf(winner1v4), winner1v4)}
+            <span class="pob-corners-divider">Topina Bowl</span>
+            ${pobCornerRow(seed2, seed3, sf2Scores, nameOf(winner2v3), winner2v3)}
+            <span class="pob-label">Semifinal</span>
         </div>
 
         ${projectionNote}

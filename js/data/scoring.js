@@ -8,7 +8,7 @@
  * conversion avversario da parte della difesa (`def_two_pt_ret`).
  */
 
-import { SCORING as LEAGUE_SCORING } from './league-rules.js?v=11';
+import { SCORING as LEAGUE_SCORING } from './league-rules.js?v=20';
 export { LEAGUE_SCORING };
 
 /**
@@ -88,4 +88,70 @@ export function validateScoring(fantasyData) {
         }))));
     console.log(`[scoring] ${n} prestazioni — errore medio ${(sum / n).toFixed(4)}, max ${max.toFixed(2)} (${worst})`);
     return { n, avg: sum / n, max };
+}
+
+// ─── Punti di una singola giocata (play-by-play) ─────────────────
+
+/**
+ * Quanti punti fantasy ha prodotto UNA giocata, e a chi.
+ *
+ * Prende una giocata normalizzata da js/data/nfl-plays.js e restituisce un
+ * contributo per ogni protagonista che guadagna (o perde) punti:
+ *
+ *   [{ espnId, role, pts, line }]           giocatori
+ *   [{ defTeamId, role, pts, line }]        unità di difesa (l'ID team ESPN)
+ *
+ * I tipi coperti sono quelli osservati sul play-by-play reale: ricezione,
+ * corsa, TD su passaggio/corsa (che include già l'extra point nella stessa
+ * giocata), incompleto, intercetto, sack, field goal, TD su ritorno.
+ * Tutto il resto ritorna [] — la giocata resta visibile, senza punti.
+ *
+ * ATTENZIONE: è un ricalcolo nostro, non un dato ESPN. Serve a dire "questa
+ * azione vale +1.6", non a sostituire il totale ufficiale del giocatore, che
+ * resta quello del feed fantasy.
+ */
+export function scorePlay(play) {
+    if (!play) return [];
+    const S = LEAGUE_SCORING;
+    const { type = '', text = '', yards = 0, actors = {}, defenseTeamId } = play;
+    const out = [];
+    const add = (espnId, role, pts, line) => {
+        if (espnId) out.push({ espnId, role, pts: +(+pts).toFixed(2), line });
+    };
+    const addDef = (role, pts, line) => {
+        if (defenseTeamId) out.push({ defTeamId: String(defenseTeamId), role, pts: +(+pts).toFixed(2), line });
+    };
+
+    const passTD = type === 'Passing Touchdown';
+    const rushTD = type === 'Rushing Touchdown';
+    const retTD = /Return Touchdown/i.test(type);
+
+    if (type === 'Pass Reception' || passTD) {
+        add(actors.passer, 'passer', yards * S.pass_yd + (passTD ? S.pass_td : 0), `${yards} yd`);
+        add(actors.receiver, 'receiver', S.rec + yards * S.rec_yd + (passTD ? S.rec_td : 0), `${yards} yd · 1 rec`);
+    } else if (type === 'Rush' || rushTD) {
+        add(actors.rusher, 'rusher', yards * S.rush_yd + (rushTD ? S.rush_td : 0), `${yards} yd`);
+    } else if (type === 'Pass Incompletion') {
+        add(actors.passer, 'passer', 0, 'incomplete');
+        add(actors.receiver, 'receiver', 0, 'target');
+    } else if (type === 'Pass Interception Return') {
+        add(actors.passer, 'passer', S.pass_int, 'intercepted');
+        addDef('def_int', S.def_int, 'interception');
+    } else if (type === 'Sack') {
+        add(actors.passer, 'passer', 0, `sacked · ${yards} yd`);
+        addDef('sack', S.sack, 'sack');
+    } else if (type === 'Field Goal Good') {
+        const pts = yards >= 50 ? S.fg_50_plus : yards >= 40 ? S.fg_40_49 : S.fg_30_39;
+        add(actors.kicker, 'kicker', pts, `${yards} yd FG`);
+    } else if (retTD) {
+        add(actors.returner, 'returner', S.ret_td, `${yards} yd return`);
+    }
+
+    // L'extra point sta nella stessa giocata del touchdown, non in una sua.
+    // Si accredita solo se il testo dice che è andato dentro.
+    if ((passTD || rushTD || retTD) && /extra point is good/i.test(text)) {
+        add(actors.patScorer || actors.kicker, 'kicker', S.pat_made, 'extra point');
+    }
+
+    return out;
 }

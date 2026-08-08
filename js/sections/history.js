@@ -6,9 +6,9 @@
  *  - Champion + highlights per-giocatore (MVP stagione, miglior prova, MVP del SB)
  *  - Dynamic season recap narratives
  */
-import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=32';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=23';
+import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=33';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=33';
+import { TEAMS } from './team.js?v=44';
 
 let loaded = false;
 
@@ -17,7 +17,7 @@ export async function initHistory() {
     loaded = true;
 
     const container = document.getElementById('history-timeline');
-    container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Caricamento storico...</p></div>`;
+    container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading history...</p></div>`;
 
     // Load all seasons in parallel
     const results = await Promise.all(
@@ -35,15 +35,34 @@ export async function initHistory() {
         })
     );
 
-    // Filter out empty results and render newest first
-    const seasons = results.filter(Boolean).reverse();
+    // Solo le stagioni davvero concluse, dalla più recente
+    const seasons = results.filter(s => s && seasonIsComplete(s.sbMatchup)).reverse();
 
     if (!seasons.length) {
-        container.innerHTML = `<div class="empty-state"><p class="empty-state-text">Nessun dato storico disponibile</p></div>`;
+        container.innerHTML = `<div class="empty-state"><p class="empty-state-text">No historical data available</p></div>`;
         return;
     }
 
     container.innerHTML = seasons.map((s, i) => renderSeasonCard(s, i)).join('');
+}
+
+/**
+ * Stagione da mostrare in questa pagina: il Super Bowl dev'essere stato
+ * giocato per davvero. Serve perché una stagione appena caricata esiste già
+ * a calendario, con tutte le settimane e i punteggi a zero: senza questo
+ * filtro comparirebbe in cima con un campione inventato dal generatore di
+ * recap.
+ *
+ * Tre condizioni: la finale esiste, non è data per ancora da giocare
+ * (`winner: UNDECIDED`, campo presente solo dal 2026), ed entrambe le
+ * finaliste hanno segnato punti.
+ */
+function seasonIsComplete(sbMatchup) {
+    if (!sbMatchup?.team1 || !sbMatchup?.team2) return false;
+    if (sbMatchup.winner === 'UNDECIDED') return false;
+    const s1 = parseFloat(sbMatchup.team1.score) || 0;
+    const s2 = parseFloat(sbMatchup.team2.score) || 0;
+    return s1 > 0 && s2 > 0;
 }
 
 /**
@@ -259,7 +278,7 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
 
         sbHtml = `
         <div class="history-sub-title">Super Bowl Final</div>
-        <${tag} class="gc-banner history-sb-banner"${href} style="--tc1:${c1};--tc2:${c2}" title="Apri l'analisi della finale">
+        <${tag} class="gc-banner history-sb-banner"${href} style="--tc1:${c1};--tc2:${c2}" title="Open the final's analysis">
             <img class="gc-banner-wm gc-banner-wm-l" src="${logo1}" alt="" aria-hidden="true">
             <img class="gc-banner-wm gc-banner-wm-r" src="${logo2}" alt="" aria-hidden="true">
             <div class="gc-banner-inner">
@@ -269,7 +288,7 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
                 <span class="gc-banner-score${w1 ? ' winner' : ''}">${s1.toFixed(2)}</span>
                 <div class="gc-banner-mid">
                     <span class="gc-banner-vs">vs</span>
-                    ${sbIdx >= 0 ? '<span class="gc-banner-cta">Analisi <span aria-hidden="true">→</span></span>' : ''}
+                    ${sbIdx >= 0 ? '<span class="gc-banner-cta">Analysis <span aria-hidden="true">→</span></span>' : ''}
                 </div>
                 <span class="gc-banner-score${!w1 ? ' winner' : ''}">${s2.toFixed(2)}</span>
                 <div class="gc-banner-side gc-banner-side-r">
@@ -277,7 +296,7 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
                 </div>
             </div>
         </${tag}>
-        ${sbMvp ? `<div class="history-sb-mvp">MVP del Super Bowl: <b>${sbMvp.name}</b> (${sbMvp.pos} · ${sbMvp.team}) — ${sbMvp.pts.toFixed(2)} pt</div>` : ''}`;
+        ${sbMvp ? `<div class="history-sb-mvp">Super Bowl MVP: <b>${sbMvp.name}</b> (${sbMvp.pos} · ${sbMvp.team}) — ${sbMvp.pts.toFixed(2)} pt</div>` : ''}`;
     }
 
     // Season recap narrative
@@ -287,8 +306,8 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
     // Highlights per-giocatore (nuovi dati stats)
     const hl = highlights || {};
     const chips = [];
-    if (hl.mvp) chips.push(hlChip('MVP Stagione', hl.mvp.name, `${hl.mvp.pos} · ${hl.mvp.pts.toFixed(0)} pt`));
-    if (hl.bestGame) chips.push(hlChip('Miglior Prova', hl.bestGame.name, `W${hl.bestGame.wk} · ${hl.bestGame.pts.toFixed(1)} pt`));
+    if (hl.mvp) chips.push(hlChip('Season MVP', hl.mvp.name, `${hl.mvp.pos} · ${hl.mvp.pts.toFixed(0)} pt`));
+    if (hl.bestGame) chips.push(hlChip('Best Performance', hl.bestGame.name, `W${hl.bestGame.wk} · ${hl.bestGame.pts.toFixed(1)} pt`));
     const highlightsHtml = chips.length ? `<div class="history-highlights">${chips.join('')}</div>` : '';
 
     // Regular season standings — editorial rows, no card background

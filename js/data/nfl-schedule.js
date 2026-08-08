@@ -20,11 +20,17 @@ export function canonAbbr(abbr) {
 }
 
 /**
- * Calendario di una week: Map(abbr → { start: Date, end: Date }).
- * Ritorna null se l'API non è raggiungibile (il chiamante nasconde il grafico).
+ * Calendario di una week: Map(abbr → { start, end, eventId, state }).
+ * `eventId` è l'id partita ESPN, serve al play-by-play; `state` è
+ * 'pre' | 'in' | 'post'. Ritorna null se l'API non è raggiungibile
+ * (il chiamante nasconde il grafico).
+ *
+ * La cache su localStorage vale solo per una week interamente conclusa: su
+ * una week in corso `state` cambia, e servirlo dalla cache terrebbe il
+ * play-by-play convinto che non ci sia niente da seguire.
  */
 export async function getWeekSchedule(year, week) {
-    const cacheKey = `nfl-sched-${year}-${week}`;
+    const cacheKey = `nfl-sched2-${year}-${week}`;
     try {
         const cached = localStorage.getItem(cacheKey);
         if (cached) return _toMap(JSON.parse(cached));
@@ -40,14 +46,17 @@ export async function getWeekSchedule(year, week) {
         (data.events || []).forEach(ev => {
             const comp = ev.competitions?.[0];
             if (!comp?.date) return;
+            const state = comp.status?.type?.state || ev.status?.type?.state || 'pre';
             (comp.competitors || []).forEach(c => {
                 const abbr = canonAbbr(c.team?.abbreviation);
-                if (abbr) entries.push([abbr, comp.date]);
+                if (abbr) entries.push([abbr, comp.date, ev.id, state]);
             });
         });
         if (!entries.length) return null;
 
-        try { localStorage.setItem(cacheKey, JSON.stringify(entries)); } catch { /* cache best-effort */ }
+        if (entries.every(e => e[3] === 'post')) {
+            try { localStorage.setItem(cacheKey, JSON.stringify(entries)); } catch { /* best-effort */ }
+        }
         return _toMap(entries);
     } catch (e) {
         console.warn(`[nfl-schedule] calendario ${year} W${week} non disponibile:`, e.message);
@@ -57,9 +66,9 @@ export async function getWeekSchedule(year, week) {
 
 function _toMap(entries) {
     const map = new Map();
-    entries.forEach(([abbr, iso]) => {
+    entries.forEach(([abbr, iso, eventId = null, state = 'pre']) => {
         const start = new Date(iso);
-        map.set(abbr, { start, end: new Date(start.getTime() + GAME_DURATION_MS) });
+        map.set(abbr, { start, end: new Date(start.getTime() + GAME_DURATION_MS), eventId, state });
     });
     return map;
 }

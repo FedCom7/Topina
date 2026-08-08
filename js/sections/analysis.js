@@ -6,8 +6,8 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=32';
-import { TEAMS } from './team.js?v=23';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=33';
+import { TEAMS } from './team.js?v=44';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let initialized = false;
@@ -437,24 +437,24 @@ async function render(model) {
     const controlsHtml = `
         <div class="an-controls">
             <div class="an-avg-toggle">
-                <span class="an-avg-label">Media:</span>
-                <button class="an-avg-pill${avgMode === 'total' ? ' active' : ''}" data-avg="total">Totale</button>
-                <button class="an-avg-pill${avgMode === 'starter' ? ' active' : ''}" data-avg="starter">Da titolare</button>
+                <span class="an-avg-label">Average:</span>
+                <button class="an-avg-pill${avgMode === 'total' ? ' active' : ''}" data-avg="total">Total</button>
+                <button class="an-avg-pill${avgMode === 'starter' ? ' active' : ''}" data-avg="starter">As starter</button>
             </div>
             <details class="an-legend-box">
-                <summary>Cosa significano le etichette?</summary>
+                <summary>What do the labels mean?</summary>
                 <ul class="an-legend-list">
-                    <li><span class="an-badge an-badge-round">R1</span> Round del draft in cui è stato scelto (R1 = primo giro).</li>
-                    <li><span class="an-badge an-badge-top an-badge-top1">Top 1</span> Miglior 1°/2°/3° del proprio ruolo in tutta la lega quell'anno.</li>
-                    <li><span class="an-badge an-badge-in">Preso W5</span> Innesto in-season: settimana in cui è arrivato in rosa.</li>
-                    <li><span class="an-badge an-badge-drop">Svincolato W9</span> Uscito dalla rosa dopo quella settimana (<b>Ceduto</b> se passato a un altro team).</li>
-                    <li><span class="an-badge an-badge-start">In roster finale</span> Presente nella rosa dell'ultima giornata.</li>
-                    <li><b>G</b> = partite in rosa · <b>Media</b> = punti per partita (vedi selettore sopra) · <b>Punti qui</b> vs <b>Altrove</b> = punti fatti in questa rosa vs in altre.</li>
+                    <li><span class="an-badge an-badge-round">R1</span> Draft round in which they were picked (R1 = first round).</li>
+                    <li><span class="an-badge an-badge-top an-badge-top1">Top 1</span> Best 1st/2nd/3rd of their position across the whole league that year.</li>
+                    <li><span class="an-badge an-badge-in">Added W5</span> In-season pickup: week they joined the roster.</li>
+                    <li><span class="an-badge an-badge-drop">Dropped W9</span> Left the roster after that week (<b>Traded</b> if moved to another team).</li>
+                    <li><span class="an-badge an-badge-start">On final roster</span> Present on the roster in the last week.</li>
+                    <li><b>G</b> = games on roster · <b>Avg</b> = points per game (see selector above) · <b>Points here</b> vs <b>Elsewhere</b> = points scored on this roster vs on others.</li>
                 </ul>
             </details>
         </div>`;
 
-    wrap.innerHTML = renderKpi(kpi) + tabsHtml + controlsHtml + `<div class="an-view" id="an-view"><div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div></div>`;
+    wrap.innerHTML = renderKpi(kpi) + tabsHtml + controlsHtml + `<div class="an-view" id="an-view"><div class="loading-state"><div class="spinner"></div><p>Loading...</p></div></div>`;
 
     let viewHtml = '';
     switch (currentTab) {
@@ -487,25 +487,25 @@ async function getPreviousModel(year) {
 
 function renderKpi(kpi) {
     const missHtml = kpi.worstMiss
-        ? `<div class="an-kpi-note">Peggior svista: <b>${kpi.worstMiss.name}</b> — ${fmt(kpi.worstMiss.pts, 2)} pt in panchina (W${kpi.worstMiss.wk})</div>`
+        ? `<div class="an-kpi-note">Worst miss: <b>${kpi.worstMiss.name}</b> — ${fmt(kpi.worstMiss.pts, 2)} pt left on the bench (W${kpi.worstMiss.wk})</div>`
         : '';
     return `
     <div class="stats-summary an-kpi">
         <div class="summary-stat">
             <div class="summary-stat-value">${fmt(kpi.real)}</div>
-            <div class="summary-stat-label">Punti Reali</div>
+            <div class="summary-stat-label">Real Points</div>
         </div>
         <div class="summary-stat">
             <div class="summary-stat-value">${kpi.drafted !== null ? fmt(kpi.drafted) : '—'}</div>
-            <div class="summary-stat-label">Punti Squadra Draftata</div>
+            <div class="summary-stat-label">Drafted Team Points</div>
         </div>
         <div class="summary-stat">
             <div class="summary-stat-value">${fmt(kpi.optimal)}</div>
-            <div class="summary-stat-label">Punti Formazione Ottimale</div>
+            <div class="summary-stat-label">Optimal Lineup Points</div>
         </div>
         <div class="summary-stat summary-stat--accent">
             <div class="summary-stat-value">−${fmt(kpi.benchLost)}</div>
-            <div class="summary-stat-label">Punti Persi in Panchina</div>
+            <div class="summary-stat-label">Points Left on the Bench</div>
         </div>
     </div>
     ${missHtml}`;
@@ -513,7 +513,7 @@ function renderKpi(kpi) {
 
 function renderSeasonTab(model) {
     const rows = seasonView(model, currentTeam);
-    if (!rows.length) return emptyState('Nessun giocatore trovato per questo team');
+    if (!rows.length) return emptyState('No player found for this team');
 
     // Nomi draftati dal team, per distinguere gli innesti in-season
     const draftedNames = new Set();
@@ -525,7 +525,7 @@ function renderSeasonTab(model) {
 
     return `
     <div class="an-list-head">
-        <span></span><span>Giocatore</span><span>G</span><span>Punti</span><span>Media</span><span class="an-head-stats">Statistiche</span><span></span>
+        <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
     </div>
     ${rows.map(({ rec, agg }) => {
         const badges = [];
@@ -534,16 +534,16 @@ function renderSeasonTab(model) {
         if (round) badges.push(roundBadge(round));
         // "Preso": innesto in-season (non draftato) o comunque arrivato dopo W1
         if (raw && !draftedNames.has(rec.name)) {
-            badges.push(`<span class="an-badge an-badge-in">Preso W${agg.firstWeek}</span>`);
+            badges.push(`<span class="an-badge an-badge-in">Added W${agg.firstWeek}</span>`);
         } else if (agg.firstWeek > 1) {
-            badges.push(`<span class="an-badge an-badge-in">Dal W${agg.firstWeek}</span>`);
+            badges.push(`<span class="an-badge an-badge-in">Since W${agg.firstWeek}</span>`);
         }
         // "Svincolato": non è più nel roster dell'ultima settimana disputata
         if (agg.lastWeekOn < model.lastWeek) {
             const w = rec.weeks[model.lastWeek];
             const label = w && w.teamKey !== currentTeam
-                ? `Ceduto dopo W${agg.lastWeekOn}`
-                : `Svincolato dopo W${agg.lastWeekOn}`;
+                ? `Traded after W${agg.lastWeekOn}`
+                : `Dropped after W${agg.lastWeekOn}`;
             badges.push(`<span class="an-badge an-badge-drop">${label}</span>`);
         }
         badges.push(topBadge(rec.name, ranks));
@@ -567,26 +567,26 @@ function playerRow(rec, agg, extraBadge = '') {
 
 function renderDraftTab(model) {
     const picks = draftView(model, currentTeam);
-    if (!picks) return emptyState(`Dati draft non disponibili per il ${currentYear}`);
+    if (!picks) return emptyState(`Draft data not available for ${currentYear}`);
 
     const ranks = leaguePositionRanks(model);
 
     return `
     <div class="an-list-head">
-        <span></span><span>Pick · Giocatore</span><span>G</span><span>Punti</span><span>Media</span><span class="an-head-stats">Statistiche</span><span></span>
+        <span></span><span>Pick · Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
     </div>
     ${picks.map(({ pick, rec, agg }) => {
         if (!rec || !agg || agg.games === 0) {
             return `
             <div class="an-player-row an-row-static">
                 <img src="images/fallback-player.svg" class="an-headshot an-img" loading="lazy" data-player-name="${pick.name}" data-team="${pick.nfl_team || ''}" data-pos="${pick.position || ''}" alt="${pick.name}">
-                <span class="an-player-name"><span class="an-pick-num">#${pick.pick}</span> ${pick.name} ${posBadge(pick.position)} <span class="an-badge an-badge-drop">Mai schierato</span></span>
+                <span class="an-player-name"><span class="an-pick-num">#${pick.pick}</span> ${pick.name} ${posBadge(pick.position)} <span class="an-badge an-badge-drop">Never fielded</span></span>
                 <span class="an-cell">0</span><span class="an-cell an-pts">0</span><span class="an-cell">—</span>
                 <span class="an-keystats"></span><span></span>
             </div>`;
         }
         const dropped = model.seasonOver && agg.lastWeekOn < model.lastWeek;
-        const badge = dropped ? `<span class="an-badge an-badge-drop">Svincolato dopo W${agg.lastWeekOn}</span>` : '';
+        const badge = dropped ? `<span class="an-badge an-badge-drop">Dropped after W${agg.lastWeekOn}</span>` : '';
         return playerRow(rec, agg, `<span class="an-pick-num">#${pick.pick}</span> ${badge} ${topBadge(rec.name, ranks)}`);
     }).join('')}`;
 }
@@ -596,33 +596,33 @@ function renderMarketTab(model) {
     const ranks = leaguePositionRanks(model);
 
     const additionsHtml = additions.length ? `
-        <h3 class="an-sub-title">Innesti in stagione${hasDraft ? '' : ' (draft non disponibile)'}</h3>
+        <h3 class="an-sub-title">In-season pickups${hasDraft ? '' : ' (draft not available)'}</h3>
         <div class="an-list-head">
-            <span></span><span>Giocatore</span><span>G</span><span>Punti</span><span>Media</span><span class="an-head-stats">Statistiche</span><span></span>
+            <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
         </div>
         ${additions.map(({ rec, agg, elsewhere, onFinal }) => {
-        const badges = [`<span class="an-badge an-badge-in">Preso W${agg.firstWeek}</span>`];
+        const badges = [`<span class="an-badge an-badge-in">Added W${agg.firstWeek}</span>`];
         if (agg.lastWeekOn < model.lastWeek) {
             const w = rec.weeks[model.lastWeek];
-            badges.push(`<span class="an-badge an-badge-drop">${w && w.teamKey !== currentTeam ? 'Ceduto' : 'Mollato'} dopo W${agg.lastWeekOn}</span>`);
+            badges.push(`<span class="an-badge an-badge-drop">${w && w.teamKey !== currentTeam ? 'Traded' : 'Dropped'} after W${agg.lastWeekOn}</span>`);
         }
-        if (elsewhere > 0) badges.push(`<span class="an-badge an-badge-away">Altrove ${fmt(elsewhere, 0)} pt</span>`);
-        if (onFinal) badges.push('<span class="an-badge an-badge-start">In roster finale</span>');
+        if (elsewhere > 0) badges.push(`<span class="an-badge an-badge-away">Elsewhere ${fmt(elsewhere, 0)} pt</span>`);
+        if (onFinal) badges.push('<span class="an-badge an-badge-start">On final roster</span>');
         badges.push(topBadge(rec.name, ranks));
         return playerRow(rec, agg, badges.join(' '));
     }).join('')}
-        <p class="an-footnote">"Altrove" = punti fatti nelle settimane in cui il giocatore era nel roster di un altro team. Le settimane da svincolato non sono tracciate.</p>
-    ` : `<h3 class="an-sub-title">Innesti in stagione</h3>${emptyState('Nessun innesto: roster invariato rispetto al draft')}`;
+        <p class="an-footnote">"Elsewhere" = points scored in the weeks the player was on another team's roster. Weeks as a free agent aren't tracked.</p>
+    ` : `<h3 class="an-sub-title">In-season pickups</h3>${emptyState('No pickups: roster unchanged from the draft')}`;
 
     const finalHtml = finalRoster.length ? `
-        <h3 class="an-sub-title">Roster finale (W${model.lastWeek})</h3>
+        <h3 class="an-sub-title">Final roster (W${model.lastWeek})</h3>
         <div class="an-final-roster">
             ${finalRoster.map(({ rec, agg, drafted }) => `
             <span class="an-roster-chip${drafted ? '' : ' an-roster-chip--add'}" title="${fmt(agg.pts, 2)} pt">
                 ${rec.name} <b>${fmt(agg.pts, 0)}</b>
             </span>`).join('')}
         </div>
-        <p class="an-footnote">In <span class="an-split-here">rosso</span> gli innesti arrivati durante la stagione, il numero è il totale punti per il team.</p>
+        <p class="an-footnote">In <span class="an-split-here">red</span> the pickups added during the season, the number is the total points for the team.</p>
     ` : '';
 
     return additionsHtml + finalHtml;
@@ -632,7 +632,7 @@ function renderLineupTab(model) {
     const slots = lineupView(model, currentTeam);
     const ranks = leaguePositionRanks(model);
     return `
-    <h3 class="an-sub-title">Miglior formazione ${currentYear} — chi ha reso di più per slot</h3>
+    <h3 class="an-sub-title">Best lineup ${currentYear} — top performer per slot</h3>
     <div class="an-lineup-grid">
         ${slots.map(({ slot, row }) => {
         if (!row) {
@@ -648,7 +648,7 @@ function renderLineupTab(model) {
             <div class="an-lineup-name">${rec.name}</div>
             <div class="an-lineup-meta">${posBadge(rec.position)} ${topBadge(rec.name, ranks)} <span class="an-lineup-nfl">${rec.nflTeam || ''}</span></div>
             <div class="an-lineup-pts">${fmt(agg.pts, 2)} <span>pt</span></div>
-            <div class="an-lineup-avg">${fmt(avgOf(agg), 1)} di media · ${agg.games} G</div>
+            <div class="an-lineup-avg">${fmt(avgOf(agg), 1)} avg · ${agg.games} G</div>
         </div>`;
     }).join('')}
     </div>`;
@@ -657,7 +657,7 @@ function renderLineupTab(model) {
 function renderCompareTab(model, prevModel) {
     const prevYear = Number(currentYear) - 1;
     if (!prevModel) {
-        return emptyState(`Nessun dato disponibile per il ${prevYear} (probabilmente la prima stagione della lega)`);
+        return emptyState(`No data available for ${prevYear} (probably the league's first season)`);
     }
 
     const ranks = leaguePositionRanks(model);
@@ -670,11 +670,11 @@ function renderCompareTab(model, prevModel) {
         }
         return { rec, agg, prevPts };
     });
-    if (!rows.length) return emptyState('Nessun giocatore trovato per questo team');
+    if (!rows.length) return emptyState('No player found for this team');
 
     return `
     <div class="an-list-head an-list-head-compare">
-        <span></span><span>Giocatore</span><span>Punti ${currentYear}</span><span>Punti ${prevYear}</span><span>Δ</span><span></span>
+        <span></span><span>Player</span><span>${currentYear} Points</span><span>${prevYear} Points</span><span>Δ</span><span></span>
     </div>
     ${rows.map(r => compareRow(r, ranks)).join('')}`;
 }
@@ -682,7 +682,7 @@ function renderCompareTab(model, prevModel) {
 function compareRow({ rec, agg, prevPts }, ranks) {
     const delta = prevPts !== null ? agg.pts - prevPts : null;
     const deltaClass = delta === null ? '' : delta >= 0 ? 'an-delta-up' : 'an-delta-down';
-    const deltaText = delta === null ? 'Rookie/N.D.' : `${delta >= 0 ? '+' : ''}${fmt(delta, 1)}`;
+    const deltaText = delta === null ? 'Rookie/N.A.' : `${delta >= 0 ? '+' : ''}${fmt(delta, 1)}`;
     return `
     <div class="an-player-row" data-player="${encodeURIComponent(rec.name)}">
         ${headshotImg(rec)}
@@ -740,7 +740,7 @@ function bindContentEvents() {
             const collapsing = moreBtn.dataset.expanded === '1';
             extraRows.forEach(r => r.hidden = collapsing);
             moreBtn.dataset.expanded = collapsing ? '0' : '1';
-            moreBtn.textContent = collapsing ? moreBtn.dataset.showLabel : 'Nascondi';
+            moreBtn.textContent = collapsing ? moreBtn.dataset.showLabel : 'Hide';
             return;
         }
 
@@ -771,7 +771,7 @@ function drillRow(rec, w, withTeam = false) {
             ${teamCell}
             <span class="an-drill-pts">${fmt(w.pts, 2)}</span>
             <span class="an-drill-stats">${keyStatLine(rec.position, w.stats)}</span>
-            <span class="an-badge ${w.started ? 'an-badge-start' : 'an-badge-bench'}">${w.started ? 'Titolare' : 'Panchina'}</span>
+            <span class="an-badge ${w.started ? 'an-badge-start' : 'an-badge-bench'}">${w.started ? 'Starter' : 'Bench'}</span>
         </div>`;
 }
 
@@ -803,15 +803,15 @@ function compareWeekDrillHtml(playerName) {
 
     const curBlock = `
         <div class="an-drill-season-label">${currentYear}</div>
-        ${curWeeks.length ? curWeeks.map(w => drillRow(rec, w)).join('') : `<p class="an-footnote">Nessuna settimana in questo team.</p>`}`;
+        ${curWeeks.length ? curWeeks.map(w => drillRow(rec, w)).join('') : `<p class="an-footnote">No weeks on this team.</p>`}`;
 
     let prevBlock;
     if (!prevModel) {
-        prevBlock = `<div class="an-drill-season-label">${prevYear}</div><p class="an-footnote">Dati non disponibili.</p>`;
+        prevBlock = `<div class="an-drill-season-label">${prevYear}</div><p class="an-footnote">Data not available.</p>`;
     } else {
         const prevRec = prevModel.players.get(playerName);
         if (!prevRec) {
-            prevBlock = `<div class="an-drill-season-label">${prevYear}</div><p class="an-footnote">Non presente nei dati fantasy di quell'anno.</p>`;
+            prevBlock = `<div class="an-drill-season-label">${prevYear}</div><p class="an-footnote">Not present in that year's fantasy data.</p>`;
         } else {
             const prevWeeks = Object.entries(prevRec.weeks)
                 .map(([wk, w]) => ({ wk: Number(wk), ...w }))
@@ -976,7 +976,7 @@ function topFlopPerformances(model, limit = 10) {
 
 function renderLeagueView(model) {
     const series = weeklyScores(model);
-    if (!series.length) return emptyState(`Nessun dato per la stagione ${currentYear}`);
+    if (!series.length) return emptyState(`No data for the ${currentYear} season`);
 
     const allScores = series.flatMap(s => s.values.map(v => v.weekScore));
     const totalPts = allScores.reduce((a, b) => a + b, 0);
@@ -1002,11 +1002,11 @@ function renderLeagueView(model) {
     <div class="stats-summary an-kpi">
         <div class="summary-stat">
             <div class="summary-stat-value">${fmt(totalPts)}</div>
-            <div class="summary-stat-label">Punti Totali Lega</div>
+            <div class="summary-stat-label">Total League Points</div>
         </div>
         <div class="summary-stat">
             <div class="summary-stat-value">${fmt(avgPts, 1)}</div>
-            <div class="summary-stat-label">Media a Partita</div>
+            <div class="summary-stat-label">Average per Game</div>
         </div>
         <div class="summary-stat summary-stat--accent">
             <div class="summary-stat-value">${fmt(bestWeek.weekScore, 1)}</div>
@@ -1018,22 +1018,22 @@ function renderLeagueView(model) {
         </div>
     </div>
 
-    <h3 class="an-sub-title">Distacco cumulativo dalla media di lega</h3>
+    <h3 class="an-sub-title">Cumulative gap from league average</h3>
     ${legend}
     <div class="an-chart" id="an-line-chart">${buildLineChart(series)}<div class="an-chart-tooltip" hidden></div></div>
-    <p class="an-footnote">Ogni linea è il punteggio cumulativo del team meno la media di lega alla stessa settimana: sopra lo 0 = sopra la media, sotto = sotto. Nel tooltip il totale cumulativo reale.</p>
+    <p class="an-footnote">Each line is the team's cumulative score minus the league average at the same week: above 0 = above average, below = below. The tooltip shows the real cumulative total.</p>
 
-    <h3 class="an-sub-title">Punti per ruolo (titolari)</h3>
+    <h3 class="an-sub-title">Points by position (starters)</h3>
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
 
     <div class="an-rankings">
-        ${rankingBlock('Miglior Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
-        ${rankingBlock('Migliori Innesti', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
-        ${rankingBlock('Punti Lasciati in Panchina', rk.bench, r => r.benchLost, r => r.worstMiss ? `Peggior svista: ${r.worstMiss.name}, ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
+        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
+        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
+        ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst miss: ${r.worstMiss.name}, ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
 
-    <h3 class="an-sub-title">Costanza dei Punteggi</h3>
+    <h3 class="an-sub-title">Scoring Consistency</h3>
     ${buildDistributionChart(scoreDistribution(model))}
 
     <h3 class="an-sub-title">Draft: Value per Pick</h3>
@@ -1045,16 +1045,16 @@ function renderLeagueView(model) {
         ${rankingBlockPerf('Flop 5 Performance', topFlop.flop, 'flop')}
     </div>
 
-    <h3 class="an-sub-title">Confronto Rose — Squadra Draftata</h3>
+    <h3 class="an-sub-title">Roster Comparison — Drafted Team</h3>
     ${buildRosterCompareTable(model, 'drafted')}
 
-    <h3 class="an-sub-title">Confronto Rose — Squadra Migliore</h3>
+    <h3 class="an-sub-title">Roster Comparison — Best Team</h3>
     ${buildRosterCompareTable(model, 'best')}
-    <p class="an-footnote">Slot titolari riempiti col miglior giocatore disponibile nel ruolo (W/R = flex RB/WR/TE) tra tutti quelli passati dalla rosa in stagione; sotto la riga, i panchinari. "Titolari" = somma dei soli slot titolari, "Totale" = tutti i giocatori della rosa.</p>
+    <p class="an-footnote">Starting slots filled with the best available player at the position (W/R = flex RB/WR/TE) among everyone who passed through the roster that season; below the line, the bench players. "Starters" = sum of starting slots only, "Total" = every player on the roster.</p>
 
-    <h3 class="an-sub-title">Confronto Innesti</h3>
+    <h3 class="an-sub-title">Pickups Comparison</h3>
     ${buildPickupsCompareTable(model)}
-    <p class="an-footnote">Innesti in-season ordinati per punti fatti (dal migliore), non per ruolo.</p>`;
+    <p class="an-footnote">In-season pickups sorted by points scored (best first), not by position.</p>`;
 }
 
 function seasonTotalPts(rec) {
@@ -1093,8 +1093,8 @@ function ptblModeToggleHtml(section) {
     const mode = rosterPtsMode[section];
     return `
     <div class="an-avg-toggle an-ptbl-mode-toggle">
-        <button class="an-ptbl-mode-pill${mode === 'total' ? ' active' : ''}" data-pts-section="${section}" data-pts-mode="total">Punti Totali</button>
-        <button class="an-ptbl-mode-pill${mode === 'pg' ? ' active' : ''}" data-pts-section="${section}" data-pts-mode="pg">Punti a Partita</button>
+        <button class="an-ptbl-mode-pill${mode === 'total' ? ' active' : ''}" data-pts-section="${section}" data-pts-mode="total">Total Points</button>
+        <button class="an-ptbl-mode-pill${mode === 'pg' ? ' active' : ''}" data-pts-section="${section}" data-pts-mode="pg">Points per Game</button>
     </div>`;
 }
 
@@ -1108,7 +1108,7 @@ function collapseRowsHtml(rows, colspan, label) {
         .map(r => r.replace('<tr>', '<tr class="an-ptbl-extra-row" hidden>'))
         .join('');
     const hiddenCount = rows.length - PTBL_COLLAPSE_AFTER;
-    const showLabel = `Mostra altri ${hiddenCount} ${label}`;
+    const showLabel = `Show ${hiddenCount} more ${label}`;
     const moreRow = `
         <tr class="an-ptbl-more-row">
             <td colspan="${colspan}"><button class="an-ptbl-more-btn" data-expanded="0" data-show-label="${showLabel}">${showLabel}</button></td>
@@ -1135,7 +1135,7 @@ function buildRosterCompareTable(model, mode) {
     });
 
     if (mode === 'drafted' && teams.every(t => t.missing)) {
-        return emptyState(`Dati draft non disponibili per il ${currentYear}`);
+        return emptyState(`Draft data not available for ${currentYear}`);
     }
 
     const maxBench = Math.max(0, ...teams.map(t => (t.bench || []).length));
@@ -1183,7 +1183,7 @@ function buildRosterCompareTable(model, mode) {
             ${teams.map(t => t.missing ? emptyTd : `<td class="an-ptbl-cell">${playerCell(t.bench?.[i], rowMax)}</td>`).join('')}
         </tr>`);
     }
-    body += collapseRowsHtml(benchRows, teams.length + 1, 'panchinari');
+    body += collapseRowsHtml(benchRows, teams.length + 1, 'bench players');
 
     // Righe somma (delta anche qui)
     const sumRow = (label, ptsFn, gamesFn, extraClass = '') => {
@@ -1199,8 +1199,8 @@ function buildRosterCompareTable(model, mode) {
         }).join('')}
         </tr>`;
     };
-    body += sumRow('Titolari', t => t.startersPts, t => t.startersGames);
-    body += sumRow('Totale', t => t.totalPts, t => t.totalGames, ' an-ptbl-sumrow--total');
+    body += sumRow('Starters', t => t.startersPts, t => t.startersGames);
+    body += sumRow('Total', t => t.totalPts, t => t.totalGames, ' an-ptbl-sumrow--total');
 
     return `
     ${ptblModeToggleHtml(mode)}
@@ -1228,7 +1228,7 @@ function buildPickupsCompareTable(model) {
     });
 
     const maxRows = Math.max(0, ...teams.map(t => t.additions.length));
-    if (!maxRows) return emptyState('Nessun innesto in questa stagione per nessuna squadra');
+    if (!maxRows) return emptyState('No pickups this season for any team');
 
     const decimals = rosterPtsMode[section] === 'pg' ? 1 : 0;
     const rowMaxOf = (arr) => { const n = arr.filter(v => v !== null && v !== undefined); return n.length ? Math.max(...n) : null; };
@@ -1257,13 +1257,13 @@ function buildPickupsCompareTable(model) {
             ${teams.map(t => `<td class="an-ptbl-cell">${playerCell(t.additions[i], rowMax)}</td>`).join('')}
         </tr>`);
     }
-    let body = collapseRowsHtml(rows, teams.length + 1, 'innesti');
+    let body = collapseRowsHtml(rows, teams.length + 1, 'pickups');
 
     const totalArr = teams.map(t => ptblValue(t.totalPts, t.totalGames, section));
     const totalRowMax = rowMaxOf(totalArr);
     body += `
         <tr class="an-ptbl-sumrow an-ptbl-sumrow--total">
-            <td class="an-ptbl-slot">Totale</td>
+            <td class="an-ptbl-slot">Total</td>
             ${teams.map((t, ti) => {
         const leader = isLeader(totalArr[ti], totalRowMax);
         return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(totalArr[ti], decimals)}</b>${delta(totalArr[ti], totalRowMax)}</span></td>`;
@@ -1284,7 +1284,7 @@ function buildPickupsCompareTable(model) {
 }
 
 function buildDistributionChart(rows) {
-    if (!rows.length) return emptyState('Nessun dato di punteggio disponibile');
+    if (!rows.length) return emptyState('No scoring data available');
     const maxVal = Math.max(...rows.map(r => r.max), 1);
     return `
     <div class="an-dist-chart">
@@ -1302,11 +1302,11 @@ function buildDistributionChart(rows) {
             </span>
         </div>`).join('')}
     </div>
-    <p class="an-footnote">Barra = intervallo min–max dei punteggi settimanali; il segno verticale è la mediana.</p>`;
+    <p class="an-footnote">Bar = min–max range of weekly scores; the vertical mark is the median.</p>`;
 }
 
 function buildDraftScatterSection(points) {
-    if (!points.length) return emptyState(`Dati draft non disponibili per il ${currentYear}`);
+    if (!points.length) return emptyState(`Draft data not available for ${currentYear}`);
     return `<div class="an-chart" id="an-scatter-chart">${buildDraftScatter(points)}<div class="an-chart-tooltip" hidden></div></div>`;
 }
 
