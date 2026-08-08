@@ -547,15 +547,15 @@ function render() {
     ${teamSwitcherHTML(entries)}
     ${matchupCardHTML(entry)}
     ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
-    ${playFeedHTML()}
+    <div class="live-widgets">
+        ${playFeedHTML()}
+        ${receiptsPanelHTML()}
+        ${sidebarHTML(team, opp)}
+    </div>
     <div class="live-layout">
         <div class="live-main">
             ${rosterLiveHTML(team, opp)}
         </div>
-        <aside class="live-sidebar">
-            ${receiptsPanelHTML()}
-            ${sidebarHTML(team, opp)}
-        </aside>
     </div>`;
 
     hydrateHeadshots(root);
@@ -573,6 +573,8 @@ function render() {
     });
     root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
     bindSwipe(root.querySelector('[data-swipe]'));
+    bindDeck(root);
+    layoutDeck();
 }
 
 /**
@@ -1134,29 +1136,96 @@ function playFeedHTML() {
     return `
     <div class="mosaic-card mc-in live-side-card pbp-card-stack">
         <span class="mc-kicker">Live plays</span>
-        <div class="pbp-stack" id="pbp-stack">
+        <div class="pbp-stack" id="pbp-stack" data-deck>
             ${pbpCards.length
             ? pbpCards.map(playCardHTML).join('')
             : `<p class="pm-empty">${gamesToWatch().length
                 ? 'Waiting for the next play...'
                 : 'No NFL game in progress with your players.'}</p>`}
         </div>
+        <div class="pbp-deck-nav" hidden>
+            <button type="button" class="pbp-deck-btn" data-deck-step="-1" aria-label="Newer play">↑</button>
+            <span class="pbp-deck-count"></span>
+            <button type="button" class="pbp-deck-btn" data-deck-step="1" aria-label="Older play">↓</button>
+        </div>
     </div>`;
 }
 
 /**
- * Ridisegna la pila e fa entrare dall'alto solo le card nuove: le altre
- * restano ferme, altrimenti a ogni giro l'intera colonna rianimerebbe.
+ * Mazzo: la giocata più recente sta sopra, le precedenti sbucano da sotto
+ * sfalsate e rimpicciolite. `pbpIndex` è la carta in cima; girando la rotella
+ * (o con le frecce) si torna indietro nel tempo e le carte passano davanti.
+ *
+ * L'impilamento vive solo da desktop in su: sotto i 900px la card torna una
+ * lista che scorre normalmente, dove la rotella serve alla pagina.
+ */
+let pbpIndex = 0;
+const isDeck = () => matchMedia('(min-width: 901px)').matches;
+
+function layoutDeck() {
+    const stack = document.getElementById('pbp-stack');
+    if (!stack) return;
+    const cards = [...stack.querySelectorAll('.pbp-card')];
+    pbpIndex = Math.max(0, Math.min(pbpIndex, Math.max(0, cards.length - 1)));
+    cards.forEach((el, i) => {
+        const depth = i - pbpIndex;
+        el.style.setProperty('--i', depth);
+        el.classList.toggle('pbp-card--gone', depth < 0);   // già passata
+        el.classList.toggle('pbp-card--deep', depth > 3);   // troppo in fondo
+    });
+    const nav = stack.parentElement.querySelector('.pbp-deck-nav');
+    if (nav) {
+        nav.hidden = !(isDeck() && cards.length > 1);
+        nav.querySelector('.pbp-deck-count').textContent = cards.length
+            ? `${pbpIndex + 1} / ${cards.length}` : '';
+    }
+}
+
+function stepDeck(delta) {
+    const n = pbpCards.length;
+    if (!n) return false;
+    const next = Math.max(0, Math.min(pbpIndex + delta, n - 1));
+    if (next === pbpIndex) return false; // già al capo: la pagina può scorrere
+    pbpIndex = next;
+    layoutDeck();
+    return true;
+}
+
+/** Rotella sul mazzo: una carta per scatto, senza rubare lo scroll ai bordi. */
+function bindDeck(root) {
+    const stack = root.querySelector('[data-deck]');
+    if (!stack) return;
+    let last = 0;
+    stack.addEventListener('wheel', (e) => {
+        if (!isDeck() || pbpCards.length < 2) return;
+        const now = performance.now();
+        if (now - last < 110) { e.preventDefault(); return; }
+        if (stepDeck(e.deltaY > 0 ? 1 : -1)) {
+            e.preventDefault();  // solo se il mazzo si è davvero mosso
+            last = now;
+        }
+    }, { passive: false });
+
+    root.querySelectorAll('[data-deck-step]').forEach(btn =>
+        btn.addEventListener('click', () => stepDeck(Number(btn.dataset.deckStep))));
+}
+
+/**
+ * Ridisegna il mazzo. Le card nuove entrano dall'alto; se stavi guardando
+ * indietro nel tempo, l'indice segue la carta che avevi davanti invece di
+ * riportarti di colpo in cima.
  */
 function paintPlayCards(newIds = []) {
     const stack = document.getElementById('pbp-stack');
     if (!stack) return;
+    if (pbpIndex > 0) pbpIndex += newIds.length;
     stack.innerHTML = pbpCards.map(playCardHTML).join('');
+    layoutDeck();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     for (const id of newIds) {
         stack.querySelector(`[data-play="${CSS.escape(String(id))}"]`)?.animate([
-            { transform: 'translateY(-14px)', opacity: 0 },
-            { transform: 'translateY(0)', opacity: 1 },
+            { transform: 'translateY(-26px) scale(1.03)', opacity: 0 },
+            { transform: 'none', opacity: 1 },
         ], { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
     }
 }
