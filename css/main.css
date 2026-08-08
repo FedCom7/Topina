@@ -44,8 +44,16 @@
     --pill-radius: 100px;
     --card-radius: var(--radius-lg);
 
-    /* Superfici — sfondo condiviso delle card scure */
-    --surface-card: linear-gradient(180deg, rgba(20, 20, 22, 0.92), rgba(10, 10, 12, 0.88));
+    /* Superfici — vetro liquido condiviso da tutte le card: base scura
+       traslucida più un riflesso chiaro che fa da spessore del vetro.
+       Insieme a --bg-glass-border completano la ricetta (sfocatura di ciò che
+       sta dietro, bordo, riflesso interno): vanno usati con --surface-card,
+       non riscritti a mano nei singoli componenti. */
+    --surface-card:
+        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
+        rgba(14, 14, 16, 0.62);
+    --glass-blur: blur(26px) saturate(170%);
+    --glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 
     /* Blur scale (backdrop-filter) */
     --blur-sm: 8px;
@@ -5498,19 +5506,11 @@ img {
     min-height: 250px;
     min-width: 0;
     border-radius: var(--radius-xl);
-    /* Vetro liquido, come la scheda giocatore: pannello traslucido con riflesso
-       interno in alto a fare da spessore. Il blur è dichiarato ma resta un
-       dettaglio: dietro la home c'è un fondo piatto, e durante il reveal la
-       transform sulla card lo disattiverebbe comunque. */
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    background:
-        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
-        rgba(14, 14, 16, 0.62);
-    backdrop-filter: blur(26px) saturate(170%);
-    -webkit-backdrop-filter: blur(26px) saturate(170%);
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.42),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42), var(--glass-sheen);
 }
 
 .mosaic-card::before {
@@ -5562,7 +5562,7 @@ img {
     border-color: color-mix(in srgb, var(--card-glow) 40%, transparent);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45),
         0 0 50px color-mix(in srgb, var(--card-glow) 13%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        var(--glass-sheen);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6097,14 +6097,11 @@ img {
     gap: 6px;
     padding: 20px;
     border-radius: var(--radius-lg);
-    /* stesso vetro delle card del mosaico */
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    background:
-        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
-        rgba(14, 14, 16, 0.62);
-    backdrop-filter: blur(26px) saturate(170%);
-    -webkit-backdrop-filter: blur(26px) saturate(170%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-sheen);
     transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
 }
 
@@ -6124,7 +6121,7 @@ img {
     border-color: color-mix(in srgb, var(--card-glow) 45%, transparent);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4),
         0 0 36px color-mix(in srgb, var(--card-glow) 14%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        var(--glass-sheen);
 }
 
 .mc-rail-top {
@@ -9381,20 +9378,16 @@ body.pm-open { overflow: hidden; }
     overflow-x: hidden;
     padding: 26px;
     border-radius: var(--radius-xl);
-    /* Vetro liquido: pannello traslucido che sfoca e satura la pagina dietro,
-       bordo chiaro e riflesso interno in alto a fare da spessore del vetro.
-       L'ingresso anima solo l'opacità: qualunque transform sull'elemento (o su
-       un suo antenato) disattiva backdrop-filter, e il vetro sparirebbe per
-       tutta la durata dell'animazione. */
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background:
-        linear-gradient(rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03)),
-        rgba(14, 14, 16, 0.62);
+    /* Stesso vetro delle card (token in :root), con sfocatura più marcata:
+       il modal copre la pagina e deve staccare. L'ingresso anima solo
+       l'opacità: qualunque transform sull'elemento (o su un suo antenato)
+       disattiva backdrop-filter, e il vetro sparirebbe per tutta la durata
+       dell'animazione. */
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
     backdrop-filter: blur(34px) saturate(180%);
     -webkit-backdrop-filter: blur(34px) saturate(180%);
-    box-shadow:
-        0 24px 60px rgba(0, 0, 0, 0.55),
-        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), var(--glass-sheen);
     animation: pm-fade var(--dur-med) var(--ease);
     /* Scrollbar scura quando la scheda è più alta del viewport:
        quella di default del browser stonerebbe sul fondo nero. */
