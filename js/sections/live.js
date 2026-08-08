@@ -1495,8 +1495,8 @@ function countUp(el, from, to, ms = 900) {
 }
 
 /** Evidenzia sul campo i giocatori appena aggiornati + fa "stampare" lo scontrino. */
-const FLASH_MS = 3200;   // quanto resta accesa la bolla del giocatore
-const POP_DELAY_MS = 1000; // attesa prima che il totale in basso assorba i punti
+const FLASH_MS = 10000;    // quanto resta accesa la foto del giocatore
+const POP_DELAY_MS = 5000; // l'etichetta dei punti resta fuori tanto, poi il totale sale
 
 function flashNewReceipts(events) {
     for (const ev of events) {
@@ -1507,8 +1507,8 @@ function flashNewReceipts(events) {
             const photo = slot.querySelector('.slot-photo, .live-chip-photo, .live-cmp-photo');
             photo?.animate([
                 { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)', offset: 0 },
-                { boxShadow: `0 0 22px 6px ${color}`, borderColor: color, offset: 0.12 },
-                { boxShadow: `0 0 18px 5px ${color}`, borderColor: color, offset: 0.72 },
+                { boxShadow: `0 0 22px 6px ${color}`, borderColor: color, offset: 0.04 },
+                { boxShadow: `0 0 18px 5px ${color}`, borderColor: color, offset: 0.88 },
                 { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)', offset: 1 },
             ], { duration: FLASH_MS, easing: 'ease-out' });
 
@@ -1536,12 +1536,14 @@ function popPoints(slot, delta) {
     tag.className = `live-pop ${delta > 0 ? 'pos' : 'neg'}`;
     tag.textContent = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`;
     slot.appendChild(tag);
+    // Compare subito, resta ferma quasi tutti i POP_DELAY_MS e sfuma proprio
+    // mentre il totale in basso comincia a salire.
     tag.animate([
         { transform: 'translateY(6px) scale(0.85)', opacity: 0 },
-        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.15 },
-        { transform: 'translateY(-2px) scale(1)', opacity: 1, offset: 0.7 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.06 },
+        { transform: 'translateY(-2px) scale(1)', opacity: 1, offset: 0.85 },
         { transform: 'translateY(-14px) scale(0.95)', opacity: 0 },
-    ], { duration: FLASH_MS - 400, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' })
+    ], { duration: POP_DELAY_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' })
         .onfinish = () => tag.remove();
 }
 
