@@ -63,6 +63,8 @@ export async function getTeamRoster(abbr, year) {
                 age: a.age ?? null,
                 status: a.status?.name || null,
                 jersey: a.jersey ? +a.jersey : null,
+                yearsExp: a.experience?.years ?? null,                // anni di esperienza (0 = rookie)
+                salary: a.contract?.salary ?? null,                   // stipendio base stagione corrente
             };
         }
         const players = list.map(p => {
@@ -74,6 +76,8 @@ export async function getTeamRoster(abbr, year) {
                 age: p.age ?? e.age ?? null,                          // nuovo da ESPN
                 status: p.status || e.status || null,                 // build → ESPN fallback
                 jersey: p.jersey ?? e.jersey ?? null,
+                yearsExp: e.yearsExp ?? p.yearsExp ?? null,           // esperienza da ESPN
+                salary: e.salary ?? null,                             // stipendio da ESPN
                 fpgLeague: u?.fpgLeague ?? null,
                 targetShare: u?.targetShare ?? null,
                 rushShare: u?.rushShare ?? null,
@@ -88,7 +92,7 @@ export async function getTeamRoster(abbr, year) {
     const players = athletes.map(a => ({
         gsis: null, name: a.displayName || a.fullName || '', pos: a.position?.abbreviation || null,
         jersey: a.jersey ? +a.jersey : null, status: a.status?.name || null, college: a.college?.name || null,
-        yearsExp: a.experience?.years ?? null, depthPosition: null, snapPct: null,
+        yearsExp: a.experience?.years ?? null, salary: a.contract?.salary ?? null, depthPosition: null, snapPct: null,
         height: a.height ? String(a.height) : null, weight: a.weight || null,
         headshot: a.headshot?.href || null,
         draftClub: null, draftNumber: null, rookieYear: null,
@@ -113,29 +117,46 @@ async function espnDepthChart(abbr) {
     if (!units?.length) return (_depth[teamId] = null);
     // starters = athlete di testa per slot; full = intera profondità ordinata
     // (titolare, 2ª, 3ª scelta…) per un blocco "depth chart completo".
-    const out = { offense: [], defense: [], full: { offense: [], defense: [] } };
+    const out = { offense: [], defense: [], special: [], full: { offense: [], defense: [], special: [] } };
     for (const unit of units) {
-        if (unit.name === 'Special Teams') continue;
-        const side = /^Base \d-\d D$/.test(unit.name || '') ? 'defense' : 'offense';
+        // "Special Teams" → special; "Base N-N D" → difesa; il resto → attacco.
+        const side = unit.name === 'Special Teams' ? 'special'
+            : /^Base \d-\d D$/.test(unit.name || '') ? 'defense' : 'offense';
         for (const slot of Object.values(unit.positions || {})) {
             const list = slot.athletes || [];
             if (!list.length) continue;
             const pos = slot.position?.abbreviation || null;
             const head = list[0];
-            out[side].push({ gsis: null, name: head.displayName || null, pos, jersey: null });
+            const injOf = (a) => { const i = (a.injuries || [])[0]; return i ? { status: i.status || null, abbr: i.type?.abbreviation || null } : null; };
+            out[side].push({ gsis: null, name: head.displayName || null, pos, jersey: null, injury: injOf(head) });
             out.full[side].push({
                 pos,
-                players: list.map(a => ({ name: a.displayName || null, jersey: a.jersey ? +a.jersey : null })),
+                // ESPN depthcharts NON espone la maglia (a.jersey assente): resta null,
+                // sarà riempita dal merge con nflverse. Espone invece gli infortuni.
+                players: list.map(a => ({ name: a.displayName || null, jersey: null, injury: injOf(a) })),
             });
         }
     }
-    return (_depth[teamId] = (out.offense.length || out.defense.length) ? out : null);
+    return (_depth[teamId] = (out.offense.length || out.defense.length || out.special.length) ? out : null);
+}
+
+/**
+ * Stagione NFL corrente calcolata dalla data: da MARZO (nuovo league year NFL)
+ * la stagione è l'anno solare corrente; gennaio/febbraio (playoff/Super Bowl)
+ * appartengono ancora alla stagione precedente. Avanza da sola ogni anno, così
+ * l'etichetta e i dati della nuova stagione compaiono in preseason senza
+ * interventi manuali. Es. ago 2026 → 2026, gen 2026 → 2025.
+ */
+export function currentNflSeason(d = new Date()) {
+    return d.getMonth() + 1 >= 3 ? d.getFullYear() : d.getFullYear() - 1;
 }
 
 const DEPTH_ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'LT', 'LG', 'C', 'RG', 'RT', 'T', 'G', 'OL', 'OT', 'OG',
-    'DE', 'EDGE', 'DT', 'NT', 'DL', 'OLB', 'ILB', 'MLB', 'LB', 'CB', 'DB', 'S', 'FS', 'SS', 'SAF'];
+    'DE', 'EDGE', 'DT', 'NT', 'DL', 'OLB', 'ILB', 'MLB', 'LB', 'CB', 'DB', 'S', 'FS', 'SS', 'SAF',
+    'PK', 'K', 'P', 'H', 'LS', 'KR', 'PR'];
 const OFF_SLOT = new Set(['QB', 'RB', 'FB', 'WR', 'TE', 'LT', 'LG', 'C', 'RG', 'RT', 'T', 'G', 'OL', 'OT', 'OG']);
 const DEF_SLOT = new Set(['DE', 'EDGE', 'DT', 'NT', 'DL', 'OLB', 'ILB', 'MLB', 'LB', 'CB', 'DB', 'S', 'FS', 'SS', 'SAF']);
+const SPECIAL_SLOT = new Set(['PK', 'K', 'P', 'H', 'LS', 'KR', 'PR']);
 
 /**
  * Depth chart completo (profondità ordinata per slot). Costruito dal roster
@@ -146,13 +167,16 @@ const DEF_SLOT = new Set(['DE', 'EDGE', 'DT', 'NT', 'DL', 'OLB', 'ILB', 'MLB', '
  */
 export async function getTeamDepthChart(abbr, year) {
     const A = canonAbbr(abbr);
-    const roster = year ? await rosterJson(year) : null;
-    const list = roster?.teams?.[A];
-    if (list?.length) {
-        const bySlot = { offense: {}, defense: {} };
+
+    // Depth chart nflverse (build): raggruppa per depthPosition, ordina per snap%.
+    const nflBuild = async () => {
+        const roster = year ? await rosterJson(year) : null;
+        const list = roster?.teams?.[A];
+        if (!list?.length) return null;
+        const bySlot = { offense: {}, defense: {}, special: {} };
         for (const p of list) {
             const slot = p.depthPosition || p.pos;
-            const side = OFF_SLOT.has(slot) ? 'offense' : DEF_SLOT.has(slot) ? 'defense' : null;
+            const side = OFF_SLOT.has(slot) ? 'offense' : DEF_SLOT.has(slot) ? 'defense' : SPECIAL_SLOT.has(slot) ? 'special' : null;
             if (!side) continue;
             (bySlot[side][slot] ??= []).push({ name: p.name, jersey: p.jersey ?? null, snapPct: p.snapPct ?? 0 });
         }
@@ -160,12 +184,46 @@ export async function getTeamDepthChart(abbr, year) {
         const build = (obj) => Object.entries(obj)
             .sort((a, b) => rank(a[0]) - rank(b[0]))
             .map(([pos, players]) => ({ pos, players: players.sort((a, b) => (b.snapPct || 0) - (a.snapPct || 0)).map(x => ({ name: x.name, jersey: x.jersey })) }));
-        const offense = build(bySlot.offense), defense = build(bySlot.defense);
-        if (offense.length || defense.length) return { source: 'build', offense, defense };
-    }
-    const dc = await espnDepthChart(A);
-    return dc?.full && (dc.full.offense.length || dc.full.defense.length)
-        ? { source: 'espn-live', offense: dc.full.offense, defense: dc.full.defense } : null;
+        const offense = build(bySlot.offense), defense = build(bySlot.defense), special = build(bySlot.special);
+        return (offense.length || defense.length || special.length) ? { source: 'build', offense, defense, special } : null;
+    };
+
+    // Depth chart ESPN (ufficiale) arricchito con la MAGLIA (ESPN /depthcharts non
+    // la espone). La prendo dalla STESSA sorgente del roster — l'endpoint ESPN
+    // /roster, che ha jersey ed è aggiornato alla stagione corrente — con fallback
+    // sul roster nflverse per gli anni in cui il file esiste. Uniti per nome.
+    const espnMerged = async () => {
+        const dc = await espnDepthChart(A);
+        if (!dc?.full || !(dc.full.offense.length || dc.full.defense.length)) return null;
+        const [espnAth, roster] = await Promise.all([
+            espnRoster(A).catch(() => null),
+            year ? rosterJson(year) : Promise.resolve(null),
+        ]);
+        const jerseyByName = {};
+        for (const a of (espnAth || [])) {
+            const nm = _normName(a.displayName || a.fullName || '');
+            if (nm && a.jersey) jerseyByName[nm] = +a.jersey;   // ESPN /roster: primaria
+        }
+        for (const p of (roster?.teams?.[A] || [])) {
+            const nm = _normName(p.name);
+            if (nm && jerseyByName[nm] == null && p.jersey != null) jerseyByName[nm] = p.jersey; // nflverse: fallback
+        }
+        const enrich = (side) => side.map(slot => ({
+            pos: slot.pos,
+            players: slot.players.map(pl => ({
+                name: pl.name,
+                jersey: pl.jersey ?? jerseyByName[_normName(pl.name || '')] ?? null,
+                injury: pl.injury || null,
+            })),
+        }));
+        return { source: 'espn-live', offense: enrich(dc.full.offense), defense: enrich(dc.full.defense), special: enrich(dc.full.special || []) };
+    };
+
+    // Stagione corrente → ESPN (ufficiale) con maglia nflverse; passate → nflverse.
+    // In entrambi i casi l'altra fonte fa da fallback se la primaria manca.
+    return Number(year) >= currentNflSeason()
+        ? (await espnMerged()) || (await nflBuild())
+        : (await nflBuild()) || (await espnMerged());
 }
 
 /**

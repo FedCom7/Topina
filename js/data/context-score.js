@@ -346,6 +346,51 @@ export async function getTeamUsage(team, year) {
         .sort((a, b) => (b.fpgLeague || 0) - (a.fpgLeague || 0));
 }
 
+/**
+ * Pool NFL dei ricevitori (WR/TE/RB con volume) di una stagione — riferimento
+ * per i percentili dell'analisi target share. Usa la stessa cache adv_players.
+ */
+export async function getLeagueReceivers(year) {
+    const data = await advPlayers(year);
+    if (!data) return [];
+    return Object.values(data.players).filter(p =>
+        ['WR', 'TE', 'RB'].includes(p.pos) && (p.gp || 0) >= 4 && (p.tgtPerGame || 0) >= 1.5);
+}
+
+/**
+ * Pool NFL dei giocatori di un ruolo (≥4 gare) in una stagione — riferimento per
+ * i percentili del radar avanzato nella scheda giocatore. Stessa cache adv_players.
+ */
+export async function getAdvancedPool(pos, year) {
+    const data = await advPlayers(year);
+    if (!data) return [];
+    const P = (pos || '').toUpperCase();
+    return Object.values(data.players).filter(p => (p.pos || '').toUpperCase() === P && (p.gp || 0) >= 4);
+}
+
+/** Advanced offensivo (EPA/gioco, success rate, PROE…) di TUTTE le squadre — per
+ *  lo scatter di confronto lega. Mappa { ABBR: {...} }. */
+export async function getLeagueTeamsAdvanced(year) {
+    const data = await advTeam(year);
+    return data?.teams || {};
+}
+
+/** Punti fantasy lega TOTALI in stagione per squadra e ruolo (QB/RB/WR/TE) su
+ *  tutta la NFL — per il rank della resa fantasy dell'attacco. Si usa il totale
+ *  (pt/gara × partite), non la somma dei pt/gara, così le room concentrate non
+ *  vengono penalizzate dalle squadre che ruotano tanti part-time. { ABBR: {...} }. */
+export async function getLeagueTeamFantasy(year) {
+    const data = await advPlayers(year);
+    if (!data) return {};
+    const out = {};
+    for (const p of Object.values(data.players)) {
+        if (!['QB', 'RB', 'WR', 'TE'].includes(p.pos) || p.fpgLeague == null) continue;
+        const A = canonAbbr(p.team);
+        (out[A] ||= { QB: 0, RB: 0, WR: 0, TE: 0 })[p.pos] += p.fpgLeague * (p.gp || 0);
+    }
+    return out;
+}
+
 // --- Combine, draft NFL reale, contratti (data/nfl/combine_draft.json) ----
 
 let _combineDraft; // Promise<{players,teamDraftHistory}> | undefined

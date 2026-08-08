@@ -201,47 +201,72 @@ async function loadKickers(year) {
     return out;
 }
 
-/** Contesto attacco squadra da play-by-play (EPA/play, success, PROE). */
+/**
+ * Contesto squadra da play-by-play. ATTACCO (aggregato per `posteam`): EPA/play,
+ * success, PROE, pass rate, ritmo. DIFESA (STESSO EPA aggregato per `defteam` —
+ * chi subisce la giocata): EPA e success rate CONCESSI, split pass/corsa. Per la
+ * difesa un valore più BASSO è migliore (concede meno). Simmetrico all'attacco:
+ * lo stesso play-by-play riletto dalle due prospettive.
+ */
 async function buildTeamContext(year) {
     // pbp è enorme: elabora in RAM senza scriverlo in cache (disco frugale).
     const text = await fetchAsset('pbp', `play_by_play_${year}.csv.gz`, { noCache: true });
     if (!text) return null;
     const rows = parseCsvSelect(text, [
-        'posteam', 'season_type', 'play_type', 'epa', 'success', 'pass', 'rush', 'qb_dropback', 'pass_oe', 'week',
+        'posteam', 'defteam', 'season_type', 'play_type', 'epa', 'success', 'pass', 'rush', 'qb_dropback', 'pass_oe', 'week',
     ]);
-    const T = {};
+    const T = {}, D = {};
+    const newT = () => ({ plays: 0, pass: 0, rush: 0, epaSum: 0, epaN: 0, passEpaSum: 0, passN: 0, rushEpaSum: 0, rushN: 0, succSum: 0, succN: 0, proeSum: 0, proeN: 0, weeks: new Set() });
     for (const r of rows) {
         if (r.season_type !== 'REG') continue;
-        const pt = canonAbbr(r.posteam);
-        if (!pt) continue;
         const isPass = r.pass === '1', isRush = r.rush === '1';
         if (!isPass && !isRush) continue;
         const epa = num(r.epa);
-        const t = T[pt] ??= { plays: 0, pass: 0, rush: 0, epaSum: 0, epaN: 0, passEpaSum: 0, passN: 0, rushEpaSum: 0, rushN: 0, succSum: 0, succN: 0, proeSum: 0, proeN: 0, weeks: new Set() };
-        t.plays++;
-        if (r.week) t.weeks.add(r.week);
-        if (isPass) t.pass++; if (isRush) t.rush++;
-        if (epa != null) {
-            t.epaSum += epa; t.epaN++;
-            if (isPass) { t.passEpaSum += epa; t.passN++; } else { t.rushEpaSum += epa; t.rushN++; }
-        }
         const succ = num(r.success);
-        if (succ != null) { t.succSum += succ; t.succN++; }
-        const proe = num(r.pass_oe);
-        if (proe != null) { t.proeSum += proe; t.proeN++; }
+        const pt = canonAbbr(r.posteam);
+        if (pt) {
+            const t = T[pt] ??= newT();
+            t.plays++;
+            if (r.week) t.weeks.add(r.week);
+            if (isPass) t.pass++; if (isRush) t.rush++;
+            if (epa != null) {
+                t.epaSum += epa; t.epaN++;
+                if (isPass) { t.passEpaSum += epa; t.passN++; } else { t.rushEpaSum += epa; t.rushN++; }
+            }
+            if (succ != null) { t.succSum += succ; t.succN++; }
+            const proe = num(r.pass_oe);
+            if (proe != null) { t.proeSum += proe; t.proeN++; }
+        }
+        const dt = canonAbbr(r.defteam);
+        if (dt) {
+            const d = D[dt] ??= newT();
+            d.plays++;
+            if (r.week) d.weeks.add(r.week);
+            if (epa != null) {
+                d.epaSum += epa; d.epaN++;
+                if (isPass) { d.passEpaSum += epa; d.passN++; } else { d.rushEpaSum += epa; d.rushN++; }
+            }
+            if (succ != null) { d.succSum += succ; d.succN++; }
+        }
     }
     const teams = {};
-    for (const [abbr, t] of Object.entries(T)) {
-        const games = t.weeks.size || 1;
+    for (const abbr of new Set([...Object.keys(T), ...Object.keys(D)])) {
+        const t = T[abbr], d = D[abbr];
+        const games = (t?.weeks.size || d?.weeks.size) || 1;
         teams[abbr] = {
             games,
-            offEpaPerPlay: t.epaN ? r3(t.epaSum / t.epaN) : null,
-            passEpaPerPlay: t.passN ? r3(t.passEpaSum / t.passN) : null,
-            rushEpaPerPlay: t.rushN ? r3(t.rushEpaSum / t.rushN) : null,
-            successRate: t.succN ? r3(t.succSum / t.succN) : null,
-            passRate: t.plays ? r3(t.pass / (t.pass + t.rush)) : null,
-            proe: t.proeN ? r2(t.proeSum / t.proeN) : null,
-            playsPg: r1(t.plays / games),
+            offEpaPerPlay: t?.epaN ? r3(t.epaSum / t.epaN) : null,
+            passEpaPerPlay: t?.passN ? r3(t.passEpaSum / t.passN) : null,
+            rushEpaPerPlay: t?.rushN ? r3(t.rushEpaSum / t.rushN) : null,
+            successRate: t?.succN ? r3(t.succSum / t.succN) : null,
+            passRate: t?.plays ? r3(t.pass / (t.pass + t.rush)) : null,
+            proe: t?.proeN ? r2(t.proeSum / t.proeN) : null,
+            playsPg: t ? r1(t.plays / games) : null,
+            // difesa: EPA/success CONCESSI (più basso = meglio) + split pass/corsa
+            defEpaPerPlay: d?.epaN ? r3(d.epaSum / d.epaN) : null,
+            defPassEpaPerPlay: d?.passN ? r3(d.passEpaSum / d.passN) : null,
+            defRushEpaPerPlay: d?.rushN ? r3(d.rushEpaSum / d.rushN) : null,
+            defSuccessRate: d?.succN ? r3(d.succSum / d.succN) : null,
         };
     }
     return { season: +year, generatedAt: new Date().toISOString(), teams };
@@ -357,7 +382,8 @@ async function buildPlayers(year, idMap) {
 
 async function run() {
     const args = process.argv.slice(2);
-    const noTeam = args.includes('--no-team'); // salta il play-by-play (pesante)
+    const noTeam = args.includes('--no-team');     // salta il play-by-play (pesante)
+    const teamOnly = args.includes('--team-only'); // solo adv_team (salta i player, rigenerazione leggera)
     const seasons = args.filter(a => /^\d{4}$/.test(a));
     await mkdir(OUT_DIR, { recursive: true });
     // playerids.json va UNITO all'esistente: una run parziale non deve azzerarlo
@@ -375,10 +401,12 @@ async function run() {
             }
         }
 
-        const players = await buildPlayers(year, idMap);
+        const players = teamOnly ? null : await buildPlayers(year, idMap);
         if (players) {
             await writeFile(path.join(OUT_DIR, `adv_players_${year}.json`), JSON.stringify(players));
             console.log(`  → adv_players_${year}.json (${players.count} giocatori)`);
+        } else if (teamOnly) {
+            console.log(`  ${year}: --team-only, salto players.`);
         } else {
             console.log(`  ${year}: nessuna stat player nflverse, salto players.`);
         }
