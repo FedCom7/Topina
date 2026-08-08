@@ -1,7 +1,7 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=83';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=74';
+import { TEAMS } from './team.js?v=87';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=77';
 
 let loaded = false;
 

@@ -22,16 +22,16 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=83';
-import { getHonorsBundle } from '../data/honors.js?v=65';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=76';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=69';
-import { initPlayerModal } from '../components/player-modal.js?v=87';
+import { TEAMS } from './team.js?v=87';
+import { getHonorsBundle } from '../data/honors.js?v=72';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=82';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=74';
+import { initPlayerModal } from '../components/player-modal.js?v=92';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { pickSeeded } from '../data/magazine-voices.js?v=17';
-import { predictSeason } from '../data/draft-predictions.js?v=71';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=62';
-import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=19';
+import { predictSeason } from '../data/draft-predictions.js?v=78';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=67';
+import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=26';
 
 let initialized = false;
 let currentYear = null;

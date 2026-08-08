@@ -17,7 +17,7 @@
  * esiste data/model/draft_model_v1.json (pesi appresi) il chiamante li usa.
  */
 
-import { normName } from './projections.js?v=76';
+import { normName } from './projections.js?v=82';
 import { getTeamStats } from './nfl-team-stats.js?v=19';
 import { canonAbbr } from './nfl-schedule.js?v=20';
 import { getSeasonConfig } from '../data.js?v=33';
