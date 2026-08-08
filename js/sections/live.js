@@ -14,13 +14,13 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=44';
+import { TEAMS } from './team.js?v=73';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=1';
-import { scorePlay } from '../data/scoring.js?v=29';
+import { scorePlay } from '../data/scoring.js?v=61';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=45';
+import { initPlayerModal } from '../components/player-modal.js?v=75';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -233,6 +233,104 @@ function rosterIndex() {
  * corso, senza filtrare per rosa. Serve a vedere il widget fuori stagione —
  * fuori da qui non cambia niente del comportamento reale.
  */
+/**
+ * Solo in demo: i protagonisti della partita riprodotta vengono assegnati ai
+ * giocatori delle nostre rose con lo stesso ruolo, e i numeri della giocata
+ * finiscono davvero nei loro totali. Da lì in poi si accende TUTTO il resto
+ * della pagina — punteggi che salgono, cerchi che lampeggiano, scontrini nello
+ * scoring feed, infortuni — perché legge gli stessi dati di sempre.
+ *
+ * I numeri che compaiono a schermo in questo stato NON sono della lega: è per
+ * questo che l'intestazione mostra un bollino DEMO ben visibile.
+ */
+const DEMO_ROLE_POS = {
+    passer: ['QB'], rusher: ['RB'], receiver: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'],
+    kicker: ['K'], returner: ['WR', 'RB'],
+};
+let demoActorMap = new Map(); // espnId → giocatore di una nostra rosa
+let demoNextTeam = 0;
+
+/** Un giocatore nostro con quel ruolo, sempre lo stesso per lo stesso atleta. */
+function demoPlayerFor(espnId, role) {
+    if (demoActorMap.has(espnId)) return demoActorMap.get(espnId);
+    const wanted = DEMO_ROLE_POS[role] || [];
+    const entries = teamEntries();
+    // alterna le squadre, così il punteggio si muove da entrambe le parti
+    for (let k = 0; k < entries.length; k++) {
+        const t = entries[(demoNextTeam + k) % entries.length].team;
+        const cand = (t.starters || []).filter(p =>
+            wanted.includes((p.position_in_team || p.position || '').toUpperCase()) &&
+            ![...demoActorMap.values()].includes(p));
+        if (cand.length) {
+            demoNextTeam = (demoNextTeam + k + 1) % entries.length;
+            demoActorMap.set(espnId, cand[0]);
+            return cand[0];
+        }
+    }
+    demoActorMap.set(espnId, null);
+    return null;
+}
+
+/**
+ * Azzera il tabellone all'inizio della demo: tutti i titolari "in campo" e a
+ * zero punti, come al kickoff. Senza questo il banner sommerebbe punti reali
+ * mentre le card dei giocatori mostrano ancora le proiezioni, e i due numeri
+ * non tornerebbero mai.
+ */
+let demoBoardReady = false;
+function resetDemoBoard() {
+    if (demoBoardReady) return;
+    demoBoardReady = true;
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                p.started = true;
+                p.fantasy_points = 0;
+                p.stats = {};
+                delete p.injury_status;
+            }
+        }
+    }
+}
+
+/** Riversa i numeri di una giocata sui giocatori mappati (solo demo). */
+function applyDemoPlay(play, contribs) {
+    resetDemoBoard();
+    const touched = [];
+    for (const c of contribs) {
+        if (!c.espnId) continue;
+        const p = demoPlayerFor(c.espnId, c.role);
+        if (!p) continue;
+        touched.push(p);
+        p.stats = p.stats || {};
+        for (const [k, v] of Object.entries(c.stats || {})) {
+            if (v) p.stats[k] = (parseFloat(p.stats[k]) || 0) + v;
+        }
+        p.fantasy_points = +((parseFloat(p.fantasy_points) || 0) + c.pts).toFixed(2);
+    }
+
+    // Il referto medico si riempie da solo: il testo delle giocate segnala
+    // davvero chi resta a terra ("... was injured during the play"). Si segna
+    // uno dei protagonisti di QUESTA giocata, non uno a caso dello storico.
+    if (touched.length && /was injured during the play/i.test(play.text || '')) {
+        // Il referto mostra solo il matchup a schermo: si preferisce un
+        // giocatore di quello, altrimenti la voce non si vedrebbe mai.
+        const shown = teamEntries()[teamIdx];
+        const inView = touched.find(p =>
+            [...(shown.team.starters || []), ...(shown.opp.starters || [])].includes(p));
+        (inView || touched[touched.length - 1]).injury_status = 'QUESTIONABLE';
+    }
+
+    // il punteggio di squadra è la somma dei titolari
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            const t = m[side];
+            if (!t) continue;
+            t.score = (t.starters || []).reduce((s, p) => s + (parseFloat(p.fantasy_points) || 0), 0).toFixed(2);
+        }
+    }
+}
+
 const pbpDemo = () => {
     if (typeof window === 'undefined') return '';
     // ?pbpdemo=401772842 così basta un link, senza toccare index.html
@@ -333,6 +431,7 @@ async function pollPlays() {
             for (const play of plays) {
                 if (pbpSeen.has(play.id)) continue;
                 pbpSeen.add(play.id);
+                if (pbpDemo()) applyDemoPlay(play, scorePlay(play));
                 const card = playToCard(play, idx);
                 if (card) fresh.push(card);
             }
@@ -345,6 +444,15 @@ async function pollPlays() {
         fresh.sort((a, b) => a.ts - b.ts); // le più vecchie prima: entrano sotto
         for (const c of fresh) pbpCards.unshift(c);
         pbpCards = pbpCards.slice(0, PBP_MAX_CARDS);
+
+        if (pbpDemo()) {
+            // I totali sono cambiati: si passa dal percorso normale, quello che
+            // in stagione reagisce ai dati del Worker. Così in demo si accendono
+            // anche scoring feed, lampeggi sul campo, conteggi e referto medico.
+            const events = updateReceipts();
+            render();
+            if (events.length) flashNewReceipts(events);
+        }
         // Al primo giro la pila si riempie in blocco: animare tutto sarebbe
         // rumore. In demo invece ogni giro è "nuovo" per definizione.
         paintPlayCards(pbpFirstRun && !pbpDemo() ? [] : fresh.map(c => c.id));
@@ -498,10 +606,30 @@ function detectEvents(prev, curr) {
             id: `${name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name, team: now.team, pos: now.pos, nfl: now.nfl,
             changes, ptsDelta, ts: Date.now(),
-            headline: changes.find(c => c.big)?.key || changes[0]?.key || null,
+            headline: headlineOf(changes),
         });
     }
     return out;
+}
+
+/**
+ * Titolo dello scontrino. Prima gli eventi grossi, poi le azioni che si
+ * raccontano da sole, e solo alla fine il ripiego. Senza questa scala il
+ * titolo era la prima statistica che capitava, e si leggevano scontrini
+ * intitolati "PASS ATTEMPTS" o "TARGET" — cioè niente.
+ */
+const HEADLINE_ORDER = [
+    'fg_made', 'pat_made', 'sack', 'def_int', 'fum_rec',
+    'rec', 'rec_yds', 'rush_yds', 'pass_yds', 'rush_att',
+];
+
+function headlineOf(changes) {
+    const big = changes.find(c => c.big);
+    if (big) return big.key;
+    for (const key of HEADLINE_ORDER) {
+        if (changes.some(c => c.key === key && c.delta > 0)) return key;
+    }
+    return null; // receiptHTML mostra "Update"
 }
 
 /** Aggiorna lo storico scontrini dopo un poll (tenuti gli ultimi 40). */
@@ -679,7 +807,10 @@ function headerHTML() {
     <div class="live-header">
         <div class="live-header-left">
             <h1 class="live-header-title">${weekLabelText}</h1>
-            <span class="live-header-kicker">${statusBadgeHTML()}</span>
+            <span class="live-header-kicker">
+                ${pbpDemo() ? '<span class="live-demo-badge">DEMO · numeri non reali</span>' : ''}
+                ${statusBadgeHTML()}
+            </span>
         </div>
         <div class="live-header-right">
             <span class="live-header-updated">Updated ${hh}:${mm}</span>

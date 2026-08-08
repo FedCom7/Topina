@@ -10,8 +10,8 @@
  */
 
 import { SEASONS, CURRENT_SEASON } from '../data.js?v=33';
-import { getHonorsBundle } from './honors.js?v=29';
-import { buildCareers } from './careers.js?v=28';
+import { getHonorsBundle } from './honors.js?v=57';
+import { buildCareers } from './careers.js?v=58';
 
 export const FIRST_CLASS_YEAR = 2025;
 export const MIN_SEASONS = 3;

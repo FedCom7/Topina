@@ -9,10 +9,10 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=33';
-import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=26';
+import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=55';
 import { playerImageService } from '../services/player-image-service.js?v=15';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=45';
-import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=29';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=75';
+import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=60';
 
 let initialized = false;
 

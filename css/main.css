@@ -12662,3 +12662,21 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
         display: none;
     }
 }
+
+/* Bollino della modalità dimostrativa (?pbpdemo=<eventId>): i punteggi a
+   schermo vengono da una partita riprodotta, non dalla lega. Deve essere
+   impossibile scambiarli per veri. */
+.live-demo-badge {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 3px 9px;
+    border-radius: var(--pill-radius);
+    border: 1px solid var(--accent-amber);
+    background: color-mix(in srgb, var(--accent-amber) 18%, transparent);
+    color: var(--accent-amber);
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
