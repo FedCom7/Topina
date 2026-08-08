@@ -1512,39 +1512,45 @@ function flashNewReceipts(events) {
                 { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)', offset: 1 },
             ], { duration: FLASH_MS, easing: 'ease-out' });
 
-            if (ev.ptsDelta) popPoints(slot, ev.ptsDelta);
-
             // Il totale non si muove subito: prima si legge quanto è arrivato
             // accanto alla foto, poi il numero in basso lo assorbe salendo.
+            // La somma parte alla FINE dell'etichetta, non a tempo: così i due
+            // momenti si toccano invece di lasciare un vuoto in mezzo.
             const ptsEl = slot.querySelector('.slot-pts, .live-chip-pts')
                 || (slot.classList.contains('live-cmp-pts') ? slot : null);
+            let sum = () => { };
             if (ptsEl && ev.ptsDelta) {
                 const to = P(ptsEl.textContent);
                 const from = +(to - ev.ptsDelta).toFixed(2);
                 ptsEl.textContent = fmt(from);
-                setTimeout(() => countUp(ptsEl, from, to), POP_DELAY_MS);
+                sum = () => countUp(ptsEl, from, to);
             }
+            if (ev.ptsDelta) popPoints(slot, ev.ptsDelta, sum);
+            else sum();
         }
         document.querySelector(`[data-receipt="${ev.id}"]`)?.classList.add('live-receipt--new');
     }
 }
 
-/** Etichetta volante accanto alla bolla: quanti punti ha portato l'azione. */
-function popPoints(slot, delta) {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+/**
+ * Etichetta volante accanto alla bolla: quanti punti ha portato l'azione.
+ * `onDone` scatta quando sparisce — è lì che il totale comincia a salire.
+ */
+function popPoints(slot, delta, onDone = () => { }) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { onDone(); return; }
     const tag = document.createElement('span');
     tag.className = `live-pop ${delta > 0 ? 'pos' : 'neg'}`;
     tag.textContent = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`;
     slot.appendChild(tag);
-    // Compare subito, resta ferma quasi tutti i POP_DELAY_MS e sfuma proprio
-    // mentre il totale in basso comincia a salire.
+    // Compare subito, resta piena quasi fino in fondo e sparisce in fretta:
+    // l'ultimo 8% è la dissolvenza, e appena finita parte la somma.
     tag.animate([
         { transform: 'translateY(6px) scale(0.85)', opacity: 0 },
-        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.06 },
-        { transform: 'translateY(-2px) scale(1)', opacity: 1, offset: 0.85 },
-        { transform: 'translateY(-14px) scale(0.95)', opacity: 0 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.05 },
+        { transform: 'translateY(-2px) scale(1)', opacity: 1, offset: 0.92 },
+        { transform: 'translateY(-10px) scale(0.95)', opacity: 0 },
     ], { duration: POP_DELAY_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' })
-        .onfinish = () => tag.remove();
+        .onfinish = () => { tag.remove(); onDone(); };
 }
 
 function sidebarHTML(team, opp) {
