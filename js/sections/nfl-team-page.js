@@ -20,14 +20,14 @@ import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=28';
+} from '../data/nfl-team-live.js?v=29';
 import {
     esc, teamLogo, factChip, tile, fmt1, ord, TEAM_HISTORY_YEARS,
     teamHistoryBlock, teamExtrasBlock,
     teamYearPicker, bindTeamYearSelector, fetchTeamSeasonData,
     teamPerfBlocksHtml, teamScheduleBlocksHtml,
     fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=54';
+} from './player-page.js?v=56';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

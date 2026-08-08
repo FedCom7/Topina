@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=14';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=15';
-import { TEAMS } from '../sections/team.js?v=28';
+import { TEAMS } from '../sections/team.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { getPlayerInfo } from '../data/player-full.js?v=13';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=13';
@@ -168,9 +168,15 @@ function appendContextBlocks(content, { game, pos, career, awards }) {
         });
     }
 
-    const html = game
-        ? gameBlockHtml(game, pos)
-        : (awards ? awardsBlock(career, awards) : '');
+    // Il blocco partita prende il posto lasciato libero nella colonna destra,
+    // così sta a fianco della figurina invece che sotto tutta la scheda.
+    if (game) {
+        const col = content.querySelector('.pm-right');
+        (col || content).insertAdjacentHTML('beforeend', gameBlockHtml(game, pos));
+        return;
+    }
+
+    const html = awards ? awardsBlock(career, awards) : '';
     if (html) content.insertAdjacentHTML('beforeend', html);
 }
 
@@ -225,9 +231,7 @@ function gameStatCells(pos, s = {}) {
 
 function gameBlockHtml(game, pos) {
     const { pts = 0, opponent = '', status = '', week, year, started, stats } = game;
-    const cells = gameStatCells(pos, stats);
-    const fumble = Number(stats?.fum_lost) || 0;
-    if (fumble) cells.push({ label: 'Fumbles lost', value: fumble });
+    const cells = gameStatCells(pos, stats); // include già fum_lost se presente
 
     const meta = [
         week ? `Week ${week}` : '',

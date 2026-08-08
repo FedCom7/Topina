@@ -14,10 +14,10 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=28';
+import { TEAMS } from './team.js?v=31';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=11';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=28';
+import { initPlayerModal } from '../components/player-modal.js?v=30';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -707,7 +707,7 @@ function comparePhoto(p) {
  * Statistiche del confronto a riquadri (numero sopra, etichetta sotto), come
  * in Game Center: i primi due valori escono sempre, il resto solo se > 0.
  */
-function compareStatsHTML(p) {
+function compareStatsHTML(p, side) {
     // Prima del kickoff le stat reali sono tutte a zero: si mostrano le proiezioni
     // (stesso criterio dei punti, vedi pIsProjected).
     const proj = pIsProjected(p);
@@ -730,9 +730,19 @@ function compareStatsHTML(p) {
         DEF: [[n(s.sack), 'sack'], [n(s.def_int) + n(s.fum_rec), 'to'], [n(s.def_td), 'td']],
     };
     const list = (CANDIDATES[role] || CANDIDATES.WR).filter(([v], i) => i < 2 || v > 0).slice(0, 3);
-    return list.map(([v, l]) =>
-        `<span class="live-cmp-mini"><b${proj ? ' class="proj-pts"' : ''}>${v}</b><i>${l}</i></span>`).join('');
+    const cells = list.map(([v, l]) =>
+        `<span class="live-cmp-mini"><b${proj ? ' class="proj-pts"' : ''}>${v}</b><i>${l}</i></span>`);
+
+    // Sempre tre celle: chi ne ha meno viene riempito con caselle vuote dal lato
+    // esterno, così le colonne restano incolonnate fra righe con ruoli diversi
+    // (un kicker ha 2 valori, un QB 3) e i valori restano accostati al punteggio.
+    const pad = '<span class="live-cmp-mini live-cmp-mini--pad"></span>';
+    while (cells.length < CMP_STAT_COLS) side === 'l' ? cells.unshift(pad) : cells.push(pad);
+    return cells.join('');
 }
+
+/** Colonne di statistica per lato nel confronto (vedi .live-cmp-stats). */
+const CMP_STAT_COLS = 3;
 
 /** Nome + ruolo/squadra, sul bordo esterno della riga. */
 function compareName(p, side) {
@@ -752,8 +762,12 @@ function compareName(p, side) {
 
 /** Statistiche di un lato, accostate al punteggio centrale. */
 function compareStatsBlock(p, win, side) {
-    if (!p) return `<span class="live-cmp-stats live-cmp-stats--${side}"></span>`;
-    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}">${compareStatsHTML(p)}</span>`;
+    // Anche senza giocatore il blocco tiene le sue colonne, altrimenti la riga
+    // si stringe e i punteggi non sono più incolonnati con quelli sopra e sotto.
+    const inner = p
+        ? compareStatsHTML(p, side)
+        : `<span class="live-cmp-mini live-cmp-mini--pad"></span>`.repeat(CMP_STAT_COLS);
+    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}">${inner}</span>`;
 }
 
 /**

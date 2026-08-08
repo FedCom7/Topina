@@ -9233,9 +9233,11 @@ body.pm-open { overflow: hidden; }
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /* Velo leggero: il grosso della sfocatura la fa il dialog, così il vetro
+       ha davvero qualcosa da sfocare dietro invece di un fondo già nero. */
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(3px) saturate(115%);
+    -webkit-backdrop-filter: blur(3px) saturate(115%);
     animation: pm-fade var(--dur-med) var(--ease);
 }
 
@@ -9253,10 +9255,19 @@ body.pm-open { overflow: hidden; }
     overflow-x: hidden;
     padding: 26px;
     border-radius: var(--radius-xl);
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-card);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
-    animation: pm-rise var(--dur-med) var(--ease);
+    /* Vetro liquido: pannello traslucido che sfoca e satura la pagina dietro,
+       bordo chiaro e riflesso interno in alto a fare da spessore del vetro.
+       L'ingresso anima solo l'opacità: qualunque transform sull'elemento (o su
+       un suo antenato) disattiva backdrop-filter, e il vetro sparirebbe per
+       tutta la durata dell'animazione. */
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    animation: pm-fade var(--dur-med) var(--ease);
     /* Scrollbar scura quando la scheda è più alta del viewport:
        quella di default del browser stonerebbe sul fondo nero. */
     scrollbar-width: thin;
@@ -9292,11 +9303,6 @@ body.pm-open { overflow: hidden; }
             color-mix(in srgb, var(--team-color) 26%, transparent) 0%,
             transparent 60%);
     pointer-events: none;
-}
-
-@keyframes pm-rise {
-    from { opacity: 0; transform: translateY(18px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .pm-close {
@@ -9852,10 +9858,12 @@ body.pm-open { overflow: hidden; }
 }
 
 /* Statistiche di gara senza riquadri: valori affiancati separati da una linea
-   sottile, come i riepiloghi del confronto. Il numero sopra, l'etichetta sotto. */
+   sottile, come i riepiloghi del confronto. Il numero sopra, l'etichetta sotto.
+   Colonne in numero fisso (non auto-fit) perché serve sapere quale cella apre
+   la riga, per non disegnarle la linea a sinistra. */
 .pm-game-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px 4px;
     margin-top: 12px;
 }
@@ -9869,8 +9877,8 @@ body.pm-open { overflow: hidden; }
     border-left: 1px solid var(--border-subtle);
 }
 
-/* niente linea a inizio riga, qualunque sia il numero di colonne */
-.pm-game-cell:first-child {
+/* niente linea a inizio riga */
+.pm-game-cell:nth-child(4n + 1) {
     border-left: none;
 }
 
@@ -9908,25 +9916,26 @@ body.pm-open { overflow: hidden; }
     filter: brightness(1.15);
 }
 
-/* Link nel modal verso la pagina completa */
+/* Link nel modal verso la pagina completa: nota a piè di scheda, non un
+   bottone a tutta larghezza. `margin-left: auto` su un blocco largo quanto il
+   testo lo spinge a destra senza toccare il flusso del resto. */
 .pm-fullstats {
     display: block;
-    margin: 14px 0 4px;
-    padding: 11px 16px;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--text-primary);
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-md);
-    background: var(--bg-glass);
-    transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+    width: max-content;
+    margin: 12px 0 0 auto;
+    padding: 5px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
+
 .pm-fullstats:hover {
-    background: var(--bg-card-hover);
-    border-color: color-mix(in srgb, var(--team-color, var(--accent-red)) 55%, transparent);
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--team-color, var(--accent-red)) 45%, transparent);
 }
 
 /* Blocchi della pagina: card autonome (fuori dal modal) */
@@ -11580,15 +11589,17 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 
 /* Riquadri stat stile Game Center: valore sopra, etichetta micro sotto.
    Spenti di default, accesi per chi ha fatto più punti nella riga. */
+/* Tre colonne di larghezza fissa per lato: ogni riga produce sempre tre celle
+   (quelle mancanti sono vuote, vedi compareStatsHTML), così le statistiche e i
+   punteggi restano incolonnati anche fra righe con ruoli diversi. */
 .live-cmp-stats {
-    display: flex;
-    gap: 2px 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 58px);
+    align-items: center;
     opacity: 0.45;
     white-space: nowrap;
 }
 
-.live-cmp-stats--l { justify-content: flex-end; }
-.live-cmp-stats--r { justify-content: flex-start; }
 .live-cmp-stats--win { opacity: 1; }
 
 .live-cmp-mini {
@@ -12198,12 +12209,24 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
         font-size: 1rem;
     }
 
+    /* qui le stat occupano una riga propria a tutta larghezza: colonne elastiche
+       invece dei 58px fissi del desktop, ma sempre tre e quindi incolonnate */
     .live-cmp-stats {
-        gap: 2px 8px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .live-cmp-mini b { font-size: 0.8rem; }
     .live-cmp-mini i { font-size: 0.48rem; }
 
     .live-cmp-meta { display: none; }
+}
+
+/* Stats di gara nella scheda giocatore: su schermi stretti 4 colonne sono
+   troppe (le etichette vanno a capo su tre righe), quindi si scende a 3. Sta
+   in fondo al file perché i @media più in alto perderebbero contro le regole
+   base a pari specificità. */
+@media (max-width: 640px) {
+    .pm-game-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .pm-game-cell:nth-child(4n + 1) { border-left: 1px solid var(--border-subtle); }
+    .pm-game-cell:nth-child(3n + 1) { border-left: none; }
 }

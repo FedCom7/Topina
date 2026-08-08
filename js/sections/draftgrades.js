@@ -22,11 +22,11 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=28';
+import { TEAMS } from './team.js?v=31';
 import { getHonorsBundle } from '../data/honors.js?v=14';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=15';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=28';
+import { initPlayerModal } from '../components/player-modal.js?v=30';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import { predictSeason } from '../data/draft-predictions.js?v=12';

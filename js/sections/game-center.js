@@ -1,7 +1,7 @@
 import { fetchFantasyData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=28';
-import { initPlayerModal } from '../components/player-modal.js?v=28';
+import { TEAMS } from './team.js?v=31';
+import { initPlayerModal } from '../components/player-modal.js?v=30';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 let currentData = null;

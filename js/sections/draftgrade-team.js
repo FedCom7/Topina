@@ -15,17 +15,17 @@
 
 import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=31';
-import { TEAMS } from './team.js?v=28';
+import { TEAMS } from './team.js?v=31';
 import { getHonorsBundle } from '../data/honors.js?v=14';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=15';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=28';
+import { initPlayerModal } from '../components/player-modal.js?v=30';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge, computeVorGrades,
-} from './draftgrades.js?v=29';
+} from './draftgrades.js?v=31';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=4';
 import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=2';
 
