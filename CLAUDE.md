@@ -81,7 +81,10 @@ trattini al posto di nome, punti e statistiche. Vale sia sul percorso ESPN sia
 sul ripiego da Firebase.
 
 **Draft di prova, TEMPORANEO — da cancellare a fine preseason 2026.**
-`scripts/espn/draft_demo.py` (`carica` / `mostra` / `cancella`) scrive sul nodo
+`scripts/espn/draft_demo.py` **non è versionato** (sta nel `.gitignore`): scrive
+sul nodo vero del draft, e nel repo sarebbe un modo per sovrascrivere il draft
+della lega per sbaglio. Vive solo sulla macchina di chi lo usa.
+Con `carica` / `mostra` / `cancella` scrive sul nodo
 VERO `draft/draft_data_<anno>`, non su un nodo separato: il sito deve
 comportarsi esattamente come a draft fatto. I giocatori sono le RISERVE prese
 dalle depth chart ESPN — in preseason i titolari fanno una serie e si siedono —
