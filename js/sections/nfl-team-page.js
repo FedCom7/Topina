@@ -11,27 +11,27 @@
  * ufficiali, calendario live, depth chart completo, transactions, odds SB).
  */
 
-import { getTeamIdentity } from '../data/nfl-teams.js?v=505';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=508';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
-import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=578';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=575';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=523';
+import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=581';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=578';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=526';
 import { canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=560';
+} from '../data/nfl-team-live.js?v=570';
 import {
     esc, teamLogo, factChip, tile, fmt0, fmt1, fmt2, ord, TEAM_HISTORY_YEARS,
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=828';
+} from './player-page.js?v=831';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=8';
+} from './nfl-team-home.js?v=14';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

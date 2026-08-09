@@ -1,6 +1,6 @@
 /**
  * Hall of Fame — le leggende della Topina League.
- * Un giocatore è eleggibile 2 anni pieni dopo l'ultima apparizione nei dati
+ * Un giocatore è eleggibile WAIT_YEARS anni pieni dopo l'ultima apparizione
  * (classe X → ritirati entro X-3), con almeno 3 stagioni in lega, DEF escluse.
  * Ballottaggio cumulativo: chi non viene eletto resta candidato negli anni
  * successivi. Criterio: punti fantasy totali carriera come voce principale,
@@ -9,9 +9,9 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=534';
-import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS } from '../data/hall-of-fame.js?v=580';
+import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS, WAIT_YEARS } from '../data/hall-of-fame.js?v=583';
 import { playerImageService } from '../services/player-image-service.js?v=515';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=602';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=605';
 import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=588';
 
 let initialized = false;
@@ -74,7 +74,7 @@ function render(wrap, inductees) {
             </div>
         </div>`).join('')}
     </div>
-    <p class="hof-footnote">Eligibility: 2 years after retirement, minimum ${MIN_SEASONS} seasons in the league. One inductee per year since ${FIRST_CLASS_YEAR}; candidates not elected stay on the ballot. Click a card to open the profile.</p>`;
+    <p class="hof-footnote">Eligibility: ${WAIT_YEARS} years after retirement, minimum ${MIN_SEASONS} seasons in the league. One inductee per year since ${FIRST_CLASS_YEAR}; candidates not elected stay on the ballot. Click a card to open the profile.</p>`;
 
     hydrateImages(wrap);
 }

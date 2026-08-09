@@ -11,7 +11,7 @@
 
 import { canonAbbr } from './nfl-schedule.js?v=520';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
-import { getTeamUsage } from './context-score.js?v=578';
+import { getTeamUsage } from './context-score.js?v=581';
 
 const _roster = {};   // year → roster json | null
 const _injuries = {}; // year → injuries json | null

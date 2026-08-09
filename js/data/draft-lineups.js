@@ -20,8 +20,15 @@
 
 import { displayName } from '../data.js?v=534';
 
-/** Titolari: nove maglie, nell'ordine in cui il campo se le aspetta. */
-const SLOT_TITOLARI = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'K', 'DEF'];
+/**
+ * Titolari: nove maglie, nell'ordine in cui il campo se le aspetta.
+ *
+ * Il flex si chiama `W/R`, non `RB/WR` né `FLEX`: è l'etichetta che ESPN dà
+ * allo slot 3 e che `espn-fantasy.js` riporta nei dati. Chiamandolo in un
+ * altro modo il campo lo trovava lo stesso (accetta più forme) ma il confronto
+ * e la lista sotto no, e la riga del flex restava vuota ovunque.
+ */
+const SLOT_TITOLARI = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'W/R', 'K', 'DEF'];
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 
@@ -50,14 +57,15 @@ function formazione(scelte) {
 
     const starters = [];
     for (const slot of SLOT_TITOLARI) {
-        const i = liberi.findIndex(p => slot === 'FLEX'
+        const i = liberi.findIndex(p => slot === 'W/R'
             ? (p.position === 'RB' || p.position === 'WR')
             : p.position === slot);
         if (i < 0) continue;
         const p = liberi.splice(i, 1)[0];
-        // il campo cerca gli slot per `position`: il flex deve dichiararsi tale
-        starters.push({ ...p, position: slot === 'FLEX' ? 'RB/WR' : p.position,
-            position_in_team: p.position });
+        // `position` è lo slot occupato, `position_in_team` il ruolo vero: è la
+        // stessa distinzione che fa espn-fantasy.js, e le statistiche mostrate
+        // seguono il secondo.
+        starters.push({ ...p, position: slot, position_in_team: p.position });
     }
 
     const vestiti = (p) => ({

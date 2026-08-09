@@ -6,8 +6,8 @@
  * (ui/navbar.js), così esiste una sola fonte di verità.
  */
 
-import { buildCareers } from './careers.js?v=586';
-import { NFL_TEAMS } from './nfl-teams.js?v=505';
+import { buildCareers } from './careers.js?v=589';
+import { NFL_TEAMS } from './nfl-teams.js?v=508';
 import { normName } from './projections.js?v=589';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

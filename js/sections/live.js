@@ -17,16 +17,16 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=596';
+import { TEAMS } from './team.js?v=599';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=509';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=503';
 import { fetchLeagueWeek, teamAbbrFromName, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=3';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
-import { slotPairs } from '../data/matchup-analysis.js?v=517';
-import { initPlayerModal } from '../components/player-modal.js?v=602';
+import { slotPairs } from '../data/matchup-analysis.js?v=520';
+import { initPlayerModal } from '../components/player-modal.js?v=605';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 const POLL_MS = 10000;
@@ -945,7 +945,12 @@ function refreshInPlace(events = []) {
         const pts = el.querySelector('.slot-pts, .live-chip-pts');
         if (pts) writePts(pts, p);
         const stats = el.querySelector('.live-slot-stats');
-        if (stats) stats.innerHTML = statLineHTML(p);
+        if (stats) stats.innerHTML = stats.classList.contains('live-slot-stats--ring')
+            ? statRingHTML(p) : statBoxHTML(p);
+        // la partita può finire mentre si guarda: la card si spegne senza
+        // aspettare che la pagina venga rifatta
+        el.classList.toggle('live-slot--done', gameOver(p));
+        el.classList.toggle('live-slot--live', liveNow(p));
         el.setAttribute('data-game', gameAttr(p).slice('data-game="'.length, -1));
     });
 
@@ -999,9 +1004,27 @@ function restoreReceipts() {
 }
 
 function liveNow(p) {
-    const w = p?.nfl_team ? liveSchedule?.get(canonAbbr(p.nfl_team)) : null;
+    if (!p || p.placeholder) return false;
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+    const w = ab ? liveSchedule?.get(ab) : null;
+    if (!w) return false;
+    // Il tabellone è la fonte vera: dice "in corso" o "finita". La finestra
+    // oraria resta solo come ripiego, per quando lo stato non c'è — una
+    // partita che va ai supplementari sfora le tre ore e un quarto stimate.
+    if (w.state === 'in') return true;
+    if (w.state === 'post') return false;
     const now = Date.now();
-    return !!w && now >= w.start.getTime() && now <= w.end.getTime();
+    return now >= w.start.getTime() && now <= w.end.getTime();
+}
+
+/**
+ * La sua partita è finita: il punteggio non si muoverà più.
+ * Vale anche per le difese, che il team lo tengono nel nome.
+ */
+function gameOver(p) {
+    if (!p || p.placeholder) return false;
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+    return ab ? liveSchedule?.get(ab)?.state === 'post' : false;
 }
 
 // ─── Rendering ────────────────────────────────────────────────────
@@ -1299,7 +1322,7 @@ function chip(p, side) {
     const live = liveNow(p);
     const injury = injuryOf(p);
     return `
-    <div class="live-chip${live ? ' live-chip--live' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
+    <div class="live-chip${live ? ' live-chip--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
@@ -1349,24 +1372,52 @@ function statValue(stats, key) {
     return stats[key] || 0;
 }
 
-/** Riquadro statistiche: sempre 4 voci per ruolo, trattino se a zero. */
-function statLineHTML(p) {
+/** Le voci da mostrare per un giocatore: [{ testo, forte, zero }]. */
+function statVoci(p) {
     let role = (p.position_in_team || p.position || '').toUpperCase();
     if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX') role = 'WR';
     if (role === 'D/ST') role = 'DEF';
     const keys = STATS_BY_ROLE[role] || STATS_BY_ROLE.WR;
-    // Before kickoff show the projected stat line (real stats are all zero).
+    // Prima del kickoff si mostra la riga proiettata: quella reale è tutta a zero.
     const proj = pIsProjected(p);
     const stats = (proj ? p.projected_stats : p.stats) || p.stats || {};
     return keys.map(k => {
         const raw = statValue(stats, k);
         // Le proiezioni arrivano con due decimali (es. 83.48): troppo lunghe per
-        // la card, verrebbero troncate. Interi per i conteggi, un decimale per
-        // le frazioni piccole.
+        // la card. Interi per i conteggi, un decimale per le frazioni piccole.
         const v = proj ? (raw >= 10 ? Math.round(raw) : Math.round(raw * 10) / 10) : raw;
-        return `<span class="live-stat${v === 0 ? ' live-stat--zero' : ''}">
-            <b>${v === 0 ? '–' : v}</b> ${shortStatLabel(k)}</span>`;
-    }).join('');
+        return { valore: v === 0 ? '–' : String(v), etichetta: shortStatLabel(k), zero: v === 0 };
+    });
+}
+
+/** Riquadro statistiche sotto la foto: due colonne, per la panchina. */
+function statBoxHTML(p) {
+    return statVoci(p).map(v =>
+        `<span class="live-stat${v.zero ? ' live-stat--zero' : ''}"><b>${v.valore}</b> ${v.etichetta}</span>`
+    ).join('');
+}
+
+/**
+ * Le stesse voci scritte lungo il cerchio della foto, come una sola stringa
+ * continua: ogni carattere è un pezzo a sé, ruotato di un passo fisso, così il
+ * testo segue la curva invece di stare dritto. Si parte dalle "40 di orologio"
+ * e si prosegue in senso orario fin dove la stringa arriva.
+ */
+function statRingHTML(p) {
+    const pezzi = [];
+    statVoci(p).forEach((v, i) => {
+        // separatore senza spazi: ogni carattere costa un pezzo di
+        // circonferenza, e tre caratteri per sei voci sarebbero mezzo giro
+        if (i) pezzi.push({ testo: '·', classe: 'live-ring-sep' });
+        pezzi.push({ testo: v.valore, classe: 'live-ring-num' + (v.zero ? ' live-stat--zero' : '') });
+        pezzi.push({ testo: ' ' + v.etichetta, classe: 'live-ring-lbl' + (v.zero ? ' live-stat--zero' : '') });
+    });
+
+    let n = 0;
+    return pezzi.map(({ testo, classe }) => [...testo].map(ch =>
+        // lo spazio non si può disegnare: occupa il suo passo e basta
+        `<i class="live-ring-ch ${classe}" style="--c:${n++}">${ch === ' ' ? '&nbsp;' : escAttr(ch)}</i>`
+    ).join('')).join('');
 }
 
 /** Etichetta corta per la card (quella lunga sta negli scontrini). */
@@ -1391,7 +1442,7 @@ function fieldSlot(p, extraClass = '') {
     const live = liveNow(p);
     const injury = injuryOf(p);
     return `
-    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${extraClass}" data-player-modal
+    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${extraClass}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
@@ -1400,7 +1451,7 @@ function fieldSlot(p, extraClass = '') {
             ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
         <span class="slot-name">${shortName(p)}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
-        <span class="live-slot-stats">${statLineHTML(p)}</span>
+        <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
         ${injury ? `<span class="live-slot-inj">${escAttr(injury)}</span>` : ''}
     </div>`;
 }
@@ -1422,7 +1473,7 @@ function emptySlot(p, extraClass = '') {
         <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"></span>
         <span class="slot-name">–</span>
         <span class="slot-pts">–</span>
-        <span class="live-slot-stats">${statLineHTML({ position: role, stats: {} })}</span>
+        <span class="live-slot-stats">${statBoxHTML({ position: role, stats: {} })}</span>
     </div>`;
 }
 
@@ -1616,7 +1667,7 @@ function compareHTML(team, opp) {
         const aWin = !!a && pa >= pb;
         const bWin = !!b && pb >= pa;
         return `
-        <div class="live-cmp-row">
+        <div class="live-cmp-row${gameOver(a) && gameOver(b) ? ' live-cmp-row--done' : ''}">
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}

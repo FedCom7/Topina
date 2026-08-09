@@ -1,10 +1,10 @@
 import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=3';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=520';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=596';
-import { initPlayerModal } from '../components/player-modal.js?v=602';
+import { TEAMS } from './team.js?v=599';
+import { initPlayerModal } from '../components/player-modal.js?v=605';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 let currentData = null;

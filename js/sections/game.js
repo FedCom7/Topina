@@ -9,13 +9,13 @@
 import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { getLeagueData } from '../data/league-data.js?v=534';
-import { getHonorsBundle } from '../data/honors.js?v=580';
+import { getHonorsBundle } from '../data/honors.js?v=583';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle,
-} from '../data/matchup-analysis.js?v=517';
-import { TEAMS } from './team.js?v=596';
+} from '../data/matchup-analysis.js?v=520';
+import { TEAMS } from './team.js?v=599';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 const _fantasyCache = {};

@@ -13,12 +13,12 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=586';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=589';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=589';
-import { TEAMS } from '../sections/team.js?v=596';
+import { TEAMS } from '../sections/team.js?v=599';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 import { getPlayerInfo } from '../data/player-full.js?v=588';
-import { getHallOfFameYear } from '../data/hall-of-fame.js?v=580';
+import { getHallOfFameYear } from '../data/hall-of-fame.js?v=583';
 
 const MAX_NFL_YEARS = 5;
 const FIRST_PROJ_YEAR = 2018; // Sleeper non ha proiezioni prima
