@@ -10633,6 +10633,24 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-injc-det small { color: var(--text-muted); }
 .pp-injc .pp-inj-history { margin-top: 8px; }
 
+/* Liste di stato roster (IR/PUP/NFI/Suspended/Practice Squad/...) */
+.pp-rl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 20px; margin-top: 6px; }
+.pp-rl-group .pp-cat-title { display: flex; align-items: center; gap: 6px; }
+.pp-rl-count {
+    font-size: 0.66rem; font-weight: 800; color: var(--text-muted);
+    background: var(--bg-glass); border: 1px solid var(--border-subtle);
+    border-radius: 999px; padding: 0 6px; line-height: 1.5;
+}
+.pp-rl-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 0; border-top: 1px solid var(--border-subtle);
+    font-size: 12.5px;
+}
+.pp-rl-row:first-of-type { border-top: 0; }
+.pp-rl-name { color: var(--text-primary); font-weight: 600; flex: 1; min-width: 0; }
+.pp-rl-name small { color: var(--text-muted); font-weight: 500; }
+.pp-rl-date { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+
 /* Timeline disponibilità · settimana per settimana (squadra / DEF) */
 .pp-av-wrap { margin: 6px 0 16px; }
 .pp-av-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; font-size: 11.5px; color: var(--text-secondary); }
@@ -10990,6 +11008,23 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-res--l { color: var(--accent-red); }
 .pp-res--t { color: var(--accent-amber); }
 
+/* Matchup a quadratino (schedule squadra): stesso linguaggio visivo del ribbon
+   stagionale (mini-card + barra di riempimento colorata) ma col numero di
+   rank sempre leggibile sopra la barra. */
+.pp-mu2 {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 52px;
+}
+.pp-mu2-rank { font-size: 0.72rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pp-mu2-bar { width: 100%; height: 4px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
+.pp-mu2-fill { display: block; height: 100%; border-radius: 2px; }
+.pp-mu2--easy .pp-mu2-fill { background: var(--accent-green); }
+.pp-mu2--mid .pp-mu2-fill { background: var(--accent-amber); }
+.pp-mu2--hard .pp-mu2-fill { background: var(--accent-red); }
+
 /* ── Scomposizione projection-error (waterfall divergente) ── */
 .pp-perr-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .pp-perr-badge {
@@ -11279,6 +11314,80 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 .pp-stadium-body, .pp-nextgame, .pp-outlook { display: flex; flex-direction: column; gap: 2px; }
 .pp-stadium-body b, .pp-nextgame b, .pp-outlook b { font-size: 0.92rem; color: var(--text-primary); }
+/* Next game: logo squadra avversaria accanto al nome */
+.pp-nextgame-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.pp-nextgame-logo { width: 26px; height: 26px; object-fit: contain; flex: none; }
+
+/* ═══ Home squadra NFL — layout a 3 colonne (nfl-team-home.js) ═══
+   Full-bleed: rompe il max-width di .section-inner (1200px) solo per questa
+   griglia, così la home sfrutta tutta la larghezza schermo senza toccare le
+   altre tab (Stats/Schedule/... restano nel container centrato standard). */
+.nfl-home-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(420px, 1.9fr) minmax(280px, 1fr);
+    gap: 20px;
+    align-items: start;
+    margin-top: 18px;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    padding-inline: clamp(20px, 4vw, 56px);
+    box-sizing: border-box;
+}
+/* Ogni colonna impila i suoi blocchi. Destra: coach → draft → stadio → classifica. */
+.nfl-home-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+@media (max-width: 900px) {
+    .nfl-home-grid { grid-template-columns: 1fr; }
+    .nfl-home-col-c { order: -1; }   /* su mobile il campo formazione va per primo */
+}
+
+/* Calendario a blocchi — blocco fisso, nessuno scroll interno: mostra tutta la stagione. */
+.nfl-home-cal-list { margin-top: 4px; }
+.nfl-home-cal-group { margin: 14px 0 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.nfl-home-cal-group:first-child { margin-top: 2px; }
+.nfl-home-game-card {
+    display: flex; align-items: center; gap: 12px; padding: 9px 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.nfl-home-game-card:last-child { border-bottom: none; }
+.nfl-home-game-card.is-next { background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: var(--radius-md); }
+.nfl-home-game-wk { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); width: 34px; flex: none; }
+.nfl-home-game-logo { width: 38px; height: 38px; object-fit: contain; flex: none; }
+.nfl-home-game-body { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.nfl-home-game-body b { font-size: 0.88rem; color: var(--text-primary); }
+.nfl-home-game-result { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; text-align: right; }
+.nfl-home-game-time { font-size: 0.74rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.nfl-home-game-result .nfl-sched-tv {
+    display: inline-block; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.02em;
+    color: var(--text-secondary); background: var(--bg-glass);
+    border: 1px solid var(--border-subtle); border-radius: 4px; padding: 1px 5px;
+}
+
+/* Classifica di division */
+.nfl-home-stand-team { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.nfl-home-stand-team img { width: 18px; height: 18px; object-fit: contain; }
+.nfl-home-stand tr.is-self { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* Campo formazione — vista dall'alto, verde pallido stile "lineup" (proiezione
+   lineare, non omografica). Foto in disco bianco + cognome/posizione sotto. */
+.nfl-fd2 { border-radius: var(--radius-md); overflow: hidden; }
+.nfl-fd2-svg { width: 100%; height: auto; display: block; }
+.nfl-fd2-turf { fill: #c3e3c8; }
+.nfl-fd2-band { fill: #b6dcbc; }
+.nfl-fd2-yl { stroke: rgba(255, 255, 255, 0.85); stroke-width: 1.4; }
+.nfl-fd2-hash { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1; }
+/* Numeri yard: font slab stile campo NFL (Bevan ≈ Clarendon Bold, il tipo più
+   usato sui campi; Clarendon vero è commerciale). Proporzioni ~6ft×4ft. */
+.nfl-fd2-num { fill: rgba(255, 255, 255, 0.95); font-size: 26px; font-family: 'Bevan', var(--font-display), serif; }
+.nfl-fd2-arrow { fill: rgba(255, 255, 255, 0.95); }
+.nfl-fd2-los { stroke: rgba(30, 70, 45, 0.4); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.nfl-fd2-side-lbl { fill: rgba(30, 70, 45, 0.45); font-size: 9px; font-weight: 800; letter-spacing: 0.14em; }
+.nfl-fd-disc { fill: #ffffff; }
+.nfl-fd-slot.is-empty .nfl-fd-disc { fill: rgba(255, 255, 255, 0.55); }
+.nfl-fd-photo { opacity: 1; }
+.nfl-fd-jersey { fill: #12321f; font-size: 10px; font-weight: 800; font-family: var(--font-display); paint-order: stroke; stroke: rgba(255, 255, 255, 0.85); stroke-width: 2.4px; }
+.nfl-fd-name { fill: #12321f; font-size: 9px; font-weight: 800; font-family: var(--font-display); }
+.nfl-fd-pos { fill: rgba(30, 70, 45, 0.7); font-size: 8px; font-weight: 700; letter-spacing: 0.04em; }
 
 /* Outlook Rotowire + news giocatore */
 .pp-outlook-story {

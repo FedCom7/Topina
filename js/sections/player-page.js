@@ -21,10 +21,10 @@ import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/p
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { canonAbbr } from '../data/nfl-schedule.js?v=20';
 import { CURRENT_SEASON } from '../data.js?v=33';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=50';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=51';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=51';
-import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=9';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=52';
+import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=10';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=1';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=5';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=54';
@@ -953,6 +953,75 @@ function _availabilityTimeline(players) {
     }).join('');
     const legend = `<div class="pp-av-legend"><span><i class="pp-av-cell av-out"></i>Out/IR</span><span><i class="pp-av-cell av-doubt"></i>Doubtful</span><span><i class="pp-av-cell av-quest"></i>Questionable</span><span><i class="pp-av-cell av-none"></i>available</span></div>`;
     return `<div class="pp-av-wrap"><h3 class="pp-cat-title">Season availability</h3>${legend}<div class="pm-table-wrap pp-scroll"><div class="pp-av">${head}${body}</div></div><p class="pm-note">Who had an injury designation, week by week. Empty = not on the report (available). Hover a cell for details.</p></div>`;
+}
+
+/** Liste di stato roster NFL (IR/PUP/NFI/Suspended/Practice Squad/...) riconosciute
+ *  dal testo dello status ESPN. "Active"/"Day-To-Day" non sono liste a parte:
+ *  restano nel roster normale. */
+const ROSTER_LISTS = [
+    { key: 'ir', label: 'Injured Reserve', re: /injured reserve/i },
+    { key: 'pup', label: 'PUP', re: /\bpup\b/i },
+    { key: 'nfi', label: 'Non-Football Injury', re: /non-football injury|\bnfi\b/i },
+    { key: 'susp', label: 'Suspended', re: /suspended/i },
+    { key: 'ps', label: 'Practice Squad', re: /practice squad/i },
+    { key: 'exempt', label: 'Exempt', re: /exempt/i },
+    { key: 'ret', label: 'Retired', re: /retired/i },
+];
+const _rlNorm = (s) => (s || '').toLowerCase().replace(/[.,']/g, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Liste di stato roster (IR, PUP, NFI, Suspended, Practice Squad, ...) — chi c'è
+ * ADESSO su ciascuna, dallo status ufficiale ESPN del roster (fonte primaria:
+ * copre tutti i giocatori, sempre aggiornata; le transactions da sole
+ * coprirebbero solo le ultime ~20 mosse e perderebbero chi è in lista da più
+ * tempo). Ogni giocatore viene arricchito, quando trovata, con la data
+ * dell'ultima transaction che lo cita (per nome), per mostrare il movimento.
+ */
+export function rosterStatusListsBlock({ teamRoster, transactions }) {
+    const players = teamRoster?.players || [];
+    const byList = {};
+    for (const p of players) {
+        if (!p.status || /^active$|^day-to-day$/i.test(p.status)) continue;
+        const cat = ROSTER_LISTS.find(l => l.re.test(p.status)) || { key: 'other', label: p.status };
+        (byList[cat.key] ??= { label: cat.label, players: [] }).players.push(p);
+    }
+    const keys = Object.keys(byList);
+    if (!keys.length) return '';
+
+    const dateFor = (name) => {
+        if (!transactions?.length) return null;
+        const last = _rlNorm(name).split(' ').pop();
+        if (!last || last.length < 3) return null;
+        const re = new RegExp(`\\b${last}\\b`, 'i');
+        const hit = transactions.find(t => re.test(t.description || ''));
+        if (!hit?.date) return null;
+        const d = new Date(hit.date);
+        return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const order = ['ir', 'pup', 'nfi', 'susp', 'ps', 'exempt', 'ret', 'other'];
+    const groups = order.filter(k => byList[k]).map(k => {
+        const { label, players: ps } = byList[k];
+        const rows = ps.map(p => {
+            const d = dateFor(p.name);
+            return `<div class="pp-rl-row">
+                <span class="pp-lb-pos">${esc(p.pos || '')}</span>
+                <span class="pp-rl-name">${esc(p.name)}${p.jersey != null ? ` <small>#${p.jersey}</small>` : ''}</span>
+                ${d ? `<span class="pp-rl-date">${esc(d)}</span>` : ''}
+            </div>`;
+        }).join('');
+        return `<div class="pp-rl-group">
+            <h4 class="pp-cat-title">${esc(label)} <span class="pp-rl-count">${ps.length}</span></h4>
+            ${rows}
+        </div>`;
+    }).join('');
+
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Roster status lists</span>
+        <div class="pp-rl-grid">${groups}</div>
+        <p class="pm-note">Who's currently on each reserve list, from the official ESPN roster status. Dates (when found) come from the most recent related transaction.</p>
+    </section>`;
 }
 
 export function teamInjuriesBlock({ teamInjuries, abbr }) {

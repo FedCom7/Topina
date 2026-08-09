@@ -18,9 +18,14 @@ let _trades; // Promise<{teams}> | undefined
 const _ats = {};      // `${abbr}-${season}` → risultato | null
 const _history = {};  // abbr → risultato | null
 
-async function fetchJson(url) {
-    try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+async function fetchJson(url, timeoutMs = 10000) {
+    // Timeout esplicito: senza, un endpoint ESPN appeso bloccherebbe il Promise.all
+    // iniziale della pagina squadra (spinner infinito).
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try { const r = await fetch(url, { signal: ctrl.signal }); return r.ok ? await r.json() : null; }
     catch { return null; }
+    finally { clearTimeout(t); }
 }
 
 async function tradesJson() {

@@ -36,9 +36,13 @@ export const FIXED_WEIGHTS = {
     playoff: 0.08, trend: 0.10, ageCurve: 0.08, durability: 0.07,
 };
 
-async function fetchJson(url) {
-    try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+async function fetchJson(url, timeoutMs = 10000) {
+    // Timeout esplicito per non restare appesi su un endpoint lento/irraggiungibile.
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try { const r = await fetch(url, { signal: ctrl.signal }); return r.ok ? await r.json() : null; }
     catch { return null; }
+    finally { clearTimeout(t); }
 }
 async function advPlayers(year) {
     if (year in _players) return _players[year];
