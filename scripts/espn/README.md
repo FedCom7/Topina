@@ -1,97 +1,29 @@
-# ESPN Fantasy sync — setup
+# ESPN — come arrivano i dati di lega
 
-Sostituisce la sorgente dati "lega" (matchup + draft) da NFL.com/scraper Python
-a ESPN Fantasy API, senza toccare il frontend. Vedi il blueprint di
-migrazione per il contesto completo; questo file copre solo il setup pratico.
+## Dove sta cosa
 
-**Non tocca**: i dati NFL reali (roster/injuries/news via ESPN pubblico +
-Sleeper) già usati dal frontend — quelli restano come sono.
+La lega ESPN è **pubblica**: l'API risponde senza cookie e con gli header CORS
+aperti verso il sito. Da lì discende tutto il resto.
 
-## 1. Credenziali (una tantum, poi in GitHub Secrets)
+| pezzo | dove | quando gira |
+|---|---|---|
+| `scraper/` (Python) | Action `espn-live.yml` | una volta a settimana, martedì 09:00 UTC — scrive su Firebase il risultato chiuso |
+| `js/data/espn-fantasy.js` | browser | pagina Live ogni 10s, Game Center all'apertura |
+| `js/data/nfl-plays.js` | browser | play-by-play delle card giocata |
+| `js/data/espn-boxscore.js` | browser | rete di sicurezza, se i punti non arrivano |
 
-1. `ESPN_LEAGUE_ID` — già noto: `1948241900` (in `league-config.mjs`, non è
-   un segreto).
-2. `ESPN_S2` e `ESPN_SWID` — da un browser loggato su un account membro
-   della lega:
-   - Vai su `fantasy.espn.com`, apri DevTools → Application → Cookies →
-     `https://fantasy.espn.com`.
-   - Copia il valore di `espn_s2` (stringa lunga ~300 caratteri) e `SWID`
-     (formato `{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}`, con o senza graffe).
-3. In GitHub: repo → Settings → Secrets and variables → Actions → New
-   repository secret → `ESPN_S2` e `ESPN_SWID`.
-4. Per testare in locale, esporta le stesse variabili nella shell (mai in un
-   file committato):
-   ```powershell
-   $env:ESPN_S2 = "..."
-   $env:ESPN_SWID = "{...}"
-   ```
+Il modulo browser è il **porto in JS** di `scraper/espn/maps.py` e
+`normalize.py`. Se si tocca una delle due implementazioni va allineata l'altra,
+e va rilanciato il confronto qui sotto.
 
-I cookie scadono/si invalidano se fai logout da ESPN — vanno rigenerati
-~1 volta a stagione (il job fallisce con errore esplicito "401 Unauthorized"
-se sono scaduti, senza sovrascrivere i dati buoni).
-
-## 2. Smoke test (Step 2-3 del blueprint)
-
-Prima di fidarsi del normalizer, verificare a mano la forma reale delle
-risposte ESPN sulla lega 2026:
-
-```powershell
-node -e "
-import('./scripts/espn/client.mjs').then(async ({ fetchLeagueTeams }) => {
-  const data = await fetchLeagueTeams('1948241900', 2026);
-  console.log(JSON.stringify(data.teams?.map(t => ({ id: t.id, name: `${t.location} ${t.nickname}` })), null, 2));
-});
-"
-```
-
-Da questo output si compila `TEAM_ID_TO_NAME` in `league-config.mjs` (oggi
-vuoto — il normalizer usa un fallback `Team {id}` finché non è popolato).
-
-Poi verificare un boxscore reale (`fetchBoxscore`) e confrontare i
-`statId` effettivi contro `STAT_ID_MAP`: quelli marcati "da confermare" nel
-blueprint (fumble, 2-pt, return TD, kicker, IDP) sono i più a rischio di
-essere sbagliati finché non si vede una risposta vera.
-
-## 3. Run manuale
-
-```bash
-node scripts/espn/sync.mjs 2026 --draft
-```
-
-Scrive `data/fantasy/fantasy_data_2026.json` e `data/draft/draft_data_2026.json`
-con lo stesso schema dei JSON storici (`source: "espn"` e `synced_at` al
-posto di `scraped_at` per distinguerli). Poi:
-
-```bash
-npm run upload-data
-```
-
-per pubblicarli su Firebase (o lascia fare al workflow `sync-espn.yml`).
-
-## 4. Golden test (Step 4.2 del blueprint)
-
-Prima di attivare il cron, rigenerare una settimana e confrontarne la
-struttura (chiavi, non valori — i valori saranno ovviamente diversi) contro
-un `fantasy_data_2025.json` storico: zero divergenze di schema ⇒ il
-frontend è garantito compatibile senza modifiche.
-
-## 5. Cosa NON è ancora collegato
-
-- `worker/espn-live-proxy.js` — proxy edge per i punteggi live, da
-  deployare separatamente su Cloudflare Workers (`wrangler deploy` dentro
-  `worker/`). Il frontend (`game-center.js`) non lo chiama ancora: va
-  aggiunto un polling opzionale una volta verificato che il proxy risponde
-  con dati reali.
-- La risoluzione `opponent`/`status` testuale (es. "Loss, 40-41") nei
-  boxscore: ESPN non la fornisce nello stesso payload di mBoxscore. Oggi
-  lasciata vuota nel normalizer; se serve, va derivata dallo scoreboard NFL
-  pubblico (stessa fonte già usata per i dati NFL reali).
+Non servono più: il Cloudflare Worker (esisteva solo per iniettare i cookie) e
+il vecchio sync Node — entrambi rimossi, restano nella storia git.
 
 ## validate_boxscore.py — i punti di lega dagli endpoint pubblici
 
-Dimostra che i punti fantasy della lega sono ricavabili in diretta dagli
-endpoint ESPN pubblici (nessun cookie, nessuno scraping), e misura quanto la
-ricostruzione sia fedele confrontandola con i dati veri su Firebase.
+Ricostruisce i punti fantasy dal tabellino ufficiale ESPN e li confronta con
+quelli veri salvati su Firebase, per misurare quanto la rete di sicurezza sia
+fedele.
 
 ```bash
 py -3 scripts/espn/validate_boxscore.py 2025 3 7 11
@@ -101,7 +33,15 @@ Verificato il 2026-08-09 sull'intera stagione 2025, tutte e 17 le giornate:
 **605 titolari su 605 esatti al centesimo, errore complessivo 0.00 punti**,
 difese comprese.
 
-Serve come base per il fallback della pagina `#live`: se i punti su Firebase
-sono tutti a zero perche' lo scraping non e' passato, gli stessi numeri si
-possono comporre da qui. Il docstring in cima al file elenca le sette regole
-non documentate scoperte per arrivarci — ognuna e' costata un disallineamento.
+Il docstring in cima al file elenca le sette regole non documentate scoperte
+per arrivarci — ognuna è costata un disallineamento e nessuna è deducibile
+dalla documentazione ESPN. Vale la pena leggerle prima di toccare quel codice.
+
+## Se la lega tornasse privata
+
+Servirebbero di nuovo i cookie `espn_s2` e `SWID` di un account membro
+(DevTools → Application → Cookies su `fantasy.espn.com`), da mettere nei
+GitHub Secrets per l'Action. Il lato browser invece **smetterebbe di
+funzionare**: sono cookie di terze parti, che Safari e Firefox bloccano di
+default, e senza ESPN risponde 401. In quel caso il sito tornerebbe a dipendere
+da Firebase per i punteggi.

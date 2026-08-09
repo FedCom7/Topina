@@ -5,9 +5,9 @@
  * Super Bowl week: prima si mostrano solo i finalisti, come nella realtà.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=33';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=76';
-import { TEAMS } from './team.js?v=92';
+import { CURRENT_SEASON } from '../data.js?v=534';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=580';
+import { TEAMS } from './team.js?v=596';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

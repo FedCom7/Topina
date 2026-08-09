@@ -1,39 +1,39 @@
 /**
- * Live Matchup Center — Fase 1 (layout + dati reali, senza motore eventi).
- * Route: #live
+ * Live Matchup Center — route #live.
  *
- * Fonte dati primaria: il Cloudflare Worker ESPN live (worker/espn-live-proxy.js
- * → normalizeWeek), stessa shape di fantasy_data (team1/team2/starters/bench).
- * Finché il worker non è pubblicato (`wrangler deploy`) NON si inventano dati:
- * si mostra l'ultima settimana reale disponibile su Firebase con un'etichetta
- * esplicita "non è live", mai un finto punteggio.
+ * Le fonti, in ordine:
+ *   1. API della lega ESPN letta dal browser (js/data/espn-fantasy.js), ogni
+ *      10 secondi. Da quando la lega è pubblica non servono cookie né Worker.
+ *      Dà formazioni sempre aggiornate, proiezioni prima del kickoff e punti
+ *      ufficiali durante le partite.
+ *   2. Firebase, se l'API non risponde: è l'archivio delle settimane chiuse,
+ *      scritto una volta a settimana dall'Action.
+ *   3. Tabellino ufficiale ESPN (js/data/espn-boxscore.js), se una partita è
+ *      cominciata ma nessuno ha ancora punti — vuol dire che chi doveva darceli
+ *      non sta rispondendo.
  *
- * Fase 2 (successiva): motore eventi a delta, animazioni per giocata,
- * scontrini, timeline, notifiche — vedi piano di sessione.
+ * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
-import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=92';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=9';
-import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=92';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=1';
-import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
-import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=98';
-import { playerImageService } from '../services/player-image-service.js?v=15';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
+import { TEAM_KEYS } from '../data/team-config.js?v=533';
+import { TEAMS } from './team.js?v=596';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=509';
+import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=503';
+import { fetchLeagueWeek, teamAbbrFromName, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=3';
+import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
+import { slotPairs } from '../data/matchup-analysis.js?v=517';
+import { initPlayerModal } from '../components/player-modal.js?v=602';
+import { playerImageService } from '../services/player-image-service.js?v=515';
 
-// Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
-// 'https://topina-espn-live-proxy.<account>.workers.dev'.
-/**
- * URL del Cloudflare Worker live (worker/espn-live-proxy.js). Si imposta in
- * index.html senza toccare questo file:
- *   <script>window.TOPINA_LIVE_WORKER_URL = 'https://....workers.dev';</script>
- * Se non è impostato la pagina ripiega sull'ultima settimana reale di Firebase.
- */
-const liveWorkerUrl = () => (typeof window !== 'undefined' && window.TOPINA_LIVE_WORKER_URL) || '';
 const POLL_MS = 10000;
+
+// Settimana di lega in corso: la dice l'API (status.currentMatchupPeriod) alla
+// prima lettura, poi si riusa per non richiederla a ogni giro.
+let espnWeek = null;
 
 /** Etichette leggibili + segno atteso per ogni statistica tracciata. */
 const STAT_LABELS = {
@@ -80,6 +80,13 @@ let isLiveSource = false;
 let weekLabelText = '';
 let currentWeekNum = 1;  // settimana mostrata, passata alla scheda giocatore
 let liveSchedule = null; // Map abbr → {start,end} per la settimana corrente (liveNow)
+// Finché il draft non è fatto ESPN riempie le squadre di rose segnaposto:
+// giocatori che non sono di nessuno. Con questo a falso non se ne mostra
+// nessuno, invece di far credere che quelle formazioni esistano.
+let leagueDrafted = true;
+// formazioni prese dal draft: i punti non arriveranno mai dalla lega, vanno
+// sempre ricomposti dal tabellino
+let lineupsFromDraft = false;
 
 /**
  * Le 4 squadre della settimana, ciascuna con il proprio avversario — una entry
@@ -125,6 +132,11 @@ function gameAttr(p) {
         year: CURRENT_SEASON,
         started: true,
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
+        // sempre anche la previsione, che la scheda mostra in piccolo accanto
+        // a ogni numero reale — a giornata iniziata è l'unico modo per capire
+        // se uno sta andando meglio o peggio di quanto ci si aspettava
+        projPts: pIsProjected(p) || p.projected_points == null ? null : P(p.projected_points),
+        projStats: pIsProjected(p) ? null : (p.projected_stats || null),
     };
     return `data-game="${encodeURIComponent(JSON.stringify(payload))}"`;
 }
@@ -134,10 +146,17 @@ const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maxi
 
 // Projections: before kickoff (started === false) show the projected value.
 // Older/real data without `started`/`projected_*` falls back to real points.
-const pIsProjected = (p) => p && p.started === false && p.projected_points != null;
+// Appena la giornata comincia le proiezioni spariscono da TUTTA la pagina, non
+// solo dai giocatori già scesi in campo: da quel momento il tabellone racconta
+// quello che sta succedendo, e chi non ha ancora giocato sta a zero.
+let giornataCominciata = false;
+const pIsProjected = (p) => !giornataCominciata && p && p.started === false && p.projected_points != null;
 const effPts = (p) => P(pIsProjected(p) ? p.projected_points : p.fantasy_points);
 // Effective team score: projected total pre-game, real once points exist.
-const teamEffScore = (t) => (P(t.score) === 0 && t.projected_score != null ? P(t.projected_score) : P(t.score));
+// Il totale di squadra segue la stessa regola dei singoli: proiezione solo
+// finché la giornata non è cominciata.
+const teamIsProjected = (t) => !giornataCominciata && P(t.score) === 0 && t.projected_score != null;
+const teamEffScore = (t) => (teamIsProjected(t) ? P(t.projected_score) : P(t.score));
 
 export async function initLive() {
     if (loaded) return;
@@ -171,8 +190,8 @@ function startPolling() {
     pollTimer = setInterval(() => loadData({ silent: true }), POLL_MS);
 }
 
-/** Il play-by-play non dipende dal Worker: gli bastano il calendario NFL e
- *  le partite in corso, quindi vive di vita propria rispetto al feed fantasy. */
+/** Il play-by-play non dipende dal feed fantasy: gli bastano il calendario NFL
+ *  e le partite in corso, quindi vive di vita propria. */
 function stopPlayPolling() {
     if (pbpTimer) { clearInterval(pbpTimer); pbpTimer = null; }
 }
@@ -204,7 +223,8 @@ let pbpCards = [];         // card pronte, più recenti in testa
 let pbpFirstRun = true;    // al primo giro si riempie senza animare
 let pbpBusy = false;
 
-/** ESPN athlete id → giocatore di una nostra rosa. */
+/** ESPN athlete id → giocatore di una nostra rosa (con la squadra fantasy,
+ *  che serve a mostrare solo le giocate di chi stai guardando). */
 function rosterIndex() {
     const byAthlete = new Map();
     const byDefTeam = new Map();
@@ -343,7 +363,7 @@ let pbpDemoQueue = null;
 /** Partite NFL in corso in cui gioca almeno un nostro tesserato. */
 function gamesToWatch() {
     if (pbpDemo()) return [pbpDemo()];
-    if (!liveSchedule) return [];
+    if (!liveSchedule || !leagueDrafted) return [];
     const ids = new Map();
     for (const m of matchups) {
         for (const side of ['team1', 'team2']) {
@@ -399,6 +419,10 @@ function playToCard(play, idx) {
     }
     return {
         id: play.id,
+        // Squadre fantasy che hanno un protagonista in questa giocata. Le card
+        // restano tutte in memoria e si filtrano qui: cambiando squadra dal
+        // selettore non si perde lo storico e non si rifà il polling.
+        teams: [...new Set(actors.map(a => a.own?.team).filter(Boolean))],
         type: play.type,
         text: play.text,
         yards: play.yards,
@@ -448,7 +472,7 @@ async function pollPlays() {
 
         if (pbpDemo()) {
             // I totali sono cambiati: si passa dal percorso normale, quello che
-            // in stagione reagisce ai dati del Worker. Così in demo si accendono
+            // in stagione reagisce ai dati veri. Così in demo si accendono
             // anche scoring feed, lampeggi sul campo, conteggi e referto medico.
             const events = updateReceipts();
             refreshInPlace(events);
@@ -490,38 +514,77 @@ async function hydrateActorNames(cards) {
 const ESPN_ID_TO_NAME = new Map(
     Object.entries(PLAYER_ID_MAP).map(([name, id]) => [String(id), name]));
 
+/**
+ * Il draft dell'anno esiste su Firebase?
+ *
+ * ESPN dichiara `drafted` solo dopo il draft vero, ma il draft caricato
+ * sull'archivio è altrettanto buono come prova che la lega ha le sue rose —
+ * ed è ciò che tiene in piedi le pagine durante il collaudo di preseason.
+ * Una lettura sola per sessione: il nodo non cambia mentre si guarda.
+ */
+let draftSuFirebase;
+async function draftOnFirebase() {
+    if (draftSuFirebase === undefined) {
+        try { draftSuFirebase = (await fetchDraftData(CURRENT_SEASON)) || null; }
+        catch { draftSuFirebase = null; }
+    }
+    return draftSuFirebase;
+}
+
 async function loadData({ silent = false } = {}) {
     const root = document.getElementById('live-root');
     if (!silent) root.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading live matchups...</p></div>`;
 
-    const workerUrl = liveWorkerUrl();
-    if (workerUrl) {
-        try {
-            const year = new Date().getFullYear();
-            const res = await fetch(`${workerUrl}/live?season=${year}&week=${currentEspnWeek(year)}`);
-            if (!res.ok) throw new Error(`worker ${res.status}`);
-            const json = await res.json();
-            if (Array.isArray(json.matchups) && json.matchups.length) {
-                matchups = json.matchups;
-                isLiveSource = true;
-                weekLabelText = `${year} · Week ${currentEspnWeek(year)}`;
-                await hydrateScheduleAndRender(String(year), currentEspnWeek(year));
-                startPolling();
-                return;
+    // Fonte primaria: la lega ESPN letta direttamente dal browser. Da quando è
+    // pubblica non servono cookie, quindi niente Worker di mezzo. A ogni giro si
+    // rilegge tutto — non solo i punti — perché è così che titolari e panchina
+    // restano allineati se un GM cambia formazione a partite in corso.
+    try {
+        const games = (await getWeekSchedule(CURRENT_SEASON, espnWeek || 1)) || new Map();
+        const { week, matchups: live, drafted } = await fetchLeagueWeek(CURRENT_SEASON, espnWeek, games);
+        if (live.length) {
+            espnWeek = week;
+            // Se la lega non ha ancora draftato, le rose che ESPN espone sono
+            // segnaposto suoi: si buttano e si usano le scelte del draft, se
+            // ci sono. Senza nemmeno quelle il campo resta vuoto.
+            leagueDrafted = drafted;
+            lineupsFromDraft = false;
+            if (!drafted) {
+                const draft = await draftOnFirebase();
+                leagueDrafted = !!draft && applyDraftLineups(live, draft);
+                lineupsFromDraft = leagueDrafted;
             }
-        } catch (e) {
-            console.warn('[live] worker non raggiungibile, fallback a Firebase:', e.message);
+            matchups = live;
+            // chi non ha una proiezione la riceve dal listone; se ce l'hanno
+            // già tutti (rose ESPN) non parte nessuna chiamata
+            await fillMissingProjections(matchups, CURRENT_SEASON, week);
+            currentWeekNum = week;
+            isLiveSource = true;
+            const config = getSeasonConfig(CURRENT_SEASON);
+            const round = week === config.superBowlWeek ? 'Super Bowl'
+                : week === config.playoffWeek ? 'Playoffs' : `Week ${week}`;
+            weekLabelText = `${CURRENT_SEASON} · ${round}`;
+            await hydrateScheduleAndRender(CURRENT_SEASON, week);
+            startPolling();
+            return;
         }
+    } catch (e) {
+        console.warn('[live] API ESPN non raggiungibile, si ripiega su Firebase:', e.message);
     }
 
-    // Fallback: ultima settimana reale disponibile su Firebase (non live).
+    // Ripiego: ultima settimana reale disponibile su Firebase (non live).
     isLiveSource = false;
     stopPolling();
     const data = await fetchFantasyData(CURRENT_SEASON);
     if (!data?.weeks) {
-        root.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data available</p></div>`;
+        matchups = [];
+        render();   // campo a posti vuoti: nessuna fonte ha risposto
         return;
     }
+    // Anche qui vale la regola: senza draft non si mostra nessuna rosa. Il
+    // draft caricato è ciò che certifica che le rose sono di qualcuno.
+    const draftArchivio = await draftOnFirebase();
+    leagueDrafted = !!draftArchivio;
     const weeks = Object.keys(data.weeks).map(Number).sort((a, b) => a - b);
     let pickedWeek = weeks[0];
     for (const w of weeks) {
@@ -529,18 +592,20 @@ async function loadData({ silent = false } = {}) {
         if (wk?.matchups?.some(m => P(m.team1?.score) > 0 || P(m.team2?.score) > 0)) pickedWeek = w;
     }
     matchups = data.weeks[String(pickedWeek)]?.matchups || [];
+    // Prima del draft l'archivio porta le sfide ma non le formazioni: le
+    // compongono le scelte, come sul percorso principale.
+    if (draftArchivio && matchups.every(m =>
+        !(m.team1?.starters || []).length && !(m.team2?.starters || []).length)) {
+        applyDraftLineups(matchups, draftArchivio);
+        lineupsFromDraft = true;
+    }
+    await fillMissingProjections(matchups, CURRENT_SEASON, pickedWeek);
     currentWeekNum = pickedWeek;
     const config = getSeasonConfig(CURRENT_SEASON);
     const roundLabel = pickedWeek === config.superBowlWeek ? 'Super Bowl'
         : pickedWeek === config.playoffWeek ? 'Playoffs' : `Week ${pickedWeek}`;
     weekLabelText = `${CURRENT_SEASON} · ${roundLabel}`;
     await hydrateScheduleAndRender(CURRENT_SEASON, pickedWeek);
-}
-
-/** Placeholder finché non è nota la week ESPN corrente lato client — il worker
- *  stesso di default usa status.currentMatchupPeriod se week è assente. */
-function currentEspnWeek() {
-    return 1;
 }
 
 // ─── Ripiego sugli endpoint pubblici ESPN ────────────────────────
@@ -554,6 +619,39 @@ function currentEspnWeek() {
 // il banco di prova è scripts/espn/validate_boxscore.py.
 
 let usingEspnFallback = false;
+
+// ─── Modalità preseason (solo collaudo) ──────────────────────────
+//
+// La lega non gioca la preseason, quindi in condizioni normali il calendario
+// chiede solo la stagione regolare. Ad agosto però le uniche partite vere in
+// corso sono quelle: questo interruttore le fa seguire alla pagina, per poter
+// collaudare in diretta il play-by-play e il ripiego mesi prima del kickoff.
+//
+// I punti che compaiono in questo stato NON sono della lega: l'intestazione lo
+// dichiara con un bollino, come per la demo.
+
+const PRESEASON_KEY = 'topina-live-preseason';
+let preseasonMode = (() => {
+    try { return localStorage.getItem(PRESEASON_KEY) === '1'; } catch { return false; }
+})();
+
+/**
+ * Quale giornata di preseason seguire: quella con una partita in corso, se
+ * c'è; altrimenti la più vicina nel tempo, così fuori dagli orari di gioco la
+ * pagina mostra comunque qualcosa di sensato.
+ */
+async function pickPreseasonWeek(year) {
+    let migliore = null;
+    for (let w = 1; w <= 4; w++) {
+        const sched = await getWeekSchedule(year, w, 1);
+        if (!sched?.size) continue;
+        const partite = [...sched.values()];
+        if (partite.some(g => g.state === 'in')) return { week: w, sched };
+        const vicinanza = Math.min(...partite.map(g => Math.abs(g.start - Date.now())));
+        if (!migliore || vicinanza < migliore.vicinanza) migliore = { week: w, sched, vicinanza };
+    }
+    return migliore;
+}
 
 /** Tutti a zero: nessun punto reale in tutta la settimana. */
 function boardIsEmpty() {
@@ -587,10 +685,22 @@ function startedGames() {
  * hanno davvero giocato: chi non compare nel tabellino resta a zero, che è il
  * suo punteggio corretto.
  */
-async function fillFromEspn() {
+/**
+ * Tabellini delle partite già cominciate, letti una volta sola per giro.
+ * Servono a due cose diverse: ricomporre i punti dei nostri (`fillFromEspn`) e
+ * disegnare il "dentro la partita", che vive anche quando i punti arrivano
+ * regolarmente dalla lega.
+ */
+let boxData = null;
+
+async function loadBoxscores() {
     const games = startedGames();
-    if (!games.length) return false;
-    const { players, defenses, teamByName } = await fetchBoxscoreTotals(games);
+    boxData = games.length ? await fetchBoxscoreTotals(games) : null;
+}
+
+async function fillFromEspn() {
+    if (!boxData) return false;
+    const { players, defenses, teamByName } = boxData;
     if (!players.size && !defenses.size) return false;
 
     for (const m of matchups) {
@@ -599,21 +709,31 @@ async function fillFromEspn() {
             if (!t) continue;
             for (const p of [...(t.starters || []), ...(t.bench || [])]) {
                 const pos = (p.position_in_team || p.position || '').toUpperCase();
-                let stats = null;
-                if (pos === 'DEF' || pos === 'D/ST') {
-                    // le difese non hanno nfl_team nei dati: la squadra sta nel nome
-                    const ab = canonAbbr(p.nfl_team || '') || teamByName.get(normName(p.name));
-                    stats = defenses.get(ab) || null;
-                } else {
-                    stats = players.get(normName(p.name)) || null;
+                const difesa = pos === 'DEF' || pos === 'D/ST';
+                // le difese non hanno nfl_team nei dati: la squadra sta nel nome
+                const ab = difesa
+                    ? (canonAbbr(p.nfl_team || '') || teamByName.get(normName(p.name)) || teamAbbrFromName(p.name))
+                    : canonAbbr(p.nfl_team || '');
+                const stats = difesa ? (defenses.get(ab) || null) : (players.get(normName(p.name)) || null);
+
+                // Appena la sua partita comincia si passa ai punti veri, anche
+                // se non ha ancora fatto nulla: zero è il suo punteggio, non un
+                // dato mancante, e mostrare la proiezione a partita in corso
+                // racconterebbe una cosa non vera.
+                const g = ab ? liveSchedule?.get(ab) : null;
+                if (g && (g.state === 'in' || g.state === 'post')) {
+                    p.started = true;
+                    if (!stats) p.fantasy_points = '0.00';
                 }
                 if (!stats) continue;
                 p.stats = { ...stats };
                 p.started = true;
                 p.fantasy_points = +(scoreWeeklyStats(stats, pos === 'D/ST' ? 'DEF' : pos) || 0).toFixed(2);
             }
-            t.score = (t.starters || [])
-                .reduce((s, p) => s + P(p.fantasy_points), 0).toFixed(2);
+            // Somma di quello che le card mostrano davvero: punti reali per chi
+            // ha giocato, proiezione per gli altri. Sommando solo i punti reali
+            // il banner direbbe un numero che nessuna card conferma.
+            t.score = (t.starters || []).reduce((s, p) => s + effPts(p), 0).toFixed(2);
         }
     }
     usingEspnFallback = true;
@@ -622,13 +742,28 @@ async function fillFromEspn() {
 
 async function hydrateScheduleAndRender(year, week) {
     try {
-        liveSchedule = await getWeekSchedule(year, week);
+        if (preseasonMode) {
+            const pre = await pickPreseasonWeek(year);
+            liveSchedule = pre?.sched || null;
+            if (pre) weekLabelText = `${year} · Preseason week ${pre.week}`;
+        } else {
+            liveSchedule = await getWeekSchedule(year, week);
+        }
     } catch {
         liveSchedule = null;
     }
-    if (!isLiveSource && boardIsEmpty()) {
+    // Rete di sicurezza: se una partita è cominciata ma nessuno ha ancora un
+    // punto, chi doveva darceli non sta rispondendo — l'API fantasy o lo script
+    // che riempie Firebase. Si compongono allora i totali dal tabellino
+    // ufficiale, validato sull'intera stagione 2025.
+    // Una sola verità per il badge e per i punti: se una partita dei nostri è
+    // cominciata, la giornata è cominciata.
+    giornataCominciata = startedGames().length > 0;
+    try { await loadBoxscores(); }
+    catch (e) { console.warn('[live] tabellino ESPN non disponibile:', e.message); boxData = null; }
+    if (boardIsEmpty() || lineupsFromDraft) {
         try { await fillFromEspn(); }
-        catch (e) { console.warn('[live] tabellino ESPN non disponibile:', e.message); }
+        catch (e) { console.warn('[live] punti dal tabellino non ricomposti:', e.message); }
     }
     if (teamIdx >= teamEntries().length) teamIdx = 0;
     const fresh = updateReceipts();
@@ -714,7 +849,7 @@ function headlineOf(changes) {
     for (const key of HEADLINE_ORDER) {
         if (changes.some(c => c.key === key && c.delta > 0)) return key;
     }
-    return null; // receiptHTML mostra "Update"
+    return null; // senza un evento notevole non si titola niente
 }
 
 // ─── Aggiornamento senza ridisegno ───────────────────────────────
@@ -736,17 +871,56 @@ function playersByName() {
     return map;
 }
 
-/** Scrive un punteggio conservando lo stile "proiezione" quando serve. */
-function writePts(el, p) {
+/**
+ * Punteggio di un giocatore come va mostrato: prima del kickoff la proiezione
+ * nel suo colore, a giornata iniziata il punteggio vero con accanto, in
+ * piccolo, quello che era previsto.
+ */
+function ptsHTML(p) {
     const val = fmt(effPts(p));
-    const html = pIsProjected(p) ? `<span class="proj-pts">${val}</span>` : val;
+    if (pIsProjected(p)) return `<span class="pts-val proj-pts">${val}</span>`;
+    const previsto = p?.projected_points == null ? ''
+        : `<small class="pts-proj" title="projected">${fmt(P(p.projected_points))}</small>`;
+    return `<span class="pts-val">${val}</span>${previsto}`;
+}
+
+/** Il solo numero dentro una casella punti: è quello che si anima e si legge,
+ *  mentre accanto può esserci la proiezione, che non va toccata. */
+const numEl = (el) => el?.querySelector?.('.pts-val') || el;
+
+function writePts(el, p) {
+    const html = ptsHTML(p);
     if (el.innerHTML !== html) el.innerHTML = html;
+}
+
+/**
+ * La formazione a schermo è ancora quella dei dati?
+ *
+ * Serve perché un GM può cambiare titolari a partite in corso: aggiornare solo
+ * i numeri lascerebbe in campo un giocatore che è andato in panchina. Quando
+ * cambia l'insieme dei nomi non basta ritoccare i valori, va ridisegnato.
+ */
+function lineupChanged(entry) {
+    const attesi = new Set([...(entry.team.starters || []), ...(entry.team.bench || [])]
+        .map(p => p.name));
+    const aSchermo = new Set([...document.querySelectorAll(
+        '.live-field-solo [data-slot-player], .live-bench [data-slot-player]')]
+        .map(el => el.dataset.slotPlayer));
+    if (!aSchermo.size) return false;   // non c'è ancora niente da confrontare
+    if (aSchermo.size !== attesi.size) return true;
+    for (const n of aSchermo) if (!attesi.has(n)) return true;
+    return false;
 }
 
 function refreshInPlace(events = []) {
     const root = document.getElementById('live-root');
     const entry = teamEntries()[teamIdx];
     if (!root || !entry) return;
+    // Prima del draft a schermo c'è solo il messaggio: aggiornare in posto
+    // riscriverebbe nel banner i punti delle rose segnaposto, che è proprio
+    // quello che non vogliamo mostrare.
+    if (!leagueDrafted) return;
+    if (lineupChanged(entry)) { render(); return; }
     const byName = playersByName();
 
     // punteggi di squadra nel banner
@@ -754,9 +928,10 @@ function refreshInPlace(events = []) {
     const scores = root.querySelectorAll('.gc-banner-score');
     const s = [teamEffScore(m.team1), teamEffScore(m.team2)];
     scores.forEach((el, i) => {
-        const proj = P(m[`team${i + 1}`].score) === 0 && m[`team${i + 1}`].projected_score != null;
-        const from = P(el.textContent);
-        el.innerHTML = proj ? `<span class="proj-pts">${fmt(s[i])}</span>` : fmt(s[i]);
+        const squadra = m[`team${i + 1}`];
+        const proj = teamIsProjected(squadra);
+        const from = P(numEl(el).textContent);
+        el.innerHTML = bannerScoreHTML(squadra, s[i], proj);
         el.classList.toggle('winner', s[i] >= s[1 - i]);
         if (!proj && from !== s[i]) countUp(el, from, s[i]);
     });
@@ -779,15 +954,24 @@ function refreshInPlace(events = []) {
         if (p) el.innerHTML = compareStatsHTML(p, el.dataset.cmpSide);
     });
 
-    // scoring feed: si accodano i nuovi in cima, senza rifare la lista
-    const feed = document.getElementById('live-receipts');
-    if (feed && events.length) {
-        if (feed.querySelector('.pm-empty')) feed.innerHTML = '';
-        feed.insertAdjacentHTML('afterbegin', events.map(receiptHTML).join(''));
-        while (feed.children.length > 40) feed.lastElementChild.remove();
-        // le card entrano fuori da render(): le foto vanno risolte a mano,
-        // o resterebbero per sempre sul segnaposto
-        hydrateHeadshots(feed);
+    // risultati NFL: cambiano punteggio e cronometro, nessuna immagine
+    const nfl = document.getElementById('live-nfl-games');
+    if (nfl) nfl.innerHTML = nflGamesListHTML(entry.team);
+
+    // "dentro la partita": cambiano i numeri e le barre, non le foto
+    const deep = document.getElementById('live-deep');
+    const deepHTML = deepDiveHTML(entry.team);
+    if (deep && deepHTML) {
+        const nuovo = deepHTML.trim();
+        if (deep.outerHTML !== nuovo) {
+            deep.outerHTML = nuovo;
+            bindDeepDive(root);
+        }
+    } else if (deep && !deepHTML) {
+        deep.remove();          // le partite sono finite fuori dal tabellino
+    } else if (deepHTML && !deep) {
+        render();               // prima partita cominciata: la sezione va creata
+        return;
     }
 
     // referto medico: nessuna immagine, si può riscrivere per intero
@@ -822,15 +1006,54 @@ function liveNow(p) {
 
 // ─── Rendering ────────────────────────────────────────────────────
 
+/**
+ * Il campo con i posti vuoti, unica risposta a "non ci sono giocatori":
+ * prima del draft e quando nessuna fonte risponde. Cambia solo la riga di
+ * spiegazione sotto. Senza rose non ci sono giocate, partite da seguire né
+ * infortuni, quindi i pannelli laterali non si disegnano.
+ */
+function renderEmptyField(root, entry, entries, nota) {
+    const team = entry?.team || { name: '' };
+    root.innerHTML = `
+    ${headerHTML()}
+    ${entries.length ? teamSwitcherHTML(entries) : ''}
+    ${entry ? matchupCardHTML(entry) : ''}
+    ${fieldHTML(emptyRoster(team))}
+    <p class="live-nodraft-note">${nota}</p>`;
+    root.querySelector('.live-compare-btn')?.remove();   // niente da confrontare
+    root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
+    root.querySelectorAll('.live-team-pill').forEach(btn => {
+        btn.addEventListener('click', () => { teamIdx = Number(btn.dataset.idx); render(); });
+    });
+    if (entry) {
+        root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
+        bindSwipe(root.querySelector('[data-swipe]'));
+    } else {
+        root.querySelector('[data-swap]')?.remove();
+    }
+}
+
 function render() {
     const root = document.getElementById('live-root');
     const entries = teamEntries();
+
+    // Nessuna sfida: né l'API né Firebase hanno risposto. Meglio il campo a
+    // posti vuoti di una riga di scuse — la pagina resta quella, e si vede
+    // che manca il contenuto, non che è rotta.
     if (!entries.length) {
-        root.innerHTML = `<div class="empty-state"><p class="empty-state-text">No live matchups right now</p></div>`;
+        renderEmptyField(root, null, [],
+            'Lineups are not reachable right now. Try again in a moment.');
         return;
     }
     const entry = entries[teamIdx];
     const { team, opp } = entry;
+
+    if (!leagueDrafted) {
+        renderEmptyField(root, entry, entries,
+            `The draft has not happened yet: rosters will appear as soon as it is
+             done. <a href="#draft">Go to the draft →</a>`);
+        return;
+    }
 
     root.innerHTML = `
     ${headerHTML()}
@@ -839,9 +1062,10 @@ function render() {
     ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
     <div class="live-widgets">
         ${playFeedHTML()}
-        ${receiptsPanelHTML()}
+        ${nflGamesHTML(team)}
         ${sidebarHTML(team, opp)}
     </div>
+    ${deepDiveHTML(team)}
     <div class="live-layout">
         <div class="live-main">
             ${rosterLiveHTML(team, opp)}
@@ -850,6 +1074,18 @@ function render() {
 
     hydrateHeadshots(root);
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
+    root.querySelector('[data-preseason]')?.addEventListener('click', () => {
+        preseasonMode = !preseasonMode;
+        try { localStorage.setItem(PRESEASON_KEY, preseasonMode ? '1' : '0'); } catch { /* niente */ }
+        // Le giocate viste e gli scontrini si riferiscono all'altro calendario:
+        // vanno buttati, o il feed mescolerebbe due insiemi di partite.
+        stopPlayPolling();
+        pbpSeen = new Set(); pbpCards = []; pbpDemoQueue = null;
+        pbpFirstRun = true; pbpIndex = 0;
+        receipts = []; prevSnapshot = null;
+        try { sessionStorage.removeItem('topina-live-receipts'); } catch { /* niente */ }
+        loadData();
+    });
     root.querySelectorAll('.live-team-pill').forEach(btn => {
         btn.addEventListener('click', () => {
             teamIdx = Number(btn.dataset.idx);
@@ -864,6 +1100,7 @@ function render() {
     root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
     bindSwipe(root.querySelector('[data-swipe]'));
     bindDeck(root);
+    bindDeepDive(root);
     layoutDeck();
 }
 
@@ -949,7 +1186,9 @@ function statusBadgeHTML() {
     const players = shown
         ? [...(shown.team.starters || []), ...(shown.opp.starters || [])]
         : [];
-    const anyLive = players.some(p => p && p.started === true);
+    // "in corso" lo dice il tabellone NFL, non il fatto che i punti siano
+    // arrivati: un giocatore può essere in campo e non aver ancora fatto nulla.
+    const anyLive = giornataCominciata || players.some(p => p && (p.started === true || liveNow(p)));
     const anyProjected = players.some(pIsProjected);
 
     if (anyLive) return '<i class="gb-live-dot"></i> LIVE';
@@ -959,7 +1198,10 @@ function statusBadgeHTML() {
             <polyline points="3 17 9 11 13 15 21 7"></polyline>
             <polyline points="15 7 21 7 21 13"></polyline>
         </svg> PROJECTED`;
-    return 'FINAL';
+    // niente etichetta: senza partite in corso e senza proiezioni non c'è
+    // niente di vero da dichiarare, e "FINAL" su una settimana che deve ancora
+    // cominciare diceva il falso
+    return '';
 }
 
 function headerHTML() {
@@ -971,13 +1213,16 @@ function headerHTML() {
         <div class="live-header-left">
             <h1 class="live-header-title">${weekLabelText}</h1>
             <span class="live-header-kicker">
-                ${pbpDemo() ? '<span class="live-demo-badge">DEMO · numeri non reali</span>' : ''}
+                ${pbpDemo() ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
+                ${preseasonMode ? '<span class="live-demo-badge">PRESEASON · test mode</span>' : ''}
                 ${usingEspnFallback ? '<span class="live-source-badge">da ESPN</span>' : ''}
                 ${statusBadgeHTML()}
             </span>
         </div>
         <div class="live-header-right">
             <span class="live-header-updated">Updated ${hh}:${mm}</span>
+            <button class="live-preseason-btn${preseasonMode ? ' is-on' : ''}" type="button"
+                    data-preseason title="Follow preseason games (test mode only)">Preseason</button>
             <button class="live-refresh-btn" type="button" aria-label="Refresh">↻</button>
         </div>
     </div>`;
@@ -994,6 +1239,15 @@ function teamSwitcherHTML(entries) {
     </div>`;
 }
 
+/** Totale di squadra nel banner, con la proiezione in piccolo a giornata iniziata. */
+function bannerScoreHTML(t, score, proiettato) {
+    if (!leagueDrafted) return '–';
+    if (proiettato) return `<span class="pts-val proj-pts">${fmt(score)}</span>`;
+    const previsto = t?.projected_score == null ? ''
+        : `<small class="pts-proj" title="projected">${fmt(P(t.projected_score))}</small>`;
+    return `<span class="pts-val">${fmt(score)}</span>${previsto}`;
+}
+
 /**
  * Banner punteggio — stessa identità visiva del banner di Game Center.
  * La disposizione segue sempre l'ordine del matchup (team1 a sinistra):
@@ -1002,8 +1256,8 @@ function teamSwitcherHTML(entries) {
 function matchupCardHTML(entry) {
     const { m, team: selected } = entry;
     const left = m.team1, right = m.team2;
-    const proj1 = P(left.score) === 0 && left.projected_score != null;
-    const proj2 = P(right.score) === 0 && right.projected_score != null;
+    const proj1 = teamIsProjected(left);
+    const proj2 = teamIsProjected(right);
     const s1 = teamEffScore(left), s2 = teamEffScore(right);
     const t1 = teamOf(left.name), t2 = teamOf(right.name);
     const total = s1 + s2;
@@ -1019,11 +1273,11 @@ function matchupCardHTML(entry) {
                 <div class="gc-banner-side">
                     <span class="gc-banner-name${selLeft ? ' live-name-selected' : ''}">${teamNameHTML(t1?.name || left.name)}</span>
                 </div>
-                <span class="gc-banner-score${s1 >= s2 ? ' winner' : ''}">${proj1 ? `<span class="proj-pts">${fmt(s1)}</span>` : fmt(s1)}</span>
+                <span class="gc-banner-score${leagueDrafted && s1 >= s2 ? ' winner' : ''}">${bannerScoreHTML(left, s1, proj1)}</span>
                 <div class="gc-banner-mid">
                     <span class="gc-banner-vs">${isLiveSource ? 'live' : 'vs'}</span>
                 </div>
-                <span class="gc-banner-score${s2 >= s1 ? ' winner' : ''}">${proj2 ? `<span class="proj-pts">${fmt(s2)}</span>` : fmt(s2)}</span>
+                <span class="gc-banner-score${leagueDrafted && s2 >= s1 ? ' winner' : ''}">${bannerScoreHTML(right, s2, proj2)}</span>
                 <div class="gc-banner-side gc-banner-side-r">
                     <span class="gc-banner-name${selLeft ? '' : ' live-name-selected'}">${teamNameHTML(t2?.name || right.name)}</span>
                 </div>
@@ -1055,7 +1309,7 @@ function chip(p, side) {
             ${live ? '<i class="gb-live-dot live-chip-dot"></i>' : ''}
         </span>
         <span class="live-chip-name">${shortName(p)}</span>
-        <span class="live-chip-pts">${pIsProjected(p) ? `<span class="proj-pts">${fmt(effPts(p))}</span>` : fmt(effPts(p))}</span>
+        <span class="live-chip-pts">${ptsHTML(p)}</span>
         ${injury ? `<span class="live-chip-injury-badge">${injury}</span>` : ''}
     </div>`;
 }
@@ -1132,6 +1386,7 @@ function shortStatLabel(k) {
 /** Slot giocatore sul campo — card con foto, nome, punti e statistiche. */
 function fieldSlot(p, extraClass = '') {
     if (!p) return '';
+    if (p.placeholder) return emptySlot(p, extraClass);
     const role = (p.position_in_team || p.position || '').toUpperCase();
     const live = liveNow(p);
     const injury = injuryOf(p);
@@ -1144,7 +1399,7 @@ function fieldSlot(p, extraClass = '') {
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
             ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
         <span class="slot-name">${shortName(p)}</span>
-        <span class="slot-pts">${pIsProjected(p) ? `<span class="proj-pts">${fmt(effPts(p))}</span>` : fmt(effPts(p))}</span>
+        <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats">${statLineHTML(p)}</span>
         ${injury ? `<span class="live-slot-inj">${escAttr(injury)}</span>` : ''}
     </div>`;
@@ -1152,6 +1407,34 @@ function fieldSlot(p, extraClass = '') {
 
 function olineSlot() {
     return `<div class="formation-slot oline-x">✕</div>`;
+}
+
+/**
+ * Posto vuoto: prima del draft il campo si vede lo stesso, con i suoi ruoli al
+ * posto giusto, ma al posto del giocatore ci sono trattini e la sagoma grigia.
+ * Niente `data-slot-player` né `data-player-modal`: non c'è nessuno da
+ * aggiornare e nessuna scheda da aprire.
+ */
+function emptySlot(p, extraClass = '') {
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    return `
+    <div class="formation-slot live-slot live-slot--empty${extraClass}">
+        <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"></span>
+        <span class="slot-name">–</span>
+        <span class="slot-pts">–</span>
+        <span class="live-slot-stats">${statLineHTML({ position: role, stats: {} })}</span>
+    </div>`;
+}
+
+/** Le nove maglie titolari e i sei posti in panchina, tutti vuoti. */
+function emptyRoster(team) {
+    const vuoto = (pos) => ({ name: '–', position: pos, position_in_team: pos,
+        nfl_team: '', stats: {}, placeholder: true });
+    return {
+        ...team,
+        starters: ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'RB/WR', 'K', 'DEF'].map(vuoto),
+        bench: Array.from({ length: 6 }, () => vuoto('BE')),
+    };
 }
 
 /**
@@ -1337,9 +1620,9 @@ function compareHTML(team, opp) {
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}
-            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}"${a ? ` data-slot-player="${escAttr(a.name)}"` : ''}>${a ? (pIsProjected(a) ? `<span class="proj-pts">${fmt(pa)}</span>` : fmt(pa)) : '—'}</span>
+            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}"${a ? ` data-slot-player="${escAttr(a.name)}"` : ''}>${a ? ptsHTML(a) : '—'}</span>
             <span class="live-cmp-slot">${slot}</span>
-            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}"${b ? ` data-slot-player="${escAttr(b.name)}"` : ''}>${b ? (pIsProjected(b) ? `<span class="proj-pts">${fmt(pb)}</span>` : fmt(pb)) : '—'}</span>
+            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}"${b ? ` data-slot-player="${escAttr(b.name)}"` : ''}>${b ? ptsHTML(b) : '—'}</span>
             ${compareStatsBlock(b, bWin, 'r')}
             ${compareName(b, 'r')}
             ${comparePhoto(b)}
@@ -1362,43 +1645,6 @@ function rosterLiveHTML(team, opp) {
             ${live.map(p => chip(p)).join('')}
         </div>
     </div>`;
-}
-
-/** Scontrino singolo: cosa è cambiato e quanti punti ha prodotto. */
-function receiptHTML(r) {
-    const time = new Date(r.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const sign = r.ptsDelta > 0 ? 'pos' : r.ptsDelta < 0 ? 'neg' : 'flat';
-    const head = r.headline ? (STAT_LABELS[r.headline] || r.headline) : 'Update';
-    const isBig = r.headline && BIG_EVENTS.has(r.headline);
-    // Stesse classi delle card di Live plays: i due pannelli raccontano la
-    // stessa partita da due fonti diverse, devono somigliarsi. Qui c'è sempre
-    // un solo giocatore, quindi i punti stanno sulla sua riga e la riga
-    // "totale" non serve — ripeterebbe lo stesso numero.
-    const role = (r.pos || '').toUpperCase();
-    const lines = r.changes.map(c =>
-        `${STAT_LABELS[c.key] || c.key} ${c.delta > 0 ? '+' : ''}${c.delta}`).join(' · ');
-    return `
-    <article class="pbp-card${isBig ? ' pbp-card--score' : ''}" data-receipt="${r.id}">
-        <header class="pbp-card-head">
-            <span class="pbp-card-type">${escAttr(head)}</span>
-            <span class="pbp-card-when">${time}</span>
-        </header>
-        <div class="pbp-card-actors">
-            <div class="pbp-actor pbp-actor--own">
-                <span class="pbp-actor-photo">
-                    <img src="${cachedHeadshot(r.name)}" alt="" loading="lazy"
-                         data-headshot data-player-name="${escAttr(r.name)}"
-                         data-team="${escAttr(r.nfl || '')}" data-pos="${escAttr(role)}">
-                </span>
-                <span class="pbp-actor-meta">
-                    <b>${escAttr(r.name)}</b>
-                    <i>${escAttr([role, r.nfl].filter(Boolean).join(' · '))}</i>
-                </span>
-                <span class="pbp-actor-pts ${sign}">${r.ptsDelta > 0 ? '+' : ''}${r.ptsDelta.toFixed(2)}</span>
-            </div>
-        </div>
-        <p class="pbp-card-text">${escAttr(lines)}</p>
-    </article>`;
 }
 
 // ─── Widget play-by-play: HTML ───────────────────────────────────
@@ -1461,13 +1707,23 @@ function playCardHTML(c) {
     </article>`;
 }
 
+/** Solo le giocate che riguardano la squadra a schermo. In demo non c'è una
+ *  rosa da filtrare, quindi passano tutte. */
+function visibleCards() {
+    if (pbpDemo()) return pbpCards;
+    const squadra = teamEntries()[teamIdx]?.team?.name;
+    if (!squadra) return pbpCards;
+    return pbpCards.filter(c => (c.teams || []).includes(squadra));
+}
+
 function playFeedHTML() {
+    const cards = visibleCards();
     return `
     <div class="mosaic-card mc-in live-side-card pbp-card-stack">
         <span class="mc-kicker">Live plays</span>
         <div class="pbp-stack" id="pbp-stack" data-deck>
-            ${pbpCards.length
-            ? pbpCards.map(playCardHTML).join('')
+            ${cards.length
+            ? cards.map(playCardHTML).join('')
             : `<p class="pm-empty">${gamesToWatch().length
                 ? 'Waiting for the next play...'
                 : 'No NFL game in progress with your players.'}</p>`}
@@ -1511,7 +1767,7 @@ function layoutDeck() {
 }
 
 function stepDeck(delta) {
-    const n = pbpCards.length;
+    const n = visibleCards().length;
     if (!n) return false;
     const next = Math.max(0, Math.min(pbpIndex + delta, n - 1));
     if (next === pbpIndex) return false; // già al capo: la pagina può scorrere
@@ -1547,8 +1803,10 @@ function bindDeck(root) {
 function paintPlayCards(newIds = []) {
     const stack = document.getElementById('pbp-stack');
     if (!stack) return;
+    const cards = visibleCards();
     if (pbpIndex > 0) pbpIndex += newIds.length;
-    stack.innerHTML = pbpCards.map(playCardHTML).join('');
+    stack.innerHTML = cards.length ? cards.map(playCardHTML).join('')
+        : `<p class="pm-empty">Waiting for the next play...</p>`;
     layoutDeck();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     for (const id of newIds) {
@@ -1559,33 +1817,21 @@ function paintPlayCards(newIds = []) {
     }
 }
 
-function receiptsPanelHTML() {
-    return `
-    <div class="mosaic-card mc-in live-side-card live-receipts-card">
-        <span class="mc-kicker">Scoring feed</span>
-        <div class="live-receipts" id="live-receipts">
-            ${receipts.length
-            ? receipts.map(receiptHTML).join('')
-            : `<p class="pm-empty">${isLiveSource
-                ? 'Waiting for the first play...'
-                : 'Live feed off — receipts appear when games are running.'}</p>`}
-        </div>
-    </div>`;
-}
 
 /**
  * Conteggio animato: il numero sale/scende invece di cambiare di scatto.
  * `from` è il valore precedente, `to` quello nuovo già scritto nel DOM.
  */
 function countUp(el, from, to, ms = 900) {
-    if (!el || from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const num = numEl(el);
+    if (!num || from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const t0 = performance.now();
     const step = (now) => {
         const k = Math.min(1, (now - t0) / ms);
         const eased = 1 - Math.pow(1 - k, 3); // decelera verso il valore finale
-        el.textContent = fmt(from + (to - from) * eased);
+        num.textContent = fmt(from + (to - from) * eased);
         if (k < 1) requestAnimationFrame(step);
-        else el.textContent = fmt(to);
+        else num.textContent = fmt(to);
     };
     requestAnimationFrame(step);
 }
@@ -1616,9 +1862,9 @@ function flashNewReceipts(events) {
                 || (slot.classList.contains('live-cmp-pts') ? slot : null);
             let sum = () => { };
             if (ptsEl && ev.ptsDelta) {
-                const to = P(ptsEl.textContent);
+                const to = P(numEl(ptsEl).textContent);
                 const from = +(to - ev.ptsDelta).toFixed(2);
-                ptsEl.textContent = fmt(from);
+                numEl(ptsEl).textContent = fmt(from);
                 sum = () => countUp(ptsEl, from, to);
             }
             if (ev.ptsDelta) popPoints(slot, ev.ptsDelta, sum);
@@ -1654,6 +1900,328 @@ function sidebarHTML(team, opp) {
     <div class="mosaic-card mc-in live-side-card">
         <span class="mc-kicker">Injury report</span>
         <div id="live-injuries">${injuriesHTML(team, opp)}</div>
+    </div>`;
+}
+
+// ─── Risultati delle partite NFL vere ────────────────────────────
+
+/**
+ * Le partite NFL che contano per la squadra a schermo: quelle in cui gioca
+ * almeno un suo tesserato. In corso per prime, poi quelle finite, poi quelle
+ * ancora da giocare — così il riquadro dice sempre qualcosa invece di restare
+ * vuoto per sei giorni su sette.
+ */
+function nflGamesFor(team) {
+    if (!liveSchedule) return [];
+    const per = new Map();   // id partita → { partita, giocatori }
+    for (const p of [...(team.starters || []), ...(team.bench || [])]) {
+        // Le difese non portano `nfl_team`: la squadra sta nel nome. Ricavarla
+        // dall'avversario le metterebbe dalla parte sbagliata, e la stessa
+        // partita comparirebbe due volte.
+        const sigla = canonAbbr(p.nfl_team || '') || canonAbbr(teamAbbrFromName(p.name));
+        const g = liveSchedule.get(sigla);
+        if (!g) continue;
+        // una riga per PARTITA, non per squadra: avendo giocatori da entrambe
+        // le parti la gara resta una sola
+        const chiave = g.eventId || sigla;
+        if (!per.has(chiave)) per.set(chiave, { sigla, ...g, giocatori: [] });
+        per.get(chiave).giocatori.push(p);
+    }
+    const ordine = { in: 0, post: 1, pre: 2 };
+    return [...per.values()].sort((a, b) =>
+        (ordine[a.state] ?? 3) - (ordine[b.state] ?? 3) || a.start - b.start);
+}
+
+function nflGamesListHTML(team) {
+    const partite = nflGamesFor(team);
+    if (!partite.length) return '<p class="pm-empty">No NFL games for this roster.</p>';
+    return partite.map(g => {
+        const avversario = (g.opponent || '').replace('@', '');
+        const fuoriCasa = (g.opponent || '').startsWith('@');
+        const nomi = g.giocatori.map(p => shortName(p)).join(', ');
+        const punteggio = g.state === 'pre'
+            ? `<span class="live-nfl-kick">${escAttr(g.detail || g.status || '')}</span>`
+            : `<span class="live-nfl-score"><b>${g.score}</b> – <b>${g.oppScore}</b></span>`;
+        return `
+        <div class="live-nfl-row${g.state === 'in' ? ' live-nfl-row--live' : ''}">
+            <span class="live-nfl-teams">
+                ${g.state === 'in' ? '<i class="gb-live-dot"></i>' : ''}
+                ${escAttr(fuoriCasa ? `${g.sigla} @ ${avversario}` : `${avversario} @ ${g.sigla}`)}
+            </span>
+            ${punteggio}
+            <span class="live-nfl-when">${escAttr(g.state === 'in' ? (g.detail || '') : g.state === 'post' ? 'Final' : '')}</span>
+            <span class="live-nfl-mine">${escAttr(nomi)}</span>
+        </div>`;
+    }).join('');
+}
+
+// ─── Dentro la partita ───────────────────────────────────────────
+//
+// Il punteggio dice chi sta vincendo, non se il MIO giocatore sta ricevendo
+// palloni. Qui, per ogni squadra NFL in cui ho qualcuno, si guarda come
+// l'attacco distribuisce il gioco: quanti bersagli e quante ricezioni per ogni
+// ricevitore, quanti portati per ogni running back. Il mio è evidenziato, così
+// si vede subito se davanti a lui c'è un compagno che gli sta togliendo palloni.
+
+/** Le sigle NFL in cui la squadra selezionata ha giocatori, con i giocatori. */
+function sigleDeiNostri(team) {
+    const out = new Map();
+    for (const p of [...(team.starters || []), ...(team.bench || [])]) {
+        const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+        if (!ab) continue;
+        if (!out.has(ab)) out.set(ab, []);
+        out.get(ab).push(p);
+    }
+    return out;
+}
+
+/**
+ * Riga di un mio giocatore che nel tabellino non c'è: niente bersagli, niente
+ * portate, nemmeno una riga. Va mostrato lo stesso, in fondo al suo reparto,
+ * o sembrerebbe che non l'ho in squadra invece che fermo.
+ */
+function usoRowAssente(p) {
+    return `
+    <div class="live-uso-row live-uso-row--mio live-uso-row--fermo">
+        <span class="live-uso-nome">${escAttr(shortName(p))}</span>
+        <span class="live-uso-bar"></span>
+        <span class="live-uso-val">no stats yet</span>
+        <span class="live-uso-pts">–</span>
+    </div>`;
+}
+
+/** Punti fantasy di un giocatore qualunque del tabellino, con le regole della
+ *  lega: serve a dire "il tuo ne sta facendo meno del suo compagno". */
+function puntiDaTabellino(nome, difesa = false) {
+    const s = boxData?.players?.get(normName(nome));
+    if (!s) return null;
+    return (scoreWeeklyStats(s, difesa ? 'DEF' : 'WR') || 0).toFixed(1);
+}
+
+/** Una riga del grafico: barra proporzionale al massimo della squadra. */
+function usoRow(nome, valore, massimo, dettaglio, mio, secondario = 0) {
+    const punti = puntiDaTabellino(nome);
+    const pct = massimo > 0 ? Math.round((valore / massimo) * 100) : 0;
+    // la parte piena è il "concretizzato" (ricezioni sui bersagli): si legge
+    // dentro la stessa barra, senza un secondo grafico
+    const pieno = valore > 0 ? Math.round((secondario / valore) * 100) : 0;
+    return `
+    <div class="live-uso-row${mio ? ' live-uso-row--mio' : ''}">
+        <span class="live-uso-nome">${escAttr(shortName({ name: nome }))}</span>
+        <span class="live-uso-bar" style="--w:${pct}%">
+            <span class="live-uso-fill" style="width:${pct}%">
+                ${secondario ? `<i class="live-uso-done" style="width:${pieno}%"></i>` : ''}
+            </span>
+        </span>
+        <span class="live-uso-val">${dettaglio}</span>
+        <span class="live-uso-pts">${punti == null ? '–' : punti}</span>
+    </div>`;
+}
+
+function usoBloccoHTML(titolo, righe) {
+    if (!righe) return '';
+    return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${righe}</div>`;
+}
+
+/** Quale partita si sta guardando nel "dentro la partita". */
+let deepIdx = 0;
+
+/** Le partite da mostrare, una per squadra NFL in cui ho qualcuno. */
+function deepGames(team) {
+    const out = [];
+    for (const [sigla, miei] of sigleDeiNostri(team)) {
+        const quadro = boxData?.usage?.get(sigla);
+        if (!quadro?.info || !quadro.players?.length) continue;
+        out.push({ sigla, miei, quadro });
+    }
+    return out;
+}
+
+/**
+ * Confronto di squadra: chi ha fatto più fatica, e da dove è arrivata la
+ * vittoria. Le voci sono in coppia — mia a sinistra, avversaria a destra — con
+ * una barra che divide il totale fra le due: si legge di colpo se uno ha
+ * dominato per aria o per terra, quante volte è finito a terra il quarterback
+ * e quanti palloni ha buttato via.
+ */
+const CONFRONTO = [
+    { key: 'totalYards', label: 'Total yards' },
+    { key: 'netPassingYards', label: 'Passing yards' },
+    { key: 'rushingYards', label: 'Rushing yards' },
+    { key: 'firstDowns', label: 'First downs' },
+    { key: 'thirdDownEff', label: '3rd down', testo: true },
+    { key: 'sacksYardsLost', label: 'Sacks allowed', testo: true, meglioBasso: true },
+    { key: 'turnovers', label: 'Turnovers', meglioBasso: true },
+    { key: 'totalPenaltiesYards', label: 'Penalties', testo: true, meglioBasso: true },
+    { key: 'possessionTime', label: 'Possession', testo: true },
+];
+
+/** Primo numero di un valore composto: "9-14" → 9, "25:39" → 25. */
+const primoNumero = (v) => {
+    const m = String(v ?? '').match(/-?\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : 0;
+};
+
+function confrontoHTML(quadro, sigla) {
+    const mie = quadro.teamStats, loro = quadro.oppStats;
+    if (!mie || !loro) return '';
+    const opp = quadro.info?.opponent || '';
+
+    const righe = CONFRONTO.map(({ key, label, testo, meglioBasso }) => {
+        const a = mie[key], b = loro[key];
+        if (a == null && b == null) return '';
+        const na = primoNumero(a), nb = primoNumero(b);
+        const tot = na + nb;
+        const pct = tot > 0 ? Math.round((na / tot) * 100) : 50;
+        // chi sta meglio su questa voce: di norma chi ha il numero più alto,
+        // ma su sack subiti, palle perse e penalità è il contrario
+        const vinceA = na === nb ? null : meglioBasso ? na < nb : na > nb;
+        return `
+        <div class="live-cmpteam-row">
+            <span class="live-cmpteam-val${vinceA === true ? ' is-top' : ''}">${escAttr(testo ? (a ?? '–') : na)}</span>
+            <span class="live-cmpteam-mid">
+                <span class="live-cmpteam-label">${label}${meglioBasso
+                    ? '<i class="live-cmpteam-giu" title="lower is better">↓</i>' : ''}</span>
+                <span class="live-cmpteam-bar">
+                    <i class="live-cmpteam-fill${meglioBasso ? ' is-inverse' : ''}" style="width:${pct}%"></i>
+                </span>
+            </span>
+            <span class="live-cmpteam-val live-cmpteam-val--r${vinceA === false ? ' is-top' : ''}">${escAttr(testo ? (b ?? '–') : nb)}</span>
+        </div>`;
+    }).join('');
+
+    if (!righe) return '';
+    return `
+    <div class="live-cmpteam">
+        <div class="live-cmpteam-head">
+            <span>${escAttr(sigla)}</span>
+            <span class="live-cmpteam-title">Team comparison</span>
+            <span>${escAttr(opp)}</span>
+        </div>
+        ${righe}
+    </div>`;
+}
+
+function deepGameHTML({ sigla, miei, quadro }) {
+    const g = quadro.info;
+    const nomiMiei = new Set(miei.map(p => normName(p.name)));
+    const ruoloDi = (p) => (p.position_in_team || p.position || '').toUpperCase();
+    // I miei che nel tabellino non compaiono proprio: vanno in coda al reparto
+    // che gli compete. Difese e kicker no: non hanno bersagli né portate.
+    const fermi = miei.filter(p => !quadro.players.some(x => normName(x.name) === normName(p.name))
+        && !['DEF', 'D/ST', 'K'].includes(ruoloDi(p)));
+    const fermiDi = (...ruoli) => fermi.filter(p => ruoli.includes(ruoloDi(p))).map(usoRowAssente).join('');
+    const ricevitori = quadro.players.filter(p => (p.targets || 0) > 0)
+        .sort((a, b) => (b.targets || 0) - (a.targets || 0)).slice(0, 6);
+    const maxTgt = Math.max(...ricevitori.map(p => p.targets || 0), 0);
+    const corridori = quadro.players.filter(p => (p.rush_att || 0) > 0)
+        .sort((a, b) => (b.rush_att || 0) - (a.rush_att || 0)).slice(0, 4);
+    const maxCar = Math.max(...corridori.map(p => p.rush_att || 0), 0);
+    const passatori = quadro.players.filter(p => (p.pass_yds || 0) !== 0 || (p.pass_td || 0) > 0)
+        .sort((a, b) => (b.pass_yds || 0) - (a.pass_yds || 0)).slice(0, 2);
+
+    const mio = (p) => nomiMiei.has(normName(p.name));
+    const nostri = [...quadro.players.filter(mio).map(p => shortName({ name: p.name })),
+        ...fermi.map(p => shortName(p))];
+
+    return `
+    <article class="live-deep-game">
+        <header class="live-deep-head">
+            ${g.logo ? `<img class="live-deep-logo" src="${g.logo}" alt="" loading="lazy">` : ''}
+            <span class="live-deep-team">${escAttr(g.teamName || sigla)}</span>
+            <span class="live-deep-vs">${g.home ? 'vs' : '@'} ${escAttr(g.opponentName || g.opponent || '')}</span>
+            <span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>
+            <span class="live-deep-when">${escAttr(g.detail || '')}</span>
+        </header>
+        <p class="live-deep-sub">${escAttr(g.teamName || sigla)} offense only${nostri.length
+            ? ` · yours: <b>${nostri.map(escAttr).join(', ')}</b>` : ''}</p>
+        ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
+            p.name, p.targets || 0, maxTgt,
+            `${p.targets || 0} tgt · ${p.rec || 0} rec · ${p.rec_yds || 0} yd${p.rec_td ? ` · ${p.rec_td} TD` : ''}`,
+            mio(p), p.rec || 0)).join('') + fermiDi('WR', 'TE', 'RB/WR', 'W/R', 'FLEX'))}
+        ${usoBloccoHTML('Carries', corridori.map(p => usoRow(
+            p.name, p.rush_att || 0, maxCar,
+            `${p.rush_att || 0} car · ${p.rush_yds || 0} yd${p.rush_td ? ` · ${p.rush_td} TD` : ''}`,
+            mio(p))).join('') + fermiDi('RB'))}
+        ${passatori.length || fermiDi('QB') ? `<div class="live-uso-blocco">
+            <span class="live-uso-titolo">Passing</span>
+            ${passatori.map(p => `<div class="live-uso-qb${mio(p) ? ' live-uso-row--mio' : ''}">
+                <span class="live-uso-nome">${escAttr(shortName({ name: p.name }))}</span>
+                <span class="live-uso-val">${p.pass_yds || 0} yd${p.pass_td ? ` · ${p.pass_td} TD` : ''}</span>
+                <span class="live-uso-pts">${puntiDaTabellino(p.name) ?? '–'}</span>
+            </div>`).join('')}
+            ${fermi.filter(p => ruoloDi(p) === 'QB').map(p => `
+            <div class="live-uso-qb live-uso-row--mio live-uso-row--fermo">
+                <span class="live-uso-nome">${escAttr(shortName(p))}</span>
+                <span class="live-uso-val">no stats yet</span>
+                <span class="live-uso-pts">–</span>
+            </div>`).join('')}
+        </div>` : ''}
+        ${confrontoHTML(quadro, sigla)}
+    </article>`;
+}
+
+function deepDiveHTML(team) {
+    const partite = deepGames(team);
+    if (!partite.length) return '';
+    if (deepIdx >= partite.length) deepIdx = 0;
+
+    // Con più partite se ne guarda una per volta e si gira, come le card delle
+    // giocate: affiancarle le stringerebbe fino a rendere illeggibili le barre.
+    const nav = partite.length < 2 ? '' : `
+        <div class="live-deep-nav">
+            <button class="live-deep-arrow" type="button" data-deep="-1" aria-label="Previous game">‹</button>
+            ${partite.map((p, i) => `<button class="live-deep-dot${i === deepIdx ? ' active' : ''}"
+                type="button" data-deep-go="${i}">${escAttr(p.sigla)}</button>`).join('')}
+            <button class="live-deep-arrow" type="button" data-deep="1" aria-label="Next game">›</button>
+        </div>`;
+
+    const colore = teamOf(team.name)?.color || 'var(--accent-red)';
+    return `
+    <section class="live-deep" id="live-deep" style="--tc-sel:${colore}">
+        <div class="live-deep-title">
+            <span class="mc-kicker">Inside the game</span>
+            <span class="live-deep-hint">how the offense spreads the ball — yours highlighted</span>
+            ${nav}
+        </div>
+        ${deepGameHTML(partite[deepIdx])}
+    </section>`;
+}
+
+/** Frecce, pallini e rotella: girare fra le partite senza rifare la pagina. */
+function bindDeepDive(root) {
+    const sez = root.querySelector('#live-deep');
+    if (!sez) return;
+    const quante = sez.querySelectorAll('[data-deep-go]').length;
+    const vai = (n) => {
+        if (quante < 2) return;
+        deepIdx = (n + quante) % quante;
+        const entry = teamEntries()[teamIdx];
+        if (!entry) return;
+        sez.outerHTML = deepDiveHTML(entry.team).trim();
+        bindDeepDive(root);
+    };
+    sez.querySelectorAll('[data-deep]').forEach(b =>
+        b.addEventListener('click', () => vai(deepIdx + Number(b.dataset.deep))));
+    sez.querySelectorAll('[data-deep-go]').forEach(b =>
+        b.addEventListener('click', () => vai(Number(b.dataset.deepGo))));
+    if (quante < 2) return;
+    let ultimo = 0;
+    sez.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) < 8) return;
+        const ora = Date.now();
+        if (ora - ultimo < 260) return;     // un giro per gesto, non venti
+        ultimo = ora;
+        e.preventDefault();
+        vai(deepIdx + (e.deltaY > 0 ? 1 : -1));
+    }, { passive: false });
+}
+
+function nflGamesHTML(team) {
+    return `
+    <div class="mosaic-card mc-in live-side-card">
+        <span class="mc-kicker">NFL scoreboard</span>
+        <div class="live-nfl-games" id="live-nfl-games">${nflGamesListHTML(team)}</div>
     </div>`;
 }
 

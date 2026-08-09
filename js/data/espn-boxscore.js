@@ -14,8 +14,8 @@
  * un disallineamento, e nessuna è deducibile dalla documentazione.
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=20';
-import { fetchPlays } from './nfl-plays.js?v=9';
+import { canonAbbr } from './nfl-schedule.js?v=520';
+import { fetchPlays } from './nfl-plays.js?v=509';
 
 const SUMMARY = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary';
 
@@ -62,30 +62,45 @@ export async function fetchBoxscoreTotals(eventIds = []) {
     const defenses = new Map();  // sigla squadra → stats
     const teamByName = new Map();// nome completo squadra → sigla (le DEF non hanno nfl_team)
     const kickerIds = new Map(); // nome normalizzato → id atleta ESPN
-    if (!eventIds.length) return { players, defenses, teamByName };
+    // Uso dei giocatori squadra per squadra, per il "dentro la partita": chi
+    // riceve, chi corre, quanti palloni gli arrivano. Sono gli stessi tabellini
+    // già scaricati qui, quindi non costa una richiesta in più.
+    const usage = new Map();     // sigla squadra → { info, players[] }
+    if (!eventIds.length) return { players, defenses, teamByName, usage };
 
     const summaries = await Promise.all(eventIds.map(async id => {
+        // con scadenza: una risposta che non arriva mai bloccherebbe la pagina
+        const stop = new AbortController();
+        const timer = setTimeout(() => stop.abort(), 8000);
         try {
-            const res = await fetch(`${SUMMARY}?event=${id}`);
+            const res = await fetch(`${SUMMARY}?event=${id}`, { signal: stop.signal });
             return res.ok ? await res.json() : null;
-        } catch { return null; }
+        } catch { return null; } finally { clearTimeout(timer); }
     }));
 
     for (const d of summaries) {
         if (!d?.boxscore) continue;
 
         for (const team of d.boxscore.players || []) {
+            const sigla = canonAbbr(team.team?.abbreviation);
+            const quadro = usage.get(sigla) || { players: new Map() };
+            usage.set(sigla, quadro);
             for (const cat of team.statistics || []) {
                 const keys = cat.keys || [];
                 for (const a of cat.athletes || []) {
                     const nm = normName(a.athlete?.displayName);
                     if (!nm) continue;
                     const e = add(players, nm);
+                    const u = quadro.players.get(nm)
+                        || { name: a.athlete?.displayName || '', pos: a.athlete?.position?.abbreviation || '' };
+                    quadro.players.set(nm, u);
                     const st = {};
                     keys.forEach((k, i) => { st[k] = (a.stats || [])[i]; });
                     const g = (k) => num(st[k]);
                     switch (cat.name) {
                         case 'passing':
+                            u.pass_yds = g('passingYards');
+                            u.pass_td = g('passingTouchdowns');
                             bump(e, 'pass_yds', g('passingYards'));
                             bump(e, 'pass_td', g('passingTouchdowns'));
                             bump(e, 'pass_int', g('interceptions'));
@@ -93,11 +108,18 @@ export async function fetchBoxscoreTotals(eventIds = []) {
                             bump(e, 'pass_att', num(String(st['completions/passingAttempts'] || '').split('/')[1]));
                             break;
                         case 'rushing':
+                            u.rush_att = g('rushingAttempts');
+                            u.rush_yds = g('rushingYards');
+                            u.rush_td = g('rushingTouchdowns');
                             bump(e, 'rush_yds', g('rushingYards'));
                             bump(e, 'rush_td', g('rushingTouchdowns'));
                             bump(e, 'rush_att', g('rushingAttempts'));
                             break;
                         case 'receiving':
+                            u.targets = g('receivingTargets');
+                            u.rec = g('receptions');
+                            u.rec_yds = g('receivingYards');
+                            u.rec_td = g('receivingTouchdowns');
                             bump(e, 'rec', g('receptions'));
                             bump(e, 'rec_yds', g('receivingYards'));
                             bump(e, 'rec_td', g('receivingTouchdowns'));
@@ -136,6 +158,26 @@ export async function fetchBoxscoreTotals(eventIds = []) {
             }
         }
 
+        const stato = d.header?.competitions?.[0]?.status?.type || {};
+        for (const c of comp.competitors || []) {
+            const ab = canonAbbr(c.team?.abbreviation);
+            const altro = (comp.competitors || []).find(x => x !== c);
+            const quadro = usage.get(ab);
+            if (!quadro) continue;
+            quadro.info = {
+                team: ab,
+                teamName: c.team?.displayName || ab,
+                logo: c.team?.logos?.[0]?.href || c.team?.logo || '',
+                opponent: canonAbbr(altro?.team?.abbreviation),
+                opponentName: altro?.team?.displayName || '',
+                home: c.homeAway === 'home',
+                score: num(c.score),
+                oppScore: num(altro?.score),
+                detail: stato.shortDetail || stato.description || '',
+                state: stato.state || 'pre',
+            };
+        }
+
         const defTd = {}, safety = {};
         for (const ab of Object.keys(score)) { defTd[ab] = 0; safety[ab] = 0; }
         for (const s of d.scoringPlays || []) {
@@ -155,6 +197,16 @@ export async function fetchBoxscoreTotals(eventIds = []) {
                 if (!(s.name in vals)) vals[s.name] = s.displayValue;
             }
             teamStats[ab] = vals;
+        }
+
+        // Il quadro di squadra completo va anche nell'uso: è quello che serve
+        // al confronto fra le due squadre sotto il "dentro la partita".
+        for (const ab of Object.keys(teamStats)) {
+            const quadro = usage.get(ab);
+            if (!quadro) continue;
+            quadro.teamStats = teamStats[ab];
+            const altro = Object.keys(teamStats).find(x => x !== ab);
+            quadro.oppStats = teamStats[altro] || {};
         }
 
         const sides = Object.keys(score);
@@ -213,5 +265,9 @@ export async function fetchBoxscoreTotals(eventIds = []) {
         }
     }
 
-    return { players, defenses, teamByName };
+    // le mappe interne diventano liste, più comode da disegnare
+    for (const quadro of usage.values()) {
+        quadro.players = [...quadro.players.values()];
+    }
+    return { players, defenses, teamByName, usage };
 }

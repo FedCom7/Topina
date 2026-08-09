@@ -7,8 +7,9 @@ fixed by the next and nothing is ever lost. Writes:
   - data/fantasy/fantasy_data_<season>.json   (committed by the workflow)
   - Firebase RTDB node  fantasy/fantasy_data_<season>   (what the site reads)
 
-Secrets (cookies) come from env: ESPN_S2, ESPN_SWID. The non-secret league_id
-and team_names live in scraper/espn_config.json (committed).
+The league is public, so no ESPN cookies are needed. league_id + team_names
+live in scraper/espn_config.json (committed). If the league is ever made
+private again, set ESPN_S2 / ESPN_SWID env vars (from GitHub secrets).
 
 The `espn` package here mirrors NFL_Fantasy_Dash/scripts/espn — re-copy those
 .py files when the local scraper changes.
@@ -56,16 +57,47 @@ def write_and_publish(subdir, node_prefix, name, data):
     return ok
 
 
+def draft_file(season):
+    return os.path.join(REPO_ROOT, "data", "draft", f"draft_data_{season}.json")
+
+
 def main():
     season = os.environ.get("SEASON") or current_season()
     cfg = config.load_config()
-    print(f"ESPN sync — season {season}")
+    watch = os.environ.get("WATCH_DRAFT") == "1"
+    print(f"ESPN sync — season {season}{' (sentinella draft)' if watch else ''}")
+
+    # In modalità sentinella il draft già scaricato è il segnale di "fatto":
+    # il file lo committa l'Action stessa, quindi il giorno dopo si esce
+    # subito senza nemmeno chiamare ESPN.
+    if watch and os.path.exists(draft_file(season)):
+        print(f"Draft {season} già presente in data/draft: niente da fare.")
+        sys.exit(0)
+
+    # Finché il draft non è stato fatto ESPN riempie le squadre di rose
+    # segnaposto (acquisitionType null): giocatori che non sono di nessuno.
+    # Pubblicarli metterebbe su Firebase una lega inventata, quindi non si
+    # scrive niente — né su Firebase né in data/ — e si esce senza fallire.
+    if not draft_espn.draft_is_done(season, cfg):
+        print(f"Il draft {season} non è ancora stato fatto: nessun dato scritto.")
+        sys.exit(0)
+
+    # Il draft si costruisce PRIMA di pubblicare qualsiasi cosa: se ESPN dice
+    # "fatto" ma le scelte non ci sono ancora, non si scrive niente di niente,
+    # invece di caricare una stagione con le rose e un draft vuoto.
+    draft = None
+    if watch or os.environ.get("DRAFT") == "1":
+        draft = draft_espn.build_draft(season, cfg=cfg)
+        if not sum(len(v) for v in (draft.get("teams") or {}).values()):
+            print(f"Nessuna scelta nel draft {season}: nessun dato scritto.")
+            sys.exit(0)
 
     data = fantasy_espn.build_season(season, cfg=cfg, verbose=True)
     ok = write_and_publish("fantasy", "fantasy", f"fantasy_data_{season}", data)
 
-    if os.environ.get("DRAFT") == "1":
-        draft = draft_espn.build_draft(season, cfg=cfg)
+    if draft is not None:
+        # PUT sostituisce l'intero nodo: rilanciare cancella e riscrive il
+        # draft dell'anno, gli altri anni sono nodi separati e non si toccano.
         ok = write_and_publish("draft", "draft", f"draft_data_{season}", draft) and ok
 
     sys.exit(0 if ok else 1)

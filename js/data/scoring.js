@@ -8,7 +8,7 @@
  * conversion avversario da parte della difesa (`def_two_pt_ret`).
  */
 
-import { SCORING as LEAGUE_SCORING } from './league-rules.js?v=28';
+import { SCORING as LEAGUE_SCORING } from './league-rules.js?v=528';
 export { LEAGUE_SCORING };
 
 /**

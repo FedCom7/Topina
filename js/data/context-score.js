@@ -17,10 +17,10 @@
  * esiste data/model/draft_model_v1.json (pesi appresi) il chiamante li usa.
  */
 
-import { normName } from './projections.js?v=89';
-import { getTeamStats } from './nfl-team-stats.js?v=19';
-import { canonAbbr } from './nfl-schedule.js?v=20';
-import { getSeasonConfig } from '../data.js?v=33';
+import { normName } from './projections.js?v=589';
+import { getTeamStats } from './nfl-team-stats.js?v=523';
+import { canonAbbr } from './nfl-schedule.js?v=520';
+import { getSeasonConfig } from '../data.js?v=534';
 
 const _players = {};   // year → adv_players json (o null)
 const _team = {};      // year → adv_team json (o null)

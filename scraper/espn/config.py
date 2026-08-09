@@ -40,17 +40,21 @@ def load_config():
         except ValueError:
             pass
 
-    for key in ("league_id", "espn_s2", "swid"):
-        if not cfg.get(key):
-            raise ConfigError(
-                f"Missing '{key}': set it in {path} or the matching env var "
-                "(ESPN_LEAGUE_ID / ESPN_S2 / ESPN_SWID)."
-            )
+    # Only league_id is mandatory. Cookies are needed *only* for a private
+    # league; a public league answers without them, so espn_s2/swid are optional.
+    if not cfg.get("league_id"):
+        raise ConfigError(
+            f"Missing 'league_id': set it in {path} or the ESPN_LEAGUE_ID env var."
+        )
     return cfg
 
 
 def cookie_header(cfg=None):
+    """Cookie header for a private league, or None when no cookies are set
+    (public league — the API answers without authentication)."""
     cfg = cfg or load_config()
+    if not (cfg.get("espn_s2") and cfg.get("swid")):
+        return None
     return f'espn_s2={cfg["espn_s2"]}; SWID={cfg["swid"]}'
 
 

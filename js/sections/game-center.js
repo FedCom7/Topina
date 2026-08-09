@@ -1,13 +1,19 @@
-import { fetchFantasyData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=92';
-import { initPlayerModal } from '../components/player-modal.js?v=98';
-import { playerImageService } from '../services/player-image-service.js?v=15';
+import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=3';
+import { getWeekSchedule } from '../data/nfl-schedule.js?v=520';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
+import { TEAMS } from './team.js?v=596';
+import { initPlayerModal } from '../components/player-modal.js?v=602';
+import { playerImageService } from '../services/player-image-service.js?v=515';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
 let currentWeek = 1;
 let loaded = false;
+// Prima del draft ESPN riempie le squadre di rose segnaposto: giocatori che non
+// sono di nessuno. Con questo a falso non se ne mostra nessuno.
+let leagueDrafted = true;
 
 // Mapping display names → image filename abbreviations
 const TEAM_FIELD_KEYS = {
@@ -90,6 +96,54 @@ async function loadYear(year) {
     currentWeek = lastPlayedWeek(maxWeek);
     renderWeekSelector(maxWeek);
     renderMatchups();
+    refreshOpenWeek();
+}
+
+/**
+ * Settimana ancora aperta della stagione in corso: i dati su Firebase li
+ * scrive l'Action una volta a settimana, quindi finché la giornata non è
+ * chiusa lì ci sono zeri. Gli stessi numeri si leggono in diretta dall'API
+ * della lega, che dal browser è raggiungibile senza cookie.
+ *
+ * Si aggiorna all'apertura e a ogni cambio settimana, senza polling: qui non
+ * ci sono animazioni per giocata, e il Live esiste apposta per il minuto per
+ * minuto. Sulle stagioni passate e sulle giornate chiuse non parte nessuna
+ * chiamata.
+ */
+let draftSuFirebase;
+async function draftOnFirebase() {
+    if (draftSuFirebase === undefined) {
+        try { draftSuFirebase = (await fetchDraftData(CURRENT_SEASON)) || null; }
+        catch { draftSuFirebase = null; }
+    }
+    return draftSuFirebase;
+}
+
+async function refreshOpenWeek() {
+    if (String(currentYear) !== String(CURRENT_SEASON)) return;
+    const wk = currentData?.weeks?.[String(currentWeek)];
+    if (wk?.matchups?.some(m => m.winner && m.winner !== 'UNDECIDED')) return;
+
+    const week = currentWeek;
+    try {
+        const games = (await getWeekSchedule(currentYear, week)) || new Map();
+        const { matchups, drafted } = await fetchLeagueWeek(currentYear, week, games);
+        // Come nel Live: le rose segnaposto di ESPN non si mostrano mai. Se il
+        // draft non è stato fatto si usano le scelte caricate su Firebase.
+        leagueDrafted = drafted;
+        if (!drafted) {
+            const draft = await draftOnFirebase();
+            leagueDrafted = !!draft && applyDraftLineups(matchups, draft);
+        }
+        if (!matchups.length) return;
+        await fillMissingProjections(matchups, currentYear, week);
+        // La settimana può essere cambiata mentre si aspettava la risposta
+        if (week !== currentWeek || String(currentYear) !== String(CURRENT_SEASON)) return;
+        currentData.weeks[String(week)] = { ...(wk || {}), matchups };
+        renderMatchups();
+    } catch (e) {
+        console.warn('[game-center] API ESPN non raggiungibile, resta Firebase:', e.message);
+    }
 }
 
 /** Ultima week con punti giocati (default all'apertura); 1 se la stagione non è iniziata. */
@@ -124,6 +178,7 @@ function renderWeekSelector(maxWeek) {
         btn.classList.add('active');
         currentWeek = parseInt(btn.dataset.week);
         renderMatchups();
+        refreshOpenWeek();
     });
 }
 
@@ -139,6 +194,19 @@ function renderMatchups() {
     const weekData = currentData?.weeks?.[String(currentWeek)];
     if (!weekData?.matchups?.length) {
         grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No matchups for ${weekLabel(currentWeek)}</p></div>`;
+        return;
+    }
+
+    // Le rose che ESPN mostra prima del draft sono segnaposto: nessuno le ha
+    // scelte, e verranno sostituite di sana pianta. Meglio dirlo che mostrarle.
+    if (!leagueDrafted && String(currentYear) === String(CURRENT_SEASON)) {
+        grid.innerHTML = `
+        <div class="live-nodraft">
+            <p class="live-nodraft-title">The draft has not happened yet</p>
+            <p class="live-nodraft-text">Lineups will show up as soon as it is done.
+               What ESPN shows now are placeholders: nobody picked them.</p>
+            <a class="mc-cta" href="#draft">Go to the draft <span aria-hidden="true">→</span></a>
+        </div>`;
         return;
     }
 

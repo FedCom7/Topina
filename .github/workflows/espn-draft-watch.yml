@@ -1,0 +1,58 @@
+name: ESPN Draft Watch (Python)
+
+# Sentinella del draft: il draft si fa una volta l'anno, fra fine agosto e
+# l'inizio della stagione, e finora andava caricato a mano spuntando la casella
+# `draft` dell'altra Action. Questa se ne accorge da sola.
+#
+# Una GitHub Action non puo' restare in ascolto: va svegliata. Quindi si sveglia
+# una volta al giorno nelle due settimane prima della week 1 e la prima cosa che
+# fa e' chiedere a ESPN se il draft e' stato fatto. Se non c'e', esce in due
+# secondi senza scrivere niente — ne' su Firebase ne' in data/. Se c'e', fa il
+# sync completo (stagione + draft) e committa i JSON: il file committato e' poi
+# il segnale durevole che fa uscire subito le esecuzioni dei giorni successivi.
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Stagione (default: stagione NFL corrente)'
+        required: false
+  schedule:
+    # Mezzanotte italiana = 22:00 UTC del giorno prima (CEST, UTC+2).
+    # Week 1 2026: 10 settembre. Due settimane prima: 27 agosto.
+    - cron: '0 22 26-31 8 *'   # notti dal 27 agosto al 1 settembre
+    - cron: '0 22 1-9 9 *'     # notti dal 2 al 10 settembre
+
+# Stesso gruppo dell'altra Action: scrivono sugli stessi nodi e committano
+# sullo stesso branch, non devono mai girare insieme.
+concurrency:
+  group: espn-sync
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # per il push dei JSON aggiornati
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Controlla il draft, e se c'e' sincronizza
+        env:
+          SEASON: ${{ github.event.inputs.season }}
+          WATCH_DRAFT: '1'
+        run: python scraper/run_espn.py
+
+      - name: Commit dei JSON aggiornati
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/fantasy data/draft
+          git diff --cached --quiet || git commit -m "chore(data): draft ESPN caricato [skip ci]"
+          git push

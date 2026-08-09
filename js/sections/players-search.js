@@ -5,14 +5,14 @@
  * (#player/{year}/{pos}/{nome}) o alla pagina squadra NFL (#nfl-team/{abbr}).
  */
 
-import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=37';
-import { CURRENT_SEASON } from '../data.js?v=33';
-import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=68';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=19';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=73';
-import { canonAbbr } from '../data/nfl-schedule.js?v=20';
-import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=89';
+import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=559';
+import { CURRENT_SEASON } from '../data.js?v=534';
+import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=572';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=523';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=577';
+import { canonAbbr } from '../data/nfl-schedule.js?v=520';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=505';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=589';
 
 // ─── Confronto lega · tutte le 32 squadre (nflverse team_stats + advanced) ───
 // Modulo interattivo in testa al pannello NFL: un grande scatter Attacco×Difesa

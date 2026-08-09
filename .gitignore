@@ -21,3 +21,4 @@ npm-debug.log*
 
 # nflverse raw CSV cache (rigenerabile, mai committato)
 .nflverse-cache/
+__pycache__/

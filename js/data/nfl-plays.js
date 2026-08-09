@@ -23,6 +23,18 @@ const KEEP_ROLES = new Set([
     'sackedBy', 'passDefender', 'scorer', 'patScorer',
 ]);
 
+/** Fetch con scadenza: senza, una risposta che non arriva mai terrebbe il
+ *  polling appeso e la pagina sullo spinner. */
+async function getJson(url, ms = 8000) {
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), ms);
+    try {
+        const res = await fetch(url, { signal: stop.signal });
+        if (!res.ok) throw new Error(`ESPN ${res.status}`);
+        return await res.json();
+    } finally { clearTimeout(timer); }
+}
+
 const athleteId = (ref) => (String(ref || '').match(/\/athletes\/(\d+)/) || [])[1] || null;
 const teamId = (ref) => (String(ref || '').match(/\/teams\/(\d+)/) || [])[1] || null;
 
@@ -89,20 +101,15 @@ export async function fetchPlays(eventId, { all = false, pageSize = 25 } = {}) {
     const base = `${CORE}/events/${eventId}/competitions/${eventId}/plays`;
     try {
         if (all) {
-            const res = await fetch(`${base}?limit=400`);
-            if (!res.ok) throw new Error(`ESPN ${res.status}`);
-            return ((await res.json()).items || []).map(normalizePlay);
+            return ((await getJson(`${base}?limit=400`)).items || []).map(normalizePlay);
         }
         // Una prima richiesta minima serve solo a sapere quante pagine ci sono;
         // la risposta utile è la seconda, sull'ultima pagina.
-        const head = await fetch(`${base}?limit=${pageSize}`);
-        if (!head.ok) throw new Error(`ESPN ${head.status}`);
-        const meta = await head.json();
+        const meta = await getJson(`${base}?limit=${pageSize}`);
         const last = Math.max(1, Number(meta.pageCount) || 1);
         if (last === 1) return (meta.items || []).map(normalizePlay);
-        const res = await fetch(`${base}?limit=${pageSize}&page=${last}`);
-        if (!res.ok) throw new Error(`ESPN ${res.status}`);
-        return ((await res.json()).items || []).map(normalizePlay);
+        const page = await getJson(`${base}?limit=${pageSize}&page=${last}`);
+        return (page.items || []).map(normalizePlay);
     } catch (e) {
         console.warn(`[nfl-plays] giocate non disponibili per ${eventId}:`, e.message);
         return [];
@@ -136,9 +143,8 @@ export async function resolveAthlete(espnId) {
     const cache = athleteCache();
     if (cache[espnId]) return cache[espnId];
     try {
-        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/${espnId}`);
-        if (!res.ok) throw new Error(`ESPN ${res.status}`);
-        const a = (await res.json()).athlete || {};
+        const a = (await getJson(
+            `https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/${espnId}`)).athlete || {};
         const info = {
             name: a.displayName || a.fullName || '',
             pos: a.position?.abbreviation || '',

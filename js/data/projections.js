@@ -11,7 +11,7 @@
  *    si usa pts_std di Sleeper (scoring standard, molto vicino al nostro).
  */
 
-import { scoreProjectedStats } from './scoring.js?v=92';
+import { scoreProjectedStats } from './scoring.js?v=592';
 
 const TTL_MS = 24 * 60 * 60 * 1000; // le proiezioni cambiano di rado
 const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano

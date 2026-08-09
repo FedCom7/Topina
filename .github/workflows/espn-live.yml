@@ -1,0 +1,65 @@
+name: ESPN Fantasy Sync (Python)
+
+# The only producer of the league data on Firebase. Runs scraper/run_espn.py,
+# a full self-healing rebuild of the current season (all played weeks + the next
+# one, with projections), writing data/fantasy/ and PUTting the Firebase node.
+#
+# The site does NOT depend on this for live scores: the league is public, so the
+# browser reads the ESPN API directly. Firebase is the archive of closed weeks.
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season to sync (default: current NFL season)'
+        required: false
+      draft:
+        description: 'Also sync the draft'
+        type: boolean
+        default: false
+  schedule:
+    # Once a week, Tuesday 09:00 UTC (11:00 Italian time) — well after Monday
+    # Night Football has ended. This writes the CLOSED result of the week.
+    #
+    # It used to run every 5 minutes during game windows, because the site read
+    # live scores from Firebase. It no longer does: the league is public, so the
+    # browser reads the ESPN API directly (js/data/espn-fantasy.js) and Firebase
+    # is back to being the archive. One run a week instead of ~300, no
+    # overlapping runs, and no reliance on GitHub's unreliable 5-minute cron.
+    - cron: '0 9 * * 2'
+
+# Avoid overlapping runs stepping on each other's commit/push.
+concurrency:
+  group: espn-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed for the git push of the refreshed JSON
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Sync ESPN -> data/ + Firebase RTDB
+        # The league is public, so no ESPN cookies/secrets are needed. If it is
+        # ever made private again, add ESPN_S2 / ESPN_SWID secrets and pass them
+        # here as env vars.
+        env:
+          SEASON: ${{ github.event.inputs.season }}
+          DRAFT: ${{ github.event.inputs.draft == 'true' && '1' || '' }}
+        run: python scraper/run_espn.py
+
+      - name: Commit refreshed JSON
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/fantasy data/draft
+          git diff --cached --quiet || git commit -m "chore(data): ESPN sync [skip ci]"
+          git push

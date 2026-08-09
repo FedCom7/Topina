@@ -16,14 +16,14 @@
  * funzioni riusabili: ogni fase compone la propria sequenza.
  */
 
-import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=33';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=11';
-import { getHonorsBundle } from '../data/honors.js?v=76';
-import { electHallOfFame } from '../data/hall-of-fame.js?v=76';
-import { TEAMS } from './team.js?v=92';
-import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=33';
-import { teamsCardsHTML } from './teams.js?v=68';
-import { playerImageService } from '../services/player-image-service.js?v=15';
+import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSuperBowlMatchup } from '../data.js?v=534';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=534';
+import { getHonorsBundle } from '../data/honors.js?v=580';
+import { electHallOfFame } from '../data/hall-of-fame.js?v=580';
+import { TEAMS } from './team.js?v=596';
+import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=533';
+import { teamsCardsHTML } from './teams.js?v=572';
+import { playerImageService } from '../services/player-image-service.js?v=515';
 
 let initialized = false;
 

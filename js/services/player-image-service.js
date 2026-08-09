@@ -1,4 +1,4 @@
-import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
+import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 
 // Bump della versione = svuota la cache locale: le versioni v3 e precedenti
 // hanno accumulato ID sbagliati dall'era del bug di ricerca (q= invece di

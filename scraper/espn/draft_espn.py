@@ -5,6 +5,24 @@ from datetime import datetime
 from . import client, config, maps
 
 
+def draft_is_done(season, cfg=None):
+    """Has the league actually drafted?
+
+    Before the draft ESPN still returns the 60 pick slots, but with
+    playerId = -1 — empty boxes, not selections. It also fills every team with
+    a placeholder roster (acquisitionType = null), which is why nothing should
+    be published until this returns True: those players belong to nobody.
+
+    `drafted` is the official flag; the real-pick count is the belt-and-braces
+    in case ESPN is slow to raise it.
+    """
+    cfg = cfg or config.load_config()
+    detail = client.fetch(season, ["mDraftDetail"], cfg=cfg).get("draftDetail", {}) or {}
+    if detail.get("drafted"):
+        return True
+    return any((p.get("playerId") or -1) > 0 for p in (detail.get("picks") or []))
+
+
 def build_draft(season, cfg=None, verbose=True):
     """Returns the draft_data dict for a season, keyed by canonical team name.
 
