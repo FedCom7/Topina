@@ -25,9 +25,15 @@ const abbrFromRef = (ref) => {
     return m ? ID_TO_ABBR[m[1]] || null : null;
 };
 
-async function fetchJson(url) {
-    try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+async function fetchJson(url, timeoutMs = 10000) {
+    // Timeout esplicito: senza, un endpoint ESPN appeso bloccherebbe per sempre il
+    // Promise.all iniziale della pagina squadra (spinner infinito). Con AbortController
+    // la richiesta viene annullata e cade su null (gestito dai .catch dei chiamanti).
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try { const r = await fetch(url, { signal: ctrl.signal }); return r.ok ? await r.json() : null; }
     catch { return null; }
+    finally { clearTimeout(t); }
 }
 
 const _cache = {}; // chiave → Promise (una sola chiamata di rete per risorsa/stagione)

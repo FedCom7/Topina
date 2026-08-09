@@ -29,8 +29,8 @@ import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '
 import { initPlayerModal } from '../components/player-modal.js?v=602';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 import { pickSeeded } from '../data/magazine-voices.js?v=517';
-import { predictSeason } from '../data/draft-predictions.js?v=588';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=577';
+import { predictSeason } from '../data/draft-predictions.js?v=589';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=578';
 import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=530';
 
 let initialized = false;

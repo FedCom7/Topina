@@ -11,15 +11,19 @@
 
 import { canonAbbr } from './nfl-schedule.js?v=520';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
-import { getTeamUsage } from './context-score.js?v=577';
+import { getTeamUsage } from './context-score.js?v=578';
 
 const _roster = {};   // year → roster json | null
 const _injuries = {}; // year → injuries json | null
 const _espnRoster = {}; // teamId → athletes[] live (cache in memoria, una sola chiamata per squadra)
 
-async function fetchJson(url) {
-    try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+async function fetchJson(url, timeoutMs = 10000) {
+    // Timeout esplicito per non restare appesi su un endpoint lento/irraggiungibile.
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try { const r = await fetch(url, { signal: ctrl.signal }); return r.ok ? await r.json() : null; }
     catch { return null; }
+    finally { clearTimeout(t); }
 }
 
 async function rosterJson(year) {

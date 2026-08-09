@@ -25,8 +25,8 @@ import { pickSeeded } from '../data/magazine-voices.js?v=517';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge, computeVorGrades,
-} from './draftgrades.js?v=604';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=577';
+} from './draftgrades.js?v=605';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=578';
 import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=530';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');

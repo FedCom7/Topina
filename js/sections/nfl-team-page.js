@@ -12,22 +12,26 @@
  */
 
 import { getTeamIdentity } from '../data/nfl-teams.js?v=505';
-import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=509';
-import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=577';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=574';
+import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
+import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=578';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=575';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=523';
 import { canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
-    getTeamTransactions, getTeamSeasonStats, getTeamFutures,
+    getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=559';
+} from '../data/nfl-team-live.js?v=560';
 import {
     esc, teamLogo, factChip, tile, fmt0, fmt1, fmt2, ord, TEAM_HISTORY_YEARS,
-    teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock,
-    teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, matchupChip,
+    teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
+    teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=827';
+} from './player-page.js?v=828';
+import {
+    calendarBlocksBlock, draftBlock,
+    divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
+} from './nfl-team-home.js?v=8';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');
@@ -87,9 +91,9 @@ export async function initNflTeamPage() {
     }
 }
 
-/** Bundle ESPN live (dipende dalla stagione): profilo, FPI, calendario, txn, stat, odds, depth chart. */
+/** Bundle ESPN live (dipende dalla stagione): profilo, FPI, calendario, txn, stat, odds, depth chart, classifica lega. */
 async function fetchTeamLive(abbr, season) {
-    const [profile, fpi, schedule, fullSchedule, transactions, seasonStats, futures, depthChart, leaders, news] = await Promise.all([
+    const [profile, fpi, schedule, fullSchedule, transactions, seasonStats, futures, depthChart, leaders, news, standings] = await Promise.all([
         getTeamProfile(abbr, season).catch(() => null),
         getTeamPowerIndex(abbr, season).catch(() => null),
         getTeamScheduleLive(abbr, season).catch(() => []),
@@ -100,9 +104,10 @@ async function fetchTeamLive(abbr, season) {
         getTeamDepthChart(abbr, season).catch(() => null),
         getTeamLeaders(abbr, season).catch(() => []),
         getNews(profileAbbrToEspn(abbr)).catch(() => []),
+        getLeagueStandings(season).catch(() => []),
     ]);
     // Il dettaglio di ogni partita si carica a richiesta cliccando la riga nel calendario.
-    return { profile, fpi, schedule, fullSchedule, transactions, seasonStats, futures, depthChart, leaders, news };
+    return { profile, fpi, schedule, fullSchedule, transactions, seasonStats, futures, depthChart, leaders, news, standings };
 }
 
 // La sigla canonica coincide con quella ESPN minuscola per il filtro news.
@@ -229,14 +234,28 @@ function teamScheduleBlock(live, { ctx }) {
     const dateFmt = (iso) => {
         if (!iso) return '—';
         const d = new Date(iso);
-        return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+        return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
     const resultCell = (g) => {
         if (!g.completed || g.score == null || g.oppScore == null) return '<span class="nfl-sched-sched">—</span>';
         const s = +g.score, o = +g.oppScore;
         const cls = s > o ? 'w' : s < o ? 'l' : 't';
-        const letter = cls === 'w' ? 'V' : cls === 'l' ? 'S' : 'P';
+        const letter = cls === 'w' ? 'W' : cls === 'l' ? 'L' : 'T';
         return `<span class="pp-res pp-res--${cls}">${letter} ${g.score}-${g.oppScore}</span>`;
+    };
+    // Matchup: quadratino con barra di riempimento colorata (stesso linguaggio
+    // visivo delle celle del ribbon stagionale sopra), ma col numero di rank
+    // in classifica sempre visibile. Riempimento = favorevolezza del matchup
+    // (rank 1 = difesa che concede di più = matchup facile → barra piena verde).
+    const matchupSquare = (rank) => {
+        if (rank == null) return '—';
+        const cls = rank <= 10 ? 'pp-mu2--easy' : rank >= 23 ? 'pp-mu2--hard' : 'pp-mu2--mid';
+        const pct = Math.round((33 - rank) / 32 * 100);
+        const label = rank <= 10 ? 'soft' : rank >= 23 ? 'tough' : 'average';
+        return `<span class="pp-mu2 ${cls}" title="Matchup rank ${ord(rank)} (${label})">
+            <b class="pp-mu2-rank">${ord(rank)}</b>
+            <span class="pp-mu2-bar"><span class="pp-mu2-fill" style="width:${pct}%"></span></span>
+        </span>`;
     };
     // Orario partite future: ET (come ESPN) + equivalente italiano.
     const timeCell = (g) => {
@@ -293,7 +312,7 @@ function teamScheduleBlock(live, { ctx }) {
                 const o = oppByWeek.get(g.weekNum);
                 const fpaWR = o?.fpa?.WR;
                 ex = `<td>${fpaWR?.pgLeague != null ? fmt1(fpaWR.pgLeague) : fpaWR?.pgHalf != null ? fmt1(fpaWR.pgHalf) : ''}</td>
-                    <td>${fpaWR?.rank != null ? matchupChip(fpaWR.rank) : ''}</td>
+                    <td>${fpaWR?.rank != null ? matchupSquare(fpaWR.rank) : ''}</td>
                     <td>${o?.def ? fmt1(o.def.papg) + rankBadge(o.ranks?.defense?.papg) : ''}</td>`;
             } else {
                 ex = '<td></td><td></td><td></td>';   // pre/post o gara futura: colonne vuote
@@ -406,6 +425,10 @@ function bindSectionNav(section) {
     const btns = [...nav.querySelectorAll('button[data-sec]')];
     const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) || 64;
 
+    // La home mostra solo la stagione corrente: il selettore anno (grande "2026")
+    // è nascosto sulla home e compare solo sulle altre tab, dove serve per lo storico.
+    const yearHeader = section.querySelector('.nfl-year-header');
+    const yearMenu = section.querySelector('#nfl-year-menu');
     const show = (id) => {
         if (!panels[id]) return;
         btns.forEach(b => {
@@ -414,6 +437,8 @@ function bindSectionNav(section) {
             b.setAttribute('aria-current', on ? 'true' : 'false');
         });
         Object.entries(panels).forEach(([k, p]) => { p.hidden = k !== id; });
+        if (yearHeader) yearHeader.style.display = id === 'home' ? 'none' : '';
+        if (yearMenu && id === 'home') yearMenu.hidden = true;
     };
 
     nav.addEventListener('click', (e) => {
@@ -472,7 +497,7 @@ function render(section, ctx) {
         </nav>
 
         <div class="nfl-sec" data-secid="home">
-            <div id="nfl-identity-extra">${identityExtraBlock(live)}</div>
+            <div id="nfl-home-grid">${homeGridBlock(ctx)}</div>
         </div>
 
         <div class="nfl-sec" data-secid="stats" hidden>
@@ -499,7 +524,7 @@ function render(section, ctx) {
         </div>
 
         <div class="nfl-sec" data-secid="injuries" hidden>
-            <div id="nfl-injuries">${teamInjuriesBlock(wrap)}</div>
+            <div id="nfl-injuries">${rosterStatusListsBlock({ teamRoster: ctx.teamRoster, transactions: live.transactions })}${teamInjuriesBlock(wrap)}</div>
         </div>
 
         <div class="nfl-sec" data-secid="transactions" hidden>
@@ -518,12 +543,71 @@ function render(section, ctx) {
     </div>`;
 
     bindBack(section);
-    bindYearRepaint(section, abbr);
+    bindYearRepaint(section, ctx);
     bindYearMenu(section);
     bindCalendarGameDetail(section, abbr);
     bindSectionNav(section);
     hydrateCharts(section);
+    hydrateFormationPhotos(section);
     alignYearToContent(section);
+}
+
+/** Compone la griglia a 3 colonne della tab Home. Sinistra: calendario. Centro:
+ *  campo formazione + riassunto. Destra: head coach, draft, stadio, classifica division. */
+function homeGridBlock(ctx) {
+    const { abbr, identity, year, live, teamExtras } = ctx;
+    const cal = calendarBlocksBlock(live);
+    const field = formationFieldBlock(live?.depthChart, abbr, year);
+    const summary = homeSummaryChartsBlock(ctx);
+    const coach = coachCardHtml(live?.profile);
+    const draft = draftBlock(teamExtras?.draftHistory);
+    const stadium = stadiumCardHtml(live?.profile);
+    const stand = divisionStandingsBlock(live?.standings, identity, abbr);
+    const left = cal, center = field + summary, right = coach + draft + stadium + stand;
+    if (!left && !center && !right) return '';
+    return `<div class="nfl-home-grid">
+        <div class="nfl-home-col nfl-home-col-l">${left}</div>
+        <div class="nfl-home-col nfl-home-col-c">${center}</div>
+        <div class="nfl-home-col nfl-home-col-r">${right}</div>
+    </div>`;
+}
+
+// Sottoinsieme compatto di SPARKS per il riassunto nella tab Home (il set completo resta in Stats).
+const HOME_SPARKS = [
+    { side: 'offense', m: { k: 'ppg', label: 'PPG', fmt: fmt1 } },
+    { side: 'defense', m: { k: 'papg', label: 'Points allowed', fmt: fmt1 } },
+    { side: 'offense', m: { k: 'epa', label: 'EPA/play', fmt: fmt2, adv: 'offEpaPerPlay', advRank: 'epa' } },
+    { side: 'defense', m: { k: 'takeaways', label: 'Takeaways', fmt: fmt0 } },
+];
+
+/** Riassunto compatto per la tab Home: trend rank negli anni + poche metriche di rank attuale (versioni ridotte dei blocchi già in Stats). */
+function homeSummaryChartsBlock(ctx) {
+    const seasons = ctx.statTrend;
+    const team = ctx.ctx?.team;
+    const bump = seasons && seasons.length >= 3 ? _bumpChart(seasons) : '';
+    const sparks = seasons && seasons.length >= 2 ? _sparkGrid(seasons, HOME_SPARKS) : '';
+    let rankPanel = '';
+    if (team?.offense && team?.defense) {
+        const o = team.offense, d = team.defense, ro = team.ranks?.offense || {}, rd = team.ranks?.defense || {};
+        const meters = [
+            meterBar('Points/game', fmt1(o.ppg), ro.ppg),
+            meterBar('Total yards/game', fmt1(o.totYdsPg), ro.totYdsPg),
+            meterBar('Points allowed/game', fmt1(d.papg), rd.papg),
+            meterBar('Yards allowed/game', fmt1(d.totYdsAllowedPg), rd.totYdsAllowedPg),
+            meterBar('Sack', fmt0(d.sacks), rd.sacks),
+            meterBar('Takeaways', fmt0(d.takeaways), rd.takeaways),
+        ].join('');
+        rankPanel = `<div class="ts-card"><h4 class="ts-sub">Current NFL rank</h4>${meters}</div>`;
+    }
+    if (!bump && !sparks && !rankPanel) return '';
+    return `
+    <section class="pm-block pp-block nfl-home-summary">
+        <span class="mc-kicker">Team snapshot · ${esc(ctx.abbr)}</span>
+        ${rankPanel}
+        ${bump ? `<div class="ts-card"><h4 class="ts-sub">Offense vs defense rank · over the years</h4>${bump}</div>` : ''}
+        ${sparks}
+        <p class="pm-note">Compact summary of data available in full in the Stats tab (rank trend, official stats).</p>
+    </section>`;
 }
 
 /**
@@ -628,12 +712,16 @@ function bindYearMenu(section) {
  * Franchigia non sono ridipinti: sono dati a livello di franchigia caricati una
  * volta, indipendenti dall'anno selezionato.
  */
-function bindYearRepaint(section, abbr) {
+function bindYearRepaint(section, ctx0) {
+    const { abbr } = ctx0;
     const select = section.querySelector('#pp-team-year');
     if (!select) return;
     const set = (id, html) => { const el = section.querySelector(id); if (el) el.innerHTML = html; };
     const spinner = '<div class="loading-state"><div class="spinner"></div></div>';
-    const YEAR_SLOTS = ['#nfl-identity-extra', '#nfl-dna', '#nfl-tgtshare', '#nfl-off-analysis', '#nfl-def-analysis',
+    // La tab Home (#nfl-home-grid) NON è nel repaint: mostra
+    // sempre la stagione corrente caricata all'apertura, indipendente dal selettore
+    // anno (che è nascosto sulla home e serve solo alle altre tab).
+    const YEAR_SLOTS = ['#nfl-dna', '#nfl-tgtshare', '#nfl-off-analysis', '#nfl-def-analysis',
         '#nfl-live-a', '#nfl-ctx-stats', '#nfl-live-b', '#nfl-calendar', '#nfl-roster', '#nfl-depth',
         '#nfl-injuries', '#nfl-transactions', '#nfl-news'];
 
@@ -658,7 +746,6 @@ function bindYearRepaint(section, abbr) {
         if (yearSide) yearSide.textContent = year; // anno grande a sinistra
 
         set('#nfl-hero-chips', heroChipsHtml(live.profile, year, seasonData.ctx?.team?.record));
-        set('#nfl-identity-extra', identityExtraBlock(live));
         set('#nfl-dna', teamDnaBlockOrNote(bctx, year));
         set('#nfl-tgtshare', targetShareBlock(usage, seasonData.teamRoster, leaguePool, abbr, year));
         set('#nfl-off-analysis', offenseAnalysisBlock(bctx));
@@ -669,7 +756,7 @@ function bindYearRepaint(section, abbr) {
         set('#nfl-calendar', seasonRibbonBlock(wrap) + teamScheduleBlock(live, wrap));
         set('#nfl-roster', rosterBlock(seasonData.teamRoster));
         set('#nfl-depth', depthChartTab(live));
-        set('#nfl-injuries', teamInjuriesBlock(wrap));
+        set('#nfl-injuries', rosterStatusListsBlock({ teamRoster: seasonData.teamRoster, transactions: live.transactions }) + teamInjuriesBlock(wrap));
         set('#nfl-transactions', transactionsBlock(live));
         set('#nfl-news', newsBlock(live));
         annotateCalendar(section); // schedule ESPN aggiornato → ri-aggancia le righe del calendario
@@ -701,16 +788,21 @@ function heroChipsHtml(profile, year, fallbackRec) {
     ].filter(Boolean).join('');
 }
 
-/** Coach, prossima partita e stadio (le chip record/classifica stanno nell'hero). */
-function identityExtraBlock({ profile }) {
-    if (!profile) return '';
-    const p = profile;
-    const co = p.coach;
-    const coachHtml = co?.name ? `
-        <div class="pp-coach">
+/** Head coach come card (colonna destra della home, sopra il draft). */
+function coachCardHtml(profile) {
+    const p = profile, co = p?.coach;
+    if (!co?.name) return '';
+    const rec = (co.recordTotal || co.recordRegular || co.recordPost) ? `<span class="pm-note" style="margin-top:2px">Head coach record: ${[
+        co.recordTotal ? `${esc(co.recordTotal)} overall` : '',
+        co.recordRegular ? `${esc(co.recordRegular)} regular` : '',
+        co.recordPost ? `${esc(co.recordPost)} playoff` : '',
+    ].filter(Boolean).join(' · ')}</span>` : '';
+    return `
+    <section class="pm-block pp-block nfl-home-coach">
+        <span class="mc-kicker">Head coach</span>
+        <div class="pp-coach" style="margin-top:8px">
             ${co.headshot ? `<img class="pp-coach-img" src="${esc(co.headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
             <div class="pp-coach-body">
-                <span class="mc-kicker">Head coach</span>
                 <b>${esc(co.name)}</b>
                 <span class="pm-note" style="margin-top:2px">${[
                     co.experience != null ? `career season ${co.experience}` : '',
@@ -719,38 +811,26 @@ function identityExtraBlock({ profile }) {
                     co.college ? esc(co.college) : '',
                     co.birthPlace ? esc(co.birthPlace) : '',
                 ].filter(Boolean).join(' · ')}</span>
-                ${(co.recordTotal || co.recordRegular || co.recordPost) ? `<span class="pm-note" style="margin-top:2px">Head coach record: ${[
-                    co.recordTotal ? `${esc(co.recordTotal)} overall` : '',
-                    co.recordRegular ? `${esc(co.recordRegular)} regular` : '',
-                    co.recordPost ? `${esc(co.recordPost)} playoff` : '',
-                ].filter(Boolean).join(' · ')}</span>` : ''}
+                ${rec}
             </div>
-        </div>` : '';
+        </div>
+    </section>`;
+}
 
-    const v = p.venue;
-    const venueHtml = v?.name ? `
-        <div class="pp-stadium">
+/** Stadio come card (colonna destra della home, sotto il draft). */
+function stadiumCardHtml(profile) {
+    const v = profile?.venue;
+    if (!v?.name) return '';
+    return `
+    <section class="pm-block pp-block nfl-home-stadium">
+        <span class="mc-kicker">Stadium</span>
+        <div class="pp-stadium" style="margin-top:8px">
             ${v.image ? `<img class="pp-stadium-img" src="${esc(v.image)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
             <div class="pp-stadium-body">
-                <span class="mc-kicker">Stadium</span>
                 <b>${esc(v.name)}</b>
                 <span class="pm-note" style="margin-top:2px">${[v.city && v.state ? `${esc(v.city)}, ${esc(v.state)}` : '', v.capacity ? `${(+v.capacity).toLocaleString('en-US')} seats` : '', v.indoor ? 'indoor' : 'outdoor', v.grass ? 'natural grass' : 'turf'].filter(Boolean).join(' · ')}</span>
             </div>
-        </div>` : '';
-
-    const ne = p.nextEvent;
-    const nextHtml = ne?.name ? `
-        <div class="pp-nextgame">
-            <span class="mc-kicker">Next game</span>
-            <b>${esc(ne.shortName || ne.name)}</b>
-            <span class="pm-note" style="margin-top:2px">${[ne.week, ne.date ? new Date(ne.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '', ne.venue].filter(Boolean).join(' · ')}</span>
-        </div>` : '';
-
-    if (!venueHtml && !nextHtml && !coachHtml) return '';
-    return `
-    <section class="pm-block pp-block">
-        <div class="pp-identity-grid">${coachHtml}${venueHtml}${nextHtml}</div>
-        <p class="pm-note">Head coach, stadium and next game — canonical ESPN sources.</p>
+        </div>
     </section>`;
 }
 
