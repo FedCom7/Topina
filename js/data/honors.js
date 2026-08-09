@@ -10,7 +10,7 @@ import {
     getSeasonConfig, displayName, SEASONS
 } from '../data.js?v=33';
 import { TEAM_KEYS } from './team-config.js?v=33';
-import { FLEX_ELIGIBLE } from './league-rules.js?v=20';
+import { FLEX_ELIGIBLE } from './league-rules.js?v=28';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')
 function toKey(rawName) {

@@ -1,12 +1,21 @@
 name: Deploy Data to Firebase
 
+# DISATTIVATO sull'automatico: su Firebase scrive solo lo script Python
+# esterno (NFL_Fantasy_Dash), che e' il produttore ufficiale dei dati di lega.
+#
+# Con il trigger `push` attivo, committare un file sotto data/ ricaricava quel
+# JSON su Firebase e poteva sovrascrivere quanto appena caricato dallo script:
+# due scrittori sugli stessi nodi, vince l'ultimo.
+#
+# Resta l'avvio manuale (Actions -> Run workflow), utile per ricaricare gli
+# storici 2019-2025 se dovessero servire.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'data/**'
-      - 'scripts/upload-data.js'
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'data/**'
+  #     - 'scripts/upload-data.js'
   workflow_dispatch:
 
 jobs:

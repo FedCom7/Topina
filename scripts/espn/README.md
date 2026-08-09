@@ -86,3 +86,22 @@ frontend è garantito compatibile senza modifiche.
   boxscore: ESPN non la fornisce nello stesso payload di mBoxscore. Oggi
   lasciata vuota nel normalizer; se serve, va derivata dallo scoreboard NFL
   pubblico (stessa fonte già usata per i dati NFL reali).
+
+## validate_boxscore.py — i punti di lega dagli endpoint pubblici
+
+Dimostra che i punti fantasy della lega sono ricavabili in diretta dagli
+endpoint ESPN pubblici (nessun cookie, nessuno scraping), e misura quanto la
+ricostruzione sia fedele confrontandola con i dati veri su Firebase.
+
+```bash
+py -3 scripts/espn/validate_boxscore.py 2025 3 7 11
+```
+
+Verificato il 2026-08-09 sull'intera stagione 2025, tutte e 17 le giornate:
+**605 titolari su 605 esatti al centesimo, errore complessivo 0.00 punti**,
+difese comprese.
+
+Serve come base per il fallback della pagina `#live`: se i punti su Firebase
+sono tutti a zero perche' lo scraping non e' passato, gli stessi numeri si
+possono comporre da qui. Il docstring in cima al file elenca le sette regole
+non documentate scoperte per arrivarci — ognuna e' costata un disallineamento.

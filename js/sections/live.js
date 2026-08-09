@@ -14,13 +14,13 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=73';
+import { TEAMS } from './team.js?v=87';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=1';
-import { scorePlay } from '../data/scoring.js?v=61';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=9';
+import { scorePlay } from '../data/scoring.js?v=84';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=75';
+import { initPlayerModal } from '../components/player-modal.js?v=92';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -703,6 +703,9 @@ function refreshInPlace(events = []) {
         if (feed.querySelector('.pm-empty')) feed.innerHTML = '';
         feed.insertAdjacentHTML('afterbegin', events.map(receiptHTML).join(''));
         while (feed.children.length > 40) feed.lastElementChild.remove();
+        // le card entrano fuori da render(): le foto vanno risolte a mano,
+        // o resterebbero per sempre sul segnaposto
+        hydrateHeadshots(feed);
     }
 
     // referto medico: nessuna immagine, si può riscrivere per intero
@@ -1284,25 +1287,35 @@ function receiptHTML(r) {
     const sign = r.ptsDelta > 0 ? 'pos' : r.ptsDelta < 0 ? 'neg' : 'flat';
     const head = r.headline ? (STAT_LABELS[r.headline] || r.headline) : 'Update';
     const isBig = r.headline && BIG_EVENTS.has(r.headline);
+    // Stesse classi delle card di Live plays: i due pannelli raccontano la
+    // stessa partita da due fonti diverse, devono somigliarsi. Qui c'è sempre
+    // un solo giocatore, quindi i punti stanno sulla sua riga e la riga
+    // "totale" non serve — ripeterebbe lo stesso numero.
+    const role = (r.pos || '').toUpperCase();
+    const lines = r.changes.map(c =>
+        `${STAT_LABELS[c.key] || c.key} ${c.delta > 0 ? '+' : ''}${c.delta}`).join(' · ');
     return `
-    <div class="live-receipt${isBig ? ' live-receipt--big' : ''}" data-receipt="${r.id}">
-        <div class="live-receipt-head">
-            <span class="live-receipt-type">${head}</span>
-            <span class="live-receipt-time">${time}</span>
+    <article class="pbp-card${isBig ? ' pbp-card--score' : ''}" data-receipt="${r.id}">
+        <header class="pbp-card-head">
+            <span class="pbp-card-type">${escAttr(head)}</span>
+            <span class="pbp-card-when">${time}</span>
+        </header>
+        <div class="pbp-card-actors">
+            <div class="pbp-actor pbp-actor--own">
+                <span class="pbp-actor-photo">
+                    <img src="${cachedHeadshot(r.name)}" alt="" loading="lazy"
+                         data-headshot data-player-name="${escAttr(r.name)}"
+                         data-team="${escAttr(r.nfl || '')}" data-pos="${escAttr(role)}">
+                </span>
+                <span class="pbp-actor-meta">
+                    <b>${escAttr(r.name)}</b>
+                    <i>${escAttr([role, r.nfl].filter(Boolean).join(' · '))}</i>
+                </span>
+                <span class="pbp-actor-pts ${sign}">${r.ptsDelta > 0 ? '+' : ''}${r.ptsDelta.toFixed(2)}</span>
+            </div>
         </div>
-        <div class="live-receipt-player">${escAttr(r.name)}<span class="live-receipt-team">${escAttr(r.nfl)}</span></div>
-        <ul class="live-receipt-lines">
-            ${r.changes.map(c => `
-            <li>
-                <span>${STAT_LABELS[c.key] || c.key}</span>
-                <b class="${c.delta > 0 ? 'pos' : 'neg'}">${c.delta > 0 ? '+' : ''}${c.delta}</b>
-            </li>`).join('')}
-        </ul>
-        <div class="live-receipt-total ${sign}">
-            <span>TOTAL</span>
-            <b>${r.ptsDelta > 0 ? '+' : ''}${r.ptsDelta.toFixed(2)}</b>
-        </div>
-    </div>`;
+        <p class="pbp-card-text">${escAttr(lines)}</p>
+    </article>`;
 }
 
 // ─── Widget play-by-play: HTML ───────────────────────────────────

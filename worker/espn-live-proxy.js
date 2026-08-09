@@ -2,10 +2,12 @@
  * Cloudflare Worker — punteggi live ESPN per la pagina #live.
  *
  * Perché serve: il sito è statico (GitHub Pages) e la lega è privata, quindi
- * (a) i cookie espn_s2/SWID non possono stare nel browser e (b) ESPN non
- * manda header CORS al client diretto. Questo worker gira all'edge, inietta
- * i cookie da un secret Cloudflare (mai esposti al client) e restituisce i
- * dati GIÀ NORMALIZZATI nello schema che il frontend usa da sempre:
+ * i cookie espn_s2/SWID servono a ogni chiamata ma non possono stare nel
+ * browser — sarebbero cookie di terze parti, che Safari e Firefox bloccano
+ * di default, e senza ESPN risponde 401. (NON è un problema di CORS: gli
+ * host ESPN mandano gli header, verificato.) Questo worker gira all'edge,
+ * inietta i cookie da un secret Cloudflare (mai esposti al client) e
+ * restituisce i dati GIÀ NORMALIZZATI nello schema che il frontend usa:
  *
  *   { matchups: [ { team1: {name, score, starters[], bench[]}, team2: {...} } ] }
  *
