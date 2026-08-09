@@ -13760,3 +13760,20 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     left: 34px;
     margin-left: 0;
 }
+
+/* Punti composti dal tabellino ESPN invece che dal feed di lega (lo scraping
+   non è ancora passato): va detto, non sono la stessa fonte di sempre. */
+.live-source-badge {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 3px 9px;
+    border-radius: var(--pill-radius);
+    border: 1px solid color-mix(in srgb, var(--accent-blue) 55%, transparent);
+    background: color-mix(in srgb, var(--accent-blue) 16%, transparent);
+    color: var(--accent-blue);
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}

@@ -1,0 +1,75 @@
+"""
+GitHub Actions entrypoint: pull the current ESPN fantasy season and publish it.
+
+Full-rebuild, self-healing: every run regenerates the whole season file (all
+played weeks + the upcoming one, with projections), so a failed run is simply
+fixed by the next and nothing is ever lost. Writes:
+  - data/fantasy/fantasy_data_<season>.json   (committed by the workflow)
+  - Firebase RTDB node  fantasy/fantasy_data_<season>   (what the site reads)
+
+Secrets (cookies) come from env: ESPN_S2, ESPN_SWID. The non-secret league_id
+and team_names live in scraper/espn_config.json (committed).
+
+The `espn` package here mirrors NFL_Fantasy_Dash/scripts/espn — re-copy those
+.py files when the local scraper changes.
+"""
+
+import json
+import os
+import sys
+import urllib.request
+from datetime import datetime
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# Point the config loader at the committed public config (league_id + team_names);
+# cookies are overlaid from ESPN_S2 / ESPN_SWID env vars.
+os.environ.setdefault("ESPN_CONFIG", os.path.join(HERE, "espn_config.json"))
+sys.path.insert(0, HERE)
+
+from espn import config, draft_espn, fantasy_espn  # noqa: E402
+
+RTDB_URL = "https://topina-9cd75-default-rtdb.firebaseio.com"
+REPO_ROOT = os.path.dirname(HERE)
+
+
+def current_season():
+    """NFL season year: rolls over to the new year in September."""
+    now = datetime.now()
+    return str(now.year if now.month >= 9 else now.year - 1)
+
+
+def put(node, payload):
+    req = urllib.request.Request(f"{RTDB_URL}/{node}.json", data=payload,
+                                 method="PUT", headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return 200 <= resp.status < 300
+
+
+def write_and_publish(subdir, node_prefix, name, data):
+    out_dir = os.path.join(REPO_ROOT, "data", subdir)
+    os.makedirs(out_dir, exist_ok=True)
+    payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
+    with open(os.path.join(out_dir, f"{name}.json"), "w", encoding="utf-8") as f:
+        f.write(payload.decode("utf-8"))
+    ok = put(f"{node_prefix}/{name}", payload)
+    print(f"{'OK ' if ok else 'FAIL'}  {node_prefix}/{name}")
+    return ok
+
+
+def main():
+    season = os.environ.get("SEASON") or current_season()
+    cfg = config.load_config()
+    print(f"ESPN sync — season {season}")
+
+    data = fantasy_espn.build_season(season, cfg=cfg, verbose=True)
+    ok = write_and_publish("fantasy", "fantasy", f"fantasy_data_{season}", data)
+
+    if os.environ.get("DRAFT") == "1":
+        draft = draft_espn.build_draft(season, cfg=cfg)
+        ok = write_and_publish("draft", "draft", f"draft_data_{season}", draft) and ok
+
+    sys.exit(0 if ok else 1)
+
+
+if __name__ == "__main__":
+    main()

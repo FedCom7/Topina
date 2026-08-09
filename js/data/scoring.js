@@ -56,7 +56,11 @@ export function scoreWeeklyStats(stats, pos) {
         g('rec') * S.rec + g('rec_yds') * S.rec_yd + g('rec_td') * S.rec_td +
         g('fum_lost') * S.fum_lost + g('two_pt') * S.two_pt +
         g('ret_td') * S.ret_td + g('fum_td') * S.fum_td +
+        // `fg_0_39` è la fascia unica usata dai dati 2026+ e dal tabellino
+        // ESPN; le tre fasce sotto i 40 valgono comunque 3 punti l'una, quindi
+        // sommarle qui non cambia il risultato per i dati storici.
         g('fg_0_19') * S.fg_0_19 + g('fg_20_29') * S.fg_20_29 + g('fg_30_39') * S.fg_30_39 +
+        g('fg_0_39') * S.fg_30_39 +
         g('fg_40_49') * S.fg_40_49 + g('fg_50_plus') * S.fg_50_plus + g('pat_made') * S.pat_made;
     if (pos === 'DEF') {
         pts += g('sack') * S.sack + g('def_int') * S.def_int + g('fum_rec') * S.fum_rec +

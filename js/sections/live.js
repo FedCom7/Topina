@@ -14,13 +14,14 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=33';
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=87';
+import { TEAMS } from './team.js?v=92';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=9';
-import { scorePlay } from '../data/scoring.js?v=84';
+import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=92';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=1';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=13';
 import { slotPairs } from '../data/matchup-analysis.js?v=13';
-import { initPlayerModal } from '../components/player-modal.js?v=92';
+import { initPlayerModal } from '../components/player-modal.js?v=98';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 
 // Da valorizzare dopo `wrangler deploy` (worker/espn-live-proxy.js), es.
@@ -542,11 +543,92 @@ function currentEspnWeek() {
     return 1;
 }
 
+// ─── Ripiego sugli endpoint pubblici ESPN ────────────────────────
+//
+// I punti arrivano da Firebase, dove li carica lo script esterno. Se quello
+// non è ancora passato, la settimana è tutta a zero anche se le partite sono
+// cominciate: invece di mostrare una pagina di zeri si compongono gli stessi
+// totali dal tabellino ufficiale ESPN, che è pubblico e si aggiorna in diretta.
+//
+// Fedeltà verificata sull'intera stagione 2025 (605 titolari, 605 esatti):
+// il banco di prova è scripts/espn/validate_boxscore.py.
+
+let usingEspnFallback = false;
+
+/** Tutti a zero: nessun punto reale in tutta la settimana. */
+function boardIsEmpty() {
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                if (P(p.fantasy_points) !== 0) return false;
+            }
+        }
+    }
+    return true;
+}
+
+/** Partite della settimana già cominciate in cui gioca un nostro tesserato. */
+function startedGames() {
+    if (!liveSchedule) return [];
+    const ids = new Set();
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                const g = liveSchedule.get(canonAbbr(p.nfl_team || ''));
+                if (g?.eventId && g.state !== 'pre') ids.add(g.eventId);
+            }
+        }
+    }
+    return [...ids];
+}
+
+/**
+ * Riempie punti e statistiche dal tabellino ESPN. Tocca solo i giocatori che
+ * hanno davvero giocato: chi non compare nel tabellino resta a zero, che è il
+ * suo punteggio corretto.
+ */
+async function fillFromEspn() {
+    const games = startedGames();
+    if (!games.length) return false;
+    const { players, defenses, teamByName } = await fetchBoxscoreTotals(games);
+    if (!players.size && !defenses.size) return false;
+
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            const t = m[side];
+            if (!t) continue;
+            for (const p of [...(t.starters || []), ...(t.bench || [])]) {
+                const pos = (p.position_in_team || p.position || '').toUpperCase();
+                let stats = null;
+                if (pos === 'DEF' || pos === 'D/ST') {
+                    // le difese non hanno nfl_team nei dati: la squadra sta nel nome
+                    const ab = canonAbbr(p.nfl_team || '') || teamByName.get(normName(p.name));
+                    stats = defenses.get(ab) || null;
+                } else {
+                    stats = players.get(normName(p.name)) || null;
+                }
+                if (!stats) continue;
+                p.stats = { ...stats };
+                p.started = true;
+                p.fantasy_points = +(scoreWeeklyStats(stats, pos === 'D/ST' ? 'DEF' : pos) || 0).toFixed(2);
+            }
+            t.score = (t.starters || [])
+                .reduce((s, p) => s + P(p.fantasy_points), 0).toFixed(2);
+        }
+    }
+    usingEspnFallback = true;
+    return true;
+}
+
 async function hydrateScheduleAndRender(year, week) {
     try {
         liveSchedule = await getWeekSchedule(year, week);
     } catch {
         liveSchedule = null;
+    }
+    if (!isLiveSource && boardIsEmpty()) {
+        try { await fillFromEspn(); }
+        catch (e) { console.warn('[live] tabellino ESPN non disponibile:', e.message); }
     }
     if (teamIdx >= teamEntries().length) teamIdx = 0;
     const fresh = updateReceipts();
@@ -890,6 +972,7 @@ function headerHTML() {
             <h1 class="live-header-title">${weekLabelText}</h1>
             <span class="live-header-kicker">
                 ${pbpDemo() ? '<span class="live-demo-badge">DEMO · numeri non reali</span>' : ''}
+                ${usingEspnFallback ? '<span class="live-source-badge">da ESPN</span>' : ''}
                 ${statusBadgeHTML()}
             </span>
         </div>
