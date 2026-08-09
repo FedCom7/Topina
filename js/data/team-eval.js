@@ -137,7 +137,7 @@ export function playerRiskIndex(ctx) {
 }
 
 /** Bilanciamento roster: fabbisogno realistico su 15 pick + diversità NFL. */
-function balanceScore(list) {
+export function balanceScore(list) {
     const TARGET = { QB: 2, RB: 5, WR: 5, TE: 2, K: 1, DEF: 1 }; // rosa "sana"
     const CRIT = { RB: 1.4, WR: 1.4, QB: 1, TE: 0.9, K: 0.6, DEF: 0.6 };
     const cnt = {};

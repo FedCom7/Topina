@@ -17,7 +17,7 @@ import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displa
 import { TEAM_KEYS } from '../data/team-config.js?v=33';
 import { TEAMS } from './team.js?v=92';
 import { getHonorsBundle } from '../data/honors.js?v=76';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=89';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=90';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=80';
 import { initPlayerModal } from '../components/player-modal.js?v=98';
 import { playerImageService } from '../services/player-image-service.js?v=15';
@@ -25,12 +25,18 @@ import { pickSeeded } from '../data/magazine-voices.js?v=17';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge, computeVorGrades,
-} from './draftgrades.js?v=101';
+} from './draftgrades.js?v=106';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=74';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=26';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=27';
+import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=5';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// etichetta steal/reach in σ dall'ADP di consenso FFC (positivo = steal)
+const v2StealTag = (r) => `${r.adpZ >= 0 ? '+' : ''}${r.adpZ}σ vs ADP`;
+const v2IsSteal = (r) => r && r.adpZ != null && r.adpZ > 0.5;
+const v2IsReach = (r) => r && r.adpZ != null && r.adpZ < -0.5;
 
 // ─── Verdetti pick (varianti seeded) ─────────────────────────────
 
@@ -124,12 +130,21 @@ export async function initDraftGradeTeam() {
         await evaluateLeague(grades, year).catch(e => console.warn('[team-eval]', e));
         // Voto di fine stagione (VOR) — solo stagioni giocate.
         const vor = seasonPlayed ? computeVorGrades(picks, meta) : null;
+        // Draft Score v2 (decomponibile, affianca il voto storico). Mappa pick→analisi.
+        const [adpDisp, calib] = await Promise.all([
+            getAdpDispersion(year).catch(() => null),   // dispersione ADP (FFC)
+            getDraftScoreV2Calib().catch(() => null),   // pesi/soglie tarati LOSO (se adottati)
+        ]);
+        const scoreV2 = computeDraftScoreV2(grades, proj, { adpDisp, calib });
+        const v2 = scoreV2?.byKey?.[teamKey] || null;
+        const v2ByPick = new Map((v2?.picks || []).map(r => [r.pick, r]));
+        const boardByPos = scoreV2?.boardByPos || null;
 
         const weekly = seasonPlayed
             ? await buildWeeklySeries(year, g.list).catch(() => null) : null;
         if (!location.hash.includes(`draftgrades/${year}/${teamKey}`)) return;
 
-        render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed, sos, vor });
+        render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed, sos, vor, v2, v2ByPick, boardByPos, teamKey });
     } catch (e) {
         console.error('[draftgrade-team]', e);
         section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Error loading the analysis</p></div></div>`;
@@ -303,8 +318,8 @@ function priorLine(p, prevStats, prevYear, expAtDraft) {
             ? `Rookie — no prior NFL season: pure projection`
             : `${prevYear}: no season data`;
     }
-    const pts = s.ptsHalf ?? s.ptsStd;
-    const bits = [`${fmt0(pts)} pt half-PPR`];
+    const pts = s.ptsLeague ?? s.ptsPpr ?? s.ptsStd;
+    const bits = [`${fmt0(pts)} pt`];
     if (s.posRank) bits.push(`${p.pos}${s.posRank}`);
     if (p.pos === 'QB' && s.passYd) bits.push(`${fmt0(s.passYd)} pass yd and ${fmt0(s.passTd || 0)} pass TD`);
     else if (p.pos === 'RB' && s.rushYd != null) bits.push(`${fmt0(s.rushYd)} rush yd${s.rec ? ` + ${fmt0(s.rec)} rec` : ''}`);
@@ -346,23 +361,161 @@ function render(section, ctx) {
             <span class="dg-letter dg-letter--big dg-letter--${band}">${letter}</span>
         </header>
 
+        ${draftScoreV2Card(ctx)}
+        ${draftStoryCard(ctx)}
         ${curveCard(g, team)}
         ${teamStrengthCard(ctx)}
         ${sosCard(ctx)}
         ${rosterCard(ctx)}
+        ${scarcityCard(ctx)}
         ${picksSection(ctx, prevYear)}
         ${seasonPlayed ? verdictSection(ctx) : ''}
 
-        <p class="dg-footnote">Analysis based on ${year} preseason projections and real career stats (up to 6 seasons, Rotowire/Sleeper) converted into the league's scoring${g.list.some(p => p.adp) ? ', half-PPR ADP for reach and steal' : ' (ADP not available for this year)'}. For kicker and defense the value also weighs recent real production (60% and 35%, weights calibrated on the 419 picks from 2019-2025); for offense the projections have proven more reliable than any historical metric, and history feeds trend and risk signals. Alternatives calculated only among players drafted after each pick.</p>
+        <p class="dg-footnote">Analysis based on ${year} preseason projections and real career stats (up to 6 seasons, Rotowire/Sleeper) converted into the league's scoring${g.list.some(p => p.adp) ? ', full-PPR ADP for reach and steal' : ' (ADP not available for this year)'}. For kicker and defense the value also weighs recent real production (60% and 35%, weights calibrated on the 419 picks from 2019-2025); for offense the projections have proven more reliable than any historical metric, and history feeds trend and risk signals. Alternatives calculated only among players drafted after each pick.</p>
     </div>`;
 
     bindCurve(section.querySelector('#dgt-curve'));
     loadHeadshots(section, seasonPlayed ? year : prevYear);
 }
 
+// ─── Card: Draft Score v2 (decomponibile) ────────────────────────
+
+/**
+ * Riepilogo del Draft Score v2: voto ancorato 0-100, scomposizione in
+ * componenti (media pick-grade, quota valore titolari, bilanciamento) e
+ * highlight steal/reach. Affianca il voto storico, non lo sostituisce.
+ */
+function draftScoreV2Card(ctx) {
+    const { v2 } = ctx;
+    if (!v2) return '';
+    const c = v2.components;
+    const ordinal = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+    const comp = (label, val, title) =>
+        `<div class="dgt-v2-comp" title="${title}"><span class="dgt-v2-comp-label">${label}</span><span class="dgt-v2-comp-val">${val}</span></div>`;
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">How well you drafted · decomposable grade</span>
+        <h2 class="mc-title">Draft Score v2
+            <small class="dgt-sos-big dgt-v2-big dg-v2--${gradeBandV2(v2.letter)}">${v2.letter} · ${Math.round(v2.score)}/100 · ${ordinal(v2.rank)} in league</small>
+        </h2>
+        <p class="dgt-card-sub">Two orthogonal axes: <b>talent</b> (VOR — value above the league replacement level, so QB/RB/WR/TE/K/DEF are comparable) and <b>efficiency</b> (how well you paid for that value vs ADP and vs the best player actually still on the board, adjusted for roster need). The grade is the draft-capital-weighted average of the pick grades, plus roster-construction modifiers. It sits alongside the historic grade, which does not change.</p>
+        <div class="dgt-v2-comps">
+            ${comp('Pick grade avg', Math.round(c.avgPickGrade), 'Media dei voti-pick pesata per draft-capital (le pick alte pesano di più)')}
+            ${comp('Value in starters', `${Math.round(c.starterShare * 100)}%`, 'Quota del valore-VOR che finisce nei titolari (anti bench-inflation)')}
+            ${comp('Starter VOR', `${fmt0(c.starterVOR)}/${fmt0(c.totalVOR)}`, 'VOR dei titolari sul VOR totale della rosa')}
+            ${comp('Balance', c.balance, 'Bilanciamento della costruzione roster (buchi/surplus per ruolo)')}
+            ${comp('Left on board', `−${fmt0(v2.leftOnBoard)}`, 'Valore lasciato sul board rispetto al miglior disponibile need-adjusted, sommato su tutte le pick')}
+        </div>
+        <div class="dgt-v2-hl">
+            ${v2IsSteal(v2.biggestSteal) ? `<span class="dgt-chip dgt-chip--up">Biggest steal: ${v2.biggestSteal.player} (${v2StealTag(v2.biggestSteal)})</span>` : ''}
+            ${v2IsReach(v2.biggestReach) ? `<span class="dgt-chip dgt-chip--down">Biggest reach: ${v2.biggestReach.player} (${v2StealTag(v2.biggestReach)})</span>` : ''}
+            ${v2.bestPick ? `<span class="dgt-chip dgt-chip--up">Best decision: ${v2.bestPick.player} (${v2.bestPick.letter})</span>` : ''}
+            ${v2.worstPick ? `<span class="dgt-chip dgt-chip--down">Weakest decision: ${v2.worstPick.player} (${v2.worstPick.letter})</span>` : ''}
+        </div>
+    </div>`;
+}
+
+// ─── Card: la storia del draft (strategia + what-if) ─────────────
+
+/**
+ * Racconto data-driven: cosa è andato bene / cosa ha pesato (da v2.narrative)
+ * e l'analisi "what if" (swap col miglior disponibile → Δ punti-titolare).
+ */
+function draftStoryCard(ctx) {
+    const { v2 } = ctx;
+    if (!v2 || (!v2.narrative?.good.length && !v2.narrative?.bad.length && !v2.whatIf?.length)) return '';
+    const n = v2.narrative || { good: [], bad: [] };
+
+    const goodList = n.good.length
+        ? `<ul class="dgt-story-list dgt-story-good">${n.good.map(t => `<li>${t}</li>`).join('')}</ul>`
+        : `<p class="dgt-card-sub">Nessun punto di forza marcato emerso dai dati.</p>`;
+    const badList = n.bad.length
+        ? `<ul class="dgt-story-list dgt-story-bad">${n.bad.map(t => `<li>${t}</li>`).join('')}</ul>`
+        : `<p class="dgt-card-sub">Nessuna criticità marcata: draft senza passi falsi evidenti.</p>`;
+
+    const whatIf = v2.whatIf?.length ? `
+        <span class="mc-kicker" style="margin-top:16px">What if? · the swaps that would have helped most</span>
+        <p class="dgt-card-sub">Sostituendo la scelta col miglior disponibile di allora e ricalcolando il <b>miglior lineup possibile</b>: ecco quanti punti-titolare in più (Δ StarterVOR) avresti messo insieme. Modello a swap singolo.</p>
+        <div class="dgt-whatif">
+            ${v2.whatIf.map(s => `
+            <div class="dgt-whatif-row">
+                <span class="dgt-whatif-delta">+${fmt0(s.deltaStarterVOR)}</span>
+                <span class="dgt-whatif-text">al posto di <b>${s.from.player}</b> (${s.from.pos}) → <b>${s.to.player}</b> (${s.to.pos}${s.to.team ? ` · ${s.to.team}` : ''})</span>
+            </div>`).join('')}
+        </div>` : '';
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">The story of the draft · from the data</span>
+        <h2 class="mc-title">Strategy &amp; what could have been better</h2>
+        <div class="dgt-story-cols">
+            <div class="dgt-story-col">
+                <span class="mc-kicker dgt-story-h dgt-story-h--good">What you did well</span>
+                ${goodList}
+            </div>
+            <div class="dgt-story-col">
+                <span class="mc-kicker dgt-story-h dgt-story-h--bad">What hurt the draft</span>
+                ${badList}
+            </div>
+        </div>
+        ${whatIf}
+    </div>`;
+}
+
+// ─── Card: scarsità posizionale / tier ───────────────────────────
+
+/**
+ * Curva di scarsità per ruolo: i migliori disponibili per VOR con evidenziati
+ * i giocatori presi da QUESTA squadra (colore team) e dagli altri (spenti), più
+ * i "cliff" dei tier (crolli di VOR). Fa capire dove il valore si esaurisce.
+ * Dati: boardByPos dall'engine v2 (nessuna fonte nuova).
+ */
+function scarcityCard(ctx) {
+    const { boardByPos, teamKey, team } = ctx;
+    if (!boardByPos) return '';
+    const POS = ['RB', 'WR', 'TE', 'QB'];
+    const blocks = POS.map(pos => {
+        const players = (boardByPos[pos] || []).slice(0, 10).filter(p => p.vor > 0);
+        if (players.length < 3) return '';
+        const maxV = Math.max(...players.map(p => p.vor), 1);
+        const rows = players.map((p, i) => {
+            const mine = p.takenBy === teamKey;
+            const other = p.takenBy && !mine;
+            const cls = mine ? ' dgt-scar-mine' : other ? ' dgt-scar-other' : ' dgt-scar-free';
+            // cliff: crollo >25% di VOR rispetto al precedente
+            const prev = players[i - 1];
+            const cliff = prev && p.vor < prev.vor * 0.75 ? ' dgt-scar-cliff' : '';
+            const w = Math.max(3, Math.round(p.vor / maxV * 100));
+            const tag = mine ? 'you' : other ? TEAMS[p.takenBy]?.name?.split(' ')[0] || '—' : 'free';
+            return `
+            <div class="dgt-scar-row${cls}${cliff}">
+                <span class="dgt-scar-name">${p.name}</span>
+                <span class="dgt-scar-bar"><span style="width:${w}%${mine ? `;background:${team.color}` : ''}"></span></span>
+                <span class="dgt-scar-vor">${p.vor}</span>
+                <span class="dgt-scar-tag">${tag}</span>
+            </div>`;
+        }).join('');
+        return `
+        <div class="dgt-scar-pos">
+            <span class="mc-kicker">${pos}</span>
+            <div class="dgt-scar-rows">${rows}</div>
+        </div>`;
+    }).filter(Boolean).join('');
+    if (!blocks) return '';
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Where the value cliffs · positional scarcity</span>
+        <h2 class="mc-title">Positional scarcity &amp; tiers</h2>
+        <p class="dgt-card-sub">Top available by <b>VOR</b> per position (value above the league replacement level). Your picks in team color, others muted, still-available "free". A line marks a <b>tier cliff</b> (VOR drop &gt; 25%): grabbing the last player before a cliff is worth more than the raw projection suggests.</p>
+        <div class="dgt-scar-grid">${blocks}</div>
+    </div>`;
+}
+
 // ─── Card: la curva del draft ────────────────────────────────────
 
-const CV = { w: 860, h: 320, l: 52, r: 16, t: 18, b: 34 };
+const CV = { w: 860, h: 320, l: 52, r: 96, t: 34, b: 34 };
 
 function niceTicks(min, max, count = 4) {
     const span = max - min || 1;
@@ -414,6 +567,25 @@ function curveCard(g, team) {
             stroke="${steal ? 'var(--accent-green, #30d158)' : '#000'}" stroke-width="2"/>`;
     }).join('');
 
+    // NYT: etichette dirette a fine linea (niente legenda) + callout sul round
+    // dove si è lasciato più valore sul tavolo.
+    const lastI = rounds.length - 1;
+    const last = rounds[lastI];
+    const endLabels = `
+        <text x="${x(lastI) + 9}" y="${y(last.taken.pts) + 3.5}" class="dgt-curve-endlabel" fill="${team.color}">Picked</text>
+        ${last.alt ? `<text x="${x(lastI) + 9}" y="${y(last.alt.pts) + 3.5}" class="dgt-curve-endlabel dgt-curve-endlabel--alt">Best avail.</text>` : ''}`;
+    let worstIdx = -1, worstGap = 0;
+    rounds.forEach((r, i) => { const gp = Math.max(0, (r.alt?.pts ?? 0) - r.taken.pts); if (gp > worstGap) { worstGap = gp; worstIdx = i; } });
+    const callout = (worstIdx >= 0 && worstGap >= 8) ? (() => {
+        const cx = x(worstIdx);
+        const yTop = Math.min(y(rounds[worstIdx].taken.pts), y(rounds[worstIdx].alt.pts));
+        const yBot = Math.max(y(rounds[worstIdx].taken.pts), y(rounds[worstIdx].alt.pts));
+        const anchor = cx > CV.l + (CV.w - CV.l - CV.r) * 0.7 ? 'end' : cx < CV.l + (CV.w - CV.l - CV.r) * 0.3 ? 'start' : 'middle';
+        return `
+        <line x1="${cx}" y1="${yTop}" x2="${cx}" y2="${yBot}" class="dgt-curve-gapmark"/>
+        <text x="${cx}" y="${Math.max(CV.t - 14, yTop - 12)}" class="dgt-curve-callout" text-anchor="${anchor}">−${fmt0(worstGap)} pt left at R${rounds[worstIdx].round}</text>`;
+    })() : '';
+
     const dataAttr = JSON.stringify(rounds).replace(/'/g, '&#39;');
 
     return `
@@ -423,7 +595,7 @@ function curveCard(g, team) {
         <p class="dgt-card-sub">The colored line is who was picked; the dashed one is the best player of the same position still on the board (later drafted by another team). The area is the value left on the table: <b>${fmt0(leftOnBoard)} projected pt</b>.</p>
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${CV.w} ${CV.h}" class="an-svg" data-rounds='${dataAttr}'>
-                ${grid}${xTicks}${area}${altLine}${takenLine}${dots}
+                ${grid}${xTicks}${area}${altLine}${takenLine}${dots}${endLabels}${callout}
                 <line class="an-crosshair" x1="0" y1="${CV.t}" x2="0" y2="${CV.t + plotH}" visibility="hidden"/>
                 <rect class="an-hit" x="${CV.l}" y="${CV.t}" width="${plotW}" height="${plotH}" fill="transparent"/>
             </svg>
@@ -615,7 +787,23 @@ function picksSection(ctx, prevYear) {
         // voto della singola pick: valore raccolto vs atteso della slot,
         // stessa scala dei voti squadra
         const pickLetter = letterFor(p.expected ? p.value / p.expected : 0, 1);
-        const pickGrade = `<span class="dg-letter dgt-pick-grade dg-letter--${gradeBand(pickLetter)}" title="Pick grade: ${fmt0(p.value)} pt vs ${fmt0(p.expected)} expected at slot #${p.pick}">${pickLetter}</span>`;
+        const pickGrade = `<span class="dg-letter dgt-pick-grade dg-letter--${gradeBand(pickLetter)}" title="Historic pick grade v1: ${fmt0(p.value)} pt vs ${fmt0(p.expected)} expected at slot #${p.pick}">${pickLetter}</span>`;
+
+        // Draft Score v2 della pick (decomponibile): grade + metriche + best-available
+        const rp = ctx.v2ByPick?.get(p.pick);
+        const v2Grade = rp
+            ? `<span class="dgt-v2-pill dg-v2--${gradeBandV2(rp.letter)}" title="Draft Score v2 pick grade (${Math.round(rp.pickScore)}/100)">v2 ${rp.letter}</span>` : '';
+        const marketChip = rp && rp.adpZ != null
+            ? `<span class="dgt-v2-metric ${rp.adpZ >= 0 ? 'up' : 'down'}" title="Reach/steal in deviazioni standard dall'ADP di consenso FFC (${rp.adpN ?? '?'} draft, σ ${rp.adpStdev}) — positivo = caduto oltre l'ADP (steal)">${rp.adpZ >= 0 ? 'steal' : 'reach'} ${rp.adpZ >= 0 ? '+' : ''}${rp.adpZ}σ</span>`
+            : '';
+        const v2Line = rp ? `
+                <p class="dgt-pick-v2">
+                    ${marketChip}
+                    <span class="dgt-v2-metric" title="Value Over Replacement: valore sopra il livello di replacement della lega per il ruolo">VOR ${rp.vor}</span>
+                    <span class="dgt-v2-metric ${rp.opportunityCost < -5 ? 'down' : ''}" title="Costo opportunità: valore need-adjusted rispetto al miglior disponibile sul board (≤0)">opportunity cost ${rp.opportunityCost}</span>
+                    ${rp.scarcity > 0 ? `<span class="dgt-v2-metric up" title="Salto di valore rispetto al prossimo giocatore dello stesso ruolo ancora sul board">scarcity +${rp.scarcity}</span>` : ''}
+                    ${rp.bestAlt ? `<span class="dgt-v2-alt">best on the board: <b>${rp.bestAlt.name}</b> (${rp.bestAlt.pos}${rp.bestAlt.team ? ` · ${rp.bestAlt.team}` : ''}, VOR ${rp.bestAlt.vor})</span>` : ''}
+                </p>` : '';
 
         const altTeamKey = p.alt ? TEAM_KEYS[displayName(p.alt.team)] : null;
         const altWho = p.alt ? `<b>${p.alt.player}</b> (proj ${fmt0(p.alt.value)} pt, later #${p.alt.pick}${altTeamKey ? ` to ${TEAMS[altTeamKey].name}` : ''})` : '';
@@ -658,28 +846,40 @@ function picksSection(ctx, prevYear) {
                     ${actualLine}
                 </div>
                 ${adpLabel}
+                ${v2Grade}
                 ${pickGrade}
             </div>
             <div class="dgt-pick-body">
                 <p class="dgt-pick-prior">${priorLine(p, prevStats, prevYear, expAtDraft)} ${badges}</p>
                 ${olderLine}
                 <p class="dgt-pick-alt">${altLine}</p>
+                ${v2Line}
                 <p class="dgt-pick-verdict">${verdict}</p>
             </div>
         </div>`;
     }).join('');
 
+    // timeline v2: strip round → voto-pick (colpo d'occhio prima del dossier)
+    const timeline = ctx.v2?.picks?.length ? `
+        <div class="dgt-timeline">
+            ${ctx.v2.picks.map(r => `
+            <div class="dgt-tl-cell dg-v2--${gradeBandV2(r.letter)}" title="Pick #${r.pick} · ${r.player} (${r.pos}) · v2 ${r.letter} ${Math.round(r.pickScore)}/100">
+                <span class="dgt-tl-round">R${r.round}</span>
+                <span class="dgt-tl-letter">${r.letter}</span>
+            </div>`).join('')}
+        </div>` : '';
+
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">The full dossier</span>
         <h2 class="mc-title">Pick by pick</h2>
+        ${timeline}
         <div class="dgt-picks">${rows}</div>
     </div>`;
 }
 
 // ─── Sezione: il verdetto del campo (solo stagioni giocate) ──────
 
-const PB = { w: 860, h: 300, l: 52, r: 16, t: 18, b: 46 };
 const WK = { w: 860, h: 320, l: 52, r: 120, t: 18, b: 34 };
 
 function verdictSection(ctx) {
@@ -703,44 +903,59 @@ function verdictSection(ctx) {
             </div>
         </div>` : '';
 
-    // (a) proiettato vs reale, barre accoppiate per pick
-    const rows = g.list.filter(p => p.actual != null);
+    // (a) proiettato → reale: dumbbell ordinato per scarto (surplus/deficit).
+    // Un punto per la proiezione, uno per il reso reale; il segmento che li unisce
+    // è verde se ha battuto la proiezione, rosso se è calato. Si legge d'un colpo.
+    const rows = [...g.list.filter(p => p.actual != null)]
+        .sort((a, b) => (b.actual - b.value) - (a.actual - a.value));
     const maxV = Math.max(...rows.flatMap(p => [p.value, p.actual]), 1);
     const ticks = niceTicks(0, maxV);
-    const yMax = ticks[ticks.length - 1];
-    const plotW = PB.w - PB.l - PB.r;
-    const plotH = PB.h - PB.t - PB.b;
-    const groupW = plotW / rows.length;
-    const barW = Math.min(16, groupW / 2 - 3);
-    const y = (v) => PB.t + (1 - v / yMax) * plotH;
+    const xMax = ticks[ticks.length - 1];
+    const DB = { w: 860, l: 168, r: 66, t: 14, b: 30, row: 26 };
+    const dbPlotW = DB.w - DB.l - DB.r;
+    const dbBottom = DB.t + rows.length * DB.row;
+    const dbH = dbBottom + DB.b;
+    const xx = (v) => DB.l + (v / xMax) * dbPlotW;
 
     const grid = ticks.map(v => `
-        <line x1="${PB.l}" y1="${y(v)}" x2="${PB.l + plotW}" y2="${y(v)}" class="an-gridline"/>
-        <text x="${PB.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${fmt0(v)}</text>`).join('');
+        <line x1="${xx(v).toFixed(1)}" y1="${DB.t}" x2="${xx(v).toFixed(1)}" y2="${dbBottom}" class="an-gridline"/>
+        <text x="${xx(v).toFixed(1)}" y="${dbH - 11}" class="an-tick" text-anchor="middle">${fmt0(v)}</text>`).join('');
 
     const bars = rows.map((p, i) => {
-        const gx = PB.l + i * groupW + (groupW - barW * 2 - 2) / 2;
-        const lastName = p.player.split(' ').pop();
+        const yc = DB.t + i * DB.row + DB.row / 2;
+        const up = p.actual >= p.value;
+        const cls = up ? 'dgt-dumb--up' : 'dgt-dumb--down';
+        const dv = `${up ? '+' : ''}${fmt0(p.actual - p.value)}`;
+        const endX = Math.max(xx(p.value), xx(p.actual));
         return `
-        <rect x="${gx}" y="${y(p.value)}" width="${barW}" height="${Math.max(0, PB.t + plotH - y(p.value))}" class="dgt-bar-proj" rx="2"><title>${p.player} — projected ${fmt0(p.value)}</title></rect>
-        <rect x="${gx + barW + 2}" y="${y(p.actual)}" width="${barW}" height="${Math.max(0, PB.t + plotH - y(p.actual))}" fill="${team.color}" rx="2"><title>${p.player} — real ${fmt0(p.actual)}</title></rect>
-        <text x="${gx + barW + 1}" y="${PB.h - 30}" class="an-tick dgt-bar-label" text-anchor="end" transform="rotate(-38 ${gx + barW + 1} ${PB.h - 30})">${lastName}</text>`;
+        <g class="dgt-dumb ${cls}">
+            <title>${p.player} — projected ${fmt0(p.value)}, real ${fmt0(p.actual)} (${dv})</title>
+            <line x1="${xx(p.value).toFixed(1)}" y1="${yc}" x2="${xx(p.actual).toFixed(1)}" y2="${yc}" class="dgt-dumb-link"/>
+            <circle cx="${xx(p.value).toFixed(1)}" cy="${yc}" r="4.5" class="dgt-dumb-proj"/>
+            <circle cx="${xx(p.actual).toFixed(1)}" cy="${yc}" r="5.5" class="dgt-dumb-real"/>
+            <text x="${DB.l - 12}" y="${yc + 3.5}" class="dgt-dumb-name" text-anchor="end">${p.player} <tspan class="dgt-dumb-pos">${p.pos}</tspan></text>
+            <text x="${(endX + 10).toFixed(1)}" y="${yc + 3.5}" class="dgt-dumb-delta" text-anchor="start">${dv}</text>
+        </g>`;
     }).join('');
 
     // (b) corsa settimanale (cumulata) dei top-5 pick per proiezione
     let weeklyChart = '';
     if (weekly) {
-        const PALETTE = [team.color, '#5ac8fa', '#ffd60a', '#ff9f0a', '#bf5af2'];
         const top = [...g.list].sort((a, b) => b.value - a.value).slice(0, 5)
             .filter(p => weekly[p.player]?.length);
         if (top.length) {
-            const series = top.map((p, i) => {
+            const series = top.map((p) => {
                 let cum = 0;
                 return {
-                    name: p.player, color: PALETTE[i % PALETTE.length],
+                    name: p.player, color: '#6f6d69',
                     values: weekly[p.player].map(({ wk, pts }) => ({ wk, score: +(cum += pts).toFixed(1) })),
                 };
             });
+            // NYT: un solo protagonista (chi ha accumulato di più) in team color, il resto è contesto grigio
+            let li = 0, lmax = -1;
+            series.forEach((s, i) => { const f = s.values[s.values.length - 1]?.score || 0; if (f > lmax) { lmax = f; li = i; } });
+            series[li].color = team.color;
+            series[li].lead = true;
             weeklyChart = buildWeeklyChart(series);
         }
     }
@@ -761,10 +976,10 @@ function verdictSection(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">How it really went</span>
         <h2 class="mc-title">The verdict from the field</h2>
-        <p class="dgt-card-sub">Grey bars: preseason projected points. Colored bars: real points from the ${year} season.</p>
+        <p class="dgt-card-sub">Grey dot: preseason projection. Colored dot: real points from the ${year} season — <b class="dgt-legend-up">green</b> if the pick beat its projection, <b class="dgt-legend-down">red</b> if it fell short. Sorted by surplus.</p>
         ${eosBlock}
         <div class="dgt-chart-wrap">
-            <svg viewBox="0 0 ${PB.w} ${PB.h}" class="an-svg">${grid}${bars}</svg>
+            <svg viewBox="0 0 ${DB.w} ${dbH}" class="an-svg dgt-dumb-svg">${grid}${bars}</svg>
         </div>
         ${weeklyChart ? `
         <span class="mc-kicker" style="margin-top:18px">The top picks' race (cumulative points)</span>
@@ -835,12 +1050,14 @@ function buildWeeklyChart(series) {
         if (ends[i].labelY - ends[i - 1].labelY < 15) ends[i].labelY = ends[i - 1].labelY + 15;
     }
 
-    const lines = series.map(s => `<polyline points="${s.values.map(v => `${x(v.wk).toFixed(1)},${y(v.score).toFixed(1)}`).join(' ')}"
-        fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+    // il contesto va disegnato prima, il protagonista sopra a tutto
+    const ordered = [...series].sort((a, b) => (a.lead ? 1 : 0) - (b.lead ? 1 : 0));
+    const lines = ordered.map(s => `<polyline points="${s.values.map(v => `${x(v.wk).toFixed(1)},${y(v.score).toFixed(1)}`).join(' ')}"
+        fill="none" stroke="${s.color}" stroke-width="${s.lead ? 2.8 : 1.6}" stroke-linejoin="round" stroke-linecap="round"${s.lead ? '' : ' opacity="0.85"'}/>`).join('');
     const endDots = ends.map(({ s, lx, ly, labelY }) => `
         ${Math.abs(labelY - ly) > 2 ? `<line x1="${lx + 5}" y1="${ly}" x2="${lx + 12}" y2="${labelY}" class="an-leader"/>` : ''}
-        <circle cx="${lx}" cy="${ly}" r="4" fill="${s.color}" stroke="#000" stroke-width="2"/>
-        <text x="${lx + 14}" y="${labelY + 3.5}" class="an-endlabel">${s.name.split(' ').pop()}</text>`).join('');
+        <circle cx="${lx}" cy="${ly}" r="${s.lead ? 4.5 : 3.5}" fill="${s.color}" stroke="#000" stroke-width="2"/>
+        <text x="${lx + 14}" y="${labelY + 3.5}" class="an-endlabel${s.lead ? ' an-endlabel--lead' : ''}" fill="${s.lead ? s.color : '#8a8681'}">${s.name.split(' ').pop()}</text>`).join('');
 
     return `<svg viewBox="0 0 ${WK.w} ${WK.h}" class="an-svg">${grid}${xTicks}${lines}${endDots}</svg>`;
 }

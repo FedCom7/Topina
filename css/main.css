@@ -9022,6 +9022,90 @@ div.gb-out-player:last-of-type {
 
 .dgt-bar-label { font-size: 10px; }
 
+/* Dumbbell proiettato → reale (verdetto dal campo, stile NYT) */
+.dgt-dumb-svg { min-width: 620px; }
+.dgt-dumb-link { stroke-width: 2.5; stroke-linecap: round; opacity: .5; }
+.dgt-dumb-proj { fill: var(--bg-tertiary, #0a0a0a); stroke: var(--text-muted); stroke-width: 2; }
+.dgt-dumb-real { stroke: var(--bg-primary, #000); stroke-width: 1; transition: r .12s ease; }
+.dgt-dumb--up   .dgt-dumb-link { stroke: var(--accent-green, #30d158); }
+.dgt-dumb--up   .dgt-dumb-real { fill: var(--accent-green, #30d158); }
+.dgt-dumb--down .dgt-dumb-link { stroke: var(--accent-red, #ff453a); }
+.dgt-dumb--down .dgt-dumb-real { fill: var(--accent-red, #ff453a); }
+.dgt-dumb-name { fill: var(--text-primary); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
+.dgt-dumb-pos { fill: var(--text-muted); font-size: 10px; font-weight: 500; }
+.dgt-dumb-delta { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dgt-dumb--up   .dgt-dumb-delta { fill: var(--accent-green, #30d158); }
+.dgt-dumb--down .dgt-dumb-delta { fill: var(--accent-red, #ff453a); }
+.dgt-dumb:hover .dgt-dumb-real { r: 7; }
+.dgt-legend-up { color: var(--accent-green, #30d158); }
+.dgt-legend-down { color: var(--accent-red, #ff453a); }
+
+/* Curva del draft: etichette dirette a fine linea + callout sul gap maggiore */
+.dgt-curve-endlabel { font-size: 12px; font-weight: 700; font-family: var(--font-body); }
+.dgt-curve-endlabel--alt { fill: var(--text-muted); font-weight: 600; }
+.dgt-curve-gapmark { stroke: var(--accent-red, #ff453a); stroke-width: 1.4; }
+.dgt-curve-callout { fill: var(--text-primary); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
+
+/* Corsa dei top pick: enfasi sul protagonista */
+.an-endlabel--lead { font-weight: 800; }
+
+/* Dot plot TSI vs media lega (testata card Draft Grade, stile NYT) */
+.dg-tsidots { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.dg-tsidot, .dg-tsidot-axis { display: grid; grid-template-columns: 82px 1fr 24px; align-items: center; gap: 8px; }
+.dg-tsidot > small { font-size: 10px; color: var(--text-muted); text-align: right; line-height: 1.2; }
+.dg-tsidot-track { position: relative; height: 13px; }
+.dg-tsidot-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%); background: rgba(255, 255, 255, 0.06); border-radius: 2px; }
+.dg-tsidot-avg { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-left: 1px dashed rgba(255, 255, 255, 0.32); }
+.dg-tsidot-fill { position: absolute; top: 50%; height: 2px; transform: translateY(-50%); border-radius: 2px; }
+.dg-tsidot-dot { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px var(--bg-primary, #000); }
+.dg-tsidot--up .dg-tsidot-fill, .dg-tsidot--up .dg-tsidot-dot { background: var(--accent-green, #30d158); }
+.dg-tsidot--down .dg-tsidot-fill, .dg-tsidot--down .dg-tsidot-dot { background: var(--accent-red, #ff453a); }
+.dg-tsidot-val { font-size: 10px; color: var(--text-secondary); font-variant-numeric: tabular-nums; text-align: right; }
+.dg-tsidot-axislbl { font-size: 9px; color: var(--text-muted); text-align: center; letter-spacing: .03em; }
+
+/* Waterfall della performance (pagina giocatore, stile NYT) */
+.pp-wf-wrap { overflow-x: auto; margin: 8px 0 6px; }
+.pp-wf-svg { min-width: 340px; width: 100%; height: auto; }
+.pp-wf-base { fill: color-mix(in srgb, var(--accent-blue, #4f8cff) 78%, transparent); }
+.pp-wf-actual { fill: var(--accent-amber, #f0b429); }
+.pp-wf-step--up { fill: var(--accent-green, #30d158); }
+.pp-wf-step--down { fill: var(--accent-red, #ff453a); }
+.pp-wf-step, .pp-wf-base, .pp-wf-actual { transition: opacity .12s ease; }
+.pp-wf-step:hover, .pp-wf-base:hover, .pp-wf-actual:hover { opacity: .8; }
+.pp-wf-conn { stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; stroke-dasharray: 3 2; }
+.pp-wf-lbl { fill: var(--text-secondary); font-size: 10px; font-weight: 700; font-family: var(--font-body); font-variant-numeric: tabular-nums; }
+.pp-wf-lbl--up { fill: var(--accent-green, #30d158); }
+.pp-wf-lbl--down { fill: var(--accent-red, #ff453a); }
+.pp-wf-lbl--actual { fill: var(--accent-amber, #f0b429); }
+.pp-wf-xlbl { fill: var(--text-muted); font-size: 9.5px; font-family: var(--font-body); }
+.pp-wf-lg-up { color: var(--accent-green, #30d158); }
+.pp-wf-lg-down { color: var(--accent-red, #ff453a); }
+
+/* Forma stagionale: callout gara migliore/peggiore (stile NYT) */
+.pp-form-annot--up { fill: var(--accent-green, #30d158); stroke: var(--bg-primary, #000); stroke-width: 1.5; }
+.pp-form-annot--down { fill: var(--accent-red, #ff453a); stroke: var(--bg-primary, #000); stroke-width: 1.5; }
+.pp-form-annotlbl { font-size: 10px; font-weight: 700; font-family: var(--font-body); font-variant-numeric: tabular-nums; }
+.pp-form-annotlbl--up { fill: var(--accent-green, #30d158); }
+.pp-form-annotlbl--down { fill: var(--accent-red, #ff453a); }
+
+/* Draft scatter: mediane come assi + etichette di quadrante (stile NYT) */
+.pp-scat-guide { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; stroke-dasharray: 4 3; }
+.pp-scat-quad { font-size: 10px; font-weight: 800; letter-spacing: .08em; font-family: var(--font-body); }
+.pp-scat-quad--good { fill: var(--accent-green, #30d158); }
+.pp-scat-quad--bad { fill: var(--accent-red, #ff453a); }
+.pp-scat-quadsub { fill: var(--text-muted); font-size: 9px; font-family: var(--font-body); }
+
+/* Timeline della carriera (pagina giocatore, stile NYT) */
+.pp-tl-svg { width: 100%; height: auto; }
+.pp-tl-line { fill: none; stroke: var(--accent-red, #B8433A); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+.pp-tl-dot { fill: var(--accent-red, #B8433A); stroke: var(--bg-primary, #000); stroke-width: 2; }
+.pp-tl-dot--best { fill: var(--accent-green, #30d158); }
+.pp-tl-dot--inj { fill: var(--accent-amber, #f0b429); }
+.pp-tl-lead { stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
+.pp-tl-callout { font-size: 11px; font-weight: 700; font-family: var(--font-body); fill: var(--text-primary); }
+.pp-tl-callout--best { fill: var(--accent-green, #30d158); }
+.pp-tl-callout--inj { fill: var(--accent-amber, #f0b429); }
+
 /* chips (anagrafica, ADP, recap) */
 .dgt-age-chips,
 .dgt-recap-row {
@@ -9326,6 +9410,239 @@ div.gb-out-player:last-of-type {
     margin-left: auto;
 }
 .dg-sum .dg-eos + .dg-letter { margin-left: 8px; }
+
+/* ─── Draft Score v2 (voto decomponibile, affianca il voto storico) ─── */
+.dg-v2--A { color: var(--accent-green); }
+.dg-v2--B { color: var(--accent-amber); }
+.dg-v2--C { color: #f97316; }
+.dg-v2--D, .dg-v2--F { color: var(--accent-red); }
+
+/* chip nel riepilogo lista */
+.dg-v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 1px 8px;
+    border-radius: 999px;
+    color: var(--accent-cyan, #22d3ee);
+    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan, #22d3ee) 40%, transparent);
+    cursor: help;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+.dg-v2.dg-v2--A { border-color: color-mix(in srgb, var(--accent-green) 40%, transparent); }
+.dg-v2.dg-v2--D, .dg-v2.dg-v2--F { border-color: color-mix(in srgb, var(--accent-red) 40%, transparent); }
+
+/* blocco v2 dentro la card della lista */
+.dg-v2-tag {
+    font-style: normal;
+    font-size: 0.55rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: 5px;
+    color: var(--accent-cyan, #22d3ee);
+    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 16%, transparent);
+    vertical-align: middle;
+}
+.dg-v2-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 2px 0 6px;
+}
+.dg-v2-badge {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+.dg-v2-score { font-weight: 800; font-size: 1rem; }
+.dg-v2-score small { color: var(--text-muted); font-weight: 600; font-size: 0.7rem; }
+.dg-v2-rank { color: var(--text-muted); font-size: 0.72rem; font-weight: 600; }
+.dg-v2-parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    margin-bottom: 6px;
+}
+.dg-v2-parts > span {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border: 1px solid var(--border-subtle);
+    cursor: help;
+    white-space: nowrap;
+}
+.dg-v2-hl { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* card v2 nella pagina team */
+.dgt-v2-big { color: var(--accent-cyan, #22d3ee) !important; }
+.dgt-v2-comps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 4px 0 12px;
+}
+.dgt-v2-comp {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 96px;
+    flex: 1 1 96px;
+    max-width: 180px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md, 12px);
+    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 6%, transparent);
+    border: 1px solid var(--border-subtle);
+    cursor: help;
+}
+.dgt-v2-comp-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+}
+.dgt-v2-comp-val { font-weight: 800; font-size: 1.1rem; }
+.dgt-v2-hl { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* riga v2 dentro ogni pick + pill del voto-pick */
+.dgt-v2-pill {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan, #22d3ee) 34%, transparent);
+    cursor: help;
+    white-space: nowrap;
+}
+.dgt-pick-head > .dgt-v2-pill { margin-left: auto; }
+.dgt-pick-head .dgt-v2-pill + .dgt-pick-grade,
+.dgt-pick-head > .dgt-chip + .dgt-v2-pill,
+.dgt-pick-head .dg-badge + .dgt-v2-pill { margin-left: 6px; }
+.dgt-pick-v2 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 4px 0;
+}
+.dgt-v2-metric {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-secondary, #cbd5e1);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border: 1px solid var(--border-subtle);
+    cursor: help;
+    white-space: nowrap;
+}
+.dgt-v2-metric.up { color: var(--accent-green); border-color: color-mix(in srgb, var(--accent-green) 34%, transparent); }
+.dgt-v2-metric.down { color: var(--accent-red); border-color: color-mix(in srgb, var(--accent-red) 34%, transparent); }
+.dgt-v2-alt { font-size: 0.72rem; color: var(--text-muted); }
+.dgt-v2-alt b { color: var(--text-secondary, #cbd5e1); }
+
+/* scarsità posizionale / tier */
+.dgt-scar-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+}
+@media (max-width: 640px) { .dgt-scar-grid { grid-template-columns: 1fr; } }
+.dgt-scar-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.dgt-scar-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 30px 34px;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+}
+.dgt-scar-name { font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary, #cbd5e1); }
+.dgt-scar-bar { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 16%, transparent); overflow: hidden; }
+.dgt-scar-bar > span { display: block; height: 100%; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 45%, transparent); }
+.dgt-scar-vor { font-size: 0.72rem; font-weight: 700; text-align: right; color: var(--text-secondary, #cbd5e1); }
+.dgt-scar-tag { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-muted); text-align: right; }
+.dgt-scar-mine .dgt-scar-name { color: var(--team-color); font-weight: 700; }
+.dgt-scar-mine .dgt-scar-tag { color: var(--team-color); }
+.dgt-scar-other { opacity: 0.65; }
+.dgt-scar-free .dgt-scar-bar > span { background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 40%, transparent); }
+.dgt-scar-free .dgt-scar-tag { color: var(--accent-cyan, #22d3ee); }
+.dgt-scar-cliff { border-top: 1px dashed color-mix(in srgb, var(--accent-red) 45%, transparent); padding-top: 5px; margin-top: 3px; }
+
+/* league comparison v2 */
+.dg-lc-table td { vertical-align: middle; }
+.dg-lc-table small { color: var(--text-muted); }
+.dg-lc-why { max-width: 240px; }
+@media (max-width: 720px) { .dg-lc-why { display: none; } }
+
+/* storia del draft: strategia (did well / hurt) + what-if */
+.dgt-story-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+@media (max-width: 640px) { .dgt-story-cols { grid-template-columns: 1fr; } }
+.dgt-story-h { display: block; margin-bottom: 6px; }
+.dgt-story-h--good { color: var(--accent-green); }
+.dgt-story-h--bad { color: var(--accent-red); }
+.dgt-story-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.dgt-story-list li { font-size: 0.82rem; line-height: 1.4; color: var(--text-secondary, #cbd5e1); }
+.dgt-story-good li::marker { color: var(--accent-green); }
+.dgt-story-bad li::marker { color: var(--accent-red); }
+.dgt-whatif { display: flex; flex-direction: column; gap: 8px; }
+.dgt-whatif-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md, 12px);
+    background: color-mix(in srgb, var(--accent-green) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-green) 22%, transparent);
+}
+.dgt-whatif-delta {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: var(--accent-green);
+    min-width: 54px;
+}
+.dgt-whatif-text { font-size: 0.8rem; color: var(--text-secondary, #cbd5e1); }
+
+/* timeline round → voto-pick */
+.dgt-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 4px 0 14px;
+}
+.dgt-tl-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 38px;
+    padding: 5px 4px;
+    border-radius: 9px;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 34%, transparent);
+    cursor: help;
+}
+.dgt-tl-round { font-size: 0.56rem; font-weight: 600; color: var(--text-muted); }
+.dgt-tl-letter { font-family: var(--font-display); font-weight: 800; font-size: 0.92rem; line-height: 1; }
+
 .dgt-eos-grades {
     display: flex;
     align-items: center;
@@ -11868,6 +12185,21 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .ts-rankfill.ts-bad { background: var(--accent-red); }
 .ts-rankv { font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ts-rankv small { color: var(--text-muted); font-weight: 600; margin-left: 2px; }
+
+/* Bump chart: callout dello scarto di rango più grande (stile NYT) */
+.ts-bump-swing { font-size: 10px; font-weight: 800; font-family: var(--font-body, 'Inter', sans-serif); }
+
+/* Dot plot rank NFL vs media lega (stile NYT) — riusa la griglia di .ts-rankrow */
+.ts-rdots { gap: 8px; }
+.ts-rdot-axis { display: grid; grid-template-columns: minmax(90px, 1.1fr) 3fr auto; align-items: center; gap: 10px; }
+.ts-rdot-axislbl { grid-column: 2; text-align: center; font-size: 9px; color: var(--text-muted); letter-spacing: .03em; }
+.ts-rdot-track { position: relative; height: 14px; background: transparent; overflow: visible; }
+.ts-rdot-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%); background: var(--bg-glass); border-radius: 2px; }
+.ts-rdot-avg { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-left: 1px dashed rgba(255, 255, 255, 0.32); }
+.ts-rdot-fill { position: absolute; top: 50%; height: 2px; transform: translateY(-50%); border-radius: 2px; }
+.ts-rdot-pt { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px var(--bg-tertiary, #0a0a0a); }
+.ts-rdot--up .ts-rdot-fill, .ts-rdot--up .ts-rdot-pt { background: var(--accent-green, #3fb950); }
+.ts-rdot--down .ts-rdot-fill, .ts-rdot--down .ts-rdot-pt { background: var(--accent-red); }
 
 /* ─── Confronto lega · scatter grandi interattivi ───────────────────────── */
 .lc-svg { width: 100%; height: auto; display: block; }

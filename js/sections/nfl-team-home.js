@@ -7,7 +7,7 @@
  * Nessun fetch proprio: riceve dati già caricati da nfl-team-page.js.
  */
 
-import { esc, teamLogo } from './player-page.js?v=324';
+import { esc, teamLogo } from './player-page.js?v=325';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=1';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 

@@ -12,7 +12,7 @@ import { getTeamStats } from '../data/nfl-team-stats.js?v=19';
 import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=74';
 import { canonAbbr } from '../data/nfl-schedule.js?v=20';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=89';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=90';
 
 // ─── Confronto lega · tutte le 32 squadre (nflverse team_stats + advanced) ───
 // Modulo interattivo in testa al pannello NFL: un grande scatter Attacco×Difesa

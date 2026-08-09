@@ -27,7 +27,7 @@ import {
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=324';
+} from './player-page.js?v=325';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
@@ -1178,10 +1178,24 @@ function _bumpChart(seasons) {
         const endLbl = `<text x="${(xAt(last.i) + 7).toFixed(1)}" y="${(yAt(last.rank) + 3).toFixed(1)}" class="ts-bump-endlbl" fill="${color}">${label}</text>`;
         return `<polyline points="${poly}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round"/>${dots}${endLbl}`;
     };
+    // callout NYT: lo scarto di rango più grande tra due stagioni (offense o defense)
+    let swing = null;
+    [['off', '#4f8cff'], ['def', '#f0b429']].forEach(([key, col]) => {
+        const pts = rows.map((r, i) => r[key] != null ? { i, rank: r[key] } : null).filter(Boolean);
+        for (let k = 1; k < pts.length; k++) {
+            const d = pts[k - 1].rank - pts[k].rank; // >0 = migliorato (rango sceso)
+            if (!swing || Math.abs(d) > Math.abs(swing.d)) swing = { col, i0: pts[k - 1].i, i1: pts[k].i, r0: pts[k - 1].rank, r1: pts[k].rank, d };
+        }
+    });
+    const swingSvg = (swing && Math.abs(swing.d) >= 6) ? (() => {
+        const x0 = xAt(swing.i0), y0 = yAt(swing.r0), x1 = xAt(swing.i1), y1 = yAt(swing.r1);
+        return `<polyline points="${x0.toFixed(1)},${y0.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}" fill="none" stroke="${swing.col}" stroke-width="5" opacity="0.28" stroke-linecap="round"/>
+        <text x="${((x0 + x1) / 2).toFixed(1)}" y="${(Math.min(y0, y1) - 7).toFixed(1)}" class="ts-bump-swing" text-anchor="middle" fill="${swing.col}">${swing.d > 0 ? '+' : ''}${swing.d} spots</text>`;
+    })() : '';
     return `<div class="ts-chart"><svg viewBox="0 0 ${W} ${H}" class="ts-svg ts-bump-svg" role="img" aria-label="Offense vs defense rank over the years">
         ${grid}${xticks}
         <text x="${m.l}" y="12" class="an-tick" text-anchor="start">1st = best ↑</text>
-        ${lineFor('off', '#4f8cff', 'Offense')}${lineFor('def', '#f0b429', 'Defense')}
+        ${swingSvg}${lineFor('off', '#4f8cff', 'Offense')}${lineFor('def', '#f0b429', 'Defense')}
     </svg></div>`;
 }
 
@@ -1426,19 +1440,32 @@ function _teamScatter(points, cfg) {
     </svg></div>`;
 }
 
-/** Barre di rank NFL (1–32): verde alto rank, rosso basso. items = [{label, value, rank, total}]. */
+/**
+ * Dot plot di rank NFL (1–32) rispetto alla media di lega (stile NYT): ogni metrica
+ * è un punto sulla scala, con la riga della media (16,5°). Verde sopra la media,
+ * rosso sotto. items = [{label, value, rank, total}].
+ */
 function _rankBars(items) {
     const rows = items.filter(i => i.rank != null).map(i => {
         const total = i.total || 32;
-        const fill = ((total - i.rank + 1) / total * 100).toFixed(0);
-        const cls = i.rank <= 10 ? 'ts-good' : i.rank >= (total - 9) ? 'ts-bad' : 'ts-mid';
-        return `<div class="ts-rankrow">
+        const g = (total - i.rank) / Math.max(1, total - 1); // 0 = peggiore (sx), 1 = migliore (dx)
+        const up = i.rank <= (total + 1) / 2;
+        const cls = up ? 'ts-rdot--up' : 'ts-rdot--down';
+        const pos = (g * 100).toFixed(1);
+        const fillLeft = up ? 50 : g * 100;
+        const fillW = Math.abs(g * 100 - 50);
+        return `<div class="ts-rankrow ts-rdot ${cls}">
             <span class="ts-rankl">${esc(i.label)}</span>
-            <span class="ts-ranktrack"><span class="ts-rankfill ${cls}" style="width:${fill}%"></span></span>
+            <span class="ts-ranktrack ts-rdot-track">
+                <span class="ts-rdot-avg"></span>
+                <span class="ts-rdot-fill" style="left:${fillLeft.toFixed(1)}%;width:${fillW.toFixed(1)}%"></span>
+                <span class="ts-rdot-pt" style="left:${pos}%"></span>
+            </span>
             <span class="ts-rankv">${esc(String(i.value))} <small>${i.rank}ª</small></span>
         </div>`;
     }).join('');
-    return rows ? `<div class="ts-ranks">${rows}</div>` : '';
+    if (!rows) return '';
+    return `<div class="ts-ranks ts-rdots"><div class="ts-rdot-axis"><span></span><span class="ts-rdot-axislbl">league avg</span><span></span></div>${rows}</div>`;
 }
 
 /**

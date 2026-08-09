@@ -12,10 +12,17 @@ on:
         description: "Stagioni da rigenerare (es. '2025 2024'); vuoto = ultime due"
         required: false
         default: ''
+  # Trigger da API esterna: il produttore NFL_Fantasy_Dash, subito dopo aver
+  # scritto draft_data su Firebase, può innescare il refresh dei dati mostrati
+  # nelle Draft Grades con:
+  #   POST /repos/{owner}/{repo}/dispatches  {"event_type":"draft-uploaded"}
+  # (il draft si calcola comunque client-side; questo aggiorna SOS+/TSI/bust%).
+  repository_dispatch:
+    types: [draft-uploaded, refresh-draft-data]
   push:
     branches: [main]
     paths:
-      - 'data/draft/**'          # nuovo draft caricato → aggiorna le feature
+      - 'data/draft/**'          # nuovo draft caricato nel repo → aggiorna le feature
   schedule:
     - cron: '0 9 * * 2'          # ogni martedì mattina (in stagione tiene aggiornato)
 
@@ -54,6 +61,14 @@ jobs:
       - name: Riallena il modello draft
         run: node scripts/build-draft-model.mjs
 
+      - name: Genera ADP con dispersione (Fantasy Football Calculator)
+        run: node scripts/build-adp-ffc.mjs
+        continue-on-error: true   # fonte esterna: se giù, resta l'ADP Sleeper (graceful)
+
+      - name: Backtest + calibrazione Draft Score v2
+        run: node scripts/build-draft-score-v2-calib.mjs
+        continue-on-error: true   # solo validazione: adopted:false non cambia il voto
+
       - name: Cause di performance (perché ha reso così)
         run: node scripts/build-perf-causes.mjs
 
@@ -74,7 +89,8 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/nfl/adv_*.json data/nfl/playerids.json data/model/draft_model_v1.json \
-                  data/model/perf_causes_*.json \
+                  data/model/perf_causes_*.json data/model/draft_score_v2_calib.json \
+                  data/nfl/adp_ffc_*.json \
                   data/nfl/roster_*.json data/nfl/injuries_*.json \
                   data/nfl/combine_draft.json data/nfl/team_trades.json
           if git diff --staged --quiet; then

@@ -21,7 +21,9 @@ const _memStats = {};
 function urlFor(kind, year) {
     const pos = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
         .map(p => `position%5B%5D=${p}`).join('&');
-    return `https://api.sleeper.com/${kind}/nfl/${year}?season_type=regular&${pos}&order_by=adp_half_ppr`;
+    // ADP/ranking full PPR: la lega è full PPR (rec=1, vedi league-rules.js),
+    // quindi il metro di mercato deve essere PPR, non half-PPR.
+    return `https://api.sleeper.com/${kind}/nfl/${year}?season_type=regular&${pos}&order_by=adp_ppr`;
 }
 
 /** normalizzazione nome per il matching (come player-image-service) */
@@ -62,7 +64,7 @@ export async function getSeasonProjections(year) {
             name, pos,
             playerId: e.player_id ?? pl.player_id ?? null,
             team: e.team || pl.team || '',
-            adp: stats.adp_half_ppr && stats.adp_half_ppr < 999 ? stats.adp_half_ppr : null,
+            adp: stats.adp_ppr && stats.adp_ppr < 999 ? stats.adp_ppr : null,
             projPts: scoreProjectedStats(stats),
             ptsStd: stats.pts_std ?? null,
             gp: stats.gp ?? null,
@@ -123,7 +125,7 @@ export async function getSeasonStats(year) {
             ptsLeague: scoreProjectedStats(s), // punti nello scoring della lega (null per DEF: mancano le fasce)
             ptsHalf: s.pts_half_ppr, ptsPpr: s.pts_ppr ?? null, ptsStd: s.pts_std ?? null,
             gp: s.gp ?? null, gs: s.gs ?? null,
-            posRank: s.pos_rank_half_ppr ?? null,
+            posRank: s.pos_rank_ppr ?? s.pos_rank_half_ppr ?? null,
             rec: s.rec ?? null, tgt: s.rec_tgt ?? null, recYd: s.rec_yd ?? null,
             rzTgt: s.rec_rz_tgt ?? null, drops: s.rec_drop ?? null,
             rushAtt: s.rush_att ?? null, rushYd: s.rush_yd ?? null,

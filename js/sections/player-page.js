@@ -17,7 +17,7 @@ import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvision
 import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=19';
 import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=82';
 import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=98';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=89';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=90';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { canonAbbr } from '../data/nfl-schedule.js?v=20';
 import { CURRENT_SEASON } from '../data.js?v=33';
@@ -1337,16 +1337,28 @@ function buildDraftScatterChart(peers, highlightName, chartId) {
     const xTicks = [];
     for (let p = 1; p <= maxPick; p += xStep) xTicks.push(`<text x="${x(p)}" y="${SC2.h - 10}" class="an-tick" text-anchor="middle">${p}</text>`);
 
+    // mediane come assi di senso + etichette di quadrante (stile NYT):
+    // tardi & tanto valore = STEAL (in alto a destra), presto & poco = BUST (in basso a sinistra)
+    const med = arr => { const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+    const mPick = med(peers.map(p => p.pick));
+    const mAV = med(withAV.map(p => p.careerAV));
+    const guides = `
+        <line x1="${x(mPick).toFixed(1)}" y1="${SC2.t}" x2="${x(mPick).toFixed(1)}" y2="${(SC2.t + plotH).toFixed(1)}" class="pp-scat-guide"/>
+        <line x1="${SC2.l}" y1="${y(mAV).toFixed(1)}" x2="${(SC2.l + plotW).toFixed(1)}" y2="${y(mAV).toFixed(1)}" class="pp-scat-guide"/>
+        <text x="${(SC2.l + plotW - 6).toFixed(1)}" y="${(SC2.t + 13).toFixed(1)}" class="pp-scat-quad pp-scat-quad--good" text-anchor="end">STEAL</text>
+        <text x="${(SC2.l + plotW - 6).toFixed(1)}" y="${(SC2.t + 25).toFixed(1)}" class="pp-scat-quadsub" text-anchor="end">late pick, high value</text>
+        <text x="${(SC2.l + 6).toFixed(1)}" y="${(SC2.t + plotH - 8).toFixed(1)}" class="pp-scat-quad pp-scat-quad--bad" text-anchor="start">BUST</text>`;
+
     const dots = peers.filter(p => p.careerAV != null).map(p => {
         const isSelf = p.name === highlightName;
         const cx = x(p.pick).toFixed(1), cy = y(p.careerAV).toFixed(1);
         return `<circle cx="${cx}" cy="${cy}" r="${isSelf ? 7 : 4.5}" fill="${isSelf ? '#B8433A' : 'var(--text-muted)'}"
-            stroke="#000" stroke-width="2" class="an-dot" data-label="${esc(p.name)}${isSelf ? ' (lui)' : ''}" data-pick="${p.pick}" data-av="${p.careerAV}"/>`;
+            stroke="#000" stroke-width="2" class="an-dot${isSelf ? ' pp-scat-self' : ''}" data-label="${esc(p.name)}${isSelf ? ' (lui)' : ''}" data-pick="${p.pick}" data-av="${p.careerAV}"/>`;
     }).join('');
 
     return `
     <div class="an-chart" id="${chartId}" data-chart="scatter">
-        <svg viewBox="0 0 ${SC2.w} ${SC2.h}" class="an-svg">${grid}${xTicks.join('')}${dots}</svg>
+        <svg viewBox="0 0 ${SC2.w} ${SC2.h}" class="an-svg">${grid}${xTicks.join('')}${guides}${dots}</svg>
         <div class="an-chart-tooltip" hidden></div>
     </div>`;
 }
@@ -1538,6 +1550,66 @@ function seasonRidgeline(seasons, nextSeasonProj, nextSeason) {
     ${legend}`;
 }
 
+/**
+ * Timeline della carriera (stile NYT): punti-lega totali per stagione come linea,
+ * con callout sui momenti chiave — annata migliore, stagione parziale (poche gare,
+ * proxy di infortunio). Deriva da seasons[].totals.pts e dalle gare giocate.
+ */
+function seasonTimeline(seasons) {
+    const rows = [...(seasons || [])]
+        .filter(s => s.totals?.pts != null)
+        .map(s => ({ year: +s.year, pts: +s.totals.pts, gp: (s.weekly || []).filter(g => g.pts != null).length }))
+        .sort((a, b) => a.year - b.year);
+    if (rows.length < 3) return '';
+
+    const W = 760, H = 250, M = { l: 40, r: 20, t: 46, b: 30 };
+    const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
+    const y0 = rows[0].year, y1 = rows[rows.length - 1].year;
+    const x = yr => M.l + (y1 > y0 ? (yr - y0) / (y1 - y0) : 0.5) * plotW;
+    const maxP = Math.max(...rows.map(r => r.pts), 1);
+    const ticks = niceTicks(0, maxP);
+    const yMax = ticks[ticks.length - 1] || 1;
+    const yA = v => M.t + (1 - v / yMax) * plotH;
+
+    const grid = ticks.map(v => `
+        <line x1="${M.l}" y1="${yA(v).toFixed(1)}" x2="${M.l + plotW}" y2="${yA(v).toFixed(1)}" class="an-gridline"/>
+        <text x="${M.l - 6}" y="${(yA(v) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${fmt0(v)}</text>`).join('');
+    const xLabels = rows.map(r => `<text x="${x(r.year).toFixed(1)}" y="${H - 8}" class="an-tick" text-anchor="middle">'${String(r.year).slice(2)}</text>`).join('');
+
+    const linePts = rows.map(r => `${x(r.year).toFixed(1)},${yA(r.pts).toFixed(1)}`).join(' ');
+    const line = `<polyline points="${linePts}" class="pp-tl-line"/>`;
+
+    // momenti chiave: annata migliore e stagione parziale (gare ≤ 60% della mediana)
+    const bestI = rows.reduce((bi, r, i) => r.pts > rows[bi].pts ? i : bi, 0);
+    const gps = rows.map(r => r.gp).filter(g => g > 0).sort((a, b) => a - b);
+    const medGp = gps.length ? gps[Math.floor(gps.length / 2)] : 0;
+    let injI = -1;
+    rows.forEach((r, i) => { if (r.gp > 0 && r.gp <= medGp * 0.6 && (injI < 0 || r.gp < rows[injI].gp)) injI = i; });
+
+    const dots = rows.map((r, i) => {
+        const key = i === bestI || i === injI;
+        return `<circle cx="${x(r.year).toFixed(1)}" cy="${yA(r.pts).toFixed(1)}" r="${key ? 5.5 : 4}" class="pp-tl-dot${i === bestI ? ' pp-tl-dot--best' : i === injI ? ' pp-tl-dot--inj' : ''}"><title>${r.year}: ${fmt0(r.pts)} pt · ${r.gp} games</title></circle>`;
+    }).join('');
+
+    const anchorFor = i => x(rows[i].year) > M.l + plotW * 0.82 ? 'end' : x(rows[i].year) < M.l + plotW * 0.18 ? 'start' : 'middle';
+    const callout = (i, text, up, cls) => {
+        if (i < 0) return '';
+        const cx = x(rows[i].year), cy = yA(rows[i].pts);
+        const ty = up ? Math.max(M.t - 6, cy - 22) : cy + 26;
+        return `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${(up ? ty + 4 : ty - 11).toFixed(1)}" class="pp-tl-lead"/>
+            <text x="${cx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${anchorFor(i)}" class="pp-tl-callout ${cls}">${text}</text>`;
+    };
+    const annots = callout(bestI, `Career high · ${fmt0(rows[bestI].pts)} pt`, true, 'pp-tl-callout--best')
+        + (injI >= 0 && injI !== bestI ? callout(injI, `Only ${rows[injI].gp} games`, false, 'pp-tl-callout--inj') : '');
+
+    return `
+    <div class="pp-cmp-chart pp-tl-chart">
+        <svg viewBox="0 0 ${W} ${H}" class="an-svg pp-tl-svg" preserveAspectRatio="xMidYMid meet">
+            ${grid}${line}${dots}${annots}${xLabels}
+        </svg>
+    </div>`;
+}
+
 const FORM_CHART = { w: 720, h: 250, l: 34, r: 16, t: 16, b: 30 };
 
 /**
@@ -1602,6 +1674,17 @@ function seasonFormChart(seasons, projByYear) {
         </g>`;
     }).join('');
 
+    // callout NYT sui due picchi che contano: gara migliore e peggiore
+    const bi = vals.indexOf(Math.max(...vals)), wi = vals.indexOf(Math.min(...vals));
+    const oppOf = g => g.opponent ? `${g.isAway ? '@' : 'vs '}${g.opponent}` : '';
+    const annot = (i, up) => {
+        const g = games[i], yy = yAt(g.pts);
+        const anchor = xAt(i) > C.l + plotW * 0.82 ? 'end' : xAt(i) < C.l + plotW * 0.18 ? 'start' : 'middle';
+        return `<circle cx="${xAt(i).toFixed(1)}" cy="${yy.toFixed(1)}" r="4.5" class="pp-form-annot pp-form-annot--${up ? 'up' : 'down'}"/>
+            <text x="${xAt(i).toFixed(1)}" y="${(yy + (up ? -9 : 15)).toFixed(1)}" text-anchor="${anchor}" class="pp-form-annotlbl pp-form-annotlbl--${up ? 'up' : 'down'}">${fmt0(g.pts)} pt · ${oppOf(g)}</text>`;
+    };
+    const annots = annot(bi, true) + (wi !== bi ? annot(wi, false) : '');
+
     const defs = `<defs>
         <linearGradient id="pp-form-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#6aa4ff" stop-opacity="0.42"/>
@@ -1623,7 +1706,7 @@ function seasonFormChart(seasons, projByYear) {
             <path d="${areaPath}" fill="url(#pp-form-grad)" class="pp-form-area"/>
             <polyline points="${linePts}" class="pp-form-line"/>
             <polyline points="${rollPts}" class="pp-form-roll"/>
-            ${projLine}${dots}${xLabels}
+            ${projLine}${dots}${annots}${xLabels}
         </svg>
         <div class="pp-chart-tip" hidden></div>
     </div>
@@ -1742,6 +1825,7 @@ function metricsBlock(seasons, pos, nextSeasonProj, nextSeason, projByYear) {
                 <div class="pp-kpi pp-kpi--sec">${effKpis}</div>
             </div>` : ''}
         </details>
+        ${(() => { const tl = seasonTimeline(seasons); return tl ? `<h3 class="pp-cat-title" style="margin-top:20px">Career timeline · league points by season</h3>${tl}` : ''; })()}
         ${formChart ? `<h3 class="pp-cat-title" style="margin-top:20px">Form · game by game (last season)</h3>${formChart}` : ''}
         <h3 class="pp-cat-title" style="margin-top:20px">Points distribution by season</h3>
         ${seasonRidgeline(seasons, nextSeasonProj, nextSeason)}
@@ -2645,23 +2729,6 @@ function perfExplainBlock(ctx) {
         const verdict = seasonVerdict(dec, injLabel);
         const causeItems = describeCauses(causesByYear?.[s.year], dec);
         const shown = dec.rows.filter(r => Math.abs(r.pts) >= 1);
-        const maxAbs = Math.max(1, ...shown.map(r => Math.abs(r.pts)));
-
-        // totali stagionali: interi senza decimali, frazionari (proiezioni) con 1
-        const fmtN = (v) => (Math.abs(v - Math.round(v)) < 0.05 ? fmt0(v) : fmt1(v));
-        const statRow = (r) => {
-            const w = Math.abs(r.pts) / maxAbs * 50;
-            const up = r.pts >= 0;
-            return `
-            <div class="pp-pe-row">
-                <span class="pp-pe-stat">${r.label}</span>
-                <span class="pp-pe-cmp">${fmtN(r.proj)} <span class="pp-pe-arr">→</span> <b>${fmtN(r.actual)}</b>${r.unit ? ` <small>${r.unit}</small>` : ''}</span>
-                <span class="pp-pe-track"><span class="pp-pe-zero"></span><span class="pp-pe-fill pp-pe-fill--${up ? 'up' : 'down'}" style="left:${up ? 50 : 50 - w}%;width:${w}%"></span></span>
-                <span class="pp-pe-val pp-pe-val--${up ? 'up' : 'down'}">${up ? '+' : ''}${fmt0(r.pts)}</span>
-            </div>`;
-        };
-        const rowsHtml = shown.map(statRow).join('') +
-            (Math.abs(dec.residual) >= 2 ? `<div class="pp-pe-row pp-pe-row--muted"><span class="pp-pe-stat">Altro (2pt/bonus)</span><span class="pp-pe-cmp"></span><span class="pp-pe-track"></span><span class="pp-pe-val">${dec.residual >= 0 ? '+' : ''}${fmt0(dec.residual)}</span></div>` : '');
 
         const readoutHtml = dec.readouts.length
             ? `<div class="pp-pe-readouts">${dec.readouts.map(r => `${r.label}: ${r.proj != null ? `${r.proj}<span class="pp-pe-arr">→</span>` : ''}<b>${r.actual}</b>`).join(' · ')}</div>`
@@ -2675,7 +2742,7 @@ function perfExplainBlock(ctx) {
         <div class="pp-pe-season">
             <div class="pp-pe-head">${s.year}: reale <b>${fmt0(dec.actPts)}</b> − proiettato ${fmt0(dec.projPts)} = <span class="pp-res pp-res--${dec.error >= 0 ? 'w' : 'l'}">${dec.error >= 0 ? '+' : ''}${fmt0(dec.error)}</span> · ${dec.gpA}/${dec.gpP} gare${missed >= 2 ? ` <span class="pp-pe-miss">(${missed} saltate)</span>` : ''}</div>
             ${verdict?.headline ? `<div class="pp-perr-verdict pp-perr-verdict--${dec.error >= 0 ? 'w' : 'l'}">${verdict.headline}</div>` : ''}
-            <div class="pp-pe-rows">${rowsHtml}</div>
+            ${perfWaterfall(dec, shown)}
             ${readoutHtml}
             ${causesHtml}
         </div>`;
@@ -2684,10 +2751,58 @@ function perfExplainBlock(ctx) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Why he performed this way · projected vs actual, stat by stat</span>
+        <span class="mc-kicker">Why he performed this way · from projected to actual, stat by stat</span>
         ${seasons}
-        <p class="pm-note">Each row is a stat: <b>projected → actual</b> (season totals) and the league-points impact (difference × scoring value). The items add up EXACTLY to the error (actual − projected). Missed games are not a separate row — they reduce volume totals — but are flagged separately. The <b>Why</b> section ties the changes to the real context: teammates' injuries, roster moves, offensive performance and schedule difficulty.</p>
+        <p class="pm-note">The waterfall goes from the <b>projected</b> total to the <b>actual</b> one: each step is a stat's league-points impact (difference × scoring value), <b class="pp-wf-lg-up">green</b> if it added, <b class="pp-wf-lg-down">red</b> if it took away. The steps add up EXACTLY to the error (actual − projected); hover a step for the projected → actual detail. Missed games are not a step — they reduce volume totals — but are flagged separately. The <b>Why</b> section ties the changes to the real context: teammates' injuries, roster moves, offensive performance and schedule difficulty.</p>
     </section>`;
+}
+
+/**
+ * Waterfall della performance (stile NYT): dal totale proiettato al totale reale,
+ * un gradino per statistica (verde = ha aggiunto, rosso = ha tolto). I gradini
+ * sommano ESATTAMENTE all'errore. Sostituisce le vecchie barre divergenti.
+ */
+function perfWaterfall(dec, shown) {
+    const steps = shown.map(r => ({ label: r.label, d: r.pts, proj: r.proj, actual: r.actual }));
+    if (Math.abs(dec.residual) >= 2) steps.push({ label: 'Other', d: dec.residual });
+    const cats = ['Projected', ...steps.map(s => s.label), 'Actual'];
+    const n = cats.length;
+    const W = Math.max(340, 52 + n * 60), H = 214;
+    const M = { l: 40, r: 14, t: 24, b: 52 };
+    const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
+    let cum = dec.projPts; const cums = [dec.projPts];
+    steps.forEach(s => { cum += s.d; cums.push(cum); });
+    const top = Math.max(dec.projPts, dec.actPts, ...cums, 1);
+    const ticks = niceTicks(0, top);
+    const yMax = ticks[ticks.length - 1] || 1;
+    const y = v => M.t + (1 - v / yMax) * plotH;
+    const bw = Math.min(40, (plotW / n) * 0.6);
+    const cx = i => M.l + (i + 0.5) * (plotW / n);
+
+    const grid = ticks.map(v => `
+        <line x1="${M.l}" y1="${y(v).toFixed(1)}" x2="${M.l + plotW}" y2="${y(v).toFixed(1)}" class="an-gridline"/>
+        <text x="${M.l - 6}" y="${(y(v) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${fmt0(v)}</text>`).join('');
+
+    const parts = [];
+    parts.push(`<rect x="${(cx(0) - bw / 2).toFixed(1)}" y="${y(dec.projPts).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(0) - y(dec.projPts)).toFixed(1)}" class="pp-wf-base" rx="2"><title>Projected ${fmt0(dec.projPts)}</title></rect>
+        <text x="${cx(0).toFixed(1)}" y="${(y(dec.projPts) - 6).toFixed(1)}" class="pp-wf-lbl" text-anchor="middle">${fmt0(dec.projPts)}</text>`);
+    let running = dec.projPts, prevTop = dec.projPts;
+    steps.forEach((s, i) => {
+        const a = running, b = running + s.d, up = s.d >= 0;
+        const yTop = Math.min(y(a), y(b)), h = Math.max(1.5, Math.abs(y(a) - y(b)));
+        const xi = cx(i + 1);
+        parts.push(`<line x1="${(cx(i) + bw / 2).toFixed(1)}" y1="${y(prevTop).toFixed(1)}" x2="${(xi - bw / 2).toFixed(1)}" y2="${y(prevTop).toFixed(1)}" class="pp-wf-conn"/>`);
+        parts.push(`<rect x="${(xi - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" class="pp-wf-step pp-wf-step--${up ? 'up' : 'down'}" rx="2"><title>${s.label}${s.proj != null ? `: ${fmt0(s.proj)} → ${fmt0(s.actual)}` : ''} (${up ? '+' : ''}${fmt0(s.d)} pt)</title></rect>`);
+        parts.push(`<text x="${xi.toFixed(1)}" y="${(yTop - 6).toFixed(1)}" class="pp-wf-lbl pp-wf-lbl--${up ? 'up' : 'down'}" text-anchor="middle">${up ? '+' : ''}${fmt0(s.d)}</text>`);
+        running = b; prevTop = b;
+    });
+    const xa = cx(n - 1);
+    parts.push(`<line x1="${(cx(n - 2) + bw / 2).toFixed(1)}" y1="${y(prevTop).toFixed(1)}" x2="${(xa - bw / 2).toFixed(1)}" y2="${y(prevTop).toFixed(1)}" class="pp-wf-conn"/>`);
+    parts.push(`<rect x="${(xa - bw / 2).toFixed(1)}" y="${y(dec.actPts).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(0) - y(dec.actPts)).toFixed(1)}" class="pp-wf-actual" rx="2"><title>Actual ${fmt0(dec.actPts)}</title></rect>
+        <text x="${xa.toFixed(1)}" y="${(y(dec.actPts) - 6).toFixed(1)}" class="pp-wf-lbl pp-wf-lbl--actual" text-anchor="middle">${fmt0(dec.actPts)}</text>`);
+    const xlabels = cats.map((c, i) => `<text x="${cx(i).toFixed(1)}" y="${H - M.b + 15}" class="pp-wf-xlbl" text-anchor="end" transform="rotate(-32 ${cx(i).toFixed(1)} ${H - M.b + 15})">${c}</text>`).join('');
+
+    return `<div class="pp-wf-wrap"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-wf-svg">${grid}${parts.join('')}${xlabels}</svg></div>`;
 }
 
 /**

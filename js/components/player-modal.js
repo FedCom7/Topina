@@ -14,7 +14,7 @@
  */
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=82';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=89';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=90';
 import { TEAMS } from '../sections/team.js?v=92';
 import { playerImageService } from '../services/player-image-service.js?v=15';
 import { getPlayerInfo } from '../data/player-full.js?v=87';
