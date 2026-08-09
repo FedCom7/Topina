@@ -3,18 +3,22 @@
  * dedicata (js/sections/halloffame.js) e chiunque altro debba sapere se un
  * giocatore è stato eletto (es. player-modal.js per la card dorata).
  *
- * Un giocatore è eleggibile 2 anni pieni dopo l'ultima apparizione nei dati
- * (classe X → ritirati entro X-3), con almeno MIN_SEASONS stagioni in lega,
+ * Un giocatore è eleggibile WAIT_YEARS anni pieni dopo l'ultima apparizione
+ * nei dati (classe X → ritirati entro X-4), con almeno MIN_SEASONS stagioni,
  * DEF escluse. Ballottaggio cumulativo: chi non viene eletto resta candidato
  * negli anni successivi. Un eletto all'anno dal FIRST_CLASS_YEAR.
  */
 
-import { SEASONS, CURRENT_SEASON } from '../data.js?v=33';
-import { getHonorsBundle } from './honors.js?v=76';
-import { buildCareers } from './careers.js?v=82';
+import { SEASONS, CURRENT_SEASON } from '../data.js?v=534';
+import { getHonorsBundle } from './honors.js?v=583';
+import { buildCareers } from './careers.js?v=589';
 
-export const FIRST_CLASS_YEAR = 2025;
+/* La prima classe è il 2026: nel 2025 non si è eletto nessuno. */
+export const FIRST_CLASS_YEAR = 2026;
 export const MIN_SEASONS = 3;
+/** Anni pieni di attesa dopo l'ultima stagione giocata prima di finire sulla
+ *  scheda. Classe X → ultima stagione entro X - WAIT_YEARS - 1. */
+export const WAIT_YEARS = 3;
 const SB_BONUS = 120;
 const TOP1_BONUS = 80;
 const ALLPRO1_BONUS = 120;
@@ -27,7 +31,7 @@ function electClasses(careers) {
     const inducted = new Set();
 
     for (let year = FIRST_CLASS_YEAR; year <= Number(CURRENT_SEASON); year++) {
-        const cutoff = String(year - 3);
+        const cutoff = String(year - WAIT_YEARS - 1);
 
         const ballot = [...careers.values()].filter(c =>
             c.position !== 'DEF' &&

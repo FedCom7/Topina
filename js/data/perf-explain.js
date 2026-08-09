@@ -21,8 +21,8 @@
  * (reale) — stessi nomi-campo Sleeper. Scoring da league-rules via scoring.js.
  */
 
-import { LEAGUE_SCORING } from './scoring.js?v=92';
-import { normName } from './projections.js?v=90';
+import { LEAGUE_SCORING } from './scoring.js?v=592';
+import { normName } from './projections.js?v=589';
 
 // ── CAUSE reali (fase 2): file per-anno precalcolato da build-perf-causes.mjs ──
 const _causes = {}; // year → Map(normName|POS → causes) | null

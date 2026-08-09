@@ -6,17 +6,17 @@
  * confronto stats di squadra + difference maker → player notes.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=33';
-import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { getLeagueData } from '../data/league-data.js?v=11';
-import { getHonorsBundle } from '../data/honors.js?v=76';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=20';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=534';
+import { TEAM_KEYS } from '../data/team-config.js?v=533';
+import { getLeagueData } from '../data/league-data.js?v=534';
+import { getHonorsBundle } from '../data/honors.js?v=583';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals,
     playerComment, playerNotes, recapArticle,
-} from '../data/matchup-analysis.js?v=13';
-import { TEAMS } from './team.js?v=92';
-import { playerImageService } from '../services/player-image-service.js?v=15';
+} from '../data/matchup-analysis.js?v=520';
+import { TEAMS } from './team.js?v=599';
+import { playerImageService } from '../services/player-image-service.js?v=515';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

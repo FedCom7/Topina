@@ -793,6 +793,32 @@ img {
     font-weight: inherit;
 }
 
+/* A giornata iniziata la proiezione non sparisce: si fa da parte. Resta di
+   fianco al numero vero, piccola e in corsivo, per dire "ci si aspettava
+   questo". Vale per i punti dei giocatori, per il totale di squadra nel banner
+   e per ogni statistica nella scheda. */
+.pts-proj,
+.pm-proj {
+    margin-left: 0.35em;
+    font-size: 0.66em;
+    font-style: italic;
+    font-weight: 500;
+    opacity: 0.55;
+    vertical-align: baseline;
+    letter-spacing: 0;
+}
+
+.pm-game-cell-val .pm-proj {
+    font-size: 0.55em;
+}
+
+/* Nel banner il punteggio è enorme: alla proiezione basta una frazione, o
+   ruberebbe la scena al numero vero. */
+.gc-banner-score .pts-proj {
+    font-size: 0.3em;
+    margin-left: 0.5em;
+}
+
 .gc-banner-mid {
     display: flex;
     flex-direction: column;
@@ -1078,7 +1104,9 @@ img {
 }
 
 .slot-pts {
-    font-size: clamp(0.6rem, 0.9vw, 0.75rem);
+    /* il numero sotto la foto è la cosa che si guarda di più su questa pagina:
+       tenuto grande abbastanza da leggersi con un colpo d'occhio */
+    font-size: clamp(0.85rem, 1.25vw, 1.1rem);
     color: #4ade80;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
@@ -5247,7 +5275,10 @@ img {
 .honors-finalist-stat {
     color: var(--text-muted);
     font-size: 0.75rem;
-    white-space: nowrap;
+    /* il Coach of the Year porta tre numeri: se non può andare a capo,
+       l'ultimo resta tagliato a metà */
+    text-align: right;
+    text-wrap: balance;
 }
 
 .honors-sealed-note {
@@ -5502,11 +5533,13 @@ img {
     position: absolute;
     inset: -6% -12%;
     pointer-events: none;
+    /* I due aloni rossi — in alto a sinistra e in fondo a sinistra — sono via:
+       si vedevano come una macchia rossa sotto le card, all'inizio e alla fine
+       della pagina. Restano l'ambra e il blu, che al vetro delle card basta
+       avere qualcosa da sfocare dietro. */
     background:
-        radial-gradient(38% 26% at 14% 6%, color-mix(in srgb, var(--accent-red) 26%, transparent), transparent 70%),
-        radial-gradient(34% 22% at 88% 22%, rgba(228, 178, 62, 0.17), transparent 70%),
-        radial-gradient(40% 26% at 74% 62%, rgba(78, 118, 226, 0.17), transparent 70%),
-        radial-gradient(36% 24% at 20% 88%, color-mix(in srgb, var(--accent-red) 16%, transparent), transparent 70%);
+        radial-gradient(34% 22% at 88% 22%, rgba(228, 178, 62, 0.14), transparent 70%),
+        radial-gradient(40% 26% at 74% 62%, rgba(78, 118, 226, 0.15), transparent 70%);
 }
 
 /* ── Card base: stessa ricetta delle card All Teams ── */
@@ -13375,7 +13408,30 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     height: 100%;
     object-fit: cover;
     object-position: center 30%;
-    filter: brightness(0.55) saturate(0.88);
+    filter: brightness(0.42) saturate(0.8);
+}
+
+/* Velo scuro sopra il campo: le figurine e i punteggi devono staccarsi dallo
+   sfondo, e il verde chiaro delle yard line se li mangiava. Più fitto sotto,
+   dove stanno le righe con le statistiche piccole. Sta SOTTO ai giocatori
+   (`.field-overlay` viene dopo nel DOM) e non intercetta i clic. */
+.live-field-solo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(180deg,
+        rgba(6, 10, 12, 0.28) 0%,
+        rgba(6, 10, 12, 0.42) 45%,
+        rgba(6, 10, 12, 0.62) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* i giocatori restano sopra al velo */
+.live-field-solo .field-overlay,
+.live-field-solo .live-swap-btn {
+    z-index: 1;
 }
 
 /* Reparti spinti verso il basso: K/DEF restano in end zone, il resto scende. */
@@ -13412,7 +13468,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .live-formation-bottom {
     display: flex;
     flex-direction: column;
-    gap: clamp(6px, 1.2vh, 14px);
+    /* più aria fra scrimmage e backfield: la riga di mezzo sale, il backfield
+       resta dov'è, e le scritte attorno alle foto non si sfiorano */
+    gap: clamp(16px, 2.6vh, 34px);
     margin-top: auto; /* spinge attacco e backfield verso il fondo campo */
 }
 
@@ -13424,7 +13482,10 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 
 .live-row--line {
-    gap: clamp(2px, 0.5vw, 8px);
+    /* passo stretto: così i cinque marcatori della linea offensiva restano
+       attaccati fra loro. Lo spazio in più lo prendono i giocatori, con i
+       margini qui sotto. */
+    gap: clamp(2px, 0.4vw, 6px);
 }
 
 /* ── Giocatore sul campo: foto tonda + nome/punti + riquadro stats, senza card ── */
@@ -13483,14 +13544,86 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .live-field-solo .formation-slot.live-slot .slot-pts {
     display: block;
     font-family: var(--font-display);
-    font-size: clamp(0.72rem, 0.95vw, 0.92rem);
+    /* il doppio di prima: liberato lo spazio sotto la foto, il punteggio è il
+       numero che si guarda e può prendersi la scena */
+    font-size: clamp(1.44rem, 1.9vw, 1.84rem);
     font-weight: 900;
     color: var(--accent-green);
     line-height: 1.1;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
 }
 
-/* Statistiche in un riquadro sotto la foto */
+/* ── Statistiche attorno alla foto (solo campo) ──────────────────
+   Girano lungo il bordo del cerchio invece di stare in un riquadro sotto:
+   partono dalle "40 di orologio" (in basso a sinistra) e proseguono in senso
+   orario una attaccata all'altra, fin dove arrivano. Liberano lo spazio sotto
+   la foto, dove ora il punteggio sta grande il doppio. */
+.live-slot-stats.live-slot-stats--ring {
+    /* Sotto i 1000px non si mostrano: là la scritta dovrebbe stare appoggiata
+       al cerchio, minuscola e sopra la foto, e si legge peggio di come non
+       c'è. Da 1000px in su torna, girando FUORI dal cerchio (in fondo al
+       file). Restano nome e punteggio, che è quello che si guarda al volo. */
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    pointer-events: none;
+    /* :40 su un quadrante = 240° dal alto, in senso orario */
+    --start: 240deg;
+    /* passo per carattere: quanto è largo, così i caratteri si toccano */
+    --cstep: 3.7deg;
+    /* passo stretto: le sei voci coprono 150° invece di 180, e le due estreme
+       restano in alto invece di sporgere a mezza altezza, dove finivano
+       addosso alle etichette del giocatore accanto */
+    --step: 30deg;
+    /* Su schermo stretto la scritta resta appoggiata al bordo della foto: il
+       campo non ha spazio per farla uscire senza che finisca addosso al
+       giocatore accanto. Da 1000px in su esce, vedi più sotto. */
+    --r: clamp(37px, 4.7vw, 63px);
+}
+
+/* Un carattere per volta: ruotato al suo posto lungo la curva e NON
+   contro-ruotato, così la scritta segue il cerchio come su un timbro. Il passo
+   è uguale per tutti, quindi le voci risultano attaccate come un'unica stringa. */
+.live-slot-stats.live-slot-stats--ring .live-ring-ch {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: 50% 50%;
+    transform:
+        translate(-50%, -50%)
+        rotate(calc(var(--start) + var(--c) * var(--cstep)))
+        translate(0, calc(-1 * var(--r)));
+    font-size: clamp(0.44rem, 0.55vw, 0.58rem);
+    font-style: normal;
+    line-height: 1;
+    white-space: pre;
+    text-shadow:
+        0 0 3px rgba(6, 10, 12, 0.95),
+        0 0 6px rgba(6, 10, 12, 0.9);
+}
+
+.live-slot-stats.live-slot-stats--ring .live-ring-num {
+    color: #fff;
+    font-weight: 800;
+}
+
+.live-slot-stats.live-slot-stats--ring .live-ring-lbl {
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: 600;
+}
+
+.live-slot-stats.live-slot-stats--ring .live-ring-sep {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* Statistiche in un riquadro sotto la foto (panchina e resto del sito) */
 /* Riquadro statistiche identico per tutti: griglia fissa 2×3 (6 voci). */
 .live-slot-stats {
     display: grid;
@@ -13858,7 +13991,12 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
-    align-items: start;
+    /* i tre pannelli sono alti uguali: la riga la detta il più alto e gli
+       altri si allungano, invece di finire a scalini. Con un tetto, però: un
+       tabellone da sedici partite renderebbe la riga altissima e gli altri due
+       due colonne vuote. */
+    align-items: stretch;
+    grid-auto-rows: minmax(0, 380px);
     margin-bottom: 20px;
 }
 
@@ -13868,6 +14006,18 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .live-widgets > * {
     grid-column: auto;
     min-width: 0;
+    /* colonna flessibile: l'intestazione resta in alto e la lista sotto occupa
+       quello che avanza, scorrendo se non ci sta */
+    display: flex;
+    flex-direction: column;
+}
+
+.live-widgets .pbp-stack,
+.live-widgets .live-nfl-games,
+.live-widgets #live-injuries {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .pbp-stack {
@@ -14217,4 +14367,609 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+}
+
+/* Interruttore preseason: strumento di collaudo, quindi sobrio quando è
+   spento e inequivocabile quando è acceso. */
+.live-preseason-btn {
+    padding: 4px 11px;
+    border-radius: var(--pill-radius);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-glass);
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+        background var(--dur-fast) ease;
+}
+
+.live-preseason-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.live-preseason-btn.is-on {
+    color: var(--accent-amber);
+    border-color: var(--accent-amber);
+    background: color-mix(in srgb, var(--accent-amber) 16%, transparent);
+}
+
+/* ── Live · risultati delle partite NFL vere ─────────────────────
+   Solo le gare in cui gioca un tesserato della squadra a schermo. */
+.live-nfl-games {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 10px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.live-nfl-games::-webkit-scrollbar { width: 6px; }
+.live-nfl-games::-webkit-scrollbar-track { background: transparent; }
+.live-nfl-games::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 999px; }
+
+.live-nfl-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1px 10px;
+    padding: 7px 8px;
+    border-radius: var(--radius-sm);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.live-nfl-row:last-child { border-bottom: none; }
+
+/* partita in corso: si distingue dal fondo, non da un colore urlato */
+.live-nfl-row--live { background: rgba(255, 255, 255, 0.05); }
+
+.live-nfl-teams {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.live-nfl-score {
+    font-family: var(--font-display);
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.live-nfl-score b { color: #fff; font-weight: 800; }
+
+.live-nfl-kick {
+    font-size: 0.64rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* seconda riga: chi dei miei gioca in quella partita */
+.live-nfl-mine {
+    grid-column: 1 / -1;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.live-nfl-when {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.6rem;
+    color: var(--live-yellow, var(--accent-amber));
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ── Prima del draft: si dice, non si inventa ────────────────────
+   ESPN riempie le squadre di rose segnaposto per non mostrarle vuote. Non le
+   mostriamo: al loro posto una spiegazione. */
+.live-nodraft {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 54px 24px;
+    text-align: center;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-sheen);
+}
+
+.live-nodraft-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.live-nodraft-text {
+    margin: 0;
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* Posto vuoto sul campo, prima del draft: stessa card dei giocatori, ma
+   spenta — la sagoma grigia al posto della foto e i trattini al posto dei
+   numeri. Deve leggersi come "qui manca qualcuno", non come un errore. */
+.live-slot--empty {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.live-slot--empty .slot-photo img {
+    filter: grayscale(1);
+    opacity: 0.6;
+}
+
+.live-slot--empty .slot-name,
+.live-slot--empty .slot-pts {
+    color: var(--text-muted);
+}
+
+.live-nodraft-note {
+    margin: 18px 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.live-nodraft-note a {
+    color: var(--accent-red);
+    text-decoration: none;
+}
+
+/* ─── Dentro la partita ────────────────────────────────────────────
+   Per ogni squadra NFL in cui ho un giocatore: come l'attacco distribuisce il
+   gioco. Le barre sono proporzionali al più usato della squadra, così si vede
+   a colpo d'occhio se davanti al mio c'è qualcuno che prende più palloni. */
+.live-deep {
+    margin-top: 26px;
+}
+
+.live-deep-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    margin-bottom: 12px;
+}
+
+.live-deep-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* Navigazione fra le partite: frecce e sigle, come si girano le card delle
+   giocate. Una partita per volta, a tutta larghezza, o le barre diventano
+   troppo corte per dire qualcosa. */
+.live-deep-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    max-width: 100%;
+    overflow-x: auto;          /* con dodici squadre non deve mandare a capo */
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+
+.live-deep-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.live-deep-arrow,
+.live-deep-dot {
+    flex: 0 0 auto;
+}
+
+.live-deep-arrow,
+.live-deep-dot {
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--bg-glass-border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.live-deep-arrow {
+    padding: 3px 8px;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.live-deep-arrow:hover,
+.live-deep-dot:hover {
+    color: var(--text-primary);
+}
+
+.live-deep-dot.active {
+    color: var(--text-primary);
+    border-color: var(--tc-sel, var(--accent-red));
+    background: color-mix(in srgb, var(--tc-sel, var(--accent-red)) 22%, transparent);
+}
+
+.live-deep-game {
+    padding: 14px 16px 12px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.live-deep-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--bg-glass-border);
+}
+
+.live-deep-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    align-self: center;
+}
+
+/* Il nome della squadra di cui si stanno guardando i giocatori: è la cosa che
+   prima non si capiva, quindi viene per prima e in grande. */
+.live-deep-team {
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.live-deep-vs {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.live-deep-sub {
+    margin: 0 0 12px;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+.live-deep-sub b {
+    color: var(--tc-sel, var(--accent-red));
+    font-weight: 700;
+}
+
+.live-deep-score {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.live-deep-score i {
+    margin: 0 3px;
+    font-style: normal;
+    color: var(--text-muted);
+}
+
+.live-deep-when {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.live-uso-blocco + .live-uso-blocco {
+    margin-top: 12px;
+}
+
+.live-uso-titolo {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.live-uso-row,
+.live-uso-qb {
+    display: grid;
+    grid-template-columns: 5.4rem 1fr auto 2.6rem;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+    font-size: 0.76rem;
+}
+
+.live-uso-qb {
+    grid-template-columns: 5.4rem 1fr 2.6rem;
+}
+
+/* i punti fantasy della riga: è la risposta a "chi sta facendo di più" */
+.live-uso-pts {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: #4ade80;
+}
+
+.live-uso-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.live-uso-bar {
+    position: relative;
+    height: 9px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.07);
+    overflow: hidden;
+}
+
+.live-uso-fill {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.13);
+    transition: width 0.4s ease;
+}
+
+/* la porzione piena sono le ricezioni sui bersagli: quanto di quello che gli
+   hanno mandato ha davvero preso */
+.live-uso-done {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.live-uso-val {
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* il mio giocatore: nome pieno e barra nel colore della squadra selezionata */
+.live-uso-row--mio .live-uso-nome {
+    color: var(--tc-sel, var(--accent-red));
+    font-weight: 800;
+}
+
+.live-uso-row--mio .live-uso-val {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+/* Mio giocatore che nel tabellino non c'è: resta in fondo al suo reparto,
+   spento e senza barra, così si legge come "fermo" e non come "assente dalla
+   rosa". */
+.live-uso-row--fermo {
+    opacity: 0.6;
+}
+
+.live-uso-row--fermo .live-uso-bar {
+    background: repeating-linear-gradient(90deg,
+        rgba(255, 255, 255, 0.09) 0 4px, transparent 4px 8px);
+}
+
+.live-uso-row--fermo .live-uso-val {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.live-uso-row--fermo .live-uso-pts {
+    color: var(--text-muted);
+}
+
+/* La barra del mio giocatore è nel colore della squadra: tenue per la parte
+   "bersagli", piena per le ricezioni. Niente `opacity` sul contenitore, o il
+   pieno non potrebbe risultare più acceso di ciò che lo contiene. */
+.live-uso-row--mio .live-uso-fill {
+    background: color-mix(in srgb, var(--tc-sel, var(--accent-red)) 32%, transparent);
+}
+
+.live-uso-row--mio .live-uso-done {
+    background: var(--tc-sel, var(--accent-red));
+}
+
+@media (max-width: 560px) {
+    .live-uso-row,
+    .live-uso-qb {
+        grid-template-columns: 4.4rem 1fr auto 2.3rem;
+        font-size: 0.72rem;
+    }
+}
+
+/* ── Confronto fra le due squadre della partita ──────────────────
+   Una barra sola per voce, divisa fra le due: dice a colpo d'occhio da dove
+   è arrivata la partita — per aria, per terra, o dagli errori dell'altro. */
+.live-cmpteam {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bg-glass-border);
+}
+
+.live-cmpteam-head {
+    display: grid;
+    grid-template-columns: 3.4rem 1fr 3.4rem;
+    align-items: center;
+    margin-bottom: 8px;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.live-cmpteam-head > :last-child {
+    text-align: right;
+}
+
+.live-cmpteam-title {
+    text-align: center;
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.live-cmpteam-row {
+    display: grid;
+    grid-template-columns: 3.4rem 1fr 3.4rem;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+}
+
+.live-cmpteam-val {
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.live-cmpteam-val--r {
+    text-align: right;
+}
+
+/* chi ha la meglio su quella voce: acceso, gli altri restano attenuati */
+.live-cmpteam-val.is-top {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.live-cmpteam-label {
+    display: block;
+    text-align: center;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+
+.live-cmpteam-bar {
+    display: block;
+    height: 5px;
+    border-radius: 3px;
+    /* la parte a destra è dell'avversario: si vede per differenza */
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.live-cmpteam-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--tc-sel, var(--accent-red)) 65%, transparent);
+    transition: width 0.4s ease;
+}
+
+/* Sack subiti, palle perse, penalità: qui la barra più lunga è la peggiore,
+   quindi resta neutra — colorarla direbbe il contrario di quello che vale. */
+.live-cmpteam-fill.is-inverse {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.live-cmpteam-giu {
+    margin-left: 3px;
+    font-style: normal;
+    opacity: 0.55;
+}
+
+/* Partita finita: quel giocatore non farà più punti. La card si spegne, così
+   a colpo d'occhio si distingue chi ha ancora da giocare da chi ha chiuso.
+   Non si nasconde niente: resta tutto leggibile, solo più in ombra. */
+.live-slot--done,
+.live-cmp-row--done {
+    opacity: 0.5;
+}
+
+.live-slot--done .slot-photo img,
+.live-slot--done .live-chip-photo img {
+    filter: grayscale(0.7);
+}
+
+/* il cerchio attorno alla foto perde il bagliore: la partita è chiusa */
+.live-slot--done .slot-photo {
+    box-shadow: none;
+}
+
+.live-slot--done .slot-pts,
+.live-slot--done .live-chip-pts {
+    color: var(--text-muted);
+}
+
+/* la proiezione accanto al punteggio non serve più: la partita è andata */
+.live-slot--done .pts-proj {
+    display: none;
+}
+
+
+/* ── Statistiche FUORI dal cerchio (da 1000px) ────────────────────
+   Con abbastanza larghezza la scritta gira attorno alla foto senza coprirla.
+   Sporge una ventina di pixel per lato, quindi le righe si allargano: il campo
+   ha spazio avanzato, i giocatori si distanziano e nessuno finisce addosso a
+   quello accanto. */
+@media (min-width: 1000px) {
+    .live-slot-stats.live-slot-stats--ring {
+        display: block;
+        --r: clamp(58px, 6.1vw, 84px);
+        /* passo cresciuto con il corpo: i caratteri devono restare attaccati
+           senza accavallarsi */
+        --cstep: 4.3deg;
+    }
+
+    .live-slot-stats.live-slot-stats--ring .live-ring-ch {
+        font-size: clamp(0.62rem, 0.76vw, 0.82rem);
+    }
+
+    .live-row {
+        gap: clamp(30px, 3.6vw, 54px);
+    }
+
+    /* La riga di scrimmage tiene il suo passo stretto: la regola generale qui
+       sopra, arrivando dopo nel file, gliel'aveva soffiato e le X si erano
+       sparpagliate. */
+    .live-row--line {
+        gap: clamp(2px, 0.4vw, 6px);
+    }
+
+    /* Solo i giocatori si allontanano: le X della linea offensiva restano
+       incollate fra loro, come una linea vera. */
+    .live-row--line .formation-slot.live-slot {
+        /* la scritta attorno alla foto sporge ~24px per lato: fra due
+           giocatori ce ne vogliono una cinquantina, e li danno questi margini
+           (le X in mezzo restano attaccate, il passo della riga è stretto) */
+        margin-inline: clamp(12px, 1.9vw, 28px);
+    }
+
+    /* In panchina la scritta gira fuori dal cerchio come in campo: misurato,
+       sporge una ventina di pixel per lato, e fra due panchinari ne servono
+       quindi una cinquantina. */
+    .live-bench-row {
+        gap: 40px 60px;
+    }
 }

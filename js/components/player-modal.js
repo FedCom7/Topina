@@ -13,12 +13,12 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=82';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=90';
-import { TEAMS } from '../sections/team.js?v=92';
-import { playerImageService } from '../services/player-image-service.js?v=15';
-import { getPlayerInfo } from '../data/player-full.js?v=87';
-import { getHallOfFameYear } from '../data/hall-of-fame.js?v=76';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=589';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=589';
+import { TEAMS } from '../sections/team.js?v=599';
+import { playerImageService } from '../services/player-image-service.js?v=515';
+import { getPlayerInfo } from '../data/player-full.js?v=588';
+import { getHallOfFameYear } from '../data/hall-of-fame.js?v=583';
 
 const MAX_NFL_YEARS = 5;
 const FIRST_PROJ_YEAR = 2018; // Sleeper non ha proiezioni prima
@@ -210,12 +210,18 @@ const GAME_STAT_ORDER = {
  * quello che i dati contengono davvero, ordinato per ruolo e con le voci ignote
  * in coda (così una chiave nuova non sparisce silenziosamente).
  */
-function gameStatCells(pos, s = {}) {
+function gameStatCells(pos, s = {}, proj = null) {
     let role = (pos || '').toUpperCase();
     if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX' || role === 'TE') role = role === 'TE' ? 'WR' : 'WR';
     if (role === 'D/ST') role = 'DEF';
 
-    const present = Object.keys(s).filter(k => s[k] != null);
+    // Le voci da mostrare sono quelle con un dato reale OPPURE una previsione:
+    // a partita appena cominciata i numeri veri sono tutti a zero, e senza
+    // questo la scheda direbbe "nessuna statistica" proprio quando serve.
+    const present = [...new Set([
+        ...Object.keys(s).filter(k => s[k] != null),
+        ...Object.keys(proj || {}).filter(k => proj[k] != null),
+    ])];
     const preferred = (GAME_STAT_ORDER[role] || []).filter(k => present.includes(k));
     const rest = present.filter(k => !preferred.includes(k));
 
@@ -225,13 +231,17 @@ function gameStatCells(pos, s = {}) {
     };
     return [...preferred, ...rest].map(k => ({
         label: GAME_STAT_LABELS[k] || k.replace(/_/g, ' '),
-        value: round(s[k]),
+        value: round(s[k] ?? 0),
+        // la stessa voce nelle proiezioni, per il confronto a colpo d'occhio
+        proj: proj && proj[k] != null ? round(proj[k]) : null,
     }));
 }
 
 function gameBlockHtml(game, pos) {
-    const { pts = 0, opponent = '', status = '', week, year, started, stats } = game;
-    const cells = gameStatCells(pos, stats); // include già fum_lost se presente
+    const { pts = 0, opponent = '', status = '', week, year, started, stats,
+        projPts = null, projStats = null } = game;
+    // accanto a ogni numero reale, in piccolo, quello che era previsto
+    const cells = gameStatCells(pos, stats, projStats); // include già fum_lost se presente
 
     const meta = [
         week ? `Week ${week}` : '',
@@ -243,7 +253,8 @@ function gameBlockHtml(game, pos) {
     const grid = cells.length
         ? `<div class="pm-game-grid">${cells.map(c => `
             <div class="pm-game-cell">
-                <span class="pm-game-cell-val">${c.value}</span>
+                <span class="pm-game-cell-val">${c.value}${c.proj != null
+                    ? `<small class="pm-proj" title="projected">${c.proj}</small>` : ''}</span>
                 <span class="pm-game-cell-lbl">${c.label}</span>
             </div>`).join('')}</div>`
         : '<p class="pm-game-empty">No stats recorded for this game.</p>';
@@ -252,7 +263,8 @@ function gameBlockHtml(game, pos) {
     <section class="pm-block pm-game">
         <h3 class="pm-block-title">This game</h3>
         <div class="pm-game-head">
-            <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small></span>
+            <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small>${projPts != null
+                ? `<small class="pm-proj" title="projected">${Number(projPts).toFixed(1)}</small>` : ''}</span>
             <span class="pm-game-meta">${meta}</span>
         </div>
         ${status ? `<p class="pm-game-status">${status}</p>` : ''}

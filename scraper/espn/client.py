@@ -31,11 +31,10 @@ def fetch(season, views, week=None, cfg=None, retries=3):
     if week is not None:
         query += f"&scoringPeriodId={week}"
     url = f"{base}?{query}"
-    headers = {
-        "Cookie": config.cookie_header(cfg),
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json",
-    }
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    cookie = config.cookie_header(cfg)
+    if cookie:
+        headers["Cookie"] = cookie
 
     last_err = None
     for attempt in range(retries):
@@ -50,8 +49,9 @@ def fetch(season, views, week=None, cfg=None, retries=3):
         except urllib.error.HTTPError as e:
             if e.code == 401:
                 raise ESPNAuthError(
-                    "ESPN returned 401 (Unauthorized). The espn_s2/SWID cookies in "
-                    "espn_config.json have likely expired — refresh them."
+                    "ESPN returned 401 (Unauthorized). Either the league was set back "
+                    "to private (make it public again, or provide espn_s2/SWID cookies) "
+                    "or the cookies in espn_config.json have expired."
                 )
             last_err = e
             if e.code == 404:
@@ -72,11 +72,13 @@ def fetch_players(season, cfg=None):
     cfg = cfg or config.load_config()
     url = f'{config.READ_HOST}/seasons/{season}/players?view=players_wl'
     headers = {
-        "Cookie": config.cookie_header(cfg),
         "User-Agent": "Mozilla/5.0",
         "Accept": "application/json",
         "x-fantasy-filter": json.dumps({"filterActive": {"value": True}}),
     }
+    cookie = config.cookie_header(cfg)
+    if cookie:
+        headers["Cookie"] = cookie
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=60) as resp:
         players = json.load(resp)

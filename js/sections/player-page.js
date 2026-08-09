@@ -12,22 +12,22 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=87';
-import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=12';
-import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=19';
-import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=82';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=98';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=90';
-import { playerImageService } from '../services/player-image-service.js?v=15';
-import { canonAbbr } from '../data/nfl-schedule.js?v=20';
-import { CURRENT_SEASON } from '../data.js?v=33';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=74';
-import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=71';
-import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=10';
-import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=1';
-import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=5';
-import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=81';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=588';
+import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
+import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=526';
+import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=589';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=605';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=589';
+import { playerImageService } from '../services/player-image-service.js?v=515';
+import { canonAbbr } from '../data/nfl-schedule.js?v=520';
+import { CURRENT_SEASON } from '../data.js?v=534';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=581';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=508';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=578';
+import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
+import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';
+import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=505';
+import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=581';
 
 export const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 // Da 2019 alla stagione NFL corrente (calcolata dalla data): così l'anno nuovo

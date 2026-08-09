@@ -2,12 +2,13 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=33';
-import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=92';
-import { playerImageService } from '../services/player-image-service.js?v=15';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=98';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
+import { TEAM_KEYS } from '../data/team-config.js?v=533';
+import { TEAMS } from './team.js?v=599';
+import { playerImageService } from '../services/player-image-service.js?v=515';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=605';
 import { db } from '../firebase-config.js';
+import { fetchDraftStatus } from '../data/espn-fantasy.js?v=4';
 
 let loaded = false;
 let currentPicks = [];
@@ -35,6 +36,39 @@ function renderYearSelector() {
     });
 }
 
+/**
+ * Stato del draft quando i dati non ci sono ancora: in programma con il conto
+ * alla rovescia, oppure non ancora fissato. ESPN espone la data solo quando il
+ * commissioner la imposta, quindi il secondo caso è la norma per mesi.
+ */
+async function pendingDraftHTML(year) {
+    let stato = null;
+    try { stato = await fetchDraftStatus(year); } catch { /* si mostra il generico */ }
+
+    if (stato?.date) {
+        const mancano = stato.date - Date.now();
+        const giorni = Math.floor(mancano / 86400000);
+        const ore = Math.floor((mancano % 86400000) / 3600000);
+        const quando = stato.date.toLocaleString('en-GB',
+            { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+        return `
+        <div class="live-nodraft">
+            <p class="mc-kicker">Draft ${year}</p>
+            <p class="live-nodraft-title">${mancano > 0
+                ? `${giorni} days and ${ore} hours to go`
+                : 'The draft is under way'}</p>
+            <p class="live-nodraft-text">${quando}</p>
+        </div>`;
+    }
+    return `
+    <div class="live-nodraft">
+        <p class="mc-kicker">Draft ${year}</p>
+        <p class="live-nodraft-title">The draft has not been scheduled yet</p>
+        <p class="live-nodraft-text">As soon as the commissioner sets a date the countdown
+           will show up here. Once the draft is done the picks load on their own.</p>
+    </div>`;
+}
+
 async function loadYear(year) {
     currentYear = year; // Update global
     const grid = document.getElementById('draft-grid');
@@ -43,7 +77,12 @@ async function loadYear(year) {
     try {
         const data = await fetchDraftData(year);
         if (!data) {
-            grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No draft for ${year}</p></div>`;
+            // Sulla stagione in corso si può dire qualcosa di più utile di "non
+            // c'è": si chiede alla lega se il draft sia stato fatto e quando è
+            // in programma. Sugli anni passati non ha senso e non si chiede.
+            grid.innerHTML = String(year) === String(CURRENT_SEASON)
+                ? await pendingDraftHTML(year)
+                : `<div class="empty-state"><p class="empty-state-text">No draft for ${year}</p></div>`;
             document.getElementById('dr-round-selector').innerHTML = '';
             return;
         }

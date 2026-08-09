@@ -20,18 +20,18 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=33';
-import { TEAM_KEYS } from '../data/team-config.js?v=33';
-import { TEAMS } from './team.js?v=92';
-import { getHonorsBundle } from '../data/honors.js?v=76';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=90';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=80';
-import { initPlayerModal } from '../components/player-modal.js?v=98';
-import { playerImageService } from '../services/player-image-service.js?v=15';
-import { pickSeeded } from '../data/magazine-voices.js?v=17';
-import { predictSeason } from '../data/draft-predictions.js?v=85';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=74';
-import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=27';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=534';
+import { TEAM_KEYS } from '../data/team-config.js?v=533';
+import { TEAMS } from './team.js?v=599';
+import { getHonorsBundle } from '../data/honors.js?v=583';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=589';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=587';
+import { initPlayerModal } from '../components/player-modal.js?v=605';
+import { playerImageService } from '../services/player-image-service.js?v=515';
+import { pickSeeded } from '../data/magazine-voices.js?v=517';
+import { predictSeason } from '../data/draft-predictions.js?v=592';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=581';
+import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=533';
 import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=5';
 
 let initialized = false;

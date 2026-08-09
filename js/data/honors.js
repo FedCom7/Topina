@@ -8,9 +8,9 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
-} from '../data.js?v=33';
-import { TEAM_KEYS } from './team-config.js?v=33';
-import { FLEX_ELIGIBLE } from './league-rules.js?v=28';
+} from '../data.js?v=534';
+import { TEAM_KEYS } from './team-config.js?v=533';
+import { FLEX_ELIGIBLE } from './league-rules.js?v=528';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')
 function toKey(rawName) {
@@ -260,17 +260,48 @@ export function computeAwards(players, managers, draftPicks, rookieCtx = {}) {
             p => p.pos === 'DEF'),
     );
 
-    // Coach of the Year — lineup efficiency: chi ha lasciato meno punti in panchina
-    const coaches = Object.entries(managers)
-        .map(([teamKey, m]) => ({ teamKey, ...m }))
-        .sort((a, b) => b.efficiency - a.efficiency);
+    // Coach of the Year — non basta più la sola lineup efficiency: un manager si
+    // giudica anche su come ha draftato e su cosa ha saputo pescare dopo. Tre
+    // metriche, ognuna con la sua classifica, e vince chi sta meglio nella somma
+    // delle tre posizioni (a parità, chi ha lasciato meno punti in panchina).
+    const coaches = Object.entries(managers).map(([teamKey, m]) => {
+        const suoi = all.filter(p => p.teamKey === teamKey);
+        // "draftato da lui" = scelto al draft da questa squadra. Chi è finito
+        // altrove non conta, e chi è arrivato dopo il draft è pescato.
+        const draftati = new Set(draftPicks.filter(pk => toKey(pk.team) === teamKey).map(pk => pk.player));
+        const draftPts = suoi.filter(p => draftati.has(p.name)).reduce((s, p) => s + p.total, 0);
+        const waiverPts = suoi.filter(p => !draftati.has(p.name)).reduce((s, p) => s + p.total, 0);
+        return { teamKey, ...m, draftPts: +draftPts.toFixed(2), waiverPts: +waiverPts.toFixed(2) };
+    });
+
+    const posizione = (lista, chiave) => {
+        const ordinata = [...lista].sort((a, b) => b[chiave] - a[chiave]);
+        return new Map(ordinata.map((c, i) => [c.teamKey, i + 1]));
+    };
+    const rEff = posizione(coaches, 'efficiency');
+    const rDraft = posizione(coaches, 'draftPts');
+    const rWaiver = posizione(coaches, 'waiverPts');
+    coaches.forEach(c => {
+        c.rankEff = rEff.get(c.teamKey);
+        c.rankDraft = rDraft.get(c.teamKey);
+        c.rankWaiver = rWaiver.get(c.teamKey);
+        c.score = c.rankEff + c.rankDraft + c.rankWaiver;
+    });
+    coaches.sort((a, b) => a.score - b.score || b.efficiency - a.efficiency);
+
+    // Il draft non c'è in tutte le stagioni: senza, si torna alla sola efficiency.
+    const conDraft = draftPicks.length > 0;
     awards.push({
         id: 'coach', abbr: 'COTY', name: 'Coach of the Year',
-        desc: 'The manager with the best lineup efficiency: points started vs the optimal lineup.',
+        desc: conDraft
+            ? 'The best manager across three counts: lineup efficiency, points from his own draft picks, and points from players added after the draft.'
+            : 'The manager with the best lineup efficiency: points started vs the optimal lineup.',
         kind: 'coach',
         winner: coaches[0] || null,
         finalists: coaches,
-        statLine: (c) => `${c.efficiency.toFixed(1)}% efficiency · ${fmtPts(c.optimal - c.actual)} pt left on the bench`,
+        statLine: (c) => conDraft
+            ? `${c.efficiency.toFixed(1)}% efficiency · ${Math.round(c.draftPts)} pt drafted · ${Math.round(c.waiverPts)} pt added`
+            : `${c.efficiency.toFixed(1)}% efficiency · ${fmtPts(c.optimal - c.actual)} pt left on the bench`,
     });
 
     // Comeback Player of the Year — il salto di punti più grande rispetto alla stagione precedente.
