@@ -85,6 +85,15 @@ const PRO_TEAM_FULL_NAME = {
     33: 'Baltimore Ravens', 34: 'Houston Texans',
 };
 
+/** Sigla → nome esteso della squadra NFL ("KC" → "Kansas City Chiefs"). */
+export function teamNameFromAbbr(abbr) {
+    const sigla = String(abbr || '').toUpperCase();
+    for (const [id, nome] of Object.entries(PRO_TEAM_FULL_NAME)) {
+        if (PRO_TEAM_ABBREV[Number(id)] === sigla) return nome;
+    }
+    return sigla;
+}
+
 /** "New England Patriots" → "NE". Serve a chi ha in mano solo il nome, come
  *  le difese, che nello schema storico non portano `nfl_team`. */
 const NAME_TO_ABBREV = new Map(Object.entries(PRO_TEAM_FULL_NAME)

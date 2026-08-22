@@ -12973,29 +12973,47 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     font-size: 1.4rem;
 }
 
+/* Probabilità dentro il banner del punteggio, appoggiata al bordo basso:
+   prima era una barra a sé sotto la card, che sembrava un elemento slegato. */
+.live-mc-prob {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-mc-probpct {
+    font-size: 0.62rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--tc1) 60%, white 40%);
+}
+
+.live-mc-probpct--r {
+    color: color-mix(in srgb, var(--tc2) 60%, white 40%);
+}
+
 .live-mc-probbar {
     position: relative;
-    height: 6px;
+    flex: 1;
+    height: 4px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--tc2) 30%, var(--live-border));
-    margin-top: 18px;
+    background: color-mix(in srgb, var(--tc2) 45%, rgba(255, 255, 255, 0.1));
     overflow: hidden;
 }
 
 .live-mc-probfill {
+    display: block;
     height: 100%;
     background: var(--tc1);
     box-shadow: 0 0 12px color-mix(in srgb, var(--tc1) 60%, transparent);
     transition: width var(--dur-med) var(--ease);
 }
 
-.live-mc-probLabels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-}
+
 
 /* ── Campo (una sola squadra, stessa formazione a colonne di Game Center) ── */
 .live-field-head {
@@ -13032,11 +13050,28 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     gap: 8px;
 }
 
+/* Il tasto vive DENTRO il riquadro, in alto a destra: sopra non c'è più
+   nessuna fascia con il nome della squadra, che era ripetuto tre volte fra
+   selettore, banner e intestazione. */
+.live-field-solo .live-compare-btn,
+.live-compare > .live-compare-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 5;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.live-compare {
+    position: relative;
+}
+
 .live-compare-btn {
     padding: 6px 14px;
     border-radius: 999px;
     border: 1px solid var(--live-border);
-    background: var(--live-card);
+    background: color-mix(in srgb, #0b0f11 72%, transparent);
     color: var(--text-secondary);
     font-family: var(--font-display);
     font-size: 0.7rem;
@@ -13213,7 +13248,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 14px 10px;
+    /* la fascia in cima è riservata al tasto Field: senza, finiva addosso alla
+       foto del quarterback, che è la prima riga della lista */
+    padding: 48px 10px 14px;
     border: 1px solid var(--live-border);
     border-radius: var(--radius-lg);
     background:
@@ -13394,7 +13431,11 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 /* Campo largo quanto il banner del punteggio sopra. Il rapporto è più alto
    del 16:9 perché deve contenere 4 file di figurine senza tagliarle. */
 .live-field-solo {
-    aspect-ratio: 16 / 12;
+    /* L'altezza la detta la formazione, non un rapporto fisso: con un rapporto
+       imposto restava una fascia di campo vuota fra la coppia K/DEF in end zone
+       e la linea di scrimmage. Il campo disegnato sta in posizione assoluta e
+       si adatta da solo. */
+    aspect-ratio: auto;
     background: #0d1214;
     width: 100%;
     border-radius: var(--radius-lg);
@@ -13408,7 +13449,30 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     height: 100%;
     object-fit: cover;
     object-position: center 30%;
-    filter: brightness(0.42) saturate(0.8);
+}
+
+/* Il campo è disegnato (js/ui/field-svg.js), non fotografato: nasce già del
+   tono giusto, quindi niente filtri di luminosità da correggere. */
+.live-field-solo .field-svg {
+    display: block;
+    object-fit: fill;
+}
+
+.fsv-num {
+    /* i numeri delle yard stanno sullo sfondo: devono farsi riconoscere e
+       nient'altro, o competono con i punteggi dei giocatori */
+    fill: rgba(255, 255, 255, 0.07);
+    font-family: var(--font-display), sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    text-anchor: middle;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(-90deg);
+}
+
+.fsv-num--r {
+    transform: rotate(90deg);
 }
 
 /* Velo scuro sopra il campo: le figurine e i punteggi devono staccarsi dallo
@@ -13421,9 +13485,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     inset: 0;
     border-radius: var(--radius-lg);
     background: linear-gradient(180deg,
-        rgba(6, 10, 12, 0.28) 0%,
-        rgba(6, 10, 12, 0.42) 45%,
-        rgba(6, 10, 12, 0.62) 100%);
+        rgba(6, 10, 12, 0.12) 0%,
+        rgba(6, 10, 12, 0.22) 45%,
+        rgba(6, 10, 12, 0.4) 100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -13435,12 +13499,19 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 
 /* Reparti spinti verso il basso: K/DEF restano in end zone, il resto scende. */
+/* La formazione sta nel flusso e trascina con sé l'altezza del campo: i
+   reparti sono uno sotto l'altro senza spazi morti in mezzo. */
+.live-field-solo .field-overlay {
+    position: relative;
+    padding: 2.5% 3% 3%;
+}
+
 .live-formation-stack {
-    position: absolute;
-    inset: 17% 3% 2%;
+    position: static;
+    inset: auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: clamp(10px, 1.4vw, 22px);
 }
 
 .live-row--backfield {
@@ -13468,10 +13539,8 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .live-formation-bottom {
     display: flex;
     flex-direction: column;
-    /* più aria fra scrimmage e backfield: la riga di mezzo sale, il backfield
-       resta dov'è, e le scritte attorno alle foto non si sfiorano */
-    gap: clamp(16px, 2.6vh, 34px);
-    margin-top: auto; /* spinge attacco e backfield verso il fondo campo */
+    /* quanto basta perché le scritte attorno alle foto non si sfiorino */
+    gap: clamp(10px, 1.4vw, 22px);
 }
 
 .live-row {
@@ -13655,18 +13724,35 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     opacity: 0.4;
 }
 
-/* chi sta giocando ora: anello oro attorno alla foto */
-.live-field-solo .formation-slot.live-slot--live .slot-photo {
-    border-color: var(--accent-amber);
-    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5);
+/* Chi sta giocando ora: anello verde attorno alla foto, in campo e in
+   panchina. È l'unico segnale — il pallino diceva la stessa cosa due volte. */
+.live-field-solo .formation-slot.live-slot--live .slot-photo,
+.live-bench .formation-slot.live-slot--live .slot-photo {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-green) 55%, transparent);
 }
 
+/* Il puntino sta sul bordo del cerchio, non dentro: dentro finiva sotto il
+   ritaglio circolare della foto (`overflow: hidden` + `border-radius: 50%`) e
+   non si vedeva affatto. Il contorno scuro lo stacca da qualunque maglia. */
 .live-slot-dot {
     position: absolute;
-    right: 4px;
-    top: 4px;
+    top: 7%;
+    right: 9%;
+    width: 11px;
+    height: 11px;
     margin: 0;
-    z-index: 3;
+    z-index: 4;
+    box-shadow: 0 0 0 2.5px rgba(6, 10, 12, 0.9), 0 0 10px rgba(34, 197, 94, 0.55);
+}
+
+.live-chip-dot {
+    position: absolute;
+    top: 4px;
+    left: 34px;
+    margin: 0;
+    z-index: 4;
+    box-shadow: 0 0 0 2px rgba(6, 10, 12, 0.9);
 }
 
 .live-slot-inj {
@@ -13837,10 +13923,32 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     gap: 16px;
 }
 
+/* Pannelli del Live in vetro come il resto del sito: niente fondo pieno e
+   niente tinta rossa: quella arrivava dal glow della card base, che qui non
+   serve — il campo dietro basta e avanza da sfocare. */
 .live-side-card {
-    background: var(--live-card);
-    border-color: var(--live-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-sheen);
+    border-color: var(--bg-glass-border);
     padding: 16px;
+}
+
+/* `--card-glow` è quello che tinge di rosso l'alone della card base, il colore
+   del titolino e il bordo al passaggio del mouse: qui non serve, il pannello
+   deve restare neutro e lasciar parlare il campo dietro. */
+.live-side-card {
+    --card-glow: transparent;
+}
+
+.live-side-card::before,
+.live-side-card::after {
+    display: none;
+}
+
+.live-side-card .mc-kicker {
+    color: var(--text-muted);
 }
 
 .live-side-player {
@@ -14178,81 +14286,12 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pbp-card-total b.pos { color: var(--accent-green); }
 .pbp-card-total b.neg { color: var(--accent-red); }
 
-/* ── Live plays come mazzo di carte (solo desktop) ───────────────
-   La giocata più recente sta sopra; quelle prima sbucano da sotto sfalsate e
-   rimpicciolite. Girando la rotella si torna indietro nel tempo e le carte
-   passano davanti. Sotto i 900px resta la lista che scorre, dove la rotella
-   deve restare della pagina. */
-@media (min-width: 901px) {
-    .pbp-stack {
-        position: relative;
-        display: block;
-        height: 252px;
-        max-height: none;
-        overflow: visible;
-        padding-right: 0;
-    }
-
-    .pbp-stack .pbp-card {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        min-height: 190px;
-        /* Le carte sotto scendono e rimpiccioliscono. Lo scalare parte dal
-           bordo alto, quindi accorcia anche il basso: lo scarto verticale deve
-           essere più grande della riduzione, o non sbucherebbero affatto
-           (22px contro i ~6px mangiati da ogni passo di scala). */
-        transform: translateY(calc(var(--i, 0) * 22px)) scale(calc(1 - var(--i, 0) * 0.03));
-        transform-origin: top center;
-        z-index: calc(40 - var(--i, 0));
-        opacity: calc(1 - var(--i, 0) * 0.2);
-        transition: transform 0.34s var(--ease), opacity 0.34s var(--ease);
-        /* opaca, altrimenti si leggerebbe la carta sottostante in trasparenza */
-        background: color-mix(in srgb, var(--live-card, #151515) 92%, #000);
-    }
-
-    /* già passate: escono in alto */
-    .pbp-stack .pbp-card--gone {
-        transform: translateY(-30px) scale(0.96);
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* troppo in fondo al mazzo: non si disegnano nemmeno */
-    .pbp-stack .pbp-card--deep {
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* con altezza fissa il testo non può dilatare la carta */
-    .pbp-stack .pbp-card-text {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .pbp-stack .pbp-card-total {
-        margin-top: auto;
-    }
-}
-
-.pbp-deck-nav {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.pbp-deck-nav[hidden] { display: none; }
-
-.pbp-deck-count {
-    font-size: 0.65rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
-}
+/* ── Live plays: elenco che scorre ───────────────────────────────
+   Le giocate stanno una sotto l'altra, la più recente in cima, e si scorre
+   normalmente. Prima erano un mazzo di carte sovrapposte da girare con la
+   rotella: bello da vedere, scomodo da leggere — si vedeva una giocata per
+   volta e sul touch la rotella non esiste. */
+.pbp-deck-nav { display: none; }
 
 .pbp-deck-btn {
     width: 24px;
@@ -14574,12 +14613,10 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     display: none;
 }
 
-.live-deep-arrow,
 .live-deep-dot {
     flex: 0 0 auto;
 }
 
-.live-deep-arrow,
 .live-deep-dot {
     padding: 3px 9px;
     border-radius: 999px;
@@ -14593,13 +14630,6 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.live-deep-arrow {
-    padding: 3px 8px;
-    font-size: 0.9rem;
-    line-height: 1;
-}
-
-.live-deep-arrow:hover,
 .live-deep-dot:hover {
     color: var(--text-primary);
 }
@@ -14746,10 +14776,32 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 
 .live-uso-val {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
     white-space: nowrap;
+}
+
+/* colonna fissa per ogni voce: le righe restano incolonnate anche quando un
+   giocatore ha zero e un altro ha tre cifre */
+.live-uso-stat {
+    width: 3.7rem;
+    text-align: right;
+}
+
+.live-uso-stat b {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+/* voce a zero: spenta, così le altre risaltano */
+.live-uso-stat.is-zero,
+.live-uso-stat.is-zero b {
+    color: rgba(255, 255, 255, 0.22);
+    font-weight: 500;
 }
 
 /* il mio giocatore: nome pieno e barra nel colore della squadra selezionata */
@@ -14899,27 +14951,37 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     opacity: 0.55;
 }
 
-/* Partita finita: quel giocatore non farà più punti. La card si spegne, così
-   a colpo d'occhio si distingue chi ha ancora da giocare da chi ha chiuso.
-   Non si nasconde niente: resta tutto leggibile, solo più in ombra. */
-.live-slot--done,
+/* Tre stati sulla card, tre letture diverse.
+
+   DEVE ANCORA GIOCARE: tutto spento, punteggio compreso — non c'è niente da
+   guardare, e il trattino al posto dello zero lo dice esplicitamente. */
+.live-slot--soon {
+    opacity: 0.4;
+}
+
+.live-slot--soon .slot-photo img {
+    filter: grayscale(1);
+}
+
+.live-slot--soon .slot-pts {
+    color: var(--text-muted);
+}
+
+/* HA FINITO: il suo contributo è definitivo, quindi foto e punteggio restano
+   accesi. Si spegne il contorno — nome, statistiche, proiezione — perché non
+   cambierà più niente. */
 .live-cmp-row--done {
-    opacity: 0.5;
+    opacity: 0.55;
 }
 
-.live-slot--done .slot-photo img,
-.live-slot--done .live-chip-photo img {
-    filter: grayscale(0.7);
+.live-slot--done .slot-name,
+.live-slot--done .live-slot-stats,
+.live-slot--done .live-chip-name {
+    opacity: 0.45;
 }
 
-/* il cerchio attorno alla foto perde il bagliore: la partita è chiusa */
 .live-slot--done .slot-photo {
     box-shadow: none;
-}
-
-.live-slot--done .slot-pts,
-.live-slot--done .live-chip-pts {
-    color: var(--text-muted);
 }
 
 /* la proiezione accanto al punteggio non serve più: la partita è andata */
@@ -14972,4 +15034,75 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     .live-bench-row {
         gap: 40px 60px;
     }
+}
+
+/* ── Selettore squadra: capsula + tendina ────────────────────────
+   Sta nell'intestazione accanto al tasto di aggiornamento. La capsula mostra
+   la squadra scelta con lo stesso stile della pillola selezionata di prima;
+   il resto delle squadre sta nella tendina. */
+.live-teampick {
+    position: relative;
+}
+
+.live-teampick .live-team-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.live-teampick-caret {
+    font-size: 0.6em;
+    opacity: 0.75;
+    transition: transform var(--dur-fast) var(--ease);
+}
+
+.live-teampick.is-open .live-teampick-caret {
+    transform: rotate(180deg);
+}
+
+.live-teampick-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 40;
+    min-width: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), var(--glass-sheen);
+}
+
+.live-teampick-menu[hidden] {
+    display: none;
+}
+
+.live-teampick-item {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.live-teampick-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+}
+
+.live-teampick-item.is-on {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
 }

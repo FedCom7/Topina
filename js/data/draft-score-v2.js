@@ -24,8 +24,8 @@
  * l'efficienza vs ADP diventa neutra e resta l'analisi VOR/opportunity-cost.
  */
 
-import { replacementLevels, pickStarters, balanceScore } from './team-eval.js?v=27';
-import { matchProjection, normName } from './projections.js?v=90';
+import { replacementLevels, pickStarters, balanceScore } from './team-eval.js?v=534';
+import { matchProjection, normName } from './projections.js?v=589';
 
 const OFF = new Set(['QB', 'RB', 'WR', 'TE']);
 const POS_FALLBACK = { K: 125, DEF: 110 }; // come draftgrades.POS_FALLBACK_PROJ (evita import circolare)

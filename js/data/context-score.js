@@ -18,7 +18,7 @@
  */
 
 import { normName } from './projections.js?v=589';
-import { getTeamStats } from './nfl-team-stats.js?v=526';
+import { getTeamStats } from './nfl-team-stats.js?v=527';
 import { canonAbbr } from './nfl-schedule.js?v=520';
 import { getSeasonConfig } from '../data.js?v=534';
 

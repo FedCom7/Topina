@@ -57,7 +57,18 @@ const bump = (o, k, v) => { if (v) o[k] = (o[k] || 0) + v; };
  * Ritorna chiavi nello schema legacy (le stesse di Firebase), così i punti si
  * calcolano con scoreWeeklyStats come per qualsiasi altro dato.
  */
-export async function fetchBoxscoreTotals(eventIds = []) {
+/**
+ * Ultimo tabellino buono di ogni partita.
+ *
+ * Serve a due cose. La prima: se una richiesta fallisce — ESPN strozza le
+ * chiamate quando se ne fanno sedici ogni dieci secondi — si riusa quello di
+ * prima invece di far sparire i punti di tutti i giocatori di quella partita
+ * per un giro. La seconda: il tabellino di una partita FINITA non cambia più,
+ * quindi non si riscarica affatto.
+ */
+const ultimoTabellino = new Map();
+
+export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
     const players = new Map();   // nome normalizzato → stats
     const defenses = new Map();  // sigla squadra → stats
     const teamByName = new Map();// nome completo squadra → sigla (le DEF non hanno nfl_team)
@@ -69,13 +80,22 @@ export async function fetchBoxscoreTotals(eventIds = []) {
     if (!eventIds.length) return { players, defenses, teamByName, usage };
 
     const summaries = await Promise.all(eventIds.map(async id => {
+        const chiave = String(id);
+        // partita finita e già letta: il tabellino è definitivo
+        if (finite.has(chiave) && ultimoTabellino.has(chiave)) return ultimoTabellino.get(chiave);
         // con scadenza: una risposta che non arriva mai bloccherebbe la pagina
         const stop = new AbortController();
         const timer = setTimeout(() => stop.abort(), 8000);
         try {
             const res = await fetch(`${SUMMARY}?event=${id}`, { signal: stop.signal });
-            return res.ok ? await res.json() : null;
-        } catch { return null; } finally { clearTimeout(timer); }
+            if (!res.ok) throw new Error(`ESPN ${res.status}`);
+            const dati = await res.json();
+            if (dati?.boxscore) ultimoTabellino.set(chiave, dati);
+            return dati;
+        } catch {
+            // meglio i numeri del giro precedente che nessun numero
+            return ultimoTabellino.get(chiave) || null;
+        } finally { clearTimeout(timer); }
     }));
 
     for (const d of summaries) {

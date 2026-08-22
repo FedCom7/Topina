@@ -16,7 +16,7 @@ import {
     SEASONS, getSeasonConfig, getSuperBowlMatchup, displayName,
 } from '../data.js?v=534';
 import { TEAM_KEYS } from './team-config.js?v=533';
-import { getHonorsBundle } from './honors.js?v=583';
+import { getHonorsBundle } from './honors.js?v=584';
 import { normName } from './projections.js?v=589';
 
 let careersCache = null;

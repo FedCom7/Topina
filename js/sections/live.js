@@ -17,19 +17,20 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=599';
+import { TEAMS } from './team.js?v=600';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=509';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=503';
-import { fetchLeagueWeek, teamAbbrFromName, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=504';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=5';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
+import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
-import { slotPairs } from '../data/matchup-analysis.js?v=520';
-import { initPlayerModal } from '../components/player-modal.js?v=605';
+import { slotPairs } from '../data/matchup-analysis.js?v=521';
+import { initPlayerModal } from '../components/player-modal.js?v=606';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
-const POLL_MS = 10000;
+const POLL_MS = 30000;
 
 // Settimana di lega in corso: la dice l'API (status.currentMatchupPeriod) alla
 // prima lettura, poi si riusa per non richiederla a ogni giro.
@@ -122,6 +123,20 @@ function teamOf(rawName) {
  * non la carriera, quindi si passano punti e statistiche mostrati (proiezione
  * prima del kickoff, reali da lì in poi).
  */
+/** La squadra fantasy che ha questo giocatore in rosa, per la scheda. */
+function squadraDi(p) {
+    for (const m of matchups) {
+        for (const lato of ['team1', 'team2']) {
+            const t = m[lato];
+            if (!t) continue;
+            if ([...(t.starters || []), ...(t.bench || [])].some(x => x.name === p?.name)) {
+                return displayName(t.name);
+            }
+        }
+    }
+    return '';
+}
+
 function gameAttr(p) {
     const payload = {
         pts: effPts(p),
@@ -131,6 +146,7 @@ function gameAttr(p) {
         week: currentWeekNum,
         year: CURRENT_SEASON,
         started: true,
+        fantasyTeam: squadraDi(p),
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
         // sempre anche la previsione, che la scheda mostra in piccolo accanto
         // a ogni numero reale — a giornata iniziata è l'unico modo per capire
@@ -214,7 +230,7 @@ function startPlayPolling() {
 // I punti sulla card sono un NOSTRO ricalcolo: il totale del giocatore resta
 // quello ufficiale del feed fantasy, che non viene mai toccato da qui.
 
-const PBP_POLL_MS = 10000;
+const PBP_POLL_MS = 30000;
 const PBP_MAX_CARDS = 30;
 
 let pbpTimer = null;
@@ -228,24 +244,31 @@ let pbpBusy = false;
 function rosterIndex() {
     const byAthlete = new Map();
     const byDefTeam = new Map();
+    const byName = new Map();
     for (const m of matchups) {
         for (const side of ['team1', 'team2']) {
             const t = m[side];
             if (!t) continue;
             for (const p of [...(t.starters || []), ...(t.bench || [])]) {
                 const pos = (p.position_in_team || p.position || '').toUpperCase();
-                const entry = { name: p.name, team: t.name, pos, nfl: canonAbbr(p.nfl_team || '') };
+                // le difese non hanno `nfl_team` nei dati: la squadra sta nel nome
+                const nfl = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name) || '';
+                const entry = { name: p.name, team: t.name, pos, nfl };
                 if (pos === 'DEF' || pos === 'D/ST') {
-                    const id = ESPN_TEAM_IDS[entry.nfl];
+                    const id = ESPN_TEAM_IDS[nfl];
                     if (id) byDefTeam.set(String(id), entry);
                 } else {
+                    // PLAYER_ID_MAP è generata da dati vecchi: riserve e rookie
+                    // non ci sono. Il nome normalizzato è la rete di sicurezza,
+                    // e con le rose prese dal draft è la via principale.
                     const id = PLAYER_ID_MAP[p.name];
                     if (id) byAthlete.set(String(id), entry);
+                    byName.set(normName(p.name), entry);
                 }
             }
         }
     }
-    return { byAthlete, byDefTeam };
+    return { byAthlete, byDefTeam, byName };
 }
 
 /**
@@ -380,7 +403,7 @@ function gamesToWatch() {
  * Da giocata ESPN a card, se coinvolge qualcuno delle nostre rose.
  * Ritorna null se la giocata non ci riguarda.
  */
-function playToCard(play, idx) {
+function playToCard(play, idx, nomiAtleti = new Map()) {
     const contribs = scorePlay(play);
     const actors = [];
     let mine = false;
@@ -390,7 +413,9 @@ function playToCard(play, idx) {
     for (const role of order) {
         const espnId = play.actors[role];
         if (!espnId) continue;
-        const own = idx.byAthlete.get(String(espnId)) || null;
+        const nome = nomiAtleti.get(String(espnId)) || '';
+        const own = idx.byAthlete.get(String(espnId))
+            || (nome ? idx.byName.get(normName(nome)) : null) || null;
         const c = contribs.find(x => x.espnId === espnId) || null;
         if (own) mine = true;
         actors.push({
@@ -451,15 +476,23 @@ async function pollPlays() {
         } else {
             lists = await Promise.all(games.map(id => fetchPlays(id, { all: pbpFirstRun })));
         }
-        const fresh = [];
+        const nuove = [];
         for (const plays of lists) {
             for (const play of plays) {
                 if (pbpSeen.has(play.id)) continue;
                 pbpSeen.add(play.id);
                 if (pbpDemo()) applyDemoPlay(play, scorePlay(play));
-                const card = playToCard(play, idx);
-                if (card) fresh.push(card);
+                nuove.push(play);
             }
+        }
+        // Chi sono i protagonisti: serve PRIMA di decidere se la giocata ci
+        // riguarda, perché la mappa statica dei nomi non copre riserve e
+        // rookie — cioè quasi tutti quando le rose vengono dal draft.
+        const nomiAtleti = await risolviNomiAttori(nuove, idx);
+        const fresh = [];
+        for (const play of nuove) {
+            const card = playToCard(play, idx, nomiAtleti);
+            if (card) fresh.push(card);
         }
         if (!fresh.length) return;
 
@@ -488,6 +521,30 @@ async function pollPlays() {
 }
 
 /** Nome leggibile per ogni protagonista: prima la mappa locale, poi ESPN. */
+/**
+ * Nome di ogni atleta che compare nelle giocate nuove, per gli id che la mappa
+ * locale non conosce. Una chiamata per atleta, poi cache in localStorage: in
+ * una partita i protagonisti sono poche decine.
+ */
+async function risolviNomiAttori(plays, idx) {
+    const fuori = new Set();
+    for (const play of plays) {
+        for (const id of Object.values(play.actors || {})) {
+            const s = String(id);
+            if (!idx.byAthlete.has(s)) fuori.add(s);
+        }
+    }
+    const nomi = new Map();
+    if (!fuori.size) return nomi;
+    await Promise.all([...fuori].map(async id => {
+        const noto = ESPN_ID_TO_NAME.get(id);
+        if (noto) { nomi.set(id, noto); return; }
+        const info = await resolveAthlete(id);
+        if (info?.name) nomi.set(id, info.name);
+    }));
+    return nomi;
+}
+
 async function hydrateActorNames(cards) {
     const missing = new Set();
     for (const c of cards) {
@@ -695,7 +752,17 @@ let boxData = null;
 
 async function loadBoxscores() {
     const games = startedGames();
-    boxData = games.length ? await fetchBoxscoreTotals(games) : null;
+    if (!games.length) { boxData = null; return; }
+    // Le partite finite si leggono una volta sola: il loro tabellino non cambia
+    // più, e con sedici partite di preseason aperte rileggerle tutte ogni dieci
+    // secondi significa farsi strozzare le richieste da ESPN.
+    const finite = new Set();
+    if (liveSchedule) {
+        for (const g of liveSchedule.values()) {
+            if (g.eventId && g.state === 'post') finite.add(String(g.eventId));
+        }
+    }
+    boxData = await fetchBoxscoreTotals(games, finite);
 }
 
 async function fillFromEspn() {
@@ -879,9 +946,20 @@ function playersByName() {
 function ptsHTML(p) {
     const val = fmt(effPts(p));
     if (pIsProjected(p)) return `<span class="pts-val proj-pts">${val}</span>`;
+    // Non ha ancora giocato: uno zero direbbe "ha giocato e non ha fatto
+    // niente", che è un'altra cosa. Trattino finché la sua partita non parte.
+    if (!daGiocare(p)) return `<span class="pts-val">–</span>`;
     const previsto = p?.projected_points == null ? ''
         : `<small class="pts-proj" title="projected">${fmt(P(p.projected_points))}</small>`;
     return `<span class="pts-val">${val}</span>${previsto}`;
+}
+
+/** La sua partita è cominciata? (se non si sa nulla, si suppone di sì) */
+function daGiocare(p) {
+    if (!p || p.placeholder) return false;
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+    const g = ab ? liveSchedule?.get(ab) : null;
+    return g ? g.state !== 'pre' : true;
 }
 
 /** Il solo numero dentro una casella punti: è quello che si anima e si legge,
@@ -951,6 +1029,10 @@ function refreshInPlace(events = []) {
         // aspettare che la pagina venga rifatta
         el.classList.toggle('live-slot--done', gameOver(p));
         el.classList.toggle('live-slot--live', liveNow(p));
+        el.classList.toggle('live-slot--soon', !daGiocare(p));
+        // il puntino "sta giocando": prima compariva solo ridisegnando la
+        // pagina, quindi una partita che cominciava non lo accendeva mai
+
         el.setAttribute('data-game', gameAttr(p).slice('data-game="'.length, -1));
     });
 
@@ -960,6 +1042,10 @@ function refreshInPlace(events = []) {
     });
 
     // risultati NFL: cambiano punteggio e cronometro, nessuna immagine
+    // l'orologio in alto: si aggiorna a ogni giro, come i numeri
+    const orologio = root.querySelector('.live-header-updated');
+    if (orologio) orologio.textContent = `Updated ${oraCorrente()}`;
+
     const nfl = document.getElementById('live-nfl-games');
     if (nfl) nfl.innerHTML = nflGamesListHTML(entry.team);
 
@@ -1039,15 +1125,12 @@ function renderEmptyField(root, entry, entries, nota) {
     const team = entry?.team || { name: '' };
     root.innerHTML = `
     ${headerHTML()}
-    ${entries.length ? teamSwitcherHTML(entries) : ''}
     ${entry ? matchupCardHTML(entry) : ''}
     ${fieldHTML(emptyRoster(team))}
     <p class="live-nodraft-note">${nota}</p>`;
     root.querySelector('.live-compare-btn')?.remove();   // niente da confrontare
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
-    root.querySelectorAll('.live-team-pill').forEach(btn => {
-        btn.addEventListener('click', () => { teamIdx = Number(btn.dataset.idx); render(); });
-    });
+    bindTeamPick(root);
     if (entry) {
         root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
         bindSwipe(root.querySelector('[data-swipe]'));
@@ -1080,7 +1163,6 @@ function render() {
 
     root.innerHTML = `
     ${headerHTML()}
-    ${teamSwitcherHTML(entries)}
     ${matchupCardHTML(entry)}
     ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
     <div class="live-widgets">
@@ -1089,11 +1171,7 @@ function render() {
         ${sidebarHTML(team, opp)}
     </div>
     ${deepDiveHTML(team)}
-    <div class="live-layout">
-        <div class="live-main">
-            ${rosterLiveHTML(team, opp)}
-        </div>
-    </div>`;
+`;
 
     hydrateHeadshots(root);
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
@@ -1104,17 +1182,12 @@ function render() {
         // vanno buttati, o il feed mescolerebbe due insiemi di partite.
         stopPlayPolling();
         pbpSeen = new Set(); pbpCards = []; pbpDemoQueue = null;
-        pbpFirstRun = true; pbpIndex = 0;
+        pbpFirstRun = true;
         receipts = []; prevSnapshot = null;
         try { sessionStorage.removeItem('topina-live-receipts'); } catch { /* niente */ }
         loadData();
     });
-    root.querySelectorAll('.live-team-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            teamIdx = Number(btn.dataset.idx);
-            render();
-        });
-    });
+    bindTeamPick(root);
 
     root.querySelector('[data-compare]')?.addEventListener('click', () => {
         compareMode = !compareMode;
@@ -1122,9 +1195,7 @@ function render() {
     });
     root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
     bindSwipe(root.querySelector('[data-swipe]'));
-    bindDeck(root);
     bindDeepDive(root);
-    layoutDeck();
 }
 
 /**
@@ -1187,15 +1258,32 @@ function showOpponent() {
 }
 
 /** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
+/**
+ * Swipe per passare all'avversario. Deve essere un gesto voluto, non un dito
+ * che scorre la pagina: serve mezzo schermo di corsa orizzontale, il movimento
+ * dev'essere chiaramente più largo che alto, e abbastanza svelto da non essere
+ * uno scroll incerto.
+ */
 function bindSwipe(el) {
     if (!el) return;
-    let x0 = null;
-    el.addEventListener('touchstart', (e) => { x0 = e.changedTouches[0].clientX; }, { passive: true });
+    const MIN_DX = () => Math.max(90, Math.min(220, window.innerWidth * 0.45));
+    let x0 = null, y0 = null, t0 = 0;
+    el.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) { x0 = null; return; }
+        x0 = e.changedTouches[0].clientX;
+        y0 = e.changedTouches[0].clientY;
+        t0 = performance.now();
+    }, { passive: true });
     el.addEventListener('touchend', (e) => {
         if (x0 == null) return;
         const dx = e.changedTouches[0].clientX - x0;
+        const dy = e.changedTouches[0].clientY - y0;
+        const dt = performance.now() - t0;
         x0 = null;
-        if (Math.abs(dx) > 60) showOpponent();
+        if (Math.abs(dx) < MIN_DX()) return;          // corsa troppo corta
+        if (Math.abs(dx) < Math.abs(dy) * 2.2) return; // era uno scroll verticale
+        if (dt > 800) return;                          // troppo lento: non è uno swipe
+        showOpponent();
     }, { passive: true });
 }
 
@@ -1227,10 +1315,13 @@ function statusBadgeHTML() {
     return '';
 }
 
-function headerHTML() {
+/** Ora locale hh:mm, per l'etichetta "Updated". */
+function oraCorrente() {
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function headerHTML() {
     return `
     <div class="live-header">
         <div class="live-header-left">
@@ -1243,7 +1334,8 @@ function headerHTML() {
             </span>
         </div>
         <div class="live-header-right">
-            <span class="live-header-updated">Updated ${hh}:${mm}</span>
+            ${teamSwitcherHTML(teamEntries())}
+            <span class="live-header-updated">Updated ${oraCorrente()}</span>
             <button class="live-preseason-btn${preseasonMode ? ' is-on' : ''}" type="button"
                     data-preseason title="Follow preseason games (test mode only)">Preseason</button>
             <button class="live-refresh-btn" type="button" aria-label="Refresh">↻</button>
@@ -1252,13 +1344,48 @@ function headerHTML() {
 }
 
 /** Selettore a 4 squadre — stessa classe .year-pill usata altrove nel sito (game-center.js). */
+/**
+ * Selettore squadra: una capsula sola con il nome di quella scelta, e la
+ * tendina con le altre. Prima erano quattro capsule in fila sotto
+ * l'intestazione, che occupavano una riga per dire una cosa sola.
+ */
+/** Capsula e tendina: apre, sceglie, chiude. */
+function bindTeamPick(root) {
+    const box = root.querySelector('.live-teampick');
+    if (!box) return;
+    const capsula = box.querySelector('[data-teampick]');
+    const menu = box.querySelector('.live-teampick-menu');
+    const apri = (si) => {
+        menu.hidden = !si;
+        capsula.setAttribute('aria-expanded', String(si));
+        box.classList.toggle('is-open', si);
+    };
+    capsula.addEventListener('click', (e) => { e.stopPropagation(); apri(menu.hidden); });
+    menu.querySelectorAll('[data-idx]').forEach(b =>
+        b.addEventListener('click', () => { teamIdx = Number(b.dataset.idx); render(); }));
+    // un clic fuori chiude, come ci si aspetta da una tendina
+    document.addEventListener('click', (e) => {
+        if (!box.contains(e.target)) apri(false);
+    }, { once: true });
+}
+
 function teamSwitcherHTML(entries) {
+    if (!entries.length) return '';
+    const scelta = entries[Math.min(teamIdx, entries.length - 1)];
     return `
-    <div class="year-selector live-team-selector">
-        ${entries.map(({ team }, i) => `
-        <button class="year-pill live-team-pill${i === teamIdx ? ' active' : ''}" data-idx="${i}">
-            ${teamNameHTML(team.name)}
-        </button>`).join('')}
+    <div class="live-teampick">
+        <button class="year-pill live-team-pill active" type="button" data-teampick
+                aria-haspopup="listbox" aria-expanded="false">
+            ${teamNameHTML(scelta.team.name)}
+            <span class="live-teampick-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="live-teampick-menu" role="listbox" hidden>
+            ${entries.map(({ team }, i) => `
+            <button class="live-teampick-item${i === teamIdx ? ' is-on' : ''}" type="button"
+                    role="option" aria-selected="${i === teamIdx}" data-idx="${i}">
+                ${teamNameHTML(team.name)}
+            </button>`).join('')}
+        </div>
     </div>`;
 }
 
@@ -1305,13 +1432,11 @@ function matchupCardHTML(entry) {
                     <span class="gc-banner-name${selLeft ? '' : ' live-name-selected'}">${teamNameHTML(t2?.name || right.name)}</span>
                 </div>
             </div>
-        </div>
-        <div class="live-mc-probbar">
-            <div class="live-mc-probfill" style="width:${pct1}%"></div>
-        </div>
-        <div class="live-mc-probLabels">
-            <span>${pct1}%</span>
-            <span>${100 - pct1}%</span>
+            <div class="live-mc-prob">
+                <span class="live-mc-probpct">${pct1}%</span>
+                <span class="live-mc-probbar"><i class="live-mc-probfill" style="width:${pct1}%"></i></span>
+                <span class="live-mc-probpct live-mc-probpct--r">${100 - pct1}%</span>
+            </div>
         </div>
     </div>`;
 }
@@ -1329,7 +1454,6 @@ function chip(p, side) {
         <span class="live-chip-photo">
             <img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
                  data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
-            ${live ? '<i class="gb-live-dot live-chip-dot"></i>' : ''}
         </span>
         <span class="live-chip-name">${shortName(p)}</span>
         <span class="live-chip-pts">${ptsHTML(p)}</span>
@@ -1442,13 +1566,12 @@ function fieldSlot(p, extraClass = '') {
     const live = liveNow(p);
     const injury = injuryOf(p);
     return `
-    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${extraClass}" data-player-modal
+    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${daGiocare(p) ? '' : ' live-slot--soon'}${extraClass}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
         <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
-            data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
-            ${live ? '<i class="gb-live-dot live-slot-dot"></i>' : ''}</span>
+            data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>
         <span class="slot-name">${shortName(p)}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
@@ -1531,22 +1654,20 @@ function swapArrowHTML() {
 /** Classe di animazione da applicare al riquadro dopo uno swap. */
 /** Campo di una singola squadra, orizzontale, sfondo campo visibile (stile Game Center). */
 function fieldHTML(team) {
+    // Niente intestazione sopra il campo: il nome della squadra lo dicono già
+    // il selettore in cima e il banner del punteggio. Il tasto Compare vive
+    // dentro il campo, in alto a destra.
     return `
-    <div class="live-field-head">
-        <span class="live-field-label">${teamNameHTML(team.name)}</span>
-        <div class="live-field-controls">
-            <button class="live-compare-btn" type="button" data-compare>Compare</button>
-        </div>
-    </div>
     <div class="live-stage">
         <div class="live-field-slider" data-swipe>
             <div class="matchup-field-horizontal live-field-solo">
-                <img src="Wallpapers/IMG_5984.PNG" class="field-bg" alt="">
+                ${fieldSVG()}
                 <div class="field-overlay">
                     <div class="live-formation-stack">
                         ${fieldFormationHTML(team)}
                     </div>
                 </div>
+                <button class="live-compare-btn" type="button" data-compare>Compare</button>
                 <!-- la freccia sta DENTRO il campo: così resta centrata su di
                      esso e non sull'insieme campo+panchina -->
                 ${swapArrowHTML()}
@@ -1654,14 +1775,9 @@ function compareHTML(team, opp) {
     const t1 = teamOf(team.name), t2 = teamOf(opp.name);
 
     return `
-    <div class="live-field-head">
-        <span class="live-field-label">${teamNameHTML(team.name)} <span class="live-cmp-vs">vs</span> ${teamNameHTML(opp.name)}</span>
-        <div class="live-field-controls">
-            <button class="live-compare-btn live-compare-btn--on" type="button" data-compare>Field</button>
-        </div>
-    </div>
     <div class="live-stage">
     <div class="live-compare" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
+        <button class="live-compare-btn live-compare-btn--on" type="button" data-compare>Field</button>
         ${pairs.map(({ slot, a, b }) => {
         const pa = a ? effPts(a) : 0, pb = b ? effPts(b) : 0;
         const aWin = !!a && pa >= pb;
@@ -1681,20 +1797,6 @@ function compareHTML(team, opp) {
     }).join('')}
     </div>
     ${swapArrowHTML()}
-    </div>`;
-}
-
-function rosterLiveHTML(team, opp) {
-    const all = [...(team.starters || []), ...(team.bench || []),
-    ...(opp.starters || []), ...(opp.bench || [])];
-    const live = all.filter(liveNow);
-    if (!live.length) return '';
-    return `
-    <div class="mosaic-card mc-wide mc-in live-card">
-        <span class="mc-kicker">Currently playing</span>
-        <div class="live-roster-grid">
-            ${live.map(p => chip(p)).join('')}
-        </div>
     </div>`;
 }
 
@@ -1772,93 +1874,26 @@ function playFeedHTML() {
     return `
     <div class="mosaic-card mc-in live-side-card pbp-card-stack">
         <span class="mc-kicker">Live plays</span>
-        <div class="pbp-stack" id="pbp-stack" data-deck>
+        <div class="pbp-stack" id="pbp-stack">
             ${cards.length
             ? cards.map(playCardHTML).join('')
             : `<p class="pm-empty">${gamesToWatch().length
                 ? 'Waiting for the next play...'
                 : 'No NFL game in progress with your players.'}</p>`}
         </div>
-        <div class="pbp-deck-nav" hidden>
-            <button type="button" class="pbp-deck-btn" data-deck-step="-1" aria-label="Newer play">↑</button>
-            <span class="pbp-deck-count"></span>
-            <button type="button" class="pbp-deck-btn" data-deck-step="1" aria-label="Older play">↓</button>
-        </div>
     </div>`;
 }
 
 /**
- * Mazzo: la giocata più recente sta sopra, le precedenti sbucano da sotto
- * sfalsate e rimpicciolite. `pbpIndex` è la carta in cima; girando la rotella
- * (o con le frecce) si torna indietro nel tempo e le carte passano davanti.
- *
- * L'impilamento vive solo da desktop in su: sotto i 900px la card torna una
- * lista che scorre normalmente, dove la rotella serve alla pagina.
- */
-let pbpIndex = 0;
-const isDeck = () => matchMedia('(min-width: 901px)').matches;
-
-function layoutDeck() {
-    const stack = document.getElementById('pbp-stack');
-    if (!stack) return;
-    const cards = [...stack.querySelectorAll('.pbp-card')];
-    pbpIndex = Math.max(0, Math.min(pbpIndex, Math.max(0, cards.length - 1)));
-    cards.forEach((el, i) => {
-        const depth = i - pbpIndex;
-        el.style.setProperty('--i', depth);
-        el.classList.toggle('pbp-card--gone', depth < 0);   // già passata
-        el.classList.toggle('pbp-card--deep', depth > 3);   // troppo in fondo
-    });
-    const nav = stack.parentElement.querySelector('.pbp-deck-nav');
-    if (nav) {
-        nav.hidden = !(isDeck() && cards.length > 1);
-        nav.querySelector('.pbp-deck-count').textContent = cards.length
-            ? `${pbpIndex + 1} / ${cards.length}` : '';
-    }
-}
-
-function stepDeck(delta) {
-    const n = visibleCards().length;
-    if (!n) return false;
-    const next = Math.max(0, Math.min(pbpIndex + delta, n - 1));
-    if (next === pbpIndex) return false; // già al capo: la pagina può scorrere
-    pbpIndex = next;
-    layoutDeck();
-    return true;
-}
-
-/** Rotella sul mazzo: una carta per scatto, senza rubare lo scroll ai bordi. */
-function bindDeck(root) {
-    const stack = root.querySelector('[data-deck]');
-    if (!stack) return;
-    let last = 0;
-    stack.addEventListener('wheel', (e) => {
-        if (!isDeck() || pbpCards.length < 2) return;
-        const now = performance.now();
-        if (now - last < 110) { e.preventDefault(); return; }
-        if (stepDeck(e.deltaY > 0 ? 1 : -1)) {
-            e.preventDefault();  // solo se il mazzo si è davvero mosso
-            last = now;
-        }
-    }, { passive: false });
-
-    root.querySelectorAll('[data-deck-step]').forEach(btn =>
-        btn.addEventListener('click', () => stepDeck(Number(btn.dataset.deckStep))));
-}
-
-/**
- * Ridisegna il mazzo. Le card nuove entrano dall'alto; se stavi guardando
- * indietro nel tempo, l'indice segue la carta che avevi davanti invece di
- * riportarti di colpo in cima.
+ * Ridisegna l'elenco delle giocate: la più recente in cima, le altre sotto.
+ * Le nuove entrano dall'alto con una piccola animazione.
  */
 function paintPlayCards(newIds = []) {
     const stack = document.getElementById('pbp-stack');
     if (!stack) return;
     const cards = visibleCards();
-    if (pbpIndex > 0) pbpIndex += newIds.length;
     stack.innerHTML = cards.length ? cards.map(playCardHTML).join('')
         : `<p class="pm-empty">Waiting for the next play...</p>`;
-    layoutDeck();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     for (const id of newIds) {
         stack.querySelector(`[data-play="${CSS.escape(String(id))}"]`)?.animate([
@@ -1888,8 +1923,8 @@ function countUp(el, from, to, ms = 900) {
 }
 
 /** Evidenzia sul campo i giocatori appena aggiornati + fa "stampare" lo scontrino. */
-const FLASH_MS = 10000;    // quanto resta accesa la foto del giocatore
-const POP_DELAY_MS = 5000; // l'etichetta dei punti resta fuori tanto, poi il totale sale
+const FLASH_MS = 10000;     // quanto resta accesa la foto del giocatore
+const POP_DELAY_MS = 10000; // l'etichetta dei punti resta fuori tanto, poi il totale sale
 
 function flashNewReceipts(events) {
     for (const ev of events) {
@@ -1935,14 +1970,21 @@ function popPoints(slot, delta, onDone = () => { }) {
     tag.className = `live-pop ${delta > 0 ? 'pos' : 'neg'}`;
     tag.textContent = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`;
     slot.appendChild(tag);
-    // Compare subito, resta piena quasi fino in fondo e sparisce in fretta:
-    // l'ultimo 8% è la dissolvenza, e appena finita parte la somma.
+    // Dieci secondi fuori, lampeggiando: entra, poi pulsa piano fino alla fine
+    // e sparisce. Appena sparisce, il totale in basso assorbe i punti.
     tag.animate([
         { transform: 'translateY(6px) scale(0.85)', opacity: 0 },
-        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.05 },
-        { transform: 'translateY(-2px) scale(1)', opacity: 1, offset: 0.92 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.03 },
+        { transform: 'translateY(-1px) scale(1.06)', opacity: 0.45, offset: 0.14 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.25 },
+        { transform: 'translateY(-1px) scale(1.06)', opacity: 0.45, offset: 0.36 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.47 },
+        { transform: 'translateY(-1px) scale(1.06)', opacity: 0.45, offset: 0.58 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.69 },
+        { transform: 'translateY(-1px) scale(1.06)', opacity: 0.45, offset: 0.8 },
+        { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.93 },
         { transform: 'translateY(-10px) scale(0.95)', opacity: 0 },
-    ], { duration: POP_DELAY_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' })
+    ], { duration: POP_DELAY_MS, easing: 'ease-in-out' })
         .onfinish = () => { tag.remove(); onDone(); };
 }
 
@@ -2049,6 +2091,16 @@ function puntiDaTabellino(nome, difesa = false) {
     return (scoreWeeklyStats(s, difesa ? 'DEF' : 'WR') || 0).toFixed(1);
 }
 
+/**
+ * Le voci numeriche a destra: sempre tutte, anche quelle a zero, ognuna nella
+ * sua colonna. Così le righe si leggono incolonnate invece di ballare a
+ * seconda di chi ha segnato; gli zeri restano scuri e le altre risaltano.
+ */
+function usoStats(voci) {
+    return voci.map(([v, etichetta]) => `
+        <span class="live-uso-stat${v ? '' : ' is-zero'}"><b>${v || 0}</b> ${etichetta}</span>`).join('');
+}
+
 /** Una riga del grafico: barra proporzionale al massimo della squadra. */
 function usoRow(nome, valore, massimo, dettaglio, mio, secondario = 0) {
     const punti = puntiDaTabellino(nome);
@@ -2082,8 +2134,29 @@ function deepGames(team) {
     const out = [];
     for (const [sigla, miei] of sigleDeiNostri(team)) {
         const quadro = boxData?.usage?.get(sigla);
-        if (!quadro?.info || !quadro.players?.length) continue;
-        out.push({ sigla, miei, quadro });
+        if (quadro?.info && quadro.players?.length) {
+            out.push({ sigla, miei, quadro });
+            continue;
+        }
+        // Partita non ancora cominciata (o tabellino non arrivato): la scheda
+        // si mostra lo stesso, con i miei elencati come fermi. Sparire del
+        // tutto farebbe pensare di non avere nessuno in quella squadra.
+        const g = liveSchedule?.get(sigla);
+        if (!g) continue;
+        out.push({
+            sigla, miei,
+            quadro: {
+                players: [],
+                info: {
+                    team: sigla, teamName: teamNameFromAbbr(sigla), logo: '',
+                    opponent: (g.opponent || '').replace('@', ''),
+                    opponentName: (g.opponent || '').replace('@', ''),
+                    home: !String(g.opponent || '').startsWith('@'),
+                    score: g.score || 0, oppScore: g.oppScore || 0,
+                    detail: g.detail || g.status || '', state: g.state || 'pre',
+                },
+            },
+        });
     }
     return out;
 }
@@ -2181,24 +2254,25 @@ function deepGameHTML({ sigla, miei, quadro }) {
             ${g.logo ? `<img class="live-deep-logo" src="${g.logo}" alt="" loading="lazy">` : ''}
             <span class="live-deep-team">${escAttr(g.teamName || sigla)}</span>
             <span class="live-deep-vs">${g.home ? 'vs' : '@'} ${escAttr(g.opponentName || g.opponent || '')}</span>
-            <span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>
+            ${g.state === 'pre' ? ''
+                : `<span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>`}
             <span class="live-deep-when">${escAttr(g.detail || '')}</span>
         </header>
         <p class="live-deep-sub">${escAttr(g.teamName || sigla)} offense only${nostri.length
             ? ` · yours: <b>${nostri.map(escAttr).join(', ')}</b>` : ''}</p>
         ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
             p.name, p.targets || 0, maxTgt,
-            `${p.targets || 0} tgt · ${p.rec || 0} rec · ${p.rec_yds || 0} yd${p.rec_td ? ` · ${p.rec_td} TD` : ''}`,
+            usoStats([[p.targets, 'tgt'], [p.rec, 'rec'], [p.rec_yds, 'yd'], [p.rec_td, 'TD']]),
             mio(p), p.rec || 0)).join('') + fermiDi('WR', 'TE', 'RB/WR', 'W/R', 'FLEX'))}
         ${usoBloccoHTML('Carries', corridori.map(p => usoRow(
             p.name, p.rush_att || 0, maxCar,
-            `${p.rush_att || 0} car · ${p.rush_yds || 0} yd${p.rush_td ? ` · ${p.rush_td} TD` : ''}`,
+            usoStats([[p.rush_att, 'car'], [p.rush_yds, 'yd'], [p.rush_td, 'TD']]),
             mio(p))).join('') + fermiDi('RB'))}
         ${passatori.length || fermiDi('QB') ? `<div class="live-uso-blocco">
             <span class="live-uso-titolo">Passing</span>
             ${passatori.map(p => `<div class="live-uso-qb${mio(p) ? ' live-uso-row--mio' : ''}">
                 <span class="live-uso-nome">${escAttr(shortName({ name: p.name }))}</span>
-                <span class="live-uso-val">${p.pass_yds || 0} yd${p.pass_td ? ` · ${p.pass_td} TD` : ''}</span>
+                <span class="live-uso-val">${usoStats([[p.pass_yds, 'yd'], [p.pass_td, 'TD']])}</span>
                 <span class="live-uso-pts">${puntiDaTabellino(p.name) ?? '–'}</span>
             </div>`).join('')}
             ${fermi.filter(p => ruoloDi(p) === 'QB').map(p => `
@@ -2219,12 +2293,13 @@ function deepDiveHTML(team) {
 
     // Con più partite se ne guarda una per volta e si gira, come le card delle
     // giocate: affiancarle le stringerebbe fino a rendere illeggibili le barre.
+    // Solo le sigle, cliccabili: niente frecce e soprattutto niente rotella.
+    // La rotella qui sopra rubava lo scroll alla pagina, che arrivata a questa
+    // sezione si impuntava invece di proseguire.
     const nav = partite.length < 2 ? '' : `
         <div class="live-deep-nav">
-            <button class="live-deep-arrow" type="button" data-deep="-1" aria-label="Previous game">‹</button>
             ${partite.map((p, i) => `<button class="live-deep-dot${i === deepIdx ? ' active' : ''}"
                 type="button" data-deep-go="${i}">${escAttr(p.sigla)}</button>`).join('')}
-            <button class="live-deep-arrow" type="button" data-deep="1" aria-label="Next game">›</button>
         </div>`;
 
     const colore = teamOf(team.name)?.color || 'var(--accent-red)';
@@ -2239,33 +2314,20 @@ function deepDiveHTML(team) {
     </section>`;
 }
 
-/** Frecce, pallini e rotella: girare fra le partite senza rifare la pagina. */
+/** Si cambia partita solo cliccando una sigla: lo scroll resta della pagina. */
 function bindDeepDive(root) {
     const sez = root.querySelector('#live-deep');
     if (!sez) return;
     const quante = sez.querySelectorAll('[data-deep-go]').length;
-    const vai = (n) => {
-        if (quante < 2) return;
-        deepIdx = (n + quante) % quante;
-        const entry = teamEntries()[teamIdx];
-        if (!entry) return;
-        sez.outerHTML = deepDiveHTML(entry.team).trim();
-        bindDeepDive(root);
-    };
-    sez.querySelectorAll('[data-deep]').forEach(b =>
-        b.addEventListener('click', () => vai(deepIdx + Number(b.dataset.deep))));
     sez.querySelectorAll('[data-deep-go]').forEach(b =>
-        b.addEventListener('click', () => vai(Number(b.dataset.deepGo))));
-    if (quante < 2) return;
-    let ultimo = 0;
-    sez.addEventListener('wheel', (e) => {
-        if (Math.abs(e.deltaY) < 8) return;
-        const ora = Date.now();
-        if (ora - ultimo < 260) return;     // un giro per gesto, non venti
-        ultimo = ora;
-        e.preventDefault();
-        vai(deepIdx + (e.deltaY > 0 ? 1 : -1));
-    }, { passive: false });
+        b.addEventListener('click', () => {
+            if (quante < 2) return;
+            deepIdx = (Number(b.dataset.deepGo) + quante) % quante;
+            const entry = teamEntries()[teamIdx];
+            if (!entry) return;
+            sez.outerHTML = deepDiveHTML(entry.team).trim();
+            bindDeepDive(root);
+        }));
 }
 
 function nflGamesHTML(team) {
