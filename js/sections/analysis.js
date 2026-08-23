@@ -9,6 +9,7 @@
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
 import { TEAMS } from './team.js?v=601';
 import { playerImageService } from '../services/player-image-service.js?v=515';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -44,45 +45,31 @@ const LINEUP_SLOTS = [
 export function initAnalysis() {
     if (initialized) return;
     initialized = true;
-    renderYearSelector();
-    renderTeamSelector();
+    renderPickRow();
     bindContentEvents();
     load();
 }
 
-function renderYearSelector() {
-    const container = document.getElementById('an-year-selector');
+/** Riga con le due capsule a scomparsa: squadra/totale a sinistra, anno a destra. */
+function renderPickRow() {
+    const container = document.getElementById('an-pick-row');
     if (!container) return;
-    container.innerHTML = SEASONS.map(y =>
-        `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`
-    ).join('');
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.year-pill');
-        if (!btn) return;
-        container.querySelectorAll('.year-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentYear = btn.dataset.year;
-        load();
-    });
-}
 
-function renderTeamSelector() {
-    const container = document.getElementById('an-team-selector');
-    if (!container) return;
-    container.innerHTML = `
-        <button class="an-team-pill${currentTeam === 'all' ? ' active' : ''}" data-team="all" style="--team-color:#B8433A">
-            Totale
-        </button>` + Object.values(TEAMS).map(t =>
-        `<button class="an-team-pill${t.key === currentTeam ? ' active' : ''}" data-team="${t.key}" style="--team-color:${t.color}">
-            <img src="${t.logo}" alt="" class="an-team-pill-logo">${t.name}
-        </button>`
-    ).join('');
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.an-team-pill');
-        if (!btn) return;
-        container.querySelectorAll('.an-team-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentTeam = btn.dataset.team;
+    const teamItems = [
+        { value: 'all', label: 'Totale' },
+        ...Object.values(TEAMS).map(t => ({
+            value: t.key, label: `<img src="${t.logo}" alt="" class="an-team-pill-logo">${t.name}`,
+        })),
+    ];
+    const teamIdx = teamItems.findIndex(it => it.value === currentTeam);
+    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS.indexOf(String(currentYear));
+
+    container.innerHTML = pickDropdownHTML('team', teamItems, teamIdx) + pickDropdownHTML('year', yearItems, yearIdx);
+    bindPickDropdown(container, (id, value) => {
+        if (id === 'year') currentYear = value;
+        else if (id === 'team') currentTeam = value;
+        renderPickRow();
         load();
     });
 }
@@ -1104,8 +1091,6 @@ function renderLeagueView(model) {
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
 
-    <div id="an-leaders-wrap">${renderPositionLeaders(model)}</div>
-
     <div class="an-rankings">
         ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
         ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
@@ -1118,6 +1103,8 @@ function renderLeagueView(model) {
     <h3 class="an-sub-title">Draft: Value per Pick</h3>
     ${legend}
     ${buildDraftScatterSection(draftValueScatter(model))}
+
+    <div id="an-leaders-wrap">${renderPositionLeaders(model)}</div>
 
     <div class="an-rankings">
         ${rankingBlockPerf('Top 5 Performance', topFlop.top, 'top')}
@@ -1425,7 +1412,7 @@ function rankingBlockPerf(title, rows, variant = 'top') {
         <div class="an-rank-row${i === 0 ? ' ' + highlight : ''}">
             <span class="an-rank-pos">${i + 1}</span>
             <img src="${team ? team.logo : 'images/fallback-player.svg'}" alt="" class="an-rank-logo">
-            <span class="an-rank-name">${r.name} ${posBadge(r.position)}<span class="an-rank-note">${team ? team.name : ''} — W${r.wk}</span></span>
+            <span class="an-rank-name">${r.name} <span class="an-rank-pos-plain">${r.position || ''}</span><span class="an-rank-note">${team ? team.name : ''} — W${r.wk}</span></span>
             <span class="an-rank-bar"><span style="width:${barW.toFixed(1)}%; background:${CHART_COLORS[r.teamKey] || '#888'}"></span></span>
             <span class="an-rank-val">${fmt(r.pts, 1)}</span>
         </div>`;

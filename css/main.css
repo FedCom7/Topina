@@ -44,14 +44,11 @@
     --pill-radius: 100px;
     --card-radius: var(--radius-lg);
 
-    /* Superfici — vetro liquido condiviso da tutte le card: base scura
-       traslucida più un riflesso chiaro che fa da spessore del vetro.
-       Insieme a --bg-glass-border completano la ricetta (sfocatura di ciò che
-       sta dietro, bordo, riflesso interno): vanno usati con --surface-card,
-       non riscritti a mano nei singoli componenti. */
-    --surface-card:
-        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
-        rgba(14, 14, 16, 0.62);
+    /* Superficie condivisa da tutte le card del sito: nero pieno, uguale allo
+       sfondo della pagina. Insieme a --bg-glass-border completano la ricetta
+       (bordo, riflesso interno): vanno usati con --surface-card, non
+       riscritti a mano nei singoli componenti. */
+    --surface-card: #000000;
     --glass-blur: blur(26px) saturate(170%);
     --glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 
@@ -656,6 +653,129 @@ img {
     background: rgba(168, 85, 247, 0.18);
     border-color: var(--accent-purple);
     color: var(--accent-purple);
+}
+
+/* ================================
+   SELETTORE A CAPSULA + TENDINA
+   Stessa interazione dello switch squadra del Live (.live-teampick), ma
+   generico: anno/week/round/squadra in Game Center, Draft, Analysis. Due
+   capsule sulla stessa riga, quella secondaria a sinistra e l'anno a destra.
+   ================================ */
+
+.pick-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+}
+
+/* L'anno si distingue in rosso, l'altra scelta (week/round/squadra) resta
+   scura: sono la stessa forma di capsula ma non lo stesso peso. */
+.pick-dd[data-pick-id="year"] .pick-dd-btn {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: #fff;
+}
+
+.pick-dd:not([data-pick-id="year"]) .pick-dd-btn {
+    background: #000000;
+    border-color: var(--border-card);
+    color: var(--text-secondary);
+}
+
+.pick-dd {
+    position: relative;
+}
+
+.pick-dd .pick-dd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.pick-dd-caret {
+    font-size: 0.6em;
+    opacity: 0.75;
+    transition: transform var(--dur-fast) var(--ease);
+}
+
+.pick-dd.is-open .pick-dd-caret {
+    transform: rotate(180deg);
+}
+
+.pick-dd-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 40;
+    min-width: 100%;
+    width: max-content;
+    max-height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), var(--glass-sheen);
+}
+
+.pick-dd-menu[hidden] {
+    display: none;
+}
+
+.pick-dd-menu {
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.pick-dd-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pick-dd-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pick-dd-menu::-webkit-scrollbar-thumb {
+    background: #2f2f2f;
+    border-radius: 999px;
+}
+
+.pick-dd-menu::-webkit-scrollbar-thumb:hover {
+    background: #3f3f3f;
+}
+
+.pick-dd-item {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.pick-dd-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+}
+
+.pick-dd-item.is-on {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* ================================
@@ -1689,40 +1809,6 @@ img {
 .streak-t {
     background: rgba(245, 158, 11, 0.12);
     color: var(--accent-amber);
-}
-
-/* ================================
-   DRAFT GRID
-   ================================ */
-
-.round-selector {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-}
-
-.round-pill {
-    padding: 6px 16px;
-    border-radius: var(--pill-radius);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    border: 1px solid var(--border-subtle);
-    cursor: pointer;
-    transition: all 0.2s var(--ease);
-}
-
-.round-pill:hover {
-    color: var(--text-secondary);
-    border-color: var(--border-card);
-}
-
-.round-pill.active {
-    color: #fff;
-    background: rgba(79, 140, 255, 0.2);
-    border-color: var(--accent-blue);
 }
 
 /* ================================
@@ -4729,7 +4815,7 @@ img {
 }
 
 .team-alltime-panel {
-    background: rgba(255, 255, 255, 0.04);
+    background: #000000;
     border: 1px solid var(--border-card);
     border-radius: var(--card-radius);
     padding: 28px;
@@ -5014,6 +5100,12 @@ img {
 
 .teams-card:hover::before {
     opacity: 1;
+}
+
+/* Nella Home niente alone colorato dietro la card: sfondo nero pieno come le
+   altre card della pagina. Sulla pagina Teams l'alone resta. */
+.mc-teams-block .teams-card::before {
+    content: none;
 }
 
 .teams-card-watermark {
@@ -5523,23 +5615,10 @@ img {
     padding: 20px 24px 90px;
 }
 
-/* Fondale ambientale: aloni morbidi nei colori della lega, dietro le card.
-   Senza qualcosa da sfocare il vetro delle card non si distinguerebbe da un
-   pannello opaco. È un ::before (primo figlio in ordine di pittura) mentre le
-   card sono `position: relative`, quindi restano sopra senza bisogno di
-   z-index negativi, che finirebbero dietro allo sfondo della pagina. */
+/* Niente più fondale ambientale: le card hanno sfondo nero pieno, non vetro
+   che ha bisogno di qualcosa da sfocare dietro. */
 .mosaic::before {
-    content: '';
-    position: absolute;
-    inset: -6% -12%;
-    pointer-events: none;
-    /* I due aloni rossi — in alto a sinistra e in fondo a sinistra — sono via:
-       si vedevano come una macchia rossa sotto le card, all'inizio e alla fine
-       della pagina. Restano l'ambra e il blu, che al vetro delle card basta
-       avere qualcosa da sfocare dietro. */
-    background:
-        radial-gradient(34% 22% at 88% 22%, rgba(228, 178, 62, 0.14), transparent 70%),
-        radial-gradient(40% 26% at 74% 62%, rgba(78, 118, 226, 0.15), transparent 70%);
+    content: none;
 }
 
 /* ── Card base: stessa ricetta delle card All Teams ── */
@@ -5674,18 +5753,7 @@ img {
 }
 
 .mc-hero-glow {
-    position: absolute;
-    left: 50%;
-    top: 40%;
-    width: 75vw;
-    height: 75vw;
-    max-width: 950px;
-    max-height: 950px;
-    margin: -37.5vw 0 0 -37.5vw;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(184, 67, 58, 0.20) 0%, transparent 62%);
-    filter: blur(50px);
-    pointer-events: none;
+    display: none;
 }
 
 .mc-hero-grid {
@@ -5851,8 +5919,6 @@ img {
 }
 
 .mc-vs-row {
-    --w1-mix: 12%;
-    --w2-mix: 12%;
     flex: 1;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
@@ -5860,16 +5926,7 @@ img {
     gap: 10px;
     padding: 10px 16px;
     border-radius: 12px;
-    /* i colori delle due squadre sfumano dai bordi verso il centro, più accesi
-       dal lato di chi ha vinto */
-    background: linear-gradient(90deg,
-            color-mix(in srgb, var(--t1, transparent) var(--w1-mix), transparent),
-            transparent 35% 65%,
-            color-mix(in srgb, var(--t2, transparent) var(--w2-mix), transparent));
 }
-
-.mc-vs-row--w1 { --w1-mix: 26%; }
-.mc-vs-row--w2 { --w2-mix: 26%; }
 
 /* La cella è uguale per tutti — è quella che tiene incolonnati i punteggi —
    ed è generosa: i loghi vengono rimpiccioliti di --crest-scale per pareggiare
@@ -5882,16 +5939,14 @@ img {
     height: clamp(84px, 10.5vw, 140px);
 }
 
-/* Stemma in trasparenza con alone nel colore squadra, come le filigrane delle
-   card franchise: qui però deve restare riconoscibile, quindi molto più opaco
-   di .teams-card-watermark. Si accende passando sulla riga. */
+/* Stemma in trasparenza, niente alone colorato: solo il logo su nero. Si
+   accende passando sulla riga. */
 .mc-vs-crest img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     scale: var(--crest-scale, 1); /* proporzioni intatte: è una scala uniforme */
     opacity: 0.55;
-    filter: drop-shadow(0 0 26px color-mix(in srgb, var(--team-color, #000) 55%, transparent));
     transition: opacity var(--dur-med) var(--ease);
 }
 
@@ -6440,45 +6495,13 @@ img {
    ANALYSIS SECTION
    ======================================== */
 
-/* Team selector */
-.an-team-selector {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 24px;
-}
-
-.an-team-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 18px;
-    border-radius: var(--pill-radius);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s var(--ease);
-}
-
-.an-team-pill:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-}
-
-.an-team-pill.active {
-    border-color: var(--team-color);
-    color: var(--text-primary);
-    box-shadow: 0 0 18px color-mix(in srgb, var(--team-color) 25%, transparent);
-}
-
 .an-team-pill-logo {
+    display: inline-block;
     width: 22px;
     height: 22px;
     object-fit: contain;
+    vertical-align: middle;
+    margin-right: 6px;
 }
 
 /* Tabs */
@@ -7099,6 +7122,13 @@ img {
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
+}
+
+.an-rank-pos-plain {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
 }
 
 .an-rank-note {
@@ -12995,7 +13025,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 
 .live-page-inner {
     --live-bg: #080808;
-    --live-card: #151515;
+    --live-card: #000000;
     --live-border: #2a2a2a;
     --live-red: #ef4444;
     --live-yellow: #eab308;
@@ -13651,11 +13681,10 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     object-position: center 30%;
 }
 
-/* Il campo è disegnato (js/ui/field-svg.js), non fotografato: nasce già del
-   tono giusto, quindi niente filtri di luminosità da correggere. */
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;
+    filter: brightness(0.78);
 }
 
 .fsv-num {

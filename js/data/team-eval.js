@@ -28,7 +28,7 @@
  */
 
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
-import { getTeamStats } from './nfl-team-stats.js?v=529';
+import { getTeamStats } from './nfl-team-stats.js?v=531';
 import { canonAbbr } from './nfl-schedule.js?v=520';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1}

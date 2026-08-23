@@ -9,30 +9,46 @@ import { playerImageService } from '../services/player-image-service.js?v=515';
 import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=607';
 import { db } from '../firebase-config.js';
 import { fetchDraftStatus } from '../data/espn-fantasy.js?v=5';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loaded = false;
 let currentPicks = [];
 let currentYear = null;
+let currentRound = 'all';
 
 export async function initDraft() {
     if (loaded) return;
     loaded = true;
     initPlayerModal();
-    renderYearSelector();
+    currentYear = CURRENT_SEASON;
+    renderPickRow();
     await loadYear(CURRENT_SEASON);
 }
 
-function renderYearSelector() {
-    const container = document.getElementById('dr-year-selector');
-    container.innerHTML = SEASONS.map(y =>
-        `<button class="year-pill${y === CURRENT_SEASON ? ' active' : ''}" data-year="${y}">${y}</button>`
-    ).join('');
-    container.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.year-pill');
-        if (!btn) return;
-        container.querySelectorAll('.year-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        await loadYear(btn.dataset.year);
+/** Riga con le due capsule a scomparsa: round a sinistra, anno a destra. */
+function renderPickRow(maxRound) {
+    const container = document.getElementById('dr-pick-row');
+    if (!container) return;
+
+    let roundHtml = '';
+    if (maxRound) {
+        const roundItems = [{ value: 'all', label: 'All' }];
+        for (let r = 1; r <= maxRound; r++) roundItems.push({ value: String(r), label: `R${r}` });
+        const roundIdx = roundItems.findIndex(it => it.value === String(currentRound));
+        roundHtml = pickDropdownHTML('round', roundItems, roundIdx);
+    }
+    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS.indexOf(String(currentYear));
+
+    container.innerHTML = roundHtml + pickDropdownHTML('year', yearItems, yearIdx);
+    bindPickDropdown(container, (id, value) => {
+        if (id === 'year') {
+            loadYear(value);
+        } else if (id === 'round') {
+            currentRound = value;
+            renderPickRow(maxRound);
+            renderCards(currentRound);
+        }
     });
 }
 
@@ -71,6 +87,7 @@ async function pendingDraftHTML(year) {
 
 async function loadYear(year) {
     currentYear = year; // Update global
+    currentRound = 'all';
     const grid = document.getElementById('draft-grid');
     grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year} draft...</p></div>`;
 
@@ -83,7 +100,7 @@ async function loadYear(year) {
             grid.innerHTML = String(year) === String(CURRENT_SEASON)
                 ? await pendingDraftHTML(year)
                 : `<div class="empty-state"><p class="empty-state-text">No draft for ${year}</p></div>`;
-            document.getElementById('dr-round-selector').innerHTML = '';
+            renderPickRow();
             return;
         }
 
@@ -91,32 +108,17 @@ async function loadYear(year) {
 
         if (!currentPicks.length) {
             grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">Draft data not available</p></div>`;
+            renderPickRow();
             return;
         }
 
         const maxRound = Math.max(...currentPicks.map(p => p.round));
-        renderRoundSelector(maxRound);
+        renderPickRow(maxRound);
         renderCards('all');
     } catch (e) {
         console.error(`[Draft] Error loading year ${year}:`, e);
         grid.innerHTML = `<div class="error-state"><p>Error loading: ${e.message}</p></div>`;
     }
-}
-
-function renderRoundSelector(maxRound) {
-    const container = document.getElementById('dr-round-selector');
-    let html = `<button class="round-pill active" data-round="all">All</button>`;
-    for (let r = 1; r <= maxRound; r++) {
-        html += `<button class="round-pill" data-round="${r}">R${r}</button>`;
-    }
-    container.innerHTML = html;
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.round-pill');
-        if (!btn) return;
-        container.querySelectorAll('.round-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderCards(btn.dataset.round);
-    });
 }
 
 function renderCards(round) {

@@ -21,7 +21,7 @@ import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=601';
 import { getLeagueData } from '../data/league-data.js?v=534';
 import { getHonorsBundle } from '../data/honors.js?v=585';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=525';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=527';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
@@ -53,7 +53,7 @@ const keyOf = (raw) => TEAM_KEYS[displayName(raw)] || null;
 
 // Mapping nomi → chiavi wallpaper campo (come in game-center)
 const FIELD_KEYS = { 'Oscurus': 'OSCURUS', 'Lasers': 'LASERS', 'Sommo': 'SOMMO', 'Capi dei Pianeti': 'C.D.P' };
-const FIELD_IMG_VERSION = 2; // bump quando si sostituiscono i wallpaper (vedi game-center.js)
+const FIELD_IMG_VERSION = 3; // bump quando si sostituiscono i wallpaper (vedi game-center.js)
 function fieldImage(m) {
     const k1 = FIELD_KEYS[displayName(m.team1.name)];
     const k2 = FIELD_KEYS[displayName(m.team2.name)];

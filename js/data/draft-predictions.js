@@ -17,11 +17,11 @@
  */
 
 import { getSeasonConfig } from '../data.js?v=534';
-import { getTeamStats } from './nfl-team-stats.js?v=529';
+import { getTeamStats } from './nfl-team-stats.js?v=531';
 import { canonAbbr } from './nfl-schedule.js?v=520';
 import { resolveDefAbbrSync } from './player-full.js?v=588';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
-import { perGameCv } from './context-score.js?v=584';
+import { perGameCv } from './context-score.js?v=586';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // FLEX gestito a parte (pool RB/WR)
 const FLEX_POS = FLEX_ELIGIBLE;
