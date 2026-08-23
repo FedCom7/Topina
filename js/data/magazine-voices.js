@@ -559,94 +559,112 @@ export const SB_TITLE_COUNT_LINES = [
 
 /* ───────────────────────────────────────────────────────────────
    PAGINA ANALISI PARTITA — recapArticle() in matchup-analysis.js.
-   Banche dedicate: la stessa partita non deve leggersi identica se
-   aperta sia nell'Analisi sia nel Magazine.
+
+   Banche dedicate e IN INGLESE, come tutto quello che il sito mostra.
+   Restano separate da quelle del Magazine — che è in italiano per scelta,
+   è la rivista della lega — anche perché la stessa partita non deve
+   leggersi identica aperta in Analisi e in Magazine.
    ─────────────────────────────────────────────────────────────── */
+
+/** Margine risicato. {margin}, {loser} */
+export const AN_MARGIN_THRILLER = [
+    `Just {margin} points in it: the kind of weekend you follow with one eye on the scoreboard until the last Monday-night snap.`,
+    `{margin} points between joy and despair — a game that wore out sofas, fingernails and friendships.`,
+    `A {margin}-point margin is nothing, and this time it caught {loser} right on the finish line.`,
+    `Decided by a bare {margin} points: one of those games you retell for years, assuming the heart holds up.`,
+    `The final board says {margin} points, and says nothing about the ten times {loser} thought it was won.`,
+    `A coin left spinning for three days, landing the right way up: {margin} points, and it was over only when it was truly over.`,
+];
+
+/** Margine larghissimo. {margin}, {loser} */
+export const AN_MARGIN_BLOWOUT = [
+    `{margin} points of margin: not a game, a statement.`,
+    `A {margin}-point gap turned the weekend into a formality, and {loser} into a spectator.`,
+    `Never a contest: {margin} points is the distance between a plan that worked and one that never started.`,
+    `{loser} was out of it by Sunday afternoon — {margin} points is a verdict, not a scoreline.`,
+    `The kind of {margin}-point afternoon that gets filed away quickly by whoever lost it.`,
+];
+
+/** Margine normale. {margin}, {loser} */
+export const AN_MARGIN_NORMAL = [
+    `A solid {margin}-point win: no fireworks, just a job seen through from start to finish.`,
+    `{margin} points is a comfortable distance — enough to control the weekend without ever sweating it.`,
+    `Won by {margin}: the lead was built early and never really threatened.`,
+    `{margin} points of daylight, and {loser} never found the run it needed.`,
+    `Not a thriller and not a rout: {margin} points, decided by the better lineup.`,
+];
+
+/** Il protagonista. {top}, {pts}, {stat} */
+export const AN_TOP_PHRASES = [
+    `{top} carried it: {pts} points, {stat}.`,
+    `The afternoon belonged to {top} — {pts} points and the feeling the field was his: {stat}.`,
+    `{pts} points from {top}, and the box score explains why: {stat}.`,
+    `{top} was the difference: {stat}, for {pts} points.`,
+    `Everything ran through {top}: {stat}, {pts} points on the board.`,
+];
 
 /** c: { nW, nL } — playoff */
 export const AN_STAKES_PLAYOFF = [
-    (c) => `In palio c'era un posto nel Super Bowl: ${c.nW} stacca il biglietto per la finale, per ${c.nL} la stagione si chiude qui.`,
-    (c) => `Semifinale secca, senza domani: ${c.nW} vola in finale, ${c.nL} deve fare le valigie.`,
-    (c) => `Chi vinceva andava al Super Bowl, chi perdeva chiudeva l'annata: ${c.nW} ha scelto la porta giusta, ${c.nL} quella sbagliata.`,
-    (c) => `Una sola squadra poteva continuare a sognare il titolo: è ${c.nW}, mentre per ${c.nL} è già tempo di bilanci.`,
-    (c) => `Le semifinali non fanno prigionieri: ${c.nW} sopravvive e avanza, ${c.nL} guarda il Super Bowl dal divano.`,
-    (c) => `Novanta minuti... anzi, un weekend intero col fiato sospeso: ${c.nW} passa il turno, per ${c.nL} l'appuntamento col titolo è rimandato di un anno.`,
-    (c) => `${c.nW} regge la pressione della partita secca e vola in finale; a ${c.nL} restano i rimpianti e il mercato di primavera.`,
-    (c) => `La stagione di ${c.nL} finisce a un passo dalla notte più importante; quella di ${c.nW} continua dove contano davvero.`,
+    (c) => `A Super Bowl place was on the line: ${c.nW} punches the ticket, ${c.nL}'s season ends here.`,
+    (c) => `Win or go home: ${c.nW} moves on to the final, ${c.nL} packs up.`,
+    (c) => `The winner went to the Super Bowl, the loser went home — ${c.nW} picked the right door.`,
+    (c) => `Only one team could keep dreaming about the title: ${c.nW}, while ${c.nL} starts taking stock.`,
+    (c) => `Semifinals take no prisoners: ${c.nW} survives and advances, ${c.nL} watches the final from the couch.`,
+    (c) => `${c.nW} handles the pressure of a one-off and reaches the final; ${c.nL} is left with the regrets.`,
 ];
 
-/** c: { nW, year } — super bowl */
+/** c: { nW, year } — Super Bowl */
 export const AN_STAKES_SB = [
-    (c) => `Una notte che vale tutto: con questo successo ${c.nW} si prende il titolo della Topina League ${c.year}.`,
-    (c) => `Non capita tutte le settimane di giocarsi un titolo: ${c.nW} lo fa, e lo porta a casa.`,
-    (c) => `Il trofeo della Topina League ${c.year} ha un nuovo proprietario: ${c.nW}, che si prende la notte più importante dell'anno.`,
-    (c) => `Serata da incorniciare per ${c.nW}, che aggiunge il titolo ${c.year} alla propria bacheca.`,
-    (c) => `Quando conta, conta: ${c.nW} vince l'unica partita che nessuno dimentica e si laurea campione ${c.year}.`,
-    (c) => `Il ${c.year} avrà un solo nome inciso nell'albo d'oro, ed è quello di ${c.nW}: notte perfetta, titolo meritato.`,
-    (c) => `Mesi di draft, waiver e formazioni incastrate trovano il loro senso in una notte sola: ${c.nW} è campione della Topina League ${c.year}.`,
-    (c) => `Il confetti cannon è tutto per ${c.nW}: il Super Bowl ${c.year} parla la sua lingua.`,
+    (c) => `This was the last game of the year, and ${c.nW} takes the ${c.year} title.`,
+    (c) => `The Super Bowl, and it goes to ${c.nW}: the ${c.year} season closes with their name on it.`,
+    (c) => `Champions of ${c.year}: ${c.nW} wins the one that counts.`,
+    (c) => `Everything came down to this, and ${c.nW} took it — the ${c.year} crown is theirs.`,
+    (c) => `A season of ${c.year} settled in a single weekend: ${c.nW} lifts the trophy.`,
 ];
 
-/** c: { nW, w, l } — precedenti stagionali (w/l = record aggiornato) */
+/** c: { nW, w, l } — precedenti stagionali */
 export const AN_SERIES_LINES = [
-    (c) => `Contando i precedenti stagionali, il bilancio tra le due squadre ora dice ${c.w}-${c.l} in favore di ${c.nW}.`,
-    (c) => `Sommando anche questa, il conto stagionale tra le due sale a ${c.w}-${c.l} per ${c.nW}.`,
-    (c) => `Il computo dei precedenti in stagione recita ora ${c.w}-${c.l}, sempre a vantaggio di ${c.nW}.`,
-    (c) => `Guardando i soli precedenti di quest'anno, ${c.nW} allunga a ${c.w}-${c.l}.`,
-    (c) => `La sfida stagionale tra le due ha ora un padrone più chiaro: ${c.w}-${c.l} per ${c.nW}.`,
-    (c) => `Aggiornato il conto degli scontri diretti dell'anno: ${c.w}-${c.l}, e a sorridere è sempre ${c.nW}.`,
-    (c) => `Anche il derby stagionale pende ora dalla parte di ${c.nW}: ${c.w}-${c.l} il bilancio aggiornato.`,
-    (c) => `Nella rivalità di quest'anno c'è un nuovo capitolo, e lo firma ${c.nW}: ${c.w}-${c.l}.`,
+    (c) => `In the season series it is now ${c.w}-${c.l} for ${c.nW}.`,
+    (c) => `${c.nW} keeps the upper hand in the head-to-head: ${c.w}-${c.l} on the year.`,
+    (c) => `That makes the season series ${c.w}-${c.l} — this matchup has an owner.`,
+    (c) => `Another one in the same direction: ${c.w}-${c.l} for ${c.nW} across the season.`,
+    (c) => `The rivalry keeps leaning one way: ${c.w}-${c.l} in favour of ${c.nW}.`,
 ];
 
-/** c: { name, pts, avg, extra } — extra = clausola yard, già formattata o stringa vuota */
+/** c: { loser, name, pts, avg, extra } — il flop dello sconfitto */
 export const AN_FLOP_WRAP = [
-    (c) => `In casa ${c.loser} pesa la giornata no di ${c.name}: ${c.pts} punti contro una media stagionale di ${c.avg}${c.extra}`,
-    (c) => `Nota stonata per ${c.loser}: ${c.name} si ferma a ${c.pts} punti, lontano dalla sua media di ${c.avg}${c.extra}`,
-    (c) => `Non aiuta ${c.loser} la prestazione opaca di ${c.name}, fermo a ${c.pts} punti contro i consueti ${c.avg} di media${c.extra}`,
-    (c) => `Da rivedere la prova di ${c.name} in casa ${c.loser}: appena ${c.pts} punti, ben sotto la media stagionale di ${c.avg}${c.extra}`,
-    (c) => `${c.loser} può recriminare soprattutto su ${c.name}: ${c.pts} punti quando la sua media dice ${c.avg}${c.extra}`,
-    (c) => `Il grande assente in casa ${c.loser} è stato ${c.name}: presenza in campo, ${c.pts} punti a referto contro i ${c.avg} attesi${c.extra}`,
-    (c) => `Serata storta per ${c.name}, e ${c.loser} l'ha pagata cara: ${c.pts} punti, la metà scarsa dei ${c.avg} che garantisce di solito${c.extra}`,
-    (c) => `Quando il tuo uomo da ${c.avg} di media te ne porta ${c.pts}, la strada si fa in salita: chiedere a ${c.loser} e al suo ${c.name}${c.extra}`,
+    (c) => `${c.loser} paid for ${c.name}'s afternoon: ${c.pts} points against a ${c.avg} average${c.extra}`,
+    (c) => `Nothing came from ${c.name}, and ${c.loser} felt it: ${c.pts} points where ${c.avg} was the norm${c.extra}`,
+    (c) => `The hole was ${c.name}: ${c.pts} points instead of the usual ${c.avg}, and ${c.loser} never covered it${c.extra}`,
+    (c) => `${c.name} went missing — ${c.pts} points against ${c.avg} on the season — and ${c.loser} had no answer${c.extra}`,
+    (c) => `When your ${c.avg}-a-week player brings ${c.pts}, the road gets steep: ask ${c.loser} and ${c.name}${c.extra}`,
 ];
 
-/** c: { names, verb, nW } — verb = "hanno"/"ha" già concordato */
+/** c: { names, verb, nW } — chi è in fiducia */
 export const AN_HOT_STREAK_LINES = [
-    (c) => `Tra i vincitori c'è chi viaggia a pieni giri: ${c.names} ${c.verb} dato profondità al punteggio di ${c.nW}.`,
-    (c) => `Non solo il protagonista annunciato: anche ${c.names} ${c.verb} spinto forte in casa ${c.nW}.`,
-    (c) => `${c.nW} può contare pure su un buon momento di forma di ${c.names}, in doppia cifra sulle attese.`,
-    (c) => `A completare il quadro vincente, ${c.names} ${c.verb} confermato un ottimo momento di forma.`,
-    (c) => `Il supporting cast di ${c.nW} ha recitato benissimo: ${c.names} ${c.verb} superato nettamente le proprie medie.`,
-    (c) => `Vittorie così si costruiscono in profondità: ${c.names} ${c.verb} aggiunto punti pesanti oltre le attese per ${c.nW}.`,
-    (c) => `Occhio anche ai comprimari di lusso: ${c.names} ${c.verb} viaggiato ben sopra il proprio standard stagionale.`,
-    (c) => `In casa ${c.nW} la copertina non basta a raccontare tutto: ${c.names} ${c.verb} messo il turbo rispetto alla media.`,
+    (c) => `Among the winners there are players running hot: ${c.names} added depth to ${c.nW}'s total.`,
+    (c) => `${c.names} are travelling well above their own standard, and ${c.nW} is cashing it in.`,
+    (c) => `Beyond the headline act, ${c.names} kept ${c.nW}'s afternoon comfortable.`,
+    (c) => `${c.nW} also got change from ${c.names}, both above their season pace.`,
 ];
 
-/* ── Note giocatori e difference maker (pagina analisi) ── */
-
-/** c: { facts, bits } — facts = "X punti (stat)", bits = contesto o '' */
+/** c: { facts, bits } — commento breve su un giocatore */
 export const AN_COMMENT_WRAP = [
-    (c) => `${c.facts}${c.bits ? ` — ${c.bits}` : ''}.`,
-    (c) => `Chiude con ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
-    (c) => `Referto finale: ${c.facts}${c.bits ? `, ${c.bits}` : ''}.`,
-    (c) => `A tabellino ${c.facts}${c.bits ? ` — ${c.bits}` : ''}.`,
-    (c) => `La sua domenica dice ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
-    (c) => `Porta in dote ${c.facts}${c.bits ? `, ${c.bits}` : ''}.`,
-    (c) => `Numeri alla mano: ${c.facts}${c.bits ? ` — ${c.bits}` : ''}.`,
-    (c) => `Contributo da ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+    (c) => `${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+    (c) => `Closes on ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+    (c) => `${c.facts} on the board${c.bits ? ` — ${c.bits}` : ''}.`,
+    (c) => `The box score reads ${c.facts}${c.bits ? `: ${c.bits}` : ''}.`,
+    (c) => `Brings ${c.facts}${c.bits ? `, ${c.bits}` : ''}.`,
 ];
 
-/** c: { pts, avg, statTail } — giornata sottotono; statTail = " Frase stat." o '' */
+/** c: { pts, avg, statTail } — giornata storta */
 export const AN_NOTE_BAD = [
-    (c) => `Giornata da dimenticare: solo ${c.pts} punti contro una media stagionale di ${c.avg}.${c.statTail}`,
-    (c) => `Serata storta: ${c.pts} punti, con una media da ${c.avg} rimasta un miraggio.${c.statTail}`,
-    (c) => `Da lui ci si aspettava molto di più: ${c.pts} punti a fronte dei ${c.avg} di media.${c.statTail}`,
-    (c) => `Fermo a ${c.pts} punti, meno della metà del suo passo abituale (${c.avg}).${c.statTail}`,
-    (c) => `Il tabellino recita ${c.pts} punti: per uno che viaggia a ${c.avg}, un incidente di percorso.${c.statTail}`,
-    (c) => `Prestazione incolore da ${c.pts} punti, lontanissima dai ${c.avg} che garantisce di solito.${c.statTail}`,
-    (c) => `Uno di quei weekend in cui niente gira: ${c.pts} punti contro i consueti ${c.avg}.${c.statTail}`,
-    (c) => `Panchina meritata la prossima? ${c.pts} punti contro una media di ${c.avg} lasciano il dubbio.${c.statTail}`,
+    (c) => `A day to forget: ${c.pts} points against a season average of ${c.avg}.${c.statTail}`,
+    (c) => `Nothing worked: ${c.pts} points, with the usual ${c.avg} nowhere in sight.${c.statTail}`,
+    (c) => `Far more was expected: ${c.pts} points against an average of ${c.avg}.${c.statTail}`,
+    (c) => `Stuck on ${c.pts} points, less than half his usual pace (${c.avg}).${c.statTail}`,
+    (c) => `The line says ${c.pts} points: for someone who runs at ${c.avg}, an accident.${c.statTail}`,
+    (c) => `One of those weekends when nothing lands: ${c.pts} points against the usual ${c.avg}.${c.statTail}`,
 ];
 
 /** Compagni di squadra che elogiano il protagonista. c: { name } */

@@ -5,13 +5,13 @@
  * (#player/{year}/{pos}/{nome}) o alla pagina squadra NFL (#nfl-team/{abbr}).
  */
 
-import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=570';
+import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=593';
 import { CURRENT_SEASON } from '../data.js?v=534';
-import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=575';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=526';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=581';
+import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=577';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=531';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=586';
 import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=522';
-import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=508';
+import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=510';
 import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=591';
 
 // ─── Confronto lega · tutte le 32 squadre (nflverse team_stats + advanced) ───

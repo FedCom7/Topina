@@ -14,15 +14,15 @@
 
 import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=589';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
-import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=526';
-import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=589';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=605';
+import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=531';
+import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=591';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=607';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=591';
 import { playerImageService } from '../services/player-image-service.js?v=516';
 import { canonAbbr } from '../data/nfl-schedule.js?v=522';
 import { CURRENT_SEASON } from '../data.js?v=534';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=581';
-import { getTeamIdentity } from '../data/nfl-teams.js?v=508';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=586';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=510';
 import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=895';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';

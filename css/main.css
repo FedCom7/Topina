@@ -44,14 +44,11 @@
     --pill-radius: 100px;
     --card-radius: var(--radius-lg);
 
-    /* Superfici — vetro liquido condiviso da tutte le card: base scura
-       traslucida più un riflesso chiaro che fa da spessore del vetro.
-       Insieme a --bg-glass-border completano la ricetta (sfocatura di ciò che
-       sta dietro, bordo, riflesso interno): vanno usati con --surface-card,
-       non riscritti a mano nei singoli componenti. */
-    --surface-card:
-        linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025)),
-        rgba(14, 14, 16, 0.62);
+    /* Superficie condivisa da tutte le card del sito: nero pieno, uguale allo
+       sfondo della pagina. Insieme a --bg-glass-border completano la ricetta
+       (bordo, riflesso interno): vanno usati con --surface-card, non
+       riscritti a mano nei singoli componenti. */
+    --surface-card: #000000;
     --glass-blur: blur(26px) saturate(170%);
     --glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 
@@ -656,6 +653,129 @@ img {
     background: rgba(168, 85, 247, 0.18);
     border-color: var(--accent-purple);
     color: var(--accent-purple);
+}
+
+/* ================================
+   SELETTORE A CAPSULA + TENDINA
+   Stessa interazione dello switch squadra del Live (.live-teampick), ma
+   generico: anno/week/round/squadra in Game Center, Draft, Analysis. Due
+   capsule sulla stessa riga, quella secondaria a sinistra e l'anno a destra.
+   ================================ */
+
+.pick-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+}
+
+/* L'anno si distingue in rosso, l'altra scelta (week/round/squadra) resta
+   scura: sono la stessa forma di capsula ma non lo stesso peso. */
+.pick-dd[data-pick-id="year"] .pick-dd-btn {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: #fff;
+}
+
+.pick-dd:not([data-pick-id="year"]) .pick-dd-btn {
+    background: #000000;
+    border-color: var(--border-card);
+    color: var(--text-secondary);
+}
+
+.pick-dd {
+    position: relative;
+}
+
+.pick-dd .pick-dd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.pick-dd-caret {
+    font-size: 0.6em;
+    opacity: 0.75;
+    transition: transform var(--dur-fast) var(--ease);
+}
+
+.pick-dd.is-open .pick-dd-caret {
+    transform: rotate(180deg);
+}
+
+.pick-dd-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 40;
+    min-width: 100%;
+    width: max-content;
+    max-height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), var(--glass-sheen);
+}
+
+.pick-dd-menu[hidden] {
+    display: none;
+}
+
+.pick-dd-menu {
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.pick-dd-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pick-dd-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pick-dd-menu::-webkit-scrollbar-thumb {
+    background: #2f2f2f;
+    border-radius: 999px;
+}
+
+.pick-dd-menu::-webkit-scrollbar-thumb:hover {
+    background: #3f3f3f;
+}
+
+.pick-dd-item {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.pick-dd-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+}
+
+.pick-dd-item.is-on {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* ================================
@@ -1689,40 +1809,6 @@ img {
 .streak-t {
     background: rgba(245, 158, 11, 0.12);
     color: var(--accent-amber);
-}
-
-/* ================================
-   DRAFT GRID
-   ================================ */
-
-.round-selector {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-}
-
-.round-pill {
-    padding: 6px 16px;
-    border-radius: var(--pill-radius);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    border: 1px solid var(--border-subtle);
-    cursor: pointer;
-    transition: all 0.2s var(--ease);
-}
-
-.round-pill:hover {
-    color: var(--text-secondary);
-    border-color: var(--border-card);
-}
-
-.round-pill.active {
-    color: #fff;
-    background: rgba(79, 140, 255, 0.2);
-    border-color: var(--accent-blue);
 }
 
 /* ================================
@@ -4729,7 +4815,7 @@ img {
 }
 
 .team-alltime-panel {
-    background: rgba(255, 255, 255, 0.04);
+    background: #000000;
     border: 1px solid var(--border-card);
     border-radius: var(--card-radius);
     padding: 28px;
@@ -5014,6 +5100,12 @@ img {
 
 .teams-card:hover::before {
     opacity: 1;
+}
+
+/* Nella Home niente alone colorato dietro la card: sfondo nero pieno come le
+   altre card della pagina. Sulla pagina Teams l'alone resta. */
+.mc-teams-block .teams-card::before {
+    content: none;
 }
 
 .teams-card-watermark {
@@ -5523,23 +5615,10 @@ img {
     padding: 20px 24px 90px;
 }
 
-/* Fondale ambientale: aloni morbidi nei colori della lega, dietro le card.
-   Senza qualcosa da sfocare il vetro delle card non si distinguerebbe da un
-   pannello opaco. È un ::before (primo figlio in ordine di pittura) mentre le
-   card sono `position: relative`, quindi restano sopra senza bisogno di
-   z-index negativi, che finirebbero dietro allo sfondo della pagina. */
+/* Niente più fondale ambientale: le card hanno sfondo nero pieno, non vetro
+   che ha bisogno di qualcosa da sfocare dietro. */
 .mosaic::before {
-    content: '';
-    position: absolute;
-    inset: -6% -12%;
-    pointer-events: none;
-    /* I due aloni rossi — in alto a sinistra e in fondo a sinistra — sono via:
-       si vedevano come una macchia rossa sotto le card, all'inizio e alla fine
-       della pagina. Restano l'ambra e il blu, che al vetro delle card basta
-       avere qualcosa da sfocare dietro. */
-    background:
-        radial-gradient(34% 22% at 88% 22%, rgba(228, 178, 62, 0.14), transparent 70%),
-        radial-gradient(40% 26% at 74% 62%, rgba(78, 118, 226, 0.15), transparent 70%);
+    content: none;
 }
 
 /* ── Card base: stessa ricetta delle card All Teams ── */
@@ -5562,20 +5641,11 @@ img {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42), var(--glass-sheen);
 }
 
+/* Niente velo colorato dentro la card: il vetro resta pulito e il colore lo
+   portano il titolino, il bordo al passaggio del mouse e il logo in filigrana.
+   `--card-glow` continua a servire a quelli. */
 .mosaic-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 90% 110% at 85% -10%,
-            color-mix(in srgb, var(--card-glow) 26%, transparent) 0%,
-            transparent 60%);
-    opacity: 0.65;
-    transition: opacity var(--dur-med) var(--ease);
-    pointer-events: none;
-}
-
-.mosaic-card:hover::before {
-    opacity: 1;
+    content: none;
 }
 
 .mc-hero,
@@ -5683,18 +5753,7 @@ img {
 }
 
 .mc-hero-glow {
-    position: absolute;
-    left: 50%;
-    top: 40%;
-    width: 75vw;
-    height: 75vw;
-    max-width: 950px;
-    max-height: 950px;
-    margin: -37.5vw 0 0 -37.5vw;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(184, 67, 58, 0.20) 0%, transparent 62%);
-    filter: blur(50px);
-    pointer-events: none;
+    display: none;
 }
 
 .mc-hero-grid {
@@ -5860,8 +5919,6 @@ img {
 }
 
 .mc-vs-row {
-    --w1-mix: 12%;
-    --w2-mix: 12%;
     flex: 1;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
@@ -5869,16 +5926,7 @@ img {
     gap: 10px;
     padding: 10px 16px;
     border-radius: 12px;
-    /* i colori delle due squadre sfumano dai bordi verso il centro, più accesi
-       dal lato di chi ha vinto */
-    background: linear-gradient(90deg,
-            color-mix(in srgb, var(--t1, transparent) var(--w1-mix), transparent),
-            transparent 35% 65%,
-            color-mix(in srgb, var(--t2, transparent) var(--w2-mix), transparent));
 }
-
-.mc-vs-row--w1 { --w1-mix: 26%; }
-.mc-vs-row--w2 { --w2-mix: 26%; }
 
 /* La cella è uguale per tutti — è quella che tiene incolonnati i punteggi —
    ed è generosa: i loghi vengono rimpiccioliti di --crest-scale per pareggiare
@@ -5891,16 +5939,14 @@ img {
     height: clamp(84px, 10.5vw, 140px);
 }
 
-/* Stemma in trasparenza con alone nel colore squadra, come le filigrane delle
-   card franchise: qui però deve restare riconoscibile, quindi molto più opaco
-   di .teams-card-watermark. Si accende passando sulla riga. */
+/* Stemma in trasparenza, niente alone colorato: solo il logo su nero. Si
+   accende passando sulla riga. */
 .mc-vs-crest img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     scale: var(--crest-scale, 1); /* proporzioni intatte: è una scala uniforme */
     opacity: 0.55;
-    filter: drop-shadow(0 0 26px color-mix(in srgb, var(--team-color, #000) 55%, transparent));
     transition: opacity var(--dur-med) var(--ease);
 }
 
@@ -6449,45 +6495,13 @@ img {
    ANALYSIS SECTION
    ======================================== */
 
-/* Team selector */
-.an-team-selector {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 24px;
-}
-
-.an-team-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 18px;
-    border-radius: var(--pill-radius);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s var(--ease);
-}
-
-.an-team-pill:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-}
-
-.an-team-pill.active {
-    border-color: var(--team-color);
-    color: var(--text-primary);
-    box-shadow: 0 0 18px color-mix(in srgb, var(--team-color) 25%, transparent);
-}
-
 .an-team-pill-logo {
+    display: inline-block;
     width: 22px;
     height: 22px;
     object-fit: contain;
+    vertical-align: middle;
+    margin-right: 6px;
 }
 
 /* Tabs */
@@ -6906,6 +6920,39 @@ img {
     display: block;
 }
 
+/* ── Primitive dei grafici condivisi (js/ui/charts.js) ───────────
+   Un grafico largo non si comprime fino a diventare illeggibile: scorre
+   dentro il suo contenitore, come già fa .dgt-chart-wrap nel Draft Grade. */
+.an-scroll {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.an-scroll::-webkit-scrollbar { height: 6px; }
+.an-scroll::-webkit-scrollbar-track { background: transparent; }
+.an-scroll::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 999px; }
+
+.an-svg--wide {
+    min-width: 560px;
+}
+
+/* Il punto saliente spiegato a parole, dentro il grafico. */
+.an-callout {
+    fill: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.an-dumb circle {
+    transition: r 0.15s var(--ease);
+}
+
+.an-dumb:hover circle {
+    r: 6.5;
+}
+
 .an-gridline {
     stroke: rgba(255, 255, 255, 0.07);
     stroke-width: 1;
@@ -7077,6 +7124,13 @@ img {
     flex-direction: column;
 }
 
+.an-rank-pos-plain {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
 .an-rank-note {
     font-size: 0.68rem;
     font-weight: 400;
@@ -7112,6 +7166,61 @@ img {
 .an-rank-row--loss .an-rank-pos,
 .an-rank-row--loss .an-rank-val {
     color: var(--accent-red);
+}
+
+.an-rank-photo {
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
+}
+
+/* --- League view: top performers by position --- */
+.an-leader-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px 32px;
+    margin-top: 8px;
+}
+
+.an-leader-card {
+    min-width: 0;
+}
+
+.an-leader-title {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 4px;
+}
+
+.an-leader-row--extra {
+    display: none;
+}
+
+.an-leader-card--expanded .an-leader-row--extra {
+    display: grid;
+}
+
+.an-leader-toggle {
+    margin-top: 8px;
+    padding: 5px 12px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-leader-toggle:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
 }
 
 /* --- Distribuzione punteggi --- */
@@ -7860,8 +7969,8 @@ img {
 
 .gb-out-row {
     display: grid;
-    /* pos | giocatore | dettaglio | pts | pts | dettaglio | giocatore | pos */
-    grid-template-columns: 44px 1fr minmax(0, 150px) auto auto minmax(0, 150px) 1fr 44px;
+    /* pos | foto | giocatore | dettaglio | pts | pts | dettaglio | giocatore | foto | pos */
+    grid-template-columns: 40px 40px 1fr minmax(0, 150px) auto auto minmax(0, 150px) 1fr 40px 40px;
     align-items: center;
     gap: 8px;
     padding: 9px 0;
@@ -8139,6 +8248,112 @@ div.gb-out-player:last-of-type {
 }
 
 /* player notes */
+/* ── Analisi partita: blocchi coi grafici nuovi ──────────────────
+   Riga di contesto sotto il titolo di ogni card: dice come si legge il
+   grafico, che è il posto dove queste pagine di solito perdono il lettore. */
+.gb-card-sub {
+    margin: 2px 0 14px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 76ch;
+}
+
+/* Ogni giocatore contro la sua media: due colonne, una per squadra, e dentro
+   ognuna titolari e panchina separati. Tutto nella stessa card. */
+.gb-avg-switch {
+    margin: 0 0 16px;
+    justify-content: flex-start;
+}
+
+.gb-avg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 22px 28px;
+}
+
+/* Un pannello per riferimento (stagione / anno prima / sempre): si disegnano
+   tutti e si mostra quello scelto, così cambiare non ricalcola niente. Le due
+   regole stanno DOPO .gb-avg-grid, che ha la stessa specificità e vincerebbe. */
+.gb-avg-grid.gb-avg-mode {
+    display: none;
+}
+
+.gb-avg-grid.gb-avg-mode.is-on {
+    display: grid;
+}
+
+.gb-avg-team {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--tc, var(--text-primary));
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-avg-group + .gb-avg-group {
+    margin-top: 16px;
+}
+
+.gb-avg-sub {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* I due migliori della giornata, sotto il grafico del margine. */
+.gb-tops {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.gb-top {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.gb-top .gb-headshot-sm {
+    border-color: var(--tc, var(--accent-red));
+}
+
+.gb-top-body {
+    min-width: 0;
+}
+
+.gb-top-name {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.gb-top-name small {
+    margin-left: 6px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--tc, var(--accent-red));
+}
+
+.gb-top-text {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
 .gb-notes {
     display: flex;
     flex-direction: column;
@@ -8161,6 +8376,21 @@ div.gb-out-player:last-of-type {
     height: 56px;
     flex-shrink: 0;
     border-color: var(--border-card);
+}
+
+/* Foto nelle righe del testa a testa: tonde come nel confronto del Live. */
+.gb-headshot-xs {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-width: 1.5px;
+    border-color: var(--border-card);
+}
+
+.gb-headshot--empty {
+    display: block;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
 }
 
 .gb-note-body {
@@ -13116,7 +13346,7 @@ td.ps-div-seed {
 
 .live-page-inner {
     --live-bg: #080808;
-    --live-card: #151515;
+    --live-card: #000000;
     --live-border: #2a2a2a;
     --live-red: #ef4444;
     --live-yellow: #eab308;
@@ -13294,29 +13524,47 @@ td.ps-div-seed {
     font-size: 1.4rem;
 }
 
+/* Probabilità dentro il banner del punteggio, appoggiata al bordo basso:
+   prima era una barra a sé sotto la card, che sembrava un elemento slegato. */
+.live-mc-prob {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-mc-probpct {
+    font-size: 0.62rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--tc1) 60%, white 40%);
+}
+
+.live-mc-probpct--r {
+    color: color-mix(in srgb, var(--tc2) 60%, white 40%);
+}
+
 .live-mc-probbar {
     position: relative;
-    height: 6px;
+    flex: 1;
+    height: 4px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--tc2) 30%, var(--live-border));
-    margin-top: 18px;
+    background: color-mix(in srgb, var(--tc2) 45%, rgba(255, 255, 255, 0.1));
     overflow: hidden;
 }
 
 .live-mc-probfill {
+    display: block;
     height: 100%;
     background: var(--tc1);
     box-shadow: 0 0 12px color-mix(in srgb, var(--tc1) 60%, transparent);
     transition: width var(--dur-med) var(--ease);
 }
 
-.live-mc-probLabels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-}
+
 
 /* ── Campo (una sola squadra, stessa formazione a colonne di Game Center) ── */
 .live-field-head {
@@ -13353,11 +13601,28 @@ td.ps-div-seed {
     gap: 8px;
 }
 
+/* Il tasto vive DENTRO il riquadro, in alto a destra: sopra non c'è più
+   nessuna fascia con il nome della squadra, che era ripetuto tre volte fra
+   selettore, banner e intestazione. */
+.live-field-solo .live-compare-btn,
+.live-compare > .live-compare-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 5;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.live-compare {
+    position: relative;
+}
+
 .live-compare-btn {
     padding: 6px 14px;
     border-radius: 999px;
     border: 1px solid var(--live-border);
-    background: var(--live-card);
+    background: color-mix(in srgb, #0b0f11 72%, transparent);
     color: var(--text-secondary);
     font-family: var(--font-display);
     font-size: 0.7rem;
@@ -13534,7 +13799,9 @@ td.ps-div-seed {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 14px 10px;
+    /* la fascia in cima è riservata al tasto Field: senza, finiva addosso alla
+       foto del quarterback, che è la prima riga della lista */
+    padding: 48px 10px 14px;
     border: 1px solid var(--live-border);
     border-radius: var(--radius-lg);
     background:
@@ -13715,7 +13982,11 @@ td.ps-div-seed {
 /* Campo largo quanto il banner del punteggio sopra. Il rapporto è più alto
    del 16:9 perché deve contenere 4 file di figurine senza tagliarle. */
 .live-field-solo {
-    aspect-ratio: 16 / 12;
+    /* L'altezza la detta la formazione, non un rapporto fisso: con un rapporto
+       imposto restava una fascia di campo vuota fra la coppia K/DEF in end zone
+       e la linea di scrimmage. Il campo disegnato sta in posizione assoluta e
+       si adatta da solo. */
+    aspect-ratio: auto;
     background: #0d1214;
     width: 100%;
     border-radius: var(--radius-lg);
@@ -13729,7 +14000,29 @@ td.ps-div-seed {
     height: 100%;
     object-fit: cover;
     object-position: center 30%;
-    filter: brightness(0.42) saturate(0.8);
+}
+
+.live-field-solo .field-svg {
+    display: block;
+    object-fit: fill;
+    filter: brightness(0.78);
+}
+
+.fsv-num {
+    /* i numeri delle yard stanno sullo sfondo: devono farsi riconoscere e
+       nient'altro, o competono con i punteggi dei giocatori */
+    fill: rgba(255, 255, 255, 0.07);
+    font-family: var(--font-display), sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    text-anchor: middle;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(-90deg);
+}
+
+.fsv-num--r {
+    transform: rotate(90deg);
 }
 
 /* Velo scuro sopra il campo: le figurine e i punteggi devono staccarsi dallo
@@ -13742,9 +14035,9 @@ td.ps-div-seed {
     inset: 0;
     border-radius: var(--radius-lg);
     background: linear-gradient(180deg,
-        rgba(6, 10, 12, 0.28) 0%,
-        rgba(6, 10, 12, 0.42) 45%,
-        rgba(6, 10, 12, 0.62) 100%);
+        rgba(6, 10, 12, 0.12) 0%,
+        rgba(6, 10, 12, 0.22) 45%,
+        rgba(6, 10, 12, 0.4) 100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -13756,12 +14049,19 @@ td.ps-div-seed {
 }
 
 /* Reparti spinti verso il basso: K/DEF restano in end zone, il resto scende. */
+/* La formazione sta nel flusso e trascina con sé l'altezza del campo: i
+   reparti sono uno sotto l'altro senza spazi morti in mezzo. */
+.live-field-solo .field-overlay {
+    position: relative;
+    padding: 2.5% 3% 3%;
+}
+
 .live-formation-stack {
-    position: absolute;
-    inset: 17% 3% 2%;
+    position: static;
+    inset: auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: clamp(10px, 1.4vw, 22px);
 }
 
 .live-row--backfield {
@@ -13789,10 +14089,8 @@ td.ps-div-seed {
 .live-formation-bottom {
     display: flex;
     flex-direction: column;
-    /* più aria fra scrimmage e backfield: la riga di mezzo sale, il backfield
-       resta dov'è, e le scritte attorno alle foto non si sfiorano */
-    gap: clamp(16px, 2.6vh, 34px);
-    margin-top: auto; /* spinge attacco e backfield verso il fondo campo */
+    /* quanto basta perché le scritte attorno alle foto non si sfiorino */
+    gap: clamp(10px, 1.4vw, 22px);
 }
 
 .live-row {
@@ -13976,18 +14274,35 @@ td.ps-div-seed {
     opacity: 0.4;
 }
 
-/* chi sta giocando ora: anello oro attorno alla foto */
-.live-field-solo .formation-slot.live-slot--live .slot-photo {
-    border-color: var(--accent-amber);
-    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5);
+/* Chi sta giocando ora: anello verde attorno alla foto, in campo e in
+   panchina. È l'unico segnale — il pallino diceva la stessa cosa due volte. */
+.live-field-solo .formation-slot.live-slot--live .slot-photo,
+.live-bench .formation-slot.live-slot--live .slot-photo {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-green) 55%, transparent);
 }
 
+/* Il puntino sta sul bordo del cerchio, non dentro: dentro finiva sotto il
+   ritaglio circolare della foto (`overflow: hidden` + `border-radius: 50%`) e
+   non si vedeva affatto. Il contorno scuro lo stacca da qualunque maglia. */
 .live-slot-dot {
     position: absolute;
-    right: 4px;
-    top: 4px;
+    top: 7%;
+    right: 9%;
+    width: 11px;
+    height: 11px;
     margin: 0;
-    z-index: 3;
+    z-index: 4;
+    box-shadow: 0 0 0 2.5px rgba(6, 10, 12, 0.9), 0 0 10px rgba(34, 197, 94, 0.55);
+}
+
+.live-chip-dot {
+    position: absolute;
+    top: 4px;
+    left: 34px;
+    margin: 0;
+    z-index: 4;
+    box-shadow: 0 0 0 2px rgba(6, 10, 12, 0.9);
 }
 
 .live-slot-inj {
@@ -14158,10 +14473,32 @@ td.ps-div-seed {
     gap: 16px;
 }
 
+/* Pannelli del Live in vetro come il resto del sito: niente fondo pieno e
+   niente tinta rossa: quella arrivava dal glow della card base, che qui non
+   serve — il campo dietro basta e avanza da sfocare. */
 .live-side-card {
-    background: var(--live-card);
-    border-color: var(--live-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-sheen);
+    border-color: var(--bg-glass-border);
     padding: 16px;
+}
+
+/* `--card-glow` è quello che tinge di rosso l'alone della card base, il colore
+   del titolino e il bordo al passaggio del mouse: qui non serve, il pannello
+   deve restare neutro e lasciar parlare il campo dietro. */
+.live-side-card {
+    --card-glow: transparent;
+}
+
+.live-side-card::before,
+.live-side-card::after {
+    display: none;
+}
+
+.live-side-card .mc-kicker {
+    color: var(--text-muted);
 }
 
 .live-side-player {
@@ -14499,81 +14836,12 @@ td.ps-div-seed {
 .pbp-card-total b.pos { color: var(--accent-green); }
 .pbp-card-total b.neg { color: var(--accent-red); }
 
-/* ── Live plays come mazzo di carte (solo desktop) ───────────────
-   La giocata più recente sta sopra; quelle prima sbucano da sotto sfalsate e
-   rimpicciolite. Girando la rotella si torna indietro nel tempo e le carte
-   passano davanti. Sotto i 900px resta la lista che scorre, dove la rotella
-   deve restare della pagina. */
-@media (min-width: 901px) {
-    .pbp-stack {
-        position: relative;
-        display: block;
-        height: 252px;
-        max-height: none;
-        overflow: visible;
-        padding-right: 0;
-    }
-
-    .pbp-stack .pbp-card {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        min-height: 190px;
-        /* Le carte sotto scendono e rimpiccioliscono. Lo scalare parte dal
-           bordo alto, quindi accorcia anche il basso: lo scarto verticale deve
-           essere più grande della riduzione, o non sbucherebbero affatto
-           (22px contro i ~6px mangiati da ogni passo di scala). */
-        transform: translateY(calc(var(--i, 0) * 22px)) scale(calc(1 - var(--i, 0) * 0.03));
-        transform-origin: top center;
-        z-index: calc(40 - var(--i, 0));
-        opacity: calc(1 - var(--i, 0) * 0.2);
-        transition: transform 0.34s var(--ease), opacity 0.34s var(--ease);
-        /* opaca, altrimenti si leggerebbe la carta sottostante in trasparenza */
-        background: color-mix(in srgb, var(--live-card, #151515) 92%, #000);
-    }
-
-    /* già passate: escono in alto */
-    .pbp-stack .pbp-card--gone {
-        transform: translateY(-30px) scale(0.96);
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* troppo in fondo al mazzo: non si disegnano nemmeno */
-    .pbp-stack .pbp-card--deep {
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* con altezza fissa il testo non può dilatare la carta */
-    .pbp-stack .pbp-card-text {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .pbp-stack .pbp-card-total {
-        margin-top: auto;
-    }
-}
-
-.pbp-deck-nav {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.pbp-deck-nav[hidden] { display: none; }
-
-.pbp-deck-count {
-    font-size: 0.65rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
-}
+/* ── Live plays: elenco che scorre ───────────────────────────────
+   Le giocate stanno una sotto l'altra, la più recente in cima, e si scorre
+   normalmente. Prima erano un mazzo di carte sovrapposte da girare con la
+   rotella: bello da vedere, scomodo da leggere — si vedeva una giocata per
+   volta e sul touch la rotella non esiste. */
+.pbp-deck-nav { display: none; }
 
 .pbp-deck-btn {
     width: 24px;
@@ -14895,12 +15163,10 @@ td.ps-div-seed {
     display: none;
 }
 
-.live-deep-arrow,
 .live-deep-dot {
     flex: 0 0 auto;
 }
 
-.live-deep-arrow,
 .live-deep-dot {
     padding: 3px 9px;
     border-radius: 999px;
@@ -14914,13 +15180,6 @@ td.ps-div-seed {
     transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.live-deep-arrow {
-    padding: 3px 8px;
-    font-size: 0.9rem;
-    line-height: 1;
-}
-
-.live-deep-arrow:hover,
 .live-deep-dot:hover {
     color: var(--text-primary);
 }
@@ -15067,10 +15326,32 @@ td.ps-div-seed {
 }
 
 .live-uso-val {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
     white-space: nowrap;
+}
+
+/* colonna fissa per ogni voce: le righe restano incolonnate anche quando un
+   giocatore ha zero e un altro ha tre cifre */
+.live-uso-stat {
+    width: 3.7rem;
+    text-align: right;
+}
+
+.live-uso-stat b {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+/* voce a zero: spenta, così le altre risaltano */
+.live-uso-stat.is-zero,
+.live-uso-stat.is-zero b {
+    color: rgba(255, 255, 255, 0.22);
+    font-weight: 500;
 }
 
 /* il mio giocatore: nome pieno e barra nel colore della squadra selezionata */
@@ -15220,27 +15501,37 @@ td.ps-div-seed {
     opacity: 0.55;
 }
 
-/* Partita finita: quel giocatore non farà più punti. La card si spegne, così
-   a colpo d'occhio si distingue chi ha ancora da giocare da chi ha chiuso.
-   Non si nasconde niente: resta tutto leggibile, solo più in ombra. */
-.live-slot--done,
+/* Tre stati sulla card, tre letture diverse.
+
+   DEVE ANCORA GIOCARE: tutto spento, punteggio compreso — non c'è niente da
+   guardare, e il trattino al posto dello zero lo dice esplicitamente. */
+.live-slot--soon {
+    opacity: 0.4;
+}
+
+.live-slot--soon .slot-photo img {
+    filter: grayscale(1);
+}
+
+.live-slot--soon .slot-pts {
+    color: var(--text-muted);
+}
+
+/* HA FINITO: il suo contributo è definitivo, quindi foto e punteggio restano
+   accesi. Si spegne il contorno — nome, statistiche, proiezione — perché non
+   cambierà più niente. */
 .live-cmp-row--done {
-    opacity: 0.5;
+    opacity: 0.55;
 }
 
-.live-slot--done .slot-photo img,
-.live-slot--done .live-chip-photo img {
-    filter: grayscale(0.7);
+.live-slot--done .slot-name,
+.live-slot--done .live-slot-stats,
+.live-slot--done .live-chip-name {
+    opacity: 0.45;
 }
 
-/* il cerchio attorno alla foto perde il bagliore: la partita è chiusa */
 .live-slot--done .slot-photo {
     box-shadow: none;
-}
-
-.live-slot--done .slot-pts,
-.live-slot--done .live-chip-pts {
-    color: var(--text-muted);
 }
 
 /* la proiezione accanto al punteggio non serve più: la partita è andata */
@@ -15294,7 +15585,6 @@ td.ps-div-seed {
         gap: 40px 60px;
     }
 }
-
 
 /* ─── Scarsità posizionale: piccoli multipli (stile NYT) ───────────
    Quattro pannelli con la STESSA scala verticale: l'unico modo per leggere
@@ -15743,4 +16033,75 @@ td.ps-div-seed {
 #draftgrades .dg-row:hover,
 #draftgrade-team .db-row:hover {
     background: color-mix(in srgb, #fff 6%, var(--bg-primary, #000));
+}
+
+/* ── Selettore squadra: capsula + tendina ────────────────────────
+   Sta nell'intestazione accanto al tasto di aggiornamento. La capsula mostra
+   la squadra scelta con lo stesso stile della pillola selezionata di prima;
+   il resto delle squadre sta nella tendina. */
+.live-teampick {
+    position: relative;
+}
+
+.live-teampick .live-team-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.live-teampick-caret {
+    font-size: 0.6em;
+    opacity: 0.75;
+    transition: transform var(--dur-fast) var(--ease);
+}
+
+.live-teampick.is-open .live-teampick-caret {
+    transform: rotate(180deg);
+}
+
+.live-teampick-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 40;
+    min-width: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), var(--glass-sheen);
+}
+
+.live-teampick-menu[hidden] {
+    display: none;
+}
+
+.live-teampick-item {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.live-teampick-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+}
+
+.live-teampick-item.is-on {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
 }

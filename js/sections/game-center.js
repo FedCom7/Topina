@@ -1,11 +1,12 @@
 import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=5';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=522';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=599';
-import { initPlayerModal } from '../components/player-modal.js?v=605';
+import { TEAMS } from './team.js?v=601';
+import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=516';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -26,7 +27,7 @@ const TEAM_FIELD_KEYS = {
 // Cache-bust dei wallpaper del campo: da bumpare quando si sostituiscono i file
 // (il browser altrimenti li tiene in cache disco a tempo indefinito, non avendo
 // header Cache-Control il server locale di sviluppo).
-const FIELD_IMG_VERSION = 2;
+const FIELD_IMG_VERSION = 3;
 
 /** Build the correct field image path for a matchup */
 function getFieldImage(team1Name, team2Name) {
@@ -62,22 +63,8 @@ export async function initGameCenter() {
     if (loaded) return;
     loaded = true;
     initPlayerModal();
-    renderYearSelector();
+    renderPickRow();
     await loadYear(CURRENT_SEASON);
-}
-
-function renderYearSelector() {
-    const container = document.getElementById('gc-year-selector');
-    container.innerHTML = SEASONS.map(y =>
-        `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`
-    ).join('');
-    container.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.year-pill');
-        if (!btn) return;
-        container.querySelectorAll('.year-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        await loadYear(btn.dataset.year);
-    });
 }
 
 async function loadYear(year) {
@@ -88,13 +75,13 @@ async function loadYear(year) {
     currentData = await fetchFantasyData(year);
     if (!currentData?.weeks) {
         grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
-        document.getElementById('gc-week-selector').innerHTML = '';
+        renderPickRow();
         return;
     }
 
     const maxWeek = getWeekCount(currentData);
     currentWeek = lastPlayedWeek(maxWeek);
-    renderWeekSelector(maxWeek);
+    renderPickRow(maxWeek);
     renderMatchups();
     refreshOpenWeek();
 }
@@ -158,27 +145,31 @@ function lastPlayedWeek(maxWeek) {
     return 1;
 }
 
-function renderWeekSelector(maxWeek) {
-    const container = document.getElementById('gc-week-selector');
-    const config = getSeasonConfig(currentYear);
+/** Riga con le due capsule a scomparsa: week a sinistra, anno a destra. */
+function renderPickRow(maxWeek) {
+    const container = document.getElementById('gc-pick-row');
+    if (!container) return;
 
-    let html = '';
-    for (let w = 1; w <= maxWeek; w++) {
-        let label = String(w);
-        let extraClass = '';
-        if (w === config.playoffWeek) { label = 'Playoffs'; extraClass = ' playoff-pill'; }
-        else if (w === config.superBowlWeek) { label = 'Super Bowl'; extraClass = ' sb-pill'; }
-        html += `<button class="week-pill${w === currentWeek ? ' active' : ''}${extraClass}" data-week="${w}">${label}</button>`;
+    let weekHtml = '';
+    if (maxWeek) {
+        const weekItems = [];
+        for (let w = 1; w <= maxWeek; w++) weekItems.push({ value: String(w), label: weekLabel(w) });
+        const weekIdx = weekItems.findIndex(it => it.value === String(currentWeek));
+        weekHtml = pickDropdownHTML('week', weekItems, weekIdx);
     }
-    container.innerHTML = html;
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.week-pill');
-        if (!btn) return;
-        container.querySelectorAll('.week-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentWeek = parseInt(btn.dataset.week);
-        renderMatchups();
-        refreshOpenWeek();
+    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS.indexOf(String(currentYear));
+
+    container.innerHTML = weekHtml + pickDropdownHTML('year', yearItems, yearIdx);
+    bindPickDropdown(container, (id, value) => {
+        if (id === 'year') {
+            loadYear(value);
+        } else if (id === 'week') {
+            currentWeek = parseInt(value, 10);
+            renderPickRow(maxWeek);
+            renderMatchups();
+            refreshOpenWeek();
+        }
     });
 }
 

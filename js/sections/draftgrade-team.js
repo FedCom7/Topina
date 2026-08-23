@@ -15,19 +15,19 @@
 
 import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=599';
-import { getHonorsBundle } from '../data/honors.js?v=583';
+import { TEAMS } from './team.js?v=601';
+import { getHonorsBundle } from '../data/honors.js?v=585';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=591';
-import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=588';
-import { initPlayerModal } from '../components/player-modal.js?v=605';
+import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=589';
+import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=516';
-import { pickSeeded } from '../data/magazine-voices.js?v=517';
+import { pickSeeded } from '../data/magazine-voices.js?v=518';
 import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,
-} from './draftgrades.js?v=611';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=581';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters } from '../data/team-eval.js?v=534';
+} from './draftgrades.js?v=617';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=586';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters } from '../data/team-eval.js?v=539';
 import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=7';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');

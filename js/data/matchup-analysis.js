@@ -7,13 +7,13 @@
  */
 
 import {
-    pickSeeded, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL, TOP_PLAYER_PHRASES,
+    pickSeeded, AN_MARGIN_THRILLER, AN_MARGIN_BLOWOUT, AN_MARGIN_NORMAL, AN_TOP_PHRASES,
     AN_STAKES_PLAYOFF, AN_STAKES_SB, AN_SERIES_LINES, AN_FLOP_WRAP, AN_HOT_STREAK_LINES,
     AN_COMMENT_WRAP, AN_NOTE_BAD,
-} from './magazine-voices.js?v=517';
+} from './magazine-voices.js?v=518';
 
-const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt1 = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const pick = pickSeeded;
 
 /** Seed deterministico per-partita: stessa partita → stesse frasi ad ogni visita */
@@ -78,22 +78,22 @@ export function statLine(p) {
     if (!s) return '';
     const parts = [];
     if (s.pass_yds) {
-        let t = `${s.pass_yds} yd lancio`;
-        if (s.pass_td) t += ` e ${s.pass_td} TD`;
+        let t = `${s.pass_yds} passing yards`;
+        if (s.pass_td) t += ` and ${s.pass_td} TD`;
         if (s.pass_int) t += `, ${s.pass_int} INT`;
         parts.push(t);
     }
     if (s.rush_yds || s.rush_td) {
-        let t = `${s.rush_yds || 0} yd corsa`;
-        if (s.rush_td) t += ` e ${s.rush_td} TD`;
+        let t = `${s.rush_yds || 0} rushing yards`;
+        if (s.rush_td) t += ` and ${s.rush_td} TD`;
         parts.push(t);
     }
     if (s.rec || s.rec_yds) {
-        let t = `${s.rec || 0} ricezioni per ${s.rec_yds || 0} yd`;
-        if (s.rec_td) t += ` e ${s.rec_td} TD`;
+        let t = `${s.rec || 0} catches for ${s.rec_yds || 0} yards`;
+        if (s.rec_td) t += ` and ${s.rec_td} TD`;
         parts.push(t);
     }
-    if (s.fum_lost) parts.push(`${s.fum_lost} fumble perso${s.fum_lost > 1 ? 'i' : ''}`);
+    if (s.fum_lost) parts.push(`${s.fum_lost} fumble${s.fum_lost > 1 ? 's' : ''} lost`);
     return parts.slice(0, 3).join(' · ');
 }
 
@@ -101,6 +101,26 @@ export function statLine(p) {
 export function diffMakers(m) {
     const top = (team) => [...(team.starters || [])].sort((x, y) => pts(y) - pts(x))[0] || null;
     return { a: top(m.team1), b: top(m.team2) };
+}
+
+/**
+ * Come si è formato il margine, slot per slot.
+ *
+ * Ogni voce è il differenziale fra i due titolari dello stesso slot; la somma
+ * è il margine finale fra le due squadre. È il dato del waterfall: dice quali
+ * ruoli hanno costruito il vantaggio e quali lo hanno eroso.
+ */
+export function marginBySlot(m) {
+    return slotPairs(m)
+        .map(({ slot, a, b }) => ({
+            slot,
+            d: +(pts(a) - pts(b)).toFixed(2),
+            a: a?.name || '—',
+            b: b?.name || '—',
+            ptsA: pts(a),
+            ptsB: pts(b),
+        }))
+        .filter(v => v.a !== '—' || v.b !== '—');
 }
 
 /** Totali di squadra per il confronto a barre */
@@ -118,7 +138,11 @@ export function teamStatTotals(team) {
     return tot;
 }
 
-const ordinal = (n) => `${n}º`;
+const ordinal = (n) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+};
 
 /** Seed deterministico per giocatore+prestazione: stesse frasi ad ogni visita */
 function playerSeed(p) {
@@ -139,18 +163,18 @@ export function playerComment(p, bundle, ranks) {
 
     if (rk) {
         bits.push(rk.rank === 1
-            ? `miglior ${pos} della settimana`
-            : `${ordinal(rk.rank)} tra i ${pos} della week`);
+            ? `best ${pos} of the week`
+            : `${ordinal(rk.rank)} among ${pos}s this week`);
     }
     if (avg && avg >= 3) {
         const delta = (v - avg) / avg;
-        if (delta >= 0.25) bits.push(`ben sopra la sua media stagionale (${fmt1(avg)})`);
-        else if (delta <= -0.25) bits.push(`lontano dalla sua media stagionale (${fmt1(avg)})`);
+        if (delta >= 0.25) bits.push(`well above his season average (${fmt1(avg)})`);
+        else if (delta <= -0.25) bits.push(`well short of his season average (${fmt1(avg)})`);
     }
     const best = bundle?.players?.[p.name]?.best;
-    if (best && v >= best.pts && v > 12) bits.push('suo massimo stagionale');
+    if (best && v >= best.pts && v > 12) bits.push('his season high');
 
-    const facts = `${fmt(v)} punti${stat ? ` (${stat})` : ''}`;
+    const facts = `${fmt(v)} points${stat ? ` (${stat})` : ''}`;
     return pick(AN_COMMENT_WRAP, playerSeed(p))({ facts, bits: bits.join(', ') });
 }
 
@@ -182,7 +206,9 @@ export function playerNotes(m, bundle, ranks) {
         } else {
             text = playerComment(p, bundle, ranks);
         }
-        return { player: p, teamRaw: rawName, text };
+        // `v`, `avg` e `delta` erano calcolati e buttati via: sono esattamente
+        // quello che serve al dot plot "ogni titolare vs la sua media".
+        return { player: p, teamRaw: rawName, text, pts: v, avg, delta };
     });
 }
 
@@ -205,24 +231,24 @@ export function recapArticle(m, bundle, ranks, ctx) {
 
     // Titolo
     let headline;
-    if (margin < 5) headline = `${nW} la spunta in volata su ${nL}`;
-    else if (margin >= 20) headline = `${top?.name} show: ${nW} travolge ${nL}`;
-    else headline = `Trascinati da ${top?.name}, ${nW} superano ${nL}`;
+    if (margin < 5) headline = `${nW} edge out ${nL} on the line`;
+    else if (margin >= 20) headline = `${top?.name} show: ${nW} run over ${nL}`;
+    else headline = `Carried by ${top?.name}, ${nW} see off ${nL}`;
 
     const paras = [];
 
     // P1 — la partita
-    const marginBank = margin < 5 ? MARGIN_THRILLER : margin >= 20 ? MARGIN_BLOWOUT : MARGIN_NORMAL;
-    let p1 = `Con ${fmt(topPts)} punti di ${top?.name} a fare da traino, ${nW} batte ${nL} ${fmt(sW)} a ${fmt(sL)}.`;
+    const marginBank = margin < 5 ? AN_MARGIN_THRILLER : margin >= 20 ? AN_MARGIN_BLOWOUT : AN_MARGIN_NORMAL;
+    let p1 = `With ${fmt(topPts)} points from ${top?.name} up front, ${nW} beat ${nL} ${fmt(sW)} to ${fmt(sL)}.`;
     p1 += ' ' + pick(marginBank, seed).replaceAll('{margin}', fmt(margin)).replaceAll('{loser}', nL);
     const topStat = statLine(top);
     const best = bundle?.players?.[top?.name]?.best;
     const isPersonalBest = !!(best && topPts >= best.pts && topPts > 12);
-    p1 += ' ' + pick(TOP_PLAYER_PHRASES, seed + 1)
+    p1 += ' ' + pick(AN_TOP_PHRASES, seed + 1)
         .replaceAll('{top}', top?.name || nW)
         .replaceAll('{pts}', fmt(topPts))
-        .replaceAll('{stat}', topStat || 'una prova totale, di quelle che non hanno bisogno di note a margine');
-    if (isPersonalBest) p1 += ` È il suo massimo stagionale.`;
+        .replaceAll('{stat}', topStat || 'a complete performance, the kind that needs no footnotes');
+    if (isPersonalBest) p1 += ' It is his season high.';
     paras.push(p1);
 
     // P2 — posta in palio / precedenti stagionali
@@ -245,7 +271,7 @@ export function recapArticle(m, bundle, ranks, ctx) {
     if (flop && flop.delta <= -0.35) {
         const s = flop.p.stats;
         const touches = s ? (s.rush_yds || 0) + (s.rec_yds || 0) : 0;
-        const extra = touches ? `, con appena ${touches} yard totali prodotte.` : '.';
+        const extra = touches ? `, with just ${touches} total yards produced.` : '.';
         paras.push(pick(AN_FLOP_WRAP, seed + 3)({ loser: nL, name: flop.p.name, pts: fmt(flop.v), avg: fmt1(flop.avg), extra }));
     }
 
@@ -256,13 +282,13 @@ export function recapArticle(m, bundle, ranks, ctx) {
         .sort((a, b) => (b.v - b.avg) / b.avg - (a.v - a.avg) / a.avg)
         .slice(0, 2);
     if (hot.length) {
-        const names = hot.map(x => `${x.p.name} (+${Math.round((x.v - x.avg) / x.avg * 100)}% sulla media)`).join(' e ');
-        paras.push(pick(AN_HOT_STREAK_LINES, seed + 4)({ names, verb: hot.length > 1 ? 'hanno' : 'ha', nW }));
+        const names = hot.map(x => `${x.p.name} (+${Math.round((x.v - x.avg) / x.avg * 100)}% on his average)`).join(' and ');
+        paras.push(pick(AN_HOT_STREAK_LINES, seed + 4)({ names, verb: hot.length > 1 ? 'have' : 'has', nW }));
     }
 
     return {
         headline,
-        dateline: `Stagione ${ctx.year} · ${ctx.weekLabel} · Recap`,
+        dateline: `${ctx.year} season · ${ctx.weekLabel} · Recap`,
         paras,
     };
 }
