@@ -15,6 +15,7 @@ let currentYear = CURRENT_SEASON;
 let currentTeam = 'all';
 let currentTab = 'season';
 let avgMode = 'total'; // 'total' | 'starter' — base per la colonna Media
+let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
 // Punti totali vs punti a partita nelle tabelle di confronto — toggle indipendente per sezione
 let rosterPtsMode = { drafted: 'total', best: 'total', pickups: 'total' };
 const modelCache = {};
@@ -423,7 +424,9 @@ async function render(model) {
 
     if (currentTeam === 'all') {
         wrap.innerHTML = renderLeagueView(model);
-        bindCharts(wrap, model);
+        bindCharts(wrap);
+        bindLeaderControls(wrap, model);
+        hydrateImages();
         return;
     }
 
@@ -974,6 +977,80 @@ function topFlopPerformances(model, limit = 10) {
     };
 }
 
+// Classifica individuale per ruolo su TUTTA la lega: punti su ogni settimana
+// giocata, anche in panchina — "quanto ha prodotto", non "quanto ha reso a chi
+// lo schierava". Il team mostrato è quello che lo aveva nell'ultima settimana
+// in cui ha giocato, solo per contesto.
+function leaguePositionLeaders(model) {
+    const byPos = {};
+    for (const rec of model.players.values()) {
+        if (!ROLES.includes(rec.position)) continue;
+        let pts = 0, games = 0;
+        const stats = {};
+        let lastWk = -1, teamKey = null;
+        for (const [wkStr, w] of Object.entries(rec.weeks)) {
+            pts += w.pts;
+            games++;
+            sumStats(stats, w.stats);
+            const wk = Number(wkStr);
+            if (wk >= lastWk) { lastWk = wk; teamKey = w.teamKey; }
+        }
+        if (pts <= 0) continue;
+        (byPos[rec.position] ||= []).push({ rec, pts, games, perGame: games ? pts / games : 0, stats, teamKey });
+    }
+    return byPos;
+}
+
+function leaderRowHtml(row, i, mode) {
+    const { rec, pts, perGame, games, stats, teamKey } = row;
+    const val = mode === 'perGame' ? perGame : pts;
+    const team = TEAMS[teamKey];
+    const noteBits = [`${fmt(games)} G`, keyStatLine(rec.position, stats)].filter(Boolean);
+    return `
+    <div class="an-rank-row${i >= 5 ? ' an-leader-row--extra' : ''}${i === 0 ? ' an-rank-row--win' : ''}">
+        <span class="an-rank-pos">${i + 1}</span>
+        ${headshotImg(rec, 'an-rank-logo an-rank-photo')}
+        <span class="an-rank-name">${rec.name}
+            <span class="an-rank-note">${team ? team.name + ' · ' : ''}${noteBits.join(' · ')}</span>
+        </span>
+        <span class="an-rank-bar"><span style="width:${Math.max((val || 0) / (row.__max || 1) * 100, 3).toFixed(1)}%; background:${team ? CHART_COLORS[teamKey] : 'var(--accent-red)'}"></span></span>
+        <span class="an-rank-val">${fmt(val, mode === 'perGame' ? 1 : 0)}</span>
+    </div>`;
+}
+
+function positionLeaderCard(pos, rows, mode) {
+    if (!rows.length) return '';
+    const sorted = [...rows].sort((a, b) => (mode === 'perGame' ? b.perGame - a.perGame : b.pts - a.pts)).slice(0, 15);
+    const max = mode === 'perGame' ? sorted[0].perGame : sorted[0].pts;
+    sorted.forEach(r => r.__max = max);
+    const hasExtra = sorted.length > 5;
+    return `
+    <div class="an-leader-card">
+        <h4 class="an-leader-title">${pos}</h4>
+        <div class="an-leader-rows">
+            ${sorted.map((r, i) => leaderRowHtml(r, i, mode)).join('')}
+        </div>
+        ${hasExtra ? `<button class="an-leader-toggle" type="button" data-leader-toggle>Show ${sorted.length - 5} more</button>` : ''}
+    </div>`;
+}
+
+function renderPositionLeaders(model) {
+    const byPos = leaguePositionLeaders(model);
+    const cards = ROLES.map(pos => positionLeaderCard(pos, byPos[pos] || [], leaderMode)).filter(Boolean).join('');
+    if (!cards) return '';
+    return `
+    <h3 class="an-sub-title">Top Performers by Position</h3>
+    <div class="an-controls">
+        <div class="an-avg-toggle">
+            <span class="an-avg-label">Points:</span>
+            <button class="an-avg-pill${leaderMode === 'total' ? ' active' : ''}" data-leader-mode="total">Total</button>
+            <button class="an-avg-pill${leaderMode === 'perGame' ? ' active' : ''}" data-leader-mode="perGame">Per Game</button>
+        </div>
+    </div>
+    <div class="an-leader-grid">${cards}</div>
+    <p class="an-footnote">Every week a player was on a roster, starter or not. Tap a card to see more than the top 5.</p>`;
+}
+
 function renderLeagueView(model) {
     const series = weeklyScores(model);
     if (!series.length) return emptyState(`No data for the ${currentYear} season`);
@@ -1026,6 +1103,8 @@ function renderLeagueView(model) {
     <h3 class="an-sub-title">Points by position (starters)</h3>
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
+
+    <div id="an-leaders-wrap">${renderPositionLeaders(model)}</div>
 
     <div class="an-rankings">
         ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
@@ -1545,6 +1624,29 @@ function bindDraftScatter(container) {
 }
 
 /* ---------- Hover layer ---------- */
+
+// Cambiare modalità o aprire "show more" ridisegna solo questo blocco: il
+// modello è già in memoria, non serve toccare il resto della pagina lega.
+function bindLeaderControls(wrap, model) {
+    const box = wrap.querySelector('#an-leaders-wrap');
+    if (!box) return;
+    box.addEventListener('click', (e) => {
+        const modeBtn = e.target.closest('[data-leader-mode]');
+        if (modeBtn) {
+            leaderMode = modeBtn.dataset.leaderMode;
+            box.innerHTML = renderPositionLeaders(model);
+            hydrateImages();
+            return;
+        }
+        const toggleBtn = e.target.closest('[data-leader-toggle]');
+        if (toggleBtn) {
+            const card = toggleBtn.closest('.an-leader-card');
+            const expanded = card.classList.toggle('an-leader-card--expanded');
+            const extra = card.querySelectorAll('.an-leader-row--extra').length;
+            toggleBtn.textContent = expanded ? 'Show less' : `Show ${extra} more`;
+        }
+    });
+}
 
 function bindCharts(wrap) {
     const lineChart = wrap.querySelector('#an-line-chart');

@@ -29,10 +29,10 @@ import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '
 import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 import { pickSeeded } from '../data/magazine-voices.js?v=518';
-import { predictSeason } from '../data/draft-predictions.js?v=594';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=583';
-import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=535';
-import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=8';
+import { predictSeason } from '../data/draft-predictions.js?v=595';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=584';
+import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=536';
+import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=9';
 
 let initialized = false;
 let currentYear = null;

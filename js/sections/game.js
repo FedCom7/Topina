@@ -22,7 +22,7 @@ import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals, seasonAvg,
     playerComment, playerNotes, recapArticle,
-} from '../data/matchup-analysis.js?v=524';
+} from '../data/matchup-analysis.js?v=525';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=4';
 import { TEAMS } from './team.js?v=601';
 import { playerImageService } from '../services/player-image-service.js?v=515';

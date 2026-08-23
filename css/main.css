@@ -7138,6 +7138,61 @@ img {
     color: var(--accent-red);
 }
 
+.an-rank-photo {
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
+}
+
+/* --- League view: top performers by position --- */
+.an-leader-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px 32px;
+    margin-top: 8px;
+}
+
+.an-leader-card {
+    min-width: 0;
+}
+
+.an-leader-title {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 4px;
+}
+
+.an-leader-row--extra {
+    display: none;
+}
+
+.an-leader-card--expanded .an-leader-row--extra {
+    display: grid;
+}
+
+.an-leader-toggle {
+    margin-top: 8px;
+    padding: 5px 12px;
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+
+.an-leader-toggle:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
+}
+
 /* --- Distribuzione punteggi --- */
 .an-dist-chart {
     display: flex;

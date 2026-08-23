@@ -25,10 +25,10 @@ import { pickSeeded } from '../data/magazine-voices.js?v=518';
 import {
     computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
     GRADE_COMMENTS, outcomeBadge, computeVorGrades,
-} from './draftgrades.js?v=613';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=583';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=535';
-import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=8';
+} from './draftgrades.js?v=614';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=584';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=536';
+import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=9';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
