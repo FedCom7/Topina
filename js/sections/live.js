@@ -17,7 +17,7 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=600';
+import { TEAMS } from './team.js?v=601';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=509';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
@@ -26,8 +26,8 @@ import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProject
 import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
-import { slotPairs } from '../data/matchup-analysis.js?v=521';
-import { initPlayerModal } from '../components/player-modal.js?v=606';
+import { slotPairs } from '../data/matchup-analysis.js?v=524';
+import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 const POLL_MS = 30000;
@@ -1343,7 +1343,6 @@ function headerHTML() {
     </div>`;
 }
 
-/** Selettore a 4 squadre — stessa classe .year-pill usata altrove nel sito (game-center.js). */
 /**
  * Selettore squadra: una capsula sola con il nome di quella scelta, e la
  * tendina con le altre. Prima erano quattro capsule in fila sotto

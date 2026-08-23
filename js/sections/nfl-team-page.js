@@ -11,27 +11,27 @@
  * ufficiali, calendario live, depth chart completo, transactions, odds SB).
  */
 
-import { getTeamIdentity } from '../data/nfl-teams.js?v=509';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=510';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
-import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=582';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=579';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=527';
+import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=583';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=580';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=528';
 import { canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=586';
+} from '../data/nfl-team-live.js?v=590';
 import {
     esc, teamLogo, factChip, tile, fmt0, fmt1, fmt2, ord, TEAM_HISTORY_YEARS,
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=833';
+} from './player-page.js?v=834';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=16';
+} from './nfl-team-home.js?v=18';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

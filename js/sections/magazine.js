@@ -18,10 +18,10 @@ import {
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=600';
+import { TEAMS } from './team.js?v=601';
 import { getLeagueData } from '../data/league-data.js?v=534';
-import { getHonorsBundle } from '../data/honors.js?v=584';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=521';
+import { getHonorsBundle } from '../data/honors.js?v=585';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=524';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,
@@ -35,7 +35,7 @@ import {
     SECONDARY_LEDE_OPENERS, SECONDARY_NO_FLOP_LINES,
     STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
     TEAMMATE_PRAISE,
-} from '../data/magazine-voices.js?v=517';
+} from '../data/magazine-voices.js?v=518';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 let initialized = false;

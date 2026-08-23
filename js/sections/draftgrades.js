@@ -22,17 +22,17 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=600';
-import { getHonorsBundle } from '../data/honors.js?v=584';
+import { TEAMS } from './team.js?v=601';
+import { getHonorsBundle } from '../data/honors.js?v=585';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=589';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=588';
-import { initPlayerModal } from '../components/player-modal.js?v=606';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=589';
+import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=515';
-import { pickSeeded } from '../data/magazine-voices.js?v=517';
-import { predictSeason } from '../data/draft-predictions.js?v=593';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=582';
-import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=534';
-import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=7';
+import { pickSeeded } from '../data/magazine-voices.js?v=518';
+import { predictSeason } from '../data/draft-predictions.js?v=594';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=583';
+import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=535';
+import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=8';
 
 let initialized = false;
 let currentYear = null;

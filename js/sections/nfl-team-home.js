@@ -7,8 +7,8 @@
  * Nessun fetch proprio: riceve dati già caricati da nfl-team-page.js.
  */
 
-import { esc, teamLogo } from './player-page.js?v=833';
-import { NFL_TEAMS } from '../data/nfl-teams.js?v=509';
+import { esc, teamLogo } from './player-page.js?v=834';
+import { NFL_TEAMS } from '../data/nfl-teams.js?v=510';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 // ─── Calendario a blocchi ─────────────────────────────────────────────────

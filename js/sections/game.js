@@ -1,25 +1,34 @@
 /**
  * Game Analysis — pagina analisi di un singolo matchup.
  * Route: #game/{year}/{week}/{indice matchup}
- * Score bug → confronto punti per ruolo → grafico temporale del weekend
- * (kickoff reali via nfl-schedule) → articolo recap + tabella outcome →
- * confronto stats di squadra + difference maker → player notes.
+ *
+ * Ordine: score bug → recap → testa a testa (formazioni) → come si è formato il
+ * margine (dumbbell slot per slot) → punto a punto nel weekend → ogni giocatore
+ * rispetto alla sua media → squadra contro squadra → punti lasciati in
+ * panchina → forma delle due squadre.
+ *
+ * I grafici vengono da js/ui/charts.js, lo stesso linguaggio di Draft Grade,
+ * Player NFL e Team NFL: SVG sobri, griglia appena accennata, etichette dirette
+ * a fine serie invece della legenda. Nessuno di essi costa una chiamata di rete
+ * in più: i dati erano già tutti in pagina.
  */
 
 import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { getLeagueData } from '../data/league-data.js?v=534';
-import { getHonorsBundle } from '../data/honors.js?v=584';
+import { getHonorsBundle } from '../data/honors.js?v=585';
+import { buildCareers } from '../data/careers.js?v=596';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
 import {
-    slotPairs, weekPosRanks, diffMakers, teamStatTotals,
+    slotPairs, weekPosRanks, diffMakers, teamStatTotals, seasonAvg,
     playerComment, playerNotes, recapArticle,
-} from '../data/matchup-analysis.js?v=521';
-import { TEAMS } from './team.js?v=600';
+} from '../data/matchup-analysis.js?v=524';
+import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=4';
+import { TEAMS } from './team.js?v=601';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 const _fantasyCache = {};
-const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const P = (p) => parseFloat(p?.fantasy_points) || 0;
 
 function teamOf(rawName) {
@@ -45,9 +54,10 @@ export async function initGame() {
             return;
         }
 
-        const [bundle, league, sched] = await Promise.all([
+        const [bundle, league, sched, careers] = await Promise.all([
             getHonorsBundle(year), getLeagueData(),
             getWeekSchedule(year, week).catch(() => null),
+            buildCareers().catch(() => null),
         ]);
         const ranks = weekPosRanks(weekData);
         const config = getSeasonConfig(year);
@@ -61,6 +71,18 @@ export async function initGame() {
         };
         const anyLive = [m.team1, m.team2].some(team =>
             [...(team.starters || []), ...(team.bench || [])].some(liveNow));
+
+        // La sfida è andata in archivio? `winner` lo dice per i dati nuovi; i
+        // più vecchi non hanno il campo e sono per forza finiti. Senza questo
+        // controllo il recap veniva scritto anche su una partita mai giocata —
+        // punteggi a zero e nemmeno una formazione da raccontare.
+        const conclusa = !('winner' in m)
+            ? true
+            : m.winner !== 'UNDECIDED'
+            || P({ fantasy_points: m.team1.score }) > 0 || P({ fantasy_points: m.team2.score }) > 0;
+        const daGiocare = !conclusa && !anyLive;
+        // i blocchi "a bocce ferme" escono solo a partita archiviata
+        const finita = conclusa && !anyLive;
         const isPlayoff = week === config.playoffWeek;
         const isSB = week === config.superBowlWeek;
         const weekLabel = isSB ? 'Super Bowl' : isPlayoff ? 'Playoffs' : `Week ${week}`;
@@ -85,26 +107,35 @@ export async function initGame() {
         section.innerHTML = `
         <div class="section-inner gb-page">
             <a class="gb-back" href="#game-center"><span aria-hidden="true">←</span> Game Center</a>
-            ${scoreBugHTML(m, weekLabel, year, anyLive)}
-            ${anyLive ? '' : articleHTML(article, weekLabel)}
+            ${scoreBugHTML(m, weekLabel, year, anyLive, daGiocare)}
+            ${anyLive || daGiocare ? '' : articleHTML(article, weekLabel)}
+            ${daGiocare ? `
+            <div class="mosaic-card mc-wide gb-card mc-in">
+                <span class="mc-kicker">${weekLabel} · ${year}</span>
+                <h2 class="mc-title">Not played yet</h2>
+                <p class="mc-body">The recap, the difference makers and the player notes
+                   show up once the matchup is over.</p>
+            </div>` : ''}
             ${outcomeHTML(m, liveNow)}
+            ${finita ? marginCardHTML(m, dm, bundle, ranks) : ''}
             <div class="mosaic-card mc-wide gb-card mc-in" id="gb-chart-card">
                 <span class="mc-kicker">Weekend trend</span>
-                <h2 class="mc-title">Punto a punto</h2>
+                <h2 class="mc-title">Point by point</h2>
+                <p class="gb-card-sub">Points accumulate while the starters' real NFL games are played.</p>
                 <div class="mc-body" id="gb-chart">
                     <div class="loading-state"><div class="spinner"></div><p>Loading NFL schedule...</p></div>
                 </div>
             </div>
-            ${roleCompareHTML(m)}
-            ${anyLive ? statBarsHTML(m) : `
+            ${finita ? notesHTML(notes, m, bundle, careers, year) : ''}
             <div class="gb-halves">
                 ${statBarsHTML(m)}
-                ${diffMakerHTML(m, dm, bundle, ranks)}
+                ${finita ? benchCardHTML(m, bundle) : ''}
             </div>
-            ${notesHTML(notes)}`}
+            ${finita ? formCardHTML(m, league, year, week) : ''}
         </div>`;
 
         loadHeadshots(section, year);
+        bindAvgSwitch(section);
         renderChart(m, year, week);
     } catch (e) {
         console.error('[Game] errore analisi:', e);
@@ -114,7 +145,7 @@ export async function initGame() {
 
 // ─── Score bug ───────────────────────────────────────────────────
 
-function scoreBugHTML(m, weekLabel, year, isLive = false) {
+function scoreBugHTML(m, weekLabel, year, isLive = false, daGiocare = false) {
     const s1 = P({ fantasy_points: m.team1.score });
     const s2 = P({ fantasy_points: m.team2.score });
     const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
@@ -133,7 +164,10 @@ function scoreBugHTML(m, weekLabel, year, isLive = false) {
             <div class="gb-bug-mid">
                 ${isLive
                     ? '<span class="gb-bug-final gb-bug-final--live"><i class="gb-live-dot"></i> Live</span>'
-                    : '<span class="gb-bug-final">Final</span>'}
+                    : daGiocare
+                        // "Final" su una sfida mai giocata diceva il falso
+                        ? '<span class="gb-bug-final">Scheduled</span>'
+                        : '<span class="gb-bug-final">Final</span>'}
                 <span class="gb-bug-week">${weekLabel} · ${year}</span>
             </div>
             <span class="gb-bug-score${s2 >= s1 ? ' winner' : ''}">${fmt(s2)}</span>
@@ -143,43 +177,6 @@ function scoreBugHTML(m, weekLabel, year, isLive = false) {
 }
 
 // ─── Confronto punti per ruolo ───────────────────────────────────
-
-function roleCompareHTML(m) {
-    const pairs = slotPairs(m);
-    const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
-    const s1 = P({ fantasy_points: m.team1.score });
-    const s2 = P({ fantasy_points: m.team2.score });
-
-    const row = (team, getP, color, score, align) => `
-        <tr class="gb-role-row" style="--tc:${color}">
-            <th class="gb-role-team">${team?.name || ''}</th>
-            ${pairs.map(pair => {
-        const mine = P(getP(pair));
-        const other = P(getP === getA ? pair.b : pair.a);
-        return `<td class="${mine > other ? 'gb-role-win' : ''}">${mine.toFixed(2)}</td>`;
-    }).join('')}
-            <td class="gb-role-total">${fmt(score)}</td>
-        </tr>`;
-    const getA = (pair) => pair.a;
-    const getB = (pair) => pair.b;
-
-    return `
-    <div class="mosaic-card mc-wide gb-card mc-in">
-        <span class="mc-kicker">Testa a testa</span>
-        <h2 class="mc-title">Points by position</h2>
-        <div class="mc-body gb-role-scroll">
-            <table class="gb-role-table">
-                <thead><tr><th></th>${pairs.map(p => `<th>${p.slot}</th>`).join('')}<th>TOT</th></tr></thead>
-                <tbody>
-                    ${row(t1, getA, t1?.color || 'var(--accent-red)', s1)}
-                    ${row(t2, getB, t2?.color || 'var(--accent-blue)', s2)}
-                </tbody>
-            </table>
-        </div>
-    </div>`;
-}
-
-// ─── Grafico temporale (SVG) ─────────────────────────────────────
 
 async function renderChart(m, year, week) {
     const el = document.getElementById('gb-chart');
@@ -194,84 +191,67 @@ async function renderChart(m, year, week) {
 
 function buildChartSVG(m, sched) {
     const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
-    const colors = [t1?.color || '#B8433A', t2?.color || '#4f8cff'];
+    const nomi = [t1?.name || displayName(m.team1.name), t2?.name || displayName(m.team2.name)];
+    const inchiostri = [inkFor(t1?.color), inkFor(t2?.color)];
 
     const mkSeries = (team) => (team.starters || []).map(p => ({
         pts: P(p), name: p.name, win: sched.get(canonAbbr(p.nfl_team)) || null,
     }));
-    const series = [mkSeries(m.team1), mkSeries(m.team2)];
+    const rose = [mkSeries(m.team1), mkSeries(m.team2)];
 
-    const matched = series.flat().filter(x => x.win);
-    if (!matched.length) return '<p class="mc-text">Schedule not available for this week.</p>';
-    let t0 = Math.min(...matched.map(x => x.win.start.getTime()));
-    let tEnd = Math.max(...matched.map(x => x.win.end.getTime()));
-    series.forEach(list => list.forEach(x => {
+    const conPartita = rose.flat().filter(x => x.win);
+    if (!conPartita.length) return '<p class="mc-text">Schedule not available for this week.</p>';
+    const t0 = Math.min(...conPartita.map(x => x.win.start.getTime()));
+    const tEnd = Math.max(...conPartita.map(x => x.win.end.getTime()));
+    rose.forEach(list => list.forEach(x => {
         if (!x.win) x.win = { start: new Date(t0), end: new Date(tEnd) };
     }));
     const pad = 25 * 60 * 1000;
     const T0 = t0 - pad, T1 = tEnd + pad;
 
+    // I punti di un giocatore maturano dentro la finestra della sua partita:
+    // interpolazione lineare, come prima. È la parte di valore del grafico.
     const valueAt = (list, t) => list.reduce((s, x) => {
         const a = x.win.start.getTime(), b = x.win.end.getTime();
         const f = t <= a ? 0 : t >= b ? 1 : (t - a) / (b - a);
         return s + x.pts * f;
     }, 0);
 
-    const times = [...new Set([T0, T1, ...series.flat().flatMap(x => [x.win.start.getTime(), x.win.end.getTime()])])].sort((a, b) => a - b);
-    const maxV = Math.max(valueAt(series[0], T1), valueAt(series[1], T1));
-    const yTop = Math.max(25, Math.ceil(maxV * 1.06 / 25) * 25);
+    const istanti = [...new Set([T0, T1, ...rose.flat().flatMap(x => [x.win.start.getTime(), x.win.end.getTime()])])]
+        .sort((a, b) => a - b);
+    const serie = rose.map((list, i) => ({
+        name: nomi[i],
+        color: inchiostri[i],
+        values: istanti.map(ms => ({ x: ms, y: valueAt(list, ms) })),
+    }));
 
-    const W = 920, H = 340, padL = 6, padR = 42, padT = 12, padB = 44;
-    const X = (t) => padL + (t - T0) / (T1 - T0) * (W - padL - padR);
-    const Y = (v) => padT + (1 - v / yTop) * (H - padT - padB);
-
-    // griglia orizzontale
-    let grid = '';
-    for (let v = 0; v <= yTop; v += 25) {
-        grid += `<line x1="${padL}" y1="${Y(v)}" x2="${W - padR}" y2="${Y(v)}" class="gbc-grid"/>
-                 <text x="${W - padR + 8}" y="${Y(v) + 4}" class="gbc-ylabel">${v}</text>`;
-    }
-
-    // tick asse X: kickoff distinti (dedup entro 40')
-    const kicks = [...new Set(matched.map(x => x.win.start.getTime()))].sort((a, b) => a - b);
-    let lastKept = -Infinity, ticks = '';
-    const dayFmt = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', weekday: 'short' });
-    const hourFmt = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' });
-    kicks.forEach(k => {
-        if (k - lastKept < 40 * 60 * 1000) return;
-        lastKept = k;
-        const d = new Date(k);
-        ticks += `<line x1="${X(k)}" y1="${padT}" x2="${X(k)}" y2="${H - padB}" class="gbc-tickline"/>
-                  <text x="${X(k)}" y="${H - padB + 16}" class="gbc-xlabel">${hourFmt.format(d)}</text>
-                  <text x="${X(k)}" y="${H - padB + 30}" class="gbc-xlabel gbc-xday">${dayFmt.format(d)}</text>`;
+    // Tick sull'asse dei tempi: i kickoff distinti, accorpati entro 40 minuti.
+    const oraFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' });
+    const giornoFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', weekday: 'short' });
+    const kick = [...new Set(conPartita.map(x => x.win.start.getTime()))].sort((a, b) => a - b);
+    const xTicks = [];
+    let ultimo = -Infinity;
+    kick.forEach(k => {
+        if (k - ultimo < 40 * 60 * 1000) return;
+        ultimo = k;
+        xTicks.push({ x: k, label: `${giornoFmt.format(new Date(k))} ${oraFmt.format(new Date(k))}`.replace('.', '') });
     });
 
-    const line = (list, color) =>
-        `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"
-            points="${times.map(t => `${X(t).toFixed(1)},${Y(valueAt(list, t)).toFixed(1)}`).join(' ')}"/>`;
+    // Callout sull'ultimo sorpasso: è il momento che decide la partita, e a
+    // parole si capisce meglio che da un incrocio di linee.
+    let sorpasso = null;
+    for (let i = 1; i < istanti.length; i++) {
+        const primaA = valueAt(rose[0], istanti[i - 1]), primaB = valueAt(rose[1], istanti[i - 1]);
+        const dopoA = valueAt(rose[0], istanti[i]), dopoB = valueAt(rose[1], istanti[i]);
+        if (Math.sign(primaA - primaB) !== Math.sign(dopoA - dopoB) && Math.abs(dopoA - dopoB) > 0.5) {
+            sorpasso = { x: istanti[i], y: dopoA, chi: dopoA > dopoB ? nomi[0] : nomi[1] };
+        }
+    }
+    const callout = sorpasso
+        ? { x: sorpasso.x, y: sorpasso.y, text: `${sorpasso.chi} takes the lead · ${oraFmt.format(new Date(sorpasso.x))}` }
+        : null;
 
-    const dots = (list, color) => list.filter(x => x.pts !== 0).map(x => {
-        const te = x.win.end.getTime();
-        return `<circle cx="${X(te).toFixed(1)}" cy="${Y(valueAt(list, te)).toFixed(1)}" r="4.5"
-                    fill="${color}" stroke="var(--bg-primary)" stroke-width="1.5" class="gbc-dot">
-                <title>${x.name} · ${x.pts.toFixed(2)} pt</title></circle>`;
-    }).join('');
-
-    const legend = `
-        <div class="gbc-legend">
-            <span class="gbc-legend-item"><i style="background:${colors[0]}"></i>${t1?.name || displayName(m.team1.name)}</span>
-            <span class="gbc-legend-item"><i style="background:${colors[1]}"></i>${t2?.name || displayName(m.team2.name)}</span>
-            <span class="gbc-legend-hint">· points accumulate during starters' real games, a dot marks the end of each game</span>
-        </div>`;
-
-    return `${legend}
-    <div class="gbc-wrap">
-        <svg viewBox="0 0 ${W} ${H}" class="gbc-svg" role="img" aria-label="Andamento punti nel weekend">
-            ${grid}${ticks}
-            ${line(series[0], colors[0])}${line(series[1], colors[1])}
-            ${dots(series[0], colors[0])}${dots(series[1], colors[1])}
-        </svg>
-    </div>`;
+    return multiLine(serie, { height: 320, xTicks, callout, yFmt: (v) => String(Math.round(v)) });
 }
 
 // ─── Articolo + tabella outcome ──────────────────────────────────
@@ -294,6 +274,14 @@ function outcomeHTML(m, liveNow = () => false) {
         const parts = String(p.name).trim().split(/\s+/);
         return parts.length < 2 ? p.name : `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
     };
+    // Foto tonda del giocatore, come nel confronto del Live. Il `src` parte dal
+    // segnaposto e lo sostituisce loadHeadshots(), che gira già su .gb-headshot.
+    const foto = (p) => p
+        ? `<img class="gb-headshot gb-headshot-xs" src="images/fallback-player.svg" alt=""
+               data-player-name="${p.name}" data-team="${p.nfl_team || ''}"
+               data-pos="${p.position_in_team || p.position || ''}">`
+        : '<span class="gb-headshot gb-headshot-xs gb-headshot--empty"></span>';
+
     const cell = (p) => {
         if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
         return `
@@ -309,10 +297,10 @@ function outcomeHTML(m, liveNow = () => false) {
         const n = (v) => Number(v) || 0;
         const role = (p?.position_in_team || p?.position || '').toUpperCase();
         const CANDIDATES = {
-            QB: [[n(s.pass_yds), 'yd lancio'], [n(s.pass_td), 'td'], [n(s.pass_int), 'int'], [n(s.rush_yds), 'yd corsa']],
-            RB: [[n(s.rush_yds), 'yd corsa'], [n(s.rush_td), 'td'], [n(s.rec_yds), 'yd ric'], [n(s.rec_td), 'td ric']],
-            WR: [[n(s.rec), 'rec'], [n(s.rec_yds), 'yd ric'], [n(s.rec_td), 'td']],
-            TE: [[n(s.rec), 'rec'], [n(s.rec_yds), 'yd ric'], [n(s.rec_td), 'td']],
+            QB: [[n(s.pass_yds), 'pass yd'], [n(s.pass_td), 'td'], [n(s.pass_int), 'int'], [n(s.rush_yds), 'rush yd']],
+            RB: [[n(s.rush_yds), 'rush yd'], [n(s.rush_td), 'td'], [n(s.rec_yds), 'rec yd'], [n(s.rec_td), 'rec td']],
+            WR: [[n(s.rec), 'rec'], [n(s.rec_yds), 'rec yd'], [n(s.rec_td), 'td']],
+            TE: [[n(s.rec), 'rec'], [n(s.rec_yds), 'rec yd'], [n(s.rec_td), 'td']],
             K: [[n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus), 'fg'], [n(s.pat_made), 'xp']],
             DEF: [[n(s.sack), 'sack'], [n(s.def_int) + n(s.fum_rec), 'to'], [n(s.def_td), 'td']],
         };
@@ -330,12 +318,14 @@ function outcomeHTML(m, liveNow = () => false) {
         return `
         <div class="gb-out-row${extraCls}">
             ${posBadge}
+            ${foto(a)}
             ${cell(a)}
             ${stat(a, 'gb-out-stat--l')}
             <span class="gb-out-pts${pa > pb ? ' win' : ''}">${pa.toFixed(2)}</span>
             <span class="gb-out-pts${pb > pa ? ' win' : ''}">${pb.toFixed(2)}</span>
             ${stat(b, 'gb-out-stat--r')}
             ${cell(b)}
+            ${foto(b)}
             ${posBadge}
         </div>`;
     };
@@ -352,72 +342,251 @@ function outcomeHTML(m, liveNow = () => false) {
     if (benchRows) benchRows = `<div class="gb-out-sep">Bench</div>${benchRows}`;
 
     return `
-    <aside class="mosaic-card gb-card gb-outcome mc-in">
+    <aside class="mosaic-card mc-wide gb-card gb-outcome mc-in">
+        <span class="mc-kicker">Head to head</span>
         <div class="gb-out-rows">${rows}${benchRows}</div>
     </aside>`;
 }
 
 // ─── Barre stats di squadra ──────────────────────────────────────
 
+/**
+ * Confronto fra due squadre su più misure con ordini di grandezza diversi
+ * (yard contro touchdown): una riga per voce, ognuna normalizzata sul proprio
+ * massimo, valore a sinistra e a destra. Un asse condiviso qui mentirebbe.
+ * Stessa forma del confronto di squadra del Live.
+ */
+function confrontoRighe(voci, t1, t2) {
+    const righe = voci.map(({ label, a, b, fmt: f, giuMeglio }) => {
+        const fv = f || ((v) => String(Math.round(v)));
+        const tot = a + b;
+        const pct = tot > 0 ? Math.round((a / tot) * 100) : 50;
+        const vinceA = a === b ? null : giuMeglio ? a < b : a > b;
+        return `
+        <div class="live-cmpteam-row">
+            <span class="live-cmpteam-val${vinceA === true ? ' is-top' : ''}">${fv(a)}</span>
+            <span class="live-cmpteam-mid">
+                <span class="live-cmpteam-label">${label}${giuMeglio ? '<i class="live-cmpteam-giu" title="lower is better">↓</i>' : ''}</span>
+                <span class="live-cmpteam-bar"><i class="live-cmpteam-fill${giuMeglio ? ' is-inverse' : ''}" style="width:${pct}%"></i></span>
+            </span>
+            <span class="live-cmpteam-val live-cmpteam-val--r${vinceA === false ? ' is-top' : ''}">${fv(b)}</span>
+        </div>`;
+    }).join('');
+
+    return `
+    <div class="live-cmpteam gb-cmpteam" style="--tc1:${inkFor(t1?.color)};--tc2:${inkFor(t2?.color)}">
+        <div class="live-cmpteam-head">
+            <span>${t1?.name || 'A'}</span><span class="live-cmpteam-title">head to head</span><span>${t2?.name || 'B'}</span>
+        </div>
+        ${righe}
+    </div>`;
+}
+
 function statBarsHTML(m) {
     const a = teamStatTotals(m.team1);
     const b = teamStatTotals(m.team2);
     const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
-    const LABELS = [
-        ['passYds', 'Yard lancio'], ['rushYds', 'Yard corsa'],
-        ['recYds', 'Yard ricezione'], ['td', 'Touchdown'], ['to', 'Palle perse'],
-    ];
-    const rows = LABELS.map(([k, label]) => {
-        const max = Math.max(a[k], b[k], 1);
-        return `
-        <div class="gb-statbar">
-            <span class="gb-statbar-label">${label}</span>
-            <div class="gb-statbar-track"><div class="gb-statbar-fill" style="width:${(a[k] / max * 100).toFixed(0)}%;background:${t1?.color || 'var(--accent-red)'}"></div><span>${a[k]}</span></div>
-            <div class="gb-statbar-track"><div class="gb-statbar-fill" style="width:${(b[k] / max * 100).toFixed(0)}%;background:${t2?.color || 'var(--accent-blue)'}"></div><span>${b[k]}</span></div>
-        </div>`;
-    }).join('');
     return `
     <div class="mosaic-card gb-card mc-in">
         <span class="mc-kicker">Team comparison</span>
-        <h2 class="mc-title">The starters' numbers</h2>
-        <div class="mc-body gb-statbars">${rows}</div>
+        <h2 class="mc-title">Team against team</h2>
+        <p class="gb-card-sub">What the starters produced, line by line.</p>
+        <div class="mc-body">${confrontoRighe([
+            { label: 'Passing yards', a: a.passYds, b: b.passYds },
+            { label: 'Rushing yards', a: a.rushYds, b: b.rushYds },
+            { label: 'Receiving yards', a: a.recYds, b: b.recYds },
+            { label: 'Touchdowns', a: a.td, b: b.td },
+            { label: 'Turnovers', a: a.to, b: b.to, giuMeglio: true },
+        ], t1 || { name: displayName(m.team1.name) }, t2 || { name: displayName(m.team2.name) })}</div>
     </div>`;
 }
 
-// ─── Difference maker ────────────────────────────────────────────
+/**
+ * Come si è formato il margine: un duello per slot, i due titolari sullo stesso
+ * asse. Sotto, i due migliori della giornata con una riga di commento.
+ */
+function marginCardHTML(m, dm, bundle, ranks) {
+    const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
+    const grafico = dumbbell(slotPairs(m).map(({ slot, a, b }) => ({
+        label: slot,
+        a: P(a), b: P(b),
+        tip: `${slot}: ${a?.name || '—'} vs ${b?.name || '—'}`,
+    })), {
+        a: { name: t1?.name || displayName(m.team1.name), color: t1?.color },
+        b: { name: t2?.name || displayName(m.team2.name), color: t2?.color },
+        labelW: 62, rowH: 28,
+    });
+    if (!grafico) return '';
 
-function diffMakerHTML(m, dm, bundle, ranks) {
-    const side = (p, rawName) => {
+    const protagonista = (p, raw) => {
         if (!p) return '';
-        const t = teamOf(rawName);
+        const t = teamOf(raw);
         return `
-        <div class="gb-dm-side" style="--tc:${t?.color || 'var(--accent-red)'}">
-            <img class="gb-headshot" src="images/fallback-player.svg" alt="${p.name}"
+        <div class="gb-top" style="--tc:${inkFor(t?.color)}">
+            <img class="gb-headshot gb-headshot-sm" src="images/fallback-player.svg" alt=""
                  data-player-name="${p.name}" data-team="${p.nfl_team}" data-pos="${p.position_in_team || p.position}">
-            <div class="gb-dm-info">
-                <span class="gb-dm-name">${p.name}</span>
-                <span class="gb-dm-meta">${(p.position_in_team || p.position || '')} · ${p.nfl_team || ''} · ${t?.name || displayName(rawName)}</span>
-                <span class="gb-dm-pts">${fmt(P(p))} <small>pt</small></span>
+            <div class="gb-top-body">
+                <span class="gb-top-name">${p.name} <small>${fmt(P(p))} pt</small></span>
+                <p class="gb-top-text">${playerComment(p, bundle, ranks)}</p>
             </div>
-            <p class="gb-dm-comment">${playerComment(p, bundle, ranks)}</p>
         </div>`;
     };
+
+    return `
+    <div class="mosaic-card mc-wide gb-card mc-in">
+        <span class="mc-kicker">Difference maker</span>
+        <h2 class="mc-title">How the margin was built</h2>
+        <p class="gb-card-sub">One row per slot: the two starters on the same axis, the segment
+           pointing at whoever is ahead, the gap on the right.</p>
+        <div class="mc-body">${grafico}</div>
+        <div class="gb-tops">${protagonista(dm.a, m.team1.name)}${protagonista(dm.b, m.team2.name)}</div>
+    </div>`;
+}
+
+/** Punti lasciati in panchina: reso reale contro formazione ottimale. */
+function benchCardHTML(m, bundle) {
+    const key = (raw) => TEAM_KEYS[displayName(raw)];
+    const a = bundle?.managers?.[key(m.team1.name)];
+    const b = bundle?.managers?.[key(m.team2.name)];
+    if (!a?.optimal || !b?.optimal) return '';
+    const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
+    const persi = (mg) => Math.max(0, mg.optimal - mg.actual);
+    const eff = (mg) => (mg.actual / mg.optimal) * 100;
+
     return `
     <div class="mosaic-card gb-card mc-in">
-        <span class="mc-kicker">Difference maker</span>
-        <h2 class="mc-title">Chi ha fatto la differenza</h2>
-        <div class="mc-body gb-dm">
-            ${side(dm.a, m.team1.name)}
-            ${side(dm.b, m.team2.name)}
-        </div>
+        <span class="mc-kicker">Lineup efficiency</span>
+        <h2 class="mc-title">Points left on the bench</h2>
+        <p class="gb-card-sub">Across the whole season: what the two managers actually started, and
+           what they would have started by picking the best lineup every week.</p>
+        <div class="mc-body">${confrontoRighe([
+            { label: 'Points started', a: a.actual, b: b.actual },
+            { label: 'Best possible', a: a.optimal, b: b.optimal },
+            { label: 'Left on the bench', a: persi(a), b: persi(b), giuMeglio: true },
+            { label: 'Efficiency', a: eff(a), b: eff(b), fmt: (v) => `${v.toFixed(1)}%` },
+        ], t1 || { name: displayName(m.team1.name) }, t2 || { name: displayName(m.team2.name) })}</div>
+    </div>`;
+}
+
+/** Forma delle due squadre: punti settimana per settimana, questa in evidenza. */
+function formCardHTML(m, league, year, week) {
+    const stagione = league?.seasons?.find(s => s.year === year);
+    if (!stagione) return '';
+    const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
+    const serie = [[m.team1, t1], [m.team2, t2]].map(([team, t]) => {
+        // Tutta la stagione, non solo fino a qui: alla week 1 ci sarebbe un
+        // punto solo e il grafico non direbbe niente. La giornata in esame è
+        // segnata dal callout.
+        const partite = stagione.perTeam?.[TEAM_KEYS[displayName(team.name)]]?.games || [];
+        return {
+            name: t?.name || displayName(team.name),
+            color: inkFor(t?.color),
+            values: partite.map(g => ({ x: g.week, y: g.pts })),
+        };
+    }).filter(s => s.values.length > 1);
+    if (serie.length < 2) return '';
+
+    const quiA = serie[0].values.find(v => v.x === week);
+    const grafico = multiLine(serie, {
+        height: 250,
+        xTicks: serie[0].values.filter((_, i) => serie[0].values.length <= 10 || i % 2 === 0)
+            .map(v => ({ x: v.x, label: `W${v.x}` })),
+        callout: quiA ? { x: week, y: quiA.y, text: 'this week' } : null,
+        yFmt: (v) => String(Math.round(v)),
+    });
+
+    return `
+    <div class="mosaic-card mc-wide gb-card mc-in">
+        <span class="mc-kicker">Season form</span>
+        <h2 class="mc-title">How the two teams have been going</h2>
+        <p class="gb-card-sub">Points week by week across the season: it says whether this game,
+           marked on the line, is in character or an outlier.</p>
+        <div class="mc-body">${grafico}</div>
     </div>`;
 }
 
 // ─── Player notes ────────────────────────────────────────────────
 
-function notesHTML(notes) {
-    if (!notes.length) return '';
-    const rows = notes.map(({ player, teamRaw, text }) => {
+/**
+ * Riferimenti disponibili per il confronto: la media di questa stagione, quella
+ * dell'anno prima, quella di sempre. Sono punti per presenza DA TITOLARE in
+ * tutti e tre i casi, altrimenti i numeri non sarebbero confrontabili.
+ */
+function riferimenti(bundle, careers, year) {
+    const annoPrec = String(Number(year) - 1);
+    const modi = [{
+        id: 'season', label: 'This season', asse: 'season average',
+        avg: (nome) => seasonAvg(bundle, nome),
+    }];
+    if (careers) {
+        modi.push({
+            id: 'prev', label: annoPrec, asse: `${annoPrec} average`,
+            avg: (nome) => {
+                const bs = careers.get(nome)?.bySeason?.[annoPrec];
+                return bs?.gamesStarted ? bs.startedPts / bs.gamesStarted : 0;
+            },
+        });
+        modi.push({
+            id: 'career', label: 'All time', asse: 'all-time average',
+            avg: (nome) => {
+                const c = careers.get(nome);
+                return c?.gamesStarted ? c.startedPts / c.gamesStarted : 0;
+            },
+        });
+    }
+    return modi;
+}
+
+function notesHTML(notes, m, bundle, careers, year) {
+    const modi = riferimenti(bundle, careers, year);
+
+    // Quattro gruppi per modo: le due squadre, e dentro ognuna titolari e
+    // panchina separati. Mescolarli non direbbe di chi è chi.
+    const righeDi = (lista, avgDi) => (lista || []).map(p => {
+        const avg = avgDi(p.name);
+        if (!avg || avg < 4) return null;
+        const v = P(p);
+        return {
+            label: p.name,
+            value: v,
+            ref: avg,
+            meta: `${v >= avg ? '+' : ''}${Math.round(((v - avg) / avg) * 100)}%`,
+            tip: `${p.name} — ${fmt(v)} pt, reference ${fmt(avg)}`,
+            gap: (v - avg) / avg,
+        };
+    }).filter(Boolean).sort((x, y) => y.gap - x.gap);
+
+    const gruppo = (titolo, righe, etichettaAsse) => righe.length ? `
+        <div class="gb-avg-group">
+            <span class="gb-avg-sub">${titolo}</span>
+            ${dotPlot(righe, { axisLabel: etichettaAsse, fmt: (v) => fmt(v) })}
+        </div>` : '';
+
+    const colonna = (team, modo) => {
+        const t = teamOf(team.name);
+        const blocchi = gruppo('Starters', righeDi(team.starters, modo.avg), modo.asse)
+            + gruppo('Bench', righeDi(team.bench, modo.avg), modo.asse);
+        if (!blocchi) return '';
+        return `
+        <div class="gb-avg-col" style="--tc:${inkFor(t?.color)}">
+            <span class="gb-avg-team">${t?.name || displayName(team.name)}</span>
+            ${blocchi}
+        </div>`;
+    };
+
+    // Un modo senza dati (l'anno prima non esiste per la prima stagione) non
+    // merita una pillola: si scarta prima di disegnare il selettore.
+    const pannelli = modi.map(modo => ({ modo, html: colonna(m.team1, modo) + colonna(m.team2, modo) }))
+        .filter(x => x.html);
+    if (!pannelli.length) return '';
+
+    const pillole = pannelli.length < 2 ? '' : `
+        <div class="year-selector gb-avg-switch">
+            ${pannelli.map(({ modo }, i) => `
+            <button class="year-pill${i === 0 ? ' active' : ''}" type="button" data-avg-mode="${modo.id}">${modo.label}</button>`).join('')}
+        </div>`;
+
+    const righe = notes.map(({ player, teamRaw, text }) => {
         const t = teamOf(teamRaw);
         return `
         <div class="gb-note">
@@ -433,15 +602,35 @@ function notesHTML(notes) {
             </div>
         </div>`;
     }).join('');
+
     return `
     <div class="mosaic-card mc-wide gb-card mc-in">
         <span class="mc-kicker">Player notes</span>
-        <h2 class="mc-title">I protagonisti</h2>
-        <div class="mc-body gb-notes">${rows}</div>
+        <h2 class="mc-title">Every player against his own average</h2>
+        <p class="gb-card-sub">Dot to the right of the line: above the reference. To the left:
+           below. Split by team, starters and bench apart.</p>
+        ${pillole}
+        <div class="mc-body">
+            ${pannelli.map(({ modo, html }, i) => `
+            <div class="gb-avg-grid gb-avg-mode${i === 0 ? ' is-on' : ''}" data-avg-panel="${modo.id}">${html}</div>`).join('')}
+        </div>
+        <div class="gb-notes">${righe}</div>
     </div>`;
 }
 
-/** Headshot async via player-image-service (stesso pattern del draft) */
+/** Il selettore del riferimento: mostra il pannello scelto, nasconde gli altri. */
+function bindAvgSwitch(section) {
+    const sw = section.querySelector('.gb-avg-switch');
+    if (!sw) return;
+    sw.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-avg-mode]');
+        if (!btn) return;
+        sw.querySelectorAll('.year-pill').forEach(b => b.classList.toggle('active', b === btn));
+        section.querySelectorAll('[data-avg-panel]').forEach(pan =>
+            pan.classList.toggle('is-on', pan.dataset.avgPanel === btn.dataset.avgMode));
+    });
+}
+
 function loadHeadshots(section, year) {
     section.querySelectorAll('.gb-headshot').forEach(async (img) => {
         img.onerror = () => {

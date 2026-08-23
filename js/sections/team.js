@@ -9,7 +9,7 @@ import { CURRENT_SEASON } from '../data.js?v=534';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=534';
 import { computeTeamBadges } from '../data/badges.js?v=513';
 import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=518';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=606';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=515';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)

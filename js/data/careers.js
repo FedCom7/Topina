@@ -16,7 +16,7 @@ import {
     SEASONS, getSeasonConfig, getSuperBowlMatchup, displayName,
 } from '../data.js?v=534';
 import { TEAM_KEYS } from './team-config.js?v=533';
-import { getHonorsBundle } from './honors.js?v=584';
+import { getHonorsBundle } from './honors.js?v=585';
 import { normName } from './projections.js?v=589';
 
 let careersCache = null;
@@ -75,7 +75,7 @@ export async function buildCareers() {
                             if (!c) careers.set(p.name, c = {
                                 name: p.name, position: pos, nflTeam: p.nfl_team || '',
                                 seasons: new Set(), lastSeason: season,
-                                totPts: 0, stats: {}, top1Count: 0, sbWins: 0, gamesStarted: 0,
+                                totPts: 0, startedPts: 0, stats: {}, top1Count: 0, sbWins: 0, gamesStarted: 0,
                                 firstTeam: 0, secondTeam: 0, mvp: 0,
                                 bySeason: {}, draftedBy: [],
                             });
@@ -87,15 +87,19 @@ export async function buildCareers() {
 
                             const pts = parseFloat(p.fantasy_points || 0);
                             c.totPts += pts;
+                            // punti fatti DA TITOLARE: sono quelli confrontabili con la
+                            // media stagionale di honors, che è punti per presenza da
+                            // titolare. Sommare anche la panchina gonfierebbe il confronto.
+                            if (started) c.startedPts += pts;
                             for (const [k, v] of Object.entries(p.stats || {})) {
                                 c.stats[k] = (c.stats[k] || 0) + (Number(v) || 0);
                             }
 
                             // dettaglio per stagione (scheda giocatore)
                             let bs = c.bySeason[season];
-                            if (!bs) bs = c.bySeason[season] = { pts: 0, gamesStarted: 0, teamKeys: {} };
+                            if (!bs) bs = c.bySeason[season] = { pts: 0, startedPts: 0, gamesStarted: 0, teamKeys: {} };
                             bs.pts += pts;
-                            if (started) bs.gamesStarted++;
+                            if (started) { bs.startedPts += pts; bs.gamesStarted++; }
                             if (teamKey) bs.teamKeys[teamKey] = (bs.teamKeys[teamKey] || 0) + 1;
 
                             // Totali stagionali per il Top1 di ruolo

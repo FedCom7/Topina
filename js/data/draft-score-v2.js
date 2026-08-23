@@ -24,7 +24,7 @@
  * l'efficienza vs ADP diventa neutra e resta l'analisi VOR/opportunity-cost.
  */
 
-import { replacementLevels, pickStarters, balanceScore } from './team-eval.js?v=534';
+import { replacementLevels, pickStarters, balanceScore } from './team-eval.js?v=535';
 import { matchProjection, normName } from './projections.js?v=589';
 
 const OFF = new Set(['QB', 'RB', 'WR', 'TE']);

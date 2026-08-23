@@ -9,9 +9,9 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=534';
-import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS, WAIT_YEARS } from '../data/hall-of-fame.js?v=584';
+import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS, WAIT_YEARS } from '../data/hall-of-fame.js?v=585';
 import { playerImageService } from '../services/player-image-service.js?v=515';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=606';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=607';
 import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=588';
 
 let initialized = false;

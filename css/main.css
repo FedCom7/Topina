@@ -5562,20 +5562,11 @@ img {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42), var(--glass-sheen);
 }
 
+/* Niente velo colorato dentro la card: il vetro resta pulito e il colore lo
+   portano il titolino, il bordo al passaggio del mouse e il logo in filigrana.
+   `--card-glow` continua a servire a quelli. */
 .mosaic-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 90% 110% at 85% -10%,
-            color-mix(in srgb, var(--card-glow) 26%, transparent) 0%,
-            transparent 60%);
-    opacity: 0.65;
-    transition: opacity var(--dur-med) var(--ease);
-    pointer-events: none;
-}
-
-.mosaic-card:hover::before {
-    opacity: 1;
+    content: none;
 }
 
 .mc-hero,
@@ -6906,6 +6897,39 @@ img {
     display: block;
 }
 
+/* ── Primitive dei grafici condivisi (js/ui/charts.js) ───────────
+   Un grafico largo non si comprime fino a diventare illeggibile: scorre
+   dentro il suo contenitore, come già fa .dgt-chart-wrap nel Draft Grade. */
+.an-scroll {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+.an-scroll::-webkit-scrollbar { height: 6px; }
+.an-scroll::-webkit-scrollbar-track { background: transparent; }
+.an-scroll::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 999px; }
+
+.an-svg--wide {
+    min-width: 560px;
+}
+
+/* Il punto saliente spiegato a parole, dentro il grafico. */
+.an-callout {
+    fill: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.an-dumb circle {
+    transition: r 0.15s var(--ease);
+}
+
+.an-dumb:hover circle {
+    r: 6.5;
+}
+
 .an-gridline {
     stroke: rgba(255, 255, 255, 0.07);
     stroke-width: 1;
@@ -7860,8 +7884,8 @@ img {
 
 .gb-out-row {
     display: grid;
-    /* pos | giocatore | dettaglio | pts | pts | dettaglio | giocatore | pos */
-    grid-template-columns: 44px 1fr minmax(0, 150px) auto auto minmax(0, 150px) 1fr 44px;
+    /* pos | foto | giocatore | dettaglio | pts | pts | dettaglio | giocatore | foto | pos */
+    grid-template-columns: 40px 40px 1fr minmax(0, 150px) auto auto minmax(0, 150px) 1fr 40px 40px;
     align-items: center;
     gap: 8px;
     padding: 9px 0;
@@ -8139,6 +8163,112 @@ div.gb-out-player:last-of-type {
 }
 
 /* player notes */
+/* ── Analisi partita: blocchi coi grafici nuovi ──────────────────
+   Riga di contesto sotto il titolo di ogni card: dice come si legge il
+   grafico, che è il posto dove queste pagine di solito perdono il lettore. */
+.gb-card-sub {
+    margin: 2px 0 14px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 76ch;
+}
+
+/* Ogni giocatore contro la sua media: due colonne, una per squadra, e dentro
+   ognuna titolari e panchina separati. Tutto nella stessa card. */
+.gb-avg-switch {
+    margin: 0 0 16px;
+    justify-content: flex-start;
+}
+
+.gb-avg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 22px 28px;
+}
+
+/* Un pannello per riferimento (stagione / anno prima / sempre): si disegnano
+   tutti e si mostra quello scelto, così cambiare non ricalcola niente. Le due
+   regole stanno DOPO .gb-avg-grid, che ha la stessa specificità e vincerebbe. */
+.gb-avg-grid.gb-avg-mode {
+    display: none;
+}
+
+.gb-avg-grid.gb-avg-mode.is-on {
+    display: grid;
+}
+
+.gb-avg-team {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--tc, var(--text-primary));
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.gb-avg-group + .gb-avg-group {
+    margin-top: 16px;
+}
+
+.gb-avg-sub {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* I due migliori della giornata, sotto il grafico del margine. */
+.gb-tops {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.gb-top {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.gb-top .gb-headshot-sm {
+    border-color: var(--tc, var(--accent-red));
+}
+
+.gb-top-body {
+    min-width: 0;
+}
+
+.gb-top-name {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.gb-top-name small {
+    margin-left: 6px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--tc, var(--accent-red));
+}
+
+.gb-top-text {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
 .gb-notes {
     display: flex;
     flex-direction: column;
@@ -8161,6 +8291,21 @@ div.gb-out-player:last-of-type {
     height: 56px;
     flex-shrink: 0;
     border-color: var(--border-card);
+}
+
+/* Foto nelle righe del testa a testa: tonde come nel confronto del Live. */
+.gb-headshot-xs {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-width: 1.5px;
+    border-color: var(--border-card);
+}
+
+.gb-headshot--empty {
+    display: block;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
 }
 
 .gb-note-body {
