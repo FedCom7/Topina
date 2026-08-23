@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=805">
+    <link rel="stylesheet" href="css/main.css?v=922">
 </head>
 
 <body>
@@ -95,6 +95,7 @@
             <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
             <div class="nav-dp-sep"></div>
             <a href="#draftgrades" class="nav-dp-item" data-section="draftgrades">Draft Grades</a>
+            <a href="#projections" class="nav-dp-item" data-section="projections">Projections</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="history">
             <a href="#history" class="nav-dp-item nav-dp-header" data-section="history">League History</a>
@@ -214,12 +215,27 @@
                 <p class="section-subtitle">Every pick, year by year</p>
             </div>
             <div class="year-selector" id="dr-year-selector"></div>
+            <div class="round-selector" id="dr-mode-selector"></div>
             <div class="round-selector" id="dr-round-selector"></div>
             <div class="draft-grid" id="draft-grid">
                 <div class="loading-state">
                     <div class="spinner"></div>
                     <p>Loading draft...</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section" id="projections">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Projections</h1>
+                <p class="section-subtitle">The board the Draft Grades are built on</p>
+            </div>
+            <div class="year-selector" id="pj-year-selector"></div>
+            <div class="round-selector" id="pj-pos-selector"></div>
+            <div id="pj-content">
+                <div class="loading-state"><div class="spinner"></div><p>Loading projections...</p></div>
             </div>
         </div>
     </section>
@@ -375,7 +391,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=889"></script>
+    <script type="module" src="js/app.js?v=900"></script>
 </body>
 
 </html>

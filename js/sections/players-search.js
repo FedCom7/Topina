@@ -10,9 +10,9 @@ import { CURRENT_SEASON } from '../data.js?v=534';
 import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=575';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=526';
 import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=581';
-import { canonAbbr } from '../data/nfl-schedule.js?v=520';
-import { getTeamIdentity } from '../data/nfl-teams.js?v=508';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=589';
+import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=522';
+import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=508';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=591';
 
 // ─── Confronto lega · tutte le 32 squadre (nflverse team_stats + advanced) ───
 // Modulo interattivo in testa al pannello NFL: un grande scatter Attacco×Difesa
@@ -796,17 +796,200 @@ function render(section) {
         <div class="ps-search-wrap">
             <input type="search" id="ps-input" class="ps-search-input" placeholder="Search player or team..." autocomplete="off">
         </div>
-        <div id="ps-results" class="ps-results">
-            <p class="pm-empty">Start typing to search — e.g. a name, or "Chiefs".</p>
-        </div>
+        <div id="ps-scoreboard" class="ps-sb-wrap"></div>
+        <div id="ps-divisions" class="ps-div-block"></div>
+        <div id="ps-results" class="ps-results"></div>
         <div id="ps-league" class="ps-league">
             <div class="loading-state"><div class="spinner"></div><p>Caricamento dati NFL...</p></div>
         </div>
     </div>`;
 }
 
-/** Classifica NFL reale + power ranking FPI, sotto la ricerca. Fonte ESPN dal vivo. */
-async function loadLeaguePanel(container) {
+// ─── Tabellone NFL della settimana (subito sotto la ricerca) ─────────────
+// Le partite della giornata su due file, come lo scoreboard in cima a nfl.com:
+// selettore settimana (solo regular season, 1-18), punteggio/orario, record,
+// rete TV e squadre in bye. Una gara già cominciata porta alla pagina della
+// squadra di CASA, tab Schedule, con quella partita già aperta sul box score
+// e sul play-by-play (route #nfl-team/{abbr}/{anno}/game/{eventId}).
+
+const NFL_WEEKS = 18;
+
+/** Orario di kickoff nel fuso dell'utente: "Sun 7:20 PM". */
+function sbKickoff(iso) {
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) return 'TBD';
+    return d.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
+function sbTeamRow(t, { showScore, dim }) {
+    return `
+        <div class="ps-sb-team${dim ? ' ps-sb-team--loser' : ''}">
+            <img src="${teamLogoUrl(t.abbr)}" alt="" onerror="this.style.display='none'">
+            <span class="ps-sb-name"><b class="ps-sb-abbr">${esc(t.abbr)}</b>${t.record ? `<span class="ps-sb-rec">${esc(t.record)}</span>` : ''}</span>
+            <span class="ps-sb-score">${showScore && t.score != null ? t.score : ''}</span>
+        </div>`;
+}
+
+function sbGameCard(g, year) {
+    const started = g.state !== 'pre';
+    // A partita finita il perdente resta in secondo piano (come su nfl.com).
+    const loser = g.completed && g.home.score != null && g.home.score !== g.away.score
+        ? (g.home.score > g.away.score ? 'away' : 'home') : null;
+    const body = `
+        <div class="ps-sb-status">${esc(started ? (g.status || 'Live') : sbKickoff(g.date))}</div>
+        ${sbTeamRow(g.away, { showScore: started, dim: loser === 'away' })}
+        ${sbTeamRow(g.home, { showScore: started, dim: loser === 'home' })}
+        <div class="ps-sb-tv">${esc(g.tv || (started ? '' : 'TBD'))}</div>`;
+
+    // Solo le gare cominciate o concluse hanno qualcosa da aprire.
+    if (!started || !g.eventId) return `<div class="ps-sb-game is-pre">${body}</div>`;
+    const cls = g.state === 'in' ? ' ps-sb-game--live' : '';
+    return `<a class="ps-sb-game${cls}" href="#nfl-team/${esc(g.home.abbr)}/${year}/game/${esc(g.eventId)}"
+        title="${esc(g.away.name)} at ${esc(g.home.name)} — open ${esc(g.home.name)} · Schedule">${body}</a>`;
+}
+
+function sbWeeksHtml(week) {
+    const pills = Array.from({ length: NFL_WEEKS }, (_, i) => i + 1).map(w =>
+        `<button type="button" class="week-pill${w === week ? ' active' : ''}" data-sb-week="${w}">${w}</button>`).join('');
+    return `
+        <button type="button" class="ps-sb-arrow" data-sb-step="-1" aria-label="Previous week"${week <= 1 ? ' disabled' : ''}>‹</button>
+        <div class="ps-sb-pills">${pills}</div>
+        <button type="button" class="ps-sb-arrow" data-sb-step="1" aria-label="Next week"${week >= NFL_WEEKS ? ' disabled' : ''}>›</button>`;
+}
+
+function sbBodyHtml(data, year) {
+    if (!data?.games?.length) return '<p class="pm-empty">Scoreboard not available for this week.</p>';
+    const byeHtml = data.bye?.length ? `
+        <div class="ps-sb-bye"><span class="ps-sb-bye-label">Bye</span>${data.bye.map(a => `
+            <a class="ps-sb-bye-team" href="#nfl-team/${esc(a)}"><img src="${teamLogoUrl(a)}" alt="" onerror="this.style.display='none'">${esc(a)}</a>`).join('')}</div>` : '';
+    return `<div class="ps-sb-grid">${data.games.map(g => sbGameCard(g, year)).join('')}</div>${byeHtml}`;
+}
+
+/** Monta il tabellone e lo tiene aggiornato al cambio settimana. */
+async function initWeekScoreboard(container) {
+    const now = await getCurrentNflWeek();
+    const year = now?.year || CURRENT_SEASON;
+    let week = now?.week || 1;
+
+    container.innerHTML = `
+    <section class="pm-block pp-block ps-sb">
+        <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">Week ${week} · ${year}</span></span>
+        <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml(week)}</div>
+        <div class="ps-sb-body" id="ps-sb-body"><div class="loading-state"><div class="spinner"></div></div></div>
+        <p class="pm-note">All ${year} regular season games, week by week (live from ESPN). Click a played or in-progress game to open the home team's page on that box score and play-by-play.</p>
+    </section>`;
+
+    const title = container.querySelector('#ps-sb-title');
+    const weeks = container.querySelector('#ps-sb-weeks');
+    const body = container.querySelector('#ps-sb-body');
+    let token = 0;
+
+    const paint = async (w) => {
+        week = Math.min(Math.max(w, 1), NFL_WEEKS);
+        const mine = ++token;
+        title.textContent = `Week ${week} · ${year}`;
+        weeks.innerHTML = sbWeeksHtml(week);
+        body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+        const data = await getWeekGames(year, week).catch(() => null);
+        if (mine !== token) return;  // l'utente ha già cambiato settimana
+        body.innerHTML = sbBodyHtml(data, year);
+    };
+
+    weeks.addEventListener('click', (e) => {
+        const pill = e.target.closest('[data-sb-week]');
+        if (pill) return paint(+pill.dataset.sbWeek);
+        const arrow = e.target.closest('[data-sb-step]');
+        if (arrow) paint(week + Number(arrow.dataset.sbStep));
+    });
+
+    paint(week);
+}
+
+// ─── Division standings e quadro playoff ─────────────────────────────────
+// Le 8 division in blocchetti 2×2 (AFC a sinistra, NFC a destra, ognuna del
+// colore della propria conference). Chi passerebbe ai playoff oggi lo dice il
+// playoffSeed ESPN, che applica già i tiebreaker ufficiali: seed 1-4 sono le
+// quattro vincitrici di division (qualificazione diretta), 5-7 le wild card,
+// il seed 1 salta il primo turno. I codici x/y/z/* sono quelli di NFL.com e
+// arrivano dallo stesso endpoint (campo `clincher`).
+
+// Rosso AFC e blu NFC: il blu ufficiale (#013369) su fondo scuro non si legge,
+// quindi si usa la variante chiara della stessa tinta.
+const CONF_COLOR = { AFC: '#D50A0A', NFC: '#3D7DCA' };
+const DIV_ORDER = ['East', 'North', 'South', 'West'];
+const CLINCH_TITLE = {
+    x: 'Clinched Playoff', y: 'Clinched Wild Card',
+    z: 'Clinched Division', '*': 'Clinched Division and Homefield Advantage',
+};
+
+/** Percentuale vittorie (pareggio = mezza vittoria), per l'ordine quando manca il seed. */
+const _winPct = (e) => {
+    const g = (e.wins || 0) + (e.losses || 0) + (e.ties || 0);
+    return g ? ((e.wins || 0) + (e.ties || 0) * 0.5) / g : 0;
+};
+
+function divisionRow(e) {
+    const seed = e.seed;
+    const winner = seed != null && seed <= 4;   // vincitrice di division: entra diretta
+    const wc = seed != null && seed >= 5 && seed <= 7;
+    const bye = seed === 1;                     // testa di serie: primo turno di riposo
+    const cls = ['ps-div-row', winner ? 'ps-div-row--winner' : '', wc ? 'ps-div-row--wc' : ''].filter(Boolean).join(' ');
+    const code = (e.clincher || '').trim();
+    const clinch = CLINCH_TITLE[code] ? `<span class="ps-div-clinch" title="${esc(CLINCH_TITLE[code])}">${esc(code)}</span>` : '';
+    return `
+        <tr class="${cls}">
+            <td class="ps-div-seed">${seed != null && seed <= 7 ? seed : ''}</td>
+            <td class="ps-div-team">
+                <a href="#nfl-team/${esc(e.abbr)}"><img src="${teamLogoUrl(e.abbr)}" alt="" onerror="this.style.display='none'"><b>${esc(e.abbr)}</b></a>
+                ${clinch}${bye ? '<span class="ps-div-bye" title="First-round bye">BYE</span>' : ''}
+            </td>
+            <td class="ps-div-rec">${e.wins ?? 0}-${e.losses ?? 0}${e.ties ? `-${e.ties}` : ''}</td>
+            <td class="ps-div-pct">${e.winPct != null ? String(e.winPct).replace(/^0/, '') : '—'}</td>
+        </tr>`;
+}
+
+function divisionsBlock({ year, value }) {
+    const confs = value.map(conf => {
+        const key = /american/i.test(conf.name || '') || conf.abbr === 'AFC' ? 'AFC' : 'NFC';
+        // Le division non arrivano dall'endpoint: si ricavano dall'anagrafica statica.
+        const divs = DIV_ORDER.map(d => ({
+            label: `${key} ${d}`,
+            teams: conf.entries.filter(e => NFL_TEAMS[e.abbr]?.division === `${key} ${d}`)
+                // il seed ESPN incorpora già i tiebreaker: dove c'è, comanda lui
+                .sort((a, b) => (a.seed ?? 99) - (b.seed ?? 99) || _winPct(b) - _winPct(a)),
+        })).filter(d => d.teams.length);
+        return { key, divs };
+    }).filter(c => c.divs.length).sort((a, b) => a.key.localeCompare(b.key));
+
+    if (!confs.length) return '';
+
+    const confHtml = ({ key, divs }) => `
+        <div class="ps-div-conf" style="--conf:${CONF_COLOR[key]}">
+            <h4 class="ps-div-conf-title">${key}</h4>
+            <div class="ps-div-grid">${divs.map(d => `
+                <div class="ps-div">
+                    <div class="ps-div-name">${esc(d.label)}</div>
+                    <table class="ps-div-table"><tbody>${d.teams.map(divisionRow).join('')}</tbody></table>
+                </div>`).join('')}</div>
+        </div>`;
+
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Divisions &amp; playoff picture · ${year}</span>
+        <div class="ps-div-wrap">${confs.map(confHtml).join('')}</div>
+        <div class="ps-div-legend">
+            <span><i class="ps-div-key ps-div-key--winner"></i>Division leader — direct berth (seeds 1-4)</span>
+            <span><i class="ps-div-key ps-div-key--wc"></i>Wild card — best teams without a division (seeds 5-7)</span>
+            <span><i class="ps-div-bye">BYE</i>Top seed: first-round bye</span>
+        </div>
+        <p class="pm-note">Seeding as it stands today (ESPN, official tiebreakers). Clinch codes as on NFL.com: <b>x</b> clinched playoff · <b>y</b> clinched wild card · <b>z</b> clinched division · <b>*</b> clinched division and homefield advantage.</p>
+    </section>`;
+}
+
+/** Classifica NFL reale + power ranking FPI, sotto la ricerca. Fonte ESPN dal vivo.
+ *  Le division vivono in un contenitore a parte (`divisions`): stanno subito
+ *  sotto il tabellone, sopra i risultati di ricerca. */
+async function loadLeaguePanel(container, divisions) {
     // In offseason la stagione corrente può essere ancora a 0-0: ripiego sulla precedente.
     async function pick(fn, isEmpty) {
         for (const y of [CURRENT_SEASON, CURRENT_SEASON - 1]) {
@@ -852,6 +1035,7 @@ async function loadLeaguePanel(container) {
             </div>
         </div>`;
 
+    if (divisions) divisions.innerHTML = standings ? divisionsBlock(standings) : '';
     const standingsHtml = standings ? `
         <section class="pm-block pp-block">
             <span class="mc-kicker">NFL Standings · ${standings.year}</span>
@@ -912,15 +1096,21 @@ export async function initPlayersSearch() {
     const input = section.querySelector('#ps-input');
     const results = section.querySelector('#ps-results');
     const league = section.querySelector('#ps-league');
-    if (league) loadLeaguePanel(league); // non blocca la ricerca
+    const scoreboard = section.querySelector('#ps-scoreboard');
+    const divisions = section.querySelector('#ps-divisions');
+    if (scoreboard) initWeekScoreboard(scoreboard); // non blocca la ricerca
+    if (league) loadLeaguePanel(league, divisions); // non blocca la ricerca
 
     const teamsGroup = (teams) => teams.length ? `<div class="ps-group"><h3 class="pp-cat-title">NFL Teams</h3>${teams.map(resultRow).join('')}</div>` : '';
     const playersGroup = (players) => players.length ? `<div class="ps-group"><h3 class="pp-cat-title">Players</h3>${players.map(resultRow).join('')}</div>` : '';
 
     input.addEventListener('input', async () => {
         const q = input.value.trim();
-        if (league) league.hidden = q.length >= 2; // la lega lascia spazio ai risultati durante la ricerca
-        if (q.length < 2) { results.innerHTML = q.length ? '<p class="pm-empty">Type at least 2 characters.</p>' : '<p class="pm-empty">Start typing to search — e.g. a name, or "Chiefs".</p>'; return; }
+        // tabellone, division e pannello lega lasciano spazio ai risultati durante la ricerca
+        if (scoreboard) scoreboard.hidden = q.length >= 2;
+        if (divisions) divisions.hidden = q.length >= 2;
+        if (league) league.hidden = q.length >= 2;
+        if (q.length < 2) { results.innerHTML = q.length ? '<p class="pm-empty">Type at least 2 characters.</p>' : ''; return; }
 
         // Le squadre sono un lookup statico: si mostrano subito, senza aspettare
         // il fetch dell'indice giocatori (buildCareers legge tutte le stagioni da Firebase).

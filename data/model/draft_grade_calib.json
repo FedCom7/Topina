@@ -1,0 +1,156 @@
+{
+ "version": "draft-grade-1",
+ "generatedAt": "2026-08-23T13:25:16.137Z",
+ "seasons": [
+  "2019",
+  "2020",
+  "2021",
+  "2022",
+  "2023",
+  "2024",
+  "2025"
+ ],
+ "weights": {
+  "talent": 0.6,
+  "efficiency": 0.4
+ },
+ "pickThresholds": [
+  [
+   77.9,
+   "A+"
+  ],
+  [
+   73.5,
+   "A"
+  ],
+  [
+   66.7,
+   "A-"
+  ],
+  [
+   57.7,
+   "B+"
+  ],
+  [
+   46.5,
+   "B"
+  ],
+  [
+   36.3,
+   "B-"
+  ],
+  [
+   30.4,
+   "C+"
+  ],
+  [
+   26,
+   "C"
+  ],
+  [
+   22.9,
+   "C-"
+  ],
+  [
+   17.1,
+   "D"
+  ]
+ ],
+ "teamThresholds": [
+  [
+   70.9,
+   "A+"
+  ],
+  [
+   67.1,
+   "A"
+  ],
+  [
+   63.7,
+   "A-"
+  ],
+  [
+   56.5,
+   "B+"
+  ],
+  [
+   46.8,
+   "B"
+  ],
+  [
+   44.7,
+   "B-"
+  ],
+  [
+   43,
+   "C+"
+  ],
+  [
+   36.9,
+   "C"
+  ],
+  [
+   34.8,
+   "C-"
+  ],
+  [
+   29.3,
+   "D"
+  ]
+ ],
+ "sample": {
+  "picks": 420,
+  "teams": 28
+ },
+ "backtest": {
+  "perSeason": [
+   {
+    "year": 2019,
+    "gradeRho": -0.4,
+    "talentRho": -0.4,
+    "efficiencyRho": -0.8
+   },
+   {
+    "year": 2020,
+    "gradeRho": -0.4,
+    "talentRho": -0.2,
+    "efficiencyRho": -0.4
+   },
+   {
+    "year": 2021,
+    "gradeRho": 0.8,
+    "talentRho": 0.8,
+    "efficiencyRho": 0.8
+   },
+   {
+    "year": 2022,
+    "gradeRho": 1,
+    "talentRho": 1,
+    "efficiencyRho": 0.8
+   },
+   {
+    "year": 2023,
+    "gradeRho": 0.2,
+    "talentRho": 0.2,
+    "efficiencyRho": 0.4
+   },
+   {
+    "year": 2024,
+    "gradeRho": 0.8,
+    "talentRho": 0.8,
+    "efficiencyRho": 0.4
+   },
+   {
+    "year": 2025,
+    "gradeRho": 1,
+    "talentRho": 1,
+    "efficiencyRho": 0.8
+   }
+  ],
+  "meanGradeRho": 0.429,
+  "meanTalentRho": 0.457,
+  "meanEfficiencyRho": 0.286,
+  "positiveSeasons": "5/7"
+ },
+ "note": "Soglie = quantili empirici dei punteggi storici mappati sulla curva di voti (PICK_BANDS/TEAM_BANDS in build-draft-grade-calib.mjs). rho = Spearman entro-stagione contro i punti fatti reali in regular season; n=4 team/anno, segnale indicativo. Se meanGradeRho scende sotto meanTalentRho, rivedere i pesi in draft-grade.js."
+}

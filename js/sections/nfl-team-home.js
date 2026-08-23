@@ -9,7 +9,7 @@
 
 import { esc, teamLogo } from './player-page.js?v=832';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=508';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 
 // ─── Calendario a blocchi ─────────────────────────────────────────────────
 
@@ -166,7 +166,14 @@ const OFFENSE_SLOTS = [
     { key: 'QB', fx: 26.65, fy: 17.8, label: 'QB' },
     { key: 'RB', fx: 21, fy: 19.8, label: 'RB' },
 ];
-const DEFENSE_SLOTS = [
+// Secondario e safety sono uguali nei due fronti: definiti una volta sola.
+const BACK_SEVEN_TAIL = [
+    { key: 'CBL', fx: 4, fy: 7, label: 'CB' },
+    { key: 'CBR', fx: 49.3, fy: 7, label: 'CB' },
+    { key: 'FS', fx: 24, fy: 2.2, label: 'FS' },
+    { key: 'SS', fx: 33, fy: 4.4, label: 'SS' },
+];
+const DEFENSE_SLOTS_43 = [
     { key: 'LE', fx: 15, fy: 11.8, label: 'DE' },
     { key: 'DT1', fx: 22, fy: 11.8, label: 'DT' },
     { key: 'DT2', fx: 31.3, fy: 11.8, label: 'DT' },
@@ -174,10 +181,19 @@ const DEFENSE_SLOTS = [
     { key: 'WLB', fx: 17.5, fy: 9, label: 'LB' },
     { key: 'MLB', fx: 26.65, fy: 9, label: 'LB' },
     { key: 'SLB', fx: 35.8, fy: 9, label: 'LB' },
-    { key: 'CBL', fx: 4, fy: 7, label: 'CB' },
-    { key: 'CBR', fx: 49.3, fy: 7, label: 'CB' },
-    { key: 'FS', fx: 24, fy: 2.2, label: 'FS' },
-    { key: 'SS', fx: 33, fy: 4.4, label: 'SS' },
+    ...BACK_SEVEN_TAIL,
+];
+// Fronte 3-4 (20 squadre su 32 secondo ESPN): tre uomini sulla linea, i due
+// outside linebacker larghi e vicini alla linea, i due inside al centro.
+const DEFENSE_SLOTS_34 = [
+    { key: 'LE', fx: 18.65, fy: 11.8, label: 'DE' },
+    { key: 'NT', fx: 26.65, fy: 11.8, label: 'NT' },
+    { key: 'RE', fx: 34.65, fy: 11.8, label: 'DE' },
+    { key: 'WLB', fx: 10.5, fy: 10.8, label: 'OLB' },
+    { key: 'SLB', fx: 42.8, fy: 10.8, label: 'OLB' },
+    { key: 'LILB', fx: 22, fy: 8.6, label: 'ILB' },
+    { key: 'RILB', fx: 31.3, fy: 8.6, label: 'ILB' },
+    ...BACK_SEVEN_TAIL,
 ];
 
 const _norm = (s) => (s || '').toUpperCase();
@@ -190,20 +206,31 @@ function _lastName(full) {
     return parts.length ? parts[parts.length - 1] : (full || '');
 }
 
-/** Primi `count` giocatori (dedup per nome) dai gruppi depth-chart il cui `pos` matcha uno dei pattern, in ordine. */
+/**
+ * Primi `count` giocatori (dedup per nome) dai gruppi depth-chart il cui `pos`
+ * matcha uno dei pattern, in ordine di pattern.
+ *
+ * Scansione per LIVELLO di profondità, non gruppo per gruppo: prima i titolari
+ * (indice 0) di tutti i gruppi che matchano, poi le seconde scelte, e così via.
+ * Il depth chart ESPN ha un gruppo per LATO (LCB/RCB, LDE/RDE, WLB/SLB…), quindi
+ * scendendo dentro il primo gruppo si finirebbe per schierare il titolare e la
+ * sua riserva lasciando fuori il titolare dell'altro lato.
+ */
 function _pickFrom(groups, patterns, count, used) {
     const out = [];
-    for (const re of patterns) {
-        for (const grp of groups) {
-            if (!re.test(_norm(grp.pos))) continue;
-            for (const pl of grp.players || []) {
-                if (out.length >= count) break;
-                if (used.has(pl.name)) continue;
+    if (count <= 0) return out;
+    const maxDepth = Math.max(0, ...groups.map(g => (g.players || []).length));
+    for (let d = 0; d < maxDepth; d++) {
+        for (const re of patterns) {
+            for (const grp of groups) {
+                if (!re.test(_norm(grp.pos))) continue;
+                const pl = (grp.players || [])[d];
+                if (!pl || used.has(pl.name)) continue;
                 out.push(pl);
                 used.add(pl.name);
+                if (out.length >= count) return out;
             }
         }
-        if (out.length >= count) break;
     }
     return out;
 }
@@ -240,13 +267,21 @@ function buildFormationSlots(depthChart) {
     };
     _fillRemaining(offense, OFFENSE_SLOTS, offAssign, usedOff);
 
+    // Il fronte lo dichiara ESPN ("Base 3-4 D"/"Base 4-3 D"); senza dichiarazione
+    // (nflverse, stagioni passate) resta il 4-3, che ha le etichette generiche.
+    const is34 = depthChart?.scheme === '3-4';
+    const defSlots = is34 ? DEFENSE_SLOTS_34 : DEFENSE_SLOTS_43;
+
     const de = _pickFrom(defense, [/^(DE|EDGE|LDE|RDE)$/, /^DL$/], 2, usedDef);
-    const dt = _pickFrom(defense, [/^(DT|NT|LDT|RDT)$/, /^DL$/], 2, usedDef);
-    const lbMid = _pickFrom(defense, [/^(ILB|MLB|MIKE)$/], 1, usedDef);
+    const dt = _pickFrom(defense, [/^(DT|NT|LDT|RDT)$/, /^DL$/], is34 ? 1 : 2, usedDef);
+    // Dentro: MLB nel 4-3, LILB/RILB nel 3-4 (etichette ESPN col lato).
+    const lbMid = _pickFrom(defense, [/^(ILB|MLB|MIKE|LILB|RILB)$/], is34 ? 2 : 1, usedDef);
     const lbOut = _pickFrom(defense, [/^(OLB|WLB|SLB|WILL|SAM)$/], 2, usedDef);
-    const lbAll = lbMid.concat(lbOut);
-    const lbFill = _pickFrom(defense, [/^LB$/], Math.max(0, 3 - lbAll.length), usedDef);
-    lbAll.push(...lbFill);
+    // Etichetta generica "LB" (nflverse) o rosa corta: riempio i posti rimasti.
+    const midNeed = (is34 ? 2 : 1) - lbMid.length, outNeed = 2 - lbOut.length;
+    const lbFill = _pickFrom(defense, [/^LB$/], Math.max(0, midNeed + outNeed), usedDef);
+    const lbInside = lbMid.concat(lbFill.slice(0, Math.max(0, midNeed)));
+    const lbOutside = lbOut.concat(lbFill.slice(Math.max(0, midNeed)));
     const cb = _pickFrom(defense, [/^(CB|LCB|RCB)$/], 2, usedDef);
     const cbFill = _pickFrom(defense, [/^(DB|NB)$/], Math.max(0, 2 - cb.length), usedDef);
     const cbAll = cb.concat(cbFill);
@@ -254,14 +289,21 @@ function buildFormationSlots(depthChart) {
     const ss = _pickFrom(defense, [/^SS$/], 1, usedDef);
     const sFill = _pickFrom(defense, [/^(S|DB|NB)$/], (fs.length ? 0 : 1) + (ss.length ? 0 : 1), usedDef);
     let sIdx = 0;
-    const defAssign = {
-        LE: de[0], RE: de[1], DT1: dt[0], DT2: dt[1],
-        WLB: lbAll[0], MLB: lbAll[1], SLB: lbAll[2],
-        CBL: cbAll[0], CBR: cbAll[1],
-        FS: fs[0] || sFill[sIdx++], SS: ss[0] || sFill[sIdx++],
-    };
-    _fillRemaining(defense, DEFENSE_SLOTS, defAssign, usedDef);
-    return { offAssign, defAssign };
+    const defAssign = is34
+        ? {
+            LE: de[0], RE: de[1], NT: dt[0],
+            LILB: lbInside[0], RILB: lbInside[1], WLB: lbOutside[0], SLB: lbOutside[1],
+            CBL: cbAll[0], CBR: cbAll[1],
+            FS: fs[0] || sFill[sIdx++], SS: ss[0] || sFill[sIdx++],
+        }
+        : {
+            LE: de[0], RE: de[1], DT1: dt[0], DT2: dt[1],
+            MLB: lbInside[0], WLB: lbOutside[0], SLB: lbOutside[1],
+            CBL: cbAll[0], CBR: cbAll[1],
+            FS: fs[0] || sFill[sIdx++], SS: ss[0] || sFill[sIdx++],
+        };
+    _fillRemaining(defense, defSlots, defAssign, usedDef);
+    return { offAssign, defAssign, defSlots, scheme: is34 ? '3-4' : '4-3' };
 }
 
 /** Ultimo giro: qualunque slot ancora senza giocatore viene riempito con il primo titolare avanzato dello stesso lato (dedup già garantito da `used`). */
@@ -359,14 +401,14 @@ export function formationFieldBlock(depthChart, abbr, year) {
             <div class="empty-state" style="padding:20px 0"><p class="empty-state-text">Depth chart not available for this season.</p></div>
         </section>`;
     }
-    const { offAssign, defAssign } = buildFormationSlots(depthChart);
+    const { offAssign, defAssign, defSlots, scheme } = buildFormationSlots(depthChart);
     const marker = (slot, assign, side) => _playerMarker({ fx: slot.fx, fy: slot.fy, label: slot.label, player: assign[slot.key], side, abbr, year });
     const offMarkers = OFFENSE_SLOTS.map(s => marker(s, offAssign, 'off')).join('');
-    const defMarkers = DEFENSE_SLOTS.map(s => marker(s, defAssign, 'def')).join('');
+    const defMarkers = defSlots.map(s => marker(s, defAssign, 'def')).join('');
     const losY = tdY(TDF.losY);
     return `
     <section class="pm-block pp-block nfl-home-field">
-        <span class="mc-kicker">Starting lineup · base 4-3</span>
+        <span class="mc-kicker">Starting lineup · base ${scheme}</span>
         <div class="nfl-fd2" data-fd2>
             <svg class="nfl-fd2-svg" viewBox="0 0 ${TDF.vbW} ${TDF.vbH}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Starting lineup, top-down view">
                 <defs><clipPath id="nfl-fd-clip" clipPathUnits="userSpaceOnUse"><circle r="19" cx="0" cy="0"/></clipPath></defs>
@@ -378,7 +420,7 @@ export function formationFieldBlock(depthChart, abbr, year) {
                 ${defMarkers}${offMarkers}
             </svg>
         </div>
-        <p class="pm-note">Starters from the current depth chart, laid out in a generic template (11 personnel offense, base 4-3 defense) — not the team's actual scheme, which the data doesn't specify. Top-down "lineup" view, not a real play alignment.</p>
+        <p class="pm-note">Starters from the current depth chart, laid out in a generic template (11 personnel offense, base ${scheme} defense${depthChart.scheme ? ', the front the team declares' : ''}) — not the team's actual scheme play by play. Top-down "lineup" view, not a real play alignment.</p>
     </section>`;
 }
 

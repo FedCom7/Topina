@@ -22,7 +22,7 @@
  */
 
 import { LEAGUE_SCORING } from './scoring.js?v=592';
-import { normName } from './projections.js?v=589';
+import { normName } from './projections.js?v=591';
 
 // ── CAUSE reali (fase 2): file per-anno precalcolato da build-perf-causes.mjs ──
 const _causes = {}; // year → Map(normName|POS → causes) | null

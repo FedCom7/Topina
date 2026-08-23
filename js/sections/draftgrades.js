@@ -4,16 +4,28 @@
  * Il voto giudica la scelta COL SENNO DEL GIORNO DEL DRAFT: si basa sulle
  * proiezioni preseason Sleeper (fonte Rotowire) dell'anno del draft stesso —
  * Sleeper le conserva storicamente per ogni stagione dal 2018 in poi, non
- * solo per l'anno corrente — convertite nello scoring della lega, con
- * reach/steal misurati sull'ADP reale (mancante solo per il 2019).
+ * solo per l'anno corrente — convertite nello scoring della lega, con l'ADP
+ * reale a stimare chi sarebbe sopravvissuto al turno dopo (manca solo il 2019).
+ *
+ * ── UN SOLO VOTO ─────────────────────────────────────────────────
+ * Il motore è js/data/draft-grade.js e la gerarchia a schermo è rigida:
+ *   1. Draft Grade — una lettera e un numero. La risposta.
+ *   2. Metriche di supporto — NUMERI, mai lettere: spiegano quella lettera.
+ *   3. Why — una frase generata dai dati (in inglese, come tutto il sito).
+ * Nessun indicatore di supporto è espresso in lettere: l'ambiguità "quale
+ * voto guardo?" nasceva proprio dall'avere più cose della stessa forma.
+ *
+ * Qui prima convivevano QUATTRO voti (ratio v1, Draft Score v2, FS di fine
+ * stagione, TSI) di cui i primi due erano scorrelati fra loro (ρ 0.147 sulle
+ * pick, 86% di disaccordo sulla posizione di lega) e nessuno dei due
+ * correlava con la stagione vera. Sono stati ritirati: i dettagli della
+ * diagnosi stanno nell'intestazione di draft-grade.js. TSI, SOS+ e il voto di
+ * fine stagione restano, ma nella pagina squadra e sotto il voto, come indici
+ * separati — non come pagelle concorrenti.
  *
  * Per le stagioni già giocate, ogni pick mostra anche come è andata poi
- * (produzione reale da honors bundle) con badge "rivelazione"/"flop" quando
- * si discosta molto dal proiettato — un confronto in più, non un secondo voto.
- *
- * Baseline dei voti: "draft perfetto" — l'atteso della pick n° N è l'N-esimo
- * miglior valore proiettato dell'intero pool draftato quell'anno. Il voto
- * della squadra è il rapporto tra valore raccolto e valore atteso delle sue slot.
+ * (produzione reale da honors bundle) con badge "breakout"/"flop" quando si
+ * discosta molto dal proiettato — un confronto in più, non un secondo voto.
  *
  * Per K e DEF il valore pesa anche la produzione reale recente (pesi
  * calibrati empiricamente, vedi player-history.js); per l'attacco lo storico
@@ -24,15 +36,14 @@ import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=599';
 import { getHonorsBundle } from '../data/honors.js?v=583';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=589';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=587';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=591';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=588';
 import { initPlayerModal } from '../components/player-modal.js?v=605';
-import { playerImageService } from '../services/player-image-service.js?v=515';
-import { pickSeeded } from '../data/magazine-voices.js?v=517';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 import { predictSeason } from '../data/draft-predictions.js?v=592';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=581';
-import { evaluateLeague, replacementLevels, TSI_LABELS } from '../data/team-eval.js?v=533';
-import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=5';
+import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=534';
+import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=7';
 
 let initialized = false;
 let currentYear = null;
@@ -40,37 +51,9 @@ const _draftCache = {};
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-// etichetta steal/reach v2 in σ dall'ADP di consenso FFC (positivo = steal)
-const v2StealTag = (r) => `${r.adpZ >= 0 ? '+' : ''}${r.adpZ}σ vs ADP`;
-const v2IsSteal = (r) => r && r.adpZ != null && r.adpZ > 0.5;
-const v2IsReach = (r) => r && r.adpZ != null && r.adpZ < -0.5;
+const ordinal = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
 export const POS_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 export const POS_FALLBACK_PROJ = { K: 125, DEF: 110 }; // media storica di lega, usata solo senza dati
-
-// ─── Commenti da pagellone (varianti seeded) ─────────────────────
-
-export const GRADE_COMMENTS = {
-    A: [
-        (c) => `Draft da manuale: ${c.team} ha trasformato quasi ogni slot in valore, e la sala war-room merita gli straordinari pagati. ${c.best} è la mossa che gli altri rimpiangeranno a lungo.`,
-        (c) => `Poco da dire: quando esci dal draft con ${c.best} e un board così equilibrato, hai fatto il compito meglio di tutti. Le rivali sono avvisate.`,
-        (c) => `${c.team} ha letto il board come un libro aperto: valore ad ogni giro e il colpo ${c.best} a fare da ciliegina. Applausi.`,
-    ],
-    B: [
-        (c) => `Compito solido per ${c.team}: nessun disastro, buon valore complessivo e il guizzo ${c.best}. Manca il colpo che sposta gli equilibri, ma le basi ci sono.`,
-        (c) => `${c.team} porta a casa un draft ordinato: qualche occasione lasciata sul tavolo, ma la spina dorsale c'è e ${c.best} può diventare la sorpresa.`,
-        (c) => `Sufficienza piena e qualcosa in più: ${c.team} ha evitato le trappole del board e con ${c.best} ha messo fieno in cascina.`,
-    ],
-    C: [
-        (c) => `Draft in chiaroscuro per ${c.team}: il valore raccolto è sotto le attese delle sue slot, e ${c.worst} è il tipo di scelta che a dicembre pesa. ${c.best} tiene a galla la pagella.`,
-        (c) => `${c.team} esce dal draft con più dubbi che certezze: troppe pick sotto la pari, anche se ${c.best} salva l'onore. Servirà un mercato molto attento.`,
-        (c) => `Qualcosa non ha girato nella war-room di ${c.team}: ${c.worst} è difficile da spiegare, e il board offriva di meglio in più occasioni.`,
-    ],
-    D: [
-        (c) => `Serata da dimenticare per ${c.team}: valore lasciato sul tavolo a ogni giro e ${c.worst} come simbolo di un board letto al contrario. Il mercato è l'ultima spiaggia.`,
-        (c) => `Il draft di ${c.team} è la lezione su cosa non fare: reach in serie, reparti scoperti e ${c.worst} che grida vendetta. Si riparte dalle waiver.`,
-        (c) => `${c.team} ha pescato controcorrente, e non in senso buono: la pagella piange e solo ${c.best} evita il fondo. Annata in salita già dal via.`,
-    ],
-};
 
 // ─── Init & navigazione ──────────────────────────────────────────
 
@@ -143,26 +126,22 @@ async function loadYear() {
         };
         const grades = computeGrades(picks, evaluator.valueOf, meta);
         const pred = await predictSeason(year, grades).catch(() => null);
-        // Context Score (SOS+) da nflverse: layer aggiuntivo, NON tocca i voti.
-        // Degradazione graceful: se i dati mancano, ctx resta null e si mostra
-        // solo la pagella classica.
+        // Context Score (SOS+) da nflverse: layer aggiuntivo, NON tocca il voto.
+        // Degradazione graceful: se i dati mancano, ctx resta null.
         const model = await attachContextScores(grades, year).catch(() => null);
-        // Team Strength Index (TSI): motore di valutazione della ROSA (non tocca
-        // il voto ufficiale). Usa p.ctx già attaccato sopra. Graceful se assente.
+        // Team Strength Index (TSI): indice di forza della ROSA. Non è una
+        // pagella e non entra nel voto: vive nella pagina squadra.
         await evaluateLeague(grades, year).catch((e) => console.warn('[team-eval]', e));
-        // Voto di fine stagione (VOR) — solo stagioni giocate; non tocca il post-draft.
-        const vor = seasonPlayed ? computeVorGrades(picks, meta) : null;
-        // Draft Score v2 — voto decomponibile AFFIANCATO al voto storico (non lo
-        // sostituisce). Calcolato dopo attachContextScores così usa p.ctx (bustProb)
-        // per la confidenza. Graceful: null se le proiezioni mancano.
+
+        // Il Draft Grade: un voto solo, per la pick e per la squadra.
         const [adpDisp, calib] = await Promise.all([
-            getAdpDispersion(year).catch(() => null),   // dispersione ADP (FFC)
-            getDraftScoreV2Calib().catch(() => null),   // pesi/soglie tarati LOSO (se adottati)
+            getAdpDispersion(year).catch(() => null),  // ADP di consenso + dispersione (FFC)
+            getDraftGradeCalib().catch(() => null),    // soglie-lettera dai quantili storici
         ]);
-        const scoreV2 = computeDraftScoreV2(grades, proj, { adpDisp, calib });
+        const dg = computeDraftGrade(grades, proj, { adpDisp, calib });
         if (currentYear !== year) return;
 
-        content.innerHTML = renderGrades(year, grades, meta, pred, model, vor, scoreV2);
+        content.innerHTML = renderGrades(year, grades, meta, pred, model, dg);
         loadHeadshots(content, year);
         setTimeout(() => console.log(`[draftgrades] pick matchate su proiezioni ${year}: ${evaluator.matched()}/${picks.length}`), 0);
     } catch (e) {
@@ -265,32 +244,36 @@ export function makeVorEvaluator(picks, actualPlayers) {
 }
 
 /**
- * Voti di fine stagione (VOR) per tutte le squadre + mappa key→{letter,rank,ratio}.
+ * Resa di FINE STAGIONE: quanto ha prodotto davvero ogni rosa draftata,
+ * misurata in VOR reale, e che quota rappresenta sul totale della lega.
+ *
+ * NON è un voto e non ha una lettera, di proposito. Il Draft Grade giudica le
+ * DECISIONI col board di quel giorno; questo dice com'è finita. Dargli una
+ * lettera lo trasformerebbe in una seconda pagella che contraddice la prima —
+ * era esattamente il difetto del vecchio "FS". Qui resta un numero, in una
+ * sezione a parte della pagina squadra.
  * Ritorna null se la stagione non è stata giocata.
  */
-export function computeVorGrades(picks, meta) {
+export function computeSeasonDelivery(picks, meta) {
     if (!meta.seasonPlayed) return null;
     const vor = makeVorEvaluator(picks, meta.actualPlayers);
     const grades = computeGrades(picks, vor.valueOf, { ...meta, mode: 'vor' });
+    const league = grades.reduce((s, g) => s + g.total, 0) || 1;
     const byKey = {};
-    grades.forEach((g, i) => { byKey[g.key] = { letter: letterFor(g.ratio, i), rank: i, ratio: g.ratio }; });
+    grades
+        .slice()
+        .sort((a, b) => b.total - a.total)
+        .forEach((g, i) => {
+            byKey[g.key] = {
+                vor: Math.round(g.total),
+                share: +(g.total / league).toFixed(3),
+                rank: i + 1,
+            };
+        });
     return { grades, byKey, replacement: vor.replacement };
 }
 
-export function letterFor(ratio, rank) {
-    let letter;
-    if (ratio >= 1.08) letter = 'A+';
-    else if (ratio >= 1.02) letter = 'A';
-    else if (ratio >= 0.97) letter = rank === 0 ? 'A-' : 'B+';
-    else if (ratio >= 0.92) letter = 'B';
-    else if (ratio >= 0.87) letter = 'B-';
-    else if (ratio >= 0.82) letter = 'C';
-    else if (ratio >= 0.75) letter = 'C-';
-    else letter = 'D';
-    return letter;
-}
-
-export const gradeBand = (letter) => letter[0]; // A/B/C/D
+export { gradeBand };
 
 /** Badge "com'è andata poi" — confronta produzione reale con la proiezione */
 export function outcomeBadge(p) {
@@ -307,14 +290,14 @@ export function strategyLine(list) {
     const count = (pos) => early.filter(x => x === pos).length;
     const firstOf = (pos) => list.find(p => p.pos === pos)?.round ?? null;
     const parts = [];
-    if (count('RB') >= 2) parts.push(`avvio RB-heavy (${count('RB')} RB nei primi 3 giri)`);
-    else if (count('WR') >= 2) parts.push(`ricevitori prima di tutto (${count('WR')} WR nei primi 3 giri)`);
-    else parts.push(`avvio bilanciato (${early.join(', ') || '—'})`);
+    if (count('RB') >= 2) parts.push(`RB-heavy start (${count('RB')} RBs in the first 3 rounds)`);
+    else if (count('WR') >= 2) parts.push(`receivers first (${count('WR')} WRs in the first 3 rounds)`);
+    else parts.push(`balanced start (${early.join(', ') || '—'})`);
     const qbR = firstOf('QB');
-    if (qbR) parts.push(qbR <= 3 ? `QB in anticipo al giro ${qbR}` : qbR >= 8 ? `QB rimandato al giro ${qbR}` : `QB al giro ${qbR}`);
+    if (qbR) parts.push(qbR <= 3 ? `QB early, round ${qbR}` : qbR >= 8 ? `QB pushed back to round ${qbR}` : `QB in round ${qbR}`);
     const kR = firstOf('K'), dR = firstOf('DEF');
     const earliest = Math.min(kR ?? 99, dR ?? 99);
-    if (earliest <= 10) parts.push(`K/DEF anticipati al giro ${earliest} — scelta coraggiosa, per usare un eufemismo`);
+    if (earliest <= 10) parts.push(`K/DEF taken as early as round ${earliest} — a bold call, to put it kindly`);
     return parts.join(' · ');
 }
 
@@ -347,107 +330,140 @@ async function attachContextScores(grades, year) {
 function sosChip(ctx) {
     if (!ctx || ctx.contextScore == null) return '';
     const bust = ctx.bustProb != null && ctx.bustProb >= 0.4
-        ? ` <span class="dg-bust" title="Probabilità flop stimata dal modello (Brier < base-rate 6/7 stagioni)">flop ${Math.round(ctx.bustProb * 100)}%</span>` : '';
+        ? ` <span class="dg-bust" title="Model-estimated flop probability (Brier score beats the base rate in 6 of 7 seasons)">flop ${Math.round(ctx.bustProb * 100)}%</span>` : '';
     return `<span class="dg-sos" title="Player Context Score (SOS+): attacco NFL, volume, efficienza, calendario, trend">SOS+ ${ctx.contextScore}</span>${bust}`;
 }
 
-/**
- * Dot plot TSI in testa alla card (stile NYT): ogni componente è un punto su una
- * scala 0-100, con la riga della media di lega (50 per costruzione del modello).
- * Verde sopra la media, rosso sotto — si legge "meglio o peggio della lega?".
- */
-function tsiMiniBars(g) {
-    const keys = ['starter', 'posAdv', 'vor', 'risk', 'balance'];
-    const rows = keys.filter(k => g.tsiSub?.[k] != null).map(k => {
-        const v = Math.round(g.tsiSub[k]);
-        const up = v >= 50;
-        const cls = up ? ' dg-tsidot--up' : ' dg-tsidot--down';
-        const fillLeft = up ? 50 : v;
-        return `<span class="dg-tsidot${cls}" title="${TSI_LABELS[k]}: ${v}/100 (league avg 50)">
-            <small>${TSI_LABELS[k]}</small>
-            <span class="dg-tsidot-track">
-                <span class="dg-tsidot-avg"></span>
-                <span class="dg-tsidot-fill" style="left:${fillLeft}%;width:${Math.abs(v - 50)}%"></span>
-                <span class="dg-tsidot-dot" style="left:${v}%"></span>
-            </span>
-            <span class="dg-tsidot-val">${v}</span>
-        </span>`;
-    }).join('');
-    return `<div class="dg-tsidots"><span class="dg-tsidot-axis"><small></small><span class="dg-tsidot-axislbl">league avg</span><small></small></span>${rows}</div>`;
-}
+function renderGrades(year, grades, meta, pred, model, dg) {
+    // ordina le card come la classifica del voto (se il motore ha risposto)
+    const ordered = dg
+        ? dg.ranking.map(k => grades.find(g => g.key === k)).filter(Boolean)
+        : grades;
 
-function renderGrades(year, grades, meta, pred, model, vor, scoreV2) {
-    const seed = (+year) * 41;
-
-    const summary = grades.map((g, i) => {
+    const summary = ordered.map((g, i) => {
         const t = TEAMS[g.key];
-        const letter = letterFor(g.ratio, i);
-        const eos = vor?.byKey?.[g.key];
-        const v2 = scoreV2?.byKey?.[g.key];
+        const d = dg?.byKey?.[g.key];
         return `
         <div class="dg-sum" style="--team-color:${t.color};--dg-i:${i}">
             <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
             <span class="dg-sum-name">${t.name}</span>
-            ${eos ? `<span class="dg-eos" title="End-of-season grade (VOR): how much the roster actually delivered">FS ${eos.letter}</span>` : ''}
-            <span class="dg-letter dg-letter--${gradeBand(letter)}" title="Historic post-draft grade v1 (projection ratio)">${letter}</span>
-            ${v2 ? `<span class="dg-v2 dg-v2--${gradeBandV2(v2.letter)}" title="Draft Score v2 — decomposable grade: VOR, value vs ADP, opportunity cost, roster construction (${v2.rank}${v2.rank === 1 ? 'st' : v2.rank === 2 ? 'nd' : v2.rank === 3 ? 'rd' : 'th'} in league)">v2 ${v2.letter} · ${Math.round(v2.score)}</span>` : ''}
-            ${g.tsi != null ? `<span class="dg-tsi" title="Team Strength Index — overall roster strength (0-100)">TSI ${Math.round(g.tsi)}</span>` : ''}
+            ${d ? `<span class="dg-sum-score">${d.grade}<small>/100</small></span>
+                   <span class="dg-letter dg-letter--${gradeBand(d.letter)}">${d.letter}</span>` : ''}
         </div>`;
     }).join('');
 
-    const cards = grades.map((g, i) => teamCard(g, i, year, meta, seed, pred, scoreV2?.byKey?.[g.key])).join('');
+    const cards = ordered.map((g, i) => teamCard(g, i, year, meta, pred, dg?.byKey?.[g.key])).join('');
 
     return `
     <div class="dg-summary">${summary}</div>
+    ${leagueScatter(dg)}
     ${powerRanking(grades)}
-    ${leagueComparisonCard(scoreV2)}
     ${cards}
-    <p class="dg-footnote">Grades based on ${meta.label}, with real ADP for reach and steal${year === '2019' ? ' (ADP not available for 2019: projected value only)' : ''}.${meta.seasonPlayed ? ' The "breakout"/"flop" badges compare the projection with the production actually delivered in the season.' : ''} Baseline: "perfect draft" — the expected value for pick N is the N-th best projected value in the drafted pool. For kicker and defense the value also weighs recent real production (60% and 35%): across the 419 picks from 2019-2025 this markedly improves the forecast, while for offense projections beat every historical metric. History remains the best risk signal though: declining veterans with 6+ years have flopped 36% of the time (league average 10%).${pred ? ` Forecasts and Super Bowl odds: Monte Carlo across ${fmt0(pred.iterations)} seasons simulated from the draft values — optimal lineup week by week${pred.byesKnown ? ' with real NFL bye weeks' : ' (bye weeks not available for this season)'}, league schedule (fixed rotation verified 2019-2025), playoffs 1st-4th and 2nd-3rd with points-scored tiebreak, weekly per-player variability.` : ''}${model ? ` <b>SOS+</b> (Player Context Score): a 0-100 index from advanced nflverse NFL data of the previous year — offense quality, volume, efficiency, schedule by position, trend — shown next to the grade. The value model, validated leave-one-season-out (2019-2024), confirms the projections without beating them, so it <b>does not</b> change the grades; the flop probability model instead beats the base rate in 6 out of 7 seasons and feeds the "flop" badges.` : ''}${grades.some(g => g.tsi != null) ? ` <b>TSI</b> (Team Strength Index): a 0-100 index that evaluates the ROSTER, not the sum of picks — starter strength, positional advantage, scarcity (VOR), depth, risk, balance, byes, stacking and NFL context. It's a read-only index (design weights, 50 ≈ league average), shown alongside the official grade which does NOT change.` : ''}${vor ? ` <b>FS</b> (End-of-Season grade): a retrospective grade based on <b>VOR</b> (Value Over Replacement) — the real production of each pick above the league's replacement level for that position, making different positions comparable. It's a second grade, not a replacement for the post-draft one.` : ''}${scoreV2 ? ` <b>Draft Score v2</b>: a decomposable 0-100 grade that sits ALONGSIDE the historic one (which does NOT change). Two orthogonal axes — talent (VOR, so positions are comparable) and efficiency (value vs ADP and vs the best player actually still on the full projection board, adjusted for roster need) — combined as a draft-capital-weighted average of the per-pick grades plus roster-construction modifiers (share of value in the starters, balance). ADP is now full-PPR, matching the league's scoring. Open a team for the pick-by-pick breakdown.` : ''}</p>`;
+    ${methodNote(year, meta, pred, model, dg)}`;
 }
 
 /**
- * League comparison v2: classifica per Draft Score v2 con i DUE assi separati
- * (talento = StarterVOR, efficienza = media voti-pick) e il "perché" del distacco.
- * Aiuta a capire se sei in alto per talento raccolto o per efficienza di draft.
+ * Come si legge il voto: nota metodologica in fondo alla pagina. Dichiara i
+ * pesi (che sono una scelta di design, non una taratura) e cosa NON è un voto.
  */
-function leagueComparisonCard(scoreV2) {
-    if (!scoreV2?.ranking?.length) return '';
-    const teams = scoreV2.ranking.map(k => scoreV2.byKey[k]);
-    const ord = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
-    // rank per asse
-    const talentRank = {}; [...teams].sort((a, b) => b.components.starterVOR - a.components.starterVOR)
-        .forEach((t, i) => { talentRank[t.key] = i + 1; });
-    const effRank = {}; [...teams].sort((a, b) => b.components.avgPickGrade - a.components.avgPickGrade)
-        .forEach((t, i) => { effRank[t.key] = i + 1; });
+function methodNote(year, meta, pred, model, dg) {
+    const w = dg?.weights;
+    return `<p class="dg-footnote">
+    <b>Draft Grade</b> answers one question: how much of the value you could have captured did each pick actually lock in? A pick is measured against the players realistically in contention at that moment, and against the best of them who would still have been on the board at your next turn — so taking a player who was going to wait for you anyway earns nothing, and passing on one who was about to disappear costs. That baseline is what removes the round effect: the first and the fifteenth round sit on the same scale.
+    ${w ? `The team grade combines <b>talent</b> (${Math.round(w.talent * 100)}%) — value above replacement in the best possible lineup — with <b>draft efficiency</b> (${Math.round(w.efficiency * 100)}%), the draft-capital-weighted average of the pick grades. Those weights are a stated design choice: across 2019-2025 talent tracks real scoring far better than efficiency does, so it leads.` : ''}
+    Letter thresholds are the empirical quantiles of every pick and every team draft since 2019, not invented cut-offs${dg && !dg.calibrated ? ' (defaults in use: the calibration file is missing)' : ''}.
+    Values come from ${meta.label}${year === '2019' ? ', with no ADP available for 2019: survival is estimated from projected value alone' : ', with real consensus ADP and its dispersion behind every survival estimate'}. For kicker and defense the value also weighs recent real production (60% and 35%): across the 419 picks from 2019-2025 this markedly improves the forecast, while for offense projections beat every historical metric. History remains the best risk signal though: declining veterans with 6+ years have flopped 36% of the time (league average 10%).
+    ${meta.seasonPlayed ? 'The "breakout"/"flop" badges compare the projection with the production actually delivered — a comparison, not a second grade.' : ''}
+    ${pred ? `Forecasts and Super Bowl odds: Monte Carlo across ${fmt0(pred.iterations)} seasons simulated from the draft values — optimal lineup week by week${pred.byesKnown ? ' with real NFL bye weeks' : ' (bye weeks not available for this season)'}, league schedule, playoffs 1st-4th and 2nd-3rd, weekly per-player variability.` : ''}
+    ${model ? '<b>SOS+</b> (Player Context Score) and <b>TSI</b> (Team Strength Index) are context indices, not grades: they live on the team page, below the grade, and never change it.' : ''}
+    </p>`;
+}
 
-    const rows = teams.map(t => {
-        const tm = TEAMS[t.key];
-        const why = talentRank[t.key] < effRank[t.key]
-            ? `più talento raccolto (${ord(talentRank[t.key])} per VOR titolari) che efficienza`
-            : effRank[t.key] < talentRank[t.key]
-                ? `più efficienza di draft (${ord(effRank[t.key])} per voto-pick) che talento`
-                : `talento ed efficienza allineati`;
+/**
+ * Talento × efficienza: dove nasce il voto (stile NYT).
+ *
+ * Uno scatter con le mediane come assi e i quadranti etichettati, così si legge
+ * a colpo d'occhio SE sei in alto per talento raccolto o per come hai giocato
+ * il board. È il modo di mostrare i due assi senza farne due pagelle: il voto
+ * resta uno, questo spiega da dove viene.
+ */
+function leagueScatter(dg) {
+    if (!dg?.ranking?.length) return '';
+    const teams = dg.ranking.map(k => dg.byKey[k]);
+    const W = 660, H = 380, L = 62, R = 128, T = 40, B = 52;
+    const iw = W - L - R, ih = H - T - B;
+
+    // dominio guidato dai dati, con margine, ma sempre comprensivo della media
+    // di lega (50): le due linee tratteggiate sono il riferimento, devono stare
+    // dentro il grafico anche quando la lega è tutta sbilanciata da una parte.
+    const domain = (vals) => {
+        const lo = Math.min(...vals, 50), hi = Math.max(...vals, 50);
+        const pad = Math.max(8, (hi - lo) * 0.22);
+        return [Math.max(0, lo - pad), Math.min(100, hi + pad)];
+    };
+    const [ex0, ex1] = domain(teams.map(t => t.components.efficiency));
+    const [ty0, ty1] = domain(teams.map(t => t.components.talent));
+    const sx = (v) => L + (v - ex0) / (ex1 - ex0) * iw;
+    const sy = (v) => T + ih - (v - ty0) / (ty1 - ty0) * ih;
+
+    // etichette dirette, scostate quando si sovrappongono (stessa tecnica delle
+    // fine-linea nel grafico settimanale): il testo si allontana in verticale e
+    // una linea guida lo ricollega al punto.
+    const pts = teams.map(t => ({
+        t, tm: TEAMS[t.key],
+        x: sx(t.components.efficiency),
+        y: sy(t.components.talent),
+    })).sort((a, b) => a.y - b.y);
+    pts.forEach(p => { p.ly = p.y; });
+    for (let i = 1; i < pts.length; i++) {
+        if (pts[i].ly - pts[i - 1].ly < 42) pts[i].ly = pts[i - 1].ly + 42;
+    }
+
+    const dots = pts.map(p => {
+        const flip = p.x > L + iw * 0.72;           // vicino al bordo: etichetta a sinistra
+        const tx = flip ? p.x - 15 : p.x + 15;
+        const anchor = flip ? 'end' : 'start';
+        const lead = Math.abs(p.ly - p.y) > 3
+            ? `<line class="dg-scat-lead" x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${(p.ly - 4).toFixed(1)}"/>` : '';
         return `
-        <tr style="--team-color:${tm.color}">
-            <td class="dg-rk-team"><img src="${tm.logo}" alt="" onerror="this.style.display='none'">${tm.name}</td>
-            <td><span class="dg-v2-badge dg-v2--${gradeBandV2(t.letter)}" style="font-size:1.1rem">${t.letter}</span> <b>${Math.round(t.score)}</b></td>
-            <td>${ord(talentRank[t.key])} <small>VOR ${fmt0(t.components.starterVOR)}</small></td>
-            <td>${ord(effRank[t.key])} <small>${Math.round(t.components.avgPickGrade)}/100</small></td>
-            <td><small>${t.bestPick ? `${t.bestPick.player} (${t.bestPick.letter})` : '—'}</small></td>
-            <td class="dg-lc-why"><small>${why}</small></td>
-        </tr>`;
+        <g class="dg-scat-pt">
+            ${lead}
+            <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="8.5" fill="${p.tm.color}" stroke="var(--bg-primary,#000)" stroke-width="2"/>
+            <text class="dg-scat-name" x="${tx.toFixed(1)}" y="${(p.ly - 3).toFixed(1)}" text-anchor="${anchor}" fill="${p.tm.color}">${p.tm.name}</text>
+            <text class="dg-scat-sub" x="${tx.toFixed(1)}" y="${(p.ly + 11).toFixed(1)}" text-anchor="${anchor}">${p.t.letter} · ${p.t.grade}/100</text>
+        </g>`;
     }).join('');
+
+    // le etichette di quadrante compaiono solo se quel quadrante è visibile
+    const q = [];
+    if (ty1 > 50) {
+        q.push(`<text class="dg-scat-quad dg-scat-quad--good" x="${L + iw - 6}" y="${T - 20}" text-anchor="end">EARNED IT</text>
+                <text class="dg-scat-quadsub" x="${L + iw - 6}" y="${T - 8}" text-anchor="end">strong roster, well drafted</text>`);
+        q.push(`<text class="dg-scat-quad" x="${L + 6}" y="${T - 20}">LUCKED INTO IT</text>
+                <text class="dg-scat-quadsub" x="${L + 6}" y="${T - 8}">strong roster, loose draft</text>`);
+    }
+    if (ty0 < 50) {
+        q.push(`<text class="dg-scat-quad" x="${L + iw - 6}" y="${T + ih + 18}" text-anchor="end">WELL PLAYED, THIN</text>`);
+        q.push(`<text class="dg-scat-quad dg-scat-quad--bad" x="${L + 6}" y="${T + ih + 18}">MISSED ON BOTH</text>`);
+    }
 
     return `
     <section class="mosaic-card mc-wide dg-ranking mc-in">
-        <span class="mc-kicker">League comparison · Draft Score v2</span>
+        <span class="mc-kicker">Where the grade comes from</span>
+        <h2 class="mc-title">Talent collected vs draft efficiency</h2>
         <div class="dg-rk-wrap">
-            <table class="dg-rk-table dg-lc-table">
-                <thead><tr><th>Team</th><th>v2</th><th>Talent</th><th>Efficiency</th><th>Best pick</th><th>Why</th></tr></thead>
-                <tbody>${rows}</tbody>
-            </table>
+        <svg class="dg-scat-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Talent against draft efficiency, one dot per team">
+            <rect class="dg-scat-plot" x="${L}" y="${T}" width="${iw}" height="${ih}"/>
+            <line class="dg-scat-guide" x1="${sx(50).toFixed(1)}" y1="${T}" x2="${sx(50).toFixed(1)}" y2="${T + ih}"/>
+            <line class="dg-scat-guide" x1="${L}" y1="${sy(50).toFixed(1)}" x2="${L + iw}" y2="${sy(50).toFixed(1)}"/>
+            <text class="dg-scat-avg" x="${(sx(50) + 5).toFixed(1)}" y="${T + 12}">league average</text>
+            ${q.join('')}
+            ${dots}
+            <text class="dg-scat-axis" x="${L + iw / 2}" y="${H - 12}" text-anchor="middle">Draft efficiency →</text>
+            <text class="dg-scat-axis" x="${-(T + ih / 2)}" y="16" text-anchor="middle" transform="rotate(-90)">Talent collected →</text>
+        </svg>
         </div>
-        <p class="pm-note">Talent = starter VOR (value above replacement in the best lineup). Efficiency = draft-capital-weighted average of the pick grades. Two teams can reach the same v2 grade by different routes.</p>
+        <p class="pm-note">Talent: how far the best lineup each draft could field sits above a replacement-level starting nine, as a share of the league. Efficiency: the draft-capital-weighted average of the pick grades. The grade weighs talent ${Math.round((dg.weights?.talent ?? 0.6) * 100)}% and efficiency ${Math.round((dg.weights?.efficiency ?? 0.4) * 100)}%, so two teams can land on the same letter from opposite corners.</p>
     </section>`;
 }
 
@@ -494,10 +510,12 @@ function powerRanking(grades) {
     </section>`;
 }
 
-function teamCard(g, rank, year, meta, seed, pred, v2) {
+/**
+ * Card di una squadra. Gerarchia: il voto, poi i NUMERI che lo spiegano, poi
+ * la frase. Nessun indicatore di supporto porta una lettera.
+ */
+function teamCard(g, rank, year, meta, pred, d) {
     const t = TEAMS[g.key];
-    const letter = letterFor(g.ratio, rank);
-    const band = gradeBand(letter);
 
     const bars = g.byPos.map(({ pos, val, deltaPct, n }) => {
         const cls = deltaPct >= 15 ? ' dg-bar--strong' : deltaPct <= -15 ? ' dg-bar--weak' : '';
@@ -511,21 +529,33 @@ function teamCard(g, rank, year, meta, seed, pred, v2) {
         </div>`;
     }).join('');
 
+    // metriche di supporto: numeri, con il rango di lega accanto
+    const support = d ? `
+        <div class="dg-support">
+            <div class="dg-support-item">
+                <span class="dg-support-label">Talent collected</span>
+                <span class="dg-support-val">${fmt0(d.components.starterVOR)}<small> VOR</small></span>
+                <span class="dg-support-rank">${ordinal(d.components.talentRank)} in league · in the best lineup</span>
+            </div>
+            <div class="dg-support-item">
+                <span class="dg-support-label">Draft efficiency</span>
+                <span class="dg-support-val">${d.components.efficiencyGrade}<small>/100</small></span>
+                <span class="dg-support-rank">${ordinal(d.components.efficiencyRank)} in league</span>
+            </div>
+            <div class="dg-support-item">
+                <span class="dg-support-label">Value in the starters</span>
+                <span class="dg-support-val">${Math.round(d.components.starterShare * 100)}<small>%</small></span>
+                <span class="dg-support-rank">of everything drafted</span>
+            </div>
+        </div>` : '';
+
     const pickBox = (p, kind) => {
         if (!p) return '';
-        const title = kind === 'best' ? 'The right pick' : 'The wrong pick';
-        let label;
-        if (meta.mode === 'proj' && p.adp) {
-            const diff = Math.round(p.adp - p.pick);
-            label = diff > 6 ? `reach: taken #${p.pick}, ADP ${Math.round(p.adp)}`
-                : diff < -6 ? `market steal: taken #${p.pick}, ADP ${Math.round(p.adp)}`
-                    : `pick #${p.pick} · ADP ${Math.round(p.adp)}`;
-        } else {
-            label = `pick #${p.pick} · round ${p.round}`;
-        }
-        const d = meta.detailOf?.(p);
-        const histRow = d?.hist?.seasons?.length
-            ? `<span class="dg-pick-hist">${historyLine(d.hist, p.pos)} ${trendBadge(d.hist)}</span>` : '';
+        const r = d?.picks?.find(x => x.pick === p.pick) || null;
+        const title = kind === 'best' ? 'Best decision' : 'Weakest decision';
+        const det = meta.detailOf?.(p);
+        const histRow = det?.hist?.seasons?.length
+            ? `<span class="dg-pick-hist">${historyLine(det.hist, p.pos)} ${trendBadge(det.hist)}</span>` : '';
         return `
         <div class="dg-pick dg-pick--${kind}" data-player-modal
              data-player-name="${p.player}" data-pos="${p.pos}" data-nfl="${p.nfl || ''}" data-year="${year}">
@@ -534,8 +564,8 @@ function teamCard(g, rank, year, meta, seed, pred, v2) {
             <div class="dg-pick-info">
                 <span class="dg-pick-kind">${title}</span>
                 <span class="dg-pick-name">${p.player} <small>${p.pos}${p.nfl ? ` · ${p.nfl}` : ''}</small></span>
-                <span class="dg-pick-meta">${label}</span>
-                <span class="dg-pick-val">${fmt0(p.value)} pt ${d?.wHist ? 'expected (projection + history)' : 'projected'} <small>vs ${fmt0(p.expected)} expected (${p.delta >= 0 ? '+' : ''}${fmt0(p.delta)})</small></span>
+                <span class="dg-pick-meta">pick #${p.pick} · round ${p.round}${r ? ` · ${r.grade}/100` : ''}</span>
+                <span class="dg-pick-val">${fmt0(p.value)} pt ${det?.wHist ? 'expected (projection + history)' : 'projected'}${r ? ` <small>${r.survivalBand === 'gone' ? 'would have been gone next turn' : r.survivalBand === 'lasted' ? 'would have lasted to your next turn' : r.survivalBand === 'tossup' ? 'a coin flip to last' : ''}</small>` : ''}</span>
                 ${p.ctx ? `<span class="dg-pick-sos">${sosChip(p.ctx)}${p.ctx.floor != null ? ` <small>range ${fmt0(p.ctx.floor)}–${fmt0(p.ctx.ceiling)}</small>` : ''}</span>` : ''}
                 ${histRow}
                 ${p.actual != null ? `<span class="dg-pick-actual">then: ${fmt0(p.actual)} real pt ${outcomeBadge(p)}</span>` : ''}
@@ -543,35 +573,11 @@ function teamCard(g, rank, year, meta, seed, pred, v2) {
         </div>`;
     };
 
-    const comment = pickSeeded(GRADE_COMMENTS[band], seed + g.key.length)({
-        team: t.name,
-        best: g.best ? g.best.player : 'nessuno',
-        worst: g.worst ? g.worst.player : 'nessuno',
-    });
-
-    // Draft Score v2 (accanto al voto storico): scomposizione sintetica.
-    const v2Block = v2 ? `
-        <span class="mc-kicker">Draft Score v2 <em class="dg-v2-tag" title="Voto decomponibile che affianca — non sostituisce — il voto storico">new</em></span>
-        <div class="dg-v2-head">
-            <span class="dg-v2-badge dg-v2--${gradeBandV2(v2.letter)}">${v2.letter}</span>
-            <span class="dg-v2-score">${Math.round(v2.score)}<small>/100</small></span>
-            <span class="dg-v2-rank">${v2.rank}${v2.rank === 1 ? 'st' : v2.rank === 2 ? 'nd' : v2.rank === 3 ? 'rd' : 'th'} in league</span>
-        </div>
-        <div class="dg-v2-parts">
-            <span title="Media dei voti-pick pesata per draft-capital">pick grade avg ${Math.round(v2.components.avgPickGrade)}</span>
-            <span title="Quota del valore-VOR nei titolari (anti bench-inflation)">${Math.round(v2.components.starterShare * 100)}% valore nei titolari</span>
-            <span title="VOR titolari / totale">VOR titolari ${fmt0(v2.components.starterVOR)}/${fmt0(v2.components.totalVOR)}</span>
-            <span title="Valore lasciato sul board rispetto al miglior disponibile need-adjusted">−${fmt0(v2.leftOnBoard)} lasciati sul board</span>
-        </div>
-        <div class="dg-v2-hl">
-            ${v2IsSteal(v2.biggestSteal) ? `<span class="dg-badge dg-badge--up">steal: ${v2.biggestSteal.player} (${v2StealTag(v2.biggestSteal)})</span>` : ''}
-            ${v2IsReach(v2.biggestReach) ? `<span class="dg-badge dg-badge--down">reach: ${v2.biggestReach.player} (${v2StealTag(v2.biggestReach)})</span>` : ''}
-        </div>` : '';
-
     const rows = g.list.map(p => {
-        const d = meta.detailOf?.(p);
-        const risk = d?.risk?.level === 'alto'
-            ? `<span class="dg-risk" title="${d.risk.label}">!</span>` : '';
+        const det = meta.detailOf?.(p);
+        const risk = det?.risk?.level === 'alto'
+            ? `<span class="dg-risk" title="${det.risk.label}">!</span>` : '';
+        const r = d?.picks?.find(x => x.pick === p.pick) || null;
         return `
         <div class="dg-row" data-player-modal
              data-player-name="${p.player}" data-pos="${p.pos}" data-nfl="${p.nfl || ''}" data-year="${year}">
@@ -579,9 +585,9 @@ function teamCard(g, rank, year, meta, seed, pred, v2) {
             <span class="allpro-pos pos-${p.pos.toLowerCase().replace('/', '')}">${p.pos}</span>
             <span class="dg-row-name">${p.player}${risk}</span>
             <span class="dg-row-val">${fmt0(p.value)}</span>
-            <span class="dg-row-delta ${p.delta >= 0 ? 'up' : 'down'}">${p.delta >= 0 ? '▲' : '▼'} ${fmt0(Math.abs(p.delta))}</span>
+            ${r ? `<span class="dg-row-grade dg-letter--${gradeBand(r.letter)}">${r.letter}</span>` : ''}
             ${p.ctx?.contextScore != null ? `<span class="dg-row-sos" title="Player Context Score (SOS+)">SOS+ ${p.ctx.contextScore}</span>` : ''}
-            ${d?.hist ? trendBadge(d.hist) : ''}
+            ${det?.hist ? trendBadge(det.hist) : ''}
             ${outcomeBadge(p)}
         </div>`;
     }).join('');
@@ -592,24 +598,26 @@ function teamCard(g, rank, year, meta, seed, pred, v2) {
             <img class="dg-head-logo" src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
             <div class="dg-head-info">
                 <h2 class="mc-title">${t.name}</h2>
-                <span class="dg-head-meta">${fmt0(g.total)} points expected at the draft · baseline ${fmt0(g.expected)} · yield ${(g.ratio * 100).toFixed(0)}%${g.sosAvg != null ? ` · <span class="dg-sos" title="Average offense Player Context Score (SOS+)">avg SOS+ ${g.sosAvg}</span>` : ''}${g.tsi != null ? ` · <span class="dg-tsi" title="Team Strength Index — roster strength (0-100)">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}${g.tsiRank === 1 ? 'st' : g.tsiRank === 2 ? 'nd' : g.tsiRank === 3 ? 'rd' : 'th'} in league` : ''}</span>` : ''}</span>
-                ${g.tsi != null ? tsiMiniBars(g) : ''}
+                <span class="dg-head-meta">${d ? `${ordinal(d.rank)} draft in the league · ` : ''}${fmt0(g.total)} points projected at the draft</span>
+                ${d ? `<p class="dg-why">${d.why}</p>` : ''}
                 <span class="dg-cta">Full draft analysis →</span>
             </div>
-            <span class="dg-letter dg-letter--big dg-letter--${band}">${letter}</span>
+            ${d ? `<div class="dg-grade-stack">
+                <span class="dg-letter dg-letter--big dg-letter--${gradeBand(d.letter)}">${d.letter}</span>
+                <span class="dg-grade-score">${d.grade}<small>/100</small></span>
+            </div>` : ''}
         </header>
+        ${support}
         <div class="dg-body">
             <div class="dg-col">
                 <span class="mc-kicker">Positions vs league median</span>
                 <div class="dg-bars">${bars}</div>
                 <span class="mc-kicker">Strategy</span>
                 <p class="dg-strategy">${strategyLine(g.list)}</p>
-                <p class="dg-comment">${comment}</p>
-                ${v2Block}
             </div>
             <div class="dg-col">
-                ${pickBox(g.best, 'best')}
-                ${pickBox(g.worst, 'worst')}
+                ${pickBox(d?.bestPick ? g.list.find(p => p.pick === d.bestPick.pick) : g.best, 'best')}
+                ${pickBox(d?.worstPick ? g.list.find(p => p.pick === d.worstPick.pick) : g.worst, 'worst')}
                 <details class="dg-details">
                     <summary>All ${g.list.length} picks</summary>
                     <div class="dg-rows">${rows}</div>

@@ -8,7 +8,7 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
 import { TEAMS } from './team.js?v=599';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

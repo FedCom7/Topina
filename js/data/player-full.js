@@ -9,10 +9,11 @@
  * Le DEF hanno come id l'abbreviazione della squadra (es. "DAL").
  */
 
-import { getSeasonStats, matchProjection } from './projections.js?v=589';
+import { getSeasonStats, matchProjection, trimStats } from './projections.js?v=591';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
 import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=592';
 import { TEAM_ABBR_MAP } from './player-map.js?v=513';
-import { canonAbbr } from './nfl-schedule.js?v=520';
+import { canonAbbr } from './nfl-schedule.js?v=522';
 import { CURRENT_SEASON } from '../data.js?v=534';
 
 export const FIRST_STATS_YEAR = 2015; // prima stagione con stats Sleeper affidabili
@@ -33,17 +34,16 @@ const _mem = {};
 
 function cached(key, ttlMs) {
     if (_mem[key]) return _mem[key];
-    try {
-        const c = JSON.parse(localStorage.getItem(key) || 'null');
-        if (c && Date.now() - c.at < ttlMs) return (_mem[key] = c.data);
-    } catch { /* cache corrotta: si rifà il fetch */ }
-    return null;
+    const hit = cacheGet(key, ttlMs);
+    return hit ? (_mem[key] = hit) : null;
 }
 
 function store(key, data) {
     _mem[key] = data;
-    try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), data })); }
-    catch { /* quota piena: pazienza */ }
+    // Queste sono le chiavi che crescono senza limite: una per giocatore per
+    // stagione, dieci stagioni a giocatore. Lo sfratto di storage.js le tiene
+    // sotto controllo — qui basta non salvare più del necessario.
+    cacheSet(key, data);
 }
 
 /** Punti-lega di una prestazione DEF: coefficienti + fascia punti subiti. */
@@ -108,7 +108,7 @@ function weeklyTtl(season) {
  * Array vuoto se il giocatore non ha giocato quella stagione.
  */
 export async function getPlayerWeekly(playerId, season, pos) {
-    const key = `topina_pweek_v1_${season}_${playerId}`;
+    const key = `topina_pweek_v2_${season}_${playerId}`;
     const hit = cached(key, weeklyTtl(season));
     if (hit) return hit;
 
@@ -125,7 +125,7 @@ export async function getPlayerWeekly(playerId, season, pos) {
             opponent: canonAbbr(g.opponent) || null,
             isAway: g.is_away_team ?? null,
             team: canonAbbr(g.team) || null,
-            stats: g.stats,
+            stats: trimStats(g.stats),
             pts: refPts(g.stats, pos),
         }))
         .sort((a, b) => a.week - b.week);
@@ -136,7 +136,7 @@ export async function getPlayerWeekly(playerId, season, pos) {
 
 /** Totali stagionali raw ({ stats, pts, posRank }) o null se stagione vuota. */
 export async function getPlayerSeasonTotals(playerId, season, pos) {
-    const key = `topina_pseason_v1_${season}_${playerId}`;
+    const key = `topina_pseason_v2_${season}_${playerId}`;
     const hit = cached(key, weeklyTtl(season));
     if (hit) return hit.empty ? null : hit;
 
@@ -147,7 +147,7 @@ export async function getPlayerSeasonTotals(playerId, season, pos) {
     const s = raw?.stats;
     if (!s || !s.gp) { store(key, { empty: true }); return null; } // gp=0: mai sceso in campo
     const totals = {
-        stats: s,
+        stats: trimStats(s),
         pts: refPts(s, pos),
         posRank: s.pos_rank_half_ppr ?? null,
         team: canonAbbr(raw.team) || null,

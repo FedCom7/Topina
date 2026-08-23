@@ -15,6 +15,8 @@
  * gzip, l'ultima pagina da 20 giocate 2 KB. Il polling usa la seconda forma.
  */
 
+import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+
 const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl';
 
 /** Ruoli che ci interessano; gli altri (tackler, assistedBy, penalized...) si scartano. */
@@ -123,8 +125,7 @@ let _athletes = null;
 
 function athleteCache() {
     if (_athletes) return _athletes;
-    try { _athletes = JSON.parse(localStorage.getItem(ATHLETE_CACHE_KEY)) || {}; }
-    catch { _athletes = {}; }
+    _athletes = cacheGet(ATHLETE_CACHE_KEY, Infinity) || {};
     return _athletes;
 }
 
@@ -152,7 +153,7 @@ export async function resolveAthlete(espnId) {
         };
         if (!info.name) return null;
         cache[espnId] = info;
-        try { localStorage.setItem(ATHLETE_CACHE_KEY, JSON.stringify(cache)); } catch { /* quota */ }
+        cacheSet(ATHLETE_CACHE_KEY, cache);
         return info;
     } catch {
         return null;

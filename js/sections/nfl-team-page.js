@@ -14,9 +14,9 @@
 import { getTeamIdentity } from '../data/nfl-teams.js?v=508';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
 import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=581';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=578';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=895';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=526';
-import { canonAbbr } from '../data/nfl-schedule.js?v=520';
+import { canonAbbr } from '../data/nfl-schedule.js?v=522';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
@@ -31,16 +31,19 @@ import {
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=14';
+} from './nfl-team-home.js?v=890';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');
     if (!section) return;
 
     const myHash = location.hash;
-    const parts = myHash.slice(1).split('/'); // nfl-team/{abbr}/{year?}
+    const parts = myHash.slice(1).split('/'); // nfl-team/{abbr}/{year?}/game/{eventId?}
     const abbr = canonAbbr(parts[1] || '');
     const requestedYear = /^\d{4}$/.test(parts[2] || '') ? +parts[2] : null;
+    // Deep link da una partita (tabellone della pagina Players): apre la tab
+    // Schedule con quella gara già espansa su box score e play-by-play.
+    const openEventId = parts[3] === 'game' && /^\d+$/.test(parts[4] || '') ? parts[4] : null;
     const identity = abbr ? getTeamIdentity(abbr) : null;
 
     if (!abbr || !identity) {
@@ -79,7 +82,7 @@ export async function initNflTeamPage() {
         if (location.hash !== myHash) return;
 
         render(section, {
-            abbr, identity, year: season,
+            abbr, identity, year: season, openEventId,
             ...seasonData, teamHistory, statTrend, live, usage,
             leaguePool, leagueAdv, leagueStats, leagueFantasy,
             teamExtras: { trades, ats, history, draftHistory },
@@ -237,6 +240,9 @@ function teamScheduleBlock(live, { ctx }) {
         return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
     const resultCell = (g) => {
+        // Partita in corso: punteggio dal vivo, senza esito.
+        if (!g.completed && g.state === 'in' && g.score != null && g.oppScore != null)
+            return `<span class="pp-res pp-res--live">${g.score}-${g.oppScore}</span>`;
         if (!g.completed || g.score == null || g.oppScore == null) return '<span class="nfl-sched-sched">—</span>';
         const s = +g.score, o = +g.oppScore;
         const cls = s > o ? 'w' : s < o ? 'l' : 't';
@@ -294,9 +300,10 @@ function teamScheduleBlock(live, { ctx }) {
     // Le colonne W-L/FPA/Matchup/Pt subiti hanno dati solo nella regular season:
     // in preseason/postseason (strutturate come la regular) restano VUOTE.
     const rowFor = (g, { type, showExtra }) => {
-        const upcoming = !g.completed;
+        const played = g.completed || g.state === 'in';   // "in" = in corso: ha già un tabellino
+        const upcoming = !played;
         const isReg = type === 2;
-        const clickable = g.completed && g.eventId;   // box-score solo per gare concluse
+        const clickable = played && g.eventId;   // box-score solo per gare cominciate
         const attrs = clickable ? ` class="pp-game-row" data-event-id="${esc(g.eventId)}"` : '';
         let c4, c5;
         if (upcoming) {
@@ -338,7 +345,7 @@ function teamScheduleBlock(live, { ctx }) {
         if (!gs.length) return '';
         // Se TUTTE le gare del gruppo sono future → colonne TIME/TV; altrimenti RESULT/W-L.
         // Le colonne extra compaiono su TUTTI i gruppi giocati (pre/post le lasciano vuote).
-        const upcomingOnly = gs.every(g => !g.completed);
+        const upcomingOnly = gs.every(g => !g.completed && g.state !== 'in');
         const showExtra = !upcomingOnly && oppByWeek.size > 0;
         const head = upcomingOnly
             ? '<th>WK</th><th>DATE</th><th>OPPONENT</th><th>TIME</th><th>TV</th>'
@@ -358,7 +365,7 @@ function teamScheduleBlock(live, { ctx }) {
     <section class="pm-block pp-block">
         <span class="mc-kicker">Schedule and matchups · ${season}</span>
         ${tables}
-        <p class="pm-note">Preseason, regular season and postseason separated (ESPN data). Upcoming games: kickoff time (ET) and TV network. Played games: result and running W-L (regular season); in the regular season, opponent defense FPA WR/game and points allowed/game (nflverse). Click a finished game for the box score.</p>
+        <p class="pm-note">Preseason, regular season and postseason separated (ESPN data). Upcoming games: kickoff time (ET) and TV network. Played games: result and running W-L (regular season); in the regular season, opponent defense FPA WR/game and points allowed/game (nflverse). Click a played or in-progress game for the box score.</p>
     </section>`;
 }
 
@@ -417,7 +424,7 @@ function franchiseLedgerBlock(ctx) {
 
 /** Nav di sezione sticky a tab: mostra solo la sezione scelta (le altre nascoste),
  *  con l'hero identità sempre in cima. */
-function bindSectionNav(section) {
+function bindSectionNav(section, initial = 'home') {
     const nav = section.querySelector('.nfl-secnav');
     if (!nav) return;
     const panels = {};
@@ -450,7 +457,7 @@ function bindSectionNav(section) {
         if (window.scrollY > navTop) window.scrollTo({ top: navTop, behavior: 'smooth' });
     });
 
-    show('home');
+    show(panels[initial] ? initial : 'home');
 }
 
 function render(section, ctx) {
@@ -520,7 +527,7 @@ function render(section, ctx) {
         </div>
 
         <div class="nfl-sec" data-secid="depth" hidden>
-            <div id="nfl-depth">${depthChartTab(live)}</div>
+            <div id="nfl-depth">${depthChartTab(live, year)}</div>
         </div>
 
         <div class="nfl-sec" data-secid="injuries" hidden>
@@ -546,10 +553,25 @@ function render(section, ctx) {
     bindYearRepaint(section, ctx);
     bindYearMenu(section);
     bindCalendarGameDetail(section, abbr);
-    bindSectionNav(section);
+    bindSectionNav(section, ctx.openEventId ? 'schedule' : 'home');
     hydrateCharts(section);
     hydrateFormationPhotos(section);
     alignYearToContent(section);
+    if (ctx.openEventId) openLinkedGame(section, abbr, ctx.openEventId);
+}
+
+/**
+ * Deep link #nfl-team/{abbr}/{anno}/game/{eventId}: seleziona nel calendario la
+ * riga di quella partita e ne apre subito il dettaglio (box score +
+ * play-by-play), come se l'utente ci avesse cliccato sopra. La tab Schedule è
+ * già stata mostrata da bindSectionNav: serve, altrimenti il dettaglio si
+ * misurerebbe su una tabella di larghezza zero.
+ */
+function openLinkedGame(section, abbr, eventId) {
+    const row = section.querySelector(`#nfl-calendar tr.pp-game-row[data-event-id="${eventId}"]`);
+    if (!row) return;   // gara non ancora giocata o di un'altra stagione
+    openGameDetail(section, abbr, eventId, row);
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 /** Compone la griglia a 3 colonne della tab Home. Sinistra: calendario. Centro:
@@ -755,7 +777,7 @@ function bindYearRepaint(section, ctx0) {
         set('#nfl-live-b', seasonStatsBlock(live));
         set('#nfl-calendar', seasonRibbonBlock(wrap) + teamScheduleBlock(live, wrap));
         set('#nfl-roster', rosterBlock(seasonData.teamRoster));
-        set('#nfl-depth', depthChartTab(live));
+        set('#nfl-depth', depthChartTab(live, year));
         set('#nfl-injuries', rosterStatusListsBlock({ teamRoster: seasonData.teamRoster, transactions: live.transactions }) + teamInjuriesBlock(wrap));
         set('#nfl-transactions', transactionsBlock(live));
         set('#nfl-news', newsBlock(live));
@@ -1693,8 +1715,22 @@ function seasonStatsBlock({ seasonStats }) {
  * stesso blocco, così un click allarga il blocco alla rosa intera. Il depth
  * chart viene da ESPN/nflverse (live), la tabella rosa da nflverse (teamRoster).
  */
-function depthChartTab(live) {
+function depthChartTab(live, year) {
     const depthChart = live?.depthChart;
+    let anyFrom = false;
+    // Anni in lega: yearsExp 0/1/2 = 1ª/2ª/3ª stagione, colorati; dal 4º anno in
+    // poi nessuna classe, così il colore segnala solo i giovani.
+    // Number.isInteger scarta null/undefined: senza il controllo `null >= 0`
+    // sarebbe true e i giocatori senza dato passerebbero per rookie.
+    // Draftati → colore per anno; non draftati → resta il colore normale e
+    // l'anno lo dicono 1, 2 o 3 sottolineature.
+    const yearClass = (pl) => {
+        const y = pl.yearsExp;
+        if (!(Number.isInteger(y) && y >= 0 && y <= 2)) return '';
+        return pl.undrafted ? ` pp-depth-udfa pp-depth-u${y + 1}` : ` pp-depth-y${y + 1}`;
+    };
+    const YEAR_LABELS = ['1st year', '2nd year', '3rd year'];
+    let anyYear = false;
     const col = (list, label) => {
         if (!list?.length) return '';
         const rows = list.map(slot => `
@@ -1702,22 +1738,39 @@ function depthChartTab(live) {
                 <span class="pp-lb-pos">${esc(slot.pos || '')}</span>
                 <span class="pp-depth-players">${slot.players.map((pl, i) => {
                     const inj = pl.injury ? `<span class="pp-depth-inj${/out|IR|PUP/i.test(`${pl.injury.abbr || ''} ${pl.injury.status || ''}`) ? ' pp-depth-inj-out' : ''}" title="${esc(pl.injury.status || 'Injured')}">${esc(pl.injury.abbr || '!')}</span>` : '';
-                    return `<span class="pp-depth-player${i === 0 ? ' pp-depth-starter' : ''}">${esc(pl.name || '—')}${pl.jersey != null ? ` <small>#${pl.jersey}</small>` : ''}${inj}</span>`;
+                    const yc = yearClass(pl);
+                    if (yc) anyYear = true;
+                    // "class of YYYY" = anno di draft; per i non draftati (circa metà
+                    // rosa) è l'anno di ingresso in lega, e lo si dice esplicitamente.
+                    const tip = yc ? ` title="${YEAR_LABELS[pl.yearsExp]} in the NFL${pl.rookieYear ? ` · ${pl.undrafted ? 'undrafted' : 'class of'} ${pl.rookieYear}` : ''}"` : '';
+                    // Arrivato quest'anno: sigla della squadra da cui viene.
+                    const from = pl.arrivedFrom
+                        ? `<span class="pp-depth-from" title="Joined in ${esc(String(year))} from ${esc(pl.arrivedFrom)}">${esc(pl.arrivedFrom)}</span>` : '';
+                    if (from) anyFrom = true;
+                    return `<span class="pp-depth-player${i === 0 ? ' pp-depth-starter' : ''}${yc}"${tip}>${esc(pl.name || '—')}${pl.jersey != null ? ` <small>#${pl.jersey}</small>` : ''}${from}${inj}</span>`;
                 }).join('<span class="pp-depth-sep">›</span>')}</span>
             </div>`).join('');
         return `<div class="pp-starters-col"><h3 class="pp-cat-title">${label}</h3>${rows}</div>`;
     };
     // Attacco e Difesa affiancati; Special Teams a tutta larghezza sotto.
-    const mainHtml = depthChart ? (col(depthChart.offense, 'Attacco') + col(depthChart.defense, 'Difesa')) : '';
+    const mainHtml = depthChart ? (col(depthChart.offense, 'Offense') + col(depthChart.defense, 'Defense')) : '';
     const specialHtml = depthChart ? col(depthChart.special, 'Special Teams') : '';
     if (!mainHtml && !specialHtml) return '';
     const build = depthChart?.source === 'build';
     return `
     <section class="pm-block pp-block">
         <span class="mc-kicker">Depth chart · ${build ? 'nflverse' : 'ESPN + nflverse'}</span>
+        ${anyYear ? `<div class="pp-depth-legend">
+            <span class="pp-depth-legend-lbl">Drafted</span>
+            ${YEAR_LABELS.map((lbl, i) => `<span class="pp-depth-legend-item pp-depth-y${i + 1}">${lbl}</span>`).join('')}
+            <span class="pp-depth-legend-item">4th year or more</span>
+            <span class="pp-depth-legend-lbl">Undrafted</span>
+            ${YEAR_LABELS.map((lbl, i) => `<span class="pp-depth-udfa pp-depth-u${i + 1}">${lbl}</span>`).join('')}
+            ${anyFrom ? `<span class="pp-depth-legend-lbl">Joined in ${esc(String(year))}</span><span class="pp-depth-from">previous team</span>` : ''}
+        </div>` : ''}
         <div class="pp-starters-grid">${mainHtml}</div>
         ${specialHtml ? `<div class="pp-depth-special">${specialHtml}</div>` : ''}
-        <p class="pm-note">Depth ordered by slot (starter in bold, then backups). ${build ? 'Rebuilt from the nflverse roster of that season (ordered by snap%): accurate for past seasons too.' : 'Official order and injuries from ESPN, jersey numbers from nflverse: current snapshot, not historical.'}</p>
+        <p class="pm-note">Depth ordered by slot (starter in bold, then backups)${anyYear ? ', colour by seasons in the NFL' : ''}.${anyFrom ? ` The tag next to a name is the team he played for in ${esc(String(year - 1))}: it says when a player joined and from where, not whether it was a trade, a waiver claim or a free-agent signing.` : ''}${build ? 'Rebuilt from the nflverse roster of that season (ordered by snap%): accurate for past seasons too.' : 'Official order and injuries from ESPN, jersey numbers and years of experience from nflverse: current snapshot, not historical.'}</p>
     </section>`;
 }
 

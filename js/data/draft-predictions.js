@@ -18,8 +18,8 @@
 
 import { getSeasonConfig } from '../data.js?v=534';
 import { getTeamStats } from './nfl-team-stats.js?v=526';
-import { canonAbbr } from './nfl-schedule.js?v=520';
-import { resolveDefAbbrSync } from './player-full.js?v=588';
+import { canonAbbr } from './nfl-schedule.js?v=522';
+import { resolveDefAbbrSync } from './player-full.js?v=589';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
 import { perGameCv } from './context-score.js?v=581';
 

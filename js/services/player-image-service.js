@@ -3,6 +3,8 @@ import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.
 // Bump della versione = svuota la cache locale: le versioni v3 e precedenti
 // hanno accumulato ID sbagliati dall'era del bug di ricerca (q= invece di
 // query=), che restituivano URL headshot in 404.
+import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+
 const CACHE_KEY = 'topina_player_ids_v4';
 const FALLBACK_IMAGE = 'images/fallback-player.svg';
 
@@ -227,21 +229,11 @@ export class PlayerImageService {
     }
 
     _loadCache() {
-        try {
-            const data = localStorage.getItem(CACHE_KEY);
-            return data ? JSON.parse(data) : {};
-        } catch (e) {
-            console.error('Error loading player cache', e);
-            return {};
-        }
+        return cacheGet(CACHE_KEY, Infinity) || {};
     }
 
     _saveCache() {
-        try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(this.cache));
-        } catch (e) {
-            console.error('Error saving player cache', e);
-        }
+        cacheSet(CACHE_KEY, this.cache);
     }
 }
 

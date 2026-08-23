@@ -29,7 +29,7 @@
 
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
 import { getTeamStats } from './nfl-team-stats.js?v=526';
-import { canonAbbr } from './nfl-schedule.js?v=520';
+import { canonAbbr } from './nfl-schedule.js?v=522';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1}
 const NUM_TEAMS = 4;
@@ -97,13 +97,14 @@ export function pickStarters(list, valueField) {
     for (const p of list) (byPos[p.pos] = byPos[p.pos] || []).push(p);
     for (const l of Object.values(byPos)) l.sort((a, b) => (b[valueField] || 0) - (a[valueField] || 0));
 
-    const starters = [], used = new Set(), slotValues = {};
+    const starters = [], used = new Set(), slotValues = {}, bySlot = {};
     for (const [pos, n] of Object.entries(SLOTS)) {
         const l = byPos[pos] || [];
         for (let i = 0; i < n; i++) {
             const p = l[i];
             const slotKey = n > 1 ? `${pos}${i + 1}` : pos;
             slotValues[slotKey] = p ? (p[valueField] || 0) : 0;
+            bySlot[slotKey] = p || null;
             if (p) { starters.push(p); used.add(p); }
         }
     }
@@ -111,10 +112,11 @@ export function pickStarters(list, valueField) {
     const flex = FLEX_ELIGIBLE.flatMap(pos => (byPos[pos] || []).filter(p => !used.has(p)))
         .sort((a, b) => (b[valueField] || 0) - (a[valueField] || 0))[0];
     slotValues.FLEX = flex ? (flex[valueField] || 0) : 0;
+    bySlot.FLEX = flex || null;
     if (flex) { starters.push(flex); used.add(flex); }
 
     const benchByValue = list.filter(p => !used.has(p)).sort((a, b) => (b[valueField] || 0) - (a[valueField] || 0));
-    return { starters, slotValues, benchByValue };
+    return { starters, slotValues, bySlot, benchByValue };
 }
 
 const SLOT_KEYS = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLEX', 'K', 'DEF'];

@@ -18,8 +18,8 @@
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=599';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=520';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=509';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=522';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=510';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=503';
 import { fetchLeagueWeek, teamAbbrFromName, fillMissingProjections } from '../data/espn-fantasy.js?v=4';
@@ -27,7 +27,7 @@ import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=520';
 import { initPlayerModal } from '../components/player-modal.js?v=605';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 
 const POLL_MS = 10000;
 

@@ -17,66 +17,42 @@ import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displa
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=599';
 import { getHonorsBundle } from '../data/honors.js?v=583';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=589';
-import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=587';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=591';
+import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=588';
 import { initPlayerModal } from '../components/player-modal.js?v=605';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 import { pickSeeded } from '../data/magazine-voices.js?v=517';
 import {
-    computeGrades, makeEvaluator, letterFor, gradeBand, strategyLine,
-    GRADE_COMMENTS, outcomeBadge, computeVorGrades,
-} from './draftgrades.js?v=609';
+    computeGrades, makeEvaluator, gradeBand, strategyLine,
+    outcomeBadge, computeSeasonDelivery,
+} from './draftgrades.js?v=611';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=581';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS } from '../data/team-eval.js?v=533';
-import { computeDraftScoreV2, gradeBandV2, getAdpDispersion, getDraftScoreV2Calib } from '../data/draft-score-v2.js?v=5';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters } from '../data/team-eval.js?v=534';
+import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=7';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-// etichetta steal/reach in σ dall'ADP di consenso FFC (positivo = steal)
-const v2StealTag = (r) => `${r.adpZ >= 0 ? '+' : ''}${r.adpZ}σ vs ADP`;
-const v2IsSteal = (r) => r && r.adpZ != null && r.adpZ > 0.5;
-const v2IsReach = (r) => r && r.adpZ != null && r.adpZ < -0.5;
-
-// ─── Verdetti pick (varianti seeded) ─────────────────────────────
-
-const PICK_VERDICTS = {
-    colpo: [
-        (c) => `Colpo pieno: a questo slot ${c.player} era il massimo che il board potesse offrire.`,
-        (c) => `Qui la war-room ha visto giusto: ${c.player} vale ogni centesimo della pick #${c.pick}.`,
-        (c) => `Scelta chirurgica: ${c.player} preso esattamente dove andava preso.`,
-    ],
-    solido: [
-        (c) => `Scelta solida, in linea col valore dello slot: nessun rimpianto per ${c.player}.`,
-        (c) => `${c.player} è la pick da manuale: né reach né miracolo, compitino svolto.`,
-        (c) => `Onesta amministrazione: ${c.player} rende lo slot quello che promette.`,
-    ],
-    rivedibile: [
-        (c) => `Rivedibile: con ${c.alt} ancora sul board, ${c.player} è una scelta che fa discutere.`,
-        (c) => `Il board offriva di più: ${c.alt} era lì e proiettava meglio di ${c.player}.`,
-        (c) => `Pick sotto la pari: ${c.player} lascia punti sul tavolo rispetto a chi era ancora disponibile.`,
-    ],
-    reach: [
-        (c) => `Reach dichiarato: il mercato prendeva ${c.player} circa ${c.adpGap} pick più tardi.`,
-        (c) => `Anticipo azzardato su ${c.player}: l'ADP diceva di aspettare, la war-room no.`,
-        (c) => `Scommessa di cuore: ${c.player} preso ben prima del suo prezzo di mercato.`,
-    ],
-};
+// ─── Testi generati (varianti seeded, in inglese come tutto il sito) ──
 
 const AGE_NOTES = {
     young: [
-        (t) => `Draft di prospettiva per ${t}: tanta gioventù, il meglio deve ancora venire.`,
-        (t) => `${t} ha puntato sul futuro: un nucleo giovane che può solo crescere.`,
+        (t) => `A draft built for later: ${t} leaned young, and the best of this group is still ahead.`,
+        (t) => `${t} bet on the future — a core with room to grow rather than finished products.`,
     ],
     balanced: [
-        (t) => `Mix equilibrato per ${t}: gioventù dove serve, esperienza dove conta.`,
-        (t) => `${t} ha bilanciato bene il registro anagrafico del roster.`,
+        (t) => `${t} kept the age curve honest: youth where it can develop, experience where it has to deliver now.`,
+        (t) => `A balanced roster on age for ${t}, with no wing of the depth chart left exposed.`,
     ],
     veteran: [
-        (t) => `Roster win-now per ${t}: si punta tutto sull'usato sicuro, ma l'età non perdona.`,
-        (t) => `${t} ha scelto l'esperienza: rendimento immediato, con la scadenza sull'etichetta.`,
+        (t) => `A win-now roster for ${t}: proven production across the board, with the shelf life that comes with it.`,
+        (t) => `${t} chose experience — immediate output, and an expiry date printed on the label.`,
     ],
 };
+
+// ─── Utility ─────────────────────────────────────────────────────
+
+const ordinal = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
 
 // ─── Init ────────────────────────────────────────────────────────
 
@@ -128,23 +104,25 @@ export async function initDraftGradeTeam() {
         const sos = sosByTeam[rank];
         // Team Strength Index (motore di valutazione della rosa) — non tocca il voto.
         await evaluateLeague(grades, year).catch(e => console.warn('[team-eval]', e));
-        // Voto di fine stagione (VOR) — solo stagioni giocate.
-        const vor = seasonPlayed ? computeVorGrades(picks, meta) : null;
-        // Draft Score v2 (decomponibile, affianca il voto storico). Mappa pick→analisi.
+        // Resa di fine stagione (VOR reale) — solo stagioni giocate. Non è un
+        // voto: è "com'è finita", e sta nella sua sezione.
+        const delivery = seasonPlayed ? computeSeasonDelivery(picks, meta) : null;
+
+        // Il Draft Grade: un voto solo, squadra e pick per pick.
         const [adpDisp, calib] = await Promise.all([
-            getAdpDispersion(year).catch(() => null),   // dispersione ADP (FFC)
-            getDraftScoreV2Calib().catch(() => null),   // pesi/soglie tarati LOSO (se adottati)
+            getAdpDispersion(year).catch(() => null),  // ADP di consenso + dispersione (FFC)
+            getDraftGradeCalib().catch(() => null),    // soglie-lettera dai quantili storici
         ]);
-        const scoreV2 = computeDraftScoreV2(grades, proj, { adpDisp, calib });
-        const v2 = scoreV2?.byKey?.[teamKey] || null;
-        const v2ByPick = new Map((v2?.picks || []).map(r => [r.pick, r]));
-        const boardByPos = scoreV2?.boardByPos || null;
+        const dgAll = computeDraftGrade(grades, proj, { adpDisp, calib });
+        const dg = dgAll?.byKey?.[teamKey] || null;
+        const dgByPick = new Map((dg?.picks || []).map(r => [r.pick, r]));
+        const boardByPos = dgAll?.boardByPos || null;
 
         const weekly = seasonPlayed
             ? await buildWeeklySeries(year, g.list).catch(() => null) : null;
         if (!location.hash.includes(`draftgrades/${year}/${teamKey}`)) return;
 
-        render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed, sos, vor, v2, v2ByPick, boardByPos, teamKey });
+        render(section, { year, team, g, rank, grades, meta, prevStats, weekly, seasonPlayed, sos, delivery, dg, dgAll, dgByPick, boardByPos, teamKey });
     } catch (e) {
         console.error('[draftgrade-team]', e);
         section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Error loading the analysis</p></div></div>`;
@@ -300,16 +278,7 @@ function teamStrengthCard(ctx) {
     </div>`;
 }
 
-// ─── Classificazione pick e testi ────────────────────────────────
-
-function classifyPick(p) {
-    if (p.adp && (p.adp - p.pick) > 8) return 'reach';
-    const ratio = p.expected ? p.value / p.expected : 1;
-    if (!p.alt || p.value >= p.alt.value) return 'colpo';
-    if (ratio >= 0.92 && p.alt.value <= p.value * 1.12) return 'solido';
-    if (p.alt.value > p.value * 1.25) return 'rivedibile';
-    return 'solido';
-}
+// ─── Testi delle pick ────────────────────────────────────────────
 
 function priorLine(p, prevStats, prevYear, expAtDraft) {
     const s = matchProjection(prevStats, p.player, p.pos);
@@ -333,17 +302,8 @@ function priorLine(p, prevStats, prevYear, expAtDraft) {
 // ─── Rendering ───────────────────────────────────────────────────
 
 function render(section, ctx) {
-    const { year, team, g, rank, meta, prevStats, weekly, seasonPlayed } = ctx;
-    const letter = letterFor(g.ratio, rank);
-    const band = gradeBand(letter);
-    const seed = (+year) * 13 + team.key.length;
+    const { year, team, g, meta, prevStats, weekly, seasonPlayed, dg } = ctx;
     const prevYear = String(+year - 1);
-
-    const comment = pickSeeded(GRADE_COMMENTS[band], seed + 3)({
-        team: team.name,
-        best: g.best ? g.best.player : 'nessuno',
-        worst: g.worst ? g.worst.player : 'nessuno',
-    });
 
     section.innerHTML = `
     <div class="section-inner gb-page dgt-page" style="--team-color:${team.color};--card-glow:${team.color}">
@@ -354,19 +314,26 @@ function render(section, ctx) {
             <div class="dgt-hero-info">
                 <span class="mc-kicker">${year} Draft · Full analysis</span>
                 <h1 class="mc-title">${team.name}</h1>
-                <span class="dg-head-meta">${fmt0(g.total)} projected pt · expected ${fmt0(g.expected)} · yield ${(g.ratio * 100).toFixed(0)}% · ${rank + 1}${rank + 1 === 1 ? 'st' : rank + 1 === 2 ? 'nd' : rank + 1 === 3 ? 'rd' : 'th'} draft in the league</span>
+                <span class="dg-head-meta">${dg ? `${ordinal(dg.rank)} draft in the league · ` : ''}${fmt0(g.total)} projected pt collected</span>
                 <p class="dgt-hero-strategy">${strategyLine(g.list)}</p>
-                <p class="dg-comment">${comment}</p>
+                ${dg ? `<p class="dg-why">${dg.why}</p>` : ''}
             </div>
-            <span class="dg-letter dg-letter--big dg-letter--${band}">${letter}</span>
+            ${dg ? `<div class="dg-grade-stack">
+                <span class="dg-letter dg-letter--big dg-letter--${gradeBand(dg.letter)}">${dg.letter}</span>
+                <span class="dg-grade-score">${dg.grade}<small>/100</small></span>
+            </div>` : ''}
         </header>
 
-        ${draftScoreV2Card(ctx)}
+        ${gradeBreakdownCard(ctx)}
         ${draftStoryCard(ctx)}
         ${curveCard(g, team)}
         ${teamStrengthCard(ctx)}
         ${sosCard(ctx)}
         ${rosterCard(ctx)}
+        ${strategyCard(ctx)}
+        ${rosterBoardCard(ctx)}
+        ${leagueBoardCard(ctx)}
+        ${capitalFlowCard(ctx)}
         ${scarcityCard(ctx)}
         ${picksSection(ctx, prevYear)}
         ${seasonPlayed ? verdictSection(ctx) : ''}
@@ -378,77 +345,60 @@ function render(section, ctx) {
     loadHeadshots(section, seasonPlayed ? year : prevYear);
 }
 
-// ─── Card: Draft Score v2 (decomponibile) ────────────────────────
+// ─── Card: come si legge il voto ─────────────────────────────────
 
 /**
- * Riepilogo del Draft Score v2: voto ancorato 0-100, scomposizione in
- * componenti (media pick-grade, quota valore titolari, bilanciamento) e
- * highlight steal/reach. Affianca il voto storico, non lo sostituisce.
+ * Le metriche di supporto del voto squadra. Sono NUMERI, con il rango di lega
+ * accanto: mai lettere, altrimenti tornerebbero a leggersi come una seconda
+ * pagella in concorrenza col voto (il difetto che ha fatto ritirare v1 e v2).
  */
-function draftScoreV2Card(ctx) {
-    const { v2 } = ctx;
-    if (!v2) return '';
-    const c = v2.components;
-    const ordinal = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
-    const comp = (label, val, title) =>
-        `<div class="dgt-v2-comp" title="${title}"><span class="dgt-v2-comp-label">${label}</span><span class="dgt-v2-comp-val">${val}</span></div>`;
+function gradeBreakdownCard(ctx) {
+    const { dg, dgAll } = ctx;
+    if (!dg) return '';
+    const c = dg.components;
+    const w = dgAll?.weights || { talent: 0.6, efficiency: 0.4 };
+    const metric = (label, val, unit, rank, note) => `
+        <div class="dgt-metric">
+            <span class="dgt-metric-label">${label}</span>
+            <span class="dgt-metric-val">${val}${unit ? `<small>${unit}</small>` : ''}</span>
+            <span class="dgt-metric-note">${rank ? `${ordinal(rank)} in league · ` : ''}${note}</span>
+        </div>`;
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">How well you drafted · decomposable grade</span>
-        <h2 class="mc-title">Draft Score v2
-            <small class="dgt-sos-big dgt-v2-big dg-v2--${gradeBandV2(v2.letter)}">${v2.letter} · ${Math.round(v2.score)}/100 · ${ordinal(v2.rank)} in league</small>
+        <span class="mc-kicker">Why this grade</span>
+        <h2 class="mc-title">Draft Grade
+            <small class="dgt-sos-big dgt-grade-big dg-letter--${gradeBand(dg.letter)}">${dg.letter} · ${dg.grade}/100 · ${ordinal(dg.rank)} in league</small>
         </h2>
-        <p class="dgt-card-sub">Two orthogonal axes: <b>talent</b> (VOR — value above the league replacement level, so QB/RB/WR/TE/K/DEF are comparable) and <b>efficiency</b> (how well you paid for that value vs ADP and vs the best player actually still on the board, adjusted for roster need). The grade is the draft-capital-weighted average of the pick grades, plus roster-construction modifiers. It sits alongside the historic grade, which does not change.</p>
-        <div class="dgt-v2-comps">
-            ${comp('Pick grade avg', Math.round(c.avgPickGrade), 'Media dei voti-pick pesata per draft-capital (le pick alte pesano di più)')}
-            ${comp('Value in starters', `${Math.round(c.starterShare * 100)}%`, 'Quota del valore-VOR che finisce nei titolari (anti bench-inflation)')}
-            ${comp('Starter VOR', `${fmt0(c.starterVOR)}/${fmt0(c.totalVOR)}`, 'VOR dei titolari sul VOR totale della rosa')}
-            ${comp('Balance', c.balance, 'Bilanciamento della costruzione roster (buchi/surplus per ruolo)')}
-            ${comp('Left on board', `−${fmt0(v2.leftOnBoard)}`, 'Valore lasciato sul board rispetto al miglior disponibile need-adjusted, sommato su tutte le pick')}
+        <p class="dgt-why">${dg.why}</p>
+        <div class="dgt-metrics">
+            ${metric('Talent collected', fmt0(c.starterVOR), ' VOR', c.talentRank, `how far the best lineup this draft could field sits above a replacement-level starting nine, against a league best of ${fmt0(c.leagueBestVOR)}`)}
+            ${metric('Draft efficiency', c.efficiencyGrade, '/100', c.efficiencyRank, 'draft-capital-weighted average of the pick grades below')}
+            ${metric('Value in the starters', Math.round(c.starterShare * 100), '%', null, `${fmt0(c.starterVOR)} of ${fmt0(c.totalVOR)} total value ends up in the starting lineup`)}
         </div>
-        <div class="dgt-v2-hl">
-            ${v2IsSteal(v2.biggestSteal) ? `<span class="dgt-chip dgt-chip--up">Biggest steal: ${v2.biggestSteal.player} (${v2StealTag(v2.biggestSteal)})</span>` : ''}
-            ${v2IsReach(v2.biggestReach) ? `<span class="dgt-chip dgt-chip--down">Biggest reach: ${v2.biggestReach.player} (${v2StealTag(v2.biggestReach)})</span>` : ''}
-            ${v2.bestPick ? `<span class="dgt-chip dgt-chip--up">Best decision: ${v2.bestPick.player} (${v2.bestPick.letter})</span>` : ''}
-            ${v2.worstPick ? `<span class="dgt-chip dgt-chip--down">Weakest decision: ${v2.worstPick.player} (${v2.worstPick.letter})</span>` : ''}
-        </div>
+        <p class="dgt-card-sub">The grade weighs talent ${Math.round(w.talent * 100)}% and efficiency ${Math.round(w.efficiency * 100)}%. Talent is what you walked away with; efficiency is how well you played the board to get it. A team can reach the same letter from either side — the two numbers above say which.</p>
     </div>`;
 }
 
-// ─── Card: la storia del draft (strategia + what-if) ─────────────
+// ─── Card: la storia del draft ───────────────────────────────────
 
-/**
- * Racconto data-driven: cosa è andato bene / cosa ha pesato (da v2.narrative)
- * e l'analisi "what if" (swap col miglior disponibile → Δ punti-titolare).
- */
+/** Racconto data-driven: cosa è andato bene / cosa ha pesato. */
 function draftStoryCard(ctx) {
-    const { v2 } = ctx;
-    if (!v2 || (!v2.narrative?.good.length && !v2.narrative?.bad.length && !v2.whatIf?.length)) return '';
-    const n = v2.narrative || { good: [], bad: [] };
+    const { dg } = ctx;
+    if (!dg || (!dg.narrative?.good.length && !dg.narrative?.bad.length)) return '';
+    const n = dg.narrative;
 
     const goodList = n.good.length
         ? `<ul class="dgt-story-list dgt-story-good">${n.good.map(t => `<li>${t}</li>`).join('')}</ul>`
-        : `<p class="dgt-card-sub">Nessun punto di forza marcato emerso dai dati.</p>`;
+        : `<p class="dgt-card-sub">No standout strength emerged from the data.</p>`;
     const badList = n.bad.length
         ? `<ul class="dgt-story-list dgt-story-bad">${n.bad.map(t => `<li>${t}</li>`).join('')}</ul>`
-        : `<p class="dgt-card-sub">Nessuna criticità marcata: draft senza passi falsi evidenti.</p>`;
-
-    const whatIf = v2.whatIf?.length ? `
-        <span class="mc-kicker" style="margin-top:16px">What if? · the swaps that would have helped most</span>
-        <p class="dgt-card-sub">Sostituendo la scelta col miglior disponibile di allora e ricalcolando il <b>miglior lineup possibile</b>: ecco quanti punti-titolare in più (Δ StarterVOR) avresti messo insieme. Modello a swap singolo.</p>
-        <div class="dgt-whatif">
-            ${v2.whatIf.map(s => `
-            <div class="dgt-whatif-row">
-                <span class="dgt-whatif-delta">+${fmt0(s.deltaStarterVOR)}</span>
-                <span class="dgt-whatif-text">al posto di <b>${s.from.player}</b> (${s.from.pos}) → <b>${s.to.player}</b> (${s.to.pos}${s.to.team ? ` · ${s.to.team}` : ''})</span>
-            </div>`).join('')}
-        </div>` : '';
+        : `<p class="dgt-card-sub">No clear weakness: a draft without visible missteps.</p>`;
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">The story of the draft · from the data</span>
-        <h2 class="mc-title">Strategy &amp; what could have been better</h2>
+        <h2 class="mc-title">What worked and what didn't</h2>
         <div class="dgt-story-cols">
             <div class="dgt-story-col">
                 <span class="mc-kicker dgt-story-h dgt-story-h--good">What you did well</span>
@@ -459,7 +409,6 @@ function draftStoryCard(ctx) {
                 ${badList}
             </div>
         </div>
-        ${whatIf}
     </div>`;
 }
 
@@ -469,47 +418,490 @@ function draftStoryCard(ctx) {
  * Curva di scarsità per ruolo: i migliori disponibili per VOR con evidenziati
  * i giocatori presi da QUESTA squadra (colore team) e dagli altri (spenti), più
  * i "cliff" dei tier (crolli di VOR). Fa capire dove il valore si esaurisce.
- * Dati: boardByPos dall'engine v2 (nessuna fonte nuova).
+ * Dati: boardByPos dal motore Draft Grade (nessuna fonte nuova).
  */
 function scarcityCard(ctx) {
     const { boardByPos, teamKey, team } = ctx;
     if (!boardByPos) return '';
     const POS = ['RB', 'WR', 'TE', 'QB'];
-    const blocks = POS.map(pos => {
+
+    // geometria comune ai quattro pannelli: stessa scala verticale ovunque,
+    // così i ruoli si confrontano a occhio (è il punto del grafico)
+    const all = POS.flatMap(pos => (boardByPos[pos] || []).slice(0, 10).filter(p => p.vor > 0));
+    if (all.length < 6) return '';
+    const maxV = Math.max(...all.map(p => p.vor), 1);
+
+    const W = 300, H = 210, L = 8, R = 8, T = 16, B = 30;
+    const iw = W - L - R, ih = H - T - B;
+
+    const panels = POS.map(pos => {
         const players = (boardByPos[pos] || []).slice(0, 10).filter(p => p.vor > 0);
         if (players.length < 3) return '';
-        const maxV = Math.max(...players.map(p => p.vor), 1);
-        const rows = players.map((p, i) => {
+        const step = iw / players.length;
+        const y = (v) => T + ih - (v / maxV) * ih;
+
+        // il CLIFF: il crollo di valore più grande fra due giocatori consecutivi.
+        // È l'informazione che conta davvero — dice fin dove il ruolo "tiene".
+        let cliffAt = -1, cliffDrop = 0;
+        for (let i = 1; i < players.length; i++) {
+            const d = players[i - 1].vor - players[i].vor;
+            if (d > cliffDrop) { cliffDrop = d; cliffAt = i; }
+        }
+        const meaningful = cliffDrop >= maxV * 0.12;
+
+        const bars = players.map((p, i) => {
             const mine = p.takenBy === teamKey;
             const other = p.takenBy && !mine;
-            const cls = mine ? ' dgt-scar-mine' : other ? ' dgt-scar-other' : ' dgt-scar-free';
-            // cliff: crollo >25% di VOR rispetto al precedente
-            const prev = players[i - 1];
-            const cliff = prev && p.vor < prev.vor * 0.75 ? ' dgt-scar-cliff' : '';
-            const w = Math.max(3, Math.round(p.vor / maxV * 100));
-            const tag = mine ? 'you' : other ? TEAMS[p.takenBy]?.name?.split(' ')[0] || '—' : 'free';
-            return `
-            <div class="dgt-scar-row${cls}${cliff}">
-                <span class="dgt-scar-name">${p.name}</span>
-                <span class="dgt-scar-bar"><span style="width:${w}%${mine ? `;background:${team.color}` : ''}"></span></span>
-                <span class="dgt-scar-vor">${p.vor}</span>
-                <span class="dgt-scar-tag">${tag}</span>
-            </div>`;
+            const cls = mine ? 'dgt-sc-mine' : other ? 'dgt-sc-other' : 'dgt-sc-free';
+            const x = L + i * step, w = Math.max(2, step - 3);
+            const yv = y(p.vor);
+            return `<rect class="dgt-sc-bar ${cls}" x="${x.toFixed(1)}" y="${yv.toFixed(1)}" width="${w.toFixed(1)}" height="${(T + ih - yv).toFixed(1)}" rx="1.5"
+                ${mine ? `style="fill:${team.color}"` : ''}><title>${p.name}${p.team ? ` (${p.team})` : ''} · VOR ${p.vor}${p.takenBy ? ` · taken #${p.pick} by ${TEAMS[p.takenBy]?.name || p.takenBy}` : ' · never drafted'}</title></rect>`;
         }).join('');
+
+        // linea del crollo + callout: l'annotazione diretta al posto della legenda
+        const cliffMark = meaningful ? (() => {
+            const x = L + cliffAt * step - 1.5;
+            return `
+            <line class="dgt-sc-cliff" x1="${x.toFixed(1)}" y1="${T - 4}" x2="${x.toFixed(1)}" y2="${T + ih}"/>
+            <text class="dgt-sc-callout" x="${Math.min(x + 5, W - R - 4).toFixed(1)}" y="${(T + 6).toFixed(1)}" text-anchor="${x > W * 0.55 ? 'end' : 'start'}"
+                  ${x > W * 0.55 ? `transform="translate(-10,0)"` : ''}>−${Math.round(cliffDrop)} pt</text>`;
+        })() : '';
+
+        // il primo della fila e quello subito dopo il crollo: etichette dirette
+        const label = (i, anchor) => {
+            const p = players[i]; if (!p) return '';
+            const x = L + i * step + (anchor === 'end' ? step - 3 : 0);
+            return `<text class="dgt-sc-name" x="${x.toFixed(1)}" y="${(T + ih + 12).toFixed(1)}" text-anchor="${anchor}">${p.name.split(' ').slice(-1)[0]}</text>`;
+        };
+
+        const mine = players.filter(p => p.takenBy === teamKey).length;
         return `
-        <div class="dgt-scar-pos">
-            <span class="mc-kicker">${pos}</span>
-            <div class="dgt-scar-rows">${rows}</div>
-        </div>`;
+        <figure class="dgt-sc-panel">
+            <figcaption><b>${pos}</b> <span>${meaningful ? `cliff after ${pos}${cliffAt}` : 'no clear cliff'}</span></figcaption>
+            <svg viewBox="0 0 ${W} ${H}" class="dgt-sc-svg" role="img"
+                 aria-label="${pos} value above replacement for the top of the board${meaningful ? `, with the tier cliff after player ${cliffAt}` : ''}">
+                <line class="dgt-sc-base" x1="${L}" y1="${T + ih}" x2="${L + iw}" y2="${T + ih}"/>
+                ${bars}
+                ${cliffMark}
+                ${label(0, 'start')}
+                ${meaningful && cliffAt < players.length && cliffAt * step >= 46 ? label(cliffAt, 'start') : ''}
+            </svg>
+            <p class="dgt-sc-note">${mine ? `You took ${mine}${meaningful && players.slice(0, cliffAt).filter(p => p.takenBy === teamKey).length ? `, ${players.slice(0, cliffAt).filter(p => p.takenBy === teamKey).length} before the cliff` : ''}.` : 'None of these were yours.'}</p>
+        </figure>`;
     }).filter(Boolean).join('');
-    if (!blocks) return '';
+    if (!panels) return '';
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Where the value cliffs · positional scarcity</span>
-        <h2 class="mc-title">Positional scarcity &amp; tiers</h2>
-        <p class="dgt-card-sub">Top available by <b>VOR</b> per position (value above the league replacement level). Your picks in team color, others muted, still-available "free". A line marks a <b>tier cliff</b> (VOR drop &gt; 25%): grabbing the last player before a cliff is worth more than the raw projection suggests.</p>
-        <div class="dgt-scar-grid">${blocks}</div>
+        <h2 class="mc-title">Where each position runs out</h2>
+        <p class="dgt-card-sub">The top of the board at each position, measured in value above a replacement-level starter. All four panels share one vertical scale, so the heights are directly comparable. The vertical line marks the <b>steepest drop</b> — past it, the position stops paying. Bars in team colour are yours, grey ones went elsewhere, faint ones were never drafted.</p>
+        <div class="dgt-sc-grid">${panels}</div>
+    </div>`;
+}
+
+/**
+ * "Hai fatto bene ad anticipare il TE? Potevi aspettare sul QB?"
+ * Il verdetto arriva da draft-grade.positionalStrategy: due piani a confronto
+ * su due turni, non il VOR assoluto (vedi la nota lì).
+ */
+function strategyCard(ctx) {
+    const { dg } = ctx;
+    const st = dg?.strategy;
+    if (!st?.slots?.length) return '';
+
+    const ICON = { right: '✓', early: '!', even: '=' };
+    const LABEL = { right: 'Right call', early: 'Could have waited', even: 'A wash' };
+
+    const rows = st.slots.map(s => `
+        <div class="dgt-strat-row dgt-strat--${s.verdict}">
+            <span class="allpro-pos pos-${s.pos.toLowerCase()}">${s.pos}</span>
+            <div class="dgt-strat-main">
+                <span class="dgt-strat-head">${s.player} <small>round ${s.round}</small></span>
+                <span class="dgt-strat-note">${s.note}</span>
+            </div>
+            <div class="dgt-strat-verdict">
+                <span class="dgt-strat-icon" aria-hidden="true">${ICON[s.verdict]}</span>
+                <span class="dgt-strat-label">${LABEL[s.verdict]}</span>
+                <span class="dgt-strat-edge">${s.edge >= 0 ? '+' : ''}${s.edge} pt</span>
+            </div>
+        </div>`).join('');
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Timing by position · was the reach worth it</span>
+        <h2 class="mc-title">When you took each position</h2>
+        <p class="dgt-card-sub">For the pick that landed your best player at each position, two plans are compared across <b>both</b> of your turns: taking that position now and letting the board come to you next, against taking the best other position now and getting the leftover at this one. Positive means moving early paid; negative means the position would have kept.</p>
+        <div class="dgt-strat">${rows}</div>
+        <p class="dgt-strat-bench">${st.bench.note} <span>${st.bench.live} of ${st.bench.live + st.bench.dead} bench picks beat the waiver wire.</span></p>
+    </div>`;
+}
+
+// ─── Card: la board del draft, quadrato per round ────────────────
+
+/**
+ * Colori posizione: gli stessi hex/token già usati da .pos-qb/.pos-rb/... in
+ * main.css, riletti qui perché l'SVG li scrive come attributo fill.
+ */
+const BOARD_POS_COLOR = {
+    QB: '#ef4444', RB: 'var(--accent-blue)', WR: 'var(--accent-green)',
+    TE: 'var(--accent-amber)', K: 'var(--accent-purple)', DEF: '#64748b',
+};
+const BOARD_POS_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+const BD = { sq: 74, gap: 12, padX: 10, cols: 8 };
+
+/**
+ * Un quadrato per pick di questa squadra, in ordine di round — stile
+ * calendario NYT: numero grande = round, colore = ruolo, pieno se il
+ * giocatore è finito titolare (lineup ottimale di team-eval.js), sbiadito se
+ * è panchina. Poche callout con leader-line (mai più di 3, come l'esempio)
+ * segnano i momenti che contano: quando i titolari si sono chiusi, se un
+ * pick di panchina è arrivato PRIMA che i titolari fossero al completo, e il
+ * verdetto di timing più marcato già calcolato da positionalStrategy.
+ */
+function rosterBoardCard(ctx) {
+    const { g, dg } = ctx;
+    const list = g.list;
+    if (!list?.length || !g.starters?.length) return '';
+
+    const starterPicks = new Set(g.starters.map(p => p.pick));
+    const n = list.length;
+    const cols = Math.min(BD.cols, n);
+    const rows = Math.ceil(n / cols);
+    const rowOf = (round) => Math.floor(list.findIndex(p => p.round === round) / cols);
+
+    const lastStarterRound = Math.max(...g.starters.map(p => p.round));
+    const benchList = list.filter(p => !starterPicks.has(p.pick));
+    const firstBenchRound = benchList.length ? Math.min(...benchList.map(p => p.round)) : null;
+    const outOfOrder = firstBenchRound != null && firstBenchRound < lastStarterRound;
+    const earlyBenchPick = outOfOrder ? benchList.find(p => p.round === firstBenchRound) : null;
+
+    // il verdetto di timing più netto già calcolato da draft-grade.positionalStrategy
+    const stratRows = dg?.strategy?.slots || [];
+    const stratPick = [...stratRows].sort((a, b) => Math.abs(b.edge) - Math.abs(a.edge))[0];
+
+    const flagRounds = new Set([lastStarterRound, earlyBenchPick?.round, stratPick?.round].filter(v => v != null));
+
+    // fino a 3 callout, ognuno ancorato sopra o sotto la griglia a seconda di
+    // dove sta il suo quadrato — e impilati (tier) per non sovrapporsi quando
+    // finiscono nella stessa metà, come nell'esempio NYT.
+    const candidates = [
+        { round: lastStarterRound, label: `Starting lineup locked by round ${lastStarterRound}`, cls: '' },
+        outOfOrder && earlyBenchPick
+            ? { round: firstBenchRound, label: `${earlyBenchPick.player} (R${firstBenchRound}) hit the bench before the lineup was set`, cls: 'dgt-board-callout--warn' }
+            : null,
+        stratPick
+            ? {
+                round: stratPick.round,
+                label: stratPick.verdict === 'early' ? `Could have waited on the ${stratPick.pos} here` : `Right call moving on the ${stratPick.pos} here`,
+                cls: stratPick.verdict === 'early' ? 'dgt-board-callout--warn' : 'dgt-board-callout--good',
+            }
+            : null,
+    ].filter(Boolean).filter((c, i, arr) => arr.findIndex(x => x.round === c.round) === i).slice(0, 3);
+
+    const topList = [], bottomList = [];
+    candidates.forEach(c => (rowOf(c.round) < rows / 2 ? topList : bottomList).push(c));
+    const tierGap = 24;
+    const padTop = 40 + Math.max(0, topList.length - 1) * tierGap;
+    const padBottom = 46 + Math.max(0, bottomList.length - 1) * tierGap;
+
+    const W = BD.padX * 2 + cols * BD.sq + (cols - 1) * BD.gap;
+    const H = padTop + rows * BD.sq + (rows - 1) * BD.gap + padBottom;
+    const xAt = (i) => BD.padX + (i % cols) * (BD.sq + BD.gap);
+    const yAt = (i) => padTop + Math.floor(i / cols) * (BD.sq + BD.gap);
+
+    const squares = list.map((p, i) => {
+        const isStarter = starterPicks.has(p.pick);
+        const color = BOARD_POS_COLOR[p.pos] || BOARD_POS_COLOR.DEF;
+        const flagged = flagRounds.has(p.round);
+        return `
+        <rect x="${xAt(i)}" y="${yAt(i)}" width="${BD.sq}" height="${BD.sq}" rx="12"
+            fill="${color}" fill-opacity="${isStarter ? 0.85 : 0.22}"
+            class="dgt-board-sq${flagged ? ' dgt-board-sq--flag' : ''}"/>
+        <text x="${xAt(i) + BD.sq / 2}" y="${yAt(i) + BD.sq / 2 + 8}" text-anchor="middle"
+            class="dgt-board-num" fill="${isStarter ? '#fff' : color}">${p.round}</text>`;
+    }).join('');
+
+    const renderCallout = (c, tier, top) => {
+        const idx = list.findIndex(p => p.round === c.round);
+        const cx = xAt(idx) + BD.sq / 2;
+        const anchor = cx < W * 0.3 ? 'start' : cx > W * 0.7 ? 'end' : 'middle';
+        const y1 = top ? yAt(idx) : yAt(idx) + BD.sq;
+        const y2 = top ? padTop - 12 - tier * tierGap : H - padBottom + 12 + tier * tierGap;
+        const ty = top ? y2 - 8 : y2 + 16;
+        return `
+        <line x1="${cx}" y1="${y1}" x2="${cx}" y2="${y2}" class="dgt-board-leader ${c.cls}"/>
+        <text x="${cx}" y="${ty}" text-anchor="${anchor}" class="dgt-board-callout ${c.cls}">${c.label}</text>`;
+    };
+
+    const callouts = [
+        ...topList.map((c, i) => renderCallout(c, topList.length - 1 - i, true)),
+        ...bottomList.map((c, i) => renderCallout(c, bottomList.length - 1 - i, false)),
+    ].join('');
+
+    const legend = BOARD_POS_ORDER.map(p => `<span class="allpro-pos pos-${p.toLowerCase()}">${p}</span>`).join('');
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Round by round · how the roster came together</span>
+        <h2 class="mc-title">The draft board</h2>
+        <p class="dgt-card-sub">Every pick this team made, in the order it made them. Solid squares are this year's best lineup by projected value; faded squares are the bench.</p>
+        <div class="dgt-chart-wrap">
+            <svg viewBox="0 0 ${W} ${H}" class="an-svg dgt-board-svg">${squares}${callouts}</svg>
+        </div>
+        <div class="dgt-board-legend">
+            ${legend}
+            <span class="dgt-board-swatch dgt-board-swatch--starter">Starter</span>
+            <span class="dgt-board-swatch dgt-board-swatch--bench">Bench</span>
+        </div>
+    </div>`;
+}
+
+// ─── Card: il board di tutta la lega, questa squadra in evidenza ─
+
+const LB = { labelW: 140, sq: 46, gap: 8, padX: 12, headerH: 30, tierGap: 40 };
+
+/**
+ * Orizzontale: SQUADRA in riga, round in colonna, celle quadrate — stesso
+ * linguaggio visivo di "The draft board" ma su tutta la lega in un colpo
+ * d'occhio. La riga della squadra è sempre l'ULTIMA (in basso), incorniciata,
+ * così le callout possono scendere sotto la griglia senza attraversare le
+ * righe altrui.
+ *
+ * Le callout riusano SOLO draft-grade.positionalStrategy — niente nuovo
+ * motore: è il verdetto già calibrato sul comportamento atteso dei rivali
+ * (ADP + bisogno di rosa), qui semplicemente mostrato nel contesto di cosa
+ * hanno scelto per davvero. Quando il piano B (waitAlt) è stato preso
+ * per davvero da un rivale, la callout dice anche da chi e quando: è un
+ * confronto con le pick vere della lega, non solo con un modello.
+ */
+function leagueBoardCard(ctx) {
+    const { grades, dg, team, teamKey } = ctx;
+    if (!grades?.length) return '';
+    const others = Object.keys(TEAMS).filter(k => k !== teamKey && grades.some(gr => gr.key === k));
+    if (!others.length) return '';
+    const teamOrder = [...others, teamKey]; // la propria squadra sempre ultima riga
+    const byKey = new Map(grades.map(gr => [gr.key, gr]));
+    const maxRound = Math.max(...grades.flatMap(gr => gr.list.map(p => p.round)));
+    const rowsN = teamOrder.length;
+    const mineRow = rowsN - 1;
+
+    const stratRows = (dg?.strategy?.slots || []).filter(s => s.verdict !== 'even').slice(0, 4);
+    const allPicks = grades.flatMap(gr => gr.list.map(p => ({ ...p, teamKeyOf: gr.key })));
+    const findDest = (name) => name ? allPicks.find(p => p.player === name && p.teamKeyOf !== teamKey) : null;
+
+    const gridLeft = LB.padX + LB.labelW;
+    const plotW = maxRound * LB.sq + (maxRound - 1) * LB.gap;
+    const gridTop = LB.headerH + 10;
+    const plotH = rowsN * LB.sq + (rowsN - 1) * LB.gap;
+    const padBottom = stratRows.length ? 30 + stratRows.length * LB.tierGap : 16;
+
+    const W = gridLeft + plotW + LB.padX;
+    const H = gridTop + plotH + padBottom;
+
+    const colX = (round) => gridLeft + (round - 1) * (LB.sq + LB.gap);
+    const rowY = (i) => gridTop + i * (LB.sq + LB.gap);
+
+    const roundHeader = Array.from({ length: maxRound }, (_, i) => `
+        <text x="${(colX(i + 1) + LB.sq / 2).toFixed(1)}" y="${LB.headerH - 10}"
+            text-anchor="middle" class="dgt-lb-round">${i + 1}</text>`).join('');
+
+    const rowLabels = teamOrder.map((k, i) => {
+        const t = TEAMS[k];
+        const mine = i === mineRow;
+        return `
+        <text x="${(LB.padX + LB.labelW - 12).toFixed(1)}" y="${(rowY(i) + LB.sq / 2 + 4).toFixed(1)}"
+            text-anchor="end" class="dgt-lb-team${mine ? ' dgt-lb-team--mine' : ''}" fill="${mine ? t.color : 'var(--text-muted)'}">${t.name}</text>`;
+    }).join('');
+
+    const mineBand = `
+        <rect x="${(gridLeft - 4).toFixed(1)}" y="${(rowY(mineRow) - 4).toFixed(1)}" width="${(plotW + 8).toFixed(1)}" height="${LB.sq + 8}" rx="10"
+            fill="${team.color}" fill-opacity="0.07"/>`;
+
+    const cells = teamOrder.map((k, ri) => {
+        const gr = byKey.get(k);
+        const mine = ri === mineRow;
+        return gr.list.map(p => {
+            const x = colX(p.round);
+            const y = rowY(ri);
+            const color = BOARD_POS_COLOR[p.pos] || BOARD_POS_COLOR.DEF;
+            return `
+            <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${LB.sq}" height="${LB.sq}" rx="8"
+                fill="${color}" fill-opacity="${mine ? 0.92 : 0.48}"
+                stroke="${mine ? 'var(--text-primary)' : 'none'}" stroke-width="${mine ? 1.4 : 0}">
+                <title>Round ${p.round} · ${TEAMS[k].name} · ${p.player} (${p.pos})</title>
+            </rect>
+            <text x="${(x + LB.sq / 2).toFixed(1)}" y="${(y + LB.sq / 2 + 4).toFixed(1)}"
+                text-anchor="middle" class="dgt-lb-pos">${p.pos}</text>`;
+        }).join('');
+    }).join('');
+
+    const lastTok = (name) => name.split(' ').slice(-1)[0];
+    const stratLabel = (s) => {
+        const line1 = `${s.pos} — ${s.verdict === 'right' ? 'right call' : "could've waited"} (${s.edge >= 0 ? '+' : ''}${s.edge} pt)`;
+        const dest = findDest(s.waitAlt?.name);
+        const line2 = dest ? `${lastTok(s.waitAlt.name)} → ${TEAMS[dest.teamKeyOf]?.name || dest.teamKeyOf} R${dest.round}` : null;
+        return { line1, line2 };
+    };
+    // ancorate tutte sotto la riga della squadra (che è l'ultima): una sotto
+    // l'altra per tier, così non si accavallano se due round sono vicini.
+    const calloutSvg = stratRows.map((s, tier) => {
+        const cx = colX(s.round) + LB.sq / 2;
+        const y1 = rowY(mineRow) + LB.sq;
+        const y2 = y1 + 14 + tier * LB.tierGap;
+        const anchor = cx < gridLeft + plotW * 0.25 ? 'start' : cx > gridLeft + plotW * 0.75 ? 'end' : 'middle';
+        const cls = s.verdict === 'right' ? 'dgt-board-callout--good' : 'dgt-board-callout--warn';
+        const { line1, line2 } = stratLabel(s);
+        const text = line2
+            ? `<text x="${cx.toFixed(1)}" y="${(y2 + 14).toFixed(1)}" text-anchor="${anchor}" class="dgt-board-callout ${cls}">${line1}</text>
+               <text x="${cx.toFixed(1)}" y="${(y2 + 28).toFixed(1)}" text-anchor="${anchor}" class="dgt-lb-callout-sub ${cls}">${line2}</text>`
+            : `<text x="${cx.toFixed(1)}" y="${(y2 + 14).toFixed(1)}" text-anchor="${anchor}" class="dgt-board-callout ${cls}">${line1}</text>`;
+        return `
+        <line x1="${cx.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${y2.toFixed(1)}" class="dgt-board-leader ${cls}"/>
+        ${text}`;
+    }).join('');
+
+    const legend = BOARD_POS_ORDER.map(p => `<span class="allpro-pos pos-${p.toLowerCase()}">${p}</span>`).join('');
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">All 4 teams, same rounds · ${team.name} highlighted</span>
+        <h2 class="mc-title">The whole board</h2>
+        <p class="dgt-card-sub">Every pick in the ${ctx.year} draft, round by round, one row per team — ${team.name}'s row always at the bottom, framed. The callouts reuse the same timing verdict already computed for "When you took each position", now read against what rivals actually did with their own turns.</p>
+        <div class="dgt-chart-wrap">
+            <svg viewBox="0 0 ${W} ${H}" class="an-svg dgt-lb-svg">${mineBand}${roundHeader}${rowLabels}${cells}${calloutSvg}</svg>
+        </div>
+        <div class="dgt-board-legend">${legend}</div>
+    </div>`;
+}
+
+// ─── Card: dove è finito il capitale del draft ───────────────────
+
+const FLOW = { w: 640, padY: 20, nodeW: 92, leftX: 20, rightX: 520 };
+
+function sankeyPath(xL, y0L, y1L, xR, y0R, y1R) {
+    const mid = (xL + xR) / 2;
+    return `M${xL},${y0L} C${mid},${y0L} ${mid},${y0R} ${xR},${y0R} L${xR},${y1R} C${mid},${y1R} ${mid},${y1L} ${xL},${y1L} Z`;
+}
+
+function flowNode(x, y0, y1, w, label, sub, bold) {
+    return `
+    <rect x="${x}" y="${y0.toFixed(1)}" width="${w}" height="${(y1 - y0).toFixed(1)}" rx="10"
+        fill="var(--bg-glass)" stroke="${bold ? 'var(--text-primary)' : 'var(--border-card)'}" stroke-width="${bold ? 2.5 : 1.5}"/>
+    <text x="${x + w / 2}" y="${((y0 + y1) / 2 - 3).toFixed(1)}" text-anchor="middle" class="dgt-flow-label">${label}</text>
+    <text x="${x + w / 2}" y="${((y0 + y1) / 2 + 14).toFixed(1)}" text-anchor="middle" class="dgt-flow-sub">${sub}</text>`;
+}
+
+// ordine di slot da mostrare a destra — lo stesso di team-eval.js:SLOT_KEYS,
+// generato dalle regole di lega vere (league-rules.js:ROSTER_SLOTS)
+const SLOT_ORDER = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLEX', 'K', 'DEF'];
+
+/**
+ * Alluvial (stile NYT "old districts → new districts"): a sinistra un blocco
+ * per OGNI pick di questa squadra, col cognome; a destra un blocco per ogni
+ * SLOT titolare — il codice di ruolo da league-rules.js, non "Starters" — più
+ * un blocco Bench aggregato. Seguendo il nastro si vede subito quale pick
+ * gioca in quale posizione. Evidenziati (bordo + nastro colorato) solo i
+ * blocchi toccati dal primo quarto del draft: il capitale più pregiato.
+ */
+function capitalFlowCard(ctx) {
+    const { g } = ctx;
+    const list = g.list;
+    if (!list?.length || !g.starters?.length) return '';
+
+    const filtered = list.filter(p => p.value != null);
+    const { bySlot } = pickStarters(filtered, 'value');
+    const starterPicks = new Set(g.starters.map(p => p.pick));
+    const slotOf = new Map();
+    for (const slotKey of SLOT_ORDER) { const p = bySlot[slotKey]; if (p) slotOf.set(p.pick, slotKey); }
+
+    const n = list.length;
+    const totalBench = n - starterPicks.size;
+
+    // sinistra: un blocco per pick. destra: un blocco per slot titolare + Bench.
+    const BH = 20, BGAP = 4, SGAP = 3, RGAP = 14;
+    const leftH = n * BH + (n - 1) * BGAP;
+    const rightH = SLOT_ORDER.length * BH + (SLOT_ORDER.length - 1) * SGAP + RGAP + totalBench * BH;
+    const H = FLOW.padY * 2 + Math.max(leftH, rightH);
+
+    // capitale pregiato = il primo quarto dei pick
+    const earlyCount = Math.max(1, Math.ceil(n / 4));
+    const earlyPicks = new Set(list.slice(0, earlyCount).map(p => p.pick));
+    const earlyLabel = earlyCount > 1 ? `R${list[0].round}-${list[earlyCount - 1].round}` : `R${list[0].round}`;
+
+    const leftNodes = list.map((p, i) => ({ p, y0: FLOW.padY + i * (BH + BGAP), y1: FLOW.padY + i * (BH + BGAP) + BH }));
+
+    let cursorR = FLOW.padY;
+    const slotNodes = SLOT_ORDER.map(slotKey => {
+        const node = { slotKey, y0: cursorR, y1: cursorR + BH };
+        cursorR += BH + SGAP;
+        return node;
+    });
+    const benchNode = { y0: cursorR - SGAP + RGAP, y1: cursorR - SGAP + RGAP + totalBench * BH };
+
+    let curBenchR = benchNode.y0, earlyBenchCount = 0;
+    const highlightSlots = new Set();
+    let highlightBench = false;
+    const ribbons = leftNodes.map((ln) => {
+        const early = earlyPicks.has(ln.p.pick);
+        const slotKey = slotOf.get(ln.p.pick);
+        let y0R, y1R;
+        if (slotKey) {
+            const node = slotNodes.find(s => s.slotKey === slotKey);
+            y0R = node.y0; y1R = node.y1;
+            if (early) highlightSlots.add(slotKey);
+        } else {
+            y0R = curBenchR; y1R = curBenchR + BH; curBenchR = y1R;
+            if (early) { earlyBenchCount++; highlightBench = true; }
+        }
+        const path = sankeyPath(FLOW.leftX + FLOW.nodeW, ln.y0, ln.y1, FLOW.rightX, y0R, y1R);
+        const cls = !early ? 'dgt-flow-ribbon' : `dgt-flow-ribbon dgt-flow-ribbon--${slotKey ? 'good' : 'warn'}`;
+        return `<path d="${path}" class="${cls}"/>`;
+    }).join('');
+
+    const caption = earlyBenchCount > 0
+        ? `${earlyBenchCount} of your first ${earlyCount} picks (${earlyLabel}) ended up on the bench.`
+        : `Every one of your first ${earlyCount} picks (${earlyLabel}) is starting this year.`;
+
+    const shortName = (name) => {
+        const last = name.split(' ').slice(-1)[0];
+        return last.length > 11 ? `${last.slice(0, 10)}…` : last;
+    };
+
+    const leftSvg = leftNodes.map(ln => {
+        const isStarter = starterPicks.has(ln.p.pick);
+        const color = BOARD_POS_COLOR[ln.p.pos] || BOARD_POS_COLOR.DEF;
+        const bold = earlyPicks.has(ln.p.pick);
+        return `
+        <rect x="${FLOW.leftX}" y="${ln.y0.toFixed(1)}" width="${FLOW.nodeW}" height="${BH}" rx="4"
+            fill="${color}" fill-opacity="0.8"
+            stroke="${bold ? 'var(--text-primary)' : 'none'}" stroke-width="${bold ? 1.6 : 0}">
+            <title>Round ${ln.p.round} · ${ln.p.player} (${ln.p.pos}) → ${isStarter ? (slotOf.get(ln.p.pick) || 'starter') : 'bench'}</title>
+        </rect>
+        <text x="${(FLOW.leftX + 7).toFixed(1)}" y="${(ln.y0 + BH / 2 + 3.5).toFixed(1)}" class="dgt-flow-name">${shortName(ln.p.player)}</text>`;
+    }).join('');
+
+    const slotSvg = slotNodes.map(s => `
+        <rect x="${FLOW.rightX}" y="${s.y0.toFixed(1)}" width="${FLOW.nodeW}" height="${BH}" rx="4"
+            fill="var(--bg-glass)" stroke="${highlightSlots.has(s.slotKey) ? 'var(--text-primary)' : 'var(--border-card)'}"
+            stroke-width="${highlightSlots.has(s.slotKey) ? 2 : 1.2}"/>
+        <text x="${(FLOW.rightX + FLOW.nodeW / 2).toFixed(1)}" y="${(s.y0 + BH / 2 + 3.5).toFixed(1)}" text-anchor="middle" class="dgt-flow-slot">${s.slotKey}</text>`).join('');
+
+    const benchSvg = flowNode(FLOW.rightX, benchNode.y0, benchNode.y1, FLOW.nodeW, 'Bench', `${totalBench} pick${totalBench === 1 ? '' : 's'}`, highlightBench);
+
+    const legend = BOARD_POS_ORDER.map(p => `<span class="allpro-pos pos-${p.toLowerCase()}">${p}</span>`).join('');
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Draft capital · who plays where</span>
+        <h2 class="mc-title">Where the picks ended up</h2>
+        <p class="dgt-card-sub">Every pick this team made, one block each in draft order; on the right, the starting slot it fills this year (league roster rules) or the bench. Bold blocks and ribbon are the first quarter of the draft.</p>
+        <div class="dgt-chart-wrap">
+            <svg viewBox="0 0 ${FLOW.w} ${H}" class="an-svg dgt-flow-svg">${ribbons}${leftSvg}${slotSvg}${benchSvg}</svg>
+        </div>
+        <div class="dgt-board-legend">${legend}</div>
+        <p class="dgt-card-sub dgt-flow-caption">${caption}</p>
     </div>`;
 }
 
@@ -769,41 +1161,52 @@ function picksSection(ctx, prevYear) {
     const rows = g.list.map(p => {
         const hit = matchProjection(meta.proj, p.player, p.pos);
         const expAtDraft = hit?.rookieYear != null ? +year - hit.rookieYear : null;
-        const kind = classifyPick(p);
-        const verdict = pickSeeded(PICK_VERDICTS[kind], seed + p.pick)({
-            player: p.player, pick: p.pick,
-            alt: p.alt ? p.alt.player : 'nessuno',
-            adpGap: p.adp ? Math.max(1, Math.round(p.adp - p.pick)) : 0,
-        });
 
-        let adpLabel = '';
-        if (p.adp) {
-            const diff = Math.round(p.adp - p.pick);
-            adpLabel = diff > 6 ? `<span class="dg-badge dg-badge--down">reach · ADP ${Math.round(p.adp)}</span>`
-                : diff < -6 ? `<span class="dg-badge dg-badge--up">steal · ADP ${Math.round(p.adp)}</span>`
-                    : `<span class="dgt-chip">ADP ${Math.round(p.adp)}</span>`;
-        }
+        // Il voto della pick e le sue tre metriche di supporto. Le metriche
+        // sono in inglese piano: "sarebbe durato fino al tuo turno?" al posto
+        // dei σ dall'ADP, "punti sopra un titolare da waiver" al posto di VOR
+        // secco, e il nome vero del miglior giocatore rimasto sul board — che
+        // era già calcolato ma finiva in fondo, ed è la cosa più leggibile
+        // dell'intera pagina.
+        const rp = ctx.dgByPick?.get(p.pick);
+        const pickGrade = rp
+            ? `<div class="dgt-pick-grade">
+                   <span class="dg-letter dg-letter--${gradeBand(rp.letter)}">${rp.letter}</span>
+                   <span class="dgt-pick-score">${rp.grade}<small>/100</small></span>
+               </div>` : '';
 
-        // voto della singola pick: valore raccolto vs atteso della slot,
-        // stessa scala dei voti squadra
-        const pickLetter = letterFor(p.expected ? p.value / p.expected : 0, 1);
-        const pickGrade = `<span class="dg-letter dgt-pick-grade dg-letter--${gradeBand(pickLetter)}" title="Historic pick grade v1: ${fmt0(p.value)} pt vs ${fmt0(p.expected)} expected at slot #${p.pick}">${pickLetter}</span>`;
-
-        // Draft Score v2 della pick (decomponibile): grade + metriche + best-available
-        const rp = ctx.v2ByPick?.get(p.pick);
-        const v2Grade = rp
-            ? `<span class="dgt-v2-pill dg-v2--${gradeBandV2(rp.letter)}" title="Draft Score v2 pick grade (${Math.round(rp.pickScore)}/100)">v2 ${rp.letter}</span>` : '';
-        const marketChip = rp && rp.adpZ != null
-            ? `<span class="dgt-v2-metric ${rp.adpZ >= 0 ? 'up' : 'down'}" title="Reach/steal in deviazioni standard dall'ADP di consenso FFC (${rp.adpN ?? '?'} draft, σ ${rp.adpStdev}) — positivo = caduto oltre l'ADP (steal)">${rp.adpZ >= 0 ? 'steal' : 'reach'} ${rp.adpZ >= 0 ? '+' : ''}${rp.adpZ}σ</span>`
-            : '';
-        const v2Line = rp ? `
-                <p class="dgt-pick-v2">
-                    ${marketChip}
-                    <span class="dgt-v2-metric" title="Value Over Replacement: valore sopra il livello di replacement della lega per il ruolo">VOR ${rp.vor}</span>
-                    <span class="dgt-v2-metric ${rp.opportunityCost < -5 ? 'down' : ''}" title="Costo opportunità: valore need-adjusted rispetto al miglior disponibile sul board (≤0)">opportunity cost ${rp.opportunityCost}</span>
-                    ${rp.scarcity > 0 ? `<span class="dgt-v2-metric up" title="Salto di valore rispetto al prossimo giocatore dello stesso ruolo ancora sul board">scarcity +${rp.scarcity}</span>` : ''}
-                    ${rp.bestAlt ? `<span class="dgt-v2-alt">best on the board: <b>${rp.bestAlt.name}</b> (${rp.bestAlt.pos}${rp.bestAlt.team ? ` · ${rp.bestAlt.team}` : ''}, VOR ${rp.bestAlt.vor})</span>` : ''}
-                </p>` : '';
+        // la percentuale si mostra sempre: su un nome di testa del board la
+        // stima è spesso un testa-o-croce, e un sì/no secco lo nasconderebbe
+        const BAND = {
+            gone: ['up', (r) => `No — ${r.survivalPct}% chance of lasting to #${r.nextPick}`],
+            tossup: ['', (r) => `Toss-up — ${r.survivalPct}% chance of lasting to #${r.nextPick}`],
+            lasted: ['down', (r) => `Yes — ${r.survivalPct}% chance of lasting to #${r.nextPick}`],
+        };
+        const lastedRow = rp && rp.survivalBand
+            ? (() => {
+                const [cls, txt] = BAND[rp.survivalBand];
+                return `<div class="dgt-sup">
+                   <span class="dgt-sup-q">Would he have lasted to your next pick?</span>
+                   <span class="dgt-sup-a ${cls}">${txt(rp)}</span>
+               </div>`;
+            })() : '';
+        const boardRow = rp && rp.bestAlt
+            ? `<div class="dgt-sup">
+                   <span class="dgt-sup-q">Best player still on the board</span>
+                   <span class="dgt-sup-a">${rp.bestAlt.name} <small>${rp.bestAlt.pos}${rp.bestAlt.team ? ` · ${rp.bestAlt.team}` : ''}</small></span>
+               </div>`
+            : rp ? `<div class="dgt-sup">
+                   <span class="dgt-sup-q">Best player still on the board</span>
+                   <span class="dgt-sup-a up">${p.player} — nobody better was left</span>
+               </div>` : '';
+        const vorRow = rp
+            ? `<div class="dgt-sup">
+                   <span class="dgt-sup-q">Points above the best free agent at his position</span>
+                   <span class="dgt-sup-a ${rp.vor > 0 ? 'up' : ''}">${rp.vor > 0 ? '+' : ''}${rp.vor}${rp.scarcity >= 15 ? ` <small>· position dropped ${rp.scarcity} right after him</small>` : ''}</span>
+               </div>` : '';
+        const supportBlock = rp
+            ? `<div class="dgt-sups">${lastedRow}${boardRow}${vorRow}</div>
+               <p class="dgt-pick-why">${pickWhy(rp)}</p>` : '';
 
         const altTeamKey = p.alt ? TEAM_KEYS[displayName(p.alt.team)] : null;
         const altWho = p.alt ? `<b>${p.alt.player}</b> (proj ${fmt0(p.alt.value)} pt, later #${p.alt.pick}${altTeamKey ? ` to ${TEAMS[altTeamKey].name}` : ''})` : '';
@@ -842,28 +1245,25 @@ function picksSection(ctx, prevYear) {
                      data-player-name="${p.player}" data-team="${p.nfl}" data-pos="${p.pos}">
                 <div class="dg-pick-info">
                     <span class="dg-pick-name">${p.player} <small>${p.pos}${p.nfl ? ` · ${p.nfl}` : ''} · round ${p.round}</small></span>
-                    <span class="dg-pick-val">${fmt0(p.value)} pt ${d?.wHist ? 'expected (projection + history)' : 'projected'} <small>vs ${fmt0(p.expected)} expected (${p.delta >= 0 ? '+' : ''}${fmt0(p.delta)})</small></span>
+                    <span class="dg-pick-val">${fmt0(p.value)} pt ${d?.wHist ? 'expected (projection + history)' : 'projected'}${p.adp ? ` <small>· consensus ADP ${Math.round(p.adp)}</small>` : ''}</span>
                     ${actualLine}
                 </div>
-                ${adpLabel}
-                ${v2Grade}
                 ${pickGrade}
             </div>
             <div class="dgt-pick-body">
+                ${supportBlock}
                 <p class="dgt-pick-prior">${priorLine(p, prevStats, prevYear, expAtDraft)} ${badges}</p>
                 ${olderLine}
                 <p class="dgt-pick-alt">${altLine}</p>
-                ${v2Line}
-                <p class="dgt-pick-verdict">${verdict}</p>
             </div>
         </div>`;
     }).join('');
 
-    // timeline v2: strip round → voto-pick (colpo d'occhio prima del dossier)
-    const timeline = ctx.v2?.picks?.length ? `
+    // striscia giro → voto (colpo d'occhio prima del dossier)
+    const timeline = ctx.dg?.picks?.length ? `
         <div class="dgt-timeline">
-            ${ctx.v2.picks.map(r => `
-            <div class="dgt-tl-cell dg-v2--${gradeBandV2(r.letter)}" title="Pick #${r.pick} · ${r.player} (${r.pos}) · v2 ${r.letter} ${Math.round(r.pickScore)}/100">
+            ${ctx.dg.picks.map(r => `
+            <div class="dgt-tl-cell dg-letter--${gradeBand(r.letter)}" title="Pick #${r.pick} · ${r.player} (${r.pos}) · ${r.letter} ${r.grade}/100">
                 <span class="dgt-tl-round">R${r.round}</span>
                 <span class="dgt-tl-letter">${r.letter}</span>
             </div>`).join('')}
@@ -883,23 +1283,24 @@ function picksSection(ctx, prevYear) {
 const WK = { w: 860, h: 320, l: 52, r: 120, t: 18, b: 34 };
 
 function verdictSection(ctx) {
-    const { year, team, g, weekly, vor, rank } = ctx;
+    const { year, team, g, weekly, delivery, dg } = ctx;
 
-    // voto di fine stagione (VOR) vs voto post-draft
-    const eos = vor?.byKey?.[g.key];
-    const postLetter = letterFor(g.ratio, rank);
-    const eosBlock = eos ? `
+    // Il voto del draft (decisioni) accanto alla resa vera (risultato). Il
+    // secondo NON è una lettera di proposito: sarebbe una pagella concorrente,
+    // ed era il difetto del vecchio "FS". Qui è un numero e un rango.
+    const eos = delivery?.byKey?.[g.key];
+    const eosBlock = eos && dg ? `
         <div class="dgt-eos-grades">
             <div class="dgt-eos-item">
-                <span class="mc-kicker">Post-draft grade</span>
-                <span class="dg-letter dg-letter--${gradeBand(postLetter)}">${postLetter}</span>
-                <small>on draft-day projections</small>
+                <span class="mc-kicker">Draft Grade</span>
+                <span class="dg-letter dg-letter--${gradeBand(dg.letter)}">${dg.letter}</span>
+                <small>the decisions, judged on draft day</small>
             </div>
             <div class="dgt-eos-arrow" aria-hidden="true">→</div>
             <div class="dgt-eos-item">
-                <span class="mc-kicker">End-of-season grade</span>
-                <span class="dg-letter dg-letter--${gradeBand(eos.letter)}">${eos.letter}</span>
-                <small>${eos.rank + 1}${eos.rank + 1 === 1 ? 'st' : eos.rank + 1 === 2 ? 'nd' : eos.rank + 1 === 3 ? 'rd' : 'th'} in league on VOR basis (real yield)</small>
+                <span class="mc-kicker">What it actually delivered</span>
+                <span class="dgt-eos-num">${fmt0(eos.vor)}<small> VOR</small></span>
+                <small>${ordinal(eos.rank)} in league · ${Math.round(eos.share * 100)}% of all the value the league's draft produced</small>
             </div>
         </div>` : '';
 

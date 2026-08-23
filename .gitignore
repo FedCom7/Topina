@@ -21,6 +21,8 @@ npm-debug.log*
 
 # nflverse raw CSV cache (rigenerabile, mai committato)
 .nflverse-cache/
+# cache di rete degli script di build (rigenerabile, mai committata)
+.cache/
 __pycache__/
 
 # Draft di prova: strumento locale, scrive sul nodo vero del draft.

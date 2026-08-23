@@ -10,7 +10,7 @@ import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=534';
 import { computeTeamBadges } from '../data/badges.js?v=513';
 import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=518';
 import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=605';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {

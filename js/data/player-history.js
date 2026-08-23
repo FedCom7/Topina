@@ -25,7 +25,7 @@
  * ultime 3 stagioni (finestra su cui è stato calibrato).
  */
 
-import { getSeasonStats, matchProjection } from './projections.js?v=589';
+import { getSeasonStats, matchProjection } from './projections.js?v=591';
 
 const BLEND_DEPTH = 3;              // finestra del blend/trend (calibrata)
 const CAREER_DEPTH = 6;             // stagioni mostrate/analizzate
@@ -146,20 +146,20 @@ export function blendValue(projValue, hist, pos) {
 export function riskFlag(hist, yearsExp) {
     if (hist?.trend !== 'down') return null;
     if (yearsExp != null && yearsExp >= 6) {
-        return { level: 'alto', label: 'veterano in calo — flop nel 36% dei casi storici' };
+        return { level: 'alto', label: 'declining veteran — flopped 36% of the time historically' };
     }
-    return { level: 'medio', label: 'trend in calo — flop nel 17% dei casi storici' };
+    return { level: 'medio', label: 'declining trend — flopped 17% of the time historically' };
 }
 
 export function trendBadge(hist) {
     if (!hist?.trend) return '';
     const map = {
-        up: ['dg-trend--up', '↗ in crescita'],
-        flat: ['dg-trend--flat', '→ stabile'],
-        down: ['dg-trend--down', '↘ in calo'],
+        up: ['dg-trend--up', '↗ trending up'],
+        flat: ['dg-trend--flat', '→ steady'],
+        down: ['dg-trend--down', '↘ trending down'],
     };
     const [cls, txt] = map[hist.trend];
-    return `<span class="dg-trend ${cls}" title="Per-game ultima stagione vs media ultime ${BLEND_DEPTH}">${txt}</span>`;
+    return `<span class="dg-trend ${cls}" title="Last season's per-game output vs the average of the previous ${BLEND_DEPTH}">${txt}</span>`;
 }
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
@@ -168,7 +168,7 @@ const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 export function historyLine(hist, pos, max = 3) {
     if (!hist?.seasons?.length) return '';
     return hist.seasons.slice(0, max).map(s => {
-        if (s.gp < MIN_GP) return `${s.year}: ${s.gp} gar${s.gp === 1 ? 'a' : 'e'} (infortunio)`;
+        if (s.gp < MIN_GP) return `${s.year}: ${s.gp} game${s.gp === 1 ? '' : 's'} (injured)`;
         const rank = s.posRank ? ` (${pos}${s.posRank})` : '';
         return `${s.year}: ${fmt0(s.ptsLeague)} pt${rank}`;
     }).join(' · ');
@@ -179,6 +179,6 @@ export function peakNote(hist, pos) {
     if (!hist?.peak) return '';
     const p = hist.peak;
     const rank = p.posRank ? `${pos}${p.posRank}, ` : '';
-    const base = `ai suoi massimi nel ${p.year} (${rank}${fmt0(p.ptsLeague)} pt)`;
-    return hist.offPeak ? `${base} — oggi lontano da quel livello` : base;
+    const base = `peaked in ${p.year} (${rank}${fmt0(p.ptsLeague)} pt)`;
+    return hist.offPeak ? `${base} — a long way from that level now` : base;
 }

@@ -2,7 +2,7 @@
  * Topina League — Data Layer
  * All Firebase RTDB fetching and processing.
  */
-import { db } from './firebase-config.js';
+import { db } from './firebase-config.js?v=1';
 import { ref, child, get } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js';
 
 /**

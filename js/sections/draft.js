@@ -5,21 +5,59 @@
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=599';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=605';
-import { db } from '../firebase-config.js';
+import { db } from '../firebase-config.js?v=1';
 import { fetchDraftStatus } from '../data/espn-fantasy.js?v=4';
 
 let loaded = false;
 let currentPicks = [];
 let currentYear = null;
+let currentRound = 'all';
+let currentMode = 'order'; // 'order' | 'snake'
 
 export async function initDraft() {
     if (loaded) return;
     loaded = true;
     initPlayerModal();
     renderYearSelector();
+    renderModeSelector();
     await loadYear(CURRENT_SEASON);
+}
+
+/**
+ * Ordine di pesca vs vista a squadra: nel draft reale il giro pari va a
+ * serpentina (l'ultimo che sceglie al giro 1 sceglie per primo al giro 2), e
+ * quell'ordine grezzo è quello che mostra "order". "snake" lo riallinea per
+ * colonna: i pick del giro pari vengono ribaltati così lo stesso team resta
+ * sempre nella stessa colonna del grid, uno sotto l'altro giro dopo giro.
+ */
+function applySnakeOrder(picks) {
+    const rounds = new Map();
+    picks.forEach(p => {
+        if (!rounds.has(p.round)) rounds.set(p.round, []);
+        rounds.get(p.round).push(p);
+    });
+    const result = [];
+    for (const [round, list] of rounds) {
+        result.push(...(round % 2 === 0 ? list.slice().reverse() : list));
+    }
+    return result;
+}
+
+function renderModeSelector() {
+    const container = document.getElementById('dr-mode-selector');
+    container.innerHTML = `
+        <button class="round-pill active" data-mode="order">Draft order</button>
+        <button class="round-pill" data-mode="snake">By team</button>`;
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.round-pill');
+        if (!btn) return;
+        container.querySelectorAll('.round-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+        renderCards(currentRound);
+    });
 }
 
 function renderYearSelector() {
@@ -96,6 +134,7 @@ async function loadYear(year) {
 
         const maxRound = Math.max(...currentPicks.map(p => p.round));
         renderRoundSelector(maxRound);
+        currentRound = 'all';
         renderCards('all');
     } catch (e) {
         console.error(`[Draft] Error loading year ${year}:`, e);
@@ -115,13 +154,15 @@ function renderRoundSelector(maxRound) {
         if (!btn) return;
         container.querySelectorAll('.round-pill').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        renderCards(btn.dataset.round);
+        currentRound = btn.dataset.round;
+        renderCards(currentRound);
     });
 }
 
 function renderCards(round) {
     const grid = document.getElementById('draft-grid');
-    const picks = round === 'all' ? currentPicks : currentPicks.filter(p => p.round === parseInt(round));
+    let picks = round === 'all' ? currentPicks : currentPicks.filter(p => p.round === parseInt(round));
+    if (currentMode === 'snake') picks = applySnakeOrder(picks);
 
     grid.innerHTML = picks.map((p, i) => {
         const teamKey = TEAM_KEYS[displayName(p.team)] || null;
@@ -177,3 +218,4 @@ function updateDraftImages(year) {
         }
     });
 }
+

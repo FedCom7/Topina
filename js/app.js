@@ -4,12 +4,13 @@
 import { initHome } from './sections/home.js?v=619';
 import { initGameCenter } from './sections/game-center.js?v=622';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=611';
-import { initDraft } from './sections/draft.js?v=618';
-import { initDraftGrades } from './sections/draftgrades.js?v=609';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=608';
+import { initDraft } from './sections/draft.js?v=621';
+import { initDraftGrades } from './sections/draftgrades.js?v=618';
+import { initProjections } from './sections/projections.js?v=6';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=622';
 import { initPlayerPage } from './sections/player-page.js?v=832';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=853';
-import { initPlayersSearch } from './sections/players-search.js?v=856';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=895';
+import { initPlayersSearch } from './sections/players-search.js?v=859';
 import { initStats } from './sections/stats.js?v=619';
 import { initHistory } from './sections/history.js?v=596';
 import { initHonors } from './sections/honors.js?v=583';
@@ -33,6 +34,7 @@ const SECTIONS = {
     'analysis': initAnalysis,
     'draft': initDraft,
     'draftgrades': initDraftGrades,
+    'projections': initProjections,
     'stats': initStats,
     'history': initHistory,
     'honors': initHonors,
@@ -49,6 +51,7 @@ const NAV_PARENT = {
     'allpro': 'history',
     'halloffame': 'history',
     'draftgrades': 'draft',
+    'projections': 'draft',
     'playoffs': 'standings',
     'magazine': 'game-center',
 };

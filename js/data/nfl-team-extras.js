@@ -9,7 +9,7 @@
  * live sul roster ESPN (stesso pattern di player-image-service.js).
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=520';
+import { canonAbbr } from './nfl-schedule.js?v=522';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
 import { getTeamUsage } from './context-score.js?v=581';
 
@@ -121,11 +121,15 @@ async function espnDepthChart(abbr) {
     if (!units?.length) return (_depth[teamId] = null);
     // starters = athlete di testa per slot; full = intera profondità ordinata
     // (titolare, 2ª, 3ª scelta…) per un blocco "depth chart completo".
-    const out = { offense: [], defense: [], special: [], full: { offense: [], defense: [], special: [] } };
+    const out = { scheme: null, offense: [], defense: [], special: [], full: { offense: [], defense: [], special: [] } };
     for (const unit of units) {
         // "Special Teams" → special; "Base N-N D" → difesa; il resto → attacco.
-        const side = unit.name === 'Special Teams' ? 'special'
-            : /^Base \d-\d D$/.test(unit.name || '') ? 'defense' : 'offense';
+        const base = /^Base (\d-\d) D$/.exec(unit.name || '');
+        const side = unit.name === 'Special Teams' ? 'special' : base ? 'defense' : 'offense';
+        // Fronte base dichiarato da ESPN (3-4 su 20 squadre, 4-3 sulle altre 12):
+        // serve a schierare il campo nel modulo giusto, perché le etichette dei
+        // ruoli cambiano di conseguenza (NT/LILB/RILB vs LDT/RDT/MLB).
+        if (base) out.scheme = base[1];
         for (const slot of Object.values(unit.positions || {})) {
             const list = slot.athletes || [];
             if (!list.length) continue;
@@ -155,6 +159,35 @@ export function currentNflSeason(d = new Date()) {
     return d.getMonth() + 1 >= 3 ? d.getFullYear() : d.getFullYear() - 1;
 }
 
+/**
+ * Anni in lega di un giocatore nella stagione `season`, 0 = rookie.
+ *
+ * Si calcola da `rookieYear` (nflverse), non da `yearsExp`: è deterministico e
+ * vale identico su stagioni passate e corrente. `yearsExp` resta come ripiego,
+ * ma SOLO quello nflverse — che ha la stessa convenzione (verificato su
+ * roster_2024/2025/2026 contro rookieYear).
+ *
+ * L'`experience.years` di ESPN NON è utilizzabile qui: conta le stagioni
+ * ATTIVE, non gli anni dal debutto, e sulla stessa rosa 2026 dà 3 a Drake Maye
+ * (rookie 2024, terza stagione: nflverse 2) ma 2 a Cory Durden (rookie 2023,
+ * quarta stagione: nflverse 3). Le due fonti coincidono solo sui rookie.
+ */
+/**
+ * Non draftato (UDFA): servono ASSENTI entrambi i campi del draft. Su 2924
+ * giocatori del roster 2026 un solo caso ha `draftClub` senza `draftNumber`
+ * (Jonah Williams, 11ª scelta 2019: numero mancante nel dato) — col doppio
+ * controllo resta correttamente tra i draftati.
+ */
+function _isUndrafted(p) {
+    return !p?.draftNumber && !p?.draftClub;
+}
+
+function _yearsInLeague(p, season) {
+    const y = Number(season);
+    if (p?.rookieYear && Number.isFinite(y)) return Math.max(0, y - p.rookieYear);
+    return p?.yearsExp ?? null;
+}
+
 const DEPTH_ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'LT', 'LG', 'C', 'RG', 'RT', 'T', 'G', 'OL', 'OT', 'OG',
     'DE', 'EDGE', 'DT', 'NT', 'DL', 'OLB', 'ILB', 'MLB', 'LB', 'CB', 'DB', 'S', 'FS', 'SS', 'SAF',
     'PK', 'K', 'P', 'H', 'LS', 'KR', 'PR'];
@@ -169,8 +202,42 @@ const SPECIAL_SLOT = new Set(['PK', 'K', 'P', 'H', 'LS', 'KR', 'PR']);
  * al depth chart live ESPN quando il build manca (stagione corrente).
  * Ritorna { source, offense, defense } dove ogni voce è { pos, players:[{name, jersey}] }.
  */
+/**
+ * Chi è ARRIVATO nella stagione `year`: mappa nome → sigla della squadra in cui
+ * giocava l'anno prima.
+ *
+ * Si ricava confrontando i roster nflverse di due stagioni consecutive, uniti
+ * per `gsis` (stabile, a differenza del nome): dato strutturato, nessuna frase
+ * da interpretare e nessuna richiesta di rete in più — i due file sono locali e
+ * già in cache. Dice QUANDO uno è arrivato e DA DOVE, non come (scambio, waiver
+ * o free agent): quello vive solo nelle transactions ESPN, che sono prosa.
+ *
+ * Limiti: i file partono dal 2019, quindi per la stagione più vecchia non c'è
+ * un "anno prima" e la mappa esce vuota; e la granularità è la stagione, quindi
+ * uno scambio a stagione in corso si vede nell'anno dopo.
+ */
+async function arrivalsForTeam(A, year) {
+    const y = Number(year);
+    if (!Number.isFinite(y)) return {};
+    const [cur, prev] = await Promise.all([rosterJson(y), rosterJson(y - 1)]);
+    const list = cur?.teams?.[A];
+    if (!list?.length || !prev?.teams) return {};
+    const prevByGsis = {};
+    for (const [t, pl] of Object.entries(prev.teams)) {
+        for (const p of pl) if (p.gsis) prevByGsis[p.gsis] = t;
+    }
+    const out = {};
+    for (const p of list) {
+        const was = p.gsis ? prevByGsis[p.gsis] : null;
+        if (was && was !== A) out[_normName(p.name)] = was;
+    }
+    return out;
+}
+
 export async function getTeamDepthChart(abbr, year) {
     const A = canonAbbr(abbr);
+    const arrivals = await arrivalsForTeam(A, year).catch(() => ({}));
+    const arrivedFrom = (name) => arrivals[_normName(name || '')] || null;
 
     // Depth chart nflverse (build): raggruppa per depthPosition, ordina per snap%.
     const nflBuild = async () => {
@@ -182,14 +249,16 @@ export async function getTeamDepthChart(abbr, year) {
             const slot = p.depthPosition || p.pos;
             const side = OFF_SLOT.has(slot) ? 'offense' : DEF_SLOT.has(slot) ? 'defense' : SPECIAL_SLOT.has(slot) ? 'special' : null;
             if (!side) continue;
-            (bySlot[side][slot] ??= []).push({ name: p.name, jersey: p.jersey ?? null, snapPct: p.snapPct ?? 0 });
+            (bySlot[side][slot] ??= []).push({ name: p.name, jersey: p.jersey ?? null, yearsExp: _yearsInLeague(p, year), rookieYear: p.rookieYear ?? null, undrafted: _isUndrafted(p), arrivedFrom: arrivedFrom(p.name), snapPct: p.snapPct ?? 0 });
         }
         const rank = (pos) => { const i = DEPTH_ORDER.indexOf(pos); return i === -1 ? 999 : i; };
         const build = (obj) => Object.entries(obj)
             .sort((a, b) => rank(a[0]) - rank(b[0]))
-            .map(([pos, players]) => ({ pos, players: players.sort((a, b) => (b.snapPct || 0) - (a.snapPct || 0)).map(x => ({ name: x.name, jersey: x.jersey })) }));
+            .map(([pos, players]) => ({ pos, players: players.sort((a, b) => (b.snapPct || 0) - (a.snapPct || 0)).map(x => ({ name: x.name, jersey: x.jersey, yearsExp: x.yearsExp, rookieYear: x.rookieYear, undrafted: x.undrafted, arrivedFrom: x.arrivedFrom })) }));
         const offense = build(bySlot.offense), defense = build(bySlot.defense), special = build(bySlot.special);
-        return (offense.length || defense.length || special.length) ? { source: 'build', offense, defense, special } : null;
+        // scheme: null → nflverse non dichiara il fronte base (le etichette sono
+        // già generiche: DE, DT, OLB, ILB…), il campo usa il template 4-3.
+        return (offense.length || defense.length || special.length) ? { source: 'build', scheme: null, offense, defense, special } : null;
     };
 
     // Depth chart ESPN (ufficiale) arricchito con la MAGLIA (ESPN /depthcharts non
@@ -203,24 +272,36 @@ export async function getTeamDepthChart(abbr, year) {
             espnRoster(A).catch(() => null),
             year ? rosterJson(year) : Promise.resolve(null),
         ]);
-        const jerseyByName = {};
+        // Maglia: ESPN /roster primaria, nflverse ripiego. Anni in lega: SOLO
+        // nflverse (vedi _yearsInLeague — l'esperienza ESPN conta altro). Chi non
+        // è nel build resta senza: meglio nessun dato che uno sbagliato.
+        const jerseyByName = {}, expByName = {}, rookieByName = {}, udfaByName = {};
         for (const a of (espnAth || [])) {
             const nm = _normName(a.displayName || a.fullName || '');
-            if (nm && a.jersey) jerseyByName[nm] = +a.jersey;   // ESPN /roster: primaria
+            if (nm && a.jersey) jerseyByName[nm] = +a.jersey;
         }
         for (const p of (roster?.teams?.[A] || [])) {
             const nm = _normName(p.name);
-            if (nm && jerseyByName[nm] == null && p.jersey != null) jerseyByName[nm] = p.jersey; // nflverse: fallback
+            if (!nm) continue;
+            if (jerseyByName[nm] == null && p.jersey != null) jerseyByName[nm] = p.jersey;
+            const exp = _yearsInLeague(p, year);
+            if (exp != null) expByName[nm] = exp;
+            if (p.rookieYear) rookieByName[nm] = p.rookieYear;
+            udfaByName[nm] = _isUndrafted(p);
         }
         const enrich = (side) => side.map(slot => ({
             pos: slot.pos,
             players: slot.players.map(pl => ({
                 name: pl.name,
                 jersey: pl.jersey ?? jerseyByName[_normName(pl.name || '')] ?? null,
+                yearsExp: expByName[_normName(pl.name || '')] ?? null,
+                rookieYear: rookieByName[_normName(pl.name || '')] ?? null,
+                undrafted: udfaByName[_normName(pl.name || '')] ?? null,
+                arrivedFrom: arrivedFrom(pl.name),
                 injury: pl.injury || null,
             })),
         }));
-        return { source: 'espn-live', offense: enrich(dc.full.offense), defense: enrich(dc.full.defense), special: enrich(dc.full.special || []) };
+        return { source: 'espn-live', scheme: dc.scheme || null, offense: enrich(dc.full.offense), defense: enrich(dc.full.defense), special: enrich(dc.full.special || []) };
     };
 
     // Stagione corrente → ESPN (ufficiale) con maglia nflverse; passate → nflverse.

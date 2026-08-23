@@ -12,11 +12,57 @@
  */
 
 import { scoreProjectedStats } from './scoring.js?v=592';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
 
 const TTL_MS = 24 * 60 * 60 * 1000; // le proiezioni cambiano di rado
 const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano
 const _mem = {};
 const _memStats = {};
+
+/**
+ * Le uniche statistiche che teniamo in `raw`. Sleeper ne manda 66 per voce e
+ * l'86% del peso erano varianti di ADP che non guardiamo (dynasty, 2QB, IDP,
+ * rookie, std, half-PPR): 3,5 MB di localStorage per anno, su una quota di 5.
+ *
+ * L'elenco è l'unione di chi legge `raw`: lo scoring di lega (SLEEPER_MAP in
+ * scoring.js), la decomposizione proiezione-vs-reale (STAT_DEFS in
+ * perf-explain.js) e le tabelle della pagina giocatore (CATEGORIES in
+ * player-page.js). Aggiungendo una statistica a una di quelle tre va aggiunta
+ * QUI, altrimenti dalla cache arriva un trattino.
+ */
+const KEPT_STATS = new Set([
+    // scoring di lega
+    'pass_yd', 'pass_td', 'pass_int', 'rush_yd', 'rush_td', 'rec', 'rec_yd', 'rec_td',
+    'fum_lost', 'pass_2pt', 'rush_2pt', 'rec_2pt', 'fgm_0_19', 'fgm_20_29', 'fgm_30_39',
+    'fgm_40_49', 'fgm_50p', 'xpm', 'sack', 'int', 'fum_rec', 'def_td', 'def_st_td',
+    'safe', 'def_2pt', 'pts_allow',
+    // riepiloghi e disponibilità
+    'adp_ppr', 'pts_std', 'pts_ppr', 'pts_half_ppr', 'gp', 'gs', 'gms_active',
+    'pos_rank_ppr', 'pos_rank_half_ppr', 'off_snp', 'tm_off_snp', 'yds_allow', 'penalty',
+    // tabelle pagina giocatore
+    'pass_att', 'pass_cmp', 'cmp_pct', 'pass_rtg', 'pass_sack', 'pass_air_yd', 'pass_fd', 'pass_rz_att',
+    'rush_att', 'rush_ypa', 'rush_lng', 'rush_fd', 'rush_rz_att', 'rush_yac',
+    'rec_tgt', 'rec_ypr', 'rec_ypt', 'rec_lng', 'rec_air_yd', 'rec_yar', 'rec_fd', 'rec_rz_tgt', 'rec_drop',
+    'fgm', 'fga', 'fgm_lng', 'xpa',
+    'idp_tkl', 'idp_tkl_solo', 'idp_sack', 'idp_int', 'idp_ff', 'idp_fum_rec',
+    'idp_pass_def', 'idp_qb_hit', 'idp_tkl_loss', 'idp_def_td', 'idp_safe',
+    'kr', 'kr_yd', 'kr_td', 'pr', 'pr_yd', 'pr_td', 'st_td',
+]);
+
+/** Copia di `stats` con le sole chiavi che qualcuno legge davvero. */
+export function trimStats(stats) {
+    if (!stats) return stats;
+    const out = {};
+    for (const k in stats) if (KEPT_STATS.has(k) && stats[k] != null) out[k] = stats[k];
+    return out;
+}
+
+/** Voce senza i campi nulli: a 2900 giocatori i `null` da soli sono centinaia di KB. */
+function compact(entry) {
+    const out = {};
+    for (const k in entry) if (entry[k] != null) out[k] = entry[k];
+    return out;
+}
 
 function urlFor(kind, year) {
     const pos = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
@@ -41,13 +87,9 @@ export function normName(name) {
 export async function getSeasonProjections(year) {
     if (_mem[year]) return _mem[year];
 
-    const cacheKey = `topina_proj_v4_${year}`;
-    try {
-        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-        if (cached && Date.now() - cached.at < TTL_MS) {
-            return (_mem[year] = new Map(cached.entries));
-        }
-    } catch { /* cache corrotta: si rifà il fetch */ }
+    const cacheKey = `topina_proj_v5_${year}`;
+    const hit = cacheGet(cacheKey, TTL_MS);
+    if (hit) return (_mem[year] = new Map(hit));
 
     const res = await fetch(urlFor('projections', year));
     if (!res.ok) throw new Error(`Sleeper projections ${res.status}`);
@@ -84,9 +126,12 @@ export async function getSeasonProjections(year) {
         if (!map.has(key) || (entry.team && !map.get(key).team)) map.set(key, entry);
     });
 
-    try {
-        localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), entries: [...map.entries()] }));
-    } catch { /* quota piena: pazienza, resta il fetch */ }
+    // In memoria la mappa resta intera; su disco va la versione magra —
+    // `raw` solo per chi una proiezione ce l'ha davvero (637 voci su 2896:
+    // le altre sono coda di ADP, e le loro stat sono vuote comunque).
+    cacheSet(cacheKey, [...map.entries()].map(([k, e]) => [k, compact({
+        ...e, raw: e.projPts == null && e.ptsStd == null ? null : trimStats(e.raw),
+    })]));
     return (_mem[year] = map);
 }
 
@@ -99,13 +144,9 @@ export async function getSeasonProjections(year) {
 export async function getSeasonStats(year) {
     if (_memStats[year]) return _memStats[year];
 
-    const cacheKey = `topina_stats_v3_${year}`;
-    try {
-        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-        if (cached && Date.now() - cached.at < STATS_TTL_MS) {
-            return (_memStats[year] = new Map(cached.entries));
-        }
-    } catch { /* cache corrotta: si rifà il fetch */ }
+    const cacheKey = `topina_stats_v4_${year}`;
+    const hit = cacheGet(cacheKey, STATS_TTL_MS);
+    if (hit) return (_memStats[year] = new Map(hit));
 
     const res = await fetch(urlFor('stats', year));
     if (!res.ok) throw new Error(`Sleeper stats ${res.status}`);
@@ -139,9 +180,7 @@ export async function getSeasonStats(year) {
         if (!map.has(key) || (entry.gp || 0) > (map.get(key).gp || 0)) map.set(key, entry);
     });
 
-    try {
-        localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), entries: [...map.entries()] }));
-    } catch { /* quota piena: pazienza, resta il fetch */ }
+    cacheSet(cacheKey, [...map.entries()].map(([k, e]) => [k, compact(e)]));
     return (_memStats[year] = map);
 }
 

@@ -23,7 +23,7 @@ import { electHallOfFame } from '../data/hall-of-fame.js?v=583';
 import { TEAMS } from './team.js?v=599';
 import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=533';
 import { teamsCardsHTML } from './teams.js?v=575';
-import { playerImageService } from '../services/player-image-service.js?v=515';
+import { playerImageService } from '../services/player-image-service.js?v=516';
 
 let initialized = false;
 

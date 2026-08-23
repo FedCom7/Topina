@@ -117,6 +117,129 @@ Firebase resta l'archivio: settimane chiuse e stagioni 2019-2025.
 ### Team Name Mapping
 Firebase stores team names differently from display names (e.g., `riccardo97com` → `Oscurus`, `FedCom` → `Sommo`). Mapping lives in `data.js:TEAM_DISPLAY_NAMES`. Team keys, logos, and stadium images are in `js/data/team-config.js`.
 
+### Area Draft — tre sezioni sorelle
+
+Il dropdown "Draft" del nav ha tre voci, tutte con `NAV_PARENT → 'draft'`:
+`#draft` (Draft Recap, `sections/draft.js`), `#draftgrades` (le pagelle,
+`sections/draftgrades.js` + la pagina squadra `draftgrade-team.js`) e
+`#projections` (`sections/projections.js`).
+
+**Projections è il listone in chiaro**: le stesse proiezioni Sleeper/Rotowire
+che alimentano `draft-grade.js`, per ruolo e in ordine di punti, con ADP e chi
+ha preso chi. Esiste perché un voto si possa contestare guardando i numeri veri.
+Se cambia il modo in cui il motore valorizza una pick, questa tabella va
+allineata — altrimenti mostra numeri che non sono quelli usati per votare.
+I kicker restano senza punti (Sleeper non li proietta a livello stagionale) e
+si ordinano per ADP: il fallback storico da 125 pt vive solo dentro al motore,
+a schermo sarebbe un numero inventato.
+
+### Draft Grade — un voto solo, e deve restare uno
+
+Il motore è `js/data/draft-grade.js`. Sostituisce due motori precedenti che
+convivevano sulla stessa pagina (il "ratio vs slot atteso" e il Draft Score v2)
+ed erano **scorrelati fra loro**: ρ 0.147 su 419 pick, 86% di disaccordo sulla
+posizione di lega, con casi A+ contro F sullo stesso giocatore. Nessuno dei due
+correlava con la stagione vera (ρ +0.03 e +0.11 contro i punti fatti).
+
+Regole da non violare aggiungendo roba a questa pagina:
+
+1. **Una sola cosa a schermo ha la forma "lettera".** Il voto. Tutto il resto —
+   talento, efficienza, resa di fine stagione, TSI, SOS+, risk — sono NUMERI.
+   L'ambiguità "quale voto guardo?" nasceva dall'avere più pagelle affiancate.
+2. **La pick si giudica sul contro-fattuale, non sullo slot.** Il valore
+   catturato rispetto a quello che ti aspettava comunque al turno successivo.
+   Baseline diverse (es. "l'N-esimo miglior valore del pool") reintroducono la
+   deriva di giro: il vecchio voto v1 correlava +0.39 col numero del giro, e
+   nessuna pick di 1°/2° giro prendeva mai A+ mentre il 54% di quelle del 15° sì.
+3. **Due livelli di replacement, distinti apposta.** `replacementLevels`
+   (team-eval) = ultimo titolare di lega, per il TALENTO. `waiverLevels`
+   (draft-grade) = miglior non draftato, per il voto delle singole pick. In una
+   lega a 4 squadre il primo è così alto che dal 7° giro azzera il VOR di tutti.
+4. **Le soglie-lettera sono quantili empirici**, generati da
+   `node scripts/build-draft-grade-calib.mjs` → `data/model/draft_grade_calib.json`.
+   Lo script deve valorizzare le pick **esattamente come il sito** (blend storico
+   K/DEF compreso): calibrare su una distribuzione diversa da quella votata
+   sbaglia le lettere ai bordi. Lo script stampa anche il backtest contro i punti
+   veri — se `meanGradeRho` va sotto zero, il motore è rotto, non i pesi.
+5. I pesi talento/efficienza (0.6/0.4) sono una **scelta di design dichiarata**,
+   non una taratura: con 28 team-stagione non è tarabile, e la nota a fondo
+   pagina lo dice.
+6. **Il numero mostrato non è il punteggio interno.** Dentro si ragiona in
+   percentili (media storica ≈ 47); a schermo passa da `displayScore()`, che
+   rimappa la fascia della lettera sugli ancoraggi di una pagella (A+ = 97 …
+   D = 65). È una trasformazione monotona: l'ordine non cambia mai. Serve
+   perché "A- · 65/100" si leggeva come una sufficienza risicata. Ogni nuovo
+   punto a schermo deve usare `.grade`, mai `.score`.
+7. **La sopravvivenza è TARATA, non a sentimento.** Validata su 420 pick e
+   7350 coppie (per ogni pick, ogni candidato serio: è davvero arrivato al
+   turno dopo?). Cosa dicono i numeri:
+   - l'avversario si modella sull'**ordine di mercato (ADP) spinto dal
+     fabbisogno**, mai sul VOR. Prevedere la scelta vera dell'avversario:
+     VOR need-adjusted log-loss 5.306 / azzecca 14.5%; ADP puro 4.760 / 16.0%;
+     **ADP + spinta need 4.632 / 16.9%** ← quella in uso. I drafter seguono il
+     listone e lo piegano ai buchi di rosa, non calcolano il valore sopra il
+     replacement — col VOR il motore preferiva un RB a un WR che proiettava di
+     più e aveva un ADP migliore.
+   - l'ADP porta quasi tutta la capacità di distinguere chi resta; il need ne
+     aggiunge poca. Perciò `NEED_WEIGHT` sta a **0.25**.
+   - **niente ricalibrazione a esponente.** Una versione precedente alzava le
+     probabilità per far combaciare la media col tasso base (86% dei candidati
+     sopravvive) e spostava la soglia a 0.88. Schiacciava tutto verso 1 e
+     rendeva un testa-o-croce indistinguibile da una certezza, proprio sui
+     giocatori di testa del board che sono gli unici che contano. Ora la soglia
+     è 0.5, la stima resta un po' pessimista, e la **percentuale si mostra a
+     schermo** in tre fasce (`survivalBand`: gone / tossup / lasted) invece di
+     un sì/no che il modello non ha i numeri per sostenere.
+   Se tocchi questi parametri rifai il test: qui l'intuito ha sbagliato più
+   volte, la mia compresa.
+8. Il verdetto "potevi aspettare sul TE/QB?" (`positionalStrategy`) confronta
+   **due piani su due turni**, mai VOR assoluti. Confrontare il giocatore preso
+   col miglior altro-ruolo che spariva dava "troppo presto" su ogni singola
+   pick, prima compresa: al primo giro sparisce sempre qualcuno di enorme.
+
+### localStorage: tutto passa da `js/utils/storage.js`
+
+Le cache del browser hanno spento il sito una volta (2026-08-23) e possono
+rifarlo. L'SDK Firebase scrive `firebase:previous_websocket_failure` dentro
+`WebSocketConnection.open` **senza try/catch**: a storage pieno quella setItem
+lancia, la open si interrompe, il websocket non si apre e *ogni*
+`fetchFantasyData` va in timeout — home, standings, storico, tutto vuoto. Le
+nostre cache invece la quota la ignoravano (setItem già protette), quindi si
+prendevano tutto lo spazio e a pagarla era l'unico che non sa difendersi.
+
+Chi riempiva: la cache delle proiezioni Sleeper pesava **3,5 MB per anno**, di
+cui l'86% varianti di ADP che non leggiamo (dynasty, 2QB, IDP, rookie, std,
+half-PPR); le pagine giocatore aggiungevano una chiave per giocatore per
+stagione, senza limite. Misurato su una pagina QB: 10,2 MB occupati.
+
+Regole:
+
+1. **Niente `localStorage` diretto per le cache.** Si usano `cacheGet(key, ttl)`
+   e `cacheSet(key, data)`: tengono sempre libera una riserva per l'SDK e
+   sfrattano da soli. Fa eccezione solo `topina-live-preseason` in `live.js`,
+   che è un flag da pochi byte e non una cache.
+2. **Chiave nuova = famiglia nuova in `FAMILIES`.** Fuori da quel registro una
+   cache è invisibile allo sfratto: cresce e basta. Il `tier` dice cosa si
+   butta per primo — 0 è quello che si rifà con una richiesta sola, 3 le mappe
+   costruite un pezzo alla volta (foto, atleti ESPN).
+3. **Bumpare la versione in una chiave (`_v4_` → `_v5_`) non basta**: i blob
+   vecchi restavano per sempre. `FAMILIES.stale` li riconosce e `sweepStorage()`
+   li cancella all'avvio — perciò la versione va cambiata **in tutti e due i
+   posti**, nella chiave e in `FAMILIES.current`.
+4. **`sweepStorage()` gira in `firebase-config.js` prima di `initializeApp`**,
+   e deve restarci: è l'unico punto garantito prima che si apra il websocket.
+5. **Si salva solo ciò che qualcuno legge.** `trimStats()` in `projections.js`
+   tiene le sole statistiche usate da `SLEEPER_MAP` (scoring), `STAT_DEFS`
+   (perf-explain) e `CATEGORIES` (player-page). Aggiungendo una statistica a
+   una di quelle tre va aggiunta **anche a `KEPT_STATS`**, altrimenti dal vivo
+   si vede e dalla cache no.
+6. Il tetto `BUDGET_CHARS` (~4 MB) ce lo diamo noi, non lo impone il browser: la
+   quota vera non è una costante — Chrome su localhost concede quasi 10 MB, il
+   limite classico è 5, e su GitHub Pages l'origine è condivisa. Aspettare il
+   muro vuol dire scoprire dov'è quando ci sbatte Firebase.
+
+`storageReport()` da console stampa quanto occupa ogni famiglia.
+
 ### Cache Busting
 ES module imports use query string versioning (`?v=28`). Bump the version number when changing a module to bust browser cache.
 

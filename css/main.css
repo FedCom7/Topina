@@ -9079,6 +9079,44 @@ div.gb-out-player:last-of-type {
 .dgt-curve-gapmark { stroke: var(--accent-red, #ff453a); stroke-width: 1.4; }
 .dgt-curve-callout { fill: var(--text-primary); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
 
+/* Draft board a quadrati (stile calendario NYT): round per round, colore per
+   ruolo, pieno se titolare / sbiadito se panchina, callout con leader-line. */
+.dgt-board-num { font-size: 22px; font-weight: 700; font-family: var(--font-display); }
+.dgt-board-sq--flag { stroke: var(--text-primary); stroke-width: 2.5; }
+.dgt-board-leader { stroke: var(--text-muted); stroke-width: 1.2; }
+.dgt-board-callout { fill: var(--text-secondary); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
+.dgt-board-callout--warn { fill: var(--accent-amber, #f0b429); }
+.dgt-board-callout--good { fill: var(--accent-green, #30d158); }
+.dgt-board-leader.dgt-board-callout--warn { stroke: var(--accent-amber, #f0b429); }
+.dgt-board-leader.dgt-board-callout--good { stroke: var(--accent-green, #30d158); }
+.dgt-board-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.dgt-board-swatch { position: relative; padding-left: 18px; font-size: 0.74rem; color: var(--text-muted); }
+.dgt-board-swatch::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 12px; height: 12px; border-radius: 3px; background: var(--text-muted);
+}
+.dgt-board-swatch--starter::before { opacity: 0.85; }
+.dgt-board-swatch--bench::before { opacity: 0.22; }
+
+/* Alluvial "dove è finito il capitale" (stile NYT redistricting) */
+.dgt-flow-svg { min-width: 560px; }
+.dgt-flow-ribbon { fill: color-mix(in srgb, var(--text-muted) 22%, transparent); }
+.dgt-flow-ribbon--good { fill: color-mix(in srgb, var(--accent-green, #30d158) 45%, transparent); }
+.dgt-flow-ribbon--warn { fill: color-mix(in srgb, var(--accent-amber, #f0b429) 45%, transparent); }
+.dgt-flow-label { fill: var(--text-primary); font-size: 12px; font-weight: 700; font-family: var(--font-display); }
+.dgt-flow-sub { fill: var(--text-muted); font-size: 10px; font-family: var(--font-body); }
+.dgt-flow-caption { font-weight: 600; color: var(--text-secondary); }
+.dgt-flow-name { fill: #fff; font-size: 10.5px; font-weight: 700; font-family: var(--font-body); }
+.dgt-flow-slot { fill: var(--text-primary); font-size: 11px; font-weight: 700; font-family: var(--font-display); }
+
+/* Il board di tutta la lega (round × squadra), colonna della squadra in evidenza */
+.dgt-lb-svg { min-width: 560px; }
+.dgt-lb-team { font-size: 12px; font-weight: 700; font-family: var(--font-display); }
+.dgt-lb-team--mine { font-weight: 800; }
+.dgt-lb-round { fill: var(--text-muted); font-size: 10px; font-family: var(--font-body); }
+.dgt-lb-pos { fill: #fff; font-size: 11px; font-weight: 700; font-family: var(--font-display); }
+.dgt-lb-callout-sub { font-size: 10px; font-weight: 500; font-family: var(--font-body); opacity: 0.85; }
+
 /* Corsa dei top pick: enfasi sul protagonista */
 .an-endlabel--lead { font-weight: 800; }
 
@@ -9429,232 +9467,244 @@ div.gb-out-player:last-of-type {
 .dg-tsibar--good .dg-tsibar-track > span { background: var(--accent-green, #34d399); }
 .dg-tsibar--bad .dg-tsibar-track > span { background: var(--accent-red, #ff5c5c); }
 .dgt-tsi-big { color: var(--accent-purple, #a855f7) !important; }
-.dg-eos {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 0.95rem;
-    line-height: 1;
-    padding: 2px 7px;
-    border-radius: 8px;
-    color: var(--text-secondary, #cbd5e1);
-    background: color-mix(in srgb, var(--text-muted) 16%, transparent);
-    border: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
-    cursor: help;
+
+
+/* ─── Draft Grade: il voto unico ─────────────────────────────────
+   Gerarchia visiva rigida: la LETTERA è l'unica cosa grande, le metriche di
+   supporto sono numeri tabulari, e nient'altro nella pagina usa la forma
+   "lettera" — era l'ambiguità che faceva chiedere "quale voto guardo?". */
+
+.dg-letter--F { color: var(--accent-red); }
+
+/* pila voto: lettera + punteggio, in testa a card e hero */
+.dg-grade-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
     margin-left: auto;
 }
-.dg-sum .dg-eos + .dg-letter { margin-left: 8px; }
-
-/* ─── Draft Score v2 (voto decomponibile, affianca il voto storico) ─── */
-.dg-v2--A { color: var(--accent-green); }
-.dg-v2--B { color: var(--accent-amber); }
-.dg-v2--C { color: #f97316; }
-.dg-v2--D, .dg-v2--F { color: var(--accent-red); }
-
-/* chip nel riepilogo lista */
-.dg-v2 {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    padding: 1px 8px;
-    border-radius: 999px;
-    color: var(--accent-cyan, #22d3ee);
-    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-cyan, #22d3ee) 40%, transparent);
-    cursor: help;
-    white-space: nowrap;
-    margin-left: 8px;
+.dg-grade-score {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
 }
-.dg-v2.dg-v2--A { border-color: color-mix(in srgb, var(--accent-green) 40%, transparent); }
-.dg-v2.dg-v2--D, .dg-v2.dg-v2--F { border-color: color-mix(in srgb, var(--accent-red) 40%, transparent); }
+.dg-grade-score small { color: var(--text-muted); font-weight: 600; font-size: 0.72rem; }
 
-/* blocco v2 dentro la card della lista */
-.dg-v2-tag {
-    font-style: normal;
-    font-size: 0.55rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 1px 5px;
-    border-radius: 5px;
-    color: var(--accent-cyan, #22d3ee);
-    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 16%, transparent);
-    vertical-align: middle;
+/* riepilogo lista: nome, punteggio, lettera */
+.dg-sum { flex-wrap: nowrap; }
+.dg-sum-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
+.dg-sum-score {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
 }
-.dg-v2-head {
-    display: flex;
-    align-items: baseline;
+.dg-sum-score small { color: var(--text-muted); font-weight: 600; font-size: 0.7rem; }
+.dg-sum .dg-sum-score + .dg-letter { margin-left: 10px; flex-shrink: 0; }
+
+/* la frase che spiega il voto */
+.dg-why {
+    margin: 6px 0 2px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    max-width: 62ch;
+}
+
+/* metriche di supporto della card: numeri, mai lettere */
+.dg-support {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 10px;
-    margin: 2px 0 6px;
+    padding: 12px 0 2px;
+    border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    margin-top: 12px;
 }
-.dg-v2-badge {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 1.5rem;
-    line-height: 1;
-}
-.dg-v2-score { font-weight: 800; font-size: 1rem; }
-.dg-v2-score small { color: var(--text-muted); font-weight: 600; font-size: 0.7rem; }
-.dg-v2-rank { color: var(--text-muted); font-size: 0.72rem; font-weight: 600; }
-.dg-v2-parts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 6px;
-    margin-bottom: 6px;
-}
-.dg-v2-parts > span {
+.dg-support-item { display: flex; flex-direction: column; gap: 1px; }
+.dg-support-label {
     font-size: 0.66rem;
     font-weight: 600;
-    color: var(--text-secondary, #cbd5e1);
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
-    border: 1px solid var(--border-subtle);
-    cursor: help;
-    white-space: nowrap;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
 }
-.dg-v2-hl { display: flex; flex-wrap: wrap; gap: 6px; }
+.dg-support-val {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.dg-support-val small { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); }
+.dg-support-rank { font-size: 0.7rem; color: var(--text-muted); }
 
-/* card v2 nella pagina team */
-.dgt-v2-big { color: var(--accent-cyan, #22d3ee) !important; }
-.dgt-v2-comps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+/* voto della singola pick nella lista completa */
+.dg-row-grade {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.86rem;
+    min-width: 26px;
+    text-align: right;
+}
+
+/* ─── Scatter talento × efficienza (stile NYT) ──────────────────── */
+.dg-scat-svg { width: 100%; height: auto; min-width: 480px; }
+.dg-scat-guide {
+    stroke: color-mix(in srgb, var(--text-muted) 45%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+}
+.dg-scat-name {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+.dg-scat-sub {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.dg-scat-quad {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    fill: var(--text-muted);
+}
+.dg-scat-quad--good { fill: var(--accent-green, #30d158); }
+.dg-scat-quad--bad { fill: var(--accent-red, #ff453a); }
+.dg-scat-quadsub {
+    font-family: var(--font-body);
+    font-size: 9px;
+    fill: var(--text-muted);
+}
+.dg-scat-axis {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: var(--text-muted);
+    letter-spacing: 0.03em;
+}
+.dg-scat-plot {
+    fill: color-mix(in srgb, var(--text-muted) 5%, transparent);
+    stroke: var(--border-subtle, rgba(255, 255, 255, 0.07));
+    stroke-width: 1;
+}
+.dg-scat-lead { stroke: color-mix(in srgb, var(--text-muted) 55%, transparent); stroke-width: 1; }
+.dg-scat-avg {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 600;
+    fill: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+/* ─── Pagina squadra: voto e metriche ───────────────────────────── */
+.dgt-grade-big { color: var(--text-primary) !important; }
+.dgt-why {
+    margin: 4px 0 14px;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    max-width: 70ch;
+}
+.dgt-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
     margin: 4px 0 12px;
 }
-.dgt-v2-comp {
+.dgt-metric {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    min-width: 96px;
-    flex: 1 1 96px;
-    max-width: 180px;
-    padding: 10px 12px;
-    border-radius: var(--radius-md, 12px);
-    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 6%, transparent);
-    border: 1px solid var(--border-subtle);
-    cursor: help;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.07));
 }
-.dgt-v2-comp-label {
-    font-size: 0.62rem;
-    font-weight: 600;
+.dgt-metric-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
     color: var(--text-muted);
 }
-.dgt-v2-comp-val { font-weight: 800; font-size: 1.1rem; }
-.dgt-v2-hl { display: flex; flex-wrap: wrap; gap: 6px; }
-
-/* riga v2 dentro ogni pick + pill del voto-pick */
-.dgt-v2-pill {
+.dgt-metric-val {
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: 0.9rem;
-    line-height: 1;
-    padding: 2px 7px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-cyan, #22d3ee) 34%, transparent);
-    cursor: help;
-    white-space: nowrap;
+    font-size: 1.7rem;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
 }
-.dgt-pick-head > .dgt-v2-pill { margin-left: auto; }
-.dgt-pick-head .dgt-v2-pill + .dgt-pick-grade,
-.dgt-pick-head > .dgt-chip + .dgt-v2-pill,
-.dgt-pick-head .dg-badge + .dgt-v2-pill { margin-left: 6px; }
-.dgt-pick-v2 {
+.dgt-metric-val small { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+.dgt-metric-note { font-size: 0.72rem; line-height: 1.45; color: var(--text-muted); }
+
+/* voto della pick nel dossier */
+.dgt-pick-grade {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
-    gap: 6px 8px;
-    margin: 4px 0;
+    gap: 1px;
+    margin-left: auto;
+    flex-shrink: 0;
 }
-.dgt-v2-metric {
-    font-size: 0.68rem;
+.dgt-pick-grade .dg-letter { font-size: 1.9rem; line-height: 1; }
+.dgt-pick-score {
+    font-size: 0.72rem;
     font-weight: 700;
-    color: var(--text-secondary, #cbd5e1);
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
-    border: 1px solid var(--border-subtle);
-    cursor: help;
-    white-space: nowrap;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
 }
-.dgt-v2-metric.up { color: var(--accent-green); border-color: color-mix(in srgb, var(--accent-green) 34%, transparent); }
-.dgt-v2-metric.down { color: var(--accent-red); border-color: color-mix(in srgb, var(--accent-red) 34%, transparent); }
-.dgt-v2-alt { font-size: 0.72rem; color: var(--text-muted); }
-.dgt-v2-alt b { color: var(--text-secondary, #cbd5e1); }
 
-/* scarsità posizionale / tier */
-.dgt-scar-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px 24px;
-}
-@media (max-width: 640px) { .dgt-scar-grid { grid-template-columns: 1fr; } }
-.dgt-scar-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
-.dgt-scar-row {
-    display: grid;
-    grid-template-columns: 1fr 90px 30px 34px;
-    align-items: center;
-    gap: 8px;
-    padding: 2px 0;
-}
-.dgt-scar-name { font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary, #cbd5e1); }
-.dgt-scar-bar { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 16%, transparent); overflow: hidden; }
-.dgt-scar-bar > span { display: block; height: 100%; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 45%, transparent); }
-.dgt-scar-vor { font-size: 0.72rem; font-weight: 700; text-align: right; color: var(--text-secondary, #cbd5e1); }
-.dgt-scar-tag { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-muted); text-align: right; }
-.dgt-scar-mine .dgt-scar-name { color: var(--team-color); font-weight: 700; }
-.dgt-scar-mine .dgt-scar-tag { color: var(--team-color); }
-.dgt-scar-other { opacity: 0.65; }
-.dgt-scar-free .dgt-scar-bar > span { background: color-mix(in srgb, var(--accent-cyan, #22d3ee) 40%, transparent); }
-.dgt-scar-free .dgt-scar-tag { color: var(--accent-cyan, #22d3ee); }
-.dgt-scar-cliff { border-top: 1px dashed color-mix(in srgb, var(--accent-red) 45%, transparent); padding-top: 5px; margin-top: 3px; }
-
-/* league comparison v2 */
-.dg-lc-table td { vertical-align: middle; }
-.dg-lc-table small { color: var(--text-muted); }
-.dg-lc-why { max-width: 240px; }
-@media (max-width: 720px) { .dg-lc-why { display: none; } }
-
-/* storia del draft: strategia (did well / hurt) + what-if */
-.dgt-story-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-}
-@media (max-width: 640px) { .dgt-story-cols { grid-template-columns: 1fr; } }
-.dgt-story-h { display: block; margin-bottom: 6px; }
-.dgt-story-h--good { color: var(--accent-green); }
-.dgt-story-h--bad { color: var(--accent-red); }
-.dgt-story-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
-.dgt-story-list li { font-size: 0.82rem; line-height: 1.4; color: var(--text-secondary, #cbd5e1); }
-.dgt-story-good li::marker { color: var(--accent-green); }
-.dgt-story-bad li::marker { color: var(--accent-red); }
-.dgt-whatif { display: flex; flex-direction: column; gap: 8px; }
-.dgt-whatif-row {
+/* le tre domande di supporto sotto ogni pick */
+.dgt-sups {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-    border-radius: var(--radius-md, 12px);
-    background: color-mix(in srgb, var(--accent-green) 7%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-green) 22%, transparent);
+    flex-direction: column;
+    gap: 5px;
+    margin: 8px 0 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--text-muted) 7%, transparent);
 }
-.dgt-whatif-delta {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 1.15rem;
-    color: var(--accent-green);
-    min-width: 54px;
+.dgt-sup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 0.8rem;
 }
-.dgt-whatif-text { font-size: 0.8rem; color: var(--text-secondary, #cbd5e1); }
+.dgt-sup-q { color: var(--text-muted); }
+.dgt-sup-a {
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.dgt-sup-a small { font-weight: 500; color: var(--text-muted); }
+.dgt-sup-a.up { color: var(--accent-green, #30d158); }
+.dgt-sup-a.down { color: var(--accent-amber, #f0b429); }
+.dgt-pick-why {
+    margin: 0 0 6px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
 
-/* timeline round → voto-pick */
+@media (max-width: 560px) {
+    .dgt-sup { grid-template-columns: 1fr; gap: 1px; }
+    .dgt-sup-a { text-align: left; }
+}
+
 .dgt-timeline {
     display: flex;
     flex-wrap: wrap;
@@ -9693,7 +9743,16 @@ div.gb-out-player:last-of-type {
     gap: 2px;
 }
 .dgt-eos-item .dg-letter { font-size: 2.2rem; }
-.dgt-eos-item small { color: var(--text-muted); font-size: 0.7rem; }
+.dgt-eos-item small { color: var(--text-muted); font-size: 0.7rem; max-width: 30ch; }
+.dgt-eos-num {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+.dgt-eos-num small { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 .dgt-eos-arrow { font-size: 1.6rem; color: var(--text-muted); }
 .dgt-sos-bar .dgt-sos-label em {
     font-style: normal;
@@ -11357,6 +11416,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-res--w { color: var(--accent-green); }
 .pp-res--l { color: var(--accent-red); }
 .pp-res--t { color: var(--accent-amber); }
+.pp-res--live { color: var(--accent-blue, #4f9dff); }
 
 /* Matchup a quadratino (schedule squadra): stesso linguaggio visivo del ribbon
    stagionale (mini-card + barra di riempimento colorata) ma col numero di
@@ -11607,6 +11667,116 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .ps-search-input:focus { border-color: var(--accent-blue, #4f9dff); }
 .ps-search-input::placeholder { color: var(--text-muted); }
 
+/* ── Tabellone NFL della settimana (sotto la ricerca) ──
+   Le partite su DUE file: su desktop le colonne si allargano fino a riempire
+   la riga, su schermi stretti restano larghe 150px e le due file scorrono
+   insieme in orizzontale. */
+.ps-sb-wrap { margin: 0 0 24px; }
+.ps-sb-wrap[hidden] { display: none; }
+
+.ps-sb-weeks { display: flex; align-items: center; gap: 8px; margin: 12px 0 14px; }
+.ps-sb-pills { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.ps-sb-pills .week-pill { width: 34px; height: 30px; font-size: 0.72rem; }
+.ps-sb-arrow {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+}
+.ps-sb-arrow:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-card); background: var(--bg-glass); }
+.ps-sb-arrow:disabled { opacity: 0.3; cursor: default; }
+
+.ps-sb-grid {
+    display: grid;
+    grid-template-rows: repeat(2, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);   /* le 8 colonne stanno sempre nella riga */
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+}
+.ps-sb-game {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-glass);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+a.ps-sb-game { transition: border-color 0.15s ease, transform 0.15s ease; }
+a.ps-sb-game:hover { border-color: var(--accent-blue, #4f9dff); transform: translateY(-2px); }
+.ps-sb-game.is-pre { cursor: default; }
+
+.ps-sb-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ps-sb-game--live .ps-sb-status { color: var(--accent-red); }
+
+.ps-sb-team {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+}
+.ps-sb-team img { width: 18px; height: 18px; object-fit: contain; }
+.ps-sb-team--loser { opacity: 0.5; }
+.ps-sb-name { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.ps-sb-abbr { font-weight: 600; }
+.ps-sb-rec { font-size: 0.65rem; color: var(--text-muted); }
+.ps-sb-score {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+.ps-sb-tv {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 0.8em;
+}
+
+.ps-sb-bye { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 0.72rem; }
+.ps-sb-bye-label { font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.ps-sb-bye-team { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); text-decoration: none; }
+.ps-sb-bye-team:hover { color: var(--accent); }
+.ps-sb-bye-team img { width: 16px; height: 16px; object-fit: contain; }
+
+/* Sotto i 1100px le card diventerebbero illeggibili: larghezza fissa e le due
+   file scorrono insieme in orizzontale. */
+@media (max-width: 1100px) {
+    .ps-sb-grid { grid-auto-columns: 150px; }
+    .ps-sb-pills { gap: 4px; }
+    .ps-sb-pills .week-pill { width: 30px; height: 28px; }
+}
+
 .ps-results { display: flex; flex-direction: column; gap: 20px; }
 .ps-group { display: flex; flex-direction: column; gap: 6px; }
 
@@ -11765,6 +11935,57 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-depth-player.pp-depth-starter { color: var(--text-primary); font-weight: 600; }
 .pp-depth-player small { color: var(--text-muted); }
 .pp-depth-sep { color: var(--text-muted); opacity: 0.6; }
+/* Legenda dei tre colori: pallino in currentColor + etichetta. */
+.pp-depth-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 14px; font-size: 0.72rem; }
+.pp-depth-legend-item { display: inline-flex; align-items: center; gap: 5px; color: var(--text-secondary); }
+.pp-depth-legend-item::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; flex: none;
+}
+/* Anni in lega (yearsExp, 0 = rookie): 1ª/2ª/3ª stagione a colori, dal 4º anno
+   in poi resta il bianco/grigio titolare-riserva. Selettori a due classi: devono
+   battere .pp-depth-player.pp-depth-starter e .pp-depth-legend-item, che hanno
+   pari specificità e nel file vengono prima. */
+.pp-depth-player.pp-depth-y1, .pp-depth-legend-item.pp-depth-y1 { color: var(--accent-green); }
+.pp-depth-player.pp-depth-y2, .pp-depth-legend-item.pp-depth-y2 { color: var(--accent-blue); }
+.pp-depth-player.pp-depth-y3, .pp-depth-legend-item.pp-depth-y3 { color: var(--accent-purple); }
+/* Non draftati: nessun colore (restano bianco titolare / grigio riserva), l'anno
+   lo dicono 1, 2 o 3 righe sotto il nome. Righe disegnate come background-image
+   e non con text-decoration, che di righe ne sa fare al massimo due (double). */
+.pp-depth-udfa {
+    background-repeat: no-repeat;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-position: 0 100%;
+    padding-bottom: 2px;
+}
+.pp-depth-udfa.pp-depth-u2 {
+    background-image: linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px, 100% 1px;
+    background-position: 0 100%, 0 calc(100% - 3px);
+    padding-bottom: 5px;
+}
+.pp-depth-udfa.pp-depth-u3 {
+    background-image: linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px, 100% 1px, 100% 1px;
+    background-position: 0 100%, 0 calc(100% - 3px), 0 calc(100% - 6px);
+    padding-bottom: 8px;
+}
+/* Sigla della squadra di provenienza per chi è arrivato nella stagione mostrata.
+   Neutra di proposito: i colori della riga dicono già gli anni in lega. */
+.pp-depth-from {
+    display: inline-block; margin-left: 4px; padding: 0 4px;
+    font-size: 0.58rem; font-weight: 700; line-height: 1.5; vertical-align: middle;
+    border-radius: 4px; color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+}
+.pp-depth-from::before { content: '← '; }
+/* Etichette "Drafted"/"Undrafted" che separano i due gruppi della legenda. */
+.pp-depth-legend-lbl {
+    color: var(--text-muted); text-transform: uppercase;
+    font-size: 0.62rem; letter-spacing: 0.06em; font-weight: 700;
+}
+.pp-depth-legend .pp-depth-udfa { color: var(--text-secondary); }
 /* Flag infortunio (da ESPN): pastiglia con la sigla (Q/D/O/IR…). */
 .pp-depth-inj {
     display: inline-block; margin-left: 3px; padding: 0 4px;
@@ -11779,8 +12000,11 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-depth-special .pp-cat-title { grid-column: 1 / -1; }
 
 /* Sezione lega sotto la ricerca in Players */
-.ps-league { margin-top: 28px; }
+/* I blocchi del pannello NFL non hanno margini propri: la distanza la dà il
+   contenitore, altrimenti si toccano l'uno con l'altro. */
+.ps-league { margin-top: 28px; display: flex; flex-direction: column; gap: 22px; }
 .ps-league[hidden] { display: none; }
+.ps-league > .ps-league-title { margin-bottom: 0; }
 .ps-league-title { margin: 0 0 12px; font-size: 1rem; }
 .ps-standings-grid {
     display: grid;
@@ -11791,6 +12015,103 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .ps-inline-team { display: inline-flex; align-items: center; gap: 6px; color: var(--text-primary); text-decoration: none; }
 .ps-inline-team img { width: 18px; height: 18px; object-fit: contain; }
 .ps-inline-team:hover { color: var(--accent); }
+
+/* Le division stanno subito sotto il tabellone: contenitore a parte, vuoto
+   finché ESPN non risponde (niente spazio bianco nel frattempo). */
+.ps-div-block:not(:empty) { margin: 0 0 24px; }
+.ps-div-block[hidden] { display: none; }
+
+/* ── Division standings + quadro playoff ──
+   AFC e NFC affiancate, ognuna con le sue quattro division 2×2 e il colore
+   della conference come filo conduttore. */
+.ps-div-wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 6px; }
+.ps-div-conf { min-width: 0; }
+.ps-div-conf-title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--conf);
+    border-bottom: 2px solid var(--conf);
+    padding-bottom: 5px;
+}
+.ps-div-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ps-div {
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border-subtle);
+    border-top: 2px solid color-mix(in srgb, var(--conf) 55%, transparent);
+    border-radius: var(--radius-sm);
+    background: var(--bg-glass);
+}
+.ps-div-name {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+.ps-div-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.ps-div-row td { padding: 3px 2px; border-bottom: 1px solid var(--border-subtle); }
+.ps-div-row:last-child td { border-bottom: none; }
+/* td.: serve a superare `.ps-div-row td { padding }` sopra, di pari specificità */
+td.ps-div-seed {
+    width: 20px;
+    /* la barretta di colore è un box-shadow inset di 3px: il numero le sta
+       fuori, altrimenti ci finisce sopra */
+    padding-left: 8px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.ps-div-team { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.ps-div-team a { display: inline-flex; align-items: center; gap: 5px; color: var(--text-primary); text-decoration: none; }
+.ps-div-team a:hover { color: var(--accent); }
+.ps-div-team img { width: 17px; height: 17px; object-fit: contain; }
+.ps-div-rec { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ps-div-pct { text-align: right; font-size: 0.68rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Chi passerebbe: vincitrice di division (barra piena col colore conference),
+   wild card (barra tratteggiata ambra). */
+.ps-div-row--winner td:first-child { box-shadow: inset 3px 0 0 var(--conf); }
+.ps-div-row--winner .ps-div-team b { color: var(--text-primary); }
+.ps-div-row--winner td { background: color-mix(in srgb, var(--conf) 12%, transparent); }
+.ps-div-row--wc td:first-child { box-shadow: inset 3px 0 0 var(--accent-amber); }
+.ps-div-row--wc td { background: rgba(245, 158, 11, 0.07); }
+.ps-div-row:not(.ps-div-row--winner):not(.ps-div-row--wc) .ps-div-team b { color: var(--text-secondary); }
+
+.ps-div-clinch {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--accent-green);
+    cursor: help;
+}
+.ps-div-bye {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: var(--accent-amber);
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.ps-div-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; font-size: 0.7rem; color: var(--text-muted); }
+.ps-div-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ps-div-key { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.ps-div-key--winner { background: linear-gradient(90deg, #D50A0A 0 45%, #3D7DCA 45% 100%); }
+.ps-div-key--wc { background: rgba(245, 158, 11, 0.5); border: 1px dashed var(--accent-amber); }
+
+@media (max-width: 1100px) {
+    .ps-div-wrap { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+    .ps-div-grid { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Power ranking FPI */
 .ps-rank-grid {
@@ -14972,4 +15293,454 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     .live-bench-row {
         gap: 40px 60px;
     }
+}
+
+
+/* ─── Scarsità posizionale: piccoli multipli (stile NYT) ───────────
+   Quattro pannelli con la STESSA scala verticale: l'unico modo per leggere
+   "il TE si esaurisce prima del WR" senza doverlo scrivere. Niente legenda:
+   il crollo è annotato direttamente sul grafico. */
+.dgt-sc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px 22px;
+    margin-top: 10px;
+}
+.dgt-sc-panel { margin: 0; min-width: 0; }
+.dgt-sc-panel figcaption {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 2px;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.dgt-sc-panel figcaption b {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+}
+.dgt-sc-svg { width: 100%; height: auto; overflow: visible; }
+.dgt-sc-base { stroke: var(--border-subtle, rgba(255, 255, 255, 0.14)); stroke-width: 1; }
+.dgt-sc-bar { transition: opacity .12s ease; }
+.dgt-sc-bar:hover { opacity: .75; }
+.dgt-sc-free { fill: color-mix(in srgb, var(--text-muted) 26%, transparent); }
+.dgt-sc-other { fill: color-mix(in srgb, var(--text-muted) 62%, transparent); }
+.dgt-sc-mine { fill: var(--team-color, var(--accent-green, #30d158)); }
+.dgt-sc-cliff {
+    stroke: var(--accent-red, #ff453a);
+    stroke-width: 1.4;
+    stroke-dasharray: 3 2.5;
+}
+.dgt-sc-callout {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 700;
+    fill: var(--accent-red, #ff453a);
+    font-variant-numeric: tabular-nums;
+}
+.dgt-sc-name {
+    font-family: var(--font-body);
+    font-size: 9.5px;
+    font-weight: 600;
+    fill: var(--text-muted);
+}
+.dgt-sc-note { margin: 2px 0 0; font-size: 0.72rem; color: var(--text-muted); }
+
+/* ─── Timing per ruolo: il verdetto sull'anticipo ─────────────────── */
+.dgt-strat { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.dgt-strat-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 150px;
+    gap: 14px;
+    align-items: center;
+    padding: 11px 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text-muted) 7%, transparent);
+    border-left: 3px solid var(--text-muted);
+}
+.dgt-strat--right { border-left-color: var(--accent-green, #30d158); }
+.dgt-strat--early { border-left-color: var(--accent-amber, #f0b429); }
+.dgt-strat--even { border-left-color: color-mix(in srgb, var(--text-muted) 60%, transparent); }
+.dgt-strat-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dgt-strat-head { font-weight: 700; font-size: 0.92rem; color: var(--text-primary); }
+.dgt-strat-head small { font-weight: 500; color: var(--text-muted); font-size: 0.74rem; }
+.dgt-strat-note { font-size: 0.78rem; line-height: 1.45; color: var(--text-secondary); }
+.dgt-strat-verdict { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.dgt-strat-icon {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+.dgt-strat--right .dgt-strat-icon { color: var(--accent-green, #30d158); }
+.dgt-strat--early .dgt-strat-icon { color: var(--accent-amber, #f0b429); }
+.dgt-strat--even .dgt-strat-icon { color: var(--text-muted); }
+.dgt-strat-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-align: right;
+}
+.dgt-strat-edge { font-size: 0.74rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.dgt-strat-bench {
+    margin: 12px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.dgt-strat-bench span { color: var(--text-muted); }
+
+@media (max-width: 620px) {
+    .dgt-strat-row { grid-template-columns: 38px minmax(0, 1fr); }
+    .dgt-strat-verdict { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 8px; }
+    .dgt-strat-label { text-align: left; }
+}
+
+/* ─── Niente sfumatura rossa sulle card del Draft Grade ───────────
+   Il glow radiale di .mosaic-card resta per il resto del sito; qui le card
+   sono già colorate dal team e il rosso di default sporcava i grafici. */
+/* ─── Card del Draft Grade: fondo nero, non vetro grigio ─────────
+   Il resto del sito usa --surface-card (velo bianco su grigio scuro, con blur).
+   Qui no: queste card sono quasi tutte grafici e tabelle, e il velo chiaro
+   abbassava il contrasto di barre e linee. Fondo pieno uguale a quello della
+   pagina, e a definire la card restano il bordo e l'ombra — niente blur, che
+   su un fondo opaco non fa nulla e costa soltanto. */
+#draftgrades .mosaic-card::before,
+#draftgrade-team .mosaic-card::before,
+#draftgrades-content .mosaic-card::before { content: none; }
+
+#draftgrades .mosaic-card,
+#draftgrade-team .mosaic-card,
+#draftgrades-content .mosaic-card {
+    background: var(--bg-primary, #000);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* il bordo è l'unica cosa che separa la card dalla pagina, che è nera anche lei */
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* anche i chip di riepilogo in cima alla lista: sono card a tutti gli effetti */
+#draftgrades .dg-sum {
+    background: var(--bg-primary, #000);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* la card di Projections tiene il glow spento ma resta a vetro come il sito */
+.db-card::before { content: none; }
+.db-card { background-image: none; }
+
+
+/* ─── Sezione Projections (#projections) ──────────────────────────
+   Stessa grammatica del resto del sito: mosaic-card, round-pill per i ruoli,
+   barra proporzionale come le dg-bar. La riga porta il colore della squadra
+   che ha preso il giocatore, e una linea segna la fine di un tier. */
+.db-sub {
+    margin: 2px 0 14px;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    max-width: 82ch;
+}
+.db-tabs { margin-bottom: 12px; }
+
+/* intestazione della card: titolo a sinistra, criterio di ordinamento a destra */
+.db-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.db-sort {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    flex-shrink: 0;
+}
+.db-sort-btn {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    padding: 5px 13px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    transition: background var(--dur-fast, .12s) var(--ease, ease), color var(--dur-fast, .12s) var(--ease, ease);
+}
+.db-sort-btn:hover { color: var(--text-secondary); }
+.db-sort-btn.active {
+    background: color-mix(in srgb, var(--text-primary) 90%, transparent);
+    color: var(--bg-primary, #000);
+}
+
+/* di quanti posti si è mosso rispetto al rank proiettato */
+.db-move {
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 0.6rem;
+    margin-left: 3px;
+}
+.db-move.up { color: var(--accent-green, #30d158); }
+.db-move.down { color: var(--accent-red, #ff453a); }
+
+/* intestazione di colonna: allineata alla griglia delle righe */
+.db-colhead {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1.55fr) minmax(60px, 1fr) 46px 62px minmax(118px, 0.5fr);
+    gap: 10px;
+    align-items: baseline;
+    padding: 0 10px 6px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.db-card--real .db-colhead {
+    grid-template-columns: 62px minmax(0, 1.55fr) minmax(60px, 1fr) 46px 62px minmax(118px, 0.5fr) minmax(146px, 0.62fr);
+}
+.db-colhead-num { text-align: right; }
+.db-colhead-bar { text-align: left; }
+
+.db-rows { display: flex; flex-direction: column; }
+.db-row {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1.6fr) minmax(60px, 1fr) 46px 62px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    font-size: 0.86rem;
+    cursor: pointer;
+    transition: background var(--dur-fast, .12s) var(--ease, ease);
+}
+.db-row:hover { background: color-mix(in srgb, var(--text-muted) 10%, transparent); }
+.db-row:not(.db-row--free) { border-left-color: var(--team-color, var(--text-muted)); }
+.db-row--free { opacity: 0.55; }
+/* fine di un tier: una riga sopra la successiva, non un bordo su ogni cosa */
+.db-row--cliff { border-top: 1px solid color-mix(in srgb, var(--accent-red, #ff453a) 45%, transparent); }
+
+.db-rank {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.db-name { font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+.db-name small { color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+.db-bar {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--text-muted) 16%, transparent);
+    overflow: hidden;
+}
+.db-bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 3px;
+    background: var(--team-color, color-mix(in srgb, var(--text-muted) 55%, transparent));
+}
+.db-pts {
+    font-family: var(--font-display);
+    font-weight: 800;
+    text-align: right;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+.db-adp { font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.db-taken { font-size: 0.76rem; color: var(--text-secondary); overflow-wrap: anywhere; }
+.db-taken i { color: var(--text-muted); font-style: normal; }
+.db-foot { margin: 12px 0 0; font-size: 0.74rem; line-height: 1.5; color: var(--text-muted); }
+
+/* colonna "com'è andata poi", solo a stagione conclusa */
+.db-card--real .db-row {
+    grid-template-columns: 62px minmax(0, 1.55fr) minmax(60px, 1fr) 46px 62px minmax(118px, 0.5fr) minmax(146px, 0.62fr);
+}
+.db-real {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+/* il totale vero: ultimo elemento, stesso peso del proiettato */
+.db-real > b {
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--text-primary);
+    min-width: 34px;
+}
+.db-real--none { color: var(--text-muted); font-weight: 600; font-family: var(--font-display); }
+.db-real small { font-family: var(--font-body); font-weight: 500; font-size: 0.7rem; color: var(--text-muted); }
+.db-delta {
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+}
+.db-delta.up { color: var(--accent-green, #30d158); }
+.db-delta.down { color: var(--accent-red, #ff453a); }
+.db-tag {
+    font-family: var(--font-body);
+    font-style: normal;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 5px;
+}
+.db-tag--up {
+    color: var(--accent-green, #30d158);
+    background: color-mix(in srgb, var(--accent-green, #30d158) 16%, transparent);
+}
+.db-tag--down {
+    color: var(--accent-red, #ff453a);
+    background: color-mix(in srgb, var(--accent-red, #ff453a) 16%, transparent);
+}
+
+/* Stretto: la riga diventa un blocchetto su quattro livelli invece di
+   comprimere sette colonne. I team di questa lega hanno nomi lunghi
+   ("Capi dei Pianeti"): la colonna di destra si dimensiona sul contenuto,
+   non su una larghezza fissa che li mandava a capo una parola per riga. */
+@media (max-width: 760px) {
+    .db-colhead, .db-card--real .db-colhead { display: none; }
+    .db-row,
+    .db-card--real .db-row {
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        column-gap: 10px;
+        row-gap: 3px;
+        padding: 9px 10px;
+    }
+    .db-rank { grid-column: 1; grid-row: 1; }
+    .db-name { grid-column: 2; grid-row: 1; }
+    .db-pts { grid-column: 3; grid-row: 1; }
+    .db-bar { grid-column: 2 / -1; grid-row: 2; }
+    .db-adp { grid-column: 2; grid-row: 3; font-size: 0.7rem; }
+    .db-taken { grid-column: 3; grid-row: 3; text-align: right; white-space: nowrap; }
+    .db-real { grid-column: 2 / -1; grid-row: 4; justify-content: flex-start; font-size: 0.86rem; }
+    .db-real::before {
+        content: 'real';
+        font-family: var(--font-body);
+        font-weight: 600;
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+}
+
+
+/* ─── Draft Grade: nero anche dentro le card ──────────────────────
+   Stessa ricetta del contenitore, applicata ai riquadri interni: fondo pieno
+   nero e bordo a delimitarli. Il bordo qui NON è decorazione — senza il grigio
+   di prima è l'unica cosa che li separa dalla card, che è nera anch'essa.
+
+   Restano fuori di proposito le cose che portano un SIGNIFICATO nel colore:
+   badge su/giù, barre colorate per squadra, punti e linee dei grafici,
+   celle della striscia dei voti. Spegnerle non le renderebbe più sobrie, le
+   renderebbe illeggibili — un badge "flop" nero non è più un badge. */
+#draftgrades .dgt-metric,
+#draftgrades .dgt-sups,
+#draftgrades .dgt-strat-row,
+#draftgrades .dgt-eos-grades,
+#draftgrades .dg-pick,
+#draftgrades .dgt-pick,
+#draftgrades .dg-pred-item,
+#draftgrades .dgt-chip:not(.dgt-chip--up):not(.dgt-chip--down),
+#draftgrade-team .dgt-metric,
+#draftgrade-team .dgt-sups,
+#draftgrade-team .dgt-strat-row,
+#draftgrade-team .dgt-eos-grades,
+#draftgrade-team .dg-pick,
+#draftgrade-team .dgt-pick,
+#draftgrade-team .dg-pred-item,
+#draftgrade-team .dgt-chip:not(.dgt-chip--up):not(.dgt-chip--down) {
+    background: var(--bg-primary, #000);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+/* Stessa cosa per i riquadri "best/weakest decision": il bordo verde e rosso
+   è il loro modo di dirti al volo qual è quale, e la regola generica qui sopra
+   glielo spegneva perché più specifica (#id + classe batte la sola classe). */
+#draftgrades .dg-pick--best,
+#draftgrade-team .dg-pick--best { border-color: color-mix(in srgb, var(--accent-green) 40%, transparent); }
+#draftgrades .dg-pick--worst,
+#draftgrade-team .dg-pick--worst { border-color: color-mix(in srgb, var(--accent-red) 40%, transparent); }
+
+/* i chip che portano un giudizio nel colore tengono il loro bordo colorato,
+   solo il fondo va a nero come tutto il resto */
+#draftgrades .dgt-chip--up,
+#draftgrade-team .dgt-chip--up,
+#draftgrades .dgt-chip--down,
+#draftgrade-team .dgt-chip--down { background: var(--bg-primary, #000); }
+
+/* le righe del timing per ruolo tengono la barretta di verdetto a sinistra */
+#draftgrade-team .dgt-strat-row {
+    border-left-width: 3px;
+    border-left-style: solid;
+}
+#draftgrade-team .dgt-strat--right { border-left-color: var(--accent-green, #30d158); }
+#draftgrade-team .dgt-strat--early { border-left-color: var(--accent-amber, #f0b429); }
+#draftgrade-team .dgt-strat--even { border-left-color: color-mix(in srgb, var(--text-muted) 60%, transparent); }
+
+/* piste delle barre: nere col bordo, così la parte "vuota" si vede ancora */
+#draftgrades .dg-bar-track,
+#draftgrade-team .dg-bar-track,
+#draftgrade-team .dgt-sos-track {
+    background: var(--bg-primary, #000);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
+}
+
+/* chip di posizione (1st/2nd…), segnaposto delle foto e pista della barra
+   Super Bowl: gli ultimi grigi rimasti dentro le card */
+#draftgrades .dg-rank,
+#draftgrade-team .dg-rank,
+#draftgrades .dg-headshot,
+#draftgrade-team .dg-headshot {
+    background: var(--bg-primary, #000);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
+}
+#draftgrades .dg-pred-bar,
+#draftgrade-team .dg-pred-bar {
+    background: var(--bg-primary, #000);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
+}
+/* il tooltip dei grafici è un livello sopra: fondo nero, ma bordo più marcato
+   perché deve staccarsi da ciò che ci sta sotto, non fondersi */
+#draftgrades .an-chart-tooltip,
+#draftgrade-team .an-chart-tooltip {
+    background: var(--bg-primary, #000);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+/* fondo dell'area di plot dello scatter */
+#draftgrades .dg-scat-plot { fill: var(--bg-primary, #000); }
+
+/* il riquadro del "perché" di ogni pick e le righe della lista completa */
+#draftgrades .dg-row:hover,
+#draftgrade-team .db-row:hover {
+    background: color-mix(in srgb, #fff 6%, var(--bg-primary, #000));
 }
