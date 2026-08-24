@@ -40,10 +40,10 @@ import { getSeasonProjections, matchProjection } from '../data/projections.js?v=
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
 import { initPlayerModal } from '../components/player-modal.js?v=610';
 import { playerImageService } from '../services/player-image-service.js?v=518';
-import { predictSeason } from '../data/draft-predictions.js?v=619';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=608';
-import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=561';
-import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=29';
+import { predictSeason } from '../data/draft-predictions.js?v=621';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=610';
+import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=563';
+import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=31';
 
 let initialized = false;
 let currentYear = null;

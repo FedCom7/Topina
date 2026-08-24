@@ -5,11 +5,11 @@
  * (#player/{year}/{pos}/{nome}) o alla pagina squadra NFL (#nfl-team/{abbr}).
  */
 
-import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=613';
+import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=615';
 import { CURRENT_SEASON } from '../data.js?v=535';
 import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=580';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=556';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=608';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=558';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=610';
 import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=525';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=594';

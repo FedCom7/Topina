@@ -26,7 +26,7 @@ import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProject
 import { applyDraftLineups } from '../data/draft-lineups.js?v=5';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
-import { slotPairs } from '../data/matchup-analysis.js?v=544';
+import { slotPairs } from '../data/matchup-analysis.js?v=546';
 import { initPlayerModal } from '../components/player-modal.js?v=610';
 import { playerImageService } from '../services/player-image-service.js?v=518';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=2';

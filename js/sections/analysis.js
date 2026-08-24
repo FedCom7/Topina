@@ -23,7 +23,7 @@ let rosterPtsMode = { drafted: 'total', best: 'total', pickups: 'total' };
 const modelCache = {};
 
 const TABS = [
-    { id: 'trend', label: 'Season form' },
+    { id: 'trend', label: 'Trends' },
     { id: 'season', label: 'Season' },
     { id: 'draft', label: 'Draft' },
     { id: 'market', label: 'Market' },
@@ -58,7 +58,7 @@ function renderPickRow() {
     if (!container) return;
 
     const teamItems = [
-        { value: 'all', label: 'Totale' },
+        { value: 'all', label: 'League' },
         ...Object.values(TEAMS).map(t => ({
             value: t.key, label: `<img src="${t.logo}" alt="" class="an-team-pill-logo">${t.name}`,
         })),
@@ -1739,6 +1739,7 @@ function renderLeagueView(model) {
     <h3 class="an-sub-title">Points by position (starters)</h3>
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
+    <p class="an-footnote">Total season points scored by each team's starters at that position.</p>
 
     ${blockStandings(model)}
 
@@ -1756,6 +1757,7 @@ function renderLeagueView(model) {
     <h3 class="an-sub-title">Draft: Value per Pick</h3>
     ${legend}
     ${buildDraftScatterSection(draftValueScatter(model))}
+    <p class="an-footnote">Each dot is a pick from that year's draft, positioned by pick number and the points its player scored for the team that took him.</p>
 
     <div id="an-leaders-wrap">${renderPositionLeaders(model)}</div>
 

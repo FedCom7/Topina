@@ -49,7 +49,7 @@
  * restano in italiano.
  */
 
-import { replacementLevels, pickStarters } from './team-eval.js?v=51';
+import { replacementLevels, pickStarters } from './team-eval.js?v=53';
 import { matchProjection, normName } from './projections.js?v=594';
 import { ROSTER_SLOTS } from './league-rules.js?v=528';
 

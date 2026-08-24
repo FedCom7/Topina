@@ -436,7 +436,6 @@ function cardStandings({ season }) {
         </div>`;
     }).join('');
     return card({
-        watermarkKey: keyOf(season.standings[0]?.name),
         kicker: `Season ${season.year}`,
         title: 'The playoff race',
         body: `<div class="mc-rows">${rows}</div>`,

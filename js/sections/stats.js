@@ -1,7 +1,7 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=535';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=604';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=611';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=613';
 
 let loaded = false;
 
@@ -652,6 +652,7 @@ function renderRecords(stats) {
         <div class="record-tiles">${playerTiles.join('')}</div>
 
         <h2 class="records-title st-leader-title">Top 5 All-Time</h2>
+        <h3 class="an-sub-title st-leader-sub">Career Fantasy Stats by Position</h3>
         <div class="st-leader-grid">
             ${leaderPanel('Passing Yards — QB', stats.top5.passYds)}
             ${leaderPanel('Rushing Yards — RB', stats.top5.rushYds)}
