@@ -989,6 +989,10 @@ img {
     border-radius: var(--radius-lg);
     /* Ensure it scales properly */
     object-fit: contain;
+    /* La proporzione vera dei wallpaper (2432×1760). Serve dichiararla perché
+       l'immagine viene messa dopo, quando arriva dalla cache: senza, il
+       riquadro sarebbe alto zero e la card si aprirebbe di scatto. */
+    aspect-ratio: 2432 / 1760;
     /* scurisce lo sfondo così le foto e i punteggi risaltano */
     filter: brightness(0.62) saturate(0.92);
 }
@@ -4889,6 +4893,26 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+.team-alltime-ap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.team-alltime-ap small {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 .team-alltime-hero-label {
     margin-top: 6px;
     font-size: 0.68rem;
@@ -4917,6 +4941,14 @@ img {
     font-size: 1.1rem;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
+}
+
+/* Il denominatore ("su quante partite") resta bianco anche quando il valore è
+   in oro perché è il migliore della lega: è contesto, non un primato. */
+.ministat-of {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #fff;
 }
 
 .ministat-label {
@@ -7176,6 +7208,179 @@ img {
 }
 
 /* --- League view: top performers by position --- */
+/* --- Andamento di stagione (Analysis) --- */
+/* Riga di separazione fra i grandi capitoli della pagina. Nata sopra
+   "How the season is going", riusata dove il discorso cambia argomento. */
+.an-rule {
+    margin-top: 48px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.an-season-block {
+    margin: 48px 0 40px;
+}
+
+.an-season-title {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.an-season-sub {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 22px 0 2px;
+}
+
+.an-season-empty {
+    font-style: italic;
+}
+
+/* Vantaggio per ruolo: sei pannellini, uno per ruolo */
+.an-edge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px 28px;
+    margin-top: 8px;
+}
+
+.an-edge-group {
+    min-width: 0;
+}
+
+.an-edge-pos {
+    display: block;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+/* Record contro calendario, vista squadra */
+.an-luck-kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px 18px;
+    margin: 8px 0 4px;
+}
+
+.an-luck-kpi div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.an-luck-kpi b {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.an-luck-kpi span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.an-luck-good b {
+    color: var(--accent-green);
+}
+
+.an-luck-bad b {
+    color: var(--accent-red);
+}
+
+/* Una colonnina per giornata: quanti degli altri avrebbe battuto. È una
+   GRIGLIA, non una fila flex: così le colonne restano allineate e la graffa dei
+   playoff può occupare esattamente le sue, dicendo solo da quale parte. */
+.an-luck-strip {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 15), 1fr);
+    grid-template-rows: auto auto auto;
+    align-items: end;
+    column-gap: 4px;
+    margin-top: 10px;
+    padding-bottom: 4px;
+    width: 100%;
+}
+
+.an-luck-brace {
+    grid-row: 1;
+    width: 100%;
+    height: 12px;
+    margin-bottom: 2px;
+    overflow: visible;
+}
+
+.an-luck-po-label {
+    grid-row: 3;
+    text-align: center;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-amber);
+}
+
+.an-luck-week {
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.an-luck-bar {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 54px;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+/* Anche una giornata da 0 su 3 deve vedersi: una scatola vuota si legge come
+   "dato mancante", non come "non ne ha battuto nessuno". */
+.an-luck-bar span {
+    display: block;
+    width: 100%;
+    min-height: 3px;
+    border-radius: var(--radius-xs);
+    background: var(--text-muted);
+}
+
+.an-luck-week--win .an-luck-bar span {
+    background: var(--accent-green);
+}
+
+.an-luck-week--loss .an-luck-bar span {
+    background: var(--accent-red);
+}
+
+.an-luck-wk {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
 .an-leader-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

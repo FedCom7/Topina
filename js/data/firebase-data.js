@@ -2,7 +2,7 @@
  * Firebase Data Layer
  * All fetch and data-processing functions for Firebase RTDB.
  */
-import { db } from '../firebase-config.js?v=1';
+import { db } from '../firebase-config.js?v=2';
 import { ref, child, get } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js';
 import { CURRENT_SEASON } from './team-config.js';
 

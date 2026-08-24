@@ -18,7 +18,7 @@
  * tabellino, `fillMissingProjections()` per le proiezioni mancanti.
  */
 
-import { displayName } from '../data.js?v=534';
+import { displayName } from '../data.js?v=535';
 
 /**
  * Titolari: nove maglie, nell'ordine in cui il campo se le aspetta.

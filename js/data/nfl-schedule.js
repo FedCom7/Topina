@@ -7,8 +7,8 @@
  * Cache in localStorage: il calendario storico non cambia mai.
  */
 
-import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
-import { NFL_TEAMS } from './nfl-teams.js?v=508';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
+import { NFL_TEAMS } from './nfl-teams.js?v=511';
 
 const GAME_DURATION_MS = 3.25 * 60 * 60 * 1000; // ~3h15m
 

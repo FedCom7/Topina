@@ -55,8 +55,10 @@ export function legend(voci) {
 /**
  * Dumbbell: due valori sullo stesso asse, uniti da un segmento.
  *
- * `rows`: [{ label, a, b, tip }] — `a` e `b` sono i due valori da confrontare.
- * `opts`: { a: {name, color}, b: {name, color}, fmt, unit, width, labelW }
+ * `rows`: [{ label, a, b, tip, meta }] — `a` e `b` sono i due valori da
+ * confrontare; `meta` è una scritta incolonnata a destra (i valori per esteso,
+ * quando leggerli conta quanto vederli).
+ * `opts`: { a: {name, color}, b: {name, color}, fmt, unit, width, labelW, rightW }
  *
  * Il segmento prende il colore di chi è avanti, così la direzione si legge
  * prima ancora dei numeri; a destra lo scarto con il segno.
@@ -70,17 +72,22 @@ export function dumbbell(rows, opts = {}) {
     const inkB = inkFor(opts.b?.color);
     const W = opts.width || 860;
     const L = opts.labelW || 74;
-    const R = 68;
+    const R = opts.rightW || 68;
     const T = 12;
     const rowH = opts.rowH || 30;
     const bottom = T + righe.length * rowH;
     const H = bottom + 30;
 
     const massimo = Math.max(...righe.flatMap(r => [num(r.a), num(r.b)]), 1);
-    const ticks = niceTicks(0, massimo);
+    // `min`: il dumbbell codifica POSIZIONI, non lunghezze, quindi partire da un
+    // valore diverso da zero non inganna — e a volte serve: con punti fatti e
+    // subiti tutti intorno a 2000, un asse da zero schiaccia i quattro segmenti
+    // in un pixel e non si vede più niente.
+    const ticks = niceTicks(opts.min ?? 0, massimo);
+    const xMin = ticks[0];
     const xMax = ticks[ticks.length - 1] || 1;
     const plotW = W - L - R;
-    const xx = (v) => L + (num(v) / xMax) * plotW;
+    const xx = (v) => L + ((num(v) - xMin) / ((xMax - xMin) || 1)) * plotW;
 
     const grid = ticks.map(v => `
         <line x1="${xx(v).toFixed(1)}" y1="${T}" x2="${xx(v).toFixed(1)}" y2="${bottom}" class="an-gridline"/>
@@ -103,6 +110,7 @@ export function dumbbell(rows, opts = {}) {
             <text x="${L - 12}" y="${yc + 4}" class="an-tick" text-anchor="end">${esc(r.label)}</text>
             <text x="${(fine + 10).toFixed(1)}" y="${yc + 4}" class="an-endlabel"
                   fill="${d === 0 ? 'var(--text-muted)' : avanti}">${d === 0 ? '=' : segno + fmt(d)}</text>
+            ${r.meta ? `<text x="${W - 8}" y="${yc + 4}" class="an-tick" text-anchor="end">${esc(r.meta)}</text>` : ''}
         </g>`;
     }).join('');
 
@@ -249,7 +257,9 @@ export function multiLine(series, opts = {}) {
 
     const W = opts.width || 880;
     const H = opts.height || 300;
-    const M = { l: 44, r: 96, t: 16, b: 34 };
+    // Il margine destro ospita le etichette a fine linea: con nomi lunghi
+    // ("Capi dei Pianeti") 96px non bastano e il testo viene tagliato via.
+    const M = { l: 44, r: opts.marginRight || 96, t: 16, b: 34 };
     const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
     const yFmt = opts.yFmt || ((v) => String(Math.round(v)));
 

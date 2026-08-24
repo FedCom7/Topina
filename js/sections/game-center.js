@@ -1,12 +1,13 @@
-import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=5';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
-import { getWeekSchedule } from '../data/nfl-schedule.js?v=522';
+import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=535';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=8';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=5';
+import { getWeekSchedule } from '../data/nfl-schedule.js?v=525';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=601';
-import { initPlayerModal } from '../components/player-modal.js?v=607';
-import { playerImageService } from '../services/player-image-service.js?v=516';
+import { TEAMS } from './team.js?v=604';
+import { initPlayerModal } from '../components/player-modal.js?v=610';
+import { playerImageService } from '../services/player-image-service.js?v=518';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { cachedAsset } from '../utils/asset-cache.js?v=1';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -82,8 +83,7 @@ async function loadYear(year) {
     const maxWeek = getWeekCount(currentData);
     currentWeek = lastPlayedWeek(maxWeek);
     renderPickRow(maxWeek);
-    renderMatchups();
-    refreshOpenWeek();
+    await showMatchups();
 }
 
 /**
@@ -127,7 +127,6 @@ async function refreshOpenWeek() {
         // La settimana può essere cambiata mentre si aspettava la risposta
         if (week !== currentWeek || String(currentYear) !== String(CURRENT_SEASON)) return;
         currentData.weeks[String(week)] = { ...(wk || {}), matchups };
-        renderMatchups();
     } catch (e) {
         console.warn('[game-center] API ESPN non raggiungibile, resta Firebase:', e.message);
     }
@@ -167,8 +166,7 @@ function renderPickRow(maxWeek) {
         } else if (id === 'week') {
             currentWeek = parseInt(value, 10);
             renderPickRow(maxWeek);
-            renderMatchups();
-            refreshOpenWeek();
+            showMatchups();
         }
     });
 }
@@ -180,12 +178,50 @@ function weekLabel(w) {
     return `Week ${w}`;
 }
 
-function renderMatchups() {
+// Oltre questo non si aspetta più: una foto che non arriva non deve tenere
+// ferma tutta la giornata. Quelle in ritardo compaiono dopo, come prima.
+const READY_TIMEOUT_MS = 2500;
+
+const attendi = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Disegna la giornata e la mostra COMPLETA: sfondo, foto e punteggi insieme.
+ *
+ * Prima erano quattro stadi visibili — intestazione, poi card con i punti di
+ * Firebase, poi lo sfondo, poi le foto una a una — e sulla settimana aperta la
+ * griglia veniva addirittura ricostruita due volte, perché i punti veri
+ * arrivano dall'API della lega dopo quelli di Firebase. Qui si prepara tutto
+ * fuori pagina, mentre resta lo spinner, e si mette in pagina una volta sola.
+ */
+async function showMatchups({ refresh = true } = {}) {
     const grid = document.getElementById('gc-matchup-grid');
+    if (!grid) return;
+
+    // I punti veri PRIMA di disegnare: così non si vede la giornata a zero e
+    // poi di colpo con i punteggi. Sulle settimane chiuse non parte nulla.
+    if (refresh) await refreshOpenWeek();
+
+    const holder = document.createElement('div');
+    if (!renderMatchups(holder)) {           // stato vuoto: niente da attendere
+        grid.replaceChildren(...holder.childNodes);
+        return;
+    }
+
+    // Le immagini partono anche fuori dal documento: si aspetta che siano
+    // davvero dipinte, ma non oltre il tetto.
+    await Promise.race([
+        Promise.all([hydrateFieldImages(holder), hydrateSlotPhotos(holder)]),
+        attendi(READY_TIMEOUT_MS),
+    ]);
+    grid.replaceChildren(...holder.childNodes);
+}
+
+/** Scrive le card in `grid`. Torna false se ha scritto uno stato vuoto. */
+function renderMatchups(grid) {
     const weekData = currentData?.weeks?.[String(currentWeek)];
     if (!weekData?.matchups?.length) {
         grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No matchups for ${weekLabel(currentWeek)}</p></div>`;
-        return;
+        return false;
     }
 
     // Le rose che ESPN mostra prima del draft sono segnaposto: nessuno le ha
@@ -198,7 +234,7 @@ function renderMatchups() {
                What ESPN shows now are placeholders: nobody picked them.</p>
             <a class="mc-cta" href="#draft">Go to the draft <span aria-hidden="true">→</span></a>
         </div>`;
-        return;
+        return false;
     }
 
     // Sort Super Bowl week: Final (highest score?) first — conservando
@@ -247,7 +283,7 @@ function renderMatchups() {
             </a>
             <div class="matchup-field-horizontal">
                 <span class="field-team-label field-team-label-top">${teamNameHTML(m.team1.name)}</span>
-                <img src="${fieldImg}" class="field-bg" alt="">
+                <img data-field="${fieldImg}" class="field-bg" alt="">
                 <div class="field-overlay">
                     <div class="formations-area">
                         <div class="team-formation left">
@@ -278,7 +314,30 @@ function renderMatchups() {
         </div>`;
     }).join('');
 
-    hydrateSlotPhotos(grid);
+    return true;
+}
+
+/**
+ * Gli sfondi del campo arrivano dalla cache degli asset invece che dalla rete:
+ * pesano ~3,5 MB l'uno e senza cache si riscaricavano a ogni visita. Il
+ * riquadro ha già la sua proporzione dal CSS, quindi la card non si muove
+ * mentre l'immagine arriva.
+ */
+function hydrateFieldImages(grid) {
+    const imgs = [...grid.querySelectorAll('img.field-bg[data-field]')];
+    return Promise.all(imgs.map(async (img) => {
+        const path = img.dataset.field;
+        if (!path) return;
+        try { img.src = await cachedAsset(path, FIELD_IMG_VERSION); }
+        catch { img.src = path; }
+        await dipinta(img);
+    }));
+}
+
+/** Attende che l'immagine sia davvero decodificata; un errore non blocca. */
+function dipinta(img) {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    return img.decode().catch(() => { /* rotta o sostituita: si va avanti */ });
 }
 
 /** DEF + K positioned absolutely on field */
@@ -351,16 +410,24 @@ function slotContent(p) {
             <span class="slot-pts">${pPtsHTML(p)}</span>`;
 }
 
-/** Riempie le foto degli slot dopo il render, senza bloccare (pattern draft/home). */
+/**
+ * Riempie le foto degli slot. Torna una promessa che si chiude quando sono
+ * dipinte: chi disegna la giornata la aspetta (con un tetto) per mostrare le
+ * card già complete, invece di vederle spuntare una a una.
+ */
 function hydrateSlotPhotos(grid) {
-    grid.querySelectorAll('img[data-headshot]').forEach(img => {
+    const imgs = [...grid.querySelectorAll('img[data-headshot]')];
+    return Promise.all(imgs.map(async (img) => {
         img.onerror = () => {
             if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg';
         };
-        playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, img.dataset.pos, img.dataset.year)
-            .then(url => { if (url) img.src = url; })
-            .catch(() => { /* resta il fallback */ });
-    });
+        try {
+            const url = await playerImageService.getPlayerImageUrl(
+                img.dataset.playerName, img.dataset.team, img.dataset.pos, img.dataset.year);
+            if (url) img.src = url;
+        } catch { /* resta il fallback */ }
+        await dipinta(img);
+    }));
 }
 
 function renderRoster(team, side) {

@@ -17,11 +17,11 @@
  * Come draft.js: `loaded` per non re-inizializzare, stato del ruolo in modulo.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=535';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=599';
-import { initPlayerModal } from '../components/player-modal.js?v=605';
-import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=591';
+import { TEAMS } from './team.js?v=602';
+import { initPlayerModal } from '../components/player-modal.js?v=608';
+import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=594';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const TOP_N = 40;

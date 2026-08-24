@@ -12,7 +12,7 @@
  */
 
 import { scoreProjectedStats } from './scoring.js?v=592';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 
 const TTL_MS = 24 * 60 * 60 * 1000; // le proiezioni cambiano di rado
 const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano

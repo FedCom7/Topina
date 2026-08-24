@@ -3,10 +3,18 @@ import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.
 // Bump della versione = svuota la cache locale: le versioni v3 e precedenti
 // hanno accumulato ID sbagliati dall'era del bug di ricerca (q= invece di
 // query=), che restituivano URL headshot in 404.
-import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 
 const CACHE_KEY = 'topina_player_ids_v4';
 const FALLBACK_IMAGE = 'images/fallback-player.svg';
+
+// Quanto ci si fida di un "non trovato" prima di riprovare. Serve un tempo, non
+// un sì/no: un rookie che oggi non è nei roster ESPN domani c'è, ma senza
+// scadenza si riprovava a OGNI caricamento di pagina — misurate 44 richieste
+// per visita, sempre le stesse, sempre a vuoto, perché il ramo di lettura della
+// cache scartava apposta il valore 'NOT_FOUND'.
+const MISS_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const MISS = 'NOT_FOUND';
 
 export class PlayerImageService {
     constructor() {
@@ -55,10 +63,16 @@ export class PlayerImageService {
         }
 
         // 2. Check Cache (local storage)
-        if (this.cache[playerName] && this.cache[playerName] !== 'NOT_FOUND') {
-            const val = this.cache[playerName];
-            this._log(`-> Found in Cache: ${val}`);
-            return val.startsWith('http') ? val : this._buildUrl(val);
+        const cached = this.cache[playerName];
+        if (cached && !this._isMiss(cached)) {
+            this._log(`-> Found in Cache: ${cached}`);
+            return cached.startsWith('http') ? cached : this._buildUrl(cached);
+        }
+        // Cercato di recente e non trovato: si sta sul fallback senza rifare il
+        // giro dei roster. Scaduto il termine si riprova, per i rookie.
+        if (cached && this._isMiss(cached) && !this._missExpired(cached)) {
+            this._log(`-> Miss ancora valido: fallback senza richieste`);
+            return FALLBACK_IMAGE;
         }
 
         // Check if we should use roster strategy
@@ -111,10 +125,21 @@ export class PlayerImageService {
         }
 
         // Final Fallback
-        this.cache[playerName] = 'NOT_FOUND';
+        this.cache[playerName] = `${MISS}:${Date.now()}`;
         this._saveCache();
         this._log(`-> NOT FOUND in API. Using fallback.`);
         return FALLBACK_IMAGE;
+    }
+
+    /** Un "non trovato". La forma vecchia (senza data) risulta scaduta: si
+     *  riprova una volta sola, poi viene riscritta con la data di oggi. */
+    _isMiss(val) {
+        return typeof val === 'string' && val.startsWith(MISS);
+    }
+
+    _missExpired(val) {
+        const at = Number(val.split(':')[1]) || 0;
+        return Date.now() - at > MISS_TTL_MS;
     }
 
     _buildUrl(id) {

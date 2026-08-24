@@ -9,9 +9,9 @@
  * live sul roster ESPN (stesso pattern di player-image-service.js).
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=525';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
-import { getTeamUsage } from './context-score.js?v=586';
+import { getTeamUsage } from './context-score.js?v=608';
 
 const _roster = {};   // year → roster json | null
 const _injuries = {}; // year → injuries json | null

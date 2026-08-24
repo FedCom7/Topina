@@ -6,15 +6,16 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
-import { TEAMS } from './team.js?v=601';
-import { playerImageService } from '../services/player-image-service.js?v=516';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=535';
+import { TEAMS } from './team.js?v=604';
+import { playerImageService } from '../services/player-image-service.js?v=518';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
 let currentTeam = 'all';
-let currentTab = 'season';
+let currentTab = 'trend';
 let avgMode = 'total'; // 'total' | 'starter' — base per la colonna Media
 let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
 // Punti totali vs punti a partita nelle tabelle di confronto — toggle indipendente per sezione
@@ -22,11 +23,12 @@ let rosterPtsMode = { drafted: 'total', best: 'total', pickups: 'total' };
 const modelCache = {};
 
 const TABS = [
-    { id: 'season', label: 'Stagione' },
+    { id: 'trend', label: 'Season form' },
+    { id: 'season', label: 'Season' },
     { id: 'draft', label: 'Draft' },
-    { id: 'market', label: 'Mercato' },
-    { id: 'lineup', label: 'Formazione' },
-    { id: 'compare', label: 'Confronto' },
+    { id: 'market', label: 'Market' },
+    { id: 'lineup', label: 'Lineup' },
+    { id: 'compare', label: 'Comparison' },
 ];
 
 // Slot reali dei lineup nei matchup
@@ -105,7 +107,15 @@ export async function buildSeasonModel(year) {
                 if (!side?.name) continue;
                 const teamKey = teamKeyFromRaw(side.name);
                 if (!teamWeeks[teamKey]) teamWeeks[teamKey] = {};
-                const tw = teamWeeks[teamKey][wk] = { starters: [], bench: [], score: parseFloat(side.score || 0) };
+                // L'avversario di giornata: senza, qui dentro il fantacalcio
+                // sembra una gara a chi accumula punti invece che un testa a
+                // testa, e non si può dire se un record sia meritato.
+                const altro = side === m.team1 ? m.team2 : m.team1;
+                const tw = teamWeeks[teamKey][wk] = {
+                    starters: [], bench: [],
+                    score: parseFloat(side.score || 0),
+                    opp: altro?.name ? teamKeyFromRaw(altro.name) : null,
+                };
 
                 for (const [list, started] of [[side.starters, true], [side.bench, false]]) {
                     for (const p of list || []) {
@@ -424,7 +434,9 @@ async function render(model) {
             ${TABS.map(t => `<button class="year-pill an-tab${t.id === currentTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>`;
 
-    const controlsHtml = `
+    // Media e legenda dei badge riguardano le tabelle giocatori: nella tab
+    // dell'andamento non c'è né una tabella né un badge, quindi non si mostrano.
+    const controlsHtml = currentTab === 'trend' ? '' : `
         <div class="an-controls">
             <div class="an-avg-toggle">
                 <span class="an-avg-label">Average:</span>
@@ -448,6 +460,7 @@ async function render(model) {
 
     let viewHtml = '';
     switch (currentTab) {
+        case 'trend': viewHtml = renderTrendTab(model); break;
         case 'season': viewHtml = renderSeasonTab(model); break;
         case 'draft': viewHtml = renderDraftTab(model); break;
         case 'market': viewHtml = renderMarketTab(model); break;
@@ -460,7 +473,10 @@ async function render(model) {
     }
 
     const viewEl = document.getElementById('an-view');
-    if (viewEl) viewEl.innerHTML = viewHtml;
+    if (viewEl) {
+        viewEl.innerHTML = viewHtml;
+        bindCharts(viewEl); // crosshair e tooltip anche sulle curve della squadra
+    }
     hydrateImages();
 }
 
@@ -501,6 +517,15 @@ function renderKpi(kpi) {
     ${missHtml}`;
 }
 
+/** Come sta andando la stagione di QUESTA squadra: tutto in una tab sua. */
+function renderTrendTab(model) {
+    const blocchi = teamLuckHTML(model, currentTeam)
+        + teamFormHTML(model, currentTeam)
+        + teamEdgeHTML(model, currentTeam)
+        + teamEfficiencyHTML(model, currentTeam);
+    return blocchi || emptyState('The season has not started yet');
+}
+
 function renderSeasonTab(model) {
     const rows = seasonView(model, currentTeam);
     if (!rows.length) return emptyState('No player found for this team');
@@ -514,6 +539,7 @@ function renderSeasonTab(model) {
     const ranks = leaguePositionRanks(model);
 
     return `
+    <h3 class="an-sub-title">Every player who passed through the roster</h3>
     <div class="an-list-head">
         <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
     </div>
@@ -849,6 +875,243 @@ function hydrateImages() {
 const CHART_COLORS = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', sommo: '#4fa3b8' };
 const ROLES = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
+/* ============================================================
+   ANDAMENTO DI STAGIONE
+   Il fantacalcio è un testa a testa: qui si guarda il record, non
+   l'accumulo. Tutto sulla sola regular season e sulle sole giornate
+   davvero giocate.
+   ============================================================ */
+
+/**
+ * Le giornate di regular season con almeno un punto a referto. La stagione in
+ * corso ha settimane future già presenti nei dati, tutte a zero: contarle
+ * significherebbe assegnare sconfitte a partite mai giocate.
+ */
+function playedWeeks(model) {
+    const ultima = getSeasonConfig(model.year).regularSeasonWeeks;
+    const out = [];
+    for (let w = 1; w <= ultima; w++) {
+        const punteggi = Object.values(TEAMS)
+            .map(t => model.teamWeeks[t.key]?.[w])
+            .filter(Boolean);
+        if (punteggi.length && punteggi.some(tw => tw.score > 0)) out.push(w);
+    }
+    return out;
+}
+
+/**
+ * Esito atteso di una giornata guardando TUTTA la lega: se hai battuto più
+ * della metà degli avversari dovevi vincere, altrimenti dovevi perdere.
+ */
+const attesoDi = (battuti, avversari) => (battuti * 2 > avversari ? 'W' : 'L');
+
+/**
+ * La fortuna è DISCRETA: esiste solo quando l'esito contraddice l'atteso.
+ *
+ *   battuti 2 su 3 e perso  → −1 (sfortuna)
+ *   battuti 1 su 3 e vinto  → +1 (fortuna)
+ *   tutto il resto          →  0 (meritato)
+ *
+ * La prima versione usava le "vittorie attese" continue (battuti/3), e per una
+ * giornata da 1 su 3 persa segnava −0,33 di sfortuna: ma battere uno su tre e
+ * perdere è l'esito NORMALE, non una beffa. Sui Lasers 2025 quel modello faceva
+ * sembrare sfortunate anche W1 e W2, che erano semplicemente giornate scarse.
+ * Il totale di stagione coincide (−1), ma il percorso raccontava una bugia.
+ */
+function esitoControAtteso(battuti, avversari, esito) {
+    if (!esito || esito === 'T') return 0;
+    const atteso = attesoDi(battuti, avversari);
+    if (esito === atteso) return 0;
+    return esito === 'W' ? 1 : -1;
+}
+
+/**
+ * All-play: ogni giornata il punteggio si confronta con TUTTI gli avversari,
+ * non solo con quello capitato in calendario. In una lega a 4 squadre il record
+ * vero sono ~15 partite, troppo poche per dire qualcosa; così diventano ~45.
+ *
+ * La FORTUNA è quella discreta definita qui sopra.
+ */
+function allPlayRecords(model) {
+    const weeks = playedWeeks(model);
+    const squadre = Object.values(TEAMS).map(t => t.key);
+
+    const out = {};
+    for (const key of squadre) {
+        out[key] = {
+            key, name: TEAMS[key].name, color: CHART_COLORS[key] || '#888',
+            w: 0, l: 0, t: 0, apW: 0, apL: 0, weeks: [],
+        };
+    }
+
+    for (const wk of weeks) {
+        const punteggi = squadre
+            .map(key => ({ key, tw: model.teamWeeks[key]?.[wk] }))
+            .filter(x => x.tw);
+
+        for (const { key, tw } of punteggi) {
+            const r = out[key];
+            // battuti sugli altri tre (pareggio mezzo punto)
+            let battuti = 0;
+            for (const altro of punteggi) {
+                if (altro.key === key) continue;
+                if (tw.score > altro.tw.score) battuti += 1;
+                else if (tw.score === altro.tw.score) battuti += 0.5;
+            }
+            const avversari = punteggi.length - 1;
+            r.apW += battuti;
+            r.apL += avversari - battuti;
+
+            // esito vero contro l'avversario di calendario
+            const opp = tw.opp ? model.teamWeeks[tw.opp]?.[wk] : null;
+            let esito = null;
+            if (opp) {
+                esito = tw.score > opp.score ? 'W' : tw.score < opp.score ? 'L' : 'T';
+                if (esito === 'W') r.w++; else if (esito === 'L') r.l++; else r.t++;
+            }
+            r.weeks.push({ wk, pts: tw.score, battuti, avversari, esito, opp: tw.opp });
+        }
+    }
+
+    for (const key of squadre) {
+        const r = out[key];
+        // fortuna cumulata giornata per giornata: dice QUANDO è successo
+        let corsa = 0, vinte = 0, perse = 0;
+        r.luckByWeek = [];
+        r.recordByWeek = [];
+        for (const g of r.weeks) {
+            g.verdetto = esitoControAtteso(g.battuti, g.avversari, g.esito);
+            corsa += g.verdetto;
+            if (g.esito === 'W') vinte++; else if (g.esito === 'L') perse++;
+            r.luckByWeek.push({
+                wk: g.wk, score: corsa,
+                label: segno(corsa),
+                note: g.verdetto > 0 ? '(stolen)' : g.verdetto < 0 ? '(robbed)' : '(earned)',
+            });
+            r.recordByWeek.push({ wk: g.wk, score: vinte, label: `${vinte}–${perse}` });
+        }
+        r.luck = corsa;
+        r.fortunate = r.weeks.filter(g => g.verdetto > 0).length;
+        r.sfortunate = r.weeks.filter(g => g.verdetto < 0).length;
+    }
+    return { weeks, teams: squadre.map(k => out[k]) };
+}
+
+/**
+ * Tutte le giornate giocate di una squadra, playoff compresi, per la striscia
+ * settimana per settimana. I playoff restano FUORI dai conti di record e
+ * fortuna (accoppiamenti diversi, non tutti giocano), ma vanno mostrati: sono
+ * le partite che contano di più.
+ */
+function teamWeekLog(model, teamKey) {
+    const cfg = getSeasonConfig(model.year);
+    const squadre = Object.values(TEAMS).map(t => t.key);
+    const out = [];
+    for (let w = 1; w <= cfg.superBowlWeek; w++) {
+        const tw = model.teamWeeks[teamKey]?.[w];
+        if (!tw || !(tw.score > 0)) continue;
+        const altri = squadre
+            .filter(k => k !== teamKey)
+            .map(k => model.teamWeeks[k]?.[w])
+            .filter(x => x && x.score > 0);
+        let battuti = 0;
+        for (const a of altri) {
+            if (tw.score > a.score) battuti += 1;
+            else if (tw.score === a.score) battuti += 0.5;
+        }
+        const opp = tw.opp ? model.teamWeeks[tw.opp]?.[w] : null;
+        const esito = opp ? (tw.score > opp.score ? 'W' : tw.score < opp.score ? 'L' : 'T') : null;
+        out.push({
+            wk: w, pts: tw.score, battuti, avversari: altri.length, esito, opp: tw.opp,
+            playoff: w > cfg.regularSeasonWeeks,
+            sb: w === cfg.superBowlWeek,
+            verdetto: esitoControAtteso(battuti, altri.length, esito),
+        });
+    }
+    return out;
+}
+
+/** Media delle ultime `n` giornate giocate contro la media di stagione. */
+function teamForm(model, n = 3) {
+    const weeks = playedWeeks(model);
+    return Object.values(TEAMS).map(t => {
+        const punti = weeks.map(w => model.teamWeeks[t.key]?.[w]?.score).filter(v => v != null);
+        if (!punti.length) return null;
+        const media = punti.reduce((a, b) => a + b, 0) / punti.length;
+        const ultimi = punti.slice(-n);
+        const recente = ultimi.reduce((a, b) => a + b, 0) / ultimi.length;
+        return {
+            key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
+            media, recente, giornate: ultimi.length,
+            punti: weeks.map((w, i) => ({ wk: w, score: punti[i] })),
+        };
+    }).filter(Boolean);
+}
+
+/**
+ * Punti per giornata dei TITOLARI in ogni ruolo, per squadra, e la media di
+ * lega nello stesso ruolo. La differenza è dove si vince il confronto.
+ * Stessa logica di `roleBreakdown` (un flex RB conta sotto RB), ma per giornata
+ * invece che in totale: i totali assoluti non dicono chi è più forte dove.
+ */
+function positionEdge(model) {
+    const weeks = playedWeeks(model);
+    const perTeam = {};
+    for (const t of Object.values(TEAMS)) {
+        const somme = {};
+        for (const wk of weeks) {
+            const tw = model.teamWeeks[t.key]?.[wk];
+            if (!tw) continue;
+            for (const name of tw.starters) {
+                const rec = model.players.get(name);
+                const w = rec?.weeks[wk];
+                if (!w || !ROLES.includes(rec.position)) continue;
+                somme[rec.position] = (somme[rec.position] || 0) + w.pts;
+            }
+        }
+        const medie = {};
+        for (const pos of ROLES) medie[pos] = weeks.length ? (somme[pos] || 0) / weeks.length : 0;
+        perTeam[t.key] = { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', medie };
+    }
+    const lega = {};
+    for (const pos of ROLES) {
+        const v = Object.values(perTeam).map(t => t.medie[pos]);
+        lega[pos] = v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+    }
+    return { weeks, perTeam, lega };
+}
+
+/**
+ * Punti schierati contro formazione ottimale, giornata per giornata. La
+ * distanza fra le due curve È quello lasciato in panchina; il rapporto dice se
+ * il manager sta imparando a schierare. `optimalWeekPoints` esisteva già e
+ * finiva solo dentro un totale di stagione.
+ */
+function lineupEfficiency(model) {
+    const weeks = playedWeeks(model);
+    return Object.values(TEAMS).map(t => {
+        const giornate = [];
+        for (const wk of weeks) {
+            const tw = model.teamWeeks[t.key]?.[wk];
+            if (!tw) continue;
+            const schierati = tw.starters.reduce((s, n) => s + (model.players.get(n)?.weeks[wk]?.pts || 0), 0);
+            const ottimale = optimalWeekPoints(model, t.key, wk);
+            if (ottimale == null) continue;
+            giornate.push({
+                wk, schierati, ottimale,
+                eff: ottimale > 0 ? (schierati / ottimale) * 100 : 100,
+            });
+        }
+        if (!giornate.length) return null;
+        const persi = giornate.reduce((s, g) => s + (g.ottimale - g.schierati), 0);
+        const effMedia = giornate.reduce((s, g) => s + g.eff, 0) / giornate.length;
+        return {
+            key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
+            giornate, persi, effMedia,
+        };
+    }).filter(Boolean);
+}
+
 function weeklyScores(model) {
     const teams = Object.values(TEAMS).map(t => {
         const values = [];
@@ -1026,7 +1289,7 @@ function renderPositionLeaders(model) {
     const cards = ROLES.map(pos => positionLeaderCard(pos, byPos[pos] || [], leaderMode)).filter(Boolean).join('');
     if (!cards) return '';
     return `
-    <h3 class="an-sub-title">Top Performers by Position</h3>
+    <h3 class="an-sub-title an-rule">Top Performers by Position</h3>
     <div class="an-controls">
         <div class="an-avg-toggle">
             <span class="an-avg-label">Points:</span>
@@ -1038,21 +1301,409 @@ function renderPositionLeaders(model) {
     <p class="an-footnote">Every week a player was on a roster, starter or not. Tap a card to see more than the top 5.</p>`;
 }
 
+/* ---------- Andamento di stagione: blocchi a schermo ---------- */
+
+const fmt1n = (n) => (Math.round(n * 10) / 10).toFixed(1);
+const segno = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt1n(Math.abs(n))}`;
+// Record all-play: sono conteggi, non misure. I decimali servono solo se un
+// pareggio ha prodotto un mezzo punto.
+const fmtAp = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10));
+
+function seasonEmpty(testo) {
+    return `<p class="an-footnote an-season-empty">${testo}</p>`;
+}
+
+/**
+ * Classifica in due misure: il record e i punti, fatti contro subiti.
+ * Punti fatti e subiti hanno la STESSA unità, quindi stanno sullo stesso asse:
+ * la distanza fra i due punti è il saldo, e si vede a colpo d'occhio chi vince
+ * segnando e chi vince perché ha incontrato avversari in giornata storta.
+ */
+function blockStandings(model) {
+    const { weeks, teams } = allPlayRecords(model);
+    if (!weeks.length) return seasonEmpty('The season has not started yet.');
+
+    const righe = [...teams]
+        .map(t => {
+            let pf = 0, pa = 0;
+            for (const g of t.weeks) {
+                pf += g.pts;
+                const opp = g.opp ? model.teamWeeks[g.opp]?.[g.wk] : null;
+                pa += opp ? opp.score : 0;
+            }
+            return { t, pf, pa };
+        })
+        .sort((a, b) => (b.t.w - a.t.w) || (b.pf - a.pf))
+        .map(({ t, pf, pa }) => ({
+            label: `${t.name}  ${t.w}–${t.l}${t.t ? `–${t.t}` : ''}`,
+            a: pf,
+            b: pa,
+            // i numeri per esteso: la posizione dice il rapporto, la scritta il valore
+            meta: `${fmt(pf, 0)} for · ${fmt(pa, 0)} against`,
+            tip: `${t.name} — ${t.w}–${t.l}, ${fmt(pf, 1)} for, ${fmt(pa, 1)} against`,
+        }));
+
+    // asse ristretto ai dati: i valori stanno tutti sui 2000 e lo scarto vale
+    // una settantina di punti — da zero non si distinguerebbe nulla
+    const tutti = righe.flatMap(r => [r.a, r.b]);
+    const base = Math.floor(Math.min(...tutti) / 100) * 100 - 100;
+
+    return `
+    <h3 class="an-sub-title">Record, points for and against</h3>
+    <p class="an-footnote">Regular season. The gap between the two dots is the balance:
+       to the right of the grey one means scoring more than conceding.</p>
+    ${dumbbell(righe, {
+        a: { name: 'Points for', color: 'var(--accent-red)' },
+        b: { name: 'Points against', color: 'var(--text-muted)' },
+        fmt: (v) => fmt(v, 0), labelW: 190, width: 1000, rightW: 210,
+        min: Math.max(0, base),
+    })}`;
+}
+
+/** 1. La corsa: vittorie cumulate settimana per settimana. */
+function blockRecordRace(model) {
+    const { weeks, teams } = allPlayRecords(model);
+    if (!weeks.length) return seasonEmpty('The season has not started yet.');
+
+    const serie = teams.map(t => ({
+        name: t.name, color: CHART_COLORS[t.key] || '#888', values: t.recordByWeek,
+    }));
+    const capolista = [...teams].sort((a, b) => b.w - a.w)[0];
+
+    // La stessa corsa senza il calendario: ogni giornata contro tutti e tre.
+    const serieAp = teams.map(t => {
+        let vinte = 0, perse = 0;
+        return {
+            name: t.name, color: CHART_COLORS[t.key] || '#888',
+            values: t.weeks.map(g => {
+                vinte += g.battuti;
+                perse += g.avversari - g.battuti;
+                return { wk: g.wk, score: vinte, label: `${fmtAp(vinte)}–${fmtAp(perse)}` };
+            }),
+        };
+    });
+    const apCapolista = [...teams].sort((a, b) => b.apW - a.apW)[0];
+
+    return `
+    <h3 class="an-sub-title">The race: wins week by week</h3>
+    <p class="an-footnote">Cumulative wins; hover any week to read every team's record
+       at that point. ${capolista.name} leads on ${capolista.w}–${capolista.l}.</p>
+    ${lineChartHTML(serie)}
+    <h4 class="an-season-sub">And if every week everyone played everyone</h4>
+    <p class="an-footnote">The same race with the schedule taken out: three head-to-heads a week
+       for everybody. ${apCapolista.name} leads on ${fmtAp(apCapolista.apW)}–${fmtAp(apCapolista.apL)}.
+       Where the two charts disagree, the calendar did the talking.</p>
+    ${lineChartHTML(serieAp)}`;
+}
+
+/** 2. Fortuna: solo le giornate in cui l'esito ha smentito il campo. */
+function blockLuck(model) {
+    const { weeks, teams } = allPlayRecords(model);
+    if (!weeks.length) return '';
+
+    // Una curva sola: la regular season si accumula, poi dopo l'ultima giornata
+    // il conto si AZZERA e i playoff ripartono da zero — lì una stagione di
+    // sfortuna non vale niente, si riparte pari.
+    const cfg = getSeasonConfig(model.year);
+    const serie = teams.map(t => {
+        const log = teamWeekLog(model, t.key);
+        let corsa = 0, azzerato = false;
+        const values = [];
+        for (const g of log) {
+            if (g.playoff && !azzerato) {
+                azzerato = true;
+                corsa = 0;
+                // Una colonna vuota fra regular season e playoff, dove il conto
+                // torna a zero: così l'azzeramento si vede come uno stacco e la
+                // prima giornata di playoff mostra il SUO valore, non lo zero.
+                values.push({ wk: cfg.regularSeasonWeeks + 0.5, score: 0, label: '0', note: '(reset)' });
+            }
+            corsa += g.verdetto;
+            values.push({
+                wk: g.wk, score: corsa, label: segno(corsa),
+                note: `${g.playoff ? 'playoff · ' : ''}${g.verdetto > 0 ? 'stolen' : g.verdetto < 0 ? 'robbed' : 'earned'}`,
+            });
+        }
+        return { name: t.name, color: CHART_COLORS[t.key] || '#888', values };
+    });
+    const derubata = [...teams].sort((a, b) => a.luck - b.luck)[0];
+    const baciata = [...teams].sort((a, b) => b.luck - a.luck)[0];
+
+    return `
+    <h3 class="an-sub-title">Luck, week by week</h3>
+    <p class="an-footnote">A week counts only when the result contradicts the field:
+       <b>beat two of three and lose</b> is −1, <b>beat one of three and win</b> is +1.
+       Everything else is earned — losing after beating nobody is a bad week, not bad luck.
+       ${derubata.luck < 0 ? `${derubata.name} was robbed ${derubata.sfortunate} times.` : ''}
+       ${baciata.luck > 0 ? `${baciata.name} stole ${baciata.fortunate}.` : ''}
+       After the last regular week the count <b>resets to zero</b>: in the playoffs a season
+       of bad luck buys nothing.</p>
+    ${lineChartHTML(serie, { yFmt: (v) => (Number.isInteger(v) ? segno(v) : '') })}`;
+}
+
+/** 2. Chi è caldo adesso: ultime tre giornate contro la propria media. */
+function blockForm(model) {
+    const forma = teamForm(model);
+    if (!forma.length) return seasonEmpty('The season has not started yet.');
+    const righe = [...forma]
+        .sort((a, b) => (b.recente - b.media) - (a.recente - a.media))
+        .map(t => ({
+            label: t.name,
+            value: t.recente,
+            ref: t.media,
+            meta: `${t.media > 0 ? segno(((t.recente - t.media) / t.media) * 100) + '%' : '—'}`,
+            tip: `${t.name} — last ${t.giornate}: ${fmt1n(t.recente)} pt, season ${fmt1n(t.media)} pt`,
+        }));
+    return `
+    <h3 class="an-sub-title">Who is hot right now</h3>
+    <p class="an-footnote">Average of the last three weeks against the team's own season average.
+       The cumulative chart further down is dominated by the early weeks and hides current form.</p>
+    ${dotPlot(righe, { axisLabel: 'season average', fmt: fmt1n })}`;
+}
+
+/** 3. Vantaggio per ruolo: dove si vince il confronto. */
+function blockPositionEdge(model) {
+    const { weeks, perTeam, lega } = positionEdge(model);
+    if (!weeks.length) return seasonEmpty('The season has not started yet.');
+
+    const gruppi = ROLES.map(pos => {
+        const righe = Object.values(perTeam)
+            .map(t => ({
+                label: t.name,
+                value: t.medie[pos],
+                ref: lega[pos],
+                meta: segno(t.medie[pos] - lega[pos]),
+                tip: `${t.name} — ${pos} ${fmt1n(t.medie[pos])} pt/week, league ${fmt1n(lega[pos])}`,
+            }))
+            .sort((a, b) => b.value - a.value);
+        return `
+        <div class="an-edge-group">
+            <span class="an-edge-pos">${pos}</span>
+            ${dotPlot(righe, { axisLabel: `league ${fmt1n(lega[pos])}`, fmt: fmt1n })}
+        </div>`;
+    }).join('');
+
+    return `
+    <h3 class="an-sub-title">Where each team wins the matchup</h3>
+    <p class="an-footnote">Points per week from starters in each position, against the league
+       average in the same position. Right of the line is an edge, left is a hole.</p>
+    <div class="an-edge-grid">${gruppi}</div>`;
+}
+
+/** 4. Efficienza di formazione giornata per giornata. */
+function blockEfficiency(model) {
+    const eff = lineupEfficiency(model);
+    if (!eff.length) return seasonEmpty('The season has not started yet.');
+    const weeks = eff[0].giornate.map(g => g.wk);
+    // Le percentuali settimana per settimana erano quattro linee che si
+    // incrociavano di continuo e non si leggeva niente. La panchina CUMULATA
+    // invece sale e basta: le linee non si aggrovigliano, e la pendenza dice
+    // esattamente in quali settimane si è sbagliato di più.
+    const curve = eff.map(t => {
+        let persi = 0;
+        return {
+            name: t.name, color: CHART_COLORS[t.key] || '#888',
+            values: t.giornate.map(g => {
+                persi += g.ottimale - g.schierati;
+                return {
+                    wk: g.wk, score: persi, label: fmt(persi, 1),
+                    note: `(W${g.wk}: −${fmt(g.ottimale - g.schierati, 1)})`,
+                };
+            }),
+        };
+    });
+    const migliore = [...eff].sort((a, b) => b.effMedia - a.effMedia)[0];
+    return `
+    <h3 class="an-sub-title">Points left on the bench, adding up</h3>
+    <p class="an-footnote">Every week the gap between what was started and the best lineup
+       available, piling up. A flat stretch is a manager getting it right; a steep one is a
+       week thrown away. Best of the season: <b>${migliore.name}</b>,
+       ${fmt1n(migliore.effMedia)}% of the maximum.</p>
+    ${lineChartHTML(curve)}`;
+}
+
+/* ---------- Andamento: le versioni riferite alla singola squadra ---------- */
+
+/** Record, all-play e fortuna della squadra scelta, giornata per giornata. */
+function teamLuckHTML(model, teamKey) {
+    const { weeks, teams } = allPlayRecords(model);
+    const t = teams.find(x => x.key === teamKey);
+    const log = teamWeekLog(model, teamKey);
+    if (!weeks.length || !t || !log.length) return '';
+
+    const girate = t.weeks.filter(g => g.verdetto !== 0);
+    const cfg = getSeasonConfig(model.year);
+
+    const colonna = (g) => {
+        const cls = g.esito === 'W' ? 'win' : g.esito === 'L' ? 'loss' : 'tie';
+        const verdetto = g.playoff ? 'playoff'
+            : g.verdetto > 0 ? 'stolen' : g.verdetto < 0 ? 'robbed' : 'earned';
+        const etichetta = g.sb ? 'SB' : g.playoff ? 'PO' : g.wk;
+        return `
+        <div class="an-luck-week an-luck-week--${cls}${g.playoff ? ' an-luck-week--po' : ''}"
+             title="W${g.wk}${g.playoff ? ' · playoff' : ''}: ${fmt(g.pts, 2)} pt, beats ${fmtAp(g.battuti)} of ${g.avversari} — ${g.esito || '—'} (${verdetto})">
+            <span class="an-luck-bar"><span style="height:${(g.battuti / (g.avversari || 1)) * 100}%"></span></span>
+            <span class="an-luck-wk">${etichetta}</span>
+        </div>`;
+    };
+
+    const playoff = log.filter(g => g.playoff);
+    const daPo = log.findIndex(g => g.playoff);
+
+    // Graffa oro sopra le sole giornate di playoff: la griglia le allinea in
+    // colonna, quindi basta dire da quale colonna parte.
+    const graffa = playoff.length ? `
+        <svg class="an-luck-brace" viewBox="0 0 100 12" preserveAspectRatio="none"
+             style="grid-column:${daPo + 1} / -1" aria-hidden="true">
+            <path d="M0,12 Q0,7 5,7 L45,7 Q50,7 50,0 Q50,7 55,7 L95,7 Q100,7 100,12"
+                  fill="none" stroke="var(--accent-amber)" stroke-width="1.6"
+                  vector-effect="non-scaling-stroke"/>
+        </svg>
+        <span class="an-luck-po-label" style="grid-column:${daPo + 1} / -1">Playoffs</span>` : '';
+
+    return `
+    <h3 class="an-sub-title">Record: earned or scheduled?</h3>
+    <div class="an-luck-kpi">
+        <div><b>${t.w}–${t.l}${t.t ? `–${t.t}` : ''}</b><span>Real record</span></div>
+        <div><b>${fmtAp(t.apW)}–${fmtAp(t.apL)}</b><span>All-play record</span></div>
+        <div class="${t.luck > 0 ? 'an-luck-good' : t.luck < 0 ? 'an-luck-bad' : ''}">
+            <b>${segno(t.luck)}</b><span>Luck</span>
+        </div>
+    </div>
+    <p class="an-footnote">The bar is how many of the other teams that score would have beaten.
+       Green = won for real, red = lost. A week counts as luck only when the two disagree:
+       <b>${t.sfortunate}</b> robbed, <b>${t.fortunate}</b> stolen${girate.length
+            ? ` (${girate.map(g => `W${g.wk}`).join(', ')})` : ''}.
+       Playoffs are shown but never counted: the pairings are different.</p>
+    <div class="an-luck-strip" style="--cols:${log.length}">
+        ${graffa}
+        ${log.map(colonna).join('')}
+    </div>`;
+}
+
+/** Punti giornata per giornata della squadra, con la sua media come metro. */
+function teamFormHTML(model, teamKey) {
+    const t = teamForm(model).find(x => x.key === teamKey);
+    if (!t || !t.punti.length) return '';
+    // I playoff proseguono la curva in oro: sono le partite che contano di più,
+    // e vanno viste. Il primo punto è l'ultima di regular season, così le due
+    // linee si toccano invece di apparire staccate.
+    const log = teamWeekLog(model, teamKey);
+    const po = log.filter(g => g.playoff);
+    const ultimaRs = t.punti[t.punti.length - 1];
+    const serie = [
+        {
+            name: t.name, color: CHART_COLORS[t.key] || '#888',
+            values: t.punti.map(p => ({ wk: p.wk, score: p.score })),
+        },
+        {
+            name: 'Season avg', color: 'var(--text-muted)',
+            values: log.map(g => ({ wk: g.wk, score: t.media, label: fmt1n(t.media) })),
+        },
+    ];
+    if (po.length) {
+        serie.push({
+            name: 'Playoffs', color: 'var(--accent-amber)',
+            values: [{ wk: ultimaRs.wk, score: ultimaRs.score }].concat(po.map(g => ({
+                wk: g.wk, score: g.pts,
+                note: `(${g.esito === 'W' ? 'won' : 'lost'})`,
+            }))),
+        });
+    }
+    const scarto = t.media > 0 ? ((t.recente - t.media) / t.media) * 100 : 0;
+    return `
+    <h3 class="an-sub-title">Form</h3>
+    <p class="an-footnote">Last ${t.giornate} weeks at <b>${fmt1n(t.recente)}</b> pt per week
+       against a season average of <b>${fmt1n(t.media)}</b>: ${segno(scarto)}%.</p>
+    ${lineChartHTML(serie)}`;
+}
+
+/** Vantaggio per ruolo della squadra contro la media di lega. */
+function teamEdgeHTML(model, teamKey) {
+    const { weeks, perTeam, lega } = positionEdge(model);
+    const t = perTeam[teamKey];
+    if (!weeks.length || !t) return '';
+    const righe = ROLES
+        .map(pos => ({
+            label: pos,
+            value: t.medie[pos],
+            ref: lega[pos],
+            meta: segno(t.medie[pos] - lega[pos]),
+            tip: `${pos} — ${fmt1n(t.medie[pos])} pt/week, league ${fmt1n(lega[pos])}`,
+        }))
+        .sort((a, b) => (b.value - b.ref) - (a.value - a.ref));
+    return `
+    <h3 class="an-sub-title">Where this team wins the matchup</h3>
+    <p class="an-footnote">Points per week from starters in each position, against the league
+       average in the same position.</p>
+    ${dotPlot(righe, { axisLabel: 'league average', fmt: fmt1n })}`;
+}
+
+/** Schierati contro ottimale, giornata per giornata, per la squadra scelta. */
+function teamEfficiencyHTML(model, teamKey) {
+    const t = lineupEfficiency(model).find(x => x.key === teamKey);
+    if (!t) return '';
+    const serie = [
+        {
+            name: 'Best possible', color: 'var(--text-muted)',
+            values: t.giornate.map(g => ({ wk: g.wk, score: g.ottimale })),
+        },
+        {
+            name: 'Started', color: CHART_COLORS[t.key] || '#888',
+            values: t.giornate.map(g => ({
+                wk: g.wk, score: g.schierati,
+                note: `(${fmt1n(g.eff)}% of best)`,
+            })),
+        },
+    ];
+    const peggiore = [...t.giornate].sort((a, b) => (a.ottimale - a.schierati) - (b.ottimale - b.schierati)).pop();
+    return `
+    <h3 class="an-sub-title">Started vs best possible, week by week</h3>
+    <p class="an-footnote">The gap between the two lines <b>is</b> what was left on the bench:
+       ${fmt(t.persi, 1)} pt over the regular season, ${fmt1n(t.effMedia)}% efficiency.
+       Worst call in W${peggiore.wk} (−${fmt(peggiore.ottimale - peggiore.schierati, 1)} pt).</p>
+    ${lineChartHTML(serie)}`;
+}
+
+/** Il blocco intero, in cima alla vista Totale. */
+function seasonTrendHTML(model) {
+    return `
+    <div class="an-season-block an-rule">
+        <h2 class="an-season-title">How the season is going</h2>
+        <p class="an-footnote an-season-note">Regular season only, and only weeks actually
+           played: the playoffs pair teams differently and would distort every record here.</p>
+        ${blockRecordRace(model)}
+        ${blockLuck(model)}
+        ${blockForm(model)}
+        ${blockPositionEdge(model)}
+        ${blockEfficiency(model)}
+    </div>`;
+}
+
 function renderLeagueView(model) {
     const series = weeklyScores(model);
     if (!series.length) return emptyState(`No data for the ${currentYear} season`);
 
-    const allScores = series.flatMap(s => s.values.map(v => v.weekScore));
+    // Solo le giornate davvero giocate: la stagione in corso porta con sé le
+    // settimane future a zero, e contarle dava "∞" e "Flop Week — undefined".
+    const allScores = series.flatMap(s => s.values.map(v => v.weekScore)).filter(v => v > 0);
+    const giocato = allScores.length > 0;
     const totalPts = allScores.reduce((a, b) => a + b, 0);
-    const avgPts = totalPts / allScores.length;
-    let bestWeek = { weekScore: -1 };
-    let worstWeek = { weekScore: Infinity };
+    const avgPts = giocato ? totalPts / allScores.length : 0;
+    let bestWeek = null;
+    let worstWeek = null;
     for (const s of series) {
         for (const v of s.values) {
-            if (v.weekScore > bestWeek.weekScore) bestWeek = { ...v, name: s.name };
-            if (v.weekScore > 0 && v.weekScore < worstWeek.weekScore) worstWeek = { ...v, name: s.name };
+            if (!(v.weekScore > 0)) continue;
+            if (!bestWeek || v.weekScore > bestWeek.weekScore) bestWeek = { ...v, name: s.name };
+            if (!worstWeek || v.weekScore < worstWeek.weekScore) worstWeek = { ...v, name: s.name };
         }
     }
+    const kpiWeek = (g, etichetta) => g
+        ? `<div class="summary-stat-value">${fmt(g.weekScore, 1)}</div>
+           <div class="summary-stat-label">${etichetta} — ${g.name} (W${g.wk})</div>`
+        : `<div class="summary-stat-value">—</div>
+           <div class="summary-stat-label">${etichetta}</div>`;
 
     const legend = `
     <div class="an-chart-legend">
@@ -1073,12 +1724,10 @@ function renderLeagueView(model) {
             <div class="summary-stat-label">Average per Game</div>
         </div>
         <div class="summary-stat summary-stat--accent">
-            <div class="summary-stat-value">${fmt(bestWeek.weekScore, 1)}</div>
-            <div class="summary-stat-label">Top Week — ${bestWeek.name} (W${bestWeek.wk})</div>
+            ${kpiWeek(bestWeek, 'Top Week')}
         </div>
         <div class="summary-stat">
-            <div class="summary-stat-value">${fmt(worstWeek.weekScore, 1)}</div>
-            <div class="summary-stat-label">Flop Week — ${worstWeek.name} (W${worstWeek.wk})</div>
+            ${kpiWeek(worstWeek, 'Flop Week')}
         </div>
     </div>
 
@@ -1091,6 +1740,8 @@ function renderLeagueView(model) {
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
 
+    ${blockStandings(model)}
+
     <div class="an-rankings">
         ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
         ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
@@ -1099,6 +1750,8 @@ function renderLeagueView(model) {
 
     <h3 class="an-sub-title">Scoring Consistency</h3>
     ${buildDistributionChart(scoreDistribution(model))}
+
+    ${seasonTrendHTML(model)}
 
     <h3 class="an-sub-title">Draft: Value per Pick</h3>
     ${legend}
@@ -1111,7 +1764,7 @@ function renderLeagueView(model) {
         ${rankingBlockPerf('Flop 5 Performance', topFlop.flop, 'flop')}
     </div>
 
-    <h3 class="an-sub-title">Roster Comparison — Drafted Team</h3>
+    <h3 class="an-sub-title an-rule">Roster Comparison — Drafted Team</h3>
     ${buildRosterCompareTable(model, 'drafted')}
 
     <h3 class="an-sub-title">Roster Comparison — Best Team</h3>
@@ -1437,7 +2090,9 @@ function niceTicks(min, max, count = 4) {
     return ticks;
 }
 
-function buildLineChart(series) {
+function buildLineChart(series, opts = {}) {
+    // `yFmt`: l'asse di una percentuale senza il segno % si legge male ("105")
+    const yFmt = opts.yFmt || ((v) => fmt(v));
     const weeks = [...new Set(series.flatMap(s => s.values.map(v => v.wk)))].sort((a, b) => a - b);
     const scores = series.flatMap(s => s.values.map(v => v.score));
     const ticks = niceTicks(Math.min(...scores), Math.max(...scores));
@@ -1450,10 +2105,15 @@ function buildLineChart(series) {
 
     const grid = ticks.map(v => `
         <line x1="${LC.l}" y1="${y(v)}" x2="${LC.l + plotW}" y2="${y(v)}" class="an-gridline"/>
-        <text x="${LC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${fmt(v)}</text>`).join('');
+        <text x="${LC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${yFmt(v)}</text>`).join('');
 
-    const xTicks = weeks.filter((_, i) => weeks.length <= 10 || i % 2 === 0).map(wk =>
-        `<text x="${x(wk)}" y="${LC.h - 8}" class="an-tick" text-anchor="middle">W${wk}</text>`).join('');
+    // Tutte le settimane sull'asse, sempre: saltarne una su due costringeva a
+    // contare per capire dov'era una giornata. Se lo spazio per etichetta non
+    // basta si accorcia la scritta (via la "W"), non si buttano via i tick.
+    const passo = weeks.length > 1 ? plotW / (weeks.length - 1) : plotW;
+    const etichetta = (wk) => (passo < 22 ? String(wk) : `W${wk}`);
+    const xTicks = weeks.filter(Number.isInteger).map(wk =>
+        `<text x="${x(wk)}" y="${LC.h - 8}" class="an-tick" text-anchor="middle">${etichetta(wk)}</text>`).join('');
 
     // Etichette di fine linea con anti-collisione verticale semplice
     const ends = series.map(s => {
@@ -1636,12 +2296,21 @@ function bindLeaderControls(wrap, model) {
 }
 
 function bindCharts(wrap) {
-    const lineChart = wrap.querySelector('#an-line-chart');
-    if (lineChart) bindLineChart(lineChart);
+    // Tutti i grafici a linea, non solo quello storico: ognuno porta il suo
+    // crosshair e il suo tooltip, e si riconoscono da data-chart="line".
+    wrap.querySelectorAll('svg[data-chart="line"]').forEach(svg => {
+        const box = svg.closest('.an-chart');
+        if (box) bindLineChart(box);
+    });
     const roleChart = wrap.querySelector('#an-role-chart');
     if (roleChart) bindBarChart(roleChart);
     const scatterChart = wrap.querySelector('#an-scatter-chart');
     if (scatterChart) bindDraftScatter(scatterChart);
+}
+
+/** Grafico a linea col linguaggio del sito: colori squadra e dettaglio al passaggio. */
+function lineChartHTML(series, opts) {
+    return `<div class="an-chart">${buildLineChart(series, opts)}<div class="an-chart-tooltip" hidden></div></div>`;
 }
 
 function bindLineChart(container) {
@@ -1686,10 +2355,17 @@ function bindLineChart(container) {
             key.className = 'an-tt-key';
             key.style.background = s.color;
             const val = document.createElement('b');
-            val.textContent = fmt(v.cum !== undefined ? v.cum : v.score, 1);
+            // `label`/`note` pronti dal chiamante: servono ai grafici dove il
+            // valore non è un numero da formattare (un record "6–3") o dove la
+            // riga vuole una chiosa sua ("robbed", "earned").
+            val.textContent = v.label !== undefined
+                ? v.label
+                : fmt(v.cum !== undefined ? v.cum : v.score, 1);
             const name = document.createElement('span');
             name.className = 'an-tt-name';
-            name.textContent = v.weekScore !== undefined ? `${s.name} (+${fmt(v.weekScore, 1)})` : s.name;
+            name.textContent = v.note !== undefined ? `${s.name} ${v.note}`
+                : v.weekScore !== undefined ? `${s.name} (+${fmt(v.weekScore, 1)})`
+                    : s.name;
             row.append(key, val, name);
             tooltip.appendChild(row);
         }
