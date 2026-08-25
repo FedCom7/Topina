@@ -19,8 +19,8 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=535';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=602';
-import { initPlayerModal } from '../components/player-modal.js?v=608';
+import { TEAMS } from './team.js?v=607';
+import { initPlayerModal } from '../components/player-modal.js?v=612';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=594';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];

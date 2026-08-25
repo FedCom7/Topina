@@ -18,10 +18,10 @@ import {
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=535';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=604';
+import { TEAMS } from './team.js?v=607';
 import { getLeagueData } from '../data/league-data.js?v=536';
 import { getHonorsBundle } from '../data/honors.js?v=588';
-import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=546';
+import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=555';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
     LEDE_OPENERS, MARGIN_THRILLER, MARGIN_BLOWOUT, MARGIN_NORMAL,

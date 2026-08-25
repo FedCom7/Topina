@@ -7,7 +7,7 @@
 
 import { CURRENT_SEASON } from '../data.js?v=535';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=588';
-import { TEAMS } from './team.js?v=604';
+import { TEAMS } from './team.js?v=607';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

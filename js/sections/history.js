@@ -8,7 +8,7 @@
  */
 import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=535';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=604';
+import { TEAMS } from './team.js?v=607';
 
 let loaded = false;
 

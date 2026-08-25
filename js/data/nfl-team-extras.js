@@ -11,10 +11,14 @@
 
 import { canonAbbr } from './nfl-schedule.js?v=525';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
-import { getTeamUsage } from './context-score.js?v=610';
+import { getTeamUsage } from './context-score.js?v=619';
 
 const _roster = {};   // year → roster json | null
 const _injuries = {}; // year → injuries json | null
+const _inactives = {}; // year → inactives json | null
+const _unrosteredScores = {}; // year → unrostered_scores json | null
+const _bestAvailable = {}; // year → best_available json | null
+const _playerStatus = {}; // year → player_status json (settimane in IR) | null
 const _espnRoster = {}; // teamId → athletes[] live (cache in memoria, una sola chiamata per squadra)
 
 async function fetchJson(url, timeoutMs = 10000) {
@@ -26,24 +30,60 @@ async function fetchJson(url, timeoutMs = 10000) {
     finally { clearTimeout(t); }
 }
 
-async function rosterJson(year) {
+/**
+ * In cache va la PROMESSA, non il risultato: questi file li chiedono decine di
+ * chiamate in parallelo (un getPlayerInjuries per giocatore), e con l'`await`
+ * prima dell'assegnazione nessuna di quelle trovava la cache già piena —
+ * partivano tutte. Misurato: 107 download dello stesso injuries_2025.json
+ * (1,7 MB l'uno) per una singola apertura di Analysis. Restituendo la promessa
+ * la prima chiamata scarica e le altre si agganciano a quella.
+ * Un fallimento resta in cache come promessa-di-null, esattamente come prima:
+ * un file che non esiste (es. la stagione non ancora pubblicata) non va
+ * richiesto altre cinquanta volte.
+ */
+function rosterJson(year) {
     if (year in _roster) return _roster[year];
-    return (_roster[year] = await fetchJson(`data/nfl/roster_${year}.json`));
+    return (_roster[year] = fetchJson(`data/nfl/roster_${year}.json`));
 }
-async function injuriesJson(year) {
+function injuriesJson(year) {
     if (year in _injuries) return _injuries[year];
-    return (_injuries[year] = await fetchJson(`data/nfl/injuries_${year}.json`));
+    return (_injuries[year] = fetchJson(`data/nfl/injuries_${year}.json`));
+}
+function inactivesJson(year) {
+    if (year in _inactives) return _inactives[year];
+    return (_inactives[year] = fetchJson(`data/nfl/inactives_${year}.json`));
+}
+function unrosteredScoresJson(year) {
+    if (year in _unrosteredScores) return _unrosteredScores[year];
+    return (_unrosteredScores[year] = fetchJson(`data/nfl/unrostered_scores_${year}.json`));
+}
+function bestAvailableJson(year) {
+    if (year in _bestAvailable) return _bestAvailable[year];
+    return (_bestAvailable[year] = fetchJson(`data/nfl/best_available_${year}.json`));
+}
+function playerStatusJson(year) {
+    if (year in _playerStatus) return _playerStatus[year];
+    return (_playerStatus[year] = fetchJson(`data/nfl/player_status_${year}.json`));
 }
 
-/** Roster live ESPN (tutte le posizioni, con injuries embedded per atleta). */
-async function espnRoster(abbr) {
+/**
+ * Roster live ESPN (tutte le posizioni, con injuries embedded per atleta).
+ * In cache la promessa, come sopra: qui le chiamate concorrenti per la stessa
+ * squadra arrivano da giocatori diversi della stessa rosa. A differenza dei
+ * file locali, un fallimento NON resta in cache (l'endpoint è di rete e può
+ * tornare su): la voce si toglie e il tentativo dopo riprova.
+ */
+function espnRoster(abbr) {
     const teamId = ESPN_TEAM_IDS[abbr];
-    if (!teamId) return null;
+    if (!teamId) return Promise.resolve(null);
     if (_espnRoster[teamId]) return _espnRoster[teamId];
-    const data = await fetchJson(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`);
-    if (!data?.athletes) return null;
-    const athletes = data.athletes.flatMap(g => g.items || []);
-    return (_espnRoster[teamId] = athletes);
+    const p = fetchJson(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`)
+        .then(data => {
+            if (!data?.athletes) { delete _espnRoster[teamId]; return null; }
+            return data.athletes.flatMap(g => g.items || []);
+        })
+        .catch(() => { delete _espnRoster[teamId]; return null; });
+    return (_espnRoster[teamId] = p);
 }
 
 /**
@@ -394,4 +434,86 @@ export async function getPlayerInjuries(gsis, name, pos, years) {
         }
     });
     return out;
+}
+
+const _normLettersOnly = (n) => (n || '').toLowerCase().replace(/[^a-z]/g, '');
+
+/**
+ * Esito REALE (ha giocato o no) di un giocatore, settimana per settimana, in
+ * una stagione — Map(week → didNotPlay). Il referto infortuni si ferma al
+ * venerdì; questo viene dal roster ufficiale ESPN della singola partita
+ * (campo `didNotPlay`), l'unico dato che dice cosa è successo davvero la
+ * domenica. Arricchimento MIRATO, non universale: copre solo i giocatori
+ * delle nostre 4 squadre che avevano già uno stato sul referto quella
+ * settimana — vedi scripts/espn/build_inactives.py. Assente dalla mappa =
+ * nessun dato disponibile, non "ha giocato": non va riempito con un default.
+ */
+export async function getPlayerInactive(name, year) {
+    const data = await inactivesJson(year);
+    const entry = data?.players?.[_normLettersOnly(name)];
+    if (!entry) return new Map();
+    return new Map(Object.entries(entry).map(([wk, dnp]) => [Number(wk), dnp]));
+}
+
+/**
+ * Punti REALI di un nostro giocatore per le settimane in cui non lo aveva
+ * NESSUNA delle 4 squadre — Map(week → {week, opponent, pts, stats}).
+ * Ricostruiti da statistiche NFL vere (nflverse), mai registrati da nessuna
+ * lega: vedi scripts/build-nfl-player-scores.mjs. Solo QB/RB/WR/TE.
+ */
+export async function getUnrosteredScores(name, year) {
+    const data = await unrosteredScoresJson(year);
+    const entry = data?.players?.[_normLettersOnly(name)];
+    if (!entry) return new Map();
+    return new Map(entry.map(w => [w.week, w]));
+}
+
+/**
+ * Media di stagione REALE dei nostri giocatori — Map(nome → {pts, games, avg}).
+ *
+ * Stesse regole con cui è calcolata quella dei free agent (solo partite
+ * davvero giocate, bye e inattivi fuori), così le due si possono confrontare.
+ * Serve al blocco "dove cercare un rinforzo": la media da titolare presa da
+ * Firebase è su pochissime presenze, e prendendo il minimo fra campioni così
+ * piccoli usciva sempre il più sfortunato invece del più debole.
+ */
+export async function getSeasonAverages(year) {
+    const data = await unrosteredScoresJson(year);
+    const out = new Map();
+    for (const [k, v] of Object.entries(data?.seasonAvg || {})) {
+        if (Array.isArray(v) && v[1]) out.set(k, { pts: v[0], games: v[1], avg: v[0] / v[1] });
+    }
+    return out;
+}
+
+/** Chiave con cui cercare dentro getSeasonAverages (stessa normalizzazione del build). */
+export const seasonAvgKey = _normLettersOnly;
+
+/**
+ * I migliori QB/RB/WR/TE MAI passati su nessuna delle 4 rose, quell'anno —
+ * { QB: [...], RB: [...], ... }, ognuno con `weeks` per il drill-down. Solo
+ * la top 10 per ruolo (vedi build-nfl-player-scores.mjs): il resto del pool
+ * libero non è salvato, appesantirebbe il repo senza motivo.
+ */
+export async function getBestAvailable(year) {
+    const data = await bestAvailableJson(year);
+    return data?.byPosition || null;
+}
+
+/**
+ * Settimane passate in RISERVA INFORTUNATI — Map(week → 'IR').
+ *
+ * È il buco che il referto settimanale non copre: chi finisce in IR smette di
+ * comparirci, quindi l'infortunio più grave della stagione era anche l'unico
+ * invisibile (Malik Nabers 2025: crociato alla week 4 e poi il nulla).
+ * Fonte: roster_weekly nflverse, stato di rosa NFL settimana per settimana —
+ * vedi scripts/build-nfl-player-scores.mjs.
+ * Nota: la fonte ogni tanto salta la riga di un singolo giocatore in una
+ * settimana; quel buco resta vuoto invece di essere colmato per inferenza.
+ */
+export async function getPlayerStatus(name, year) {
+    const data = await playerStatusJson(year);
+    const entry = data?.players?.[_normLettersOnly(name)];
+    if (!entry) return new Map();
+    return new Map(Object.entries(entry).map(([wk, st]) => [Number(wk), st]));
 }

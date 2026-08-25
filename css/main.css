@@ -6690,7 +6690,7 @@ img {
 
 .an-drill-row {
     display: grid;
-    grid-template-columns: 36px 60px 60px 1fr 80px;
+    grid-template-columns: 36px 60px 60px 1fr auto auto;
     align-items: center;
     gap: 12px;
     padding: 4px 0;
@@ -6710,7 +6710,19 @@ img {
 }
 
 .an-drill-row--team {
-    grid-template-columns: 36px 60px 80px 60px 1fr 80px;
+    grid-template-columns: 36px 60px 80px 60px 1fr auto auto;
+}
+
+/* Righe "calcolate": nessuna squadra fantasy le ha registrate, i punti sono
+   una ricostruzione da statistiche NFL vere (nflverse) — restano spente per
+   non farle passare per un dato ufficiale di lega. */
+.an-drill-row--calc {
+    opacity: 0.55;
+}
+
+.an-drill-row--calc .an-drill-pts sup {
+    color: var(--text-muted);
+    font-size: 0.85em;
 }
 
 .an-drill-team {
@@ -6766,6 +6778,34 @@ img {
 }
 
 .an-badge-drop {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent-amber);
+}
+
+.an-badge-injury--out {
+    background: rgba(239, 68, 68, 0.14);
+    color: var(--accent-red);
+}
+
+/* Riserva infortunati: più marcato di un "Out" di giornata — è la stagione
+   (o un pezzo grosso di stagione) che finisce lì. */
+.an-badge-injury--ir {
+    background: rgba(185, 28, 28, 0.9);
+    color: #fff;
+}
+
+/* Lista riserve senza motivo dichiarato dalla fonte: non lo chiamiamo IR. */
+.an-badge-injury--reserve {
+    background: rgba(139, 92, 246, 0.16);
+    color: #a78bfa;
+}
+
+.an-badge-injury--doubtful {
+    background: rgba(224, 138, 60, 0.14);
+    color: #e08a3c;
+}
+
+.an-badge-injury--questionable {
     background: rgba(245, 158, 11, 0.12);
     color: var(--accent-amber);
 }
@@ -7386,6 +7426,309 @@ img {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 12px 32px;
     margin-top: 8px;
+}
+
+/* --- Best Available: top 10 per ruolo mai passati su nessuna rosa --- */
+.an-bestavail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin-top: 8px;
+}
+
+.an-bestavail-pos {
+    display: block;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+/* --- Dove cercare un rinforzo: un blocco per ruolo scoperto --- */
+.an-upg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px 24px;
+    margin-top: 8px;
+}
+
+.an-upg-group {
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.an-upg-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+/* Il ruolo qui è il titolo del blocco, non un'etichetta accanto a un nome:
+   niente pillola colorata, si legge come testo. */
+.an-upg-pos {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+
+.an-upg-deficit {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--accent-red);
+}
+
+.an-upg-weak {
+    flex-basis: 100%;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.an-upg-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto 46px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.an-upg-photo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Va a capo invece di troncare: con l'ellissi si perdeva la squadra NFL, che
+   e' proprio l'informazione che dice se il rinforzo e' credibile. */
+.an-upg-name {
+    min-width: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-primary);
+}
+
+.an-upg-name small {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.an-upg-avg {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.an-upg-avg small {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Il guadagno e' il motivo per cui la riga esiste: in verde e in evidenza. */
+.an-upg-gain {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--accent-green);
+}
+
+/* --- Injury Report: le squadre una sotto l'altra, impaginate come il Best
+   Available (stesse righe, stessa intestazione) --- */
+.an-inj-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin-top: 8px;
+}
+
+.an-inj-team-block {
+    min-width: 0;
+}
+
+.an-inj-team {
+    display: block;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--tc, var(--text-primary));
+}
+
+.an-inj-summary {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 2px 0 10px;
+}
+
+.an-inj-clean {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.an-inj-sub {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin: 12px 0 6px;
+}
+
+/* Riga infortunio: stessa griglia della riga giocatore del Best Available —
+   foto, nome, un paio di colonne, e in fondo il referto delle giornate tutto
+   sulla riga (niente drill-down). */
+.an-inj-head,
+.an-inj-row {
+    display: grid;
+    grid-template-columns: 40px minmax(150px, 1.1fr) 56px minmax(130px, 0.9fr) minmax(190px, 1.7fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.an-inj-head {
+    padding: 8px 0;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.an-inj-row {
+    min-width: 0;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.an-inj-photo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Su telefono la riga a cinque colonne non ci sta: nome e numero restano in
+   alto, lo stato e il referto vanno a capo a tutta larghezza. Il referto NON
+   si nasconde — è il motivo per cui questa sezione esiste. */
+@media (max-width: 768px) {
+    .an-inj-head {
+        display: none;
+    }
+
+    .an-inj-row {
+        grid-template-columns: 32px minmax(0, 1fr) 44px;
+        row-gap: 6px;
+    }
+
+    .an-inj-meta {
+        grid-column: 2 / -1;
+    }
+
+    .an-inj-strip {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Giornate saltate: il numero che riassume la riga, quindi in evidenza. */
+.an-inj-missed {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.an-inj-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Giro di draft: corsivo e spento, è un riferimento non un titolo. */
+.an-inj-round {
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+/* Pulsante "Show N more", condiviso da Best Available e Injury Report. */
+.an-more-btn {
+    display: block;
+    width: 100%;
+    margin: 6px 0 2px;
+    padding: 6px 10px;
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-md, 8px);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.an-more-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.an-inj-meta {
+    min-width: 0;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.an-inj-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.an-inj-wk {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px 2px 4px;
+    border-radius: var(--pill-radius);
+    background: color-mix(in srgb, var(--c) 16%, transparent);
+    color: var(--text-secondary);
+    font-size: 0.64rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.an-inj-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c);
+    flex-shrink: 0;
 }
 
 .an-leader-card {
@@ -8334,6 +8677,31 @@ div.gb-out-player:last-of-type {
     text-overflow: ellipsis;
 }
 
+.gb-out-inj {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.56rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0 5px;
+    border-radius: 3px;
+    color: #fff;
+}
+
+.gb-out-inj--out {
+    background: var(--accent-red);
+}
+
+.gb-out-inj--doubtful {
+    background: #e08a3c;
+}
+
+.gb-out-inj--questionable {
+    background: var(--accent-amber);
+    color: #1a1200;
+}
+
 .gb-out-pts {
     font-family: var(--font-display);
     font-weight: 700;
@@ -8741,6 +9109,7 @@ div.gb-out-player:last-of-type {
 .an-avg-toggle {
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
