@@ -2382,10 +2382,16 @@ const INJURY_COLOR = {
     Doubtful: '#e08a3c', Questionable: 'var(--accent-amber)',
 };
 
+// Settimana a referto senza designazione ufficiale di gara: il giocatore
+// compare solo per la partecipazione agli allenamenti. Non è "Probable" —
+// quella designazione la NFL l'ha abolita nel 2016, e qui è il caso più
+// frequente di tutti (3285 righe su ~6000 nel 2025).
+const SENZA_DESIGNAZIONE = 'Practice only';
+
 function injuryRowHTML(r) {
     const strip = r.settimane.map(w => {
         const colore = INJURY_COLOR[w.status] || 'var(--text-muted)';
-        const etichetta = w.status || 'Probable';
+        const etichetta = w.status || SENZA_DESIGNAZIONE;
         return `
         <span class="an-inj-wk" style="--c:${colore}" title="W${w.week} — ${escAttr(etichetta)}${w.primaryInjury ? `: ${escAttr(w.primaryInjury)}` : ''}">
             <span class="an-inj-dot"></span>${w.week}
@@ -2409,6 +2415,32 @@ function injuryRowHTML(r) {
         <span class="an-inj-meta">${escAttr(r.nfl || '')} · ${riepilogo}${tipi}</span>
         <span class="an-inj-strip">${strip}</span>
     </div>`;
+}
+
+// Ordine di gravità, così la legenda si legge dal peggio al meglio.
+const LEGENDA_ORDINE = ['IR', 'Reserve', 'Out', 'Doubtful', 'Questionable', SENZA_DESIGNAZIONE];
+
+/**
+ * Legenda dei pallini colorati. Su telefono il `title` non si apre — non c'è
+ * un puntatore da fermare sopra — quindi senza questa i colori del referto
+ * restano senza spiegazione. Si mostrano solo gli stati davvero presenti in
+ * quello che si sta guardando: spiegare un colore che non compare confonde e
+ * basta.
+ */
+function injuryLegendHTML(gruppiDiRighe) {
+    const presenti = new Set();
+    for (const righe of gruppiDiRighe) {
+        for (const r of righe) {
+            for (const w of r.settimane) presenti.add(w.status || SENZA_DESIGNAZIONE);
+        }
+    }
+    const voci = LEGENDA_ORDINE.filter(s => presenti.has(s));
+    if (!voci.length) return '';
+    return `
+    <div class="an-inj-legend">${voci.map(s => `
+        <span class="an-inj-wk" style="--c:${INJURY_COLOR[s] || 'var(--text-muted)'}">
+            <span class="an-inj-dot"></span>${s}
+        </span>`).join('')}</div>`;
 }
 
 const INJURY_HEAD = `
@@ -2465,13 +2497,15 @@ async function loadInjuryReport(wrap, model) {
     const cards = squadre.map((t, i) => injuryTeamCardHTML(t, report[i])).join('');
     box.innerHTML = `
     <h3 class="an-sub-title">Injury Report</h3>
+    ${injuryLegendHTML(report)}
     <p class="an-footnote">Everyone who passed through a roster this season: first the players the team
        drafted, then the ones picked up in-season, each sorted by weeks missed. <i>#R3</i> is the draft round, shown only for drafted
        players. Two sources, neither from Firebase: the weekly NFL injury report (Out / Doubtful / Questionable
        — a pre-game designation, not proof of a game missed), and the weekly NFL roster status, which is what
        catches <b>IR</b> — a season-ending injury drops off the weekly report entirely, so without it the worst
        injuries were the invisible ones. <b>Reserve</b> means the player was on a reserve list but the source
-       doesn't say why (older seasons often don't record the reason).</p>
+       doesn't say why (older seasons often don't record the reason). <b>${SENZA_DESIGNAZIONE}</b> is a week
+       the player showed up on the practice report without any game designation at all.</p>
     <div class="an-inj-grid">${cards}</div>`;
     bindInjuryReport(box);
     hydrateImages(box);
@@ -2650,13 +2684,15 @@ async function loadTeamInjuryReport(wrap, model, teamKey) {
     const t = TEAMS[teamKey];
     box.innerHTML = `
     <h3 class="an-sub-title">Injury Report</h3>
+    ${injuryLegendHTML([righe])}
     <p class="an-footnote">Everyone who passed through the roster this season: first the players the team
        drafted, then the ones picked up in-season, each sorted by weeks missed. <i>#R3</i> is the draft round, shown only for drafted
        players. Two sources, neither from Firebase: the weekly NFL injury report (Out / Doubtful / Questionable
        — a pre-game designation, not proof of a game missed), and the weekly NFL roster status, which is what
        catches <b>IR</b> — a season-ending injury drops off the weekly report entirely, so without it the worst
        injuries were the invisible ones. <b>Reserve</b> means the player was on a reserve list but the source
-       doesn't say why.</p>
+       doesn't say why. <b>${SENZA_DESIGNAZIONE}</b> is a week the player showed up on the practice report
+       without any game designation at all.</p>
     ${injuryTeamCardHTML(t, righe)}`;
     bindInjuryReport(box);
     hydrateImages(box);

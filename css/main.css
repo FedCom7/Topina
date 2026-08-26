@@ -7580,6 +7580,15 @@ img {
     font-style: italic;
 }
 
+/* Legenda dei pallini: su telefono il tooltip non esiste, quindi e' l'unico
+   posto dove si scopre cosa vuol dire ogni colore. */
+.an-inj-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 4px;
+}
+
 .an-inj-sub {
     display: block;
     font-size: 0.7rem;
