@@ -14669,7 +14669,8 @@ td.ps-div-seed {
     /* schiarito: colori scuri come il bordeaux di Oscurus sparirebbero sul fondo nero */
     -webkit-text-stroke: 1.5px color-mix(in srgb, var(--tc-sel) 62%, #fff);
     paint-order: stroke fill; /* il contorno resta fuori, l'interno bianco pieno */
-    text-shadow: 0 0 20px color-mix(in srgb, var(--tc-sel) 55%, transparent);
+    /* Niente alone dietro al nome: il contorno basta a dire di che squadra e',
+       la sfocatura faceva solo da evidenziatore. */
 }
 
 /* K/DEF in cima (verso la end zone), tutto il resto compattato in basso. */
