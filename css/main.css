@@ -6640,11 +6640,21 @@ img {
     flex-wrap: wrap;
 }
 
-.an-player-name .player-pos {
+/* Il ruolo e' un'etichetta di servizio accanto al nome: stesso formato in
+   tutta la sezione Analysis. Prima ogni contesto aveva la sua forma — pillola
+   con padding nelle righe giocatore, testo con lo sfondo attaccato nel referto
+   infortuni — e due elenchi affiancati si leggevano diversi. Resta il colore
+   del ruolo, che serve a distinguerli a colpo d'occhio; via lo sfondo, che
+   faceva da evidenziatore. */
+.an-player-name .player-pos,
+.an-lineup-meta .player-pos,
+.an-inj-name .player-pos {
+    background: none;
+    padding: 0;
+    border-radius: 0;
     font-size: 0.62rem;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 5px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
 }
 
 .an-pick-num {
@@ -6943,12 +6953,6 @@ img {
     margin-top: 6px;
 }
 
-.an-lineup-meta .player-pos {
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 5px;
-}
 
 .an-lineup-nfl {
     font-size: 0.68rem;
