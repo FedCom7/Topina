@@ -8,9 +8,9 @@
  *  - exclusive : solo UN team per stagione completata può averlo
  *  - seasonal  : sbloccabile ogni stagione, si resetta l'anno dopo
  */
-import { SEASONS } from '../data.js?v=535';
+import { SEASONS } from '../data.js?v=538';
 import { TEAM_KEYS } from './team-config.js?v=533';
-import { TEAM_KEY_LIST } from './league-data.js?v=536';
+import { TEAM_KEY_LIST } from './league-data.js?v=537';
 
 // chiave team → nome display
 const KEY_NAMES = Object.fromEntries(Object.entries(TEAM_KEYS).map(([name, key]) => [key, name]));

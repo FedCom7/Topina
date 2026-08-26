@@ -12,18 +12,18 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=592';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=593';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
 import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=567';
-import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=594';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=612';
+import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=595';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=613';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=594';
-import { playerImageService } from '../services/player-image-service.js?v=518';
+import { playerImageService } from '../services/player-image-service.js?v=520';
 import { canonAbbr } from '../data/nfl-schedule.js?v=525';
-import { CURRENT_SEASON } from '../data.js?v=535';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=619';
+import { CURRENT_SEASON } from '../data.js?v=538';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=620';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=934';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=935';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=513';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=505';

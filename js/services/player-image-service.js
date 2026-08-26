@@ -152,24 +152,36 @@ export class PlayerImageService {
             .trim();
     }
 
-    async _fetchTeamRoster(teamId) {
+    /**
+     * In cache va la PROMESSA, non la rosa gia' pronta. Le foto si risolvono
+     * tutte insieme, quindi decine di chiamate per la stessa squadra partivano
+     * prima che la prima rispondesse e non trovavano mai la cache piena:
+     * misurato su Game Center a browser pulito, le rose NFL venivano scaricate
+     * due o tre volte ciascuna. Restituendo la promessa, la prima scarica e le
+     * altre si agganciano.
+     * Un fallimento non resta in cache: e' un endpoint di rete e puo' tornare su.
+     */
+    _fetchTeamRoster(teamId) {
         if (this._rosterCache[teamId]) return this._rosterCache[teamId];
 
-        try {
-            console.log(`Fetching full roster for Team ID ${teamId}...`);
-            const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`);
-            if (!response.ok) return [];
+        const p = fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`)
+            .then(res => (res.ok ? res.json() : null))
+            .then(data => {
+                if (!data?.athletes) {
+                    delete this._rosterCache[teamId];
+                    return [];
+                }
+                // Flatten the groups (Offense, Defense, Special Teams) into one list
+                return data.athletes.flatMap(group => group.items || []);
+            })
+            .catch(e => {
+                console.error(`Error fetching roster for team ${teamId}`, e);
+                delete this._rosterCache[teamId];
+                return [];
+            });
 
-            const data = await response.json();
-            // Flatten the groups (Offense, Defense, Special Teams) into one list
-            const athletes = data.athletes.flatMap(group => group.items);
-
-            this._rosterCache[teamId] = athletes;
-            return athletes;
-        } catch (e) {
-            console.error(`Error fetching roster for team ${teamId}`, e);
-            return [];
-        }
+        this._rosterCache[teamId] = p;
+        return p;
     }
 
     async _findInRoster(playerName, teamId) {

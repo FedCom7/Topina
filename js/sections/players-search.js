@@ -6,10 +6,10 @@
  */
 
 import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=624';
-import { CURRENT_SEASON } from '../data.js?v=535';
-import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=580';
+import { CURRENT_SEASON } from '../data.js?v=538';
+import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=581';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=567';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=619';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=620';
 import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=525';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=594';

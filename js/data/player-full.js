@@ -14,7 +14,7 @@ import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=592';
 import { TEAM_ABBR_MAP } from './player-map.js?v=513';
 import { canonAbbr } from './nfl-schedule.js?v=525';
-import { CURRENT_SEASON } from '../data.js?v=535';
+import { CURRENT_SEASON } from '../data.js?v=538';
 
 export const FIRST_STATS_YEAR = 2015; // prima stagione con stats Sleeper affidabili
 const MAX_SEASONS = 10;
