@@ -32,16 +32,16 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=538';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=608';
-import { getHonorsBundle } from '../data/honors.js?v=589';
+import { TEAMS } from './team.js?v=610';
+import { getHonorsBundle } from '../data/honors.js?v=591';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
-import { initPlayerModal } from '../components/player-modal.js?v=613';
+import { initPlayerModal } from '../components/player-modal.js?v=615';
 import { playerImageService } from '../services/player-image-service.js?v=520';
-import { predictSeason } from '../data/draft-predictions.js?v=631';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=620';
+import { predictSeason } from '../data/draft-predictions.js?v=633';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=622';
 import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=572';
 import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=40';
 

@@ -104,18 +104,34 @@ export function teamNameHTML(raw, cls = '') {
 const _letture = new Map();
 const TTL_STAGIONE_IN_CORSO = 5 * 60 * 1000;
 
+/**
+ * Ogni chiamante riceve una COPIA, non l'originale in cache.
+ *
+ * Prima della cache ogni chiamata tornava un oggetto nuovo appena letto dal
+ * database, quindi chi lo riceveva poteva modificarlo senza pensarci — e
+ * qualcuno lo fa: il Game Center sovrascrive la settimana ancora aperta con i
+ * dati in diretta di ESPN (`currentData.weeks[week] = ...`). Restituendo
+ * l'originale, quella scrittura sarebbe finita anche in Analysis e Stats, che
+ * si sarebbero ritrovate dati ESPN al posto di quelli di lega senza che
+ * nessuno lo avesse chiesto. La copia ridà la stessa garanzia di prima,
+ * lasciando intatto il risparmio di rete.
+ */
+const copia = (d) => (d == null ? d : (typeof structuredClone === 'function'
+    ? structuredClone(d)
+    : JSON.parse(JSON.stringify(d))));
+
 function letturaCachata(chiave, season, carica) {
     const vecchia = _letture.get(chiave);
     const inCorso = String(season) === String(CURRENT_SEASON);
     if (vecchia && !(inCorso && Date.now() - vecchia.quando > TTL_STAGIONE_IN_CORSO)) {
-        return vecchia.promessa;
+        return vecchia.promessa.then(copia);
     }
     const promessa = carica().then(dati => {
         if (dati == null) _letture.delete(chiave); // niente non si cacha
         return dati;
     });
     _letture.set(chiave, { quando: Date.now(), promessa });
-    return promessa;
+    return promessa.then(copia);
 }
 
 export function fetchFantasyData(season) {

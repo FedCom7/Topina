@@ -8,11 +8,11 @@
  * (1° e 2° team). Un eletto all'anno.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=538';
-import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS, WAIT_YEARS } from '../data/hall-of-fame.js?v=589';
+import { CURRENT_SEASON } from '../data.js?v=540';
+import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS, WAIT_YEARS } from '../data/hall-of-fame.js?v=591';
 import { playerImageService } from '../services/player-image-service.js?v=520';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=613';
-import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=593';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=615';
+import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=595';
 
 let initialized = false;
 

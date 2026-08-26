@@ -307,6 +307,13 @@ export async function fetchDraftStatus(year) {
  * `week` può essere omessa: la si ricava da `status.currentMatchupPeriod` e si
  * rilegge con quella. `games` è la mappa del tabellone NFL (da getWeekSchedule):
  * serve a sapere se la partita è cominciata e chi è l'avversario.
+ *
+ * `games` può essere anche una FUNZIONE `(week) => Promise<Map>`, e va usata
+ * così quando la settimana non si sa ancora. Chi chiamava passando una mappa
+ * caricata prima doveva indovinare la settimana: il Live tirava giù il
+ * tabellone della week 1, dove ogni partita risulta finita, e finché non
+ * arrivava il poll successivo ogni giocatore veniva contato come "ha già
+ * giocato" — nessuna proiezione a schermo e totale proiettato a zero.
  */
 export async function fetchLeagueWeek(year, week = null, games = new Map()) {
     let data = await readLeague(year, week);
@@ -315,6 +322,7 @@ export async function fetchLeagueWeek(year, week = null, games = new Map()) {
         week = current;
         data = await readLeague(year, week);
     }
+    if (typeof games === 'function') games = (await games(week)) || new Map();
 
     const scoring = {};
     for (const item of data.settings?.scoringSettings?.scoringItems || []) {

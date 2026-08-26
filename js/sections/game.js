@@ -13,20 +13,20 @@
  * in più: i dati erano già tutti in pagina.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=538';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { getLeagueData } from '../data/league-data.js?v=537';
-import { getHonorsBundle } from '../data/honors.js?v=589';
-import { buildCareers } from '../data/careers.js?v=600';
+import { getLeagueData } from '../data/league-data.js?v=539';
+import { getHonorsBundle } from '../data/honors.js?v=591';
+import { buildCareers } from '../data/careers.js?v=602';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=525';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals, seasonAvg,
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=555';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=7';
-import { TEAMS } from './team.js?v=608';
+import { TEAMS } from './team.js?v=610';
 import { playerImageService } from '../services/player-image-service.js?v=520';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=935';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=937';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

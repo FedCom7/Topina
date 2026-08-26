@@ -15,19 +15,19 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=538';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=608';
+import { TEAMS } from './team.js?v=610';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=525';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=511';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=507';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=8';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=6';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=9';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=613';
+import { initPlayerModal } from '../components/player-modal.js?v=615';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 
@@ -670,7 +670,10 @@ async function loadData({ silent = false } = {}) {
     // rilegge tutto — non solo i punti — perché è così che titolari e panchina
     // restano allineati se un GM cambia formazione a partite in corso.
     try {
-        const games = (await getWeekSchedule(CURRENT_SEASON, espnWeek || 1)) || new Map();
+        // Il tabellone si carica quando la settimana è nota, non prima: al
+        // primo giro `espnWeek` è null e chiedere quello della week 1 faceva
+        // risultare ogni partita già finita.
+        const games = (w) => getWeekSchedule(CURRENT_SEASON, w);
         const { week, matchups: live, drafted } = await fetchLeagueWeek(CURRENT_SEASON, espnWeek, games);
         if (live.length) {
             espnWeek = week;

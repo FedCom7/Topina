@@ -6,12 +6,12 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=538';
-import { TEAMS } from './team.js?v=608';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
+import { TEAMS } from './team.js?v=610';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
-import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAvgKey } from '../data/nfl-team-extras.js?v=935';
+import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAvgKey } from '../data/nfl-team-extras.js?v=937';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
