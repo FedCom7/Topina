@@ -9,10 +9,10 @@
  * Power Index, calendario live con risultati, transactions, statistiche
  * ufficiali di stagione, odds Super Bowl; più i due dataset di lega
  * (classifica NFL reale e power ranking FPI) mostrati sotto la ricerca in
- * "Players".
+ * "NFL Hub".
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=523';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
 
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
@@ -622,7 +622,7 @@ const LEAGUE_LEADER_CATS = [
 
 /**
  * Leaderboard NFL per categoria (top 5), con nome giocatore e squadra risolti
- * dai $ref. Per la sezione "Players". Ritorna [{key, label, rows:[{rank,name,team,value}]}].
+ * dai $ref. Per la sezione "NFL Hub". Ritorna [{key, label, rows:[{rank,name,team,value}]}].
  */
 export async function getLeagueLeaders(season, topN = 5) {
     return cached(`leagueleaders-${season}-${topN}`, async () => {
@@ -685,7 +685,7 @@ export async function getTeamFutures(abbr, season) {
 
 /**
  * Classifica NFL per conference (AFC/NFC) con record, %, seed playoff, streak,
- * punti fatti/subiti. Per la sezione "Players" sotto la barra di ricerca.
+ * punti fatti/subiti. Per la sezione "NFL Hub" sotto la barra di ricerca.
  */
 export async function getLeagueStandings(season) {
     return cached(`standings-${season}`, async () => {

@@ -14,7 +14,7 @@
  * un disallineamento, e nessuna è deducibile dalla documentazione.
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=523';
 import { fetchPlays } from './nfl-plays.js?v=510';
 
 const SUMMARY = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary';

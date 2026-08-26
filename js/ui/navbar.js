@@ -10,7 +10,7 @@
  * prende il posto del primo, con "Indietro" per tornare.
  */
 
-import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=577';
+import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=578';
 
 const MOBILE_MQ = '(max-width: 768px)';
 
@@ -28,7 +28,7 @@ export function initNavbar() {
 
 /**
  * Lente di ricerca mobile: overlay a tutta pagina che cerca giocatori (storico
- * Topina) e squadre NFL, con la stessa logica della sezione Players. Lente e
+ * Topina) e squadre NFL, con la stessa logica della sezione NFL Hub. Lente e
  * menu hamburger sono mutuamente esclusivi: aprirne uno chiude l'altro.
  */
 function initSearch(navbar) {

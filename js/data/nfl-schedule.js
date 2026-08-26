@@ -7,14 +7,20 @@
  * Cache in localStorage: il calendario storico non cambia mai.
  */
 
-import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=3';
 import { NFL_TEAMS } from './nfl-teams.js?v=508';
 
 const GAME_DURATION_MS = 3.25 * 60 * 60 * 1000; // ~3h15m
 
 // Abbreviazioni → forma canonica (ESPN e Yahoo/Firebase differiscono su alcune)
+//
+// `AZ` è l'anomalia più recente: data/nfl/roster_2026.json chiama Arizona così,
+// mentre TUTTO il resto — roster_2025, team_stats, adv_team, adv_players e le
+// proiezioni Sleeper — usa ARI. Senza questo alias il diff delle rose concludeva
+// che i Cardinals avevano perso il 100% dei bersagli del 2025, perché nessuno
+// dei loro giocatori risultava ancora in rosa.
 const ALIAS = {
-    WSH: 'WAS', JAC: 'JAX', LA: 'LAR', STL: 'LAR', SD: 'LAC', OAK: 'LV',
+    WSH: 'WAS', JAC: 'JAX', LA: 'LAR', STL: 'LAR', SD: 'LAC', OAK: 'LV', AZ: 'ARI',
 };
 
 export function canonAbbr(abbr) {
@@ -103,7 +109,7 @@ function gameStatus(team, other, statusType) {
 
 // ─── Tabellone di una settimana (tutte le partite) ───────────────────────
 // Stessa risposta ESPN di getWeekSchedule, letta però PARTITA per partita
-// invece che squadra per squadra: serve al calendario della pagina Players,
+// invece che squadra per squadra: serve al calendario della pagina NFL Hub,
 // che mostra le 16 gare della giornata con punteggio, record e rete TV.
 
 /**

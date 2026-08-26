@@ -49,13 +49,16 @@
  * restano in italiano.
  */
 
-import { replacementLevels, pickStarters } from './team-eval.js?v=29';
-import { matchProjection, normName } from './projections.js?v=591';
+import { replacementLevels, pickStarters } from './team-eval.js?v=541';
+import { matchProjection, normName } from './projections.js?v=592';
 import { ROSTER_SLOTS } from './league-rules.js?v=528';
 
 const OFF = new Set(['QB', 'RB', 'WR', 'TE']);
 const POS_FALLBACK = { K: 125, DEF: 110 }; // come draftgrades.POS_FALLBACK_PROJ (evita import circolare)
-const NEED_TARGET = { QB: 2, RB: 5, WR: 5, TE: 2, K: 1, DEF: 1 }; // profondità "sana" di roster
+// profondità "sana" di roster (titolare + panchina attesa): somma a 16, lo
+// stesso totale di ROSTER_SLOTS+BENCH_SIZE+RESERVE_SIZE — esportata perché
+// draft-strategy.js la riusa come "quanti se ne draftano davvero" per ruolo.
+export const NEED_TARGET = { QB: 2, RB: 5, WR: 5, TE: 2, K: 1, DEF: 1 };
 // slot titolari obbligatori: se ne resta uno scoperto e le pick finiscono,
 // la pick va giudicata DENTRO il suo ruolo ("dovendo prendere un K, era il K giusto?")
 const { FLEX, ...MANDATORY_SLOTS } = ROSTER_SLOTS;
@@ -255,8 +258,13 @@ const marginalValue = (vor, need) => vor * (0.5 + 0.5 * need);
  *
  * ATTENZIONE: da sola questa non basta in una lega a 4 squadre — vedi
  * survivalProb() qui sotto, che ci mette dentro il FABBISOGNO degli avversari.
+ *
+ * Esportata perché la usa anche il piano per round del tab Pre-Draft
+ * (js/data/predraft.js): lì il draft non esiste ancora, quindi il fabbisogno
+ * degli avversari non è osservabile e resta solo il mercato — ma il METRO di
+ * "chi arriva al mio turno" deve essere lo stesso in tutto il sito.
  */
-function marketSurvival(entry, target, adpDisp) {
+export function marketSurvival(entry, target, adpDisp) {
     const disp = adpDisp?.get(entry.key) || null;
     const adp = disp?.adp ?? entry.adp;
     if (adp == null) return OFF.has(entry.pos) ? 0.5 : 0.95;
@@ -292,7 +300,7 @@ function marketSurvival(entry, target, adpDisp) {
  * all'ADP — i drafter reali non reachano di trenta posizioni. Poi softmax sui
  * primi candidati, così la scelta è probabilistica e non un greedy fragile.
  */
-function opponentPickProbs(available, roster, pickNo, adpDisp, cache) {
+export function opponentPickProbs(available, roster, pickNo, adpDisp, cache) {
     if (cache.has(pickNo)) return cache.get(pickNo);
     const cands = [];
     for (const e of available) {
@@ -482,7 +490,7 @@ function analyzePick(p, ctx) {
                 : selfSurvival >= 0.45 ? 'tossup' : 'gone',
         nextPick,
         takenBy: takenBy ? { teamKey: takenBy.teamKey, pick: takenBy.pick, prob: +takenBy.prob.toFixed(2) } : null,
-        bestAlt: bestAlt ? { name: bestAlt.name, pos: bestAlt.pos, team: bestAlt.team, vor: Math.round(bestAlt.vor) } : null,
+        bestAlt: bestAlt ? { name: bestAlt.name, pos: bestAlt.pos, team: bestAlt.team, vor: Math.round(bestAlt.vor), value: Math.round(bestAlt.value) } : null,
         waitAlt: w1 && w1.key !== pickedKey
             ? { name: w1.name, pos: w1.pos, team: w1.team, vor: Math.round(w1.vor) } : null,
         scarcity: Math.round(scarcity),

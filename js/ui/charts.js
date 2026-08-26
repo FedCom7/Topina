@@ -60,6 +60,10 @@ export function legend(voci) {
  *
  * Il segmento prende il colore di chi è avanti, così la direzione si legge
  * prima ancora dei numeri; a destra lo scarto con il segno.
+ *
+ * L'asse regge anche valori negativi (es. VORP sotto al replacement): parte
+ * da 0 quando tutti i dati sono ≥0 come prima, si allarga verso il negativo
+ * solo se serve davvero.
  */
 export function dumbbell(rows, opts = {}) {
     const righe = (rows || []).filter(r => r && (r.a != null || r.b != null));
@@ -76,11 +80,16 @@ export function dumbbell(rows, opts = {}) {
     const bottom = T + righe.length * rowH;
     const H = bottom + 30;
 
+    // l'asse parte da 0 nel caso comune (tutti i valori ≥0, il min(0,…) non
+    // sposta nulla), ma si apre verso il negativo quando serve — un valore
+    // sotto lo zero altrimenti finiva fuori dal plot, addosso all'etichetta
+    // di riga a sinistra.
+    const minimo = Math.min(0, ...righe.flatMap(r => [num(r.a), num(r.b)]));
     const massimo = Math.max(...righe.flatMap(r => [num(r.a), num(r.b)]), 1);
-    const ticks = niceTicks(0, massimo);
-    const xMax = ticks[ticks.length - 1] || 1;
+    const ticks = niceTicks(minimo, massimo);
+    const xLo = ticks[0], xHi = ticks[ticks.length - 1] || 1;
     const plotW = W - L - R;
-    const xx = (v) => L + (num(v) / xMax) * plotW;
+    const xx = (v) => L + ((num(v) - xLo) / ((xHi - xLo) || 1)) * plotW;
 
     const grid = ticks.map(v => `
         <line x1="${xx(v).toFixed(1)}" y1="${T}" x2="${xx(v).toFixed(1)}" y2="${bottom}" class="an-gridline"/>
@@ -237,11 +246,16 @@ export function dotPlot(rows, opts = {}) {
  * Linee con etichetta diretta a fine serie — niente legenda, il nome sta dove
  * finisce la linea, spostato in verticale quando due si accavallerebbero.
  *
- * `series`: [{ name, color, lead, values: [{ x, y }] }] — `x` numerico.
- * `opts`: { width, height, xTick(v), yFmt(v), callout: { x, y, text, sub } }
+ * `series`: [{ name, color, lead, values: [{ x, y, tip }] }] — `x` numerico.
+ * `opts`: { width, height, xTick(v), yFmt(v), points, callout: { x, y, text, sub } }
  *
  * Con `lead: true` la serie è la protagonista: tratto pieno e nome acceso, le
  * altre restano contesto grigio.
+ *
+ * Con `opts.points: true` ogni voce di ogni serie prende un pallino (più il
+ * `tip` come tooltip nativo, se c'è) — per quando l'asse X non è un tempo
+ * continuo ma un elenco di voci reali (un giocatore per rank, per esempio):
+ * lì la linea da sola dice la forma ma nasconde le singole voci.
  */
 export function multiLine(series, opts = {}) {
     const serie = (series || []).filter(s => s?.values?.length);
@@ -303,6 +317,14 @@ export function multiLine(series, opts = {}) {
         <text x="${(lx + 14).toFixed(1)}" y="${(labelY + 4).toFixed(1)}" class="an-endlabel${s.lead === false ? '' : ' an-endlabel--lead'}"
               fill="${s.color}">${esc(s.name)}</text>`).join('');
 
+    // pallini intermedi opzionali: quando ogni punto è una VOCE REALE (un
+    // giocatore, non un istante di tempo continuo), serve poterla vedere e
+    // passarci sopra col mouse — non solo intuire la linea. Additivo e
+    // spento di default: non cambia nessuno degli usi esistenti.
+    const midPoints = opts.points ? serie.flatMap(s => s.values.map(v => `
+        <circle cx="${x(v.x).toFixed(1)}" cy="${y(v.y).toFixed(1)}" r="2.6" fill="${s.color}" stroke="#000" stroke-width="1">
+            ${v.tip ? `<title>${esc(v.tip)}</title>` : ''}</circle>`)).join('') : '';
+
     const c = opts.callout;
     const callout = !c ? '' : `
         <line x1="${x(c.x).toFixed(1)}" y1="${y(c.y).toFixed(1)}" x2="${x(c.x).toFixed(1)}" y2="${M.t + 6}" class="an-leader"/>
@@ -310,5 +332,109 @@ export function multiLine(series, opts = {}) {
         <text x="${Math.min(x(c.x) + 8, M.l + plotW - 4).toFixed(1)}" y="${M.t + 4}" class="an-callout"
               text-anchor="${x(c.x) > M.l + plotW * 0.62 ? 'end' : 'start'}">${esc(c.text)}</text>`;
 
-    return `<div class="an-scroll"><svg viewBox="0 0 ${W} ${H}" class="an-svg an-svg--wide">${grid}${xTicks}${linee}${punti}${callout}</svg></div>`;
+    return `<div class="an-scroll"><svg viewBox="0 0 ${W} ${H}" class="an-svg an-svg--wide">${grid}${xTicks}${linee}${midPoints}${punti}${callout}</svg></div>`;
+}
+
+/**
+ * Nuvola di punti — due grandezze per la stessa entità, una per asse.
+ *
+ * Mancava, ed era già stata riscritta a mano due volte con geometrie diverse
+ * (draftgrades.js:leagueScatter, draftgrade-team.js:scatterChartBody). Questa
+ * è la forma parametrica: stesso contratto delle altre (dati piatti dentro,
+ * stringa HTML fuori, tooltip `<title>` nativi).
+ *
+ * `points`: [{ x, y, color, label, tip, dim }] — `label` presente = etichetta
+ *   scritta accanto al punto; gli altri restano punti muti col solo tooltip.
+ *   `dim: true` per il contesto di sfondo (raggio e opacità ridotti).
+ * `opts`: { width, height, xLabel, yLabel, xFmt, yFmt, curve, curveLabel,
+ *           xInvert, callout: { x, y, text } }
+ *
+ * Due scelte non ovvie:
+ *  - `xInvert` serve perché l'asse naturale di questa pagina è l'ADP, dove il
+ *    numero PICCOLO è il giocatore importante: senza invertire, i primi della
+ *    classe finiscono schiacciati a sinistra e si legge al contrario di come
+ *    si legge un board.
+ *  - si etichettano SOLO i punti che il chiamante marca. Con 200 giocatori
+ *    etichettarli tutti è illeggibile, e sceglierli qui dentro vorrebbe dire
+ *    decidere al posto del chiamante quali sono gli outlier che contano.
+ */
+export function scatter(points, opts = {}) {
+    const pts = (points || []).filter(p => p && p.x != null && p.y != null);
+    if (!pts.length) return '';
+
+    const W = opts.width || 880;
+    const H = opts.height || 380;
+    // b generoso: i tick dell'asse x e il suo titolo stanno su DUE righe. Con
+    // una riga sola il titolo ("ADP — earlier to the right") finiva sopra
+    // l'ultimo tick e si leggevano due testi sovrapposti.
+    const M = { l: 46, r: 116, t: 18, b: 54 };
+    const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
+    const xFmt = opts.xFmt || ((v) => String(Math.round(v)));
+    const yFmt = opts.yFmt || ((v) => String(Math.round(v)));
+
+    const allX = pts.map(p => num(p.x)).concat((opts.curve || []).map(c => num(c.x)));
+    const allY = pts.map(p => num(p.y)).concat((opts.curve || []).map(c => num(c.y)));
+    const xt = niceTicks(Math.min(...allX), Math.max(...allX));
+    const yt = niceTicks(Math.min(0, ...allY), Math.max(...allY, 1));
+    const xLo = xt[0], xHi = xt[xt.length - 1], yLo = yt[0], yHi = yt[yt.length - 1];
+    const fx = (v) => {
+        const t = (num(v) - xLo) / ((xHi - xLo) || 1);
+        return M.l + (opts.xInvert ? 1 - t : t) * plotW;
+    };
+    const fy = (v) => M.t + (1 - (num(v) - yLo) / ((yHi - yLo) || 1)) * plotH;
+
+    const grid = yt.map(v => `
+        <line x1="${M.l}" y1="${fy(v).toFixed(1)}" x2="${M.l + plotW}" y2="${fy(v).toFixed(1)}" class="an-gridline"/>
+        <text x="${M.l - 8}" y="${(fy(v) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${yFmt(v)}</text>`).join('');
+    const xTicks = xt.map(v => `
+        <text x="${fx(v).toFixed(1)}" y="${H - 26}" class="an-tick" text-anchor="middle">${xFmt(v)}</text>`).join('');
+
+    // curva di riferimento (es. il valore che il mercato compra a ogni prezzo):
+    // tratteggiata, perché non è un dato osservato ma un andamento lisciato
+    const curva = !opts.curve?.length ? '' : `
+        <polyline points="${opts.curve.map(c => `${fx(c.x).toFixed(1)},${fy(c.y).toFixed(1)}`).join(' ')}"
+                  fill="none" class="dgt-alt-line"/>`;
+    // etichetta della curva: al capo che sta verso il bordo, staccata in
+    // verticale — appoggiata sulla linea il tratteggio le passava dentro
+    const last = opts.curve?.length ? opts.curve[opts.curve.length - 1] : null;
+    const curvaLab = !last || !opts.curveLabel ? '' : `
+        <text x="${(fx(last.x) + (opts.xInvert ? 8 : -8)).toFixed(1)}" y="${(fy(last.y) - 9).toFixed(1)}"
+              class="an-endlabel" text-anchor="${opts.xInvert ? 'start' : 'end'}">${esc(opts.curveLabel)}</text>`;
+
+    // il contesto sotto, i punti pieni sopra, le etichette in cima a tutto
+    const ordinati = [...pts].sort((a, b) => (a.dim ? 0 : 1) - (b.dim ? 0 : 1));
+    const dots = ordinati.map(p => `
+        <circle cx="${fx(p.x).toFixed(1)}" cy="${fy(p.y).toFixed(1)}" r="${p.dim ? 2.6 : 4.2}"
+                fill="${p.color || 'var(--accent-blue)'}" ${p.dim ? 'opacity="0.45"' : 'stroke="#000" stroke-width="1.2"'}>
+            ${p.tip ? `<title>${esc(p.tip)}</title>` : ''}</circle>`).join('');
+
+    // etichette dirette: scostate in verticale quando si accavallerebbero,
+    // con la lineetta di richiamo quando si sono spostate abbastanza
+    const etichettati = pts.filter(p => p.label)
+        .map(p => ({ p, px: fx(p.x), py: fy(p.y), ly: fy(p.y) }))
+        .sort((a, b) => a.py - b.py);
+    for (let i = 1; i < etichettati.length; i++) {
+        if (etichettati[i].ly - etichettati[i - 1].ly < 13) etichettati[i].ly = etichettati[i - 1].ly + 13;
+    }
+    const labels = etichettati.map(({ p, px, py, ly }) => {
+        // a destra se c'è spazio, altrimenti a sinistra: sul bordo destro le
+        // etichette uscivano dal viewBox e venivano tagliate
+        const destra = px < M.l + plotW * 0.74;
+        const lx = destra ? px + 8 : px - 8;
+        return `
+        ${Math.abs(ly - py) > 2 ? `<line x1="${px.toFixed(1)}" y1="${py.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${ly.toFixed(1)}" class="an-leader"/>` : ''}
+        <text x="${lx.toFixed(1)}" y="${(ly + 3.5).toFixed(1)}" class="an-endlabel" text-anchor="${destra ? 'start' : 'end'}"
+              fill="${p.color || 'var(--text-secondary)'}">${esc(p.label)}</text>`;
+    }).join('');
+
+    const assi = `
+        ${opts.yLabel ? `<text x="${M.l}" y="${M.t - 4}" class="an-tick" text-anchor="start">${esc(opts.yLabel)}</text>` : ''}
+        ${opts.xLabel ? `<text x="${(M.l + plotW / 2).toFixed(1)}" y="${H - 6}" class="an-tick" text-anchor="middle">${esc(opts.xLabel)}</text>` : ''}`;
+
+    const c = opts.callout;
+    const callout = !c ? '' : `
+        <text x="${Math.min(fx(c.x) + 8, M.l + plotW - 4).toFixed(1)}" y="${(fy(c.y) - 8).toFixed(1)}" class="an-callout"
+              text-anchor="${fx(c.x) > M.l + plotW * 0.62 ? 'end' : 'start'}">${esc(c.text)}</text>`;
+
+    return `<div class="an-scroll"><svg viewBox="0 0 ${W} ${H}" class="an-svg an-svg--wide">${grid}${xTicks}${assi}${curva}${curvaLab}${dots}${labels}${callout}</svg></div>`;
 }

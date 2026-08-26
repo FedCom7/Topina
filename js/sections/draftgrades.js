@@ -36,14 +36,14 @@ import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=601';
 import { getHonorsBundle } from '../data/honors.js?v=585';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=591';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=592';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=589';
 import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=516';
 import { predictSeason } from '../data/draft-predictions.js?v=597';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=586';
-import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=539';
-import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=7';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=587';
+import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=541';
+import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=12';
 
 let initialized = false;
 let currentYear = null;

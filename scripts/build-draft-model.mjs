@@ -36,7 +36,8 @@ async function sleeperProjections(year) {
     const cacheFile = path.join(ROOT, '.nflverse-cache', 'sleeper', `proj_${year}.json`);
     try { return JSON.parse(await readFile(cacheFile, 'utf8')); } catch { /* miss */ }
     const pos = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'].map(p => `position%5B%5D=${p}`).join('&');
-    const url = `https://api.sleeper.com/projections/nfl/${year}?season_type=regular&${pos}&order_by=adp_half_ppr`;
+    // ADP full PPR: la lega è full PPR (rec=1, vedi league-rules.js)
+    const url = `https://api.sleeper.com/projections/nfl/${year}?season_type=regular&${pos}&order_by=adp_ppr`;
     const res = await fetch(url, { headers: { 'User-Agent': 'topina-league-build/1.0' } });
     if (!res.ok) return {};
     const list = await res.json();
@@ -47,7 +48,7 @@ async function sleeperProjections(year) {
         const name = `${pl.first_name} ${pl.last_name}`;
         const projPts = scoreProjectedStats(e.stats || {});
         if (projPts == null) continue;
-        map[`${normName(name)}|${p}`] = { projPts, adp: (e.stats?.adp_half_ppr && e.stats.adp_half_ppr < 999) ? e.stats.adp_half_ppr : null };
+        map[`${normName(name)}|${p}`] = { projPts, adp: (e.stats?.adp_ppr && e.stats.adp_ppr < 999) ? e.stats.adp_ppr : null };
     }
     await mkdir(path.dirname(cacheFile), { recursive: true });
     await writeFile(cacheFile, JSON.stringify(map));

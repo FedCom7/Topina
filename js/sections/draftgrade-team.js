@@ -17,7 +17,7 @@ import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displa
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=601';
 import { getHonorsBundle } from '../data/honors.js?v=585';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=591';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=592';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=589';
 import { initPlayerModal } from '../components/player-modal.js?v=607';
 import { playerImageService } from '../services/player-image-service.js?v=516';
@@ -26,9 +26,9 @@ import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,
 } from './draftgrades.js?v=617';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=586';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters } from '../data/team-eval.js?v=539';
-import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=7';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=587';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters } from '../data/team-eval.js?v=541';
+import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=12';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -333,15 +333,18 @@ function render(section, ctx) {
         ${strategyCard(ctx)}
         ${rosterBoardCard(ctx)}
         ${leagueBoardCard(ctx)}
+        ${swapAnalysisCard(ctx)}
         ${capitalFlowCard(ctx)}
         ${scarcityCard(ctx)}
         ${picksSection(ctx, prevYear)}
         ${seasonPlayed ? verdictSection(ctx) : ''}
+        ${draftScatterCard(ctx)}
 
         <p class="dg-footnote">Analysis based on ${year} preseason projections and real career stats (up to 6 seasons, Rotowire/Sleeper) converted into the league's scoring${g.list.some(p => p.adp) ? ', full-PPR ADP for reach and steal' : ' (ADP not available for this year)'}. For kicker and defense the value also weighs recent real production (60% and 35%, weights calibrated on the 419 picks from 2019-2025); for offense the projections have proven more reliable than any historical metric, and history feeds trend and risk signals. Alternatives calculated only among players drafted after each pick.</p>
     </div>`;
 
     bindCurve(section.querySelector('#dgt-curve'));
+    bindDraftScatterCard(section.querySelector('#dgt-scatter'), ctx);
     loadHeadshots(section, seasonPlayed ? year : prevYear);
 }
 
@@ -776,6 +779,91 @@ function leagueBoardCard(ctx) {
     </div>`;
 }
 
+// ─── Card: VOR di rosa e reparti — il contro-fattuale round per round ──
+
+/**
+ * "Avrei alzato il valore della rosa prendendo un altro giocatore, e su
+ * quale reparto?" L'alternativa per ogni pick è quella GIÀ calibrata da
+ * draft-grade.computeDraftGrade (bestAlt: stesso pool di M candidati
+ * realistici, stesso modello di sopravvivenza di "When you took each
+ * position") — nessuna nuova simulazione del board.
+ *
+ * Il VOR qui è quello di team-eval.js (`g.replacement`, l'ultimo titolare
+ * di lega): lo stesso livello che alimenta il Team Strength Index, apposta
+ * DIVERSO dalle waiverLevels di draft-grade (quelle valutano la singola
+ * pick, non la rosa — vedi la nota in draft-grade.js). Mischiarli avrebbe
+ * dato un numero senza un significato solo.
+ */
+function swapAnalysisCard(ctx) {
+    const { g, dgByPick } = ctx;
+    const repl = g.replacement;
+    if (!repl || !dgByPick || !g.list?.length) return '';
+
+    const vorOf = (value, pos) => Math.max(0, (value || 0) - (repl[pos] || 0));
+    const rows = g.list.map(p => {
+        const alt = dgByPick.get(p.pick)?.bestAlt;
+        const pickVOR = vorOf(p.value, p.pos);
+        const altVOR = alt ? vorOf(alt.value, alt.pos) : pickVOR;
+        return { p, alt, pickVOR: Math.round(pickVOR), altVOR: Math.round(altVOR), delta: Math.round(altVOR - pickVOR) };
+    });
+
+    // Lo stesso rivale può risultare "il migliore ancora libero" a più di una
+    // pick (semplicemente perché non l'ha preso nessuno nel frattempo): ogni
+    // riga da sola è vera, ma sommare tutte le pick conterebbe lo stesso
+    // giocatore più volte, come se lo si potesse prendere due volte. Nel
+    // totale e nei reparti conta solo la SUA occorrenza migliore.
+    const totalVOR = rows.reduce((s, r) => s + r.pickVOR, 0);
+    const byDelta = [...rows].filter(r => r.alt && r.delta > 0).sort((a, b) => b.delta - a.delta);
+    const seenAlt = new Set();
+    let upside = 0;
+    const byPos = {};
+    const flagSet = new Set();
+    for (const r of byDelta) {
+        if (seenAlt.has(r.alt.name)) continue;
+        seenAlt.add(r.alt.name);
+        upside += r.delta;
+        byPos[r.alt.pos] = (byPos[r.alt.pos] || 0) + r.delta;
+        if (flagSet.size < 3) flagSet.add(r.p.pick);
+    }
+    const posOrder = Object.keys(byPos).sort((a, b) => byPos[b] - byPos[a]);
+    const maxPos = posOrder.length ? byPos[posOrder[0]] : 1;
+
+    const posBars = posOrder.length ? posOrder.map(pos => `
+        <div class="dg-bar">
+            <span class="dg-bar-pos">${pos}</span>
+            <span class="dg-bar-track"><span style="width:${Math.max(4, byPos[pos] / maxPos * 100)}%"></span></span>
+            <span class="dg-bar-val">+${fmt0(byPos[pos])} pt</span>
+        </div>`).join('')
+        : `<p class="dg-comment">No position had a meaningfully better option sitting on the board — the picks made were close to the ceiling round by round.</p>`;
+
+    const rowsHtml = rows.map(r => `
+        <div class="dgt-swap-row${flagSet.has(r.p.pick) ? ' dgt-swap-row--flag' : ''}">
+            <span class="dgt-swap-round">R${r.p.round}</span>
+            <div class="dgt-swap-pick">
+                <span class="allpro-pos pos-${r.p.pos.toLowerCase()}">${r.p.pos}</span>
+                <span class="dgt-swap-name">${r.p.player}</span>
+                <span class="dgt-swap-vor">${r.pickVOR} VOR</span>
+            </div>
+            <span class="dgt-swap-arrow" aria-hidden="true">→</span>
+            <div class="dgt-swap-pick">${r.alt ? `
+                <span class="allpro-pos pos-${r.alt.pos.toLowerCase()}">${r.alt.pos}</span>
+                <span class="dgt-swap-name">${r.alt.name}</span>
+                <span class="dgt-swap-vor">${r.altVOR} VOR</span>` : `
+                <span class="dgt-swap-name dgt-swap-name--muted">Already the top choice on the board</span>`}
+            </div>
+            <span class="dgt-swap-delta${r.delta >= 8 ? ' dgt-swap-delta--warn' : r.delta <= -8 ? ' dgt-swap-delta--good' : ''}">${r.delta > 0 ? '+' : ''}${r.delta}</span>
+        </div>`).join('');
+
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in">
+        <span class="mc-kicker">Roster VOR · position by position</span>
+        <h2 class="mc-title">Could a different pick have helped?</h2>
+        <p class="dgt-card-sub">Every pick against the best player realistically still on the board at that moment — same model as "When you took each position" — scored in VOR above this league's last starter, the same bar the Team Strength Index uses for roster value. This team collected <b>${fmt0(totalVOR)} VOR</b>; up to <b>+${fmt0(upside)}</b> more was on the board, counting each available player once even where he was the best option at more than one turn. The three biggest single gaps are marked below.</p>
+        <div class="dg-bars">${posBars}</div>
+        <div class="dgt-swap-list">${rowsHtml}</div>
+    </div>`;
+}
+
 // ─── Card: dove è finito il capitale del draft ───────────────────
 
 const FLOW = { w: 640, padY: 20, nodeW: 92, leftX: 20, rightX: 520 };
@@ -1006,6 +1094,18 @@ function bindCurve(container) {
     const plotW = CV.w - CV.l - CV.r;
     const xFor = (i) => CV.l + (rounds.length > 1 ? (i / (rounds.length - 1)) * plotW : plotW / 2);
 
+    // Il tooltip esce dalla card e diventa figlio diretto di <body>: la card
+    // ha overflow-x:auto (che per spec CSS impone anche overflow-y:auto,
+    // tagliando il popup vicino al bordo inferiore) e i suoi antenati hanno un
+    // transform per l'animazione di reveal allo scroll — che avrebbe reso
+    // "position:fixed" relativo A LORO invece che alla finestra, nascondendo
+    // il popup dietro la card successiva. Da figlio di body niente di tutto
+    // questo si applica: resta sempre in coordinate di viewport, libero.
+    document.getElementById('dgt-curve-tooltip')?.remove();
+    tooltip.id = 'dgt-curve-tooltip';
+    tooltip.style.position = 'fixed';
+    document.body.appendChild(tooltip);
+
     hit.addEventListener('pointermove', (e) => {
         const rect = svg.getBoundingClientRect();
         const px = (e.clientX - rect.left) * (CV.w / rect.width);
@@ -1039,12 +1139,18 @@ function bindCurve(container) {
         if (r.alt) mk('On the board', r.alt);
         tooltip.hidden = false;
 
-        const crect = container.getBoundingClientRect();
-        let tx = e.clientX - crect.left + 14;
+        // Il tooltip è position:fixed (vedi CSS #dgt-curve): coordinate di
+        // VIEWPORT, non più relative al contenitore, così può uscire dalla
+        // card invece di finire tagliato dallo scroll orizzontale del grafico.
+        let tx = e.clientX + 14;
         const tw = tooltip.offsetWidth || 160;
-        if (tx + tw > crect.width - 4) tx = e.clientX - crect.left - tw - 14;
+        if (tx + tw > window.innerWidth - 4) tx = e.clientX - tw - 14;
+        let ty = e.clientY - 10;
+        const th = tooltip.offsetHeight || 60;
+        if (ty + th > window.innerHeight - 4) ty = e.clientY - th - 10;
+        if (ty < 4) ty = 4;
         tooltip.style.left = `${tx}px`;
-        tooltip.style.top = `${e.clientY - crect.top - 10}px`;
+        tooltip.style.top = `${ty}px`;
     });
     hit.addEventListener('pointerleave', () => {
         crosshair.setAttribute('visibility', 'hidden');
@@ -1388,6 +1494,197 @@ function verdictSection(ctx) {
         ${recap}
         ${accuracyBlock(ctx)}
     </div>`;
+}
+
+// ─── Card: Draft Value per Pick (stesso grafico di Analysis) ─────
+
+const DVP = { w: 800, h: 320, l: 48, r: 12, t: 16, b: 34 };
+const DVP_GREYS = ['#9a9a9a', '#6e6e6e', '#484848'];
+
+/**
+ * Punti dello scatter per QUESTA lega/anno. A differenza di Analysis l'asse Y
+ * non è il reale di stagione (quello lo copre già "The verdict from the
+ * field" qui sopra): è un segnale PRE-draft, selezionabile —
+ *  - proj: la proiezione di lega usata in tutta la pagina (`p.value`, stesse
+ *    impostazioni di scoring — vedi league-rules.js);
+ *  - prev: il reale dell'anno PRIMA del draft, da `prevStats` (già in cache
+ *    per questa pagina, un lookup in più su un Map già pronto, non un fetch).
+ */
+function scatterPointsFor(ctx, mode) {
+    const { grades, prevStats } = ctx;
+    const points = [];
+    for (const gr of grades) {
+        for (const p of gr.list) {
+            let pts;
+            if (mode === 'prev') {
+                const hit = prevStats ? matchProjection(prevStats, p.player, p.pos) : null;
+                pts = hit ? (hit.ptsLeague ?? hit.ptsPpr ?? hit.ptsStd ?? 0) : 0;
+            } else {
+                pts = p.value || 0;
+            }
+            points.push({ pick: p.pick, name: p.player, position: p.pos, teamKey: gr.key, teamName: TEAMS[gr.key]?.name || gr.key, pts });
+        }
+    }
+    return points.sort((a, b) => a.pick - b.pick);
+}
+
+/**
+ * Il focus è su QUESTA squadra: i suoi giocatori nel colore squadra, gli
+ * altri tre team in tre grigi distinti e fissi (sempre lo stesso per la
+ * stessa squadra, per restare riconoscibili) invece dei quattro colori pieni
+ * di Analysis.
+ */
+function scatterChartBody(ctx, mode) {
+    const { team, teamKey, year } = ctx;
+    const raw = scatterPointsFor(ctx, mode);
+    if (!raw.length) return `<div class="empty-state"><p class="empty-state-text">No data available</p></div>`;
+
+    const others = Object.keys(TEAMS).filter(k => k !== teamKey);
+    const greyOf = new Map(others.map((k, i) => [k, DVP_GREYS[i % DVP_GREYS.length]]));
+    const points = raw.map(p => ({
+        ...p, mine: p.teamKey === teamKey,
+        color: p.teamKey === teamKey ? team.color : (greyOf.get(p.teamKey) || '#666'),
+    }));
+
+    const maxPick = Math.max(...points.map(p => p.pick), 1);
+    const maxPts = Math.max(...points.map(p => p.pts), 1);
+    const yTicks = niceTicks(0, maxPts);
+    const yMax = yTicks[yTicks.length - 1] || 1;
+    const plotW = DVP.w - DVP.l - DVP.r;
+    const plotH = DVP.h - DVP.t - DVP.b;
+    const x = (pick) => DVP.l + ((pick - 1) / Math.max(maxPick - 1, 1)) * plotW;
+    const y = (pts) => DVP.t + (1 - pts / yMax) * plotH;
+
+    const grid = yTicks.map(v => `
+        <line x1="${DVP.l}" y1="${y(v)}" x2="${DVP.l + plotW}" y2="${y(v)}" class="an-gridline"/>
+        <text x="${DVP.l - 8}" y="${(y(v) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${fmt0(v)}</text>`).join('');
+    const xTickStep = maxPick > 20 ? 4 : 2;
+    const xTicks = [];
+    for (let p = 1; p <= maxPick; p += xTickStep) {
+        xTicks.push(`<text x="${x(p).toFixed(1)}" y="${DVP.h - 10}" class="an-tick" text-anchor="middle">${p}</text>`);
+    }
+
+    // Callout solo sui giocatori di QUESTA squadra — il miglior affare tardivo
+    // e il buco prematuro peggiore che riguardano lei, non un rivale: il focus
+    // resta sulla squadra in analisi, non sull'intera lega come in Analysis.
+    const mine = points.filter(p => p.mine);
+    const lateHalf = mine.filter(p => p.pick > maxPick / 2);
+    const earlyHalf = mine.filter(p => p.pick <= maxPick / 2);
+    const bestSteal = lateHalf.length ? lateHalf.reduce((a, b) => (b.pts > a.pts ? b : a)) : null;
+    const worstBust = earlyHalf.length ? earlyHalf.reduce((a, b) => (b.pts < a.pts ? b : a)) : null;
+    const labeled = new Set([bestSteal, worstBust].filter(Boolean).map(p => p.pick));
+
+    // i punti della squadra si disegnano per ultimi, così restano in primo piano
+    const ordered = [...points.filter(p => !p.mine), ...points.filter(p => p.mine)];
+    const dots = ordered.map(p => {
+        const cx = x(p.pick), cy = y(p.pts);
+        const anchor = cx < DVP.l + plotW * 0.1 ? 'start' : cx > DVP.l + plotW * 0.9 ? 'end' : 'middle';
+        const label = labeled.has(p.pick)
+            ? `<text x="${cx.toFixed(1)}" y="${(cy - 10).toFixed(1)}" class="an-endlabel" text-anchor="${anchor}">${p.name}</text>` : '';
+        return `${label}<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${p.mine ? 6 : 5}" fill="${p.color}"
+            stroke="#000" stroke-width="1.6"
+            class="an-dot" data-name="${p.name}" data-pick="${p.pick}" data-team="${p.teamName}" data-pos="${p.position || ''}" data-pts="${p.pts.toFixed(1)}"/>`;
+    }).join('');
+
+    const legend = `
+    <div class="an-chart-legend">
+        <span class="an-legend-item"><span class="an-legend-key" style="background:${team.color}"></span>${team.name}</span>
+        ${others.map(k => `<span class="an-legend-item"><span class="an-legend-key" style="background:${greyOf.get(k)}"></span>${TEAMS[k].name}</span>`).join('')}
+    </div>`;
+
+    const sub = mode === 'prev'
+        ? `Every pick in the ${year} draft: real points from ${year - 1} (Y) against the pick number (X) — later and higher means a proven producer fell in the draft. Rookies and first-year players show 0, they had no season before this draft.`
+        : `Every pick in the ${year} draft: this year's preseason projection (Y, this league's scoring) against the pick number (X) — later and higher means the board still liked someone the room let fall.`;
+
+    return `
+    <p class="dgt-card-sub">${sub} ${team.name}'s picks stay in team color; the other three teams are grey, each its own shade, so they're still identifiable without pulling focus.</p>
+    ${legend}
+    <div class="dgt-chart-wrap">
+        <svg viewBox="0 0 ${DVP.w} ${DVP.h}" class="an-svg dgt-scatter-svg">${grid}${xTicks.join('')}${dots}</svg>
+        <div class="an-chart-tooltip" hidden></div>
+    </div>`;
+}
+
+function draftScatterCard(ctx) {
+    if (!ctx.grades?.length) return '';
+    return `
+    <div class="mosaic-card mc-wide dgt-card mc-in" id="dgt-scatter">
+        <span class="mc-kicker">All 4 teams, ${ctx.team.name} in color</span>
+        <h2 class="mc-title">Draft: Value per Pick</h2>
+        <div class="an-avg-toggle">
+            <span class="an-avg-label">Y axis:</span>
+            <button class="an-avg-pill active" type="button" data-scatter-mode="proj">Projected</button>
+            <button class="an-avg-pill" type="button" data-scatter-mode="prev">Previous year</button>
+        </div>
+        <div id="dgt-scatter-body">${scatterChartBody(ctx, 'proj')}</div>
+    </div>`;
+}
+
+function bindDraftScatterCard(card, ctx) {
+    if (!card) return;
+    const body = card.querySelector('#dgt-scatter-body');
+    if (!body) return;
+
+    const bindTooltip = () => {
+        const svg = body.querySelector('svg');
+        const tooltip = body.querySelector('.an-chart-tooltip');
+        if (!svg || !tooltip) return;
+
+        // Stessa storia di "The draft curve": la card ha overflow-x:auto (che
+        // per spec CSS impone anche overflow-y:auto, popup tagliato vicino al
+        // bordo) e un antenato con transform per il reveal allo scroll (che
+        // avrebbe reso "fixed" relativo a lui, non alla finestra). Il tooltip
+        // esce dal DOM della card, figlio diretto di <body>, in coordinate di
+        // viewport — si ripete a ogni redraw (cambio Projected/Previous year),
+        // che rifà da zero il markup del grafico.
+        document.getElementById('dgt-scatter-tooltip')?.remove();
+        tooltip.id = 'dgt-scatter-tooltip';
+        tooltip.style.position = 'fixed';
+        document.body.appendChild(tooltip);
+
+        svg.addEventListener('pointermove', (e) => {
+            const dot = e.target.closest('.an-dot');
+            if (!dot) { tooltip.hidden = true; return; }
+            tooltip.replaceChildren();
+            const title = document.createElement('div');
+            title.className = 'an-tt-title';
+            title.textContent = `Pick #${dot.dataset.pick}`;
+            const row = document.createElement('div');
+            row.className = 'an-tt-row';
+            const key = document.createElement('span');
+            key.className = 'an-tt-key';
+            key.style.background = dot.getAttribute('fill');
+            const val = document.createElement('b');
+            val.textContent = fmt0(Number(dot.dataset.pts));
+            const name = document.createElement('span');
+            name.className = 'an-tt-name';
+            name.textContent = `${dot.dataset.name} (${dot.dataset.pos}) — ${dot.dataset.team}`;
+            row.append(key, val, name);
+            tooltip.append(title, row);
+            tooltip.hidden = false;
+
+            let tx = e.clientX + 14;
+            const tw = tooltip.offsetWidth || 160;
+            if (tx + tw > window.innerWidth - 4) tx = e.clientX - tw - 14;
+            let ty = e.clientY - 10;
+            const th = tooltip.offsetHeight || 60;
+            if (ty + th > window.innerHeight - 4) ty = e.clientY - th - 10;
+            if (ty < 4) ty = 4;
+            tooltip.style.left = `${tx}px`;
+            tooltip.style.top = `${ty}px`;
+        });
+        svg.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+    };
+    bindTooltip();
+
+    card.querySelectorAll('[data-scatter-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.classList.contains('active')) return;
+            card.querySelectorAll('[data-scatter-mode]').forEach(b => b.classList.toggle('active', b === btn));
+            body.innerHTML = scatterChartBody(ctx, btn.dataset.scatterMode);
+            bindTooltip();
+        });
+    });
 }
 
 /**

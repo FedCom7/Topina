@@ -12,7 +12,7 @@
  */
 
 import { scoreProjectedStats } from './scoring.js?v=592';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=3';
 
 const TTL_MS = 24 * 60 * 60 * 1000; // le proiezioni cambiano di rado
 const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano
@@ -144,7 +144,10 @@ export async function getSeasonProjections(year) {
 export async function getSeasonStats(year) {
     if (_memStats[year]) return _memStats[year];
 
-    const cacheKey = `topina_stats_v4_${year}`;
+    // v5: aggiunti rushTd/recTd (dipendenza dai TD nel tab Pre-Draft). Bumpare
+    // qui NON basta — la versione va cambiata anche in FAMILIES.current dentro
+    // utils/storage.js, altrimenti i blob v4 restano lì per sempre.
+    const cacheKey = `topina_stats_v5_${year}`;
     const hit = cacheGet(cacheKey, STATS_TTL_MS);
     if (hit) return (_memStats[year] = new Map(hit));
 
@@ -171,6 +174,10 @@ export async function getSeasonStats(year) {
             rzTgt: s.rec_rz_tgt ?? null, drops: s.rec_drop ?? null,
             rushAtt: s.rush_att ?? null, rushYd: s.rush_yd ?? null,
             passAtt: s.pass_att ?? null, passYd: s.pass_yd ?? null, passTd: s.pass_td ?? null,
+            // i TD a segno: servono alla "dipendenza dai TD", il segnale di
+            // regressione più classico (i punti da touchdown rimbalzano verso
+            // la media molto più di yard e ricezioni)
+            rushTd: s.rush_td ?? null, recTd: s.rec_td ?? null,
             snaps: s.off_snp ?? null,
             fgm: s.fgm ?? null, xpm: s.xpm ?? null,
             sacks: s.sack ?? null, defInt: s.int ?? null,

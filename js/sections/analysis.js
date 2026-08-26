@@ -846,7 +846,7 @@ function hydrateImages() {
 
 // Colori serie per i grafici: stessa identità dei team ma step schiariti
 // per restare leggibili sulla superficie nera (oscurus/sommo sono troppo scuri).
-const CHART_COLORS = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', sommo: '#4fa3b8' };
+export const CHART_COLORS = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', sommo: '#4fa3b8' };
 const ROLES = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
 function weeklyScores(model) {
@@ -931,7 +931,7 @@ function scoreDistribution(model) {
     }).filter(Boolean);
 }
 
-function draftValueScatter(model) {
+export function draftValueScatter(model) {
     const points = [];
     for (const t of Object.values(TEAMS)) {
         const raw = rawFromTeamKey(model.draft?.teams, t.key);

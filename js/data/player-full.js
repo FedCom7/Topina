@@ -9,11 +9,11 @@
  * Le DEF hanno come id l'abbreviazione della squadra (es. "DAL").
  */
 
-import { getSeasonStats, matchProjection, trimStats } from './projections.js?v=591';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=1';
+import { getSeasonStats, matchProjection, trimStats } from './projections.js?v=592';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=3';
 import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=592';
 import { TEAM_ABBR_MAP } from './player-map.js?v=513';
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=523';
 import { CURRENT_SEASON } from '../data.js?v=534';
 
 export const FIRST_STATS_YEAR = 2015; // prima stagione con stats Sleeper affidabili
@@ -149,7 +149,7 @@ export async function getPlayerSeasonTotals(playerId, season, pos) {
     const totals = {
         stats: trimStats(s),
         pts: refPts(s, pos),
-        posRank: s.pos_rank_half_ppr ?? null,
+        posRank: s.pos_rank_ppr ?? s.pos_rank_half_ppr ?? null, // la lega è full PPR (rec=1)
         team: canonAbbr(raw.team) || null,
     };
     store(key, totals);

@@ -58,7 +58,8 @@ const BUDGET_CHARS = 2 * 1024 * 1024;
  */
 const FAMILIES = [
     { current: 'topina_proj_v5_',      stale: /^topina_proj_v\d+_/,       tier: 0 },
-    { current: 'topina_stats_v4_',     stale: /^topina_stats_v\d+_/,      tier: 0 },
+    { current: 'topina_stats_v5_',     stale: /^topina_stats_v\d+_/,      tier: 0 },
+    { current: 'topina_predraft_v1_',  stale: /^topina_predraft_v\d+_/,   tier: 0 },
     { current: 'nfl-sched4-',          stale: /^nfl-sched\d*-/,           tier: 1 },
     { current: 'nfl-weekgames1-',      stale: /^nfl-weekgames\d*-/,       tier: 1 },
     { current: 'topina_pweek_v2_',     stale: /^topina_pweek_v\d+_/,      tier: 2 },
@@ -214,6 +215,23 @@ export function cacheGet(key, ttlMs) {
         return c.data;
     } catch {
         return null; // corrotta: si rifà la richiesta
+    }
+}
+
+/**
+ * Da quanto è stata scritta una voce di cache, in millisecondi — o null se non
+ * c'è. Serve a dichiarare a schermo QUANDO sono stati aggiornati i dati, che
+ * per una pagina di analisi pre-draft è parte del dato stesso: una proiezione
+ * di tre giorni fa e una di un'ora fa non valgono uguale.
+ */
+export function cacheAgeMs(key) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const at = JSON.parse(raw)?.at;
+        return at ? Date.now() - at : null;
+    } catch {
+        return null;
     }
 }
 

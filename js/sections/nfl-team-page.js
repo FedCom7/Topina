@@ -3,7 +3,7 @@
  *
  * Stessa identità concettuale della pagina DEF in player-page.js (una pick
  * DEF *è* la difesa di una squadra NFL) ma qui senza l'ancoraggio a una pick
- * di draft Topina: si arriva dalla ricerca in "Players" o direttamente via
+ * di draft Topina: si arriva dalla ricerca in "NFL Hub" o direttamente via
  * URL. Riusa i blocchi/helper già costruiti in player-page.js (esportati
  * apposta) invece di duplicarli — stesso pattern dati, stesso selettore
  * stagione, stessi grafici — e in più monta i blocchi ESPN live esclusivi
@@ -13,25 +13,25 @@
 
 import { getTeamIdentity } from '../data/nfl-teams.js?v=510';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=510';
-import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=586';
+import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=587';
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=895';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=531';
-import { canonAbbr } from '../data/nfl-schedule.js?v=522';
+import { canonAbbr } from '../data/nfl-schedule.js?v=523';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
     getGameSummary, getTeamGameBoxscore, getTeamLeaders, getNews,
-} from '../data/nfl-team-live.js?v=593';
+} from '../data/nfl-team-live.js?v=594';
 import {
     esc, teamLogo, factChip, tile, fmt0, fmt1, fmt2, ord, TEAM_HISTORY_YEARS,
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=837';
+} from './player-page.js?v=839';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=890';
+} from './nfl-team-home.js?v=891';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');
@@ -41,7 +41,7 @@ export async function initNflTeamPage() {
     const parts = myHash.slice(1).split('/'); // nfl-team/{abbr}/{year?}/game/{eventId?}
     const abbr = canonAbbr(parts[1] || '');
     const requestedYear = /^\d{4}$/.test(parts[2] || '') ? +parts[2] : null;
-    // Deep link da una partita (tabellone della pagina Players): apre la tab
+    // Deep link da una partita (tabellone della pagina NFL Hub): apre la tab
     // Schedule con quella gara già espansa su box score e play-by-play.
     const openEventId = parts[3] === 'game' && /^\d+$/.test(parts[4] || '') ? parts[4] : null;
     const identity = abbr ? getTeamIdentity(abbr) : null;
@@ -2621,7 +2621,16 @@ function bindGameCenter(root) {
                 el.classList.toggle('is-cur', on);
                 if (on) cur = el;
             });
-            if (cur) cur.scrollIntoView({ block: 'nearest' });
+            // Scorre SOLO la lista giocate (scrollTop suo, non scrollIntoView):
+            // quest'ultimo risale fino alla pagina e la trascinava avanti e
+            // indietro a ogni pixel di hover sul grafico, in verticale E in
+            // orizzontale — qui la lista è l'unica cosa che si muove.
+            if (cur) {
+                const curTop = cur.offsetTop, curBottom = curTop + cur.offsetHeight;
+                const viewTop = playsEl.scrollTop, viewBottom = viewTop + playsEl.clientHeight;
+                if (curTop < viewTop) playsEl.scrollTop = curTop;
+                else if (curBottom > viewBottom) playsEl.scrollTop = curBottom - playsEl.clientHeight;
+            }
         }
     };
     const updateSb = (w, di) => {

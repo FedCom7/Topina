@@ -19,7 +19,7 @@
  * l'implementazione mantenuta: se una delle due cambia, allineare l'altra.
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=523';
 
 const HOST = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl';
 const LEAGUE_ID = '1948241900';

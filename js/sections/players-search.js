@@ -1,18 +1,31 @@
 /**
- * Sezione "Players" — ricerca di un giocatore Topina (storico completo di
- * chi ha mai giocato in lega, da careers.js::buildCareers) o di una delle
- * 32 squadre NFL, con link diretto alla scheda completa del giocatore
- * (#player/{year}/{pos}/{nome}) o alla pagina squadra NFL (#nfl-team/{abbr}).
+ * Sezione "NFL Hub" (nav; hash e id restano #players/players-search.js) —
+ * ricerca di un giocatore Topina (storico completo di chi ha mai giocato in
+ * lega, da careers.js::buildCareers) o di una delle 32 squadre NFL, con link
+ * diretto alla scheda completa del giocatore (#player/{year}/{pos}/{nome}) o
+ * alla pagina squadra NFL (#nfl-team/{abbr}); sotto, tabellone/classifiche/
+ * confronto squadre della NFL reale (vedi loadLeaguePanel).
  */
 
-import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=593';
+import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=594';
 import { CURRENT_SEASON } from '../data.js?v=534';
-import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=577';
+import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=578';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=531';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=586';
-import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=522';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=587';
+import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=523';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=510';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=591';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=592';
+import { currentNflSeason } from '../data/nfl-team-extras.js?v=895';
+
+// ─── Selettore stagione · governa tutta la pagina (tabellone, classifiche,
+// confronto squadre, dashboard giocatori). Stessa logica di TEAM_HISTORY_YEARS
+// (player-page.js): da 2019 alla stagione NFL corrente, così l'anno nuovo
+// compare da solo in preseason senza toccare il codice. */
+const PS_FIRST_YEAR = 2019;
+const psYears = () => Array.from(
+    { length: Math.max(1, currentNflSeason() - PS_FIRST_YEAR + 1) },
+    (_, i) => PS_FIRST_YEAR + i,
+);
 
 // ─── Confronto lega · tutte le 32 squadre (nflverse team_stats + advanced) ───
 // Modulo interattivo in testa al pannello NFL: un grande scatter Attacco×Difesa
@@ -79,16 +92,106 @@ const _lcPctile = (v, sorted) => {
 
 let _lcState = { rows: [] }; // dati dell'ultima costruzione (una sola istanza per pagina)
 
-/** Stagione nflverse più recente con dati offensivi + advanced lega. */
-async function pickLeagueStats() {
-    for (const y of [CURRENT_SEASON, CURRENT_SEASON - 1]) {
-        const [stats, adv] = await Promise.all([
-            getTeamStats(y).catch(() => null),
-            getLeagueTeamsAdvanced(y).catch(() => ({})),
-        ]);
-        if (Object.values(stats?.teams || {}).some(t => t.offense?.ppg != null)) return { year: y, stats, adv };
+// ─── Team stats "live" da Sleeper — ripiego quando data/nfl/team_stats_{anno}.json
+// non esiste ancora (stagione in corso: nessuno ha ancora rigenerato lo storico
+// con `npm run build-nfl-team-stats`). Stessa fonte e stessa logica di
+// scripts/build-nfl-team-stats.mjs (weekly Sleeper, punti fatti = punti subiti
+// dalla difesa avversaria), ma solo il sottoinsieme di campi che serve al
+// confronto squadre. EPA/success rate/PROE restano fuori: vengono dal
+// play-by-play nflverse grezzo (decine di MB a stagione), non fattibile da
+// browser — tornano da soli non appena qualcuno rigenera lo storico con
+// `npm run build-nflverse`.
+const SLEEPER_TEAM_POS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+const round1 = (v) => (v == null || Number.isNaN(v) ? null : +v.toFixed(1));
+const round2 = (v) => (v == null || Number.isNaN(v) ? null : +v.toFixed(2));
+
+function sleeperTeamWeekUrl(season, week) {
+    const pos = SLEEPER_TEAM_POS.map(p => `position[]=${p}`).join('&');
+    return `https://api.sleeper.com/stats/nfl/${season}/${week}?season_type=regular&${pos}`;
+}
+
+/** Aggrega le 18 settimane Sleeper della stagione in team stats di base, o null se nessuna settimana ha dati. */
+async function fetchLiveTeamStats(year) {
+    const weeks = await Promise.all(Array.from({ length: 18 }, (_, i) =>
+        fetch(sleeperTeamWeekUrl(year, i + 1)).then(r => r.ok ? r.json() : null).catch(() => null)));
+
+    const blank = () => ({
+        games: 0, pf: 0, pa: 0,
+        off: { passYd: 0, rushYd: 0, passAtt: 0, rushAtt: 0, sacked: 0, passInt: 0, fumLost: 0 },
+        def: { sack: 0, int: 0, fumRec: 0, ydsAllow: 0 },
+    });
+    const teams = {};
+    const team = (abbr) => (teams[canonAbbr(abbr)] ??= blank());
+    let any = false;
+
+    for (const list of weeks) {
+        if (!Array.isArray(list) || !list.length) continue;
+        any = true;
+        for (const e of list) {
+            const s = e.stats || {};
+            const pos = (e.player?.position || '').toUpperCase();
+            const T = canonAbbr(e.team), O = canonAbbr(e.opponent);
+            if (!T || !SLEEPER_TEAM_POS.includes(pos)) continue;
+            if (pos === 'DEF') {
+                const t = team(T);
+                t.games++;
+                t.def.sack += s.sack || 0; t.def.int += s.int || 0; t.def.fumRec += s.fum_rec || 0;
+                t.def.ydsAllow += s.yds_allow || 0;
+                t.pa += s.pts_allow || 0;
+                // punti FATTI dall'avversario O = punti SUBITI dalla difesa di T
+                if (O) team(O).pf += s.pts_allow || 0;
+            } else {
+                const o = team(T).off;
+                o.passYd += s.pass_yd || 0; o.rushYd += s.rush_yd || 0;
+                o.passAtt += s.pass_att || 0; o.rushAtt += s.rush_att || 0; o.sacked += s.pass_sack || 0;
+                o.passInt += s.pass_int || 0; o.fumLost += s.fum_lost || 0;
+            }
+        }
     }
-    return null;
+    if (!any) return null;
+
+    const out = {};
+    for (const [abbr, t] of Object.entries(teams)) {
+        const g = t.games || 1;
+        const o = t.off, d = t.def;
+        const plays = o.passAtt + o.rushAtt + o.sacked;
+        out[abbr] = {
+            offense: {
+                ppg: round1(t.pf / g),
+                totYdsPg: round1((o.passYd + o.rushYd) / g),
+                passYdsPg: round1(o.passYd / g), rushYdsPg: round1(o.rushYd / g),
+                ydsPerPlay: plays ? round2((o.passYd + o.rushYd) / plays) : null,
+                playsPg: round1(plays / g),
+                turnovers: o.passInt + o.fumLost,
+                sacksAllowed: o.sacked,
+            },
+            defense: {
+                papg: round1(t.pa / g),
+                totYdsAllowedPg: round1(d.ydsAllow / g),
+                sacks: d.sack, takeaways: d.int + d.fumRec,
+            },
+            ranks: null, // buildLeagueRows li calcola da sé quando mancano (vedi rankOf)
+        };
+    }
+    return { teams: out };
+}
+
+/** Dati team stats + advanced della stagione scelta, o null se non c'è proprio nulla.
+ *  Se lo storico precalcolato (nflverse) manca ancora, ripiega sulle metriche
+ *  di base live da Sleeper — `adv` resta vuoto in quel caso. */
+async function getLeagueStatsForYear(year) {
+    let [stats, adv] = await Promise.all([
+        getTeamStats(year).catch(() => null),
+        getLeagueTeamsAdvanced(year).catch(() => ({})),
+    ]);
+    let live = false;
+    if (!Object.values(stats?.teams || {}).some(t => t.offense?.ppg != null)) {
+        stats = await fetchLiveTeamStats(year).catch(() => null);
+        adv = {};
+        live = true;
+    }
+    if (!Object.values(stats?.teams || {}).some(t => t.offense?.ppg != null)) return null;
+    return { year, stats, adv, live };
 }
 
 /** Una riga per squadra con metriche chiave e rank NFL (differenziale calcolato qui). */
@@ -101,6 +204,11 @@ function buildLeagueRows(stats, adv, fpiByAbbr) {
         : arr.filter(v => v != null && (hi ? v > val : v < val)).length + 1;
     const epaArr = advVals.map(t => t.offEpaPerPlay), succArr = advVals.map(t => t.successRate);
     const defEpaArr = advVals.map(t => t.defEpaPerPlay);
+    // Rank ppg/papg/takeaway di riserva: il file statico li porta già precalcolati
+    // (`ranks`), il ripiego live (Sleeper) no — si calcolano qui con lo stesso rankOf.
+    const teamVals = Object.values(teams);
+    const ppgArr = teamVals.map(t => t.offense?.ppg), papgArr = teamVals.map(t => t.defense?.papg);
+    const takeArr = teamVals.map(t => t.defense?.takeaways);
     const rows = [];
     for (const [ab, t] of Object.entries(teams)) {
         const cab = canonAbbr(ab);
@@ -113,12 +221,12 @@ function buildLeagueRows(stats, adv, fpiByAbbr) {
             defEpa: a.defEpaPerPlay ?? null, defEpaRank: rankOf(a.defEpaPerPlay, defEpaArr, false),
             succ: a.successRate ?? null, succRank: rankOf(a.successRate, succArr),
             defSucc: a.defSuccessRate ?? null,
-            ppg: o.ppg ?? null, ppgRank: ro.ppg ?? null,
-            papg: d.papg ?? null, papgRank: rd.papg ?? null,
+            ppg: o.ppg ?? null, ppgRank: ro.ppg ?? rankOf(o.ppg, ppgArr),
+            papg: d.papg ?? null, papgRank: rd.papg ?? rankOf(d.papg, papgArr, false),
             ydsPerPlay: o.ydsPerPlay ?? null, totYdsPg: o.totYdsPg ?? null,
             passYdsPg: o.passYdsPg ?? null, rushYdsPg: o.rushYdsPg ?? null,
             ydsAllowedPg: d.totYdsAllowedPg ?? null,
-            take: d.takeaways ?? null, takeRank: rd.takeaways ?? null,
+            take: d.takeaways ?? null, takeRank: rd.takeaways ?? rankOf(d.takeaways, takeArr),
             giveaway: o.turnovers ?? null,
             sacks: d.sacks ?? null, sacksAllowed: o.sacksAllowed ?? null,
             proe: a.proe ?? null, playsPg: a.playsPg ?? o.playsPg ?? null,
@@ -269,6 +377,36 @@ function _powerLollipop(scored) {
     }).join('')}</div>`;
 }
 
+/**
+ * Power ranking da solo, prima del kickoff: quando non è stata giocata
+ * nessuna gara di regular season non c'è nulla da far calcolare a
+ * `getLeagueStatsForYear` (né file statico né ripiego live — vedi lì), ma
+ * l'FPI di ESPN esiste già dal giorno 1 di preseason. Costruisce righe minime
+ * (solo fpi, il resto null) e riusa lo stesso composito/lollipop di
+ * `leagueCompareModule`: la classifica gira di fatto solo sull'FPI (gli altri
+ * pesi si azzerano da soli in `_powerRanking`, che ignora i componenti null),
+ * e sparisce da sola non appena `compare` torna popolato — a quel punto la
+ * versione "vera" (con Diff, EPA...) prende il suo posto dentro il modulo
+ * "Compare all 32 teams".
+ */
+function preseasonPowerRankingBlock(fpiByAbbr, year) {
+    const abbrs = Object.keys(fpiByAbbr || {});
+    if (abbrs.length < 6) return '';
+    const rows = abbrs.map(abbr => ({
+        abbr, name: getTeamIdentity(abbr)?.name || abbr,
+        net: null, epa: null, defEpa: null, succ: null, defSucc: null,
+        fpi: fpiByAbbr[abbr] ?? null,
+    }));
+    const scored = _powerRanking(rows);
+    if (scored.length < 6) return '';
+    return `
+    <section class="pm-block pp-block lc-module">
+        <span class="mc-kicker">Power ranking · ${year} preseason</span>
+        <p class="pm-note">No regular-season game has been played yet, so point differential, EPA and success rate don't exist for this season: this early ranking runs on ESPN's Football Power Index alone. It turns into the full "Compare all 32 teams" module — differential, EPA, success rate, extended stats — as soon as Week 1 kicks off.</p>
+        <div class="lc-prwrap">${_powerLollipop(scored)}</div>
+    </section>`;
+}
+
 /** Strip/beeswarm di una metrica: un punto per squadra, migliore a destra,
  *  colore = fascia percentile, quartili come guide. Mostra distacchi e gruppone. */
 function _lcStrip(rows, metricKey, hiKey) {
@@ -309,25 +447,26 @@ function _lcStrip(rows, metricKey, hiKey) {
     return `<svg viewBox="0 0 ${W} ${H}" class="lc-svg lc-strip-svg" role="img" aria-label="League distribution ${esc(m.label)}">${guides}${dots}${axl}</svg>`;
 }
 
-function leagueCompareModule({ year, stats, adv }, fpiByAbbr) {
+function leagueCompareModule({ year, stats, adv, live }, fpiByAbbr) {
     const rows = buildLeagueRows(stats, adv, fpiByAbbr);
     if (rows.length < 6) return '';
-    _lcState = { rows };
+    _lcState = { rows, live };
     const scored = _powerRanking(rows);
     const teamOpts = ['<option value="">— no team —</option>'].concat(
         [...rows].sort((a, b) => a.name.localeCompare(b.name))
             .map(r => `<option value="${r.abbr}">${esc(r.name)} (${esc(r.abbr)})</option>`)).join('');
     const metricOpts = (sel) => LC_METRICS.map(m => `<option value="${m.key}"${m.key === sel ? ' selected' : ''}>${esc(m.label)}</option>`).join('');
     const colorOpts = (sel) => '<option value="">— none —</option>' + LC_METRICS.map(m => `<option value="${m.key}"${m.key === sel ? ' selected' : ''}>${esc(m.label)}</option>`).join('');
-    const p0 = LC_PRESETS[0]; // preset iniziale (Points scored × allowed)
+    const p0 = LC_PRESETS[0]; // preset iniziale (Points scored × allowed — non richiede EPA/Succ%, va bene anche live)
     const presetOpts = LC_PRESETS.map((p, i) => `<option value="${i}"${i === 0 ? ' selected' : ''}>${esc(p.label)}</option>`).join('') + '<option value="custom">Custom…</option>';
     return `
     <section class="pm-block pp-block lc-module">
         <span class="mc-kicker">Compare all 32 teams · ${year}</span>
+        ${live ? `<p class="pm-note">Season in progress: EPA/play, success rate and PROE come from nflverse's raw play-by-play, rebuilt after the season (or periodically) rather than live — for now this runs on points, yards, sacks and takeaways only, computed live from Sleeper's weekly stats.</p>` : ''}
 
         ${scored.length >= 6 ? `<div class="lc-prwrap">
             <h3 class="pp-cat-title">Power ranking · best and worst</h3>
-            <p class="pm-note">Composite ranking 0-100: weighted average of percentiles for point differential (30%), offensive EPA (20%), defensive EPA (20%), off/def success rate (10%+10%) and FPI (10%). <b style="color:#22c55e">Green</b> = top-5, <b style="color:var(--accent-red)">red</b> = bottom-5. Hover for the breakdown, click for the team page.</p>
+            <p class="pm-note">Composite ranking 0-100: weighted average of percentiles for point differential (30%), offensive EPA (20%), defensive EPA (20%), off/def success rate (10%+10%) and FPI (10%)${live ? ' — EPA/success not available yet this season, so for now it runs on differential + FPI only' : ''}. <b style="color:#22c55e">Green</b> = top-5, <b style="color:var(--accent-red)">red</b> = bottom-5. Hover for the breakdown, click for the team page.</p>
             ${_powerLollipop(scored)}
         </div>` : ''}
 
@@ -338,16 +477,18 @@ function leagueCompareModule({ year, stats, adv }, fpiByAbbr) {
 
         <div class="lc-strip-wrap">
             <div class="lc-toolbar">
-                <label class="lc-field lc-field-wide"><span>League distribution · metric</span><select id="lc-strip-metric">${metricOpts('epa')}</select></label>
+                <label class="lc-field lc-field-wide"><span>League distribution · metric</span><select id="lc-strip-metric">${metricOpts(live ? 'ppg' : 'epa')}</select></label>
             </div>
             <div id="lc-strip"></div>
             <p class="pm-note">Each team is a dot on the chosen metric: gaps (who pulls away, who's in the pack) show up better than a list. Better to the right; color = tier (red→green); lines = quartiles. Hover for the value, click for the page.</p>
         </div>
 
         <div class="lc-hero-wrap">
-            <h3 class="pp-cat-title">Offense × Defense · the entire NFL</h3>
+            <h3 class="pp-cat-title">${live ? 'Points scored × allowed · the entire NFL' : 'Offense × Defense · the entire NFL'}</h3>
             <div id="lc-hero" class="lc-chart-host"></div>
-            <p class="pm-note">X = offensive efficiency (EPA/play), Y = defensive efficiency (EPA allowed). Top-right = complete teams, bottom-left = those struggling. Cross = NFL medians. Hover for details, click for the team page.</p>
+            <p class="pm-note">${live
+            ? 'X = points scored/game, Y = points allowed/game (inverted so top-right = better). Cross = NFL medians. Hover for details, click for the team page.'
+            : 'X = offensive efficiency (EPA/play), Y = defensive efficiency (EPA allowed). Top-right = complete teams, bottom-left = those struggling. Cross = NFL medians. Hover for details, click for the team page.'}</p>
         </div>
 
         <details class="pp-recap-ids lc-cfg-wrap" style="margin-top:14px">
@@ -396,6 +537,7 @@ function bindLeagueCompare(container) {
     }
 
     const rows = _lcState.rows || [];
+    const live = _lcState.live;
     const heroHost = container.querySelector('#lc-hero');
     const cfgHost = container.querySelector('#lc-cfg');
     const legendHost = container.querySelector('#lc-cfg-legend');
@@ -438,7 +580,7 @@ function bindLeagueCompare(container) {
     const stripHost = container.querySelector('#lc-strip');
 
     const common = () => ({ hi: teamSel.value || null, iso: isoChk.checked && !!teamSel.value });
-    const drawHero = () => { heroSlot.innerHTML = _lcBigScatter(rows, { xKey: 'epa', yKey: 'defEpa', ...common() }); };
+    const drawHero = () => { heroSlot.innerHTML = _lcBigScatter(rows, live ? { xKey: 'ppg', yKey: 'papg', ...common() } : { xKey: 'epa', yKey: 'defEpa', ...common() }); };
     const drawCfg = () => {
         legendHost.innerHTML = _lcColorLegend(cSel.value ? _lcMetric(cSel.value) : null);
         cfgSlot.innerHTML = _lcBigScatter(rows, { xKey: xSel.value, yKey: ySel.value, cKey: cSel.value || null, ...common() });
@@ -771,28 +913,28 @@ function bindLeaguePlayers(container) {
     fillPlayers(); drawHero(); drawCfg(); drawTable();
 }
 
-/** Stagione più recente con statistiche reali dei giocatori (join stats+proiezioni). */
-async function pickPlayerSeason() {
-    for (const y of [CURRENT_SEASON, CURRENT_SEASON - 1]) {
-        const [stats, proj] = await Promise.all([
-            getSeasonStats(y).catch(() => null),
-            getSeasonProjections(y).catch(() => null),
-        ]);
-        if (stats && [...stats.values()].some(p => p.gp)) {
-            const rows = buildPlayerRows(stats, proj);
-            if (rows.length >= 10) return { year: y, rows };
-        }
-    }
-    return null;
+/** Statistiche reali dei giocatori (join stats+proiezioni) della stagione scelta, o null. */
+async function getPlayerSeasonForYear(year) {
+    const [stats, proj] = await Promise.all([
+        getSeasonStats(year).catch(() => null),
+        getSeasonProjections(year).catch(() => null),
+    ]);
+    if (!stats || ![...stats.values()].some(p => p.gp)) return null;
+    const rows = buildPlayerRows(stats, proj);
+    return rows.length ? { year, rows } : null;
 }
 
-function render(section) {
+function render(section, year) {
     section.innerHTML = `
     <div class="section-inner">
         <div class="section-header">
-            <h1 class="section-title">Players</h1>
+            <h1 class="section-title">NFL Hub</h1>
             <p class="section-subtitle">Search a player (full Topina history) or an NFL team</p>
         </div>
+        <div class="section-header nfl-year-header ps-year-header">
+            <button type="button" class="section-title nfl-year-title" id="ps-year-btn" aria-haspopup="listbox" aria-expanded="false" title="Change season">${year}</button>
+        </div>
+        <div class="nfl-year-menu" id="ps-year-menu" role="listbox" aria-label="Season" hidden></div>
         <div class="ps-search-wrap">
             <input type="search" id="ps-input" class="ps-search-input" placeholder="Search player or team..." autocomplete="off">
         </div>
@@ -800,19 +942,101 @@ function render(section) {
         <div id="ps-divisions" class="ps-div-block"></div>
         <div id="ps-results" class="ps-results"></div>
         <div id="ps-league" class="ps-league">
-            <div class="loading-state"><div class="spinner"></div><p>Caricamento dati NFL...</p></div>
+            <div class="loading-state"><div class="spinner"></div></div>
         </div>
     </div>`;
 }
 
+/**
+ * Bottone anno grande + menu a tendina, stesso stile/meccanica della pagina
+ * squadra NFL (`.nfl-year-header`/`.nfl-year-title`/`.nfl-year-menu`, classi
+ * generiche non legate a quella pagina): verticale e fisso sul bordo sinistro
+ * sotto la filigrana "PLAYERS" su desktop, pill in alto a destra su mobile.
+ * Un click apre l'elenco delle stagioni, sceglierne una richiama `onChange(year)`.
+ */
+function bindYearPicker(section, initialYear, onChange) {
+    const btn = section.querySelector('#ps-year-btn');
+    const menu = section.querySelector('#ps-year-menu');
+    if (!btn || !menu) return;
+    const years = psYears();
+    let current = initialYear;
+
+    const buildMenu = () => {
+        menu.innerHTML = [...years].reverse().map(y =>
+            `<button type="button" role="option" data-year="${y}" aria-selected="${y === current}">${y}</button>`).join('');
+    };
+    const position = () => {
+        const r = btn.getBoundingClientRect();
+        menu.style.visibility = 'hidden';
+        menu.hidden = false;
+        const mw = menu.offsetWidth, mh = menu.offsetHeight;
+        let left = r.left, top = r.bottom + 8;
+        left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
+        top = Math.max(8, Math.min(top, window.innerHeight - mh - 8));
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+        menu.style.visibility = '';
+    };
+    const open = () => {
+        buildMenu();
+        position();
+        menu.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        menu.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+    };
+    const close = () => {
+        menu.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+    };
+    const toggle = () => (menu.hidden ? open() : close());
+
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+    menu.addEventListener('click', (e) => {
+        const opt = e.target.closest('[data-year]');
+        if (!opt) return;
+        close();
+        const y = +opt.dataset.year;
+        if (y === current) return;
+        current = y;
+        btn.textContent = String(y);
+        onChange(y);
+    });
+    document.addEventListener('click', (e) => {
+        if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) close();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !menu.hidden) close();
+    });
+    window.addEventListener('resize', () => { if (!menu.hidden) close(); });
+}
+
 // ─── Tabellone NFL della settimana (subito sotto la ricerca) ─────────────
 // Le partite della giornata su due file, come lo scoreboard in cima a nfl.com:
-// selettore settimana (solo regular season, 1-18), punteggio/orario, record,
-// rete TV e squadre in bye. Una gara già cominciata porta alla pagina della
-// squadra di CASA, tab Schedule, con quella partita già aperta sul box score
-// e sul play-by-play (route #nfl-team/{abbr}/{anno}/game/{eventId}).
+// selettore settimana (regular season 1-18 + i 4 turni di playoff), punteggio/
+// orario, record, rete TV e squadre in bye. Una gara già cominciata porta alla
+// pagina della squadra di CASA, tab Schedule, con quella partita già aperta sul
+// box score e sul play-by-play (route #nfl-team/{abbr}/{anno}/game/{eventId}).
 
 const NFL_WEEKS = 18;
+
+// Turni di post-season nell'endpoint ESPN (seasontype=3): la week 4 è il Pro
+// Bowl, non un turno vero, e resta fuori. Verificato stabile su più stagioni
+// (2019 e 2024): week 1 Wild Card, 2 Divisional, 3 Conference, 5 Super Bowl.
+const POST_ROUNDS = [
+    { week: 1, label: 'WC', full: 'Wild Card' },
+    { week: 2, label: 'DIV', full: 'Divisional' },
+    { week: 3, label: 'CONF', full: 'Conference' },
+    { week: 5, label: 'SB', full: 'Super Bowl' },
+];
+// Sequenza piatta regular season + playoff, per i tasti ‹ › e i confini min/max.
+const SB_STEPS = [
+    ...Array.from({ length: NFL_WEEKS }, (_, i) => ({ seasonType: 2, week: i + 1 })),
+    ...POST_ROUNDS.map(r => ({ seasonType: 3, week: r.week })),
+];
+const sbStepIdx = (sel) => SB_STEPS.findIndex(s => s.seasonType === sel.seasonType && s.week === sel.week);
+const sbStepLabel = (sel) => sel.seasonType === 3
+    ? (POST_ROUNDS.find(r => r.week === sel.week)?.full || 'Playoffs')
+    : `Week ${sel.week}`;
 
 /** Orario di kickoff nel fuso dell'utente: "Sun 7:20 PM". */
 function sbKickoff(iso) {
@@ -848,13 +1072,22 @@ function sbGameCard(g, year) {
         title="${esc(g.away.name)} at ${esc(g.home.name)} — open ${esc(g.home.name)} · Schedule">${body}</a>`;
 }
 
-function sbWeeksHtml(week) {
-    const pills = Array.from({ length: NFL_WEEKS }, (_, i) => i + 1).map(w =>
-        `<button type="button" class="week-pill${w === week ? ' active' : ''}" data-sb-week="${w}">${w}</button>`).join('');
+function sbWeeksHtml(sel) {
+    const regPills = Array.from({ length: NFL_WEEKS }, (_, i) => i + 1).map(w =>
+        `<button type="button" class="week-pill${sel.seasonType === 2 && w === sel.week ? ' active' : ''}" data-sb-week="${w}" data-sb-stype="2">${w}</button>`).join('');
+    // Stesso trattamento visivo (ambra/viola) dei pill "Playoffs"/"Super Bowl"
+    // già usati per le settimane di playoff FANTASY (magazine.js) — qui però
+    // sono i 4 turni veri della post-season NFL, non le settimane di lega.
+    const postPills = POST_ROUNDS.map(r => {
+        const cls = r.label === 'SB' ? 'sb-pill' : 'playoff-pill';
+        const active = sel.seasonType === 3 && r.week === sel.week;
+        return `<button type="button" class="week-pill ${cls}${active ? ' active' : ''}" data-sb-week="${r.week}" data-sb-stype="3" title="${esc(r.full)}">${r.label}</button>`;
+    }).join('');
+    const idx = sbStepIdx(sel);
     return `
-        <button type="button" class="ps-sb-arrow" data-sb-step="-1" aria-label="Previous week"${week <= 1 ? ' disabled' : ''}>‹</button>
-        <div class="ps-sb-pills">${pills}</div>
-        <button type="button" class="ps-sb-arrow" data-sb-step="1" aria-label="Next week"${week >= NFL_WEEKS ? ' disabled' : ''}>›</button>`;
+        <button type="button" class="ps-sb-arrow" data-sb-step="-1" aria-label="Previous"${idx <= 0 ? ' disabled' : ''}>‹</button>
+        <div class="ps-sb-pills">${regPills}<span class="ps-sb-sep" aria-hidden="true"></span>${postPills}</div>
+        <button type="button" class="ps-sb-arrow" data-sb-step="1" aria-label="Next"${idx >= SB_STEPS.length - 1 ? ' disabled' : ''}>›</button>`;
 }
 
 function sbBodyHtml(data, year) {
@@ -866,17 +1099,21 @@ function sbBodyHtml(data, year) {
 }
 
 /** Monta il tabellone e lo tiene aggiornato al cambio settimana. */
-async function initWeekScoreboard(container) {
+async function initWeekScoreboard(container, year, isCurrent = () => true) {
+    // Turno di default: la settimana live di regular season SOLO se la
+    // stagione scelta è quella in corso davvero (ESPN); su una stagione
+    // passata/futura si riparte dalla week 1. `getCurrentNflWeek()` è sempre
+    // una settimana di regular season anche a playoff in corso (vedi lì).
     const now = await getCurrentNflWeek();
-    const year = now?.year || CURRENT_SEASON;
-    let week = now?.week || 1;
+    if (!isCurrent()) return;
+    let sel = (now && now.year === year) ? { seasonType: 2, week: now.week || 1 } : { seasonType: 2, week: 1 };
 
     container.innerHTML = `
     <section class="pm-block pp-block ps-sb">
-        <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">Week ${week} · ${year}</span></span>
-        <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml(week)}</div>
+        <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">${sbStepLabel(sel)} · ${year}</span></span>
+        <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml(sel)}</div>
         <div class="ps-sb-body" id="ps-sb-body"><div class="loading-state"><div class="spinner"></div></div></div>
-        <p class="pm-note">All ${year} regular season games, week by week (live from ESPN). Click a played or in-progress game to open the home team's page on that box score and play-by-play.</p>
+        <p class="pm-note">All ${year} games, regular season and playoffs, week by week (live from ESPN). Click a played or in-progress game to open the home team's page on that box score and play-by-play.</p>
     </section>`;
 
     const title = container.querySelector('#ps-sb-title');
@@ -884,25 +1121,26 @@ async function initWeekScoreboard(container) {
     const body = container.querySelector('#ps-sb-body');
     let token = 0;
 
-    const paint = async (w) => {
-        week = Math.min(Math.max(w, 1), NFL_WEEKS);
+    const paint = async (nextSel) => {
+        const idx = Math.min(Math.max(sbStepIdx(nextSel), 0), SB_STEPS.length - 1);
+        sel = SB_STEPS[idx];
         const mine = ++token;
-        title.textContent = `Week ${week} · ${year}`;
-        weeks.innerHTML = sbWeeksHtml(week);
+        title.textContent = `${sbStepLabel(sel)} · ${year}`;
+        weeks.innerHTML = sbWeeksHtml(sel);
         body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-        const data = await getWeekGames(year, week).catch(() => null);
-        if (mine !== token) return;  // l'utente ha già cambiato settimana
+        const data = await getWeekGames(year, sel.week, sel.seasonType).catch(() => null);
+        if (mine !== token || !isCurrent()) return;  // l'utente ha già cambiato settimana/stagione
         body.innerHTML = sbBodyHtml(data, year);
     };
 
     weeks.addEventListener('click', (e) => {
         const pill = e.target.closest('[data-sb-week]');
-        if (pill) return paint(+pill.dataset.sbWeek);
+        if (pill) return paint({ seasonType: +pill.dataset.sbStype, week: +pill.dataset.sbWeek });
         const arrow = e.target.closest('[data-sb-step]');
-        if (arrow) paint(week + Number(arrow.dataset.sbStep));
+        if (arrow) paint(SB_STEPS[sbStepIdx(sel) + Number(arrow.dataset.sbStep)] || sel);
     });
 
-    paint(week);
+    paint(sel);
 }
 
 // ─── Division standings e quadro playoff ─────────────────────────────────
@@ -989,30 +1227,31 @@ function divisionsBlock({ year, value }) {
 /** Classifica NFL reale + power ranking FPI, sotto la ricerca. Fonte ESPN dal vivo.
  *  Le division vivono in un contenitore a parte (`divisions`): stanno subito
  *  sotto il tabellone, sopra i risultati di ricerca. */
-async function loadLeaguePanel(container, divisions) {
-    // In offseason la stagione corrente può essere ancora a 0-0: ripiego sulla precedente.
-    async function pick(fn, isEmpty) {
-        for (const y of [CURRENT_SEASON, CURRENT_SEASON - 1]) {
-            const v = await fn(y).catch(() => null);
-            if (v && !isEmpty(v)) return { year: y, value: v };
-        }
-        return null;
-    }
-    const [standings, rankings, news, leaders, compare, players] = await Promise.all([
-        pick(getLeagueStandings, (v) => !v.length || v.every(c => c.entries.every(e => !e.wins && !e.losses))),
-        pick(getLeaguePowerRankings, (v) => !v.length),
+async function loadLeaguePanel(container, divisions, year, isCurrent = () => true) {
+    // La stagione è quella scelta nel selettore: niente più ripiego automatico
+    // sull'anno precedente — se non c'è nulla (es. preseason 0-0) si mostra lo
+    // stato vuoto della sezione, così il numero a schermo è sempre quello scelto.
+    const isEmptyStandings = (v) => !v.length || v.every(c => c.entries.every(e => !e.wins && !e.losses));
+    const [standingsRaw, rankingsRaw, news, leadersRaw, compare, players] = await Promise.all([
+        getLeagueStandings(year).catch(() => null),
+        getLeaguePowerRankings(year).catch(() => null),
         getNews(null, 10).catch(() => []),
-        pick(getLeagueLeaders, (v) => !v.length),
-        pickLeagueStats().catch(() => null),
-        pickPlayerSeason().catch(() => null),
+        getLeagueLeaders(year).catch(() => null),
+        getLeagueStatsForYear(year).catch(() => null),
+        getPlayerSeasonForYear(year).catch(() => null),
     ]);
+    if (!isCurrent()) return; // l'utente ha già scelto un'altra stagione
 
-    if (!standings && !rankings && !news?.length && !leaders && !compare && !players) { container.innerHTML = ''; return; }
+    const standings = standingsRaw && !isEmptyStandings(standingsRaw) ? { year, value: standingsRaw } : null;
+    const rankings = rankingsRaw?.length ? { year, value: rankingsRaw } : null;
+    const leaders = leadersRaw?.length ? { year, value: leadersRaw } : null;
+
+    if (!standings && !rankings && !news?.length && !leaders && !compare && !players) { container.innerHTML = ''; if (divisions) divisions.innerHTML = ''; return; }
 
     // FPI ESPN (dal power ranking già caricato) per la colonna FPI del confronto.
     const fpiByAbbr = {};
     for (const r of rankings?.value || []) if (r.abbr != null) fpiByAbbr[canonAbbr(r.abbr)] = r.fpi ?? null;
-    const compareHtml = compare ? leagueCompareModule(compare, fpiByAbbr) : '';
+    const compareHtml = compare ? leagueCompareModule(compare, fpiByAbbr) : preseasonPowerRankingBlock(fpiByAbbr, year);
     const playersHtml = players ? leaguePlayersModule(players) : '';
 
     const confTable = (conf) => `
@@ -1091,15 +1330,32 @@ async function loadLeaguePanel(container, divisions) {
 export async function initPlayersSearch() {
     const section = document.getElementById('players');
     if (!section) return;
-    render(section);
+    const year = +CURRENT_SEASON;
+    render(section, year);
 
     const input = section.querySelector('#ps-input');
     const results = section.querySelector('#ps-results');
     const league = section.querySelector('#ps-league');
     const scoreboard = section.querySelector('#ps-scoreboard');
     const divisions = section.querySelector('#ps-divisions');
-    if (scoreboard) initWeekScoreboard(scoreboard); // non blocca la ricerca
-    if (league) loadLeaguePanel(league, divisions); // non blocca la ricerca
+
+    // Ridipinge tabellone + pannello lega per la stagione scelta. Un token
+    // scarta le risposte di una richiesta superata da uno switch più recente
+    // (stesso pattern del selettore anno sulla pagina squadra NFL).
+    let paintToken = 0;
+    const spinner = '<div class="loading-state"><div class="spinner"></div></div>';
+    const paintYear = (y) => {
+        const mine = ++paintToken;
+        const isCurrent = () => mine === paintToken;
+        if (scoreboard) initWeekScoreboard(scoreboard, y, isCurrent); // non blocca la ricerca
+        if (league) {
+            league.innerHTML = spinner;
+            if (divisions) divisions.innerHTML = '';
+            loadLeaguePanel(league, divisions, y, isCurrent); // non blocca la ricerca
+        }
+    };
+    paintYear(year);
+    bindYearPicker(section, year, paintYear);
 
     const teamsGroup = (teams) => teams.length ? `<div class="ps-group"><h3 class="pp-cat-title">NFL Teams</h3>${teams.map(resultRow).join('')}</div>` : '';
     const playersGroup = (players) => players.length ? `<div class="ps-group"><h3 class="pp-cat-title">Players</h3>${players.map(resultRow).join('')}</div>` : '';

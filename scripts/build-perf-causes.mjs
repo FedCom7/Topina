@@ -39,7 +39,8 @@ async function sleeperProjections(year) {
         if (Object.values(cached).some(v => v && 'projPts' in v)) return cached;
     } catch { /* miss */ }
     const pos = ['QB', 'RB', 'WR', 'TE'].map(p => `position%5B%5D=${p}`).join('&');
-    const url = `https://api.sleeper.com/projections/nfl/${year}?season_type=regular&${pos}&order_by=adp_half_ppr`;
+    // ADP full PPR: la lega è full PPR (rec=1, vedi league-rules.js)
+    const url = `https://api.sleeper.com/projections/nfl/${year}?season_type=regular&${pos}&order_by=adp_ppr`;
     const res = await fetch(url, { headers: { 'User-Agent': 'topina-league-build/1.0' } });
     if (!res.ok) return {};
     const list = await res.json();

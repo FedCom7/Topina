@@ -29,10 +29,10 @@
 
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
 import { getTeamStats } from './nfl-team-stats.js?v=531';
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=523';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1}
-const NUM_TEAMS = 4;
+export const NUM_TEAMS = 4;
 const OFF = new Set(['QB', 'RB', 'WR', 'TE']);
 
 /** Pesi dell'indice (design, documentati — NON gated). Sommano a 1. */
@@ -68,14 +68,22 @@ function relScore(raw, allRaws) {
     return clamp(50 + 20 * ((raw - mean(allRaws)) / sd), 0, 100);
 }
 
-/** Livello di replacement per ruolo calibrato su QUESTA lega (4 team). */
-export function replacementLevels(allPicks, valueField) {
-    // fabbisogno titolari nel pool: numTeams × slot, con il FLEX diviso RB/WR
+/**
+ * Fabbisogno titolari di lega per ruolo: numTeams × slot, con il FLEX diviso
+ * RB/WR a metà. È il numero di giocatori che la lega manda in campo ogni
+ * settimana per quel ruolo — la soglia che definisce il replacement.
+ */
+export function demandByPos() {
     const demand = {};
     for (const [pos, n] of Object.entries(SLOTS)) demand[pos] = NUM_TEAMS * n;
     demand.RB += NUM_TEAMS * (FLEX || 0) / 2;
     demand.WR += NUM_TEAMS * (FLEX || 0) / 2;
+    return demand;
+}
 
+/** Livello di replacement per ruolo calibrato su QUESTA lega (4 team). */
+export function replacementLevels(allPicks, valueField) {
+    const demand = demandByPos();
     const repl = {};
     for (const pos of Object.keys(SLOTS)) {
         const vals = allPicks.filter(p => p.pos === pos)
@@ -205,8 +213,13 @@ function wavgCtx(starters, get, valueField, fallback = 50) {
     return den ? num / den : fallback;
 }
 
-/** Bye week per abbr NFL (settimana mancante dal calendario). */
-async function getByeWeeks(year) {
+/**
+ * Bye week per abbr NFL (settimana mancante dal calendario). Derivata, non
+ * archiviata: nessun file la contiene, ma il calendario c'è già — anche per la
+ * stagione che deve ancora cominciare (team_stats_{Y} con `scheduleOnly`).
+ * Esportata perché la usa anche il tab Pre-Draft di Projections.
+ */
+export async function getByeWeeks(year) {
     try {
         const data = await getTeamStats(year);
         const byes = {};

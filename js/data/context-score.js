@@ -17,9 +17,9 @@
  * esiste data/model/draft_model_v1.json (pesi appresi) il chiamante li usa.
  */
 
-import { normName } from './projections.js?v=591';
+import { normName } from './projections.js?v=592';
 import { getTeamStats } from './nfl-team-stats.js?v=531';
-import { canonAbbr } from './nfl-schedule.js?v=522';
+import { canonAbbr } from './nfl-schedule.js?v=523';
 import { getSeasonConfig } from '../data.js?v=534';
 
 const _players = {};   // year → adv_players json (o null)
@@ -359,6 +359,19 @@ export async function getLeagueReceivers(year) {
     if (!data) return [];
     return Object.values(data.players).filter(p =>
         ['WR', 'TE', 'RB'].includes(p.pos) && (p.gp || 0) >= 4 && (p.tgtPerGame || 0) >= 1.5);
+}
+
+/**
+ * TUTTE le righe avanzate di una stagione, senza filtri — inclusi i giocatori
+ * con poche gare. Serve al diff delle rose (js/data/roster-change.js): per
+ * capire quanta quota di bersagli una squadra ha PERSO bisogna sommare anche
+ * chi ha giocato tre partite, che è esattamente il tipo di giocatore che poi
+ * non viene rifirmato. Filtrare a ≥4 gare qui sottostimerebbe il vacated share.
+ * Stessa cache adv_players: nessuna richiesta in più.
+ */
+export async function getAdvancedPlayers(year) {
+    const data = await advPlayers(year);
+    return data ? Object.values(data.players) : [];
 }
 
 /**
