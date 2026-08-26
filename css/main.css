@@ -5959,7 +5959,12 @@ img {
 .mc-vs-row {
     flex: 1;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    /* Le due colonne dei punteggi non devono scendere sotto la larghezza del
+       numero: con minmax(0, 1fr) si restringevano a 24px per 46px di contenuto
+       e i due punteggi finivano uno sopra l'altro al centro, coprendo pure il
+       trattino. min-content su un numero e' il numero intero, perche' non ha
+       punti dove andare a capo. */
+    grid-template-columns: auto minmax(min-content, 1fr) auto minmax(min-content, 1fr) auto;
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
@@ -5973,8 +5978,10 @@ img {
 .mc-vs-crest {
     display: grid;
     place-items: center;
-    width: clamp(96px, 11.5vw, 150px);
-    height: clamp(84px, 10.5vw, 140px);
+    /* Ridotto: a 150px i due loghi si prendevano il 59% della riga e i
+       punteggi a tre cifre non ci stavano piu'. */
+    width: clamp(52px, 8vw, 112px);
+    height: clamp(48px, 7.4vw, 104px);
 }
 
 /* Stemma in trasparenza, niente alone colorato: solo il logo su nero. Si
@@ -6012,6 +6019,33 @@ img {
 .mc-vs-dash {
     color: var(--text-muted);
     font-size: 0.9rem;
+}
+
+/* Su schermo stretto la riga non ci sta: due loghi da 96px sono il 60% di un
+   telefono da 320px, e quello che resta non basta a due punteggi a tre cifre
+   con i decimali. Si stringono logo, spazi e corpo del numero — l'alternativa
+   era lasciare che i punteggi si accavallassero al centro, che e' il difetto
+   di partenza. */
+@media (max-width: 480px) {
+    .mc-vs-row {
+        gap: 6px;
+        padding: 10px;
+    }
+
+    .mc-vs-score {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .mc-vs-score {
+        font-size: 0.86rem;
+    }
+
+    .mc-vs-crest {
+        width: 44px;
+        height: 42px;
+    }
 }
 
 /* ── Campione ── */
