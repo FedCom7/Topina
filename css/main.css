@@ -6719,8 +6719,10 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+/* La colonna squadra deve reggere il nome piu' lungo ("Capi dei Pianeti")
+   senza troncarlo: e' proprio il dato per cui la colonna esiste. */
 .an-drill-row--team {
-    grid-template-columns: 36px 60px 80px 60px 1fr auto auto;
+    grid-template-columns: 36px 60px 108px 60px 1fr auto auto;
 }
 
 /* Righe "calcolate": nessuna squadra fantasy le ha registrate, i punti sono

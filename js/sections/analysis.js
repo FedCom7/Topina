@@ -2595,7 +2595,10 @@ function bestAvailDrillHTML(model, p, pos) {
         const riga = vero
             ? { ...vero, opponent: vero.opponent || w.opponent }
             : { pts: w.pts, stats: w.stats, opponent: w.opponent, teamKey: null, started: null, calculated: true };
-        return drillRow(rec, w.week, riga, { showTeamCol: false, teamKey: null });
+        // showTeamCol: qui il giocatore non appartiene a nessuna squadra in
+        // particolare, quindi le giornate in cui qualcuno lo aveva devono dire
+        // CHI lo aveva — altrimenti si legge "Starter" senza sapere di chi.
+        return drillRow(rec, w.week, riga, { showTeamCol: true, teamKey: null });
     }).join('');
 }
 
