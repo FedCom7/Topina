@@ -907,10 +907,16 @@ img {
 /* Valore proiettato (partita non ancora iniziata): corsivo e attenuato, così
    si legge come stima e non come punteggio definitivo. Nessuna etichetta
    accanto al numero — lo stato è indicato dal badge in cima alla pagina. */
+/* Un numero proiettato ha un colore suo: blu, non il verde dei punti veri.
+   Prima ereditava il colore del contenitore, quindi sul campo una proiezione
+   era verde identica a un punteggio realmente segnato — la sola differenza
+   erano il corsivo e un filo di trasparenza. Il colore separa i due a colpo
+   d'occhio, che su questa pagina e' la distinzione che conta di piu'. */
 .proj-pts {
     font-style: italic;
-    opacity: 0.7;
+    opacity: 0.75;
     font-weight: inherit;
+    color: var(--accent-blue);
 }
 
 /* A giornata iniziata la proiezione non sparisce: si fa da parte. Resta di
