@@ -15,20 +15,21 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=534';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=601';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=523';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=510';
+import { TEAMS } from './team.js?v=610';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=525';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=511';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=504';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=5';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=4';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=507';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=9';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
-import { slotPairs } from '../data/matchup-analysis.js?v=527';
-import { initPlayerModal } from '../components/player-modal.js?v=607';
-import { playerImageService } from '../services/player-image-service.js?v=516';
+import { slotPairs } from '../data/matchup-analysis.js?v=555';
+import { initPlayerModal } from '../components/player-modal.js?v=615';
+import { playerImageService } from '../services/player-image-service.js?v=520';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 
 const POLL_MS = 30000;
 
@@ -214,9 +215,11 @@ function stopPlayPolling() {
 
 function startPlayPolling() {
     stopPlayPolling();
-    if (!gamesToWatch().length) return;
+    // Lo storico della giornata si legge anche a partite finite; il timer
+    // invece serve solo finché c'è qualcosa in corso.
+    if (!gamesToWatch({ finite: true }).length) return;
     pollPlays();
-    pbpTimer = setInterval(pollPlays, PBP_POLL_MS);
+    if (gamesToWatch().length) pbpTimer = setInterval(pollPlays, PBP_POLL_MS);
 }
 
 // ─── Play-by-play: una card per ogni azione dei nostri giocatori ──
@@ -231,13 +234,60 @@ function startPlayPolling() {
 // quello ufficiale del feed fantasy, che non viene mai toccato da qui.
 
 const PBP_POLL_MS = 30000;
-const PBP_MAX_CARDS = 30;
+// Tetto alto perché qui non c'è solo il minuto per minuto: entrando si vede
+// la giornata intera, comprese le partite già finite.
+const PBP_MAX_CARDS = 150;
 
 let pbpTimer = null;
 let pbpSeen = new Set();   // id giocate già trasformate in card
 let pbpCards = [];         // card pronte, più recenti in testa
+let pbpFull = new Set();   // partite già scaricate per intero (non si rileggono da capo)
 let pbpFirstRun = true;    // al primo giro si riempie senza animare
 let pbpBusy = false;
+
+/**
+ * Le giocate della giornata restano in localStorage: una partita conclusa pesa
+ * ~39 KB di play-by-play e in una domenica i nostri sono sparsi su una decina
+ * di partite. Rileggerle a ogni ingresso sarebbe mezzo mega e una decina di
+ * richieste in parallelo alla stessa API che ci ha già limitati in passato.
+ * Le card invece sono poche e piccole: solo le azioni dei nostri.
+ */
+const pbpCacheKey = () =>
+    `topina_pbp_v1_${CURRENT_SEASON}_${preseasonMode ? 'pre' : 'reg'}${currentWeekNum}`;
+
+let pbpLoadedKey = null;
+
+/**
+ * Carica le card di questa giornata salvate in una visita precedente. Gira una
+ * volta per giornata: cambiando settimana la pila riparte da quella nuova,
+ * altrimenti si mescolerebbero due calendari diversi.
+ */
+function loadPlayCache() {
+    const key = pbpCacheKey();
+    if (pbpLoadedKey === key) return;
+    pbpLoadedKey = key;
+
+    const c = cacheGet(key, Infinity);
+    pbpCards = (c?.cards || []).slice(0, PBP_MAX_CARDS);
+    pbpSeen = new Set(pbpCards.map(x => String(x.id)));
+    pbpFull = new Set((c?.done || []).map(String));
+}
+
+/**
+ * Si ricordano come "già lette" solo le partite CONCLUSE: quelle non cambiano
+ * più. Una partita ancora in corso va riletta per intero alla visita dopo,
+ * altrimenti si perderebbero le azioni successive all'ultima pagina vista.
+ */
+function savePlayCache() {
+    const finite = new Set();
+    for (const g of liveSchedule?.values() || []) {
+        if (g.eventId && g.state === 'post') finite.add(String(g.eventId));
+    }
+    cacheSet(pbpCacheKey(), {
+        cards: pbpCards,
+        done: [...pbpFull].filter(id => finite.has(String(id))),
+    });
+}
 
 /** ESPN athlete id → giocatore di una nostra rosa (con la squadra fantasy,
  *  che serve a mostrare solo le giocate di chi stai guardando). */
@@ -383,8 +433,15 @@ const pbpDemo = () => {
 };
 let pbpDemoQueue = null;
 
-/** Partite NFL in corso in cui gioca almeno un nostro tesserato. */
-function gamesToWatch() {
+/**
+ * Partite NFL in cui gioca almeno un nostro tesserato.
+ *
+ * `finite: true` prende anche quelle già concluse: entrando a giornata in corso
+ * — o finita — si vuole comunque lo storico delle azioni, non solo quelle che
+ * capitano da adesso in poi. Senza, chi apriva il Live di lunedì non vedeva
+ * nulla, e quello che aveva visto la domenica era già sparito.
+ */
+function gamesToWatch({ finite = false } = {}) {
     if (pbpDemo()) return [pbpDemo()];
     if (!liveSchedule || !leagueDrafted) return [];
     const ids = new Map();
@@ -392,7 +449,8 @@ function gamesToWatch() {
         for (const side of ['team1', 'team2']) {
             for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
                 const g = liveSchedule.get(canonAbbr(p.nfl_team || ''));
-                if (g?.eventId && g.state === 'in') ids.set(g.eventId, true);
+                if (!g?.eventId) continue;
+                if (g.state === 'in' || (finite && g.state === 'post')) ids.set(g.eventId, true);
             }
         }
     }
@@ -462,7 +520,11 @@ function playToCard(play, idx, nomiAtleti = new Map()) {
 /** Un giro di polling: legge le nuove giocate e infila le card in cima. */
 async function pollPlays() {
     if (pbpBusy) return;
-    const games = gamesToWatch();
+    // Una partita conclusa si legge una volta sola e per intero; una in corso
+    // si rilegge a ogni giro, ma solo l'ultima pagina (~2 KB).
+    const inCorso = new Set(gamesToWatch().map(String));
+    const games = gamesToWatch({ finite: true })
+        .filter(id => inCorso.has(String(id)) || !pbpFull.has(String(id)));
     if (!games.length) return;
     pbpBusy = true;
     try {
@@ -474,7 +536,9 @@ async function pollPlays() {
             if (!pbpDemoQueue) pbpDemoQueue = await fetchPlays(games[0], { all: true });
             lists = [pbpDemoQueue.splice(0, 3)];
         } else {
-            lists = await Promise.all(games.map(id => fetchPlays(id, { all: pbpFirstRun })));
+            lists = await Promise.all(games.map(id =>
+                fetchPlays(id, { all: !pbpFull.has(String(id)) })));
+            games.forEach(id => pbpFull.add(String(id)));
         }
         const nuove = [];
         for (const plays of lists) {
@@ -494,14 +558,23 @@ async function pollPlays() {
             const card = playToCard(play, idx, nomiAtleti);
             if (card) fresh.push(card);
         }
-        if (!fresh.length) return;
+        if (!fresh.length) {
+            // Nessuna azione nostra, ma può essersi chiusa una partita: va
+            // segnata come letta, o alla visita dopo si riscarica per niente.
+            if (!pbpDemo()) savePlayCache();
+            return;
+        }
 
         // nomi mancanti dalla mappa locale (rookie): risolti una volta sola
         await hydrateActorNames(fresh);
 
-        fresh.sort((a, b) => a.ts - b.ts); // le più vecchie prima: entrano sotto
-        for (const c of fresh) pbpCards.unshift(c);
-        pbpCards = pbpCards.slice(0, PBP_MAX_CARDS);
+        // Un ordine solo su tutta la pila: recuperando lo storico le card nuove
+        // non sono per forza le più recenti (una partita finita prima può
+        // essere letta dopo una ancora in corso).
+        pbpCards = [...fresh, ...pbpCards]
+            .sort((a, b) => b.ts - a.ts)
+            .slice(0, PBP_MAX_CARDS);
+        if (!pbpDemo()) savePlayCache();
 
         if (pbpDemo()) {
             // I totali sono cambiati: si passa dal percorso normale, quello che
@@ -597,7 +670,10 @@ async function loadData({ silent = false } = {}) {
     // rilegge tutto — non solo i punti — perché è così che titolari e panchina
     // restano allineati se un GM cambia formazione a partite in corso.
     try {
-        const games = (await getWeekSchedule(CURRENT_SEASON, espnWeek || 1)) || new Map();
+        // Il tabellone si carica quando la settimana è nota, non prima: al
+        // primo giro `espnWeek` è null e chiedere quello della week 1 faceva
+        // risultare ogni partita già finita.
+        const games = (w) => getWeekSchedule(CURRENT_SEASON, w);
         const { week, matchups: live, drafted } = await fetchLeagueWeek(CURRENT_SEASON, espnWeek, games);
         if (live.length) {
             espnWeek = week;
@@ -833,6 +909,9 @@ async function hydrateScheduleAndRender(year, week) {
         catch (e) { console.warn('[live] punti dal tabellino non ricomposti:', e.message); }
     }
     if (teamIdx >= teamEntries().length) teamIdx = 0;
+    // Prima di disegnare: così le giocate già viste in una visita precedente
+    // sono nel feed fin dal primo fotogramma, senza aspettare il polling.
+    if (!pbpDemo()) loadPlayCache();
     const fresh = updateReceipts();
     // Al primo giro la pagina va costruita; dai successivi si toccano solo i
     // numeri, altrimenti a ogni poll sparirebbero e ricomparirebbero le foto.
@@ -1182,6 +1261,7 @@ function render() {
         // vanno buttati, o il feed mescolerebbe due insiemi di partite.
         stopPlayPolling();
         pbpSeen = new Set(); pbpCards = []; pbpDemoQueue = null;
+        pbpFull = new Set(); pbpLoadedKey = null;
         pbpFirstRun = true;
         receipts = []; prevSnapshot = null;
         try { sessionStorage.removeItem('topina-live-receipts'); } catch { /* niente */ }
@@ -1878,7 +1958,9 @@ function playFeedHTML() {
             ? cards.map(playCardHTML).join('')
             : `<p class="pm-empty">${gamesToWatch().length
                 ? 'Waiting for the next play...'
-                : 'No NFL game in progress with your players.'}</p>`}
+                : gamesToWatch({ finite: true }).length
+                    ? 'No play from your players in this week\'s games yet.'
+                    : 'No NFL game this week with your players.'}</p>`}
         </div>
     </div>`;
 }

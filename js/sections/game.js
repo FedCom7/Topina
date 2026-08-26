@@ -13,19 +13,20 @@
  * in più: i dati erano già tutti in pagina.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=534';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { getLeagueData } from '../data/league-data.js?v=534';
-import { getHonorsBundle } from '../data/honors.js?v=585';
-import { buildCareers } from '../data/careers.js?v=596';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=523';
+import { getLeagueData } from '../data/league-data.js?v=539';
+import { getHonorsBundle } from '../data/honors.js?v=591';
+import { buildCareers } from '../data/careers.js?v=602';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=525';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals, seasonAvg,
     playerComment, playerNotes, recapArticle,
-} from '../data/matchup-analysis.js?v=527';
+} from '../data/matchup-analysis.js?v=555';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=7';
-import { TEAMS } from './team.js?v=601';
-import { playerImageService } from '../services/player-image-service.js?v=516';
+import { TEAMS } from './team.js?v=610';
+import { playerImageService } from '../services/player-image-service.js?v=520';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=937';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -101,6 +102,7 @@ export async function initGame() {
         });
         const dm = diffMakers(m);
         const notes = playerNotes(m, bundle, ranks);
+        const injuryMap = await weekInjuryMap(year, week, m);
 
         // Con almeno una partita live, niente sezioni "a bocce ferme":
         // recap, difference maker e protagonisti arrivano a partite finite.
@@ -116,7 +118,7 @@ export async function initGame() {
                 <p class="mc-body">The recap, the difference makers and the player notes
                    show up once the matchup is over.</p>
             </div>` : ''}
-            ${outcomeHTML(m, liveNow)}
+            ${outcomeHTML(m, liveNow, injuryMap)}
             ${finita ? marginCardHTML(m, dm, bundle, ranks) : ''}
             <div class="mosaic-card mc-wide gb-card mc-in" id="gb-chart-card">
                 <span class="mc-kicker">Weekend trend</span>
@@ -254,6 +256,29 @@ function buildChartSVG(m, sched) {
     return multiLine(serie, { height: 320, xTicks, callout, yFmt: (v) => String(Math.round(v)) });
 }
 
+/**
+ * Stato infortuni di TUTTI i giocatori del match, per QUESTA settimana —
+ * niente referto individuale per le DEF, che si saltano. Stesso report
+ * settimanale nflverse già usato in Analysis (Injury Report) e nella scheda
+ * giocatore, letto per nome (gestisce da solo i cambi squadra NFL).
+ */
+async function weekInjuryMap(year, week, m) {
+    const giocatori = [...(m.team1.starters || []), ...(m.team1.bench || []),
+        ...(m.team2.starters || []), ...(m.team2.bench || [])]
+        .filter(p => (p.position_in_team || p.position || '').toUpperCase() !== 'DEF');
+
+    const storie = await Promise.all(
+        giocatori.map(p => getPlayerInjuries(null, p.name, null, [year]).catch(() => []))
+    );
+    const map = new Map();
+    giocatori.forEach((p, i) => {
+        const annoDati = storie[i].find(s => String(s.year) === String(year));
+        const settimana = (annoDati?.weeks || []).find(w => w.week === week);
+        if (settimana?.status && settimana.status !== 'Probable') map.set(p.name, settimana.status);
+    });
+    return map;
+}
+
 // ─── Articolo + tabella outcome ──────────────────────────────────
 
 function articleHTML(article, weekLabel) {
@@ -265,7 +290,7 @@ function articleHTML(article, weekLabel) {
     </article>`;
 }
 
-function outcomeHTML(m, liveNow = () => false) {
+function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
     const pairs = slotPairs(m);
     // "Marvin Guiu" → "M. Guiu" (mobile); le DEF restano col nome squadra intero
     const shortName = (p) => {
@@ -284,10 +309,11 @@ function outcomeHTML(m, liveNow = () => false) {
 
     const cell = (p) => {
         if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
+        const stato = injuryMap?.get(p.name);
         return `
         <div class="gb-out-player">
             <span class="gb-out-name">${liveNow(p) ? '<i class="gb-live-dot"></i>' : ''}<span class="gb-out-name-full">${p.name}</span><span class="gb-out-name-short">${shortName(p)}</span></span>
-            <span class="gb-out-meta">${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}</span>
+            <span class="gb-out-meta">${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}${stato ? ` <span class="gb-out-inj gb-out-inj--${stato.toLowerCase()}">${stato}</span>` : ''}</span>
         </div>`;
     };
     // Mini-stat a valori (2-3 per ruolo): numero sopra, etichetta micro sotto.

@@ -30,7 +30,12 @@ Hash-based router mapping `#section-name` to lazy-init functions. Each section i
 
 ### Data Layer (`js/data.js`)
 All Firebase RTDB reads go through this module. Key exports:
-- `fetchFantasyData(season)` / `fetchDraftData(season)` / `fetchAllTimeStats()` — fetch with 10s timeout
+- `fetchFantasyData(season)` / `fetchDraftData(season)` — fetch with 10s timeout,
+  **con cache condivisa**: una stagione chiusa non cambia più e si tiene per
+  sempre, quella in corso scade dopo 5 minuti. Senza, la stessa stagione veniva
+  riscaricata 3 volte da Stats e 4 volte in una sessione fra le sezioni (8,7 MB
+  dal websocket per dati identici). In cache va la *promessa*, così anche le
+  richieste partite insieme si agganciano alla prima.
 - `processStandings(data, year)` — calculates W-L-PF-PA-streak from regular season only (excludes playoffs/SB)
 - `getSeasonConfig(year)` — returns week boundaries; **2021 is a special case** (16 regular + week 17 playoffs + week 18 SB vs standard 15 + 16 + 17)
 - `getSuperBowlMatchup(data, year)` — finds SB by first identifying playoff winners
@@ -65,7 +70,7 @@ schermo: `fillFromEspn()` per i punti dal tabellino ufficiale e
 le formazioni vengono dalle rose ESPN, perché lì la proiezione arriva già nella
 risposta della lega (27 KB); parte solo se un TITOLARE ne è privo, e legge il
 listone di tutti i giocatori — 630 KB, quindi al massimo una volta al minuto,
-mentre punti e statistiche restano sui dieci secondi.
+mentre punti e statistiche seguono il polling della pagina (30 s).
 
 **Proiezioni: fino al kickoff sono il punteggio, dopo sono un riferimento.**
 Appena una partita dei nostri comincia (`giornataCominciata`, dal tabellone
@@ -97,7 +102,8 @@ draft vero. Rimuoverlo con `cancella` appena finiscono i test.
 la legge da solo:
 
 - `js/data/espn-fantasy.js` — lega, formazioni, proiezioni e punti ufficiali.
-  Fonte primaria di `#live` (ogni 10s) e del Game Center sulla stagione in corso.
+  Fonte primaria di `#live` (polling ogni 30s, `POLL_MS` in `live.js`; stesso
+  passo per il play-by-play) e del Game Center sulla stagione in corso.
   È il porto in JS di `scraper/espn/{maps,normalize}.py`: se cambia una delle
   due, allineare l'altra.
 - `js/data/nfl-plays.js` — play-by-play per le card delle giocate.

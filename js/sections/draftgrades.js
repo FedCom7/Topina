@@ -32,18 +32,18 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=534';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=601';
-import { getHonorsBundle } from '../data/honors.js?v=585';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=592';
-import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=589';
-import { initPlayerModal } from '../components/player-modal.js?v=607';
-import { playerImageService } from '../services/player-image-service.js?v=516';
-import { predictSeason } from '../data/draft-predictions.js?v=597';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=587';
-import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=541';
-import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=12';
+import { TEAMS } from './team.js?v=610';
+import { getHonorsBundle } from '../data/honors.js?v=591';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
+import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
+import { initPlayerModal } from '../components/player-modal.js?v=615';
+import { playerImageService } from '../services/player-image-service.js?v=520';
+import { predictSeason } from '../data/draft-predictions.js?v=633';
+import { getContextScore, getDraftModel } from '../data/context-score.js?v=622';
+import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=572';
+import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=40';
 
 let initialized = false;
 let currentYear = null;
@@ -463,7 +463,7 @@ function leagueScatter(dg) {
             <text class="dg-scat-axis" x="${-(T + ih / 2)}" y="16" text-anchor="middle" transform="rotate(-90)">Talent collected →</text>
         </svg>
         </div>
-        <p class="pm-note">Talent: how far the best lineup each draft could field sits above a replacement-level starting nine, as a share of the league. Efficiency: the draft-capital-weighted average of the pick grades. The grade weighs talent ${Math.round((dg.weights?.talent ?? 0.6) * 100)}% and efficiency ${Math.round((dg.weights?.efficiency ?? 0.4) * 100)}%, so two teams can land on the same letter from opposite corners.</p>
+        <p class="an-footnote">Talent: how far the best lineup each draft could field sits above a replacement-level starting nine, as a share of the league. Efficiency: the draft-capital-weighted average of the pick grades. The grade weighs talent ${Math.round((dg.weights?.talent ?? 0.6) * 100)}% and efficiency ${Math.round((dg.weights?.efficiency ?? 0.4) * 100)}%, so two teams can land on the same letter from opposite corners.</p>
     </section>`;
 }
 
@@ -506,7 +506,7 @@ function powerRanking(grades) {
                 <tbody>${rows}</tbody>
             </table>
         </div>
-        <p class="pm-note">Projected points collected at the draft, total and by position (1st = strongest position in the league).</p>
+        <p class="an-footnote">Projected points collected at the draft, total and by position (1st = strongest position in the league).</p>
     </section>`;
 }
 

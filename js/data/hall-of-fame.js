@@ -9,9 +9,9 @@
  * negli anni successivi. Un eletto all'anno dal FIRST_CLASS_YEAR.
  */
 
-import { SEASONS, CURRENT_SEASON } from '../data.js?v=534';
-import { getHonorsBundle } from './honors.js?v=585';
-import { buildCareers } from './careers.js?v=591';
+import { SEASONS, CURRENT_SEASON } from '../data.js?v=540';
+import { getHonorsBundle } from './honors.js?v=591';
+import { buildCareers } from './careers.js?v=597';
 
 /* La prima classe è il 2026: nel 2025 non si è eletto nessuno. */
 export const FIRST_CLASS_YEAR = 2026;

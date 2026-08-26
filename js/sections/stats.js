@@ -1,7 +1,7 @@
-import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=534';
+import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=601';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=595';
+import { TEAMS } from './team.js?v=610';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=644';
 
 let loaded = false;
 
@@ -43,10 +43,20 @@ export async function initStats() {
 
     const summary = document.getElementById('stats-summary');
 
+    // Il cerchio deve restare LO STESSO nodo dall'inizio alla fine: ogni volta
+    // che lo si ricrea l'animazione CSS riparte da zero e si vede scattare
+    // all'indietro — prima capitava a ognuna delle otto stagioni. Si riusa
+    // quello già in index.html e si cambia solo la scritta sotto.
+    let etichetta = summary?.querySelector('.loading-state p') || null;
+    if (summary && !etichetta) {
+        summary.innerHTML = `<div class="loading-state"><div class="spinner"></div><p></p></div>`;
+        etichetta = summary.querySelector('.loading-state p');
+    }
+
     try {
         const allSeasons = {};
         for (const season of SEASONS) {
-            if (summary) summary.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${season} data...</p></div>`;
+            if (etichetta) etichetta.textContent = `Loading ${season} data...`;
             try {
                 const data = await fetchFantasyData(season);
                 if (data) {
@@ -113,7 +123,7 @@ function calculateStats(allSeasons) {
     const chartGiornate = {};     // season -> giornate effettivamente giocate (matchup presenti)
 
     const initTeam = (name) => {
-        if (!teamRecords[name]) teamRecords[name] = { w: 0, l: 0, t: 0, pf: 0, pa: 0, games: 0, sbWins: 0, sbApps: 0, playoffWins: 0 };
+        if (!teamRecords[name]) teamRecords[name] = { w: 0, l: 0, t: 0, pf: 0, pa: 0, games: 0, sbWins: 0, sbApps: 0, playoffWins: 0, playoffGames: 0, apW: 0, apL: 0 };
         if (!headToHead[name]) headToHead[name] = {};
         if (!currentStreaks[name]) currentStreaks[name] = { type: '', count: 0 };
     };
@@ -184,6 +194,30 @@ function calculateStats(allSeasons) {
 
             // Track who played this week
             const teamsPlayed = new Set();
+
+            // All-play della giornata: il punteggio di ognuno contro quello di
+            // TUTTI gli altri, non solo contro l'avversario di calendario. In
+            // una lega a 4 il record vero è poca roba; così ogni giornata ne
+            // vale tre. Solo regular season, come il record.
+            if (wNum <= config.regularSeasonWeeks) {
+                const puntiSettimana = [];
+                weekData.matchups.forEach(m => {
+                    if (!m.team1 || !m.team2) return;
+                    puntiSettimana.push([m.team1.name, parseFloat(m.team1.score || 0)]);
+                    puntiSettimana.push([m.team2.name, parseFloat(m.team2.score || 0)]);
+                });
+                for (const [nome, punti] of puntiSettimana) {
+                    initTeam(nome);
+                    let battuti = 0;
+                    for (const [altro, suoi] of puntiSettimana) {
+                        if (altro === nome) continue;
+                        if (punti > suoi) battuti += 1;
+                        else if (punti === suoi) battuti += 0.5;
+                    }
+                    teamRecords[nome].apW += battuti;
+                    teamRecords[nome].apL += (puntiSettimana.length - 1) - battuti;
+                }
+            }
 
             weekData.matchups.forEach(m => {
                 if (!m.team1 || !m.team2) return;
@@ -323,6 +357,8 @@ function calculateStats(allSeasons) {
 
                 // === PLAYOFFS (Semi-Finals) ===
                 if (wNum === config.playoffWeek) {
+                    teamRecords[t1].playoffGames++;
+                    teamRecords[t2].playoffGames++;
                     if (s1 > s2) teamRecords[t1].playoffWins++;
                     else if (s2 > s1) teamRecords[t2].playoffWins++;
                 }
@@ -334,6 +370,8 @@ function calculateStats(allSeasons) {
                         // Start SB Appearance (both played)
                         teamRecords[t1].sbApps++;
                         teamRecords[t2].sbApps++;
+                        teamRecords[t1].playoffGames++;
+                        teamRecords[t2].playoffGames++;
 
                         // Count Win
                         if (s1 > s2) {
@@ -614,6 +652,7 @@ function renderRecords(stats) {
         <div class="record-tiles">${playerTiles.join('')}</div>
 
         <h2 class="records-title st-leader-title">Top 5 All-Time</h2>
+        <h3 class="an-sub-title st-leader-sub">Career Fantasy Stats by Position</h3>
         <div class="st-leader-grid">
             ${leaderPanel('Passing Yards — QB', stats.top5.passYds)}
             ${leaderPanel('Rushing Yards — RB', stats.top5.rushYds)}
@@ -703,6 +742,7 @@ function renderTeamPanels(stats) {
         sbApps: Math.max(...entries.map(([, r]) => r.sbApps || 0)),
         sbWins: Math.max(...entries.map(([, r]) => r.sbWins || 0)),
         pct: Math.max(...entries.map(([, r]) => r.w / (r.w + r.l || 1))),
+        apW: Math.max(...entries.map(([, r]) => r.apW || 0)),
         rushTD: Math.max(...entries.map(([, r]) => r.rushTD || 0)),
         passTD: Math.max(...entries.map(([, r]) => r.passTD || 0)),
         recTD: Math.max(...entries.map(([, r]) => r.recTD || 0)),
@@ -737,12 +777,16 @@ function renderTeamPanels(stats) {
             <div class="team-alltime-hero">
                 <span class="team-alltime-record${winFrac === best.pct ? ' stat-best' : ''}">${r.w}–${r.l}${r.t > 0 ? `–${r.t}` : ''}</span>
                 <span class="team-alltime-pct">${pct}%</span>
+                <span class="team-alltime-ap" title="Record giocando ogni giornata contro tutte le altre">
+                    ${apRecord(r)}<small>all-play</small>
+                </span>
             </div>
             <div class="team-alltime-hero-label">Regular Season Record</div>
             <div class="team-alltime-ministats">
                 ${ministat(r.pf.toFixed(0), 'Points For', r.pf === best.pf)}
                 ${ministat(r.pa.toFixed(0), 'Points Against', r.pa === best.pa)}
-                ${ministat(r.playoffWins || 0, 'Playoff Wins', (r.playoffWins || 0) === best.playoffWins && best.playoffWins > 0)}
+                ${ministat(`${r.playoffWins || 0}<small class="ministat-of">/${r.playoffGames || 0}</small>`,
+        'Playoff Wins', (r.playoffWins || 0) === best.playoffWins && best.playoffWins > 0)}
                 ${ministat(r.sbApps || 0, 'SB Apps', (r.sbApps || 0) === best.sbApps && best.sbApps > 0)}
                 ${ministat(r.sbWins || 0, 'Titles', (r.sbWins || 0) === best.sbWins && best.sbWins > 0)}
             </div>
@@ -766,6 +810,16 @@ function renderTeamPanels(stats) {
         <h2 class="records-title">All-Time Teams</h2>
         <div class="team-alltime-grid">${panels}</div>
     `;
+}
+
+/**
+ * Record all-play: quanto avrebbe fatto giocando ogni giornata contro tutti.
+ * Sono conteggi, quindi niente decimali — a meno che un pareggio non abbia
+ * lasciato un mezzo punto.
+ */
+function apRecord(r) {
+    const n = (v) => (Number.isInteger(v) ? String(v) : String(Math.round(v * 10) / 10));
+    return `${n(r.apW || 0)}–${n(r.apL || 0)}`;
 }
 
 function ministat(value, label, isBest) {
@@ -850,6 +904,7 @@ function renderPlayerProdCharts() {
     el.innerHTML = `
         <h3 class="an-sub-title">Total Player Production by Season</h3>
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(prodSeries, chartMarkersCache)}<div class="an-chart-tooltip" hidden></div></div>
+        <p class="an-footnote">Sum of every player's fantasy points across the whole league, season by season.</p>
 
         <h3 class="an-sub-title">Player Production by Role</h3>
         ${legendOf(roleSeries)}
@@ -1092,14 +1147,17 @@ async function renderAdvancedCharts(markers) {
             <h3 class="an-sub-title">Drafted Team Points by Season</h3>
             ${legendOf(draftedSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(draftedSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+            <p class="an-footnote">Total points scored by the players picked at the draft that season, whether they stayed on the roster or not.</p>
 
             <h3 class="an-sub-title">In-Season Pickup Points by Season</h3>
             ${legendOf(pickupSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(pickupSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+            <p class="an-footnote">Points scored on this roster by players added off the waiver wire during the season, not from the draft.</p>
 
             <h3 class="an-sub-title">Points Left on the Bench by Season</h3>
             ${legendOf(benchSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
+            <p class="an-footnote">Optimal lineup points minus what was actually started, added up across the season.</p>
 
             <h3 class="an-sub-title">Margin: Wins vs Losses</h3>
             <div class="an-chart">${buildMarginDotPlot(teamMarginStats)}</div>

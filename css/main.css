@@ -907,10 +907,16 @@ img {
 /* Valore proiettato (partita non ancora iniziata): corsivo e attenuato, così
    si legge come stima e non come punteggio definitivo. Nessuna etichetta
    accanto al numero — lo stato è indicato dal badge in cima alla pagina. */
+/* Un numero proiettato ha un colore suo: blu, non il verde dei punti veri.
+   Prima ereditava il colore del contenitore, quindi sul campo una proiezione
+   era verde identica a un punteggio realmente segnato — la sola differenza
+   erano il corsivo e un filo di trasparenza. Il colore separa i due a colpo
+   d'occhio, che su questa pagina e' la distinzione che conta di piu'. */
 .proj-pts {
     font-style: italic;
-    opacity: 0.7;
+    opacity: 0.75;
     font-weight: inherit;
+    color: var(--accent-blue);
 }
 
 /* A giornata iniziata la proiezione non sparisce: si fa da parte. Resta di
@@ -989,6 +995,10 @@ img {
     border-radius: var(--radius-lg);
     /* Ensure it scales properly */
     object-fit: contain;
+    /* La proporzione vera dei wallpaper (2432×1760). Serve dichiararla perché
+       l'immagine viene messa dopo, quando arriva dalla cache: senza, il
+       riquadro sarebbe alto zero e la card si aprirebbe di scatto. */
+    aspect-ratio: 2432 / 1760;
     /* scurisce lo sfondo così le foto e i punteggi risaltano */
     filter: brightness(0.62) saturate(0.92);
 }
@@ -4889,6 +4899,26 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+.team-alltime-ap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.team-alltime-ap small {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 .team-alltime-hero-label {
     margin-top: 6px;
     font-size: 0.68rem;
@@ -4917,6 +4947,14 @@ img {
     font-size: 1.1rem;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
+}
+
+/* Il denominatore ("su quante partite") resta bianco anche quando il valore è
+   in oro perché è il migliore della lega: è contesto, non un primato. */
+.ministat-of {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #fff;
 }
 
 .ministat-label {
@@ -5921,7 +5959,12 @@ img {
 .mc-vs-row {
     flex: 1;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    /* Le due colonne dei punteggi non devono scendere sotto la larghezza del
+       numero: con minmax(0, 1fr) si restringevano a 24px per 46px di contenuto
+       e i due punteggi finivano uno sopra l'altro al centro, coprendo pure il
+       trattino. min-content su un numero e' il numero intero, perche' non ha
+       punti dove andare a capo. */
+    grid-template-columns: auto minmax(min-content, 1fr) auto minmax(min-content, 1fr) auto;
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
@@ -5935,8 +5978,10 @@ img {
 .mc-vs-crest {
     display: grid;
     place-items: center;
-    width: clamp(96px, 11.5vw, 150px);
-    height: clamp(84px, 10.5vw, 140px);
+    /* Ridotto: a 150px i due loghi si prendevano il 59% della riga e i
+       punteggi a tre cifre non ci stavano piu'. */
+    width: clamp(52px, 8vw, 112px);
+    height: clamp(48px, 7.4vw, 104px);
 }
 
 /* Stemma in trasparenza, niente alone colorato: solo il logo su nero. Si
@@ -5974,6 +6019,33 @@ img {
 .mc-vs-dash {
     color: var(--text-muted);
     font-size: 0.9rem;
+}
+
+/* Su schermo stretto la riga non ci sta: due loghi da 96px sono il 60% di un
+   telefono da 320px, e quello che resta non basta a due punteggi a tre cifre
+   con i decimali. Si stringono logo, spazi e corpo del numero — l'alternativa
+   era lasciare che i punteggi si accavallassero al centro, che e' il difetto
+   di partenza. */
+@media (max-width: 480px) {
+    .mc-vs-row {
+        gap: 6px;
+        padding: 10px;
+    }
+
+    .mc-vs-score {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .mc-vs-score {
+        font-size: 0.86rem;
+    }
+
+    .mc-vs-crest {
+        width: 44px;
+        height: 42px;
+    }
 }
 
 /* ── Campione ── */
@@ -6608,11 +6680,21 @@ img {
     flex-wrap: wrap;
 }
 
-.an-player-name .player-pos {
+/* Il ruolo e' un'etichetta di servizio accanto al nome: stesso formato in
+   tutta la sezione Analysis. Prima ogni contesto aveva la sua forma — pillola
+   con padding nelle righe giocatore, testo con lo sfondo attaccato nel referto
+   infortuni — e due elenchi affiancati si leggevano diversi. Resta il colore
+   del ruolo, che serve a distinguerli a colpo d'occhio; via lo sfondo, che
+   faceva da evidenziatore. */
+.an-player-name .player-pos,
+.an-lineup-meta .player-pos,
+.an-inj-name .player-pos {
+    background: none;
+    padding: 0;
+    border-radius: 0;
     font-size: 0.62rem;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 5px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
 }
 
 .an-pick-num {
@@ -6658,7 +6740,7 @@ img {
 
 .an-drill-row {
     display: grid;
-    grid-template-columns: 36px 60px 60px 1fr 80px;
+    grid-template-columns: 36px 60px 60px 1fr auto auto;
     align-items: center;
     gap: 12px;
     padding: 4px 0;
@@ -6677,8 +6759,22 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+/* La colonna squadra deve reggere il nome piu' lungo ("Capi dei Pianeti")
+   senza troncarlo: e' proprio il dato per cui la colonna esiste. */
 .an-drill-row--team {
-    grid-template-columns: 36px 60px 80px 60px 1fr 80px;
+    grid-template-columns: 36px 60px 108px 60px 1fr auto auto;
+}
+
+/* Righe "calcolate": nessuna squadra fantasy le ha registrate, i punti sono
+   una ricostruzione da statistiche NFL vere (nflverse) — restano spente per
+   non farle passare per un dato ufficiale di lega. */
+.an-drill-row--calc {
+    opacity: 0.55;
+}
+
+.an-drill-row--calc .an-drill-pts sup {
+    color: var(--text-muted);
+    font-size: 0.85em;
 }
 
 .an-drill-team {
@@ -6734,6 +6830,34 @@ img {
 }
 
 .an-badge-drop {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent-amber);
+}
+
+.an-badge-injury--out {
+    background: rgba(239, 68, 68, 0.14);
+    color: var(--accent-red);
+}
+
+/* Riserva infortunati: più marcato di un "Out" di giornata — è la stagione
+   (o un pezzo grosso di stagione) che finisce lì. */
+.an-badge-injury--ir {
+    background: rgba(185, 28, 28, 0.9);
+    color: #fff;
+}
+
+/* Lista riserve senza motivo dichiarato dalla fonte: non lo chiamiamo IR. */
+.an-badge-injury--reserve {
+    background: rgba(139, 92, 246, 0.16);
+    color: #a78bfa;
+}
+
+.an-badge-injury--doubtful {
+    background: rgba(224, 138, 60, 0.14);
+    color: #e08a3c;
+}
+
+.an-badge-injury--questionable {
     background: rgba(245, 158, 11, 0.12);
     color: var(--accent-amber);
 }
@@ -6871,12 +6995,6 @@ img {
     margin-top: 6px;
 }
 
-.an-lineup-meta .player-pos {
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 5px;
-}
 
 .an-lineup-nfl {
     font-size: 0.68rem;
@@ -7176,11 +7294,496 @@ img {
 }
 
 /* --- League view: top performers by position --- */
+/* --- Andamento di stagione (Analysis) --- */
+/* Riga di separazione fra i grandi capitoli della pagina. Nata sopra
+   "How the season is going", riusata dove il discorso cambia argomento. */
+.an-rule {
+    margin-top: 48px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.an-season-block {
+    margin: 48px 0 40px;
+}
+
+.an-season-title {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.an-season-sub {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 22px 0 2px;
+}
+
+.an-season-empty {
+    font-style: italic;
+}
+
+/* Vantaggio per ruolo: sei pannellini, uno per ruolo */
+.an-edge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px 28px;
+    margin-top: 8px;
+}
+
+.an-edge-group {
+    min-width: 0;
+}
+
+.an-edge-pos {
+    display: block;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+/* Record contro calendario, vista squadra */
+.an-luck-kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px 18px;
+    margin: 8px 0 4px;
+}
+
+.an-luck-kpi div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.an-luck-kpi b {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.an-luck-kpi span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.an-luck-good b {
+    color: var(--accent-green);
+}
+
+.an-luck-bad b {
+    color: var(--accent-red);
+}
+
+/* Una colonnina per giornata: quanti degli altri avrebbe battuto. È una
+   GRIGLIA, non una fila flex: così le colonne restano allineate e la graffa dei
+   playoff può occupare esattamente le sue, dicendo solo da quale parte. */
+.an-luck-strip {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 15), 1fr);
+    grid-template-rows: auto auto auto;
+    align-items: end;
+    column-gap: 4px;
+    margin-top: 10px;
+    padding-bottom: 4px;
+    width: 100%;
+}
+
+.an-luck-brace {
+    grid-row: 1;
+    width: 100%;
+    height: 12px;
+    margin-bottom: 2px;
+    overflow: visible;
+}
+
+.an-luck-po-label {
+    grid-row: 3;
+    text-align: center;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-amber);
+}
+
+.an-luck-week {
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.an-luck-bar {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 54px;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+/* Anche una giornata da 0 su 3 deve vedersi: una scatola vuota si legge come
+   "dato mancante", non come "non ne ha battuto nessuno". */
+.an-luck-bar span {
+    display: block;
+    width: 100%;
+    min-height: 3px;
+    border-radius: var(--radius-xs);
+    background: var(--text-muted);
+}
+
+.an-luck-week--win .an-luck-bar span {
+    background: var(--accent-green);
+}
+
+.an-luck-week--loss .an-luck-bar span {
+    background: var(--accent-red);
+}
+
+.an-luck-wk {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
 .an-leader-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 12px 32px;
     margin-top: 8px;
+}
+
+/* --- Best Available: top 10 per ruolo mai passati su nessuna rosa --- */
+.an-bestavail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin-top: 8px;
+}
+
+.an-bestavail-pos {
+    display: block;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+/* --- Dove cercare un rinforzo: un blocco per ruolo scoperto --- */
+.an-upg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px 24px;
+    margin-top: 8px;
+}
+
+.an-upg-group {
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.an-upg-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+/* Il ruolo qui è il titolo del blocco, non un'etichetta accanto a un nome:
+   niente pillola colorata, si legge come testo. */
+.an-upg-pos {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+
+.an-upg-deficit {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--accent-red);
+}
+
+.an-upg-weak {
+    flex-basis: 100%;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.an-upg-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto 46px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.an-upg-photo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Va a capo invece di troncare: con l'ellissi si perdeva la squadra NFL, che
+   e' proprio l'informazione che dice se il rinforzo e' credibile. */
+.an-upg-name {
+    min-width: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-primary);
+}
+
+.an-upg-name small {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.an-upg-avg {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.an-upg-avg small {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Il guadagno e' il motivo per cui la riga esiste: in verde e in evidenza. */
+.an-upg-gain {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--accent-green);
+}
+
+/* --- Injury Report: le squadre una sotto l'altra, impaginate come il Best
+   Available (stesse righe, stessa intestazione) --- */
+.an-inj-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin-top: 8px;
+}
+
+.an-inj-team-block {
+    min-width: 0;
+}
+
+.an-inj-team {
+    display: block;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--tc, var(--text-primary));
+}
+
+.an-inj-summary {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 2px 0 10px;
+}
+
+.an-inj-clean {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Legenda dei pallini: su telefono il tooltip non esiste, quindi e' l'unico
+   posto dove si scopre cosa vuol dire ogni colore. */
+.an-inj-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 4px;
+}
+
+.an-inj-sub {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin: 12px 0 6px;
+}
+
+/* Riga infortunio: stessa griglia della riga giocatore del Best Available —
+   foto, nome, un paio di colonne, e in fondo il referto delle giornate tutto
+   sulla riga (niente drill-down). */
+.an-inj-head,
+.an-inj-row {
+    display: grid;
+    grid-template-columns: 40px minmax(150px, 1.1fr) 56px minmax(130px, 0.9fr) minmax(190px, 1.7fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.an-inj-head {
+    padding: 8px 0;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.an-inj-row {
+    min-width: 0;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.an-inj-photo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Su telefono la riga a cinque colonne non ci sta: nome e numero restano in
+   alto, lo stato e il referto vanno a capo a tutta larghezza. Il referto NON
+   si nasconde — è il motivo per cui questa sezione esiste. */
+@media (max-width: 768px) {
+    .an-inj-head {
+        display: none;
+    }
+
+    .an-inj-row {
+        grid-template-columns: 32px minmax(0, 1fr) 44px;
+        row-gap: 6px;
+    }
+
+    .an-inj-meta {
+        grid-column: 2 / -1;
+    }
+
+    .an-inj-strip {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Giornate saltate: il numero che riassume la riga, quindi in evidenza. */
+.an-inj-missed {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.an-inj-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Giro di draft: corsivo e spento, è un riferimento non un titolo. */
+.an-inj-round {
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+/* Pulsante "Show N more", condiviso da Best Available e Injury Report. */
+.an-more-btn {
+    display: block;
+    width: 100%;
+    margin: 6px 0 2px;
+    padding: 6px 10px;
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-md, 8px);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.an-more-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.an-inj-meta {
+    min-width: 0;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.an-inj-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.an-inj-wk {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px 2px 4px;
+    border-radius: var(--pill-radius);
+    background: color-mix(in srgb, var(--c) 16%, transparent);
+    color: var(--text-secondary);
+    font-size: 0.64rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.an-inj-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c);
+    flex-shrink: 0;
 }
 
 .an-leader-card {
@@ -8129,6 +8732,31 @@ div.gb-out-player:last-of-type {
     text-overflow: ellipsis;
 }
 
+.gb-out-inj {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.56rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0 5px;
+    border-radius: 3px;
+    color: #fff;
+}
+
+.gb-out-inj--out {
+    background: var(--accent-red);
+}
+
+.gb-out-inj--doubtful {
+    background: #e08a3c;
+}
+
+.gb-out-inj--questionable {
+    background: var(--accent-amber);
+    color: #1a1200;
+}
+
 .gb-out-pts {
     font-family: var(--font-display);
     font-weight: 700;
@@ -8536,6 +9164,7 @@ div.gb-out-player:last-of-type {
 .an-avg-toggle {
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
@@ -14156,7 +14785,8 @@ td.ps-div-seed {
     /* schiarito: colori scuri come il bordeaux di Oscurus sparirebbero sul fondo nero */
     -webkit-text-stroke: 1.5px color-mix(in srgb, var(--tc-sel) 62%, #fff);
     paint-order: stroke fill; /* il contorno resta fuori, l'interno bianco pieno */
-    text-shadow: 0 0 20px color-mix(in srgb, var(--tc-sel) 55%, transparent);
+    /* Niente alone dietro al nome: il contorno basta a dire di che squadra e',
+       la sfocatura faceva solo da evidenziatore. */
 }
 
 /* K/DEF in cima (verso la end zone), tutto il resto compattato in basso. */

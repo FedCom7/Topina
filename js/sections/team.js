@@ -5,12 +5,12 @@
  * identità, franchise players, rivalità, divisa.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=534';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=534';
-import { computeTeamBadges } from '../data/badges.js?v=513';
+import { CURRENT_SEASON } from '../data.js?v=540';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=539';
+import { computeTeamBadges } from '../data/badges.js?v=517';
 import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=518';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=607';
-import { playerImageService } from '../services/player-image-service.js?v=516';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=615';
+import { playerImageService } from '../services/player-image-service.js?v=520';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {
@@ -24,13 +24,19 @@ function _sbRoman(year) {
     return _toRoman(parseInt(year) - 2018);
 }
 
+// Cache-bust delle divise: da bumpare quando si sostituiscono i file in
+// "Team Uniform/". Senza, il browser continua a servire la vecchia immagine
+// dalla cache disco — il nome del file non cambia (stessa ragione per cui i
+// wallpaper del Game Center hanno FIELD_IMG_VERSION).
+const UNIFORM_IMG_VERSION = 2;
+
 export const TEAMS = {
     capi: {
         key: 'capi',
         name: 'Capi dei Pianeti',
         color: '#FF6600',
         logo: 'Team%20Logo/team_capi_transparent.png',
-        uniform: 'Team%20Uniform/CDP_Uniform.jpg',
+        uniform: `Team%20Uniform/CDP_Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `Founded in 2019 with the vision of those who look far ahead, Capi dei Pianeti have always operated on a different scale. Their orange burns like the sun of a distant solar system: impossible to ignore, impossible not to recognize. Every draft has been a planned invasion, every season a conquest. They don't play in a league — they rule a universe.`,
     },
     lasers: {
@@ -38,7 +44,7 @@ export const TEAMS = {
         name: 'Lasers',
         color: '#D4AF37',
         logo: 'Team%20Logo/team_lasers_transparent.png',
-        uniform: 'Team%20Uniform/LASERS_Uniform.jpg',
+        uniform: `Team%20Uniform/LASERS_Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `The Lasers don't shout. They cut. Since 2019, this franchise has built its identity on absolute precision: every draft pick a calculated move, every lineup a perfect formula. The gold in their emblem isn't decoration — it's the signature of those who don't make mistakes. When the Lasers fire the beam, the game is already decided.`,
     },
     oscurus: {
@@ -46,7 +52,7 @@ export const TEAMS = {
         name: 'Oscurus',
         color: '#800020',
         logo: 'Team%20Logo/team_oscurus_transparent.png',
-        uniform: 'Team%20Uniform/OBSCURUS__Uniform.jpg',
+        uniform: `Team%20Uniform/OBSCURUS__Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `From darkness rise the dominators. Oscurus has existed since 2019 as a silent force that grows in the shadows until it's too late to stop it. Their dark maroon crest speaks of blood spilled every week, of broken defenses and victories built with iron. They don't seek the crowd's love — they seek the ring. And when they find it, no one is surprised.`,
     },
     sommo: {
@@ -54,7 +60,7 @@ export const TEAMS = {
         name: 'Sommo',
         color: '#1c4750',
         logo: 'Team%20Logo/team_sommo_transparent.png',
-        uniform: 'Team%20Uniform/SOMMO__Uniform.jpg',
+        uniform: `Team%20Uniform/SOMMO__Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `The name doesn't lie. Sommo has been, since 2019, the franchise that chose the path of strategy where others chose instinct. Their deep green is that of unexplored oceans, of long-term plans, of decisions that only make sense in hindsight. There's no need to shout when you're already the strongest in the room.`,
     },
 };

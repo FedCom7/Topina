@@ -34,9 +34,17 @@ REPO_ROOT = os.path.dirname(HERE)
 
 
 def current_season():
-    """NFL season year: rolls over to the new year in September."""
+    """NFL season year: rolls over to the new year in September.
+
+    Non scende mai sotto FIRST_ESPN_SEASON: la lega esiste su ESPN solo da
+    quell'anno (le stagioni precedenti vivevano altrove e sono archiviate in
+    data/, non richiedibili all'API). Senza questo, da gennaio a settembre
+    dell'anno di debutto la formula tornava l'anno prima — una stagione che
+    per QUESTA lega su ESPN semplicemente non esiste, e l'API rispondeva 404.
+    """
     now = datetime.now()
-    return str(now.year if now.month >= 9 else now.year - 1)
+    year = now.year if now.month >= 9 else now.year - 1
+    return str(max(year, config.FIRST_ESPN_SEASON))
 
 
 def put(node, payload):

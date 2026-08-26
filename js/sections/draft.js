@@ -2,13 +2,13 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=534';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=601';
-import { playerImageService } from '../services/player-image-service.js?v=516';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=607';
-import { db } from '../firebase-config.js?v=1';
-import { fetchDraftStatus } from '../data/espn-fantasy.js?v=5';
+import { TEAMS } from './team.js?v=610';
+import { playerImageService } from '../services/player-image-service.js?v=520';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=615';
+import { db } from '../firebase-config.js?v=2';
+import { fetchDraftStatus } from '../data/espn-fantasy.js?v=9';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loaded = false;

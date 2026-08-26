@@ -2,7 +2,7 @@
  * Topina League — Data Layer
  * All Firebase RTDB fetching and processing.
  */
-import { db } from './firebase-config.js?v=1';
+import { db } from './firebase-config.js?v=2';
 import { ref, child, get } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js';
 
 /**
@@ -82,60 +82,89 @@ export function teamNameHTML(raw, cls = '') {
 
 // ─── Fetch functions ───
 
-export async function fetchFantasyData(season) {
-    try {
-        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 10000));
-        const dbRef = ref(db);
-        const fetchPromise = get(child(dbRef, `fantasy/fantasy_data_${season}`));
-        const snap = await Promise.race([fetchPromise, timeout]);
-        return snap.exists() ? snap.val() : null;
-    } catch (e) {
-        console.error(`fetchFantasyData error for ${season}:`, e);
-        return null;
-    }
-}
+/**
+ * Cache condivisa delle letture di lega.
+ *
+ * Senza, la stessa stagione veniva riscaricata a ripetizione: Stats la
+ * chiedeva TRE volte (tre cicli indipendenti sulle stagioni) e una sessione
+ * che gira fra le sezioni arrivava a QUATTRO — 8,7 MB dal websocket per dati
+ * identici, misurati il 26/08/2026. Ogni chiamante aveva la sua cache o
+ * nessuna, e nessuno vedeva quella degli altri.
+ *
+ * Si mette in cache la PROMESSA, non il risultato: cosi' anche le richieste
+ * che partono insieme, prima che la prima risponda, si agganciano a quella.
+ *
+ * Una stagione chiusa non cambia piu': si tiene per sempre. Quella in corso
+ * cambia una volta a settimana (il martedi', quando lo scraper carica la
+ * giornata), quindi le si da' una scadenza breve — abbastanza da azzerare le
+ * raffiche, abbastanza corta da non far invecchiare una scheda lasciata
+ * aperta. Un buco (errore di rete o nodo assente) non si mette in cache,
+ * altrimenti un singolo timeout resterebbe appiccicato li' per sempre.
+ */
+const _letture = new Map();
+const TTL_STAGIONE_IN_CORSO = 5 * 60 * 1000;
 
-export async function fetchDraftData(season) {
-    try {
-        const snap = await get(child(ref(db), `draft/draft_data_${season}`));
-        return snap.exists() ? snap.val() : null;
-    } catch (e) {
-        console.error('fetchDraftData error:', e);
-        return null;
-    }
-}
+/**
+ * Ogni chiamante riceve una COPIA, non l'originale in cache.
+ *
+ * Prima della cache ogni chiamata tornava un oggetto nuovo appena letto dal
+ * database, quindi chi lo riceveva poteva modificarlo senza pensarci — e
+ * qualcuno lo fa: il Game Center sovrascrive la settimana ancora aperta con i
+ * dati in diretta di ESPN (`currentData.weeks[week] = ...`). Restituendo
+ * l'originale, quella scrittura sarebbe finita anche in Analysis e Stats, che
+ * si sarebbero ritrovate dati ESPN al posto di quelli di lega senza che
+ * nessuno lo avesse chiesto. La copia ridà la stessa garanzia di prima,
+ * lasciando intatto il risparmio di rete.
+ */
+const copia = (d) => (d == null ? d : (typeof structuredClone === 'function'
+    ? structuredClone(d)
+    : JSON.parse(JSON.stringify(d))));
 
-export async function fetchAllTimeStats() {
-    try {
-        const snap = await get(child(ref(db), 'stats/all_time'));
-        return snap.exists() ? snap.val() : null;
-    } catch (e) {
-        console.error('fetchAllTimeStats error:', e);
-        return null;
+function letturaCachata(chiave, season, carica) {
+    const vecchia = _letture.get(chiave);
+    const inCorso = String(season) === String(CURRENT_SEASON);
+    if (vecchia && !(inCorso && Date.now() - vecchia.quando > TTL_STAGIONE_IN_CORSO)) {
+        return vecchia.promessa.then(copia);
     }
-}
-
-export async function fetchAllSeasonsData() {
-    console.log('fetchAllSeasonsData starting...');
-    const promises = SEASONS.map(async season => {
-        console.log(`Fetching fantasy data for ${season}...`);
-        const data = await fetchFantasyData(season);
-        console.log(`Fetched fantasy data for ${season}:`, data ? 'OK' : 'NULL');
-        return data;
+    const promessa = carica().then(dati => {
+        if (dati == null) _letture.delete(chiave); // niente non si cacha
+        return dati;
     });
-    const results = await Promise.all(promises);
-    console.log('fetchAllSeasonsData finished');
+    _letture.set(chiave, { quando: Date.now(), promessa });
+    return promessa.then(copia);
+}
 
-    const data = {};
-    SEASONS.forEach((season, index) => {
-        if (results[index]) {
-            data[season] = results[index];
+export function fetchFantasyData(season) {
+    return letturaCachata(`fantasy:${season}`, season, async () => {
+        try {
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 10000));
+            const dbRef = ref(db);
+            const fetchPromise = get(child(dbRef, `fantasy/fantasy_data_${season}`));
+            const snap = await Promise.race([fetchPromise, timeout]);
+            return snap.exists() ? snap.val() : null;
+        } catch (e) {
+            console.error(`fetchFantasyData error for ${season}:`, e);
+            return null;
         }
     });
-    return data;
 }
 
-// ─── Processing functions ───
+export function fetchDraftData(season) {
+    return letturaCachata(`draft:${season}`, season, async () => {
+        try {
+            const snap = await get(child(ref(db), `draft/draft_data_${season}`));
+            return snap.exists() ? snap.val() : null;
+        } catch (e) {
+            console.error('fetchDraftData error:', e);
+            return null;
+        }
+    });
+}
+
+// Qui vivevano fetchAllTimeStats() (nodo stats/all_time) e
+// fetchAllSeasonsData(): nessuna delle due aveva un chiamante. La prima era
+// anche l'unico punto che leggeva stats/all_time, quindi quel nodo ora non lo
+// tocca piu' nessuno.
 
 // ─── Processing functions ───
 
