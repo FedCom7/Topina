@@ -4773,6 +4773,12 @@ img {
 
 .st-leader-team {
     display: block;
+    /* Con i puntini: nelle classifiche di Analysis la sotto-riga e' una frase
+       ("Worst: T. Etienne - 31,5 pt (W15)") e senza si tagliava a meta' parola,
+       perche' l'ellissi del genitore vale per il testo suo, non per questo blocco. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 0.66rem;
     font-weight: 500;
     text-transform: uppercase;
@@ -4786,10 +4792,81 @@ img {
     color: var(--text-secondary);
 }
 
+/* Immagine nella riga: foto tonda del giocatore o stemma della squadra. La
+   usano le classifiche di Analysis, che riusano queste stesse classi per non
+   divergere da quelle di Stats; qui in Stats le righe non hanno immagine e la
+   regola semplicemente non si applica.
+   `align-self: center` perché la riga è allineata alla BASELINE del testo: senza,
+   la foto pendeva verso il basso rispetto al nome. */
+.st-leader-img {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    align-self: center;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Sotto-riga su piu' righe, per i Top Performers by Position: li' la nota e'
+   squadra + partite + statistiche chiave, e sui puntini si perdevano proprio i
+   numeri che si e' venuti a leggere. Il NOME resta su una riga sola.
+   `min-width: 0` e' obbligatorio: togliendo l'overflow nascosto, la voce flex
+   torna a `min-width: auto` e spingerebbe fuori il punteggio a destra. */
+.st-leader-name--wrap {
+    white-space: normal;
+    overflow: visible;
+    min-width: 0;
+}
+
+.st-leader-name--wrap .st-leader-nm {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.st-leader-name--wrap .st-leader-team {
+    white-space: normal;
+    overflow: visible;
+}
+
+/* Ogni pezzo della nota resta intero: andando a capo "3587 PASS YDS" si
+   spezzava in "3587 PASS" / "YDS". Il separatore sta dentro al pezzo che
+   precede, cosi' la riga non comincia mai con un puntino orfano. */
+.st-leader-bit {
+    white-space: nowrap;
+}
+
+/* Con la nota su piu' righe la riga si allunga, e allineata alla baseline la
+   foto scendeva a meta' altezza, lontana dal nome a cui appartiene. */
+.st-leader-row:has(.st-leader-name--wrap) {
+    align-items: flex-start;
+}
+
+.st-leader-row:has(.st-leader-name--wrap) .st-leader-img {
+    align-self: flex-start;
+}
+
+/* Lo stemma non si ritaglia tondo: si vedrebbe mezzo logo. */
+.st-leader-img--team {
+    border-radius: 0;
+    object-fit: contain;
+    background: none;
+}
+
 .st-leader-row--top .st-leader-name,
 .st-leader-row--top .st-leader-value {
     color: var(--accent-amber);
     text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
+/* Quando in cima c'e' il PEGGIORE — punti lasciati in panchina, flop — l'oro
+   direbbe il contrario di quello che si sta guardando. */
+.st-leader-row--bad .st-leader-name,
+.st-leader-row--bad .st-leader-value {
+    color: var(--accent-red);
+    text-shadow: 0 0 16px rgba(184, 67, 58, 0.35);
 }
 
 @media (max-width: 900px) {
@@ -7218,93 +7295,13 @@ img {
 }
 
 /* --- League view: rankings --- */
+/* I pannelli hanno un bordo loro: il passo largo di prima serviva a separare
+   blocchi senza contorno, ora basta il gap di Stats. */
 .an-rankings {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 12px 32px;
-    margin-top: 8px;
-}
-
-.an-rank-row {
-    display: grid;
-    grid-template-columns: 20px 30px minmax(110px, 1fr) minmax(60px, 120px) 64px;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.an-rank-pos {
-    font-family: var(--font-display, 'Inter Tight', sans-serif);
-    font-weight: 800;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    text-align: center;
-}
-
-.an-rank-logo {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-}
-
-.an-rank-name {
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    display: flex;
-    flex-direction: column;
-}
-
-.an-rank-pos-plain {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-}
-
-.an-rank-note {
-    font-size: 0.68rem;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
-.an-rank-bar {
-    height: 4px;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.an-rank-bar span {
-    display: block;
-    height: 100%;
-    border-radius: 2px;
-}
-
-.an-rank-val {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
-.an-rank-row--win .an-rank-pos,
-.an-rank-row--win .an-rank-val {
-    color: var(--accent-amber);
-}
-
-.an-rank-row--loss .an-rank-pos,
-.an-rank-row--loss .an-rank-val {
-    color: var(--accent-red);
-}
-
-.an-rank-photo {
-    border-radius: 50%;
-    object-fit: cover;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid var(--border-subtle);
+    gap: 16px;
+    margin-top: 20px;
 }
 
 /* --- League view: top performers by position --- */
@@ -7484,8 +7481,8 @@ img {
 .an-leader-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 12px 32px;
-    margin-top: 8px;
+    gap: 16px;
+    margin-top: 20px;
 }
 
 /* --- Best Available: top 10 per ruolo mai passati su nessuna rosa --- */
@@ -7857,22 +7854,12 @@ img {
     min-width: 0;
 }
 
-.an-leader-title {
-    font-family: var(--font-display, 'Inter Tight', sans-serif);
-    font-size: 0.85rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin: 0 0 4px;
-}
-
 .an-leader-row--extra {
     display: none;
 }
 
 .an-leader-card--expanded .an-leader-row--extra {
-    display: grid;
+    display: flex;
 }
 
 .an-leader-toggle {
@@ -11542,6 +11529,28 @@ body.pm-open { overflow: hidden; }
     letter-spacing: 0.06em;
     color: var(--text-muted);
     text-align: center;
+}
+
+/* Voce rimasta a zero: spenta, così risalta quello che ha davvero prodotto
+   qualcosa. La colonna resta al suo posto — toglierla farebbe ballare la
+   griglia da un giocatore all'altro, e uno zero è comunque un'informazione.
+   La proiezione accanto NON si spegne: è lì proprio per dire quanto ci si
+   aspettava da quel numero rimasto fermo. */
+.pm-game-cell--zero .pm-game-cell-val,
+.pm-game-cell--zero .pm-game-cell-lbl {
+    color: rgba(255, 255, 255, 0.24);
+}
+
+.pm-game-cell--zero .pm-game-cell-val {
+    font-weight: 600;
+}
+
+/* `.pm-proj` non ha un colore proprio, lo eredita dal numero: senza questa
+   riga spegnendo lo zero si spegneva anche la proiezione. Ma uno zero con
+   "previsti 45" accanto è esattamente il caso che si vuole leggere. */
+.pm-game-cell--zero .pm-proj {
+    color: var(--text-secondary);
+    opacity: 0.7;
 }
 
 .pm-game-empty {

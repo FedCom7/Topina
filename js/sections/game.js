@@ -24,7 +24,7 @@ import {
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=555';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=7';
-import { TEAMS } from './team.js?v=635';
+import { TEAMS } from './team.js?v=644';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=940';
 

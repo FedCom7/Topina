@@ -7,7 +7,7 @@
  */
 
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
-import { TEAMS } from './team.js?v=635';
+import { TEAMS } from './team.js?v=644';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
@@ -301,9 +301,12 @@ export function pointsComparison(model, teamKey) {
         optimal += opt !== null ? opt : realWk;
 
         for (const name of tw.bench) {
-            const w = model.players.get(name)?.weeks[wk];
+            const rec = model.players.get(name);
+            const w = rec?.weeks[wk];
             if (w && (!worstMiss || w.pts > worstMiss.pts)) {
-                worstMiss = { name, wk, pts: w.pts };
+                // il ruolo serve ad abbreviare il nome: senza, una difesa
+                // diventerebbe "S. Seahawks" invece di "Seahawks"
+                worstMiss = { name, wk, pts: w.pts, position: rec.position };
             }
         }
     }
@@ -1546,7 +1549,12 @@ function topFlopPerformances(model, limit = 10) {
     for (const rec of model.players.values()) {
         for (const [wkStr, w] of Object.entries(rec.weeks)) {
             if (!w.started) continue; // solo prestazioni da titolare
-            rows.push({ name: rec.name, position: rec.position, teamKey: w.teamKey, wk: Number(wkStr), pts: w.pts });
+            // `nflTeam` serve alla foto: il servizio immagini cerca prima per
+            // squadra NFL e solo in mancanza tira a indovinare dal nome.
+            rows.push({
+                name: rec.name, position: rec.position, nflTeam: rec.nflTeam || '',
+                teamKey: w.teamKey, wk: Number(wkStr), pts: w.pts, stats: w.stats,
+            });
         }
     }
     rows.sort((a, b) => b.pts - a.pts);
@@ -1584,31 +1592,33 @@ function leaderRowHtml(row, i, mode) {
     const { rec, pts, perGame, games, stats, teamKey } = row;
     const val = mode === 'perGame' ? perGame : pts;
     const team = TEAMS[teamKey];
-    const noteBits = [`${fmt(games)} G`, keyStatLine(rec.position, stats)].filter(Boolean);
+    // `keyStatLine` restituisce gia' i suoi separatori: va spezzata, altrimenti
+    // il nowrap dei pezzi rende l'intera riga di statistiche un blocco unico
+    // piu' largo della colonna.
+    const noteBits = [team ? team.name : null, `${fmt(games)} G`,
+        ...String(keyStatLine(rec.position, stats) || '').split(' · ')].filter(Boolean);
     return `
-    <div class="an-rank-row${i >= 5 ? ' an-leader-row--extra' : ''}${i === 0 ? ' an-rank-row--win' : ''}">
-        <span class="an-rank-pos">${i + 1}</span>
-        ${headshotImg(rec, 'an-rank-logo an-rank-photo')}
-        <span class="an-rank-name">${rec.name}
-            <span class="an-rank-note">${team ? team.name + ' · ' : ''}${noteBits.join(' · ')}</span>
+    <div class="st-leader-row${i >= 5 ? ' an-leader-row--extra' : ''}${i === 0 ? ' st-leader-row--top' : ''}">
+        <span class="st-leader-rank">${i + 1}</span>
+        ${headshotImg(rec, 'st-leader-img')}
+        <span class="st-leader-name st-leader-name--wrap">
+            <span class="st-leader-nm">${rec.name}</span>
+            <span class="st-leader-team">${notaPezzi(noteBits)}</span>
         </span>
-        <span class="an-rank-bar"><span style="width:${Math.max((val || 0) / (row.__max || 1) * 100, 3).toFixed(1)}%; background:${team ? CHART_COLORS[teamKey] : 'var(--accent-red)'}"></span></span>
-        <span class="an-rank-val">${fmt(val, mode === 'perGame' ? 1 : 0)}</span>
+        <span class="st-leader-value">${fmt(val, mode === 'perGame' ? 1 : 0)}</span>
     </div>`;
 }
 
 function positionLeaderCard(pos, rows, mode) {
     if (!rows.length) return '';
     const sorted = [...rows].sort((a, b) => (mode === 'perGame' ? b.perGame - a.perGame : b.pts - a.pts)).slice(0, 15);
-    const max = mode === 'perGame' ? sorted[0].perGame : sorted[0].pts;
-    sorted.forEach(r => r.__max = max);
     const hasExtra = sorted.length > 5;
+    // `an-leader-card` non porta piu' grafica: resta perche' e' l'aggancio del
+    // pulsante "show more", che cerca il proprio contenitore con closest().
     return `
-    <div class="an-leader-card">
-        <h4 class="an-leader-title">${pos}</h4>
-        <div class="an-leader-rows">
-            ${sorted.map((r, i) => leaderRowHtml(r, i, mode)).join('')}
-        </div>
+    <div class="st-leader-panel an-leader-card">
+        <div class="st-leader-panel-title">${pos}</div>
+        ${sorted.map((r, i) => leaderRowHtml(r, i, mode)).join('')}
         ${hasExtra ? `<button class="an-leader-toggle" type="button" data-leader-toggle>Show ${sorted.length - 5} more</button>` : ''}
     </div>`;
 }
@@ -2484,9 +2494,9 @@ function renderLeagueView(model) {
     ${blockStandings(model)}
 
     <div class="an-rankings">
-        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${r.topDraft.rec.name} (${fmt(r.topDraft.agg.pts, 0)} pt)` : null, 'win')}
-        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${r.topPickup.rec.name} (${fmt(r.topPickup.agg.pts, 0)} pt)` : null, 'win')}
-        ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst miss: ${r.worstMiss.name}, ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
+        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${nomeCorto({ name: r.topDraft.rec.name, pos: r.topDraft.rec.position })} · ${fmt(r.topDraft.agg.pts, 0)} pt` : null, 'win')}
+        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${nomeCorto({ name: r.topPickup.rec.name, pos: r.topPickup.rec.position })} · ${fmt(r.topPickup.agg.pts, 0)} pt` : null, 'win')}
+        ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst: ${nomeCorto({ name: r.worstMiss.name, pos: r.worstMiss.position })} · ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
     <p class="an-footnote">Total points from that year's draft picks, from in-season waiver pickups, and left unplayed on the bench — each ranked highest first.</p>
 
@@ -3242,48 +3252,83 @@ function buildDraftScatterSection(points) {
     return `<div class="an-chart" id="an-scatter-chart">${buildDraftScatter(points)}<div class="an-chart-tooltip" hidden></div></div>`;
 }
 
-function rankingBlock(title, rows, valueFn, noteFn, highlightMode) {
-    const values = rows.map(r => valueFn(r) || 0);
-    const max = Math.max(...values, 1);
+/**
+ * Classifica a pannello, nello stesso stile dei "Career Fantasy Stats by
+ * Position" di Stats: niente barra colorata, solo posizione, immagine, nome e
+ * numero, dentro un riquadro con il titolo in rosso.
+ *
+ * Si riusano le classi `st-leader-*` di Stats invece di clonarle: due copie
+ * dello stesso stile finirebbero per divergere alla prima modifica, e il senso
+ * di questo blocco e' proprio che i due si somiglino. L'unica aggiunta e'
+ * `.st-leader-img`, che qui serve e li' no.
+ *
+ * `righe`: { img, nome, sotto, valore }
+ */
+/**
+ * Sotto-riga di un pannello. Ogni pezzo resta intero andando a capo, e il
+ * separatore sta dentro a quello che precede: cosi' una riga non comincia mai
+ * con un puntino orfano ne' spezza "3587 pass yds" a meta'.
+ */
+function notaPezzi(pezzi) {
+    return pezzi.map((b, k) =>
+        `<span class="st-leader-bit">${b}${k < pezzi.length - 1 ? ' ·' : ''}</span>`).join(' ');
+}
+
+function pannelloClassifica(titolo, righe, { evidenza = 'bene', vuoto = 'No data' } = {}) {
+    if (!righe.length) {
+        return `<div class="st-leader-panel"><div class="st-leader-panel-title">${titolo}</div>
+            <p class="an-footnote">${vuoto}</p></div>`;
+    }
+    // In cima non c'e' sempre il migliore: in "Points Left on the Bench" e nei
+    // flop il primo e' il PEGGIORE, e accenderlo d'oro direbbe il contrario.
+    const cima = evidenza === 'male' ? ' st-leader-row--bad' : ' st-leader-row--top';
     return `
-    <div class="an-ranking">
-        <h3 class="an-sub-title">${title}</h3>
-        ${rows.map((r, i) => {
-        const val = valueFn(r);
-        const note = noteFn(r);
-        const highlight = i === 0 ? (highlightMode === 'win' ? ' an-rank-row--win' : ' an-rank-row--loss') : '';
-        return `
-        <div class="an-rank-row${highlight}">
-            <span class="an-rank-pos">${i + 1}</span>
-            <img src="${TEAMS[r.key].logo}" alt="" class="an-rank-logo">
-            <span class="an-rank-name">${r.name}${note ? `<span class="an-rank-note">${note}</span>` : ''}</span>
-            <span class="an-rank-bar"><span style="width:${((val || 0) / max * 100).toFixed(1)}%; background:${r.color}"></span></span>
-            <span class="an-rank-val">${val !== null && val !== undefined ? fmt(val, 0) : '—'}</span>
-        </div>`;
-    }).join('')}
+    <div class="st-leader-panel">
+        <div class="st-leader-panel-title">${titolo}</div>
+        ${righe.map((r, i) => `
+        <div class="st-leader-row${i === 0 ? cima : ''}">
+            <span class="st-leader-rank">${i + 1}</span>
+            ${r.img || ''}
+            <span class="st-leader-name${Array.isArray(r.sotto) ? ' st-leader-name--wrap' : ''}">${
+            Array.isArray(r.sotto)
+                ? `<span class="st-leader-nm">${r.nome}</span>
+                   <span class="st-leader-team">${notaPezzi(r.sotto)}</span>`
+                : `${r.nome}${r.sotto ? `<span class="st-leader-team">${r.sotto}</span>` : ''}`}</span>
+            <span class="st-leader-value">${r.valore}</span>
+        </div>`).join('')}
     </div>`;
 }
 
-function rankingBlockPerf(title, rows, variant = 'top') {
-    if (!rows.length) return `<div class="an-ranking"><h3 class="an-sub-title">${title}</h3>${emptyState('Nessuna prestazione disponibile')}</div>`;
-    const max = Math.max(...rows.map(r => r.pts), 1);
-    const highlight = variant === 'flop' ? 'an-rank-row--loss' : 'an-rank-row--win';
-    return `
-    <div class="an-ranking">
-        <h3 class="an-sub-title">${title}</h3>
-        ${rows.map((r, i) => {
+/** Classifica fra le quattro squadre: l'immagine e' lo stemma. */
+function rankingBlock(title, rows, valueFn, noteFn, evidenzaMode = 'win') {
+    return pannelloClassifica(title, rows.map(r => {
+        const val = valueFn(r);
+        return {
+            img: `<img src="${TEAMS[r.key].logo}" alt="" class="st-leader-img st-leader-img--team">`,
+            nome: r.name,
+            sotto: noteFn(r) || '',
+            valore: val !== null && val !== undefined ? fmt(val, 0) : '—',
+        };
+    }), { evidenza: evidenzaMode === 'loss' ? 'male' : 'bene' });
+}
+
+/** Classifica fra prestazioni singole: l'immagine e' la foto del giocatore. */
+function rankingBlockPerf(title, rows, variante = 'top') {
+    return pannelloClassifica(title, rows.map(r => {
         const team = TEAMS[r.teamKey];
-        const barW = max > 0 ? Math.max(r.pts / max * 100, 3) : 3;
-        return `
-        <div class="an-rank-row${i === 0 ? ' ' + highlight : ''}">
-            <span class="an-rank-pos">${i + 1}</span>
-            <img src="${team ? team.logo : 'images/fallback-player.svg'}" alt="" class="an-rank-logo">
-            <span class="an-rank-name">${r.name} <span class="an-rank-pos-plain">${r.position || ''}</span><span class="an-rank-note">${team ? team.name : ''} — W${r.wk}</span></span>
-            <span class="an-rank-bar"><span style="width:${barW.toFixed(1)}%; background:${CHART_COLORS[r.teamKey] || '#888'}"></span></span>
-            <span class="an-rank-val">${fmt(r.pts, 1)}</span>
-        </div>`;
-    }).join('')}
-    </div>`;
+        // Oltre a chi e quando, come sono nati quei punti: `keyStatLine` porta
+        // gia' i suoi separatori, quindi si spezza per tenere interi i pezzi.
+        const pezzi = [team ? team.name : null, `W${r.wk}`,
+            ...String(keyStatLine(r.position, r.stats || {}) || '').split(' · ')].filter(Boolean);
+        return {
+            img: headshotImg({ name: r.name, position: r.position, nflTeam: r.nflTeam },
+                'st-leader-img'),
+            nome: `${r.name} ${posBadge(r.position)}`,
+            sotto: pezzi,
+            valore: fmt(r.pts, 1),
+        };
+    }), { evidenza: variante === 'flop' ? 'male' : 'bene',
+          vuoto: 'No performance available' });
 }
 
 /* ---------- Line chart (SVG) ---------- */

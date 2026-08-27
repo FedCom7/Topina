@@ -20,9 +20,9 @@ import { displayName, teamNameHTML, fetchFantasyData, getPlayoffMatchups, getSup
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=539';
 import { getHonorsBundle } from '../data/honors.js?v=591';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=591';
-import { TEAMS } from './team.js?v=635';
+import { TEAMS } from './team.js?v=644';
 import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=533';
-import { teamsCardsHTML } from './teams.js?v=610';
+import { teamsCardsHTML } from './teams.js?v=619';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 
 let initialized = false;
