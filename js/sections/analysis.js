@@ -11,13 +11,18 @@ import { TEAMS } from './team.js?v=610';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
-import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAvgKey } from '../data/nfl-team-extras.js?v=937';
+import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=940';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
 let currentTeam = 'all';
 let currentTab = 'trend';
-let avgMode = 'total'; // 'total' | 'starter' — base per la colonna Media
+let avgMode = 'total'; // 'total' | 'starter' | 'nfl' — base di partite, punti e media
+// Totali di stagione ricalcolati dalle statistiche NFL vere, per anno. Sono
+// l'unica fonte che copre anche le settimane in cui un giocatore non era in
+// nessuna rosa: Firebase quelle non le ha proprio.
+const nflTotals = {};
 let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
 let roleDistMode = 'all'; // 'all' | 'starters' — base di Weekly scores by position
 // Quale squadra guardare nel grafico "Weekly scores by position" della vista
@@ -180,10 +185,24 @@ function aggregateOnTeam(rec, teamKey) {
     return agg;
 }
 
-// Media punti secondo la modalità corrente: 'starter' (solo da titolare) o 'total'
+/*
+ * Il selettore in cima alla vista squadra sceglie la BASE di tutta la riga, non
+ * solo della media: partite, punti e media vengono dalla stessa base. Prima
+ * cambiava la sola media, e una riga poteva dire "12 G · 180 pt · 22.4 avg" —
+ * tre numeri che insieme non tornavano, perché i primi due contavano anche le
+ * settimane in panchina e il terzo no.
+ */
 function avgOf(agg) {
     if (avgMode === 'starter') return agg.gamesStarted ? agg.ptsStarted / agg.gamesStarted : 0;
     return agg.games ? agg.pts / agg.games : 0;
+}
+
+function ptsOf(agg) {
+    return avgMode === 'starter' ? agg.ptsStarted : agg.pts;
+}
+
+function gamesOf(agg) {
+    return avgMode === 'starter' ? agg.gamesStarted : agg.games;
 }
 
 function ptsElsewhere(rec, teamKey) {
@@ -396,6 +415,53 @@ function roundBadge(round) {
     return `<span class="an-badge an-badge-round">R${round}</span>`;
 }
 
+/**
+ * Verdetto di draft di una squadra: chi era destinato a partire titolare
+ * (`attesi`), chi ci è arrivato davvero (`titolari`, la formazione migliore
+ * ricavabile dalle sole pick) e chi è stato draftato (`draftati`).
+ *
+ * Sta qui e non dentro la tabella perché le targhette flop/steal compaiono in
+ * più punti della pagina — tabelle di confronto e liste della vista squadra —
+ * e devono dire tutte la stessa cosa.
+ */
+function draftIntent(model, teamKey) {
+    const raw = rawFromTeamKey(model.draft?.teams, teamKey);
+    if (!raw) return null;
+    const picks = (model.draft.teams[raw] || []).map(pick => {
+        const rec = model.players.get(pick.name);
+        return {
+            name: pick.name, pick: pick.pick,
+            pos: rec?.position || pick.position,
+            pts: rec ? seasonTotalPts(rec) : 0,
+            games: rec ? Object.keys(rec.weeks).length : 0,
+        };
+    });
+    return {
+        attesi: intendedStarters(picks),
+        titolari: new Set(assignLineup(picks, 'drafted').starters.filter(Boolean).map(p => p.name)),
+        draftati: new Set(picks.map(p => p.name)),
+    };
+}
+
+/** 'flop' | 'steal' | null. Kicker e difese non hanno né l'uno né l'altro. */
+function draftVerdict(intent, name, pos) {
+    if (!intent || !RUOLI_DRAFTABILI.has((pos || '').toUpperCase())) return null;
+    if (!intent.draftati.has(name)) return null;   // preso in corsa: non c'era un'intenzione
+    const atteso = intent.attesi.has(name);
+    const titolare = intent.titolari.has(name);
+    if (atteso && !titolare) return 'flop';
+    if (!atteso && titolare) return 'steal';
+    return null;
+}
+
+function verdictBadge(intent, name, pos) {
+    const v = draftVerdict(intent, name, pos);
+    if (!v) return '';
+    return v === 'flop'
+        ? '<span class="an-badge an-badge-flop" title="Drafted to start, ended up on the bench">Flop</span>'
+        : '<span class="an-badge an-badge-steal" title="Drafted as a backup, ended up starting">Steal</span>';
+}
+
 /* ============================================================
    RENDER
    ============================================================ */
@@ -430,7 +496,9 @@ async function render(model) {
         bindLeaderControls(wrap, model);
         bindRoleDistControls(wrap, model);
         hydrateImages();
-        loadInjuryReport(wrap, model); // async, non blocca il resto della pagina
+        // L'Injury Report sta solo nella vista squadra: qui erano quattro
+        // tabelloni uno dietro l'altro, e per leggerne uno andavano scorsi
+        // tutti. Vedi `loadTeamInjuryReport`.
         loadBestAvailable(wrap, model); // async
         return;
     }
@@ -447,9 +515,11 @@ async function render(model) {
     const controlsHtml = currentTab === 'trend' ? '' : `
         <div class="an-controls">
             <div class="an-avg-toggle">
-                <span class="an-avg-label">Average:</span>
+                <span class="an-avg-label">Based on:</span>
                 <button class="an-avg-pill${avgMode === 'total' ? ' active' : ''}" data-avg="total">Total</button>
-                <button class="an-avg-pill${avgMode === 'starter' ? ' active' : ''}" data-avg="starter">As starter</button>
+                <button class="an-avg-pill${avgMode === 'starter' ? ' active' : ''}" data-avg="starter">As starter</button>${
+        currentTab === 'compare' ? `
+                <button class="an-avg-pill${avgMode === 'nfl' ? ' active' : ''}" data-avg="nfl">Full NFL season</button>` : ''}
             </div>
             <details class="an-legend-box">
                 <summary>What do the labels mean?</summary>
@@ -568,6 +638,7 @@ function renderSeasonTab(model) {
 
     const rounds = draftRoundLookup(model, currentTeam);
     const ranks = leaguePositionRanks(model);
+    const intent = draftIntent(model, currentTeam);
 
     return `
     <h3 class="an-sub-title">Every player who passed through the roster</h3>
@@ -594,7 +665,8 @@ function renderSeasonTab(model) {
             badges.push(`<span class="an-badge an-badge-drop">${label}</span>`);
         }
         badges.push(topBadge(rec.name, ranks));
-        return playerRow(rec, agg, badges.join(' '));
+        badges.push(verdictBadge(intent, rec.name, rec.position));
+        return playerRow(rec, agg, badges.filter(Boolean).join(' '));
     }).join('')}`;
 }
 
@@ -603,8 +675,8 @@ function playerRow(rec, agg, extraBadge = '') {
     <div class="an-player-row" data-player="${encodeURIComponent(rec.name)}">
         ${headshotImg(rec)}
         <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${extraBadge}</span>
-        <span class="an-cell">${agg.games}</span>
-        <span class="an-cell an-pts">${fmt(agg.pts, 2)}</span>
+        <span class="an-cell">${gamesOf(agg)}</span>
+        <span class="an-cell an-pts">${fmt(ptsOf(agg), 2)}</span>
         <span class="an-cell">${fmt(avgOf(agg), 1)}</span>
         <span class="an-keystats">${keyStatLine(rec.position, agg.stats)}</span>
         <span class="an-chevron">›</span>
@@ -617,6 +689,7 @@ function renderDraftTab(model) {
     if (!picks) return emptyState(`Draft data not available for ${currentYear}`);
 
     const ranks = leaguePositionRanks(model);
+    const intent = draftIntent(model, currentTeam);
 
     return `
     <div class="an-list-head">
@@ -634,7 +707,7 @@ function renderDraftTab(model) {
         }
         const dropped = model.seasonOver && agg.lastWeekOn < model.lastWeek;
         const badge = dropped ? `<span class="an-badge an-badge-drop">Dropped after W${agg.lastWeekOn}</span>` : '';
-        return playerRow(rec, agg, `<span class="an-pick-num">#${pick.pick}</span> ${badge} ${topBadge(rec.name, ranks)}`);
+        return playerRow(rec, agg, `<span class="an-pick-num">#${pick.pick}</span> ${badge} ${topBadge(rec.name, ranks)} ${verdictBadge(intent, rec.name, rec.position)}`);
     }).join('')}`;
 }
 
@@ -694,8 +767,8 @@ function renderLineupTab(model) {
             </div>
             <div class="an-lineup-name">${rec.name}</div>
             <div class="an-lineup-meta">${posBadge(rec.position)} ${topBadge(rec.name, ranks)} <span class="an-lineup-nfl">${rec.nflTeam || ''}</span></div>
-            <div class="an-lineup-pts">${fmt(agg.pts, 2)} <span>pt</span></div>
-            <div class="an-lineup-avg">${fmt(avgOf(agg), 1)} avg · ${agg.games} G</div>
+            <div class="an-lineup-pts">${fmt(ptsOf(agg), 2)} <span>pt</span></div>
+            <div class="an-lineup-avg">${fmt(avgOf(agg), 1)} avg · ${gamesOf(agg)} G</div>
         </div>`;
     }).join('')}
     </div>`;
@@ -708,38 +781,115 @@ function renderCompareTab(model, prevModel) {
     }
 
     const ranks = leaguePositionRanks(model);
+    const rounds = draftRoundLookup(model, currentTeam);
+    const intent = draftIntent(model, currentTeam);
+    const draftedNames = new Set();
+    const raw = rawFromTeamKey(model.draft?.teams, currentTeam);
+    if (raw) for (const p of model.draft.teams[raw] || []) draftedNames.add(p.name);
+    // Tre basi diverse, e la differenza non è un dettaglio:
+    //   total   — punti fatti PER QUESTA SQUADRA (Firebase)
+    //   starter — come sopra, ma solo le settimane da titolare
+    //   nfl     — la stagione NFL intera, ricalcolata dalle statistiche vere:
+    //             comprende le settimane in cui il giocatore non era in nessuna
+    //             rosa, che su Firebase non esistono affatto
+    const nfl = avgMode === 'nfl';
+    const totNow = nfl ? nflTotals[currentYear] : null;
+    const totPrev = nfl ? nflTotals[prevYear] : null;
+    if (nfl && (!totNow || !totPrev)) {
+        caricaNflTotals([currentYear, prevYear], model);
+        return `<p class="an-footnote">Loading full-season NFL totals…</p>`;
+    }
+
     const rows = seasonView(model, currentTeam).map(({ rec, agg }) => {
         const prevRec = prevModel.players.get(rec.name);
-        let prevPts = null;
-        if (prevRec) {
-            prevPts = 0;
-            for (const w of Object.values(prevRec.weeks)) prevPts += w.pts;
+        let pts, prevPts = null;
+        if (nfl) {
+            pts = seasonAverageOf(totNow, rec.name)?.pts ?? null;
+            prevPts = seasonAverageOf(totPrev, rec.name)?.pts ?? null;
+        } else {
+            pts = ptsOf(agg);
+            if (prevRec) {
+                prevPts = 0;
+                for (const w of Object.values(prevRec.weeks)) {
+                    if (avgMode === 'starter' && !w.started) continue;
+                    prevPts += w.pts;
+                }
+            }
         }
-        return { rec, agg, prevPts };
+        return { rec, agg, pts, prevPts };
     });
     if (!rows.length) return emptyState('No player found for this team');
 
+    const nota = nfl
+        ? `<p class="an-footnote">Full NFL season for both years: every game the player played, recalculated from
+           real NFL stats with the league's scoring — <b>including the weeks nobody had him on a roster</b>, which
+           Firebase does not record at all. Kickers and defenses aren't covered by this source and show —.</p>`
+        : `<p class="an-footnote">Points scored <b>for this team</b>${avgMode === 'starter' ? ' in the weeks he started' : ''},
+           from the league archive. The ${prevYear} column is that player's whole season, on whichever roster he was on.
+           Weeks nobody had him are not counted — switch to <b>Full NFL season</b> for those.</p>`;
+
     return `
     <div class="an-list-head an-list-head-compare">
-        <span></span><span>Player</span><span>${currentYear} Points</span><span>${prevYear} Points</span><span>Δ</span><span></span>
+        <span></span><span>Player</span><span>${currentYear} ${nfl ? 'NFL' : 'Points'}</span><span>${prevYear} ${nfl ? 'NFL' : 'Points'}</span><span>Δ</span><span></span>
     </div>
-    ${rows.map(r => compareRow(r, ranks)).join('')}`;
+    ${rows.map(r => compareRow(r, badgeSet(r))).join('')}
+    ${nota}`;
+
+    // Le stesse targhette della tab Season: round di draft, innesto, uscita,
+    // Top di ruolo e verdetto sulla pick. Senza, questa tabella era l'unica in
+    // cui un nome non diceva da dove veniva.
+    function badgeSet({ rec, agg }) {
+        const b = [roundBadge(rounds.get(rec.name))];
+        if (raw && !draftedNames.has(rec.name)) {
+            b.push(`<span class="an-badge an-badge-in">Added W${agg.firstWeek}</span>`);
+        } else if (agg.firstWeek > 1) {
+            b.push(`<span class="an-badge an-badge-in">Since W${agg.firstWeek}</span>`);
+        }
+        if (agg.lastWeekOn < model.lastWeek) {
+            const w = rec.weeks[model.lastWeek];
+            b.push(`<span class="an-badge an-badge-drop">${w && w.teamKey !== currentTeam
+                ? `Traded after W${agg.lastWeekOn}` : `Dropped after W${agg.lastWeekOn}`}</span>`);
+        }
+        b.push(topBadge(rec.name, ranks));
+        b.push(verdictBadge(intent, rec.name, rec.position));
+        return b.filter(Boolean).join(' ');
+    }
 }
 
-function compareRow({ rec, agg, prevPts }, ranks) {
-    const delta = prevPts !== null ? agg.pts - prevPts : null;
+function compareRow({ rec, pts, prevPts }, badges = '') {
+    const delta = pts !== null && prevPts !== null ? pts - prevPts : null;
     const deltaClass = delta === null ? '' : delta >= 0 ? 'an-delta-up' : 'an-delta-down';
     const deltaText = delta === null ? 'Rookie/N.A.' : `${delta >= 0 ? '+' : ''}${fmt(delta, 1)}`;
     return `
     <div class="an-player-row" data-player="${encodeURIComponent(rec.name)}">
         ${headshotImg(rec)}
-        <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${topBadge(rec.name, ranks)}</span>
-        <span class="an-cell an-pts">${fmt(agg.pts, 2)}</span>
+        <span class="an-player-name">${rec.name} ${posBadge(rec.position)} ${badges}</span>
+        <span class="an-cell an-pts">${pts !== null ? fmt(pts, 2) : '—'}</span>
         <span class="an-cell">${prevPts !== null ? fmt(prevPts, 2) : '—'}</span>
         <span class="an-cell ${deltaClass}">${deltaText}</span>
         <span class="an-chevron">›</span>
     </div>
     <div class="an-week-drill" data-drill="${encodeURIComponent(rec.name)}" hidden></div>`;
+}
+
+/**
+ * Carica i totali NFL degli anni che servono e ridisegna. Una volta per anno:
+ * la mappa resta in memoria, e `getSeasonAverages` ha già la sua cache.
+ */
+let _nflInCorso = false;
+async function caricaNflTotals(anni, model) {
+    if (_nflInCorso) return;
+    _nflInCorso = true;
+    try {
+        await Promise.all(anni.map(async y => {
+            if (nflTotals[y]) return;
+            try { nflTotals[y] = await getSeasonAverages(y); }
+            catch { nflTotals[y] = new Map(); }   // anno senza dati: si mostra —
+        }));
+    } finally {
+        _nflInCorso = false;
+    }
+    if (currentTab === 'compare' && avgMode === 'nfl') render(model);
 }
 
 function emptyState(text) {
@@ -758,6 +908,10 @@ function bindContentEvents() {
         const tab = e.target.closest('.an-tab');
         if (tab) {
             currentTab = tab.dataset.tab;
+            // La base "stagione NFL intera" esiste solo nel confronto: uscendo
+            // da lì la pillola sparisce, e restarci sopra lascerebbe il selettore
+            // senza nessuna voce accesa.
+            if (currentTab !== 'compare' && avgMode === 'nfl') avgMode = 'total';
             const model = modelCache[currentYear];
             if (model) render(model);
             return;
@@ -1823,13 +1977,35 @@ function teamEdgeHTML(model, teamKey) {
 // Un titolare vero, non un tappabuchi di un paio di giornate.
 const UPGRADE_MIN_START = 3;
 
+// Quanto sotto la propria previsione deve stare un titolare perché il divario
+// si spieghi con lui e non col rinforzo. Vedi la nota in `upgradeVerdict`.
+const UPGRADE_SOTTO_PREVISIONE = 0.80;
+
+/**
+ * Proiezione PER PARTITA dalle stesse previsioni di preseason che alimentano le
+ * pagelle del draft e la pagina Projections. Sono un totale di stagione, quindi
+ * si divide per le gare previste (Sleeper ne dichiara 18; se non le dichiara si
+ * usano le 17 della regular season).
+ *
+ * Non è un secondo metro migliore del primo: è quello che ci si aspettava PRIMA
+ * che si giocasse. Serve a distinguere due cose che i punti fatti confondono —
+ * un libero forte da uno in stato di grazia, un titolare debole da uno sfortunato.
+ */
+function projPerGame(projMap, name, pos) {
+    if (!projMap) return null;
+    const e = matchProjection(projMap, name, pos);
+    if (!e || e.projPts == null) return null;
+    const gare = e.gp && e.gp > 0 ? e.gp : 17;
+    return e.projPts / gare;
+}
+
 /**
  * Confronto PER PARTITA, non sul totale del ruolo: a WR ci sono due titolari,
  * e mettere un singolo free agent contro la somma dei due sarebbe un paragone
  * falso. Si prende quindi il titolare più debole del ruolo e lo si mette
  * accanto ai liberi, media contro media.
  */
-function upgradeSuggestions(model, teamKey, byPosition, medieStagione) {
+function upgradeSuggestions(model, teamKey, byPosition, medieStagione, projMap) {
     const { weeks, perTeam, lega } = positionEdge(model);
     const t = perTeam[teamKey];
     if (!weeks.length || !t || !byPosition) return [];
@@ -1851,8 +2027,11 @@ function upgradeSuggestions(model, teamKey, byPosition, medieStagione) {
         const suoi = rosa
             .filter(r => r.rec.position === pos && r.agg.gamesStarted >= UPGRADE_MIN_START)
             .map(r => {
-                const st = medieStagione.get(seasonAvgKey(r.rec.name));
-                return st ? { name: r.rec.name, media: st.avg, gare: st.games, start: r.agg.gamesStarted } : null;
+                const st = seasonAverageOf(medieStagione, r.rec.name);
+                return st ? {
+                    name: r.rec.name, media: st.avg, gare: st.games, start: r.agg.gamesStarted,
+                    proj: projPerGame(projMap, r.rec.name, pos),
+                } : null;
             })
             .filter(Boolean)
             .sort((a, b) => a.media - b.media);
@@ -1863,10 +2042,20 @@ function upgradeSuggestions(model, teamKey, byPosition, medieStagione) {
         // giornate non è un rinforzo, è rumore
         const candidati = liberi
             .filter(p => p.weeks.length >= minPartite)
-            .map(p => ({ name: p.name, team: p.team, media: p.totPts / p.weeks.length, gare: p.weeks.length }))
+            .map(p => ({
+                name: p.name, team: p.team,
+                media: p.totPts / p.weeks.length, gare: p.weeks.length,
+                proj: projPerGame(projMap, p.name, pos),
+            }))
             .filter(p => p.media > debole.media)
             .sort((a, b) => b.media - a.media)
-            .slice(0, 3);
+            .slice(0, 3)
+            .map(c => ({
+                ...c,
+                // guadagno atteso: la stessa differenza, ma sui numeri di
+                // preseason. Se è negativa il sorpasso è tutto dentro l'anno.
+                gainAtteso: c.proj != null && debole.proj != null ? c.proj - debole.proj : null,
+            }));
         if (!candidati.length) continue;
 
         out.push({ pos, deficit, debole, candidati });
@@ -1874,23 +2063,67 @@ function upgradeSuggestions(model, teamKey, byPosition, medieStagione) {
     return out.sort((a, b) => b.deficit - a.deficit);
 }
 
+/**
+ * Verdetto dal confronto fra i due metri. Il guadagno vero dice cos'è successo,
+ * quello atteso dice se ci si poteva contare: insieme separano un giocatore
+ * sottovalutato da uno in stato di grazia.
+ */
+function upgradeVerdict(c, debole) {
+    if (c.gainAtteso == null) return null;
+    if (c.gainAtteso > 0) return { cls: 'ok', txt: 'Expected too' };
+    // batte il titolare pur essendo previsto sotto: o è esploso lui, o è
+    // andato male il titolare. Il caso più comune è il primo.
+    //
+    // La soglia è misurata, non a occhio: su 36 titolari-più-deboli fra il 2021
+    // e il 2025, sotto l'80% della propria previsione ne stanno 3 — Barkley 2021
+    // (infortunio), A.J. Brown 2021, Ekeler 2023 — e sono esattamente i casi per
+    // cui l'etichetta esiste. Al 75% ne restava uno solo, al 90% ne entravano sei
+    // e cominciava a comprendere la normale varianza.
+    const sotto = debole.proj != null && debole.media < debole.proj * UPGRADE_SOTTO_PREVISIONE;
+    return sotto
+        ? { cls: 'warn', txt: 'Starter underperforming' }
+        : { cls: 'warn', txt: 'Beating his board' };
+}
+
+/** "11.4" oppure "—" quando la previsione non c'è (coda senza proiezione). */
+const projCell = (v) => (v == null ? '—' : fmt1n(v));
+
 function upgradesHTML(sugg, model) {
     if (!sugg.length) return '';
-    const blocchi = sugg.map(s => `
+    const blocchi = sugg.map(s => {
+        const d = s.debole;
+        const scartoTit = d.proj != null ? d.media - d.proj : null;
+        return `
         <div class="an-upg-group">
             <span class="an-upg-head">
                 <span class="an-upg-pos">${s.pos}</span>
                 <span class="an-upg-deficit">−${fmt1n(s.deficit)} pt/week vs league</span>
-                <span class="an-upg-weak">weakest starter: ${escAttr(s.debole.name)} · ${fmt1n(s.debole.media)}<sup>*</sup> pt/game over ${s.debole.gare} games</span>
+                <span class="an-upg-weak">weakest starter: ${escAttr(d.name)} · ${fmt1n(d.media)}<sup>*</sup> pt/game over ${d.gare} games${
+                    d.proj == null ? ' · no preseason projection'
+                        : ` · projected <b>${fmt1n(d.proj)}</b> (${segno(scartoTit)})`}</span>
             </span>
-            ${s.candidati.map(c => `
+            <div class="an-upg-row an-upg-row--head">
+                <span></span><span></span>
+                <span class="an-upg-avg">actual</span>
+                <span class="an-upg-avg">projected</span>
+                <span class="an-upg-gain">gain</span>
+            </div>
+            ${s.candidati.map(c => {
+                const v = upgradeVerdict(c, d);
+                return `
             <div class="an-upg-row">
                 ${headshotImg({ name: c.name, position: s.pos, nflTeam: c.team }, 'an-upg-photo')}
-                <span class="an-upg-name">${escAttr(c.name)} <small>${escAttr(c.team || '')}</small></span>
-                <span class="an-upg-avg">${fmt1n(c.media)}<sup>*</sup><small> pt/game</small></span>
-                <span class="an-upg-gain">+${fmt1n(c.media - s.debole.media)}</span>
-            </div>`).join('')}
-        </div>`).join('');
+                <span class="an-upg-name">${escAttr(c.name)} <small>${escAttr(c.team || '')}</small>${
+                    v ? `<span class="an-upg-verdict an-upg-verdict--${v.cls}">${v.txt}</span>` : ''}</span>
+                <span class="an-upg-avg">${fmt1n(c.media)}<sup>*</sup></span>
+                <span class="an-upg-avg an-upg-avg--proj">${projCell(c.proj)}</span>
+                <span class="an-upg-gain">+${fmt1n(c.media - d.media)}${
+                    c.gainAtteso == null ? ''
+                        : `<small class="an-upg-gain-proj">${segno(c.gainAtteso)}</small>`}</span>
+            </div>`;
+            }).join('')}
+        </div>`;
+    }).join('');
 
     return `
     <h3 class="an-sub-title">Where to look for an upgrade</h3>
@@ -1903,7 +2136,15 @@ function upgradesHTML(sugg, model) {
        Both sides<sup>*</sup> are the same measure: points per game actually played across the whole NFL
        season, recalculated from real NFL stats with the league's scoring. The starter is <b>not</b> judged on
        his average in the weeks this team started him — on three or four starts, picking the lowest of those
-       averages finds the unluckiest small sample rather than the weakest player, and it overstated the gain.</p>
+       averages finds the unluckiest small sample rather than the weakest player, and it overstated the gain.<br>
+       <b>Projected</b> is the second measure: the same preseason projection that feeds the draft grades and the
+       Projections page, divided by the games it expects. It answers a different question — not what happened,
+       but what was expected before a snap was played. The small number under each gain is the same gap on
+       projections. <b>Expected too</b> means the board saw it coming and the edge is not a hot streak;
+       <b>beating his board</b> means the whole gap was built this season, so it can give it back;
+       <b>starter underperforming</b> means the starter is running more than 20% below his own projection, so a
+       bounce-back may be cheaper than a pickup. Players with no preseason projection show —: the ranking never
+       depends on it, it only annotates.</p>
     <div class="an-upg-grid">${blocchi}</div>`;
 }
 
@@ -1911,12 +2152,15 @@ function upgradesHTML(sugg, model) {
 async function loadUpgrades(wrap, model, teamKey) {
     const box = wrap.querySelector('#an-upgrade-wrap');
     if (!box) return;
-    const [byPosition, medieStagione] = await Promise.all([
+    // Le proiezioni sono un di più: se Sleeper non risponde il blocco esce
+    // comunque, con la sola colonna dei punti fatti.
+    const [byPosition, medieStagione, projMap] = await Promise.all([
         getBestAvailable(model.year),
         getSeasonAverages(model.year),
+        getSeasonProjections(model.year).catch(() => null),
     ]);
     if (!wrap.isConnected || wrap.querySelector('#an-upgrade-wrap') !== box) return;
-    box.innerHTML = upgradesHTML(upgradeSuggestions(model, teamKey, byPosition, medieStagione), model);
+    box.innerHTML = upgradesHTML(upgradeSuggestions(model, teamKey, byPosition, medieStagione, projMap), model);
     hydrateImages(box);
 }
 
@@ -2279,7 +2523,6 @@ function renderLeagueView(model) {
     ${buildPickupsCompareTable(model)}
     <p class="an-footnote">In-season pickups sorted by points scored (best first), not by position.</p>
 
-    <div id="an-injury-wrap" class="an-rule"></div>
     <div id="an-bestavail-wrap" class="an-rule"></div>`;
 }
 
@@ -2473,44 +2716,6 @@ function injuryTeamCardHTML(t, righe) {
     </div>`;
 }
 
-/** Carica e disegna il blocco infortuni: async, quindi dopo il resto della pagina. */
-async function loadInjuryReport(wrap, model) {
-    const box = wrap.querySelector('#an-injury-wrap');
-    if (!box) return;
-    box.innerHTML = `<h3 class="an-sub-title">Injury Report</h3><p class="an-footnote">Loading…</p>`;
-
-    // Prima del draft non c'è nessuna rosa da controllare: dirlo, non far
-    // sembrare che quattro squadre draftate abbiano avuto zero infortunati.
-    if (!model.draft?.teams || !Object.keys(model.draft.teams).length) {
-        box.innerHTML = `
-        <h3 class="an-sub-title">Injury Report</h3>
-        <p class="an-footnote">Draft data not available for ${model.year}.</p>`;
-        return;
-    }
-
-    const squadre = Object.values(TEAMS);
-    const report = await Promise.all(squadre.map(t => teamInjuryReport(model, t.key)));
-    // La pagina può essere cambiata mentre si aspettava: non si scrive su un
-    // box che nel frattempo appartiene a un altro anno/squadra.
-    if (!wrap.isConnected || wrap.querySelector('#an-injury-wrap') !== box) return;
-
-    const cards = squadre.map((t, i) => injuryTeamCardHTML(t, report[i])).join('');
-    box.innerHTML = `
-    <h3 class="an-sub-title">Injury Report</h3>
-    ${injuryLegendHTML(report)}
-    <p class="an-footnote">Everyone who passed through a roster this season: first the players the team
-       drafted, then the ones picked up in-season, each sorted by weeks missed. <i>#R3</i> is the draft round, shown only for drafted
-       players. Two sources, neither from Firebase: the weekly NFL injury report (Out / Doubtful / Questionable
-       — a pre-game designation, not proof of a game missed), and the weekly NFL roster status, which is what
-       catches <b>IR</b> — a season-ending injury drops off the weekly report entirely, so without it the worst
-       injuries were the invisible ones. <b>Reserve</b> means the player was on a reserve list but the source
-       doesn't say why (older seasons often don't record the reason). <b>${SENZA_DESIGNAZIONE}</b> is a week
-       the player showed up on the practice report without any game designation at all.</p>
-    <div class="an-inj-grid">${cards}</div>`;
-    bindInjuryReport(box);
-    hydrateImages(box);
-}
-
 /** I pulsanti "Show N more" delle card infortuni. */
 function bindInjuryReport(box) {
     box.addEventListener('click', (e) => {
@@ -2675,7 +2880,7 @@ async function loadBestAvailable(wrap, model) {
     hydrateImages(box); // il giro iniziale è già passato: senza, restano le sagome
 }
 
-/** Come loadInjuryReport ma una sola squadra, per la tab Trends della vista squadra. */
+/** Infortuni della squadra scelta, nella tab Trends della vista squadra. */
 async function loadTeamInjuryReport(wrap, model, teamKey) {
     const box = wrap.querySelector('#an-injury-team-wrap');
     if (!box) return;
@@ -2709,6 +2914,57 @@ function seasonTotalPts(rec) {
 
 // Assegna i migliori giocatori agli slot del lineup titolare; il resto va in panchina.
 // L'ordinamento segue la metrica attualmente selezionata per la sezione (totale o punti/partita).
+/**
+ * Chi la squadra aveva in testa come titolare mentre draftava: il primo QB, i
+ * primi due RB, i primi due WR, il primo TE, e il flex — il terzo RB o il terzo
+ * WR, quello chiamato per primo. Kicker e difese restano fuori: si prendono in
+ * fondo, e non è lì che un draft si vince.
+ *
+ * Serve a dare un significato preciso a "flop". Non basta che uno abbia fatto
+ * pochi punti: una scelta alta che finisce in panchina è una scelta sbagliata
+ * due volte, perché quel posto da titolare l'ha poi riempito qualcun altro.
+ */
+const QUOTA_TITOLARI = { QB: 1, RB: 2, WR: 2, TE: 1 };
+const RUOLI_DRAFTABILI = new Set(Object.keys(QUOTA_TITOLARI));
+
+/**
+ * "Saquon Barkley" → "S. Barkley". Le difese restano intere: il loro nome è
+ * già quello della squadra NFL e "S. Seahawks" non vorrebbe dire niente.
+ * Serve a fare posto alle partite giocate senza allargare la tabella, che ha
+ * quattro colonne di squadra e su telefono non ne ha da spendere.
+ */
+function nomeCorto(p) {
+    const pos = (p.pos || '').toUpperCase();
+    // Le difese non si abbreviano con l'iniziale ("S. Seahawks" non vuol dire
+    // niente): si tiene il solo soprannome, che nella NFL è unico e da solo
+    // basta a riconoscere la squadra. "New England Patriots" occupava vent'otto
+    // caratteri in una colonna che ne ha da spendere una decina.
+    if (pos === 'DEF' || pos === 'D/ST') {
+        const parti = String(p.name || '').trim().split(/\s+/);
+        return parti[parti.length - 1] || p.name;
+    }
+    const parti = String(p.name || '').trim().split(/\s+/);
+    return parti.length < 2 ? p.name : `${parti[0][0]}. ${parti.slice(1).join(' ')}`;
+}
+
+function intendedStarters(picks) {
+    // sull'ordine di chiamata, non sull'ordine dell'array: il numero di pick
+    // c'è, e affidarsi a com'è salvato il file sarebbe una supposizione
+    const ordine = [...picks].sort((a, b) => (a.pick ?? 0) - (b.pick ?? 0));
+    const visti = { QB: 0, RB: 0, WR: 0, TE: 0 };
+    const attesi = new Set();
+    let flex = null;
+    for (const p of ordine) {
+        const pos = (p.pos || '').toUpperCase();
+        if (!(pos in visti)) continue;
+        visti[pos]++;
+        if (visti[pos] <= QUOTA_TITOLARI[pos]) { attesi.add(p.name); continue; }
+        if (!flex && visti[pos] === 3 && (pos === 'RB' || pos === 'WR')) flex = p.name;
+    }
+    if (flex) attesi.add(flex);
+    return attesi;
+}
+
 function assignLineup(players, section) {
     const pool = [...players].sort((a, b) => ptblValue(b.pts, b.games, section) - ptblValue(a.pts, a.games, section));
     const used = new Set();
@@ -2769,11 +3025,26 @@ function buildRosterCompareTable(model, mode) {
             if (!raw) return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', missing: true };
             players = (model.draft.teams[raw] || []).map(pick => {
                 const rec = model.players.get(pick.name);
-                return { name: pick.name, pos: rec?.position || pick.position, pts: rec ? seasonTotalPts(rec) : 0, games: rec ? Object.keys(rec.weeks).length : 0 };
+                return {
+                    name: pick.name, pick: pick.pick,
+                    pos: rec?.position || pick.position,
+                    pts: rec ? seasonTotalPts(rec) : 0,
+                    games: rec ? Object.keys(rec.weeks).length : 0,
+                };
             });
+            const attesi = intendedStarters(players);
+            players.forEach(p => { p.atteso = attesi.has(p.name); p.draftato = true; });
         } else {
             // 'best': tutti i giocatori passati dalla rosa in stagione (non solo quelli finali)
-            players = seasonView(model, t.key).map(({ rec, agg }) => ({ name: rec.name, pos: rec.position, pts: agg.pts, games: agg.games }));
+            const intent = draftIntent(model, t.key);
+            players = seasonView(model, t.key).map(({ rec, agg }) => ({
+                name: rec.name, pos: rec.position, pts: agg.pts, games: agg.games,
+                // preso in corsa: non era fra le scelte del draft. Senza draft
+                // non si può dire, e allora non si dice.
+                preso: intent ? !intent.draftati.has(rec.name) : false,
+                draftato: intent ? intent.draftati.has(rec.name) : false,
+                atteso: intent ? intent.attesi.has(rec.name) : false,
+            }));
         }
         return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', ...assignLineup(players, mode) };
     });
@@ -2795,11 +3066,28 @@ function buildRosterCompareTable(model, mode) {
             : `<span class="an-ptbl-delta">−${fmt(gap, decimals)}</span>`;
     };
     const isLeader = (val, rowMax) => val !== null && val !== undefined && rowMax !== null && (rowMax - val) <= 0.05;
-    const playerCell = (p, rowMax) => {
+    const playerCell = (p, rowMax, inPanchina = false) => {
         if (!p) return '<span class="an-ptbl-empty">—</span>';
         const val = ptblValue(p.pts, p.games, mode);
         const leader = isLeader(val, rowMax);
-        return `<span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span>`;
+        // Le due facce dello stesso conto, e valgono solo dove il draft aveva
+        // un'intenzione: kicker e difese si prendono in fondo, non c'è né flop
+        // né colpo di fortuna.
+        //   flop  = doveva partire titolare, ha finito in panchina
+        //   steal = preso come riserva, ha finito nel quintetto titolare
+        // Vale solo per chi è stato draftato: su un innesto preso in corsa non
+        // c'era nessuna intenzione da tradire, e senza questo controllo ogni suo
+        // titolare nella "Best Team" risultava un colpo di fortuna.
+        const inGioco = p.draftato && RUOLI_DRAFTABILI.has((p.pos || '').toUpperCase());
+        const flop = inGioco && p.atteso && inPanchina;
+        const steal = inGioco && !p.atteso && !inPanchina;
+        return `<div class="an-ptbl-in"><span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${nomeCorto(p)}</span>${
+            flop ? '<span class="an-ptbl-flop" title="Drafted to start, ended up on the bench">flop</span>' : ''
+        }${
+            steal ? '<span class="an-ptbl-steal" title="Drafted as a backup, ended up starting">steal</span>' : ''
+        }${
+            p.preso ? '<span class="an-ptbl-in-season" title="Picked up in-season, not drafted">in</span>' : ''
+        }<span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-gp">${p.games} GP</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span></div>`;
     };
     const emptyTd = '<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>';
 
@@ -2824,7 +3112,7 @@ function buildRosterCompareTable(model, mode) {
         benchRows.push(`
         <tr>
             <td class="an-ptbl-slot an-ptbl-slot--bn">BN</td>
-            ${teams.map(t => t.missing ? emptyTd : `<td class="an-ptbl-cell">${playerCell(t.bench?.[i], rowMax)}</td>`).join('')}
+            ${teams.map(t => t.missing ? emptyTd : `<td class="an-ptbl-cell">${playerCell(t.bench?.[i], rowMax, true)}</td>`).join('')}
         </tr>`);
     }
     body += collapseRowsHtml(benchRows, teams.length + 1, 'bench players');
@@ -2839,7 +3127,7 @@ function buildRosterCompareTable(model, mode) {
             ${teams.map((t, ti) => {
             if (t.missing) return `<td class="an-ptbl-cell"><span class="an-ptbl-empty">—</span></td>`;
             const leader = isLeader(arr[ti], rowMax);
-            return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(arr[ti], decimals)}</b>${delta(arr[ti], rowMax)}</span></td>`;
+            return `<td class="an-ptbl-cell"><div class="an-ptbl-in"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(arr[ti], decimals)}</b>${delta(arr[ti], rowMax)}</span></div></td>`;
         }).join('')}
         </tr>`;
     };
@@ -2888,7 +3176,7 @@ function buildPickupsCompareTable(model) {
         if (!p) return '<span class="an-ptbl-empty">—</span>';
         const val = ptblValue(p.pts, p.games, section);
         const leader = isLeader(val, rowMax);
-        return `<span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span>`;
+        return `<div class="an-ptbl-in"><span class="an-ptbl-name${leader ? ' an-ptbl-name--best' : ''}">${p.name}</span><span class="an-ptbl-pos">${p.pos}</span><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(val, decimals)}</b>${delta(val, rowMax)}</span></div>`;
     };
 
     const rows = [];
@@ -2910,7 +3198,7 @@ function buildPickupsCompareTable(model) {
             <td class="an-ptbl-slot">Total</td>
             ${teams.map((t, ti) => {
         const leader = isLeader(totalArr[ti], totalRowMax);
-        return `<td class="an-ptbl-cell"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(totalArr[ti], decimals)}</b>${delta(totalArr[ti], totalRowMax)}</span></td>`;
+        return `<td class="an-ptbl-cell"><div class="an-ptbl-in"><span class="an-ptbl-val"><b class="an-ptbl-pts${leader ? ' an-ptbl-pts--best' : ''}">${fmt(totalArr[ti], decimals)}</b>${delta(totalArr[ti], totalRowMax)}</span></div></td>`;
     }).join('')}
         </tr>`;
 

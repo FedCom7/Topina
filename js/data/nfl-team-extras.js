@@ -436,7 +436,33 @@ export async function getPlayerInjuries(gsis, name, pos, years) {
     return out;
 }
 
-const _normLettersOnly = (n) => (n || '').toLowerCase().replace(/[^a-z]/g, '');
+// Deve restare allineata a `norm()` in scripts/build-nfl-player-scores.mjs e
+// scripts/espn/build_inactives.py: le chiavi delle mappe che questo file legge
+// sono scritte da quei due script. Senza togliere il suffisso, "Chris Godwin"
+// (qui) e "Chris Godwin Jr." (nflverse) normalizzano diverso e la chiave non
+// si trova mai — silenziosamente, perché una entry mancante sembra solo un
+// giocatore senza dati.
+const _normLettersOnly = (n) => (n || '').toLowerCase()
+    .replace(/\s+(jr|sr|ii|iii|iv|v)\.?$/i, '')
+    .replace(/[^a-z]/g, '');
+
+// Chiave con la vecchia normalizzazione (nessun suffisso tolto): i JSON già
+// committati sono stati scritti prima di questo fix e la pipeline notturna
+// (build-nflverse.yml, tutti i giorni alle 9 UTC) li rigenera con le chiavi
+// nuove solo al prossimo giro. Finché non è passata, un giocatore con
+// "Jr./Sr./III..." nel nome andrebbe cercato con la chiave vecchia — provare
+// solo quella nuova lo farebbe sparire per una finestra di ore da tutto ciò
+// che questo file legge (Injury Report, Best Available, Where to look for an
+// upgrade), invece di restare quello di sempre finché i dati non si aggiornano.
+const _normLettersOnlyLegacy = (n) => (n || '').toLowerCase().replace(/[^a-z]/g, '');
+
+/** Cerca `name` in una mappa a chiave-nome, provando prima la normalizzazione
+ * corrente e poi quella legacy — vedi nota sopra su `_normLettersOnlyLegacy`. */
+function lookupByName(players, name) {
+    if (!players) return undefined;
+    const k = _normLettersOnly(name);
+    return players[k] !== undefined ? players[k] : players[_normLettersOnlyLegacy(name)];
+}
 
 /**
  * Esito REALE (ha giocato o no) di un giocatore, settimana per settimana, in
@@ -450,7 +476,7 @@ const _normLettersOnly = (n) => (n || '').toLowerCase().replace(/[^a-z]/g, '');
  */
 export async function getPlayerInactive(name, year) {
     const data = await inactivesJson(year);
-    const entry = data?.players?.[_normLettersOnly(name)];
+    const entry = lookupByName(data?.players, name);
     if (!entry) return new Map();
     return new Map(Object.entries(entry).map(([wk, dnp]) => [Number(wk), dnp]));
 }
@@ -463,7 +489,7 @@ export async function getPlayerInactive(name, year) {
  */
 export async function getUnrosteredScores(name, year) {
     const data = await unrosteredScoresJson(year);
-    const entry = data?.players?.[_normLettersOnly(name)];
+    const entry = lookupByName(data?.players, name);
     if (!entry) return new Map();
     return new Map(entry.map(w => [w.week, w]));
 }
@@ -486,8 +512,14 @@ export async function getSeasonAverages(year) {
     return out;
 }
 
-/** Chiave con cui cercare dentro getSeasonAverages (stessa normalizzazione del build). */
-export const seasonAvgKey = _normLettersOnly;
+/** Come `lookupByName`, ma sulla Map già costruita da `getSeasonAverages`
+ * (che è indicizzata per nome, non per `Object.players`): stessa ragione, la
+ * chiave del JSON committato può ancora essere quella legacy finché la
+ * pipeline notturna non rigenera. */
+export function seasonAverageOf(map, name) {
+    if (!map) return undefined;
+    return map.get(_normLettersOnly(name)) ?? map.get(_normLettersOnlyLegacy(name));
+}
 
 /**
  * I migliori QB/RB/WR/TE MAI passati su nessuna delle 4 rose, quell'anno —
@@ -513,7 +545,7 @@ export async function getBestAvailable(year) {
  */
 export async function getPlayerStatus(name, year) {
     const data = await playerStatusJson(year);
-    const entry = data?.players?.[_normLettersOnly(name)];
+    const entry = lookupByName(data?.players, name);
     if (!entry) return new Map();
     return new Map(Object.entries(entry).map(([wk, st]) => [Number(wk), st]));
 }

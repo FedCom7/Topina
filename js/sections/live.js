@@ -115,6 +115,37 @@ function injuryOf(p) {
     return v && !['ACTIVE', 'NORMAL'].includes(v) ? v : null;
 }
 
+/**
+ * Targhetta infortunio, la stessa del Game Center: pillola colorata per stato.
+ * ESPN scrive in maiuscolo e con l'underscore ("INJURY_RESERVE"), qui si porta
+ * alla forma leggibile e alla classe di colore. `corto` serve sul campo, dove
+ * lo slot è largo un centinaio di pixel e la parola intera non ci sta.
+ */
+const INJ_LABEL = {
+    questionable: ['Questionable', 'Q'],
+    doubtful: ['Doubtful', 'D'],
+    out: ['Out', 'OUT'],
+    'injury-reserve': ['IR', 'IR'],
+    suspension: ['Susp', 'SUS'],
+    'day-to-day': ['Day to day', 'DTD'],
+    probable: ['Probable', 'P'],
+};
+
+function injuryTagHTML(p, corto = false) {
+    const raw = injuryOf(p);
+    if (!raw) return '';
+    const k = String(raw).toLowerCase().replace(/[^a-z]+/g, '-');
+    const [lungo, breve] = INJ_LABEL[k] || [String(raw), String(raw).slice(0, 3)];
+    return `<span class="gb-out-inj gb-out-inj--${k}" data-short="${breve}">${corto ? breve : lungo}</span>`;
+}
+
+/** "@NYJ" / "NYJ" → "@ NYJ" / "vs NYJ", vuoto se la partita non si sa. */
+function avversarioHTML(p) {
+    const raw = String(p?.opponent || '').trim();
+    if (!raw) return '';
+    return `<i class="live-vs">${raw.startsWith('@') ? '@' : 'vs'} ${escAttr(raw.replace('@', ''))}</i>`;
+}
+
 function teamOf(rawName) {
     return TEAMS[TEAM_KEYS[displayName(rawName)]] || null;
 }
@@ -883,6 +914,33 @@ async function fillFromEspn() {
     return true;
 }
 
+/**
+ * Avversario di giornata a chi ne è privo. Terzo riempitivo generico accanto a
+ * `fillFromEspn` (punti) e `fillMissingProjections` (proiezioni): le rose
+ * composte dalle scelte del draft portano nome e squadra NFL ma non la partita,
+ * e senza questo campo e confronto mostrano "QB · LV" e basta. Non costa una
+ * richiesta: il tabellone della settimana è già in `liveSchedule`. Chi ha il
+ * bye non compare nella mappa e resta senza, che è la cosa giusta da mostrare.
+ */
+function fillMissingOpponents() {
+    if (!liveSchedule) return 0;
+    let n = 0;
+    for (const m of matchups) {
+        for (const lato of ['team1', 'team2']) {
+            for (const p of [...(m[lato]?.starters || []), ...(m[lato]?.bench || [])]) {
+                if (p.opponent) continue;
+                // Le difese non portano la sigla: il loro nome è già quello
+                // della squadra NFL ("Arizona Cardinals"), quindi si ricava da lì.
+                const sigla = p.nfl_team || teamAbbrFromName(p.name);
+                if (!sigla) continue;
+                const g = liveSchedule.get(canonAbbr(sigla));
+                if (g?.opponent) { p.opponent = g.opponent; n++; }
+            }
+        }
+    }
+    return n;
+}
+
 async function hydrateScheduleAndRender(year, week) {
     try {
         if (preseasonMode) {
@@ -895,6 +953,7 @@ async function hydrateScheduleAndRender(year, week) {
     } catch {
         liveSchedule = null;
     }
+    fillMissingOpponents();
     // Rete di sicurezza: se una partita è cominciata ma nessuno ha ancora un
     // punto, chi doveva darceli non sta rispondendo — l'API fantasy o lo script
     // che riempie Firebase. Si compongono allora i totali dal tabellino
@@ -1536,7 +1595,7 @@ function chip(p, side) {
         </span>
         <span class="live-chip-name">${shortName(p)}</span>
         <span class="live-chip-pts">${ptsHTML(p)}</span>
-        ${injury ? `<span class="live-chip-injury-badge">${injury}</span>` : ''}
+        ${injury || p.opponent ? `<span class="live-chip-meta">${injuryTagHTML(p)}${avversarioHTML(p)}</span>` : ''}
     </div>`;
 }
 
@@ -1654,7 +1713,7 @@ function fieldSlot(p, extraClass = '') {
         <span class="slot-name">${shortName(p)}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
-        ${injury ? `<span class="live-slot-inj">${escAttr(injury)}</span>` : ''}
+        ${injury || p.opponent ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}${avversarioHTML(p)}</span>` : ''}
     </div>`;
 }
 
@@ -1822,15 +1881,21 @@ const CMP_STAT_COLS = 3;
 function compareName(p, side) {
     if (!p) return `<div class="live-cmp-who live-cmp-who--${side}"><span class="live-cmp-empty">—</span></div>`;
     const role = (p.position_in_team || p.position || '').toUpperCase();
-    const meta = [role, p.nfl_team].filter(Boolean).join(' · ')
-        + (p.opponent ? ` | vs ${String(p.opponent).replace('@', '')}` : '');
+    // Tre pezzi separati invece di una stringa sola: ruolo e squadra possono
+    // accorciarsi, avversario e targhetta no. Attaccati com'erano, su schermo
+    // stretto l'ellissi mangiava proprio l'avversario e lo stato — le due
+    // informazioni che servono a decidere. L'ordine è speculare fra i due lati.
+    const testo = `<span class="live-cmp-metatxt">${escAttr([role, p.nfl_team].filter(Boolean).join(' · '))}</span>`;
+    const vs = avversarioHTML(p);
+    const tag = injuryTagHTML(p);
+    const meta = side === 'r' ? `${tag}${vs}${testo}` : `${testo}${vs}${tag}`;
     return `
     <div class="live-cmp-who live-cmp-who--${side}"
          data-player-modal data-player-name="${escAttr(p.name)}"
          data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
         <span class="live-cmp-name">${escAttr(p.name)}</span>
-        <span class="live-cmp-meta">${escAttr(meta)}</span>
+        <span class="live-cmp-meta">${meta}</span>
     </div>`;
 }
 

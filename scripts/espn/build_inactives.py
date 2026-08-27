@@ -69,9 +69,17 @@ def fetch_safe(url):
 
 
 def norm(s):
-    """Solo lettere minuscole: assorbe spazi, punti, apostrofi, trattini e
-    suffissi (Jr./Sr./III...) senza bisogno di un elenco a parte."""
-    return re.sub(r"[^a-z]", "", (s or "").lower())
+    """Solo lettere minuscole: assorbe spazi, punti, apostrofi e trattini.
+
+    Il suffisso (Jr./Sr./III...) va tolto ESPLICITAMENTE, non basta togliere
+    la punteggiatura: "Chris Godwin Jr." diventerebbe "chrisgodwinjr", ma
+    Firebase per lo stesso giocatore ha "Chris Godwin" senza suffisso — le due
+    chiavi normalizzate divergerebbero e la entry sparirebbe in silenzio.
+    Deve restare allineata a `norm()` in build-nfl-player-scores.mjs e a
+    `_normLettersOnly` in js/data/nfl-team-extras.js, che legge questo JSON.
+    """
+    s = re.sub(r"\s+(jr|sr|ii|iii|iv|v)\.?$", "", (s or "").lower(), flags=re.IGNORECASE)
+    return re.sub(r"[^a-z]", "", s)
 
 
 def surname(full_name):

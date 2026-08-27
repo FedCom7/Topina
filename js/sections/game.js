@@ -26,7 +26,7 @@ import {
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=7';
 import { TEAMS } from './team.js?v=610';
 import { playerImageService } from '../services/player-image-service.js?v=520';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=937';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=940';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -307,13 +307,25 @@ function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
                data-pos="${p.position_in_team || p.position || ''}">`
         : '<span class="gb-headshot gb-headshot-xs gb-headshot--empty"></span>';
 
-    const cell = (p) => {
+    // `side` decide da che parte sta la targhetta infortunio. La riga di destra
+    // è allineata a destra e tronca con l'ellissi: una targhetta in coda alla
+    // stringa sarebbe la prima cosa a sparire, quindi lì va davanti al ruolo.
+    const cell = (p, side) => {
         if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
         const stato = injuryMap?.get(p.name);
+        // `data-short` è la forma che il CSS mostra al posto della parola quando la
+        // colonna si stringe: su telefono il meta sta in una quarantina di pixel.
+        const BREVE = { questionable: 'Q', doubtful: 'D', out: 'OUT', ir: 'IR' };
+        const k = String(stato || '').toLowerCase();
+        const tag = stato
+            ? `<span class="gb-out-inj gb-out-inj--${k}" data-short="${BREVE[k] || stato.slice(0, 3)}">${stato}</span>`
+            : '';
+        const testo = `${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}`;
+        const txt = `<span class="gb-out-metatxt">${testo}</span>`;
         return `
         <div class="gb-out-player">
             <span class="gb-out-name">${liveNow(p) ? '<i class="gb-live-dot"></i>' : ''}<span class="gb-out-name-full">${p.name}</span><span class="gb-out-name-short">${shortName(p)}</span></span>
-            <span class="gb-out-meta">${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}${stato ? ` <span class="gb-out-inj gb-out-inj--${stato.toLowerCase()}">${stato}</span>` : ''}</span>
+            <span class="gb-out-meta">${side === 'r' ? `${tag}${txt}` : `${txt}${tag}`}</span>
         </div>`;
     };
     // Mini-stat a valori (2-3 per ruolo): numero sopra, etichetta micro sotto.
@@ -345,12 +357,12 @@ function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
         <div class="gb-out-row${extraCls}">
             ${posBadge}
             ${foto(a)}
-            ${cell(a)}
+            ${cell(a, 'l')}
             ${stat(a, 'gb-out-stat--l')}
             <span class="gb-out-pts${pa > pb ? ' win' : ''}">${pa.toFixed(2)}</span>
             <span class="gb-out-pts${pb > pa ? ' win' : ''}">${pb.toFixed(2)}</span>
             ${stat(b, 'gb-out-stat--r')}
-            ${cell(b)}
+            ${cell(b, 'r')}
             ${foto(b)}
             ${posBadge}
         </div>`;
