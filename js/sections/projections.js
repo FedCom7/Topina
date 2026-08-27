@@ -19,8 +19,8 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=610';
-import { initPlayerModal } from '../components/player-modal.js?v=615';
+import { TEAMS } from './team.js?v=635';
+import { initPlayerModal } from '../components/player-modal.js?v=640';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=594';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=26';

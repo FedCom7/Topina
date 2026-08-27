@@ -17,7 +17,7 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=610';
+import { TEAMS } from './team.js?v=635';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=525';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=511';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
@@ -27,7 +27,8 @@ import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=615';
+import { initPlayerModal } from '../components/player-modal.js?v=640';
+import { mountFx, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=25';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 
@@ -73,6 +74,9 @@ const BIG_EVENTS = new Set(['pass_td', 'rush_td', 'rec_td', 'ret_td', 'fum_td', 
 let prevSnapshot = null;   // { playerName: { pts, stats } }
 let receipts = [];         // storico scontrini (più recenti in testa)
 let compareMode = false;   // false = campo, true = confronto titolari
+let fxLayer = null;        // livello degli effetti, vive dentro il campo
+let fxDemoFatta = false;   // ?fxdemo= parte una volta per caricamento
+let simDemo = false;       // simulatore da console acceso: i numeri sono finti
 
 let loaded = false;
 let pollTimer = null;
@@ -153,22 +157,9 @@ function teamOf(rawName) {
 /**
  * Contesto partita per la scheda giocatore: nel Live conta la gara in corso,
  * non la carriera, quindi si passano punti e statistiche mostrati (proiezione
- * prima del kickoff, reali da lì in poi).
+ * prima del kickoff, reali da lì in poi). La squadra NFL vera è già nel
+ * `data-nfl` con cui si apre la scheda — qui non si ripete.
  */
-/** La squadra fantasy che ha questo giocatore in rosa, per la scheda. */
-function squadraDi(p) {
-    for (const m of matchups) {
-        for (const lato of ['team1', 'team2']) {
-            const t = m[lato];
-            if (!t) continue;
-            if ([...(t.starters || []), ...(t.bench || [])].some(x => x.name === p?.name)) {
-                return displayName(t.name);
-            }
-        }
-    }
-    return '';
-}
-
 function gameAttr(p) {
     const payload = {
         pts: effPts(p),
@@ -178,7 +169,6 @@ function gameAttr(p) {
         week: currentWeekNum,
         year: CURRENT_SEASON,
         started: true,
-        fantasyTeam: squadraDi(p),
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
         // sempre anche la previsione, che la scheda mostra in piccolo accanto
         // a ogni numero reale — a giornata iniziata è l'unico modo per capire
@@ -1086,7 +1076,12 @@ function ptsHTML(p) {
     if (pIsProjected(p)) return `<span class="pts-val proj-pts">${val}</span>`;
     // Non ha ancora giocato: uno zero direbbe "ha giocato e non ha fatto
     // niente", che è un'altra cosa. Trattino finché la sua partita non parte.
-    if (!daGiocare(p)) return `<span class="pts-val">–</span>`;
+    //
+    // Blu come le proiezioni, perché dice la stessa cosa: questo non è un
+    // punteggio vero. Nel sito il blu vuol dire "previsto, non ancora
+    // successo" — e un trattino è il caso limite, dove nemmeno la previsione
+    // c'è. In nero si confondeva con un punteggio a zero.
+    if (!daGiocare(p)) return `<span class="pts-val proj-pts">–</span>`;
     const previsto = p?.projected_points == null ? ''
         : `<small class="pts-proj" title="projected">${fmt(P(p.projected_points))}</small>`;
     return `<span class="pts-val">${val}</span>${previsto}`;
@@ -1095,6 +1090,10 @@ function ptsHTML(p) {
 /** La sua partita è cominciata? (se non si sa nulla, si suppone di sì) */
 function daGiocare(p) {
     if (!p || p.placeholder) return false;
+    // Col simulatore le partite si giocano per finta: senza questa riga il
+    // calendario vero (partite ancora `pre`) rimetteva il trattino al posto dei
+    // punti a ogni ridisegno, e i totali sembravano azzerarsi.
+    if (simDemo) return true;
     const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
     const g = ab ? liveSchedule?.get(ab) : null;
     return g ? g.state !== 'pre' : true;
@@ -1335,6 +1334,18 @@ function render() {
     root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
     bindSwipe(root.querySelector('[data-swipe]'));
     bindDeepDive(root);
+    // Il campo è stato riscritto: il livello effetti se n'è andato con lui,
+    // e con esso qualunque festa in volo.
+    fermaEffetti();
+    fxLayer = mountFx(root);
+
+    // ?fxdemo=rec_td — una volta sola per caricamento, non a ogni ridisegno:
+    // altrimenti ripartirebbe a ogni cambio squadra.
+    const daUrl = new URLSearchParams(location.search).get('fxdemo');
+    if (daUrl && fxLayer && !fxDemoFatta) {
+        fxDemoFatta = true;
+        setTimeout(() => provaEffetto(daUrl), 400);
+    }
 }
 
 /**
@@ -1466,7 +1477,7 @@ function headerHTML() {
         <div class="live-header-left">
             <h1 class="live-header-title">${weekLabelText}</h1>
             <span class="live-header-kicker">
-                ${pbpDemo() ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
+                ${pbpDemo() || simDemo ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
                 ${preseasonMode ? '<span class="live-demo-badge">PRESEASON · test mode</span>' : ''}
                 ${usingEspnFallback ? '<span class="live-source-badge">da ESPN</span>' : ''}
                 ${statusBadgeHTML()}
@@ -1713,7 +1724,7 @@ function fieldSlot(p, extraClass = '') {
         <span class="slot-name">${shortName(p)}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
-        ${injury || p.opponent ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}${avversarioHTML(p)}</span>` : ''}
+        ${injury ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}</span>` : ''}
     </div>`;
 }
 
@@ -1753,20 +1764,39 @@ function emptyRoster(team) {
  * Formazione vista dall'alto, con l'attacco rivolto verso la end zone in alto:
  * righe orizzontali (scrimmage → QB → RB → K/DEF), come le yard line del campo.
  */
+/**
+ * I titolari come li DISEGNA il campo, posto per posto.
+ *
+ * Il campo ha nove posti fissi: se una rosa porta fra i titolari un terzo RB o
+ * un secondo TE, quello non viene disegnato. Vale la pena avere la selezione in
+ * un posto solo, perché chiunque debba ragionare su "chi si vede" (il
+ * simulatore, per esempio) deve guardare esattamente questa lista, altrimenti
+ * assegna punti a un giocatore che a schermo non c'è e i totali non tornano.
+ */
+function titolariInCampo(team) {
+    const s = team?.starters || [];
+    return {
+        K: byPos(s, 'K'), DEF: byPos(s, 'DEF') || byPos(s, 'D/ST'),
+        WR1: byPos(s, 'WR', 0), TE: byPos(s, 'TE'),
+        FLEX: byPos(s, 'FLEX'), WR2: byPos(s, 'WR', 1),
+        RB1: byPos(s, 'RB', 0), QB: byPos(s, 'QB'), RB2: byPos(s, 'RB', 1),
+    };
+}
+
 function fieldFormationHTML(team) {
-    const s = team.starters || [];
+    const t = titolariInCampo(team);
     return `
-    <div class="live-row live-row--st">${fieldSlot(byPos(s, 'K'))}${fieldSlot(byPos(s, 'DEF') || byPos(s, 'D/ST'))}</div>
+    <div class="live-row live-row--st">${fieldSlot(t.K)}${fieldSlot(t.DEF)}</div>
     <div class="live-formation-bottom">
         <div class="live-row live-row--line">
-            ${fieldSlot(byPos(s, 'WR', 0))}${fieldSlot(byPos(s, 'TE'))}
+            ${fieldSlot(t.WR1)}${fieldSlot(t.TE)}
             ${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}
-            ${fieldSlot(byPos(s, 'FLEX'))}${fieldSlot(byPos(s, 'WR', 1))}
+            ${fieldSlot(t.FLEX)}${fieldSlot(t.WR2)}
         </div>
         <div class="live-row live-row--backfield">
-            ${fieldSlot(byPos(s, 'RB', 0))}
-            ${fieldSlot(byPos(s, 'QB'))}
-            ${fieldSlot(byPos(s, 'RB', 1))}
+            ${fieldSlot(t.RB1)}
+            ${fieldSlot(t.QB)}
+            ${fieldSlot(t.RB2)}
         </div>
     </div>`;
 }
@@ -2094,16 +2124,299 @@ function flashNewReceipts(events) {
                 || (slot.classList.contains('live-cmp-pts') ? slot : null);
             let sum = () => { };
             if (ptsEl && ev.ptsDelta) {
-                const to = P(numEl(ptsEl).textContent);
+                // Il totale vero si chiede al DATO, non al numero a schermo.
+                // Quel numero è tenuto indietro apposta per dieci secondi, e
+                // usarlo come punto di partenza faceva scendere il conto a ogni
+                // evento che arrivava prima che il precedente fosse assorbito:
+                // due giocate ravvicinate e il giocatore andava in negativo,
+                // poi tornava a zero. Con 30 secondi di polling capita di rado,
+                // ma capita — due punteggi nello stesso giro bastano.
+                const vero = () => P(effPts(playersByName().get(ev.name)));
+                const to = vero();
                 const from = +(to - ev.ptsDelta).toFixed(2);
                 numEl(ptsEl).textContent = fmt(from);
-                sum = () => countUp(ptsEl, from, to);
+                // e alla fine si riparte da dove si è e si arriva al totale di
+                // ADESSO, che nel frattempo può essere cambiato ancora
+                sum = () => countUp(ptsEl, P(numEl(ptsEl).textContent), vero());
             }
             if (ev.ptsDelta) popPoints(slot, ev.ptsDelta, sum);
             else sum();
         }
         document.querySelector(`[data-receipt="${ev.id}"]`)?.classList.add('live-receipt--new');
     }
+    festeggia(events);
+}
+
+/**
+ * Coriandoli, fuochi e timbro per gli eventi che se lo meritano.
+ *
+ * Fuori dal ciclo qui sopra apposta: quello gira su TUTTE le card dello stesso
+ * giocatore (campo, panchina, confronto) e sparerebbe la raffica tre volte.
+ *
+ * Due limiti voluti, non due dimenticanze:
+ *  - solo la squadra che si sta guardando. Il campo ne mostra una sola, quindi
+ *    chi segna lì è sempre dei nostri;
+ *  - solo sul campo. Nel confronto le due squadre sono affiancate in una
+ *    tabella fitta di numeri, e dieci secondi di fuochi sopra renderebbero
+ *    illeggibile proprio quello che si è aperti a leggere (lì `mountFx`
+ *    torna null da solo, perché il campo non c'è).
+ */
+function festeggia(events) {
+    if (!fxLayer?.isConnected || !events.length) return;
+    const guardata = teamEntries()[teamIdx]?.team?.name;
+    // Stessa formula di `inkFor` in js/ui/charts.js: l'identità di Oscurus è
+    // #800020 e quella di Sommo #1c4750, che su un campo scuro darebbero
+    // coriandoli invisibili. Si schiarisce solo per il disegno. Ripetuta qui
+    // invece di importare charts.js, che sono 450 righe per una riga sola.
+    const tinta = teamOf(guardata)?.color || 'var(--accent-red)';
+    const colori = [`color-mix(in srgb, ${tinta} 68%, white 32%)`, '#ffffff', '#f5c451'];
+
+    // Una festa per poll, e dev'essere la più importante: in trenta secondi
+    // possono segnare in due, e a vincere dev'essere il touchdown, non chi
+    // capita prima nell'elenco degli eventi.
+    const campo = fxLayer.closest('.matchup-field-horizontal');
+    let scelto = null;
+    for (const ev of events) {
+        if (ev.team !== guardata) continue;
+        const spec = effettoPer(ev);
+        if (!spec) continue;
+        // Solo i titolari sul campo: la panchina è fuori da questo contenitore
+        // (vedi `fieldHTML`), e i suoi punti non fanno vincere nessuno —
+        // festeggiare un TD dalla panchina direbbe una cosa falsa.
+        const slot = campo?.querySelector(`[data-slot-player="${CSS.escape(ev.name)}"]`);
+        if (!slot) continue;
+        if (!scelto || spec.rango < scelto.spec.rango) scelto = { slot, spec, punti: ev.ptsDelta };
+    }
+    if (scelto) sparaEffetto(fxLayer, scelto.slot, scelto.spec, colori, scelto.punti);
+}
+
+/* ============================================================
+   SIMULATORE — solo per provare, si lancia a mano dalla console
+   ============================================================ */
+
+/**
+ * Inventa giocate a caso e le riversa sui giocatori a schermo, così da vedere
+ * muoversi TUTTO senza aspettare la domenica: punti che salgono, cerchi che
+ * lampeggiano, scontrini, referto medico, coriandoli e timbri.
+ *
+ * Da console:
+ *     TOPINA_SIM()          parte, una giocata ogni 3 secondi
+ *     TOPINA_SIM(800)       una ogni 0,8 secondi, per vedere tanta roba subito
+ *     TOPINA_SIM.stop()     ferma
+ *     TOPINA_SIM.td()       un touchdown adesso, su chi stai guardando
+ *     TOPINA_SIM.reset()    riazzera il tabellone
+ *
+ * Passa dallo stesso percorso della demo del play-by-play
+ * (`updateReceipts` → `refreshInPlace` → `flashNewReceipts`), quindi non è una
+ * scorciatoia che accende le luci a mano: è la catena vera, innescata da numeri
+ * finti.
+ *
+ * I numeri NON sono della lega e restano in memoria: non si scrivono da nessuna
+ * parte e un ricaricamento li spazza via. Finché gira, l'intestazione mostra il
+ * bollino DEMO, perché non si mostrano mai numeri inventati senza dirlo.
+ */
+let simTimer = null;
+
+const sInt = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
+
+/* Il pescaggio è sbilanciato: le giocate normali sono la maggioranza, i
+   touchdown capitano, gli intercetti sono rari.
+
+   I pesi degli eventi GROSSI sono tarati sulla durata della festa, non a
+   sentimento: una celebrazione dura dieci secondi, quindi con un touchdown
+   ogni sei giocate (16%, la prima versione) a tre secondi l'una si sarebbe
+   festeggiato per metà del tempo. Ora i touchdown sono ~8% del pescaggio —
+   uno ogni ~37 secondi al ritmo predefinito, che lascia respirare il campo
+   fra una festa e l'altra. */
+const SIM_GIOCATE = [
+    { peso: 30, ruoli: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'], stat: () => ({ targets: 1, rec: 1, rec_yds: sInt(3, 24) }) },
+    { peso: 12, ruoli: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'], stat: () => ({ targets: 1 }) },
+    { peso: 26, ruoli: ['RB'], stat: () => ({ rush_att: 1, rush_yds: sInt(-2, 14) }) },
+    { peso: 24, ruoli: ['QB'], stat: () => ({ pass_att: 1, pass_comp: 1, pass_yds: sInt(4, 28) }) },
+    { peso: 10, ruoli: ['QB'], stat: () => ({ pass_att: 1 }) },
+    { peso: 4, ruoli: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'], stat: () => ({ targets: 1, rec: 1, rec_yds: sInt(8, 55), rec_td: 1 }) },
+    { peso: 3, ruoli: ['RB'], stat: () => ({ rush_att: 1, rush_yds: sInt(1, 30), rush_td: 1 }) },
+    { peso: 3, ruoli: ['QB'], stat: () => ({ pass_att: 1, pass_comp: 1, pass_yds: sInt(6, 48), pass_td: 1 }) },
+    { peso: 3, ruoli: ['QB'], stat: () => ({ pass_att: 1, pass_int: 1 }) },
+    { peso: 2, ruoli: ['RB', 'WR', 'TE'], stat: () => ({ fum_lost: 1 }) },
+    // Il kicker fa tre cose diverse, e valgono tre punteggi diversi: extra
+    // point 1, field goal 3, field goal da 50+ 5. Il calcio da lontano è il più
+    // raro dei tre, come nella realtà.
+    { peso: 6, ruoli: ['K'], stat: () => ({ pat_made: 1 }) },
+    { peso: 5, ruoli: ['K'], stat: () => ({ fg_att: 1, fg_made: 1, fg_0_39: 1 }) },
+    { peso: 2, ruoli: ['K'], stat: () => ({ fg_att: 1, fg_made: 1, fg_50_plus: 1 }) },
+    { peso: 8, ruoli: ['DEF'], stat: () => (Math.random() < 0.6 ? { sack: 1 } : { def_int: 1 }) },
+    { peso: 1, ruoli: ['DEF'], stat: () => ({ def_int: 1, def_td: 1 }) },
+];
+
+/**
+ * I titolari della sfida guardata — solo quelli che il campo DISEGNA davvero.
+ *
+ * Prima si pescava da `t.starters`, che può contenere più giocatori dei nove
+ * posti: chi restava fuori prendeva punti che finivano nel totale di squadra
+ * ma non comparivano su nessuna card, e il banner non tornava con la somma dei
+ * giocatori a schermo (2,5 punti di scarto, misurati).
+ */
+function simCandidati(soloGuardata) {
+    const e = teamEntries()[teamIdx];
+    if (!e) return [];
+    const squadre = soloGuardata ? [e.team] : [e.team, e.opp];
+    const out = [];
+    for (const t of squadre) {
+        for (const p of Object.values(titolariInCampo(t))) if (p?.name) out.push(p);
+    }
+    return out;
+}
+
+/**
+ * Una giocata inventata. Sbilanciata sulla squadra guardata: è quella a
+ * schermo, ed è lì che si vuole vedere se le cose si muovono.
+ */
+function simUnaGiocata(mirata) {
+    const rosa = simCandidati(Math.random() < 0.7);
+    if (!rosa.length) { console.warn('[sim] nessun titolare a schermo'); return false; }
+
+    let scelta = mirata;
+    if (!scelta) {
+        const tot = SIM_GIOCATE.reduce((a, g) => a + g.peso, 0);
+        let n = Math.random() * tot;
+        scelta = SIM_GIOCATE[0];
+        for (const g of SIM_GIOCATE) { n -= g.peso; if (n <= 0) { scelta = g; break; } }
+    }
+
+    const adatti = rosa.filter(p =>
+        scelta.ruoli.includes((p.position_in_team || p.position || '').toUpperCase()));
+    if (!adatti.length) return false;
+
+    const p = adatti[Math.floor(Math.random() * adatti.length)];
+    const ruolo = (p.position_in_team || p.position || '').toUpperCase();
+    p.started = true;
+    p.stats = p.stats || {};
+    for (const [k, v] of Object.entries(scelta.stat())) {
+        p.stats[k] = (parseFloat(p.stats[k]) || 0) + v;
+    }
+    // I punti si RICALCOLANO dal totale delle statistiche con il motore della
+    // lega, non si sommano a mano: così il numero a schermo è sempre coerente
+    // con la riga di statistiche che gli sta accanto.
+    p.fantasy_points = +(scoreWeeklyStats(p.stats, ruolo) || 0).toFixed(2);
+    return true;
+}
+
+/** Ricalcola i totali di squadra e fa girare la catena vera. */
+function simApplica() {
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            const t = m[side];
+            if (!t) continue;
+            t.score = (t.starters || [])
+                .reduce((a, p) => a + (parseFloat(p.fantasy_points) || 0), 0).toFixed(2);
+        }
+    }
+    const events = updateReceipts();
+    refreshInPlace(events);
+    if (events.length) flashNewReceipts(events);
+}
+
+if (typeof window !== 'undefined') {
+    const sim = (ms = 3000) => {
+        if (!matchups.length) { console.warn('[sim] apri #live prima'); return; }
+        clearInterval(simTimer);
+        if (!simDemo) {
+            simDemo = true;
+            // Il polling vero va FERMATO, altrimenti ogni 30 secondi
+            // `loadData()` riscarica da ESPN, sostituisce `matchups` e cancella
+            // tutto quello che il simulatore ha aggiunto: i punteggi si
+            // azzeravano invece di sommarsi. Per tornare ai dati veri si
+            // ricarica la pagina.
+            stopPolling();
+            // La giornata è "cominciata": altrimenti il banner mostrerebbe la
+            // proiezione finché il punteggio è a zero, e i due numeri — totale
+            // di squadra e somma dei giocatori — non tornerebbero mai.
+            giornataCominciata = true;
+            // Si parte da zero, come fa `resetDemoBoard` per la demo del
+            // play-by-play e per lo stesso motivo: i punti di partenza vengono
+            // da Firebase, le statistiche no, e ricalcolando i punti dalle sole
+            // statistiche alcuni giocatori SCENDEREBBERO. Da zero salgono e
+            // basta — tranne intercetti e fumble, che tolgono per davvero.
+            sim.reset();
+            render();                                // fa comparire il bollino DEMO
+        }
+        simTimer = setInterval(() => { if (simUnaGiocata()) simApplica(); }, ms);
+        console.info('[sim] via, una giocata ogni ' + ms + 'ms. TOPINA_SIM.stop() per fermare.');
+    };
+    sim.stop = () => {
+        clearInterval(simTimer);
+        simTimer = null;
+        console.info('[sim] fermo. Ricarica la pagina per tornare ai dati veri.');
+    };
+    sim.td = () => {
+        const ok = simUnaGiocata(SIM_GIOCATE.find(g => g.ruoli.includes('WR') && g.peso === 8));
+        if (ok) simApplica();
+        return ok;
+    };
+    sim.reset = () => {
+        for (const m of matchups) {
+            for (const side of ['team1', 'team2']) {
+                for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                    p.fantasy_points = 0; p.stats = {}; p.started = true;
+                }
+            }
+        }
+        prevSnapshot = null;   // niente scontrini fasulli al giro dopo
+        simApplica();
+        console.info('[sim] tabellone azzerato.');
+    };
+    window.TOPINA_SIM = sim;
+}
+
+/**
+ * Prova a mano degli effetti. Stessa idea di `?pbpdemo=`: serve a vedere fuori
+ * stagione una cosa che altrimenti si vede solo la domenica, quando i numeri
+ * cambiano davvero fra due polling.
+ *
+ * Da console:
+ *     TOPINA_FX()            l'elenco delle chiavi
+ *     TOPINA_FX('rec_td')    un touchdown sul primo titolare
+ *     TOPINA_FX('pass_int', 'Puka Nacua')   su un giocatore preciso
+ *
+ * Oppure con un link:  index.html?fxdemo=rec_td#live
+ * (il parametro sta prima del cancelletto: il sito instrada sull'hash,
+ * ma il flag si legge da `location.search`, come già fa `?pbpdemo=`)
+ *
+ * Non cambia nulla del comportamento reale: non tocca i dati, non altera i
+ * punteggi, disegna e basta.
+ */
+function provaEffetto(chiave, nome) {
+    if (!fxLayer?.isConnected) {
+        console.warn('[live-fx] nessun campo a schermo: apri #live e non il confronto');
+        return false;
+    }
+    const spec = effettoPer({ changes: [{ key: chiave, delta: 1 }] });
+    if (!spec) {
+        console.warn(`[live-fx] "${chiave}" non innesca niente. Chiavi buone:`, CHIAVI_FX.join(', '));
+        return false;
+    }
+    const campo = fxLayer.closest('.matchup-field-horizontal');
+    const slot = nome
+        ? campo?.querySelector(`[data-slot-player="${CSS.escape(nome)}"]`)
+        : campo?.querySelector('[data-slot-player]');
+    if (!slot) {
+        console.warn(`[live-fx] "${nome || 'primo titolare'}" non è in campo`);
+        return false;
+    }
+    const tinta = teamOf(teamEntries()[teamIdx]?.team?.name)?.color || 'var(--accent-red)';
+    return sparaEffetto(fxLayer, slot, spec,
+        [`color-mix(in srgb, ${tinta} 68%, white 32%)`, '#ffffff', '#f5c451']);
+}
+
+const CHIAVI_FX = ['rec_td', 'rush_td', 'pass_td', 'def_td', 'ret_td', 'fum_td',
+    'fg_50_plus', 'safety', 'pass_int', 'fum_lost', 'sack', 'def_int'];
+
+if (typeof window !== 'undefined') {
+    window.TOPINA_FX = (chiave, nome) => {
+        if (!chiave) { console.info('[live-fx] chiavi:', CHIAVI_FX.join(', ')); return CHIAVI_FX; }
+        return provaEffetto(chiave, nome);
+    };
 }
 
 /**

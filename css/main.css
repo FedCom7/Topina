@@ -15844,6 +15844,250 @@ td.ps-div-seed {
     text-transform: uppercase;
 }
 
+/* ── Effetti di festa: coriandoli, fuochi, lampo, timbro, fumetto ──
+   Il livello sta dentro .matchup-field-horizontal, che ha overflow: hidden:
+   i coriandoli restano nello stadio invece di sbrodolare sui widget sotto.
+   Vedi js/ui/live-fx.js. */
+
+.live-fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+}
+
+
+.live-fx-confetto,
+.live-fx-spark,
+.live-fx-rocket {
+    position: absolute;
+    will-change: transform, opacity;
+}
+
+.live-fx-spark { border-radius: 50%; }
+.live-fx-rocket { width: 3px; height: 16px; border-radius: 2px; }
+
+.live-fx-glow {
+    position: absolute;
+    width: 460px;
+    height: 460px;
+    margin: -230px 0 0 -230px;
+    border-radius: 50%;
+    will-change: transform, opacity;
+}
+
+/* Il colpo d'apertura, su tutti gli eventi. L'intensità e la durata le decide
+   il JS: un lampo lento su un fumble sembrerebbe una festa. */
+.live-fx-flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    will-change: opacity;
+}
+
+.live-fx-stamp {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(1.9rem, 7.5vw, 4.4rem);
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-shadow: 0 6px 40px rgba(0, 0, 0, 0.75);
+    white-space: nowrap;
+    will-change: transform, opacity;
+}
+
+.live-fx-stamp--bad { color: #ffd9d5; }
+
+/* I punti guadagnati, che si schiantano poco dopo la parola grossa, appoggiati
+   al suo angolo in basso a destra come un adesivo. */
+.live-fx-punti {
+    position: absolute;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(1.6rem, 4.8vw, 3.1rem);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-green);
+    text-shadow: 0 4px 26px rgba(0, 0, 0, 0.85), 0 0 22px rgba(34, 197, 94, 0.45);
+    white-space: nowrap;
+    will-change: transform, opacity;
+}
+
+/* Quando i punti si perdono il verde direbbe il contrario di quello che è
+   successo: stesso schianto, colore opposto. */
+.live-fx-punti--giu {
+    color: var(--accent-red);
+    text-shadow: 0 4px 26px rgba(0, 0, 0, 0.85), 0 0 22px rgba(239, 68, 68, 0.45);
+}
+
+.live-fx-bubble {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    background: var(--text-primary);
+    color: #0a0a0a;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.78rem;
+    padding: 7px 12px;
+    border-radius: 12px;
+    white-space: nowrap;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+    will-change: transform, opacity;
+}
+
+.live-fx-bubble::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    width: 0;
+    height: 0;
+    margin-left: -6px;
+    border: 7px solid transparent;
+    border-top-color: var(--text-primary);
+    border-bottom: 0;
+}
+
+.live-fx-bubble--bad { background: #f3c9c4; }
+.live-fx-bubble--bad::after { border-top-color: #f3c9c4; }
+
+/* Ribaltata sotto la card: succede ai giocatori della prima riga, che sono a
+   ridosso del bordo alto del campo. La coda passa da sotto a sopra. */
+.live-fx-bubble--sotto {
+    transform: translate(-50%, 0);
+}
+
+.live-fx-bubble--sotto::after {
+    bottom: auto;
+    top: -7px;
+    border-top: 0;
+    border-bottom: 7px solid var(--text-primary);
+}
+
+.live-fx-bubble--sotto.live-fx-bubble--bad::after {
+    border-bottom-color: #f3c9c4;
+}
+
+/* Il faro. Durante una festa il campo si abbassa e resta acceso solo chi l'ha
+   fatta partire: fra nove card illuminate uguali, quella che ha segnato non si
+   distingueva. Torna tutto com'era da solo, con la stessa transizione. */
+.live-stage .formation-slot {
+    transition: opacity var(--dur-slow) var(--ease),
+                filter var(--dur-slow) var(--ease),
+                transform var(--dur-med) var(--ease);
+}
+
+/* Il palco comprende campo E panchina: sono card identiche, e abbassando solo
+   il campo la panchina restava accesa a prendersi l'occhio. */
+.live-stage.is-festa .formation-slot {
+    opacity: 0.3;
+    filter: saturate(0.45) brightness(0.65);
+}
+
+.live-stage.is-festa .formation-slot.live-slot--protagonista {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.07);
+    z-index: 6;
+}
+
+/* Il colpevole di una palla persa resta l'unico visibile, ma NON si illumina
+   e NON si ingrandisce: deve sembrare spento, non premiato. Senza questa
+   regola il faro cancellava il grigio della card rotta (piu' specifico) e il
+   fumble finiva per assomigliare a un touchdown. Lo `scale` via anche perche'
+   si accavallava col tremore, che muove lo stesso `transform`. */
+.live-stage.is-festa .formation-slot.live-slot--protagonista.live-slot--rotto {
+    filter: grayscale(0.7) brightness(0.85);
+    transform: none;
+}
+
+/* Le ✕ della linea offensiva sono già decorative: spegnerle del tutto evita
+   che restino a mezz'aria mentre il resto si abbassa. */
+.live-stage.is-festa .formation-slot.oline-x {
+    opacity: 0.12;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-stage .formation-slot { transition: none; }
+}
+
+/* Il fulmine che cala sulla card. Due tracciati sovrapposti: l'alone largo e
+   sfocato sotto, la saetta bianca sottile sopra. */
+.live-fx-fulmine {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    will-change: opacity;
+}
+
+.live-fx-fulmine-alone {
+    fill: none;
+    stroke: var(--live-blue, #3b82f6);
+    stroke-width: 9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.55;
+    filter: blur(6px);
+}
+
+.live-fx-fulmine-linea {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 7px rgba(147, 197, 253, 0.95));
+}
+
+/* La card che ha combinato il guaio: spenta e fredda per tutta la durata. */
+.live-slot--rotto {
+    filter: grayscale(0.7) brightness(0.8);
+    box-shadow: 0 0 0 2px var(--accent-red), 0 0 30px 6px rgba(239, 68, 68, 0.45);
+}
+
+/* La card che trema quando succede qualcosa di secco. */
+/* Tremore che si SMORZA: le prime oscillazioni sono ampie, le ultime appena
+   percettibili. Uno a ampiezza costante che si interrompe di colpo sembra
+   un'animazione tagliata; questo sembra una card che si ferma. */
+@keyframes live-fx-scossa {
+    0%   { transform: translateX(0) rotate(0deg); }
+    5%   { transform: translateX(-7px) rotate(-2deg); }
+    11%  { transform: translateX(7px) rotate(2deg); }
+    17%  { transform: translateX(-6px) rotate(-1.7deg); }
+    24%  { transform: translateX(6px) rotate(1.7deg); }
+    31%  { transform: translateX(-5px) rotate(-1.4deg); }
+    39%  { transform: translateX(5px) rotate(1.4deg); }
+    47%  { transform: translateX(-4px) rotate(-1.1deg); }
+    55%  { transform: translateX(4px) rotate(1.1deg); }
+    63%  { transform: translateX(-3px) rotate(-0.8deg); }
+    71%  { transform: translateX(3px) rotate(0.8deg); }
+    79%  { transform: translateX(-2px) rotate(-0.5deg); }
+    87%  { transform: translateX(1.5px) rotate(0.3deg); }
+    94%  { transform: translateX(-1px); }
+    100% { transform: translateX(0) rotate(0deg); }
+}
+
+/* Solo il tremore, nessun colore: si usa anche sul sack, che per la NOSTRA
+   difesa è un evento positivo — un alone rosso lì direbbe il contrario. Il
+   rosso vive in `.live-slot--rotto`, che sta solo sulle palle perse. */
+/* La durata arriva dal JS: un sack è una botta secca, un intercetto lascia la
+   card a vibrare più a lungo. */
+.live-slot--scossa {
+    animation: live-fx-scossa var(--scossa-dur, 1100ms) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-slot--scossa { animation: none; }
+}
+
 /* Etichetta volante dei punti appena fatti, accanto alla bolla del giocatore.
    Sta nello slot e non dentro .slot-photo, che ha overflow: hidden per
    ritagliare la foto tonda e la taglierebbe via. */

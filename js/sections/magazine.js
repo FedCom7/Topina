@@ -18,7 +18,7 @@ import {
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=610';
+import { TEAMS } from './team.js?v=635';
 import { getLeagueData } from '../data/league-data.js?v=539';
 import { getHonorsBundle } from '../data/honors.js?v=591';
 import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=555';

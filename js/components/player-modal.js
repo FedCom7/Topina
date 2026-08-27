@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=597';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=594';
-import { TEAMS } from '../sections/team.js?v=610';
+import { TEAMS } from '../sections/team.js?v=635';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { getPlayerInfo } from '../data/player-full.js?v=595';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=591';
@@ -114,7 +114,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         const { html, color, career, awards } = _cache.get(cacheKey);
         dialog.style.setProperty('--team-color', color || '');
         content.innerHTML = html;
-        appendContextBlocks(content, { game, pos, career, awards });
+        appendContextBlocks(content, { game, pos, nfl, career, awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
         return;
@@ -136,7 +136,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         _cache.set(cacheKey, built);
         dialog.style.setProperty('--team-color', built.color || '');
         content.innerHTML = built.html;
-        appendContextBlocks(content, { game, pos, career: built.career, awards: built.awards });
+        appendContextBlocks(content, { game, pos, nfl, career: built.career, awards: built.awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
     } catch (e) {
@@ -157,7 +157,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
  *   - da ogni altra parte → la bacheca premi di carriera
  * Sono alternativi: nel Game Center conta la partita, non la carriera.
  */
-function appendContextBlocks(content, { game, pos, career, awards }) {
+function appendContextBlocks(content, { game, pos, nfl, career, awards }) {
     // Aperto da Game Center / Live: conta la partita, non la carriera. Via i
     // totali di carriera e la tabella per stagione, che restano in tutte le
     // altre pagine (l'HTML di buildCard è cachato, quindi si potano qui).
@@ -172,7 +172,7 @@ function appendContextBlocks(content, { game, pos, career, awards }) {
     // così sta a fianco della figurina invece che sotto tutta la scheda.
     if (game) {
         const col = content.querySelector('.pm-right');
-        (col || content).insertAdjacentHTML('beforeend', gameBlockHtml(game, pos));
+        (col || content).insertAdjacentHTML('beforeend', gameBlockHtml(game, pos, nfl));
         return;
     }
 
@@ -237,14 +237,14 @@ function gameStatCells(pos, s = {}, proj = null) {
     }));
 }
 
-function gameBlockHtml(game, pos) {
+function gameBlockHtml(game, pos, nfl) {
     const { pts = 0, opponent = '', status = '', week, year, started, stats,
-        projPts = null, projStats = null, fantasyTeam = '' } = game;
+        projPts = null, projStats = null } = game;
     // accanto a ogni numero reale, in piccolo, quello che era previsto
     const cells = gameStatCells(pos, stats, projStats); // include già fum_lost se presente
 
     const meta = [
-        fantasyTeam,                       // la squadra fantasy che lo ha in rosa
+        nfl || '',                         // la squadra NFL vera per cui gioca
         week ? `Week ${week}` : '',
         year || '',
         opponent ? `vs ${opponent}` : '',
