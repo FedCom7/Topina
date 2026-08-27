@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=597';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=594';
-import { TEAMS } from '../sections/team.js?v=635';
+import { TEAMS } from '../sections/team.js?v=644';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { getPlayerInfo } from '../data/player-full.js?v=595';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=591';
@@ -252,8 +252,12 @@ function gameBlockHtml(game, pos, nfl) {
     ].filter(Boolean).join(' · ');
 
     const grid = cells.length
+        // Le voci rimaste a zero si spengono, così quelle che hanno prodotto
+        // qualcosa risaltano: in una griglia di otto numeri con cinque zeri,
+        // tutti dello stesso peso, i tre che contano non si trovavano. Stessa
+        // idea di `.live-stat--zero` e `.live-uso-stat.is-zero` nel Live.
         ? `<div class="pm-game-grid">${cells.map(c => `
-            <div class="pm-game-cell">
+            <div class="pm-game-cell${Number(c.value) ? '' : ' pm-game-cell--zero'}">
                 <span class="pm-game-cell-val">${c.value}${c.proj != null
                     ? `<small class="pm-proj" title="projected">${c.proj}</small>` : ''}</span>
                 <span class="pm-game-cell-lbl">${c.label}</span>
