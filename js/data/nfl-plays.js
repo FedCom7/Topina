@@ -62,7 +62,14 @@ function playYards(p, text) {
  * Giocata normalizzata:
  *   { id, seq, type, text, yards, scoring, period, clock, ts,
  *     actors: { passer: '11252', receiver: '3123076', ... },
- *     offenseTeamId, defenseTeamId }
+ *     offenseTeamId, defenseTeamId,
+ *     down, distance, toEZ, toEZEnd, turnover, scoreValue, awayScore, homeScore }
+ *
+ * La posizione sul campo si legge da `yardsToEndzone`, non da `yardLine`:
+ * il secondo a volte e' relativo alla squadra e a volte no, il primo e'
+ * sempre "quanto manca alla end zone avversaria" per chi ha la palla — 0 =
+ * touchdown, 100 = propria linea di meta. E' l'unica delle due su cui si puo'
+ * disegnare senza indovinare l'orientamento.
  */
 function normalizePlay(p) {
     const actors = {};
@@ -87,6 +94,17 @@ function normalizePlay(p) {
         actors,
         offenseTeamId: teamId(tp.find(t => t.type === 'offense')?.team?.$ref) || tp.find(t => t.type === 'offense')?.id || null,
         defenseTeamId: teamId(tp.find(t => t.type === 'defense')?.team?.$ref) || tp.find(t => t.type === 'defense')?.id || null,
+        down: p.start?.down ?? null,
+        distance: p.start?.distance ?? null,
+        toEZ: p.start?.yardsToEndzone ?? null,
+        toEZEnd: p.end?.yardsToEndzone ?? null,
+        // L'id del drive sta solo dentro l'URL di riferimento: serve a
+        // raggruppare le giocate in azioni, come fa la striscia di NFL Hub.
+        driveId: String(p.drive?.$ref || '').match(/\/drives\/(\d+)/)?.[1] || null,
+        turnover: !!p.isTurnover,
+        scoreValue: Number(p.scoreValue) || 0,
+        awayScore: Number(p.awayScore) || 0,
+        homeScore: Number(p.homeScore) || 0,
     };
 }
 
@@ -101,17 +119,20 @@ function normalizePlay(p) {
 export async function fetchPlays(eventId, { all = false, pageSize = 25 } = {}) {
     if (!eventId) return [];
     const base = `${CORE}/events/${eventId}/competitions/${eventId}/plays`;
+    // La giocata si porta dietro la partita da cui viene: chi le raccoglie da
+    // piu' partite in un giro solo non ha altro modo di distinguerle.
+    const con = (arr) => (arr || []).map(p => ({ ...normalizePlay(p), eventId: String(eventId) }));
     try {
         if (all) {
-            return ((await getJson(`${base}?limit=400`)).items || []).map(normalizePlay);
+            return con((await getJson(`${base}?limit=400`)).items);
         }
         // Una prima richiesta minima serve solo a sapere quante pagine ci sono;
         // la risposta utile è la seconda, sull'ultima pagina.
         const meta = await getJson(`${base}?limit=${pageSize}`);
         const last = Math.max(1, Number(meta.pageCount) || 1);
-        if (last === 1) return (meta.items || []).map(normalizePlay);
+        if (last === 1) return con(meta.items);
         const page = await getJson(`${base}?limit=${pageSize}&page=${last}`);
-        return (page.items || []).map(normalizePlay);
+        return con(page.items);
     } catch (e) {
         console.warn(`[nfl-plays] giocate non disponibili per ${eventId}:`, e.message);
         return [];

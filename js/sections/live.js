@@ -17,17 +17,19 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=644';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=525';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=511';
+import { TEAMS } from './team.js?v=665';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=543';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio } from '../ui/field-strip.js?v=33';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=507';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=9';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=539';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=30';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=649';
+import { initPlayerModal } from '../components/player-modal.js?v=670';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=25';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
@@ -265,6 +267,42 @@ let pbpCards = [];         // card pronte, più recenti in testa
 let pbpFull = new Set();   // partite già scaricate per intero (non si rileggono da capo)
 let pbpFirstRun = true;    // al primo giro si riempie senza animare
 let pbpBusy = false;
+/**
+ * eventId → TUTTE le giocate viste, in ordine, filtro rosa escluso. Le card
+ * del feed mostrano solo le azioni dei nostri giocatori; il campo invece deve
+ * seguire la partita per intero, altrimenti resta fermo per interi drive — e
+ * a partita finita servono tutte per poterle riguardare.
+ * Stanno in memoria e basta: 180 giocate per partita sono niente in RAM, ma
+ * in `localStorage` mangerebbero la riserva che tiene in piedi il websocket.
+ */
+let giocateDi = new Map();
+
+/** Giocata scelta dalla timeline: null = si segue il vivo. */
+let giocataScelta = null;
+/** Sigla NFL da id ESPN: la mappa esiste solo nel verso opposto. */
+let _siglaDaId = null;
+function siglaDaId(id) {
+    if (!_siglaDaId) {
+        _siglaDaId = new Map(Object.entries(ESPN_TEAM_IDS).map(([ab, i]) => [String(i), ab]));
+    }
+    return _siglaDaId.get(String(id)) || '';
+}
+
+/**
+ * Le giocate raggruppate in drive, nell'ordine in cui sono successe.
+ * L'esito del drive lo dice la sua ultima giocata: e' quella che lo chiude,
+ * col touchdown, il punt o la palla persa.
+ */
+function drivesDi(tutte) {
+    const out = [];
+    for (const p of tutte) {
+        const id = p.driveId || 'x';
+        const ultimo = out[out.length - 1];
+        if (ultimo && ultimo.id === id) ultimo.plays.push(p);
+        else out.push({ id, plays: [p] });
+    }
+    return out;
+}
 
 /**
  * Le giocate della giornata restano in localStorage: una partita conclusa pesa
@@ -544,8 +582,15 @@ async function pollPlays() {
     // Una partita conclusa si legge una volta sola e per intero; una in corso
     // si rilegge a ogni giro, ma solo l'ultima pagina (~2 KB).
     const inCorso = new Set(gamesToWatch().map(String));
+    // `pbpFull` sopravvive fra una visita e l'altra (sta in localStorage) e
+    // serve a non ricostruire card gia' fatte. Ma le giocate per il campo
+    // vivono in memoria e alla ricarica non ci sono piu': marcata "gia' letta",
+    // una partita conclusa non veniva piu' scaricata e timeline e recap
+    // restavano vuoti per sempre. Se le giocate mancano, si rilegge.
     const games = gamesToWatch({ finite: true })
-        .filter(id => inCorso.has(String(id)) || !pbpFull.has(String(id)));
+        .filter(id => inCorso.has(String(id))
+            || !pbpFull.has(String(id))
+            || !giocateDi.has(String(id)));
     if (!games.length) return;
     pbpBusy = true;
     try {
@@ -557,13 +602,22 @@ async function pollPlays() {
             if (!pbpDemoQueue) pbpDemoQueue = await fetchPlays(games[0], { all: true });
             lists = [pbpDemoQueue.splice(0, 3)];
         } else {
+            // `all` va deciso con lo stesso criterio del filtro qui sopra:
+            // marcata "gia' letta" ma senza giocate in memoria, la partita
+            // scaricava solo l'ultima pagina — venticinque azioni invece di
+            // centottanta, e il recap ne mostrava una manciata.
             lists = await Promise.all(games.map(id =>
-                fetchPlays(id, { all: !pbpFull.has(String(id)) })));
+                fetchPlays(id, { all: !pbpFull.has(String(id)) || !giocateDi.has(String(id)) })));
             games.forEach(id => pbpFull.add(String(id)));
         }
         const nuove = [];
         for (const plays of lists) {
             for (const play of plays) {
+                // Fuori dal filtro delle giocate NUOVE: dov'e' la palla e' un
+                // fatto della partita, non un evento. Dentro, con la cache del
+                // play-by-play gia' piena tutte risultano viste e il campo
+                // restava vuoto per sempre alla riapertura della pagina.
+                segnaUltimaGiocata(play);
                 if (pbpSeen.has(play.id)) continue;
                 pbpSeen.add(play.id);
                 if (pbpDemo()) applyDemoPlay(play, scorePlay(play));
@@ -611,7 +665,55 @@ async function pollPlays() {
     } finally {
         pbpFirstRun = false;
         pbpBusy = false;
+        // La striscia del campo segue il play-by-play, non il refresh generale
+        // della pagina: aspettare quello voleva dire vedere il campo fermo,
+        // senza nessuna giocata, per i primi trenta secondi. Sta nel `finally`
+        // perche' deve aggiornarsi anche nei giri in cui non succede niente ai
+        // NOSTRI giocatori — la partita va avanti lo stesso.
+        aggiornaCampo();
     }
+}
+
+/** Ridisegna la sola striscia, e solo se e' cambiata: cosi' l'animazione
+ *  dell'arco riparte a ogni giocata nuova e non a ogni giro a vuoto. */
+function aggiornaCampo() {
+    const sez = document.getElementById('live-deep');
+    const vecchia = sez?.querySelector('.fst');
+    if (!vecchia) return;
+    const entry = teamEntries()[teamIdx];
+    if (!entry) return;
+    const g = deepGames(entry.team)[deepIdx];
+    if (!g) return;
+    const st = statoCampo(g.sigla, g.quadro);
+    if (!st) return;
+    // L'elenco delle giocate si tiene aperto fra un giro e l'altro: lo si apre
+    // per leggerlo, e vederselo richiudere a ogni polling sarebbe una guerra.
+    const aperto = vecchia.querySelector('.fst-recap')?.open;
+    const nuova = fieldStripHTML(st).trim();
+    if (vecchia.outerHTML === nuova) return;
+    vecchia.outerHTML = nuova;
+    const fresca = sez.querySelector('.fst');
+    if (!fresca) return;
+    const det = fresca.querySelector('.fst-recap');
+    if (det && aperto) det.open = true;
+    bindFieldStrip(fresca, scegliGiocata);
+}
+
+/** Una giocata scelta dalla timeline o dall'elenco: il campo la disegna. */
+function scegliGiocata(i, drive) {
+    if (drive != null) {
+        // Pastiglia di un drive: si salta alla sua PRIMA azione, cosi' il
+        // campo riparte da capo invece di mostrarlo gia' finito.
+        const entry = teamEntries()[teamIdx];
+        const g = entry && deepGames(entry.team)[deepIdx];
+        const tutte = giocateDellaPartita(liveSchedule?.get(g?.sigla)?.eventId);
+        const gruppi = drivesDi(tutte);
+        const primo = gruppi[drive]?.plays?.find(x => x.toEZ != null);
+        giocataScelta = primo ? tutte.indexOf(primo) : giocataScelta;
+    } else {
+        giocataScelta = i;
+    }
+    aggiornaCampo();
 }
 
 /** Nome leggibile per ogni protagonista: prima la mappa locale, poi ESPN. */
@@ -2585,8 +2687,214 @@ function usoBloccoHTML(titolo, righe) {
     return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${righe}</div>`;
 }
 
+/**
+ * Tiene la giocata piu' recente di ogni partita. Si confronta la sequenza, non
+ * l'ordine di arrivo: recuperando lo storico le pagine tornano fuori ordine e
+ * l'ultima letta non e' l'ultima giocata.
+ */
+function segnaUltimaGiocata(play) {
+    if (!play?.eventId) return;
+    const lista = giocateDi.get(play.eventId) || [];
+    if (lista.some(x => x.id === play.id)) return;
+    lista.push(play);
+    // Si ordina per sequenza, non per ordine di arrivo: recuperando lo storico
+    // le pagine tornano fuori ordine e l'ultima letta non e' l'ultima giocata.
+    lista.sort((a, b) => (a.seq || 0) - (b.seq || 0));
+    giocateDi.set(play.eventId, lista);
+}
+
+/** Le giocate di una partita, dalla prima all'ultima. */
+const giocateDellaPartita = (ev) => (ev ? giocateDi.get(String(ev)) : null) || [];
+
+const LOGO_NFL = (abbr) =>
+    `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;
+
+/**
+ * Lo stato per la striscia del campo, messo insieme da due fonti che gia'
+ * esistono: il tabellino (chi gioca, il punteggio, a che punto e') e l'ultima
+ * giocata del play-by-play (dove sta la palla, il down, chi attacca).
+ * Nessuna richiesta in piu'.
+ */
+function statoCampo(sigla, quadro) {
+    const g = quadro?.info;
+    if (!g) return null;
+    const oppAbbr = canonAbbr(g.opponent || '') || g.opponent || '';
+    if (!oppAbbr) return null;
+
+    const sched = liveSchedule?.get(sigla);
+    const io_ = {
+        abbr: sigla, name: g.teamName || sigla,
+        logo: g.logo || LOGO_NFL(sigla),
+        color: getTeamIdentity(sigla)?.color || 'var(--accent-red)',
+        score: g.score ?? 0,
+        timeouts: sched?.timeouts ?? null,
+    };
+    const loro = {
+        abbr: oppAbbr, name: g.opponentName || oppAbbr,
+        logo: LOGO_NFL(oppAbbr),
+        color: getTeamIdentity(oppAbbr)?.color || 'var(--accent-blue)',
+        score: g.oppScore ?? 0,
+        timeouts: sched?.oppTimeouts ?? null,
+    };
+    // `g.home` dice se la squadra che sto guardando gioca in casa: l'ospite va
+    // sempre a sinistra, come sugli scorebug in TV.
+    const home = g.home ? io_ : loro;
+    const away = g.home ? loro : io_;
+
+    const ev = sched?.eventId;
+    const tutte = giocateDellaPartita(ev);
+    // A partita finita si puo' riguardare: `giocataScelta` e' l'indice
+    // scelto dalla timeline, null vuol dire "segui il vivo".
+    const idx = giocataScelta != null && giocataScelta < tutte.length
+        ? giocataScelta : tutte.length - 1;
+    const p = tutte[idx] || null;
+
+    // Il drive e' SEMPRE quello della giocata corrente, mai uno stato a parte:
+    // due indici da tenere d'accordo si sarebbero sfasati al primo polling.
+    // Toccare una pastiglia sposta la giocata, e il drive la segue.
+    const gruppi = drivesDi(tutte);
+    const dIdx = Math.max(0, gruppi.findIndex(gr => gr.plays.includes(p)));
+    const drive = gruppi[dIdx];
+
+    let possesso = null;
+    if (p?.offenseTeamId) {
+        const idCasa = ESPN_TEAM_IDS[home.abbr];
+        possesso = String(p.offenseTeamId) === String(idCasa) ? 'home' : 'away';
+    }
+
+    return {
+        home, away,
+        periodo: p?.period ?? null,
+        orologio: p?.clock || g.detail || '',
+        down: p?.down || null,
+        distance: p?.distance ?? null,
+        possesso,
+        toEZ: p?.toEZ ?? null,
+        stato: g.state || 'pre',
+        // La timeline solo a partita conclusa: durante il vivo il campo deve
+        // restare sul presente, e una barra che si allunga sotto le dita
+        // mentre si guarda sarebbe da combattere invece che da usare.
+        timeline: (g.state === 'post' && tutte.length > 1)
+            ? { n: tutte.length, i: idx } : null,
+        // Dal vivo si guarda quello che sta succedendo, non l'archivio: il
+        // recap compare a partita chiusa, insieme alla timeline.
+        recap: g.state !== 'post' ? [] : tutte.map((x, k) => ({
+            i: k,
+            titolo: titoloGiocata(x),
+            testo: x.text || '',
+            periodo: x.period,
+            clock: x.clock,
+            segna: !!x.scoring,
+            persa: !!x.turnover,
+        })).reverse(),
+        giocate: (drive?.plays || []).filter(x => x.toEZ != null).map(x => giocataDisegnabile(x, home, away)),
+        giocataIdx: Math.max(0, (drive?.plays || []).filter(x => x.toEZ != null).indexOf(p)),
+        // Le pastiglie della striscia: una per drive, con la sigla dell'esito.
+        // L'esito si cerca A RITROSO fra le azioni del drive, non sull'ultima:
+        // in coda ci finiscono timeout e trasformazioni, e un drive chiuso col
+        // touchdown si leggeva dall'extra point che viene dopo.
+        drives: gruppi.map((gr, k) => {
+            const utili = gr.plays.filter(x => !eDiServizio(x));
+            const fine = utili[utili.length - 1];
+            for (let j = utili.length - 1; j >= 0; j--) {
+                const t = tagDrive(utili[j].text || '');
+                if (t.l !== '—') {
+                    return { i: k, tag: t.l, cls: t.c,
+                        team: siglaDaId(utili[j].offenseTeamId), res: utili[j].text || '' };
+                }
+            }
+            // Nessuna parola chiave nel testo, ma il DOWN lo sappiamo: un drive
+            // che si chiude al quarto senza punt ne' field goal e' finito sui
+            // downs. E' il dato che salva la meta' dei drive che restavano
+            // senza sigla, e non e' una parola indovinata — c'e' nei fatti.
+            // (ESPN ha anche l'esito ufficiale in /drives, ma quella risposta
+            // pesa 836 KB per partita perche' ci annida dentro tutte le
+            // giocate: troppo per un telefono, e le giocate ce le abbiamo gia'.)
+            // ESPN mette il calcio che CHIUDE un drive in testa a quello
+            // dopo, come fa col kickoff: un drive finito col punt si leggeva
+            // "DWN" perche' l'ultima sua azione era un terzo down fallito.
+            const dopo = (gruppi[k + 1]?.plays || []).find(x => !/timeout/i.test(x.text || ''));
+            if (/punts?/i.test(dopo?.text || '')) {
+                return { i: k, tag: 'PNT', cls: 'punt',
+                    team: siglaDaId(fine?.offenseTeamId), res: dopo.text || '' };
+            }
+            if (fine?.down === 4) {
+                return { i: k, tag: 'DWN', cls: 'to',
+                    team: siglaDaId(fine.offenseTeamId), res: fine.text || '' };
+            }
+            return { i: k, tag: '—', cls: 'end', team: '', res: '' };
+        // Una pastiglia senza esito non dice niente: si toglie, e il drive
+        // resta comunque raggiungibile scorrendo le giocate.
+        }).filter(d => d.tag !== '—'),
+        driveIdx: dIdx,
+        giocata: p && p.toEZ != null ? giocataDisegnabile(p, home, away) : null,
+    };
+}
+
+/**
+ * Da giocata grezza a giocata disegnabile. Sta fuori da `statoCampo` perche'
+ * ora serve per OGNI azione del drive, non solo per l'ultima.
+ */
+function giocataDisegnabile(p, home, away) {
+    const dir = direzioneGiocata(p);
+    let tipo = tipoGiocata(p);
+    const calcio = yardCalcio(p);
+    if (/field goal/i.test(p.text || '')) tipo = 'fg';
+
+    // Le yard: quelle ufficiali quando ci sono, quelle del testo per i calci
+    // (un punt risulta da zero yard), una stima per gli incompleti.
+    let yards = p.yards || 0;
+    if (calcio != null) yards = calcio;
+    else if (tipo === 'incomplete' && !yards) yards = yardStimate(dir.profondita);
+
+    const idCasa = ESPN_TEAM_IDS[home.abbr];
+    const poss = p.offenseTeamId
+        ? (String(p.offenseTeamId) === String(idCasa) ? 'home' : 'away') : null;
+    const foto = (...ruoli) => {
+        const a = p.actors || {};
+        for (const r of ruoli) if (a[r]) return headshotUrl(a[r]);
+        return '';
+    };
+    return {
+        titolo: titoloGiocata(p),
+        testo: p.text || '',
+        yards,
+        tipo,
+        lato: dir.lato,
+        buono: fgBuono(p),
+        segna: !!p.scoring,
+        persa: !!p.turnover,
+        toEZ: p.toEZ,
+        possesso: poss,
+        logo: poss ? (poss === 'home' ? home.logo : away.logo) : '',
+        // Due facce: chi la manda e chi la riceve. Su una corsa e' la stessa
+        // persona, quindi la seconda resta vuota.
+        fotoDa: foto('passer', 'rusher', 'kicker', 'scorer'),
+        fotoA: (p.actors?.passer || p.actors?.kicker)
+            ? foto('receiver', 'returner') : '',
+    };
+}
+
 /** Quale partita si sta guardando nel "dentro la partita". */
 let deepIdx = 0;
+/** Vero appena l'utente sceglie: da li' in poi comanda lui. */
+let deepScelto = false;
+
+/**
+ * All'apertura si parte da una partita che ha qualcosa da far vedere: prima
+ * quelle in corso, poi quelle finite (da rivedere con la timeline), e solo
+ * per ultime quelle che devono ancora cominciare. Partendo dalla prima
+ * dell'elenco si finiva su un campo vuoto anche avendo tre partite giocate
+ * a due clic di distanza, senza nessun indizio che ci fossero.
+ */
+function deepIdxIniziale(partite) {
+    const peso = (p) => ({ in: 0, post: 1 }[p.quadro?.info?.state] ?? 2);
+    let best = 0;
+    for (let i = 1; i < partite.length; i++) {
+        if (peso(partite[i]) < peso(partite[best])) best = i;
+    }
+    return best;
+}
 
 /** Le partite da mostrare, una per squadra NFL in cui ho qualcuno. */
 function deepGames(team) {
@@ -2717,6 +3025,7 @@ function deepGameHTML({ sigla, miei, quadro }) {
                 : `<span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>`}
             <span class="live-deep-when">${escAttr(g.detail || '')}</span>
         </header>
+        ${(() => { const st = statoCampo(sigla, quadro); return st ? fieldStripHTML(st) : ''; })()}
         <p class="live-deep-sub">${escAttr(g.teamName || sigla)} offense only${nostri.length
             ? ` · yours: <b>${nostri.map(escAttr).join(', ')}</b>` : ''}</p>
         ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
@@ -2749,6 +3058,7 @@ function deepDiveHTML(team) {
     const partite = deepGames(team);
     if (!partite.length) return '';
     if (deepIdx >= partite.length) deepIdx = 0;
+    if (!deepScelto) deepIdx = deepIdxIniziale(partite);
 
     // Con più partite se ne guarda una per volta e si gira, come le card delle
     // giocate: affiancarle le stringerebbe fino a rendere illeggibili le barre.
@@ -2757,8 +3067,15 @@ function deepDiveHTML(team) {
     // sezione si impuntava invece di proseguire.
     const nav = partite.length < 2 ? '' : `
         <div class="live-deep-nav">
-            ${partite.map((p, i) => `<button class="live-deep-dot${i === deepIdx ? ' active' : ''}"
-                type="button" data-deep-go="${i}">${escAttr(p.sigla)}</button>`).join('')}
+            ${partite.map((p, i) => {
+                // La sigla dice anche in che stato e' quella partita: un punto
+                // acceso se e' in corso, spento se deve ancora cominciare.
+                const st = p.quadro?.info?.state || 'pre';
+                return `<button class="live-deep-dot live-deep-dot--${st}${i === deepIdx ? ' active' : ''}"
+                    type="button" data-deep-go="${i}"
+                    title="${st === 'in' ? 'In progress' : st === 'post' ? 'Final — plays available' : 'Not started'}"
+                    >${escAttr(p.sigla)}</button>`;
+            }).join('')}
         </div>`;
 
     const colore = teamOf(team.name)?.color || 'var(--accent-red)';
@@ -2778,10 +3095,13 @@ function bindDeepDive(root) {
     const sez = root.querySelector('#live-deep');
     if (!sez) return;
     const quante = sez.querySelectorAll('[data-deep-go]').length;
+    bindFieldStrip(sez, scegliGiocata);
     sez.querySelectorAll('[data-deep-go]').forEach(b =>
         b.addEventListener('click', () => {
             if (quante < 2) return;
             deepIdx = (Number(b.dataset.deepGo) + quante) % quante;
+            deepScelto = true;      // da qui in poi decide l'utente
+            giocataScelta = null;   // partita nuova, si riparte dal vivo
             const entry = teamEntries()[teamIdx];
             if (!entry) return;
             sez.outerHTML = deepDiveHTML(entry.team).trim();

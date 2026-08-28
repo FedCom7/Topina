@@ -58,8 +58,8 @@
  * pesano di più anche a parità di forma della curva.
  */
 
-import { replacementLevels, demandByPos, NUM_TEAMS } from './team-eval.js?v=541';
-import { NEED_TARGET, opponentPickProbs } from './draft-grade.js?v=12';
+import { replacementLevels, demandByPos, NUM_TEAMS } from './team-eval.js?v=562';
+import { NEED_TARGET, opponentPickProbs } from './draft-grade.js?v=33';
 
 export const STRATEGY_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 

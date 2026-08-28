@@ -19,13 +19,13 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=644';
-import { initPlayerModal } from '../components/player-modal.js?v=649';
+import { TEAMS } from './team.js?v=665';
+import { initPlayerModal } from '../components/player-modal.js?v=670';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=594';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=26';
+import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=47';
 import { multiLine, dumbbell } from '../ui/charts.js?v=7';
-import { renderPreDraft, resetPreDraft } from './predraft.js?v=3';
+import { renderPreDraft, resetPreDraft } from './predraft.js?v=24';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const POS_NAME = { QB: 'Quarterback', RB: 'Running back', WR: 'Wide receiver', TE: 'Tight end' };

@@ -15,9 +15,9 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=597';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=594';
-import { TEAMS } from '../sections/team.js?v=644';
+import { TEAMS } from '../sections/team.js?v=665';
 import { playerImageService } from '../services/player-image-service.js?v=520';
-import { getPlayerInfo } from '../data/player-full.js?v=595';
+import { getPlayerInfo } from '../data/player-full.js?v=616';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=591';
 
 const MAX_NFL_YEARS = 5;

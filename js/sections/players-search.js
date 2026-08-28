@@ -7,15 +7,15 @@
  * confronto squadre della NFL reale (vedi loadLeaguePanel).
  */
 
-import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=624';
+import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=645';
 import { CURRENT_SEASON } from '../data.js?v=540';
 import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=583';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=567';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=622';
-import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=525';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=588';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=643';
+import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=546';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=594';
-import { currentNflSeason } from '../data/nfl-team-extras.js?v=937';
+import { currentNflSeason } from '../data/nfl-team-extras.js?v=958';
 
 // ─── Selettore stagione · governa tutta la pagina (tabellone, classifiche,
 // confronto squadre, dashboard giocatori). Stessa logica di TEAM_HISTORY_YEARS

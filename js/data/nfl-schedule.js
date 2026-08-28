@@ -77,9 +77,15 @@ export async function getWeekSchedule(year, week, seasonType = 2) {
                 const oppAbbr = (other.team?.abbreviation || '').toUpperCase();
                 // "BUF" in casa, "@BUF" in trasferta
                 const opponent = c.homeAway === 'home' ? oppAbbr : `@${oppAbbr}`;
+                const sit = comp.situation || null;
+                const to = !sit ? null
+                    : (c.homeAway === 'home' ? sit.homeTimeouts : sit.awayTimeouts);
                 entries.push([abbr, comp.date, ev.id, state, opponent,
                     gameStatus(c, other, st), Number(c.score) || 0,
-                    Number(other.score) || 0, st.shortDetail || '']);
+                    Number(other.score) || 0, st.shortDetail || '',
+                    Number.isFinite(to) ? to : null,
+                    Number.isFinite(sit && (c.homeAway === 'home' ? sit.awayTimeouts : sit.homeTimeouts))
+                        ? (c.homeAway === 'home' ? sit.awayTimeouts : sit.homeTimeouts) : null]);
             });
         });
         if (!entries.length) return null;
@@ -219,13 +225,17 @@ export async function getCurrentNflWeek() {
 function _toMap(entries) {
     const map = new Map();
     entries.forEach(([abbr, iso, eventId = null, state = 'pre', opponent = '',
-        status = '', score = 0, oppScore = 0, detail = ''] ) => {
+        status = '', score = 0, oppScore = 0, detail = '',
+        timeouts = null, oppTimeouts = null] ) => {
         const start = new Date(iso);
         map.set(abbr, {
             start, end: new Date(start.getTime() + GAME_DURATION_MS),
             eventId, state, opponent, status,
             // punteggio della partita NFL vera, per il riquadro risultati
             score, oppScore, detail,
+            // timeout rimasti: null quando ESPN non li da' (partita non in
+            // corso). Non si inventano: senza il dato non si disegnano.
+            timeouts, oppTimeouts,
         });
     });
     return map;

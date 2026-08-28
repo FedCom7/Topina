@@ -1413,6 +1413,16 @@ img {
         font-size: 0.62rem;
     }
 
+    /* Il banner ha cinque colonne in fila: nome, punteggio, centro, punteggio,
+       nome. I punteggi non si comprimono, quindi tutto lo stretto tocca ai due
+       nomi: a 390px restavano 28px contro i 31-33 che serve la sigla di tre
+       lettere, e "LASERS" si leggeva "L...". Il gap piu' corto restituisce i
+       16px che mancavano. */
+    .gc-banner-inner {
+        gap: 6px;
+    }
+
+
     .matchup-card {
         overflow: visible;
     }
@@ -7297,9 +7307,13 @@ img {
 /* --- League view: rankings --- */
 /* I pannelli hanno un bordo loro: il passo largo di prima serviva a separare
    blocchi senza contorno, ora basta il gap di Stats. */
+/* `min(300px, 100%)`: con `minmax(300px, 1fr)` secco, quando lo
+   spazio e' meno del minimo la traccia resta al minimo e sfora — a 320px di
+   schermo (iPhone SE, Galaxy S9+) restano 288px utili e il pannello ne
+   chiedeva 300. */
 .an-rankings {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: 16px;
     margin-top: 20px;
 }
@@ -7478,9 +7492,13 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+/* `min(320px, 100%)`: con `minmax(320px, 1fr)` secco, quando lo
+   spazio e' meno del minimo la traccia resta al minimo e sfora — a 320px di
+   schermo (iPhone SE, Galaxy S9+) restano 288px utili e il pannello ne
+   chiedeva 320. */
 .an-leader-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
     gap: 16px;
     margin-top: 20px;
 }
@@ -9172,30 +9190,78 @@ div.gb-out-player:last-of-type .gb-out-meta {
     }
 }
 
-@media (max-width: 640px) {
+/* Lo scorebug su una riga sola smette di starci ben prima del telefono:
+   a 641px i due nomi erano gia' scesi a 57px e "Oscurus" ci si troncava.
+   La soglia giusta e' quella in cui la riga singola non regge, non quella
+   del telefono. */
+@media (max-width: 900px) {
+    /* Cinque colonne in fila — nome, punteggio, centro, punteggio, nome —
+       su 358px ne chiedevano 386: i punteggi non si comprimono, e i due
+       .gb-bug-side (flex:1, min-width:0) finivano schiacciati a larghezza
+       ZERO. I nomi delle squadre non si vedevano affatto, misurato su
+       iPhone 12 Pro. Restringere i font non bastava: la somma resta sopra.
+       Due righe: il nome sopra il proprio punteggio, come negli scorebug
+       veri, e il centro a cavallo delle due. L'ordine dei figli e' fisso
+       (game.js:163-176), quindi si collocano per posizione senza toccare
+       l'HTML. */
     .gb-bug-inner {
-        gap: 10px;
-        padding: 18px 14px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: auto auto;
+        align-items: center;
+        gap: 2px 10px;
+        padding: 16px 14px;
     }
 
-    .gb-bug-side {
-        flex-direction: column;
-        align-items: flex-end;
+    .gb-bug-inner > .gb-bug-side {
+        grid-row: 1;
+        flex-direction: row;
+        justify-content: center;
+        text-align: center;
         gap: 6px;
-        text-align: right;
     }
 
-    .gb-bug-side:last-child {
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
+    .gb-bug-inner > .gb-bug-side:first-of-type {
+        grid-column: 1;
+    }
+
+    .gb-bug-inner > .gb-bug-side:last-child {
+        grid-column: 3;
+        flex-direction: row;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .gb-bug-inner > .gb-bug-score {
+        grid-row: 2;
+        text-align: center;
+    }
+
+    .gb-bug-inner > .gb-bug-score:nth-of-type(1) {
+        grid-column: 1;
+    }
+
+    .gb-bug-inner > .gb-bug-score:nth-of-type(2) {
+        grid-column: 3;
+    }
+
+    .gb-bug-inner > .gb-bug-mid {
+        grid-column: 2;
+        grid-row: 1 / span 2;
     }
 
     .gb-bug-name {
         white-space: normal;
-        font-size: 0.68rem;
-        max-width: 84px;
+        font-size: 0.82rem;
+        max-width: none;
     }
+
+    .gb-bug-score {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 640px) {
 
     /* Su mobile: via le mini-stat, restano entrambi i badge ruolo;
        i nomi passano alla forma corta "M. Cognome" */
@@ -10171,7 +10237,7 @@ div.gb-out-player:last-of-type .gb-out-meta {
 }
 .dgt-swap-round { font-family: var(--font-display); font-weight: 800; font-size: 0.72rem; color: var(--text-muted); }
 .dgt-swap-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.dgt-swap-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dgt-swap-name { min-width: 0; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dgt-swap-name--muted { color: var(--text-muted); font-weight: 500; font-style: italic; }
 .dgt-swap-vor { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; margin-left: auto; padding-left: 6px; }
 .dgt-swap-arrow { color: var(--text-muted); text-align: center; font-size: 0.8rem; }
@@ -10180,7 +10246,18 @@ div.gb-out-player:last-of-type .gb-out-meta {
 .dgt-swap-delta--good { color: var(--accent-green, #30d158); }
 
 @media (max-width: 640px) {
-    .dgt-swap-row { grid-template-columns: 28px 1fr 40px; grid-template-areas: "round mine delta" "round arrow alt"; row-gap: 4px; }
+    /* Le aree mettevano "alt" — il giocatore che potevi prendere — nella
+       terza colonna, quella da 40px della delta: il nome restava largo 40px
+       su 224 richiesti e non si leggeva. Ora la freccia ha una colonnina sua
+       e l'alternativa si prende tutta la larghezza, come la pick vera sopra. */
+    .dgt-swap-row {
+        grid-template-columns: 28px 16px 1fr 40px;
+        grid-template-areas:
+            "round mine  mine delta"
+            "round arrow alt  alt";
+        row-gap: 4px;
+        column-gap: 6px;
+    }
     .dgt-swap-row .dgt-swap-round { grid-area: round; }
     .dgt-swap-row .dgt-swap-pick:first-of-type { grid-area: mine; }
     .dgt-swap-row .dgt-swap-arrow { grid-area: arrow; transform: rotate(90deg); }
@@ -18525,4 +18602,522 @@ td.ps-div-seed {
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: var(--text-secondary);
+}
+
+/* ============================================================
+   FIELD STRIP — la partita vera in cima al "dentro la partita" del Live
+   ============================================================ */
+
+/* Minimal per scelta: nessuna cornice, nessun fondo. La striscia deve
+   sembrare una finestra sul campo dentro la scheda, non un'altra card
+   dentro una card. */
+.fst {
+    margin: 0 0 14px;
+}
+
+/* Tutto raccolto al centro: la colonna centrale era `1fr` e spingeva squadre
+   e punteggi contro i bordi, con due vuoti ai lati del quarto. Ora il gruppo
+   sta in mezzo e ogni squadra e' accostata al proprio punteggio. */
+.fst-bug {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    padding: 26px 2px 26px;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+.fst-lato {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.fst-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.fst-logo--vuoto {
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: var(--text-muted);
+}
+
+.fst-abbr {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+.fst-score {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    opacity: 0.72;
+}
+
+/* Chi ha la palla ha il punteggio acceso, l'altro spento. Il trattino sotto
+   che c'era prima cadeva esattamente dove ora stanno i timeout, e i due segni
+   si mescolavano in una fila di trattini illeggibile. */
+.fst-score.is-pos {
+    color: var(--text-secondary);
+    opacity: 1;
+}
+
+
+.fst-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin-top: 13px;
+}
+
+/* I timeout: tre trattini, spenti quelli gia' spesi. */
+.fst-to {
+    display: flex;
+    gap: 4px;
+}
+
+.fst-to i {
+    display: block;
+    width: 15px;
+    height: 3.5px;
+    border-radius: 2px;
+    background: var(--text-primary);
+}
+
+.fst-to i.is-off {
+    background: var(--text-primary);
+    opacity: 0.22;
+}
+
+.fst-mid {
+    margin: 0 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+    min-width: 0;
+}
+
+.fst-quando {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.fst-dd {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.fst-campo {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.55));
+}
+
+/* I numeri sul manto: bianchi e spenti come la vernice vera, non grigi.
+   La dimensione la decide il disegno (cresce avvicinandosi), qui c'e' solo
+   il ripiego per quando l'attributo non arriva. */
+.fst-num {
+    fill: rgba(255, 255, 255, 0.9);
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 46px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+
+
+/* Le frecce accanto ai numeri, verso la end zone piu' vicina. */
+.fst-freccia {
+    fill: rgba(255, 255, 255, 0.9);
+}
+
+.fst-pali path {
+    fill: none;
+    stroke: #f5c518;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.95;
+}
+
+/* Il filo a cui e' appeso il ritratto di chi ha fatto la giocata. */
+.fst-filo {
+    stroke: rgba(255, 255, 255, 0.75);
+    stroke-width: 1.4;
+}
+
+.fst-ritratto {
+    opacity: 0;
+    animation: fst-entra 340ms ease-out 700ms forwards;
+}
+
+@keyframes fst-entra {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* La linea di scrimmage: dove la giocata e' partita. */
+.fst-los {
+    stroke: #e8393c;
+    stroke-width: 3;
+    /* Capi netti come le yard line: arrotondati sporgeva di un pelo per lato
+       e sembrava non stare in squadra col campo. */
+    stroke-linecap: butt;
+}
+
+
+.fst-los-ombra {
+    stroke-width: 6;
+    stroke-linecap: butt;
+}
+
+
+/* L'arco della giocata si disegna da solo quando compare: la lunghezza del
+   tratto parte da tutta-vuota e si riempie. E' l'animazione che racconta la
+   giocata, e costa un'unica proprieta' animabile. */
+/* Il nastro e' un poligono pieno: il tratteggio non lo tocca, quindi entra
+   scoprendosi da sinistra a destra con un ritaglio che si allarga. */
+.fst-nastro {
+    animation: fst-entra-nastro 1500ms cubic-bezier(0.3, 0.7, 0.35, 1) forwards;
+    transform-origin: left center;
+}
+
+@keyframes fst-entra-nastro {
+    from { opacity: 0; transform: scaleX(0.02); }
+    40% { opacity: 1; }
+    to { opacity: 1; transform: scaleX(1); }
+}
+
+
+
+/* Passaggio a vuoto: la palla non e' arrivata da nessuna parte, e una freccia
+   direbbe il falso. */
+.fst-x path {
+    stroke: #e8393c;
+    stroke-width: 4;
+    stroke-linecap: round;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.fst-x {
+    opacity: 0;
+    animation: fst-arrivo 300ms ease-out 1600ms forwards;
+}
+
+@keyframes fst-traccia {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes fst-arrivo {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fst-last {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 2px 0;
+    min-width: 0;
+}
+
+.fst-last-logo {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.fst-last-txt {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.fst-last-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.fst-last-head b {
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.fst-last-head i {
+    font-style: normal;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fst-last-desc {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fst-nastro,
+    .fst-x,
+    .fst-ritratto {
+        animation: none;
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
+}
+
+/* ── Timeline e recap delle giocate ─────────────────────────────────────
+   La timeline compare solo a partita conclusa: durante il vivo il campo deve
+   restare sul presente, e una barra che si allunga sotto le dita mentre si
+   guarda sarebbe da combattere invece che da usare. */
+/* Lo stato della partita sulla sigla: chi ha giocate da rivedere si vede
+   senza doverle provare tutte. */
+.live-deep-dot--pre {
+    opacity: 0.45;
+}
+
+.live-deep-dot--in::after,
+.live-deep-dot--post::after {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    margin-left: 5px;
+    vertical-align: middle;
+    background: var(--text-muted);
+}
+
+.live-deep-dot--in::after {
+    background: var(--accent-green, #30d158);
+    animation: fst-batte 1.6s ease-in-out infinite;
+}
+
+@keyframes fst-batte {
+    50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-deep-dot--in::after { animation: none; }
+}
+
+/* La striscia dei drive: le pastiglie di NFL Hub, riusate con le sue classi
+   e i suoi colori. Qui pero' scorrono in fila invece di stare su una
+   linea temporale: le giocate sono tante e lo spazio in larghezza e' poco. */
+.fst-ds {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding: 10px 2px 2px;
+    scrollbar-width: none;
+}
+
+.fst-ds::-webkit-scrollbar { display: none; }
+
+.fst-ds .pp-ds-ev {
+    position: static;
+    transform: none;
+    flex-shrink: 0;
+}
+
+.fst-ds .pp-ds-ev:hover { transform: scale(1.06); }
+
+.fst-tl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 2px 0;
+}
+
+.fst-tl-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s var(--ease);
+}
+
+.fst-tl-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.fst-tl-range {
+    flex: 1;
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+}
+
+.fst-tl-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 2px solid var(--bg-primary);
+    cursor: pointer;
+}
+
+.fst-tl-range::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 2px solid var(--bg-primary);
+    cursor: pointer;
+}
+
+.fst-tl-num {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 46px;
+    text-align: right;
+}
+
+/* Il recap sta chiuso: sono duecento righe, e aperto di suo spingerebbe in
+   fondo alla pagina tutto quello che viene dopo. */
+.fst-recap {
+    margin-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.fst-recap > summary {
+    padding: 9px 2px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    list-style: none;
+}
+
+.fst-recap > summary::-webkit-details-marker {
+    display: none;
+}
+
+.fst-recap > summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.15s var(--ease);
+}
+
+.fst-recap[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.fst-recap > summary b {
+    color: var(--text-secondary);
+    margin-left: 6px;
+}
+
+.fst-recap-list {
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0 2px 4px;
+    list-style: none;
+}
+
+.fst-recap-row {
+    display: flex;
+    gap: 9px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+}
+
+.fst-recap-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.fst-recap-when {
+    flex-shrink: 0;
+    width: 62px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.fst-recap-txt {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    min-width: 0;
+}
+
+.fst-recap-txt b {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.78rem;
+}
+
+/* Le giocate che hanno cambiato la partita si trovano scorrendo, senza
+   leggerle tutte: un filo di colore sul bordo basta. */
+.fst-recap-row.is-score {
+    box-shadow: inset 3px 0 0 var(--accent-green, #30d158);
+    padding-left: 9px;
+}
+
+.fst-recap-row.is-turn {
+    box-shadow: inset 3px 0 0 var(--accent-red, #d3383a);
+    padding-left: 9px;
 }

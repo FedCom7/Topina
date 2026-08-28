@@ -7,7 +7,7 @@
 
 import { CURRENT_SEASON } from '../data.js?v=540';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=591';
-import { TEAMS } from './team.js?v=644';
+import { TEAMS } from './team.js?v=665';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let initialized = false;
