@@ -186,7 +186,8 @@ function endZone(lato, colore, logo) {
     <line x1="${gx0.toFixed(1)}" y1="${gy0.toFixed(1)}" x2="${gx1.toFixed(1)}" y2="${gy1.toFixed(1)}"
           stroke="#fff" stroke-width="${SPESSORE}" opacity="0.92"/>
     ${logo ? `<g transform="translate(${lx.toFixed(1)},${ly.toFixed(1)}) scale(1,0.68)">
-        <image href="${logo}" x="${-R}" y="${-R}" width="${R * 2}" height="${R * 2}" opacity="0.95"/>
+        <image href="${logo}" x="${-R}" y="${-R}" width="${R * 2}" height="${R * 2}"
+               opacity="0.95" filter="url(#${rifId('bordo')})"/>
     </g>` : ''}`;
 }
 
@@ -196,6 +197,22 @@ function endZone(lato, colore, logo) {
  * partono i due montanti alti. Sono la cosa piu' alta del disegno dopo
  * l'arco, e stanno FUORI dal verde.
  */
+/**
+ * Dove deve passare un field goal: il centro della traversa, appena sopra.
+ * E' la stessa geometria di `pali()` — se cambia una, va cambiata l'altra, e
+ * per questo i numeri stanno qui in un posto solo.
+ */
+const PORTA = { alt: 52, collo: 18, semi: 15, su: 76 };
+
+function centroPorta(lato) {
+    const u = lato === 'l' ? 0 : 1;
+    const [px, py] = P(u, 0.5);
+    const dentro = lato === 'l' ? 1 : -1;
+    // A meta' altezza dei montanti, non sulla traversa: finendo sulla traversa
+    // la palla sembrava fermarsi contro il palo invece di passarci sopra.
+    return [px + dentro * PORTA.collo, py - PORTA.alt - PORTA.su * 0.5];
+}
+
 function pali(lato) {
     // Il piede sta SUL campo, sulla linea di fondo e a meta' della sua
     // larghezza: nel nostro punto di vista la larghezza del campo e' la
@@ -205,10 +222,10 @@ function pali(lato) {
     const [px, py] = P(u, 0.5);
     const dentro = lato === 'l' ? 1 : -1;   // da che parte sporge la traversa
 
-    const trav = py - 52;                   // quota della traversa
-    const collo = 18;                       // sbalzo in avanti
-    const semi = 15;                        // mezza traversa
-    const su = 76;                          // quanto salgono i montanti
+    const trav = py - PORTA.alt;            // quota della traversa
+    const collo = PORTA.collo;              // sbalzo in avanti
+    const semi = PORTA.semi;                // mezza traversa
+    const su = PORTA.su;                    // quanto salgono i montanti
 
     // La traversa e' parallela alla linea di meta, quindi in prospettiva e'
     // inclinata come lei: orizzontale sembrava incollata sopra al disegno.
@@ -243,75 +260,241 @@ function pali(lato) {
  * Il ritratto sta appeso a un'asta verticale piantata dove la palla e'
  * arrivata, non sospeso a mezz'aria.
  */
-/** Un solo nastro: dalla partenza all'arrivo, con la punta nella forma. */
-function nastro(g, possesso, corrente) {
+/**
+ * Il tratto di una giocata: una RIGA che disegna un arco, non un nastro
+ * pieno. Le linee si sovrappongono senza coprirsi, e su un drive intero si
+ * legge dove passa ognuna — i nastri affiancati diventavano una macchia.
+ */
+function tratto(g, possesso, corrente, lato) {
+    // Su un calcio il ritorno comincia dove la palla ATTERRA, non dalla
+    // `start` del tabellino: quella e' un punto di comodo che non combacia
+    // col referto, e faceva partire la corsa da meta' campo.
     const da = yardAssoluta(g.toEZ, possesso);
     if (da == null) return { svg: '', x1: 0, y1: 0, x2: 0, y2: 0 };
-    const yards = Number(g.yards) || 0;
-    const a = Math.max(0, Math.min(100, da + yards * versoDi(possesso)));
-    const verso = versoDi(possesso);
-    const vDa = 0.55;
-    const vA = g.lato === 'middle' || !g.lato
-        ? 0.55
-        : ((g.lato === 'left') === (verso > 0) ? 0.26 : 0.84);
-
+    // Che tipo di giocata e', prima di ogni calcolo: l'arrivo e la partenza
+    // dipendono da questo, e dichiararlo dopo mandava tutto in errore.
     const incompleto = g.tipo === 'incomplete';
     const calcio = g.tipo === 'fg';
-    const aereo = g.tipo === 'pass' || incompleto || calcio;
+    const allontana = g.tipo === 'kick';        // punt e kickoff
+    const aereo = g.tipo === 'pass' || incompleto || calcio || allontana;
+
+    const yards = Number(g.yards) || 0;
+    const verso = versoDi(possesso);
+    /*
+     * Dove finisce la palla lo dice il tabellino, non l'aritmetica. Su un
+     * kickoff "kicks 63 yards from CIN 35 to PHI 2" le yard del testo sono
+     * quelle VOLATE dal pallone, ma per chi riceve la palla ARRETRA — e
+     * ESPN mette come attacco proprio il ricevente. Sommando le yard il
+     * calcio partiva dalla parte sbagliata e finiva fuori campo.
+     * `toEZFine` e' `end.yardsToEndzone`: sui touchdown vale 0, cioe' la end
+     * zone, e su tutto il resto e' il punto vero d'arrivo.
+     */
+    /*
+     * Un calcio sono DUE momenti della stessa giocata: il pallone che vola
+     * dal piede a dove cade, e la corsa di chi lo raccoglie. Le tre posizioni
+     * vengono da tre posti diversi, ed e' per questo che mescolarle era cosi'
+     * facile: il PIEDE dal referto ("from PIT 35"), l'ATTERRAGGIO dal referto
+     * ("to BUF 3"), la FINE DEL RITORNO dal tabellino (`end`). La `start` del
+     * tabellino, su un calcio, non e' nessuna delle tre.
+     */
+    const a = (allontana && g.atterra != null)
+        ? g.atterra
+        : g.toEZFine != null
+            ? yardAssoluta(g.toEZFine, possesso)
+            : Math.max(0, Math.min(100, da + yards * verso));
+    const vDa = 0.55;
+    // Un calcio parte e arriva in mezzo al campo: non ha un lato, e mandarne
+    // l'arrivo di traverso lasciava il ritorno a partire dal centro mentre la
+    // palla era caduta di lato. Il lato vale per passaggi e corse.
+    const vLato = (allontana || calcio || g.lato === 'middle' || !g.lato)
+        ? 0.55
+        : ((g.lato === 'left') === (verso > 0) ? 0.26 : 0.84);
+    /*
+     * Una penalita' "No Play" cancella quello che era successo. La riga gialla
+     * allora non e' un'azione ma la MISURA del fazzoletto: torna indietro
+     * dritta, senza lato e senza campanile, perche' nessuno ha corso quelle
+     * dieci yard all'indietro. Il lato e la parabola restano all'azione
+     * annullata, che si disegna a parte.
+     */
+    const annulla = !!(g.penalita && g.annullata);
+    const vA = annulla ? vDa : vLato;
+
     const f = (n) => n.toFixed(1);
-    const PA = (yard, v, alt) => {
-        const [x, y] = P(uDaYard(yard), v);
-        return [x, y - alt];
-    };
 
-    // Un field goal non finisce sul prato: sale e passa FRA I PALI, che stanno
-    // oltre la end zone. L'arrivo e' li', non sulla yard line.
-    const fine = calcio ? (verso > 0 ? 100 : 0) : a;
-    const vFine = calcio ? 0.5 : vA;
+    /*
+     * Da dove parte il calcio, e qui i due casi si comportano al contrario.
+     *
+     * PUNT: chi calcia e' ancora l'attacco (e' un quarto down), quindi la
+     * posizione del tabellino E' il piede del calciatore — misurato: PIT
+     * punta con `toEZ 62`, cioe' la propria 38, che e' esattamente da dove
+     * parte. Va bene `da`.
+     *
+     * KICKOFF: l'attacco per ESPN e' gia' chi RICEVE, e la posizione e' il
+     * punto di raccolta. Li' il piede lo dice solo il referto ("from PIT 35"),
+     * e per fortuna i kickoff quel pezzo di testo ce l'hanno sempre.
+     */
+    /*
+     * Da dove parte il calcio.
+     *
+     * KICKOFF: il piede lo dice il referto ("from PIT 35"), e i kickoff quel
+     * pezzo di testo ce l'hanno sempre.
+     *
+     * PUNT: il referto non dice "from", e sulla posizione ESPN cambia
+     * convenzione — `yardsToEndzone` li' si misura dalla PROPRIA end zone,
+     * non da quella attaccata come in tutte le altre giocate. Verificato su
+     * 18 punt di due partite: `100 - toEZ` azzecca 18 volte, la formula
+     * normale 6. Sulle giocate ordinarie invece la formula normale resta
+     * quella giusta (74 su 75), quindi la deroga vale solo qui.
+     */
+    const inizio = !allontana ? da
+        : g.parte != null ? g.parte
+        : Math.max(0, Math.min(100, 100 - g.toEZ));
+    const [x1, y1] = P(uDaYard(inizio), vDa);
+    // Un field goal finisce FRA I PALI, non su una yard line: l'arrivo e' il
+    // centro della traversa della porta che si sta attaccando.
+    const [x2, y2] = calcio
+        ? centroPorta(verso > 0 ? 'r' : 'l')
+        : P(uDaYard(a), vA);
 
-    const HW = 0.055;
-    const salto = Math.abs(fine - da);
-    const picco = calcio ? Math.max(46, Math.min(96, salto * 1.1))
-        : aereo ? Math.max(9, Math.min(36, salto * 0.95)) : 0;
-    const N = aereo ? 18 : 2;
-    const top = [], bot = [];
-    for (let k = 0; k <= N; k++) {
-        const t = k / N;
-        const yard = da + (fine - da) * t;
-        const v = vDa + (vFine - vDa) * t;
-        // Il pallone calciato non ricade: passa alto sopra la traversa, quindi
-        // la curva sale e resta su invece di chiudersi a parabola.
-        const alt = calcio ? picco * Math.sin(t * Math.PI * 0.5) : picco * 4 * t * (1 - t);
-        top.push(PA(yard, v + HW, alt));
-        bot.push(PA(yard, v - HW, alt));
-    }
-    const dir = fine === da ? verso : Math.sign(fine - da);
-    // Su un incompleto e su un FG sbagliato la palla non e' arrivata: il
-    // nastro finisce tronco e a chiudere e' il segno, non una freccia.
+    // L'arco: un solo punto di controllo, alzato sopra la corda. Sul calcio
+    // la palla parte da terra e arriva alta, quindi la gobba sta piu' avanti.
+    // Tre voli diversi: il punt e il kickoff vanno altissimi a campanile, il
+    // field goal e' teso perche' deve solo scavalcare la traversa, e la corsa
+    // non vola affatto — li' la linea e' dritta, non una curva schiacciata.
+    // 145 e' il massimo che ci sta: il vertice di una quadratica sale di
+    // `picco` sopra la corda, e piu' in su il calcio finirebbe sopra lo
+    // scorebug invece che in cielo.
+    // Il campanile va commisurato allo spostamento DISEGNATO: su un kickoff
+    // ricevuto sulla propria 3 e riportato alla 26 il tratto e' corto, e un
+    // picco fisso ci disegnava sopra un arco altissimo e sottile come un ago.
+
+    // Il tratto principale di un calcio col volo gia' disegnato e' il RITORNO,
+    // e un ritorno e' una corsa: piatta.
+    const picco = annulla ? 0
+        : allontana ? Math.max(60, Math.min(145, Math.abs(a - inizio) * 2.2))
+        : calcio ? 70
+        : aereo ? Math.max(14, Math.min(56, Math.abs(a - da) * 0.9))
+        : 0;
+    const cx = calcio ? x1 + (x2 - x1) * 0.5 : (x1 + x2) / 2;
+    const cy = Math.min(y1, y2) - picco * 2;
+    const d = picco === 0
+        ? `M${f(x1)},${f(y1)} L${f(x2)},${f(y2)}`
+        : `M${f(x1)},${f(y1)} Q${f(cx)},${f(cy)} ${f(x2)},${f(y2)}`;
+
+    // La punta guarda dove arriva la palla: su una quadratica la tangente
+    // finale e' il lato che va dal controllo all'arrivo.
+    const ang = picco === 0
+        ? Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI
+        : Math.atan2(y2 - cy, x2 - cx) * 180 / Math.PI;
     const senzaPunta = incompleto || (calcio && !g.buono);
-    const altFine = calcio ? picco : 0;
-    const coda = senzaPunta ? [] : [
-        PA(fine, vFine + HW * 2.1, altFine),
-        PA(fine + dir * 3.4, vFine, altFine),
-        PA(fine, vFine - HW * 2.1, altFine),
-    ];
-    const poly = [...top, ...coda, ...bot.reverse()]
-        .map(pt => `${f(pt[0])},${f(pt[1])}`).join(' ');
 
-    const cat = g.segna ? 'sc' : (g.persa || incompleto || (calcio && !g.buono)) ? 'to'
+    // Il calcio non e' terreno guadagnato: grigio se entra, rosso se no.
+    // Il calcio non e' terreno guadagnato ma nemmeno un fondale: prende un
+    // colore suo, cosi' si distingue dal ritorno che gli sta accanto.
+    // Il giallo del fazzoletto: una giocata con penalita' si riconosce prima
+    // di leggere il testo, e sovrascrive l'esito perche' spesso lo annulla.
+    const cat = g.penalita ? 'pen'
+        : allontana ? 'kick'
+        : calcio ? (g.buono ? 'kick' : 'to')
+        : g.segna ? 'sc' : (g.persa || incompleto) ? 'to'
         : yards > 0 ? 'gain' : yards < 0 ? 'loss' : 'none';
-
-    const [x1, y1] = P(uDaYard(da), vDa);
-    const [fx, fy] = PA(fine, vFine, altFine);
-    // Il nastro cresce DALLA linea di scrimmage: senza un'origine esplicita
-    // partiva dal bordo sinistro del suo riquadro e sembrava entrare da fuori.
-    const org = `transform-origin:${f(x1)}px ${f(y1)}px;transform-box:view-box`;
     const stato = corrente === null ? '' : corrente ? ' is-cur' : ' is-dim';
+
+    // Il pallone per aria lascia una scia di PALLINI — e' un volo, non un
+    // solco; la corsa e' una barra piena appoggiata sul prato, perche' li' il
+    // terreno lo si guadagna passo per passo. Due gesti diversi per due cose
+    // diverse, che con lo stesso tratto si confondevano.
+    // La riga della penalita' e' una barra piena anche se la giocata
+    // annullata era un passaggio: la scia di pallini racconta un volo, e li'
+    // non vola niente.
+    const classe = (aereo && !annulla) ? 'fst-volo' : 'fst-corsa';
+
+    // Il RITORNO: dalla caduta a dove il ricevitore viene fermato. Fa parte
+    // della stessa giocata del calcio, quindi si accende insieme a lui invece
+    // di restare grigio come lo sfondo.
+    let ritorno = '';
+    /*
+     * Un ritorno finito in touchdown non dice mai dove finisce: il referto si
+     * ferma alle yard — "K.Wetjen for 45 yards, TOUCHDOWN" — e non c'e' il
+     * "to XXX N" che `volodelCalcio` cerca. Senza fine il ritorno non veniva
+     * proprio disegnato, e la festa finiva nella end zone del calcio invece
+     * che in quella in cui si era segnato. La end zone giusta e' quella alle
+     * spalle di chi ha calciato: il ritorno corre all'indietro rispetto al volo.
+     */
+    // Il verso lo da' `inizio`, non `g.parte`: su "T.Doman punts 44 yards to
+    // BUF 45" il referto non scrive da dove si calcia, e col solo `parte` il
+    // ripiego non si accendeva mai — proprio sul caso che doveva risolvere.
+    const fineRit = g.fineRitorno != null ? g.fineRitorno
+        : (allontana && g.segna && g.atterra != null)
+            ? (a > inizio ? 0 : 100)
+            : null;
+    let xFine = x2;
+    if (allontana && g.atterra != null && fineRit != null) {
+        const fine = fineRit;
+        if (Math.abs(fine - a) > 0.5) {
+            const [rx1, ry1] = P(uDaYard(a), vDa);
+            const [rx2, ry2] = P(uDaYard(fine), vA);
+            const rd = `M${f(rx1)},${f(ry1)} L${f(rx2)},${f(ry2)}`;
+            const rang = Math.atan2(ry2 - ry1, rx2 - rx1) * 180 / Math.PI;
+            ritorno = `
+                <path class="fst-linea fst-corsa pp-fd-gain" d="${rd}"/>
+                <path class="fst-punta pp-fd-gain"
+                      transform="translate(${f(rx2)},${f(ry2)}) rotate(${rang.toFixed(1)})"
+                      d="M3,0 L-12,-6.5 L-8,0 L-12,6.5 Z"/>
+                <ellipse class="fst-fine" cx="${f(rx2)}" cy="${f(ry2)}" rx="6.5" ry="3"/>`;
+            xFine = rx2;
+        }
+    }
+
+    /*
+     * L'azione cancellata: bianca e spenta, perche' e' successa davvero ma non
+     * conta. Tiene il LATO suo (una corsa "left end" resta sulla sinistra):
+     * a raddrizzarla anche lei si sarebbero visti due tratti sovrapposti sulla
+     * stessa riga, e non si capiva piu' quale fosse quale.
+     */
+    let cancellata = '';
+    let annX = null, annY = null;
+    if (annulla && g.annullata.yards != null) {
+        const yAnn = Number(g.annullata.yards) || 0;
+        const aAnn = Math.max(0, Math.min(100, da + yAnn * verso));
+        const [ax1, ay1] = P(uDaYard(da), vDa);
+        const [ax2, ay2] = P(uDaYard(aAnn), vLato);
+        annX = ax2; annY = ay2;
+        cancellata = `
+            <path class="fst-linea fst-corsa fst-cancellata"
+                  d="M${f(ax1)},${f(ay1)} L${f(ax2)},${f(ay2)}"/>
+            <g class="fst-x" transform="translate(${f((ax1 + ax2) / 2)},${f((ay1 + ay2) / 2)})">
+                <path d="M-9,-9 L9,9"/><path d="M9,-9 L-9,9"/></g>`;
+    }
+
+    // Dove arriva la palla lo dice gia' l'asta col ritratto: la freccia sotto
+    // ci finiva in mezzo e non si leggeva ne' l'una ne' l'altra. Resta solo
+    // quando il ritratto non c'e'.
+    // Niente punta sulle corse: il tratto giace sul prato e la freccia,
+    // disegnata di piatto sopra, sembrava appartenere a un altro piano.
+    const puntaServe = !senzaPunta && !g.fotoA && picco > 0;
     return {
-        x1, y1, x2: fx, y2: fy, senzaPunta, calcio, buono: !!g.buono,
-        svg: `<g class="fst-nastro" style="${org}">
-            <polygon points="${poly}" class="pp-fd-rib pp-fd-${cat}${stato}"/>
-            <circle cx="${f(x1)}" cy="${f(y1)}" r="3.2" class="pp-fd-dot pp-fd-${cat}${stato}"/>
+        // `x2` e' dove arriva il PALLONE; su un calcio col ritorno la giocata
+        // finisce piu' in la', dove il ricevitore viene fermato. Chi deve
+        // sapere "dov'e' finita" — la festa — guarda `xFine`.
+        x1, y1, x2, y2, xFine, calcio, buono: !!g.buono, senzaPunta,
+        // Fine dell'azione annullata: e' li' che il ricevitore era arrivato,
+        // e li' va il suo ritratto. Appeso alla fine della riga gialla — che
+        // e' la misura del fallo, non una corsa — i due volti finivano
+        // appiccicati sulla stessa yard.
+        annX, annY,
+        svg: `<g class="fst-tratto${stato}">
+            <path class="fst-linea-ombra ${classe}-ombra" d="${d}"/>
+            ${cancellata}
+            <path class="fst-linea ${classe} pp-fd-${cat}" d="${d}"/>
+            ${ritorno}
+            ${((!aereo || annulla) && !ritorno) ? `<ellipse class="fst-fine"
+                cx="${f(x2)}" cy="${f(y2)}" rx="6.5" ry="3"/>` : ''}
+            ${!puntaServe ? '' : `<path class="fst-punta pp-fd-${cat}"
+                transform="translate(${f(x2)},${f(y2)}) rotate(${ang.toFixed(1)})"
+                d="M3,0 L-12,-6.5 L-8,0 L-12,6.5 Z"/>`}
+            ${g.fotoDa ? '' : `<ellipse class="fst-base pp-fd-${cat}"
+                cx="${f(x1)}" cy="${f(y1)}" rx="6.5" ry="3"/>`}
         </g>`,
     };
 }
@@ -324,28 +507,58 @@ function nastro(g, possesso, corrente) {
 function tracciaGiocate(lista, corrente, possesso, g) {
     if (!lista?.length) return '';
     const f = (n) => n.toFixed(1);
-    const pezzi = lista.map((x, k) => nastro(x, x.possesso || possesso,
-        lista.length === 1 ? null : k === corrente));
+    // Solo le giocate FINO a quella scelta: quelle successive raccontano un
+    // futuro che, mentre si riguarda l'azione, non e' ancora successo — e
+    // riempivano il campo di tratti che confondevano la lettura.
+    const pezzi = lista.map((x, k) => k > corrente ? null
+        : tratto(x, x.possesso || possesso, lista.length === 1 ? null : k === corrente))
+        .filter(Boolean);
     const cur = pezzi[corrente] || pezzi[pezzi.length - 1];
     const gCur = lista[corrente] || lista[lista.length - 1];
 
-    // Il segno di chiusura sta solo sulla giocata scelta: su tutte sarebbe un
-    // campo pieno di croci.
+
     let segno = '';
     if (gCur.tipo === 'incomplete') {
         segno = `<g class="fst-x" transform="translate(${f(cur.x2)},${f(cur.y2)})">
             <path d="M-10,-10 L10,10"/><path d="M10,-10 L-10,10"/></g>`;
     } else if (cur.calcio && !cur.buono) {
-        // Il calcio sbagliato: una zeta fra i pali, dove sarebbe dovuto passare.
         segno = `<g class="fst-x" transform="translate(${f(cur.x2)},${f(cur.y2)})">
             <path d="M-11,-9 L11,-9 L-11,9 L11,9"/></g>`;
     }
 
-    const da = yardAssoluta(gCur.toEZ, gCur.possesso || possesso);
+    // Su un calcio la scrimmage sta dove parte il PALLONE, non dove viene
+    // raccolto: la posizione del tabellino li' e' il punto di ricezione.
+    // La scrimmage di un calcio sta dove parte il pallone, e li' vale la
+    // regola dei calci — non quella normale, che sui punt e' specchiata.
+    const da = gCur.tipo !== 'kick'
+        ? yardAssoluta(gCur.toEZ, gCur.possesso || possesso)
+        : gCur.parte != null
+            ? gCur.parte
+            : Math.max(0, Math.min(100, 100 - gCur.toEZ));
     const [lx1, ly1] = P(uDaYard(da), LINEA_DA), [lx2, ly2] = P(uDaYard(da), LINEA_A);
 
-    const astaSu = 26;
-    const faccia = (x, y, url, n) => !url ? '' : `
+    // Il ritratto sta FUORI dal campo, non a cavallo del bordo: partendo da
+    // meta' profondita' (y ~235) e col cerchio da 19, ottantacinque unita' lo
+    // portano a ~133, sopra il bordo del manto che sta a 164.
+    const astaSu = 85;
+    /*
+     * Il contorno prende il colore della squadra del giocatore. Su un CALCIO
+     * le due facce non sono della stessa squadra — chi calcia e chi ritorna
+     * stanno di fronte — quindi la seconda si specchia: colorarle uguali
+     * avrebbe detto una cosa falsa proprio dove le squadre sono due.
+     *
+     * Sotto resta un cerchietto chiaro appena piu' largo: stacca il ritratto
+     * dallo sfondo senza toccare il colore, che resta quello vero della
+     * squadra — il nero di Pittsburgh compreso.
+     */
+    const colore = (poss) => poss === 'home' ? 'var(--fst-casa)'
+        : poss === 'away' ? 'var(--fst-osp)' : '#fff';
+    const possDa = gCur.possesso || possesso;
+    const altro = possDa === 'home' ? 'away' : possDa === 'away' ? 'home' : null;
+    const cDa = colore(possDa);
+    const cA = colore(gCur.tipo === 'kick' ? altro : possDa);
+    const faccia = (x, y, url, n, col) => !url ? '' : `
+        <ellipse class="fst-piede" cx="${f(x)}" cy="${f(y)}" rx="7" ry="3.2"/>
         <line class="fst-filo" x1="${f(x)}" y1="${f(y)}" x2="${f(x)}" y2="${f(y - astaSu)}"/>
         <g class="fst-ritratto">
             <circle cx="${f(x)}" cy="${f(y - astaSu - 17)}" r="19" fill="#0e1116"/>
@@ -353,19 +566,43 @@ function tracciaGiocate(lista, corrente, possesso, g) {
             <image href="${url}" x="${f(x - 17)}" y="${f(y - astaSu - 34)}"
                    width="34" height="34" clip-path="url(#${rifId('clip' + n)})"
                    preserveAspectRatio="xMidYMid slice"/>
+            <circle cx="${f(x)}" cy="${f(y - astaSu - 17)}" r="19.4" fill="none"
+                    stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
             <circle cx="${f(x)}" cy="${f(y - astaSu - 17)}" r="18" fill="none"
-                    stroke="#fff" stroke-width="2.2"/>
+                    stroke="${col}" stroke-width="2.6"/>
         </g>`;
-    const distanti = Math.hypot(cur.x2 - cur.x1, cur.y2 - cur.y1) > 46;
-    const foto = faccia(cur.x1, cur.y1, gCur.fotoDa, 'a')
-        + (distanti ? faccia(cur.x2, cur.y2, gCur.fotoA, 'b') : '');
+    // I ritratti stanno in alto fuori dal campo: si toccano solo se le due
+    // estremita' sono quasi sovrapposte, quindi la soglia scende e il
+    // ricevitore compare anche sui passaggi corti, dove prima spariva.
+    const fx2 = cur.annX != null ? cur.annX : cur.x2;
+    const fy2 = cur.annY != null ? cur.annY : cur.y2;
+    const distanti = Math.hypot(fx2 - cur.x1, fy2 - cur.y1) > 26;
+    const foto = faccia(cur.x1, cur.y1, gCur.fotoDa, 'a', cDa)
+        + (distanti ? faccia(fx2, fy2, gCur.fotoA, 'b', cA) : '');
 
+    // Su un calcio la linea di scrimmage non vuol dire niente: il gioco non
+    // riparte da li', e disegnata in mezzo al campo sembrava indicare un
+    // punto che nell'azione non esiste.
+    const los = `
+        <line class="fst-los-ombra" x1="${f(lx1)}" y1="${f(ly1)}" x2="${f(lx2)}" y2="${f(ly2)}"/>
+        <line class="fst-los" x1="${f(lx1)}" y1="${f(ly1)}" x2="${f(lx2)}" y2="${f(ly2)}"/>`;
     return `
-    <line class="fst-los-ombra" x1="${f(lx1)}" y1="${f(ly1)}" x2="${f(lx2)}" y2="${f(ly2)}"/>
-    <line class="fst-los" x1="${f(lx1)}" y1="${f(ly1)}" x2="${f(lx2)}" y2="${f(ly2)}"/>
+    ${los}
     ${pezzi.map(x => x.svg).join('')}
     ${segno}
     ${foto}`;
+}
+
+/**
+ * Da che parte del CAMPO e' finita la giocata che segna, o null se non segna.
+ * Passa da `tratto` come il disegno, cosi' non ci sono due modi di dire dov'e'
+ * finita l'azione: se il tratto e' giusto, e' giusta anche la festa.
+ */
+function latoSegnato(lista, corrente, possesso, g) {
+    const gCur = lista?.[corrente] || lista?.[lista.length - 1] || g;
+    if (!gCur?.segna || gCur.toEZ == null) return null;
+    const t = tratto(gCur, gCur.possesso || possesso, null);
+    return t.xFine > VB_W / 2 ? 'r' : 'l';
 }
 
 /* ── Markup ──────────────────────────────────────────────────────────── */
@@ -410,11 +647,33 @@ const punteggio = (t, attivo) => `
 
 export function fieldStripHTML(s) {
     ID = String(++nIstanza);
+    /*
+     * Come le maglie: in casa il primo colore, in trasferta l'alternativo.
+     * Vale per le end zone e per il contorno dei ritratti, che leggono le
+     * stesse due variabili — cosi' le due squadre non finiscono mai sullo
+     * stesso colore e si distinguono a colpo d'occhio.
+     */
     const cCasa = s.home.color || 'var(--accent-red)';
-    const cOsp = s.away.color || 'var(--accent-blue)';
+    const cOsp = s.away.color2 || s.away.color || 'var(--accent-blue)';
     const g = s.giocata;
+    /*
+     * Da che parte dello SCOREBUG va la festa. La conversione e' INVERTITA e
+     * non e' un errore: chi segna nella end zone di destra e' l'ospite, e
+     * l'ospite nello scorebug sta a sinistra ("l'ospite va sempre a sinistra",
+     * come in TV). Prendere il lato del campo cosi' com'e' avrebbe messo i
+     * fuochi accanto al logo di chi ha SUBITO il touchdown.
+     *
+     * Qui si dice solo DOVE: la festa la spara `live.js` col motore degli
+     * effetti. Messa nel markup ripartiva da capo a ogni polling, perche'
+     * `aggiornaCampo` rimpiazza lo scorebug appena l'orologio scorre.
+     */
+    const latoCampo = latoSegnato(s.giocate || (g ? [g] : []), s.giocataIdx ?? 0, s.possesso, g);
+    const latoBug = latoCampo === 'r' ? 'l' : latoCampo === 'l' ? 'r' : null;
+
     return `
-    <div class="fst" style="--fst-casa:${cCasa};--fst-osp:${cOsp}">
+    <div class="fst${s.statico ? ' fst--statico' : ''}" data-scena="${esc(s.scena || '')}"
+         data-festa="${latoBug || ''}"
+         style="--fst-casa:${cCasa};--fst-osp:${cOsp}">
         <div class="fst-bug">
             <div class="fst-lato">
                 ${logoImg(s.away)}
@@ -445,6 +704,19 @@ export function fieldStripHTML(s) {
                     <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
                 </linearGradient>
                 <clipPath id="${rifId('taglio')}"><path d="${tappeto()}"/></clipPath>
+                <!-- Contorno che segue la SAGOMA del logo: si dilata il suo
+                     canale alfa, lo si riempie di bianco e ci si rimette
+                     sopra l'originale. Un cerchio avrebbe bordato il
+                     riquadro dell'immagine, non lo stemma. -->
+                <filter id="${rifId('bordo')}" x="-25%" y="-25%" width="150%" height="150%">
+                    <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="grosso"/>
+                    <feFlood flood-color="#ffffff" flood-opacity="0.95" result="bianco"/>
+                    <feComposite in="bianco" in2="grosso" operator="in" result="contorno"/>
+                    <feMerge>
+                        <feMergeNode in="contorno"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
             </defs>
             <!-- Lo spessore del tappeto: due copie sfalsate sotto, non un
                  rettangolo — cosi' anche il bordo e' arrotondato. -->
@@ -483,6 +755,14 @@ export function fieldStripHTML(s) {
             <span class="fst-tl-num">${s.timeline.i + 1}/${s.timeline.n}</span>
         </div>` : ''}
 
+        ${s.timeout ? `
+        <div class="fst-last fst-last--timeout">
+            <div class="fst-last-txt">
+                <span class="fst-last-head"><b>${esc(s.timeout.titolo)}</b></span>
+                ${s.timeout.squadra ? `<span class="fst-last-desc">${esc(s.timeout.squadra)}</span>` : ''}
+            </div>
+        </div>` : ''}
+
         ${g ? `
         <div class="fst-last">
             ${g.logo ? `<img class="fst-last-logo" src="${esc(g.logo)}" alt="" loading="lazy">` : ''}
@@ -501,7 +781,10 @@ export function fieldStripHTML(s) {
                 ${s.recap.map(r => `
                 <li class="fst-recap-row${r.segna ? ' is-score' : ''}${r.persa ? ' is-turn' : ''}"
                     data-fst-go="${r.i}">
-                    <span class="fst-recap-when">${r.periodo ? `Q${r.periodo}` : ''} ${esc(r.clock || '')}</span>
+                    <span class="fst-recap-when">
+                        <b>${r.periodo ? `Q${r.periodo}` : ''} ${esc(r.clock || '')}</b>
+                        ${r.dd ? `<i>${esc(r.dd)}</i>` : ''}
+                    </span>
                     <span class="fst-recap-txt"><b>${esc(r.titolo)}</b>${esc(r.testo)}</span>
                 </li>`).join('')}
             </ol>
@@ -586,6 +869,37 @@ export function yardCalcio(p) {
     return m ? Number(m[1]) : null;
 }
 
+/**
+ * Dove atterra il pallone e da dove parte, letti dal referto: "kicks 62 yards
+ * from PIT 35 to BUF 3". Sono le due cose che il tabellino NON dice: la
+ * `start` di un calcio e' gia' il punto di raccolta e la `end` quello dove
+ * finisce il ritorno, quindi senza il testo del volo non resta traccia.
+ * Il punto d'atterraggio c'e' su tutti i calci, la partenza solo sui kickoff.
+ *
+ * `posDaSigla` porta "BUF 3" nella scala assoluta del disegno: zero a
+ * sinistra, dove sta l'ospite.
+ */
+export function posDaSigla(sigla, yard, homeAbbr) {
+    const n = Math.max(0, Math.min(100, Number(yard)));
+    return String(sigla).toUpperCase() === String(homeAbbr).toUpperCase() ? 100 - n : n;
+}
+
+export function volodelCalcio(text, homeAbbr) {
+    const t = testoAzione(text);
+    const arr = t.match(/to (?:the )?([A-Z]{2,3}) (\d+)/);
+    const par = t.match(/from (?:the )?([A-Z]{2,3}) (\d+)/);
+    // La fine del RITORNO sta pure nel testo, con le yard accanto: "Cha.Jones
+    // to CIN 29 for 8 yards". Il tabellino qui non aiuta — provate le due
+    // convenzioni sui nove ritorni delle partite, ne azzeccavano 5 e 0. Letta
+    // dal testo torna 22 volte su 22.
+    const rit = t.match(/to (?:the )?([A-Z]{2,3}) (\d+) for (-?\d+) yards?/);
+    return {
+        atterra: arr ? posDaSigla(arr[1], arr[2], homeAbbr) : null,
+        parte: par ? posDaSigla(par[1], par[2], homeAbbr) : null,
+        fineRitorno: rit ? posDaSigla(rit[1], rit[2], homeAbbr) : null,
+    };
+}
+
 /** Un field goal e' entrato o no: cambia il disegno, non solo il colore. */
 export const fgBuono = (p) => /is GOOD/i.test(String(p?.text || ''));
 
@@ -627,13 +941,58 @@ export const eDiServizio = (p) => {
 /** Quanto lungo disegnare un passaggio che non ha fatto yard. */
 export const yardStimate = (prof) => (prof === 'deep' ? 18 : prof === 'short' ? 6 : 11);
 
+/*
+ * Il testo della sola AZIONE, senza la trasformazione che ESPN accoda sulla
+ * stessa riga. Quella coda descrive un'altra giocata e ne rubava la
+ * classificazione: "T.Doman punts 44 yards to BUF 45. K.Wetjen for 45 yards,
+ * TOUCHDOWN. TWO-POINT CONVERSION ATTEMPT. D.Allar pass to M.Hurleman is
+ * incomplete" veniva letto come un passaggio sbagliato — l'`incomplete` della
+ * conversione vince sul `punts` perche' arriva prima nei controlli — e il
+ * punt ritornato in touchdown finiva disegnato come un lancio a vuoto in
+ * mezzo al campo, con la festa nella end zone sbagliata. Vale uguale per
+ * "extra point is No Good", che pesca nello stesso ramo.
+ */
+export const testoAzione = (t) => String(t || '')
+    .split(/TWO[- ]POINT CONVERSION|extra point/i)[0];
+
+/**
+ * L'azione ANNULLATA da una penalita' "No Play": quello che era successo sul
+ * campo prima che il fazzoletto lo cancellasse. ESPN la scrive per intero
+ * PRIMA della parola PENALTY — "(Shotgun) J.Haynes left end to CIN 42 for 12
+ * yards" — e poi dichiara "- No Play". Senza disegnarla, quella giocata si
+ * legge come una perdita secca di dieci yard, mentre erano dodici guadagnate
+ * e poi cancellate: due fatti diversi che meritano due tratti diversi.
+ */
+export function azioneAnnullata(text) {
+    const t = String(text || '');
+    if (!/no play/i.test(t)) return null;
+    // Il "No Play" da solo basta a raddrizzare la riga gialla: anche un falso
+    // movimento, dove sul campo non e' successo niente, e' una misura e non
+    // un'azione. Le yard invece ci sono solo quando qualcosa era successo, e
+    // senza quelle il tratto bianco non si disegna.
+    const prima = t.split(/PENALTY/i)[0];
+    const m = prima.match(/for (-?\d+) yards?/i);
+    const yards = m ? Number(m[1]) : (/for no gain/i.test(prima) ? 0 : null);
+    return { noPlay: true, yards };
+}
+
 /** Che disegno fa la giocata: per aria, per terra, o a vuoto. */
 export function tipoGiocata(p) {
-    const t = `${p?.type || ''} ${p?.text || ''}`;
+    const t = `${p?.type || ''} ${testoAzione(p?.text)}`;
     // L'incompleto si riconosce prima di tutto il resto: e' pur sempre un
     // passaggio, e cadendo nel ramo 'pass' avrebbe preso la freccia di arrivo
     // su una palla che a terra non e' mai arrivata.
     if (/incomplet|no good|missed/i.test(t)) return 'incomplete';
-    if (/punt|kickoff|field goal|pass|interception/i.test(t)) return 'pass';
+    /*
+     * Un calcio con RITORNO va disegnato come una corsa, non come un
+     * campanile. Il tratto che finisce sul campo non e' il volo del pallone:
+     * ESPN registra come partenza il punto dove la palla viene raccolta e
+     * come arrivo dove il ritornatore viene placcato — cioe' esattamente la
+     * corsa che segue il calcio ("E.Ezukanma to PHI 24 for 22 yards").
+     * Il campanile resta per i calci che non vengono riportati: touchback,
+     * fair catch, palla fuori, e i field goal.
+     */
+    if (/punts|kicks \d+ yard|kickoff/i.test(t)) return 'kick';
+    if (/field goal|pass|interception/i.test(t)) return 'pass';
     return 'run';
 }

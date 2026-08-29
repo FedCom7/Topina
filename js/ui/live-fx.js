@@ -156,6 +156,55 @@ export function effettoPer(ev) {
  *
  * Torna null se il campo non c'è: nel confronto gli effetti non partono.
  */
+/**
+ * Un livello effetti dentro un contenitore qualunque, per chi non e' il campo
+ * della rosa. Il contenitore deve essere posizionato: il livello si stende
+ * con `inset: 0` e ritaglia le particelle ai propri bordi.
+ */
+export function montaLivello(host, cls = 'live-fx') {
+    if (!host) return null;
+    let layer = [...host.children].find(c => c.classList?.contains('live-fx'));
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = cls;
+        layer.setAttribute('aria-hidden', 'true');
+        host.appendChild(layer);
+    }
+    return layer;
+}
+
+/**
+ * SOLO fuochi, razzi e coriandoli, attorno a un elemento qualunque: niente
+ * timbro, niente fumetto, niente faro sul palco, nessuna coda.
+ *
+ * Serve allo scorebug di "Inside the game", dove a festeggiare e' una squadra
+ * NFL e non un giocatore di fantasy: li' un timbro "TOUCHDOWN" e la nuvoletta
+ * non hanno nessuno a cui riferirsi, e `is-festa` abbasserebbe `.live-stage`,
+ * cioe' la rosa, che sta tutt'altrove nella pagina.
+ */
+export function festaAttorno(layer, slot, colori, opts = {}) {
+    if (!layer || !slot || !colori?.length) return false;
+    if (ridotto()) return false;
+    const dura = opts.dura || FUOCHI_MS;
+    const p = punto(layer, slot);
+    const meta = stretto() ? 0.5 : 1;
+    const vivo = () => layer.isConnected;
+
+    const ondate = Math.max(3, Math.round(dura / 2600));
+    coriandoli(layer, p, colori, Math.round((opts.coriandoli || 76) * meta),
+        ondate, dura / ondate, vivo);
+    // I razzi salgono sotto al logo di chi ha segnato, non a caso per la
+    // striscia: e' la stessa ragione per cui i coriandoli stanno da quella
+    // parte — la festa deve dire anche di CHI e'.
+    const nRazzi = Math.max(1, opts.razzi || 4);
+    for (let i = 0; i < nRazzi; i++) {
+        setTimeout(() => { if (vivo()) razzo(layer, colori, p.H, p.x); },
+            i * (dura / nRazzi));
+    }
+    fuochiAttorno(layer, p, colori, dura, (opts.ogni || 900) / meta, vivo);
+    return true;
+}
+
 export function mountFx(root) {
     const campo = root?.querySelector('.matchup-field-horizontal');
     if (!campo) return null;
@@ -301,8 +350,9 @@ function scoppio(layer, x, y, col, scala = 1) {
 }
 
 /** Un razzo che sale da sotto e scoppia in alto: serve al field goal da 50+. */
-function razzo(layer, colori, H) {
-    const x = rnd(layer.clientWidth * 0.25, layer.clientWidth * 0.75);
+function razzo(layer, colori, H, xFisso) {
+    const x = xFisso != null ? xFisso
+        : rnd(layer.clientWidth * 0.25, layer.clientWidth * 0.75);
     const apice = rnd(H * 0.07, H * 0.18);
     const col = pick(colori);
 

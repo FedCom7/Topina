@@ -102,6 +102,7 @@ function normalizePlay(p) {
         // raggruppare le giocate in azioni, come fa la striscia di NFL Hub.
         driveId: String(p.drive?.$ref || '').match(/\/drives\/(\d+)/)?.[1] || null,
         turnover: !!p.isTurnover,
+        penalita: !!p.isPenalty,
         scoreValue: Number(p.scoreValue) || 0,
         awayScore: Number(p.awayScore) || 0,
         homeScore: Number(p.homeScore) || 0,

@@ -19,18 +19,18 @@ import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SE
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=665';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=543';
-import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio } from '../ui/field-strip.js?v=33';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata } from '../ui/field-strip.js?v=90';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=539';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=30';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
 import { initPlayerModal } from '../components/player-modal.js?v=670';
-import { mountFx, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=25';
+import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=520';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
 
@@ -674,6 +674,36 @@ async function pollPlays() {
     }
 }
 
+/* I colori della festa: vivaci e non della squadra. Con le tinte NFL un
+   touchdown dei Raiders sarebbe stato nero su nero. */
+const COLORI_FESTA = ['#f5c518', '#ff7a45', '#4cc2ff', '#7ee787', '#ff5c8a', '#ffffff'];
+
+/**
+ * I fuochi accanto al logo di chi ha appena segnato, nello scorebug di
+ * "Inside the game".
+ *
+ * Parte UNA volta per scena, e il segnale e' il livello stesso: se c'e' gia',
+ * la festa e' gia' partita. Costruita invece dentro il markup ripartiva da
+ * capo a ogni polling, perche' `aggiornaCampo` rimpiazza lo scorebug appena
+ * l'orologio scorre — e a partita finita, dove l'orologio sta fermo, non si
+ * vedeva. Il livello sta su `.fst` e non sul bug proprio per questo: il bug
+ * viene buttato via, `.fst` no.
+ */
+function festeggiaSegnatura(fst) {
+    const lato = fst?.dataset?.festa;
+    if (!lato) return;
+    if ([...fst.children].some(c => c.classList?.contains('live-fx'))) return;
+    const slot = fst.querySelector(lato === 'r' ? '.fst-lato--r' : '.fst-lato');
+    if (!slot) return;
+    festaAttorno(montaLivello(fst, 'live-fx live-fx--bug'), slot, COLORI_FESTA,
+        // Piu' fitta della festa sulla card: li' lo spazio e' un campo
+        // intero, qui e' la fascia dello scorebug, e con i numeri di la'
+        // restavano quattro puntini sparsi. Su telefono `stretto()` dimezza
+        // comunque tutto.
+        { dura: 20000, coriandoli: 190, razzi: 8, ogni: 560 });
+}
+
+
 /** Ridisegna la sola striscia, e solo se e' cambiata: cosi' l'animazione
  *  dell'arco riparte a ogni giocata nuova e non a ogni giro a vuoto. */
 function aggiornaCampo() {
@@ -691,12 +721,29 @@ function aggiornaCampo() {
     const aperto = vecchia.querySelector('.fst-recap')?.open;
     const nuova = fieldStripHTML(st).trim();
     if (vecchia.outerHTML === nuova) return;
+
+    // Se sul campo c'e' la stessa scena, si aggiorna SOLO lo scorebug e si
+    // lascia stare l'SVG: rifarlo da capo per un orologio che scorre faceva
+    // ripartire l'animazione della giocata, e le linee del drive con lei.
+    if (vecchia.dataset.scena && vecchia.dataset.scena === st.scena) {
+        // Solo lo scorebug: il campo non si tocca finche' la scena e' quella.
+        const tmp = document.createElement('div');
+        tmp.innerHTML = nuova;
+        const bugNuovo = tmp.querySelector('.fst-bug');
+        const bugVecchio = vecchia.querySelector('.fst-bug');
+        if (bugNuovo && bugVecchio && bugVecchio.outerHTML !== bugNuovo.outerHTML) {
+            bugVecchio.replaceWith(bugNuovo);
+        }
+        return;
+    }
+
     vecchia.outerHTML = nuova;
     const fresca = sez.querySelector('.fst');
     if (!fresca) return;
     const det = fresca.querySelector('.fst-recap');
     if (det && aperto) det.open = true;
     bindFieldStrip(fresca, scegliGiocata);
+    festeggiaSegnatura(fresca);
 }
 
 /** Una giocata scelta dalla timeline o dall'elenco: il campo la disegna. */
@@ -1294,8 +1341,22 @@ function refreshInPlace(events = []) {
     if (deep && deepHTML) {
         const nuovo = deepHTML.trim();
         if (deep.outerHTML !== nuovo) {
-            deep.outerHTML = nuovo;
+            // Il campo disegnato si TRAPIANTA nel blocco nuovo PRIMA che
+            // questo entri nel documento. Sostituirlo dopo non bastava: il
+            // nuovo SVG entrava comunque, l'animazione partiva, e solo un
+            // istante dopo veniva rimpiazzato — a schermo si vedeva
+            // ridisegnare lo stesso.
+            const tmp = document.createElement('div');
+            tmp.innerHTML = nuovo;
+            const fstVecchia = deep.querySelector('.fst');
+            const fstNuova = tmp.querySelector('.fst');
+            if (fstVecchia && fstNuova && fstNuova.dataset.scena
+                && fstNuova.dataset.scena === fstVecchia.dataset.scena) {
+                fstNuova.replaceWith(fstVecchia);
+            }
+            deep.replaceWith(tmp.firstElementChild);
             bindDeepDive(root);
+            festeggiaSegnatura(root.querySelector('.fst'));
         }
     } else if (deep && !deepHTML) {
         deep.remove();          // le partite sono finite fuori dal tabellino
@@ -1436,6 +1497,7 @@ function render() {
     root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
     bindSwipe(root.querySelector('[data-swipe]'));
     bindDeepDive(root);
+    festeggiaSegnatura(root.querySelector('.fst'));
     // Il campo è stato riscritto: il livello effetti se n'è andato con lui,
     // e con esso qualunque festa in volo.
     fermaEffetti();
@@ -2709,6 +2771,7 @@ const giocateDellaPartita = (ev) => (ev ? giocateDi.get(String(ev)) : null) || [
 const LOGO_NFL = (abbr) =>
     `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;
 
+
 /**
  * Lo stato per la striscia del campo, messo insieme da due fonti che gia'
  * esistono: il tabellino (chi gioca, il punteggio, a che punto e') e l'ultima
@@ -2726,6 +2789,7 @@ function statoCampo(sigla, quadro) {
         abbr: sigla, name: g.teamName || sigla,
         logo: g.logo || LOGO_NFL(sigla),
         color: getTeamIdentity(sigla)?.color || 'var(--accent-red)',
+        color2: getTeamIdentity(sigla)?.color2 || '',
         score: g.score ?? 0,
         timeouts: sched?.timeouts ?? null,
     };
@@ -2733,6 +2797,7 @@ function statoCampo(sigla, quadro) {
         abbr: oppAbbr, name: g.opponentName || oppAbbr,
         logo: LOGO_NFL(oppAbbr),
         color: getTeamIdentity(oppAbbr)?.color || 'var(--accent-blue)',
+        color2: getTeamIdentity(oppAbbr)?.color2 || '',
         score: g.oppScore ?? 0,
         timeouts: sched?.oppTimeouts ?? null,
     };
@@ -2784,11 +2849,22 @@ function statoCampo(sigla, quadro) {
             testo: x.text || '',
             periodo: x.period,
             clock: x.clock,
+            // Il down e la distanza dicono il PESO della giocata: un passaggio
+            // da otto yard al terzo e sette e uno al primo e dieci sono due
+            // cose diverse, e scorrendo l'elenco non si distinguevano.
+            dd: x.down ? `${x.down}${['st', 'nd', 'rd', 'th'][Math.min(x.down, 4) - 1]} & ${x.distance ?? 10}` : '',
             segna: !!x.scoring,
             persa: !!x.turnover,
         })).reverse(),
-        giocate: (drive?.plays || []).filter(x => x.toEZ != null).map(x => giocataDisegnabile(x, home, away)),
-        giocataIdx: Math.max(0, (drive?.plays || []).filter(x => x.toEZ != null).indexOf(p)),
+        // Coin toss, fine quarto, timeout: hanno una posizione di comodo
+        // (`toEZ 0` con una fine a meta' campo) e tracciavano una riga lunga
+        // che non corrisponde a nessuna azione. Non si disegnano.
+        // Su un timeout il campo resta vuoto. La giocata e' fuori dalla lista
+        // (e' filtrata), quindi `indexOf` dava -1 e l'indice ripiegava su
+        // zero: restava acceso il calcio d'inizio del drive.
+        giocate: eUnTimeout(p) ? [] :
+            (drive?.plays || []).filter(disegnabile).map(x => giocataDisegnabile(x, home, away)),
+        giocataIdx: Math.max(0, (drive?.plays || []).filter(disegnabile).indexOf(p)),
         // Le pastiglie della striscia: una per drive, con la sigla dell'esito.
         // L'esito si cerca A RITROSO fra le azioni del drive, non sull'ultima:
         // in coda ci finiscono timeout e trasformazioni, e un drive chiuso col
@@ -2827,9 +2903,57 @@ function statoCampo(sigla, quadro) {
         // resta comunque raggiungibile scorrendo le giocate.
         }).filter(d => d.tag !== '—'),
         driveIdx: dIdx,
-        giocata: p && p.toEZ != null ? giocataDisegnabile(p, home, away) : null,
+        // Identifica CIO' CHE E' DISEGNATO, non lo stato intero: l'orologio
+        // e i punteggi cambiano a ogni giro di polling, e ridisegnare l'SVG
+        // per quelli faceva ripartire l'animazione della giocata ogni trenta
+        // secondi, all'infinito.
+        scena: `${sigla}|${dIdx}|${p?.id || ''}|${gruppi.length}`,
+        // L'animazione racconta una giocata che ARRIVA. Riguardando l'azione
+        // a partita finita non arriva niente — si sta sfogliando — e un
+        // secondo e mezzo di attesa a ogni passo, per centosettantotto
+        // giocate, e' un impaccio invece di un racconto.
+        statico: giocataScelta != null,
+        // Un timeout non e' un'azione: sul campo non va disegnato niente, e al
+        // posto della giocata si dice chi l'ha chiamato. Prima restava acceso
+        // il calcio d'inizio del drive, che non c'entrava nulla.
+        timeout: eUnTimeout(p) ? etichettaTimeout(p, home, away) : null,
+        giocata: (p && p.toEZ != null && !eUnTimeout(p))
+            ? giocataDisegnabile(p, home, away) : null,
     };
 }
+
+/**
+ * Una giocata che ha senso disegnare sul campo.
+ *
+ * NON usa `eDiServizio`: quella esclude anche i calci, perche' serve a un'altra
+ * domanda — "com'e' finito il drive?", dove un kickoff non e' l'esito ma cio'
+ * che viene dopo. Usarla anche qui buttava via kickoff e punt dal campo, e il
+ * pannello raccontava una giocata mentre il disegno ne mostrava un'altra.
+ * Qui si tolgono solo le righe che una posizione non ce l'hanno davvero.
+ */
+const eUnTimeout = (x) => /timeout/i.test(String(x?.text || ''));
+
+/** "Timeout — Buffalo Bills", o "Official timeout" se non e' di nessuno. */
+function etichettaTimeout(p, home, away) {
+    const m = String(p?.text || '').match(/timeout #?[0-9]*\s*by\s+([A-Za-z]{2,3})/i);
+    if (!m) return { titolo: 'Official timeout', squadra: '' };
+    const sig = m[1].toUpperCase();
+    const q = [home, away].find(x => (x.abbr || '').toUpperCase() === sig);
+    // Il nome per esteso quando si riesce: nella scheda c'e' spazio, e
+    // "Pittsburgh Steelers" si legge meglio di una sigla di tre lettere.
+    // La tabella viene PRIMA di `q.name`: li' il nome ripiega sulla sigla
+    // quando il tabellone non lo manda, e si finiva per scrivere "Timeout —
+    // PIT" pur avendo il nome esteso a disposizione.
+    const esteso = teamNameFromAbbr(sig);
+    return {
+        titolo: 'Timeout',
+        squadra: esteso !== sig ? esteso : (q?.name || sig),
+    };
+}
+
+const disegnabile = (x) => x.toEZ != null
+    && !/^(GAME|END GAME|END QUARTER|END OF|Timeout|Official Timeout|Two-Minute)/i
+        .test(String(x.text || '').trim());
 
 /**
  * Da giocata grezza a giocata disegnabile. Sta fuori da `statoCampo` perche'
@@ -2839,7 +2963,9 @@ function giocataDisegnabile(p, home, away) {
     const dir = direzioneGiocata(p);
     let tipo = tipoGiocata(p);
     const calcio = yardCalcio(p);
-    if (/field goal/i.test(p.text || '')) tipo = 'fg';
+    // Sulla sola azione, come tipoGiocata: la coda della trasformazione
+    // parla di un'altra giocata.
+    if (/field goal/i.test(testoAzione(p.text))) tipo = 'fg';   // dopo: sovrascrive 'kick'
 
     // Le yard: quelle ufficiali quando ci sono, quelle del testo per i calci
     // (un punt risulta da zero yard), una stima per gli incompleti.
@@ -2864,13 +2990,26 @@ function giocataDisegnabile(p, home, away) {
         buono: fgBuono(p),
         segna: !!p.scoring,
         persa: !!p.turnover,
+        penalita: !!p.penalita,
+        // Cosa era successo prima del fazzoletto, quando la penalita' annulla
+        // la giocata ("- No Play"): serve a disegnarla cancellata.
+        annullata: azioneAnnullata(p.text),
         toEZ: p.toEZ,
+        // DOVE E' FINITA la palla, non quanto ha percorso: e' il dato che
+        // ESPN registra, e sulle giocate dove le due cose non coincidono —
+        // i calci prima di tutto — sommare le yard sbagliava di netto.
+        toEZFine: p.toEZEnd,
+        // Il volo del calcio, letto dal testo: da dove parte e dove atterra.
+        // Il tabellino da' solo la raccolta e la fine del ritorno.
+        ...(tipo === 'kick' ? volodelCalcio(p.text, home.abbr) : {}),
         possesso: poss,
         logo: poss ? (poss === 'home' ? home.logo : away.logo) : '',
         // Due facce: chi la manda e chi la riceve. Su una corsa e' la stessa
         // persona, quindi la seconda resta vuota.
-        fotoDa: foto('passer', 'rusher', 'kicker', 'scorer'),
-        fotoA: (p.actors?.passer || p.actors?.kicker)
+        // `punter` e non `kicker`: sui punt ESPN usa l'altro nome, e senza
+        // questo la faccia di chi calcia non compariva mai.
+        fotoDa: foto('passer', 'rusher', 'kicker', 'punter', 'scorer'),
+        fotoA: (p.actors?.passer || p.actors?.kicker || p.actors?.punter)
             ? foto('receiver', 'returner') : '',
     };
 }

@@ -18613,6 +18613,17 @@ td.ps-div-seed {
    dentro una card. */
 .fst {
     margin: 0 0 14px;
+    /* Ancora del livello effetti: la festa vive qui e non dentro lo scorebug,
+       che viene rimpiazzato a ogni tick dell'orologio. */
+    position: relative;
+}
+
+/* La festa copre solo la fascia dello scorebug, non tutta la striscia: sul
+   verde le scintille finivano addosso al tratto della giocata, che e' l'unica
+   cosa per cui il campo esiste. `overflow: hidden` del livello fa il taglio. */
+.live-fx--bug {
+    bottom: auto;
+    height: 155px;
 }
 
 /* Tutto raccolto al centro: la colonna centrale era `1fr` e spingeva squadre
@@ -18633,6 +18644,9 @@ td.ps-div-seed {
     flex-direction: column;
     align-items: center;
     gap: 2px;
+    /* Ancora della festa: le particelle si posizionano rispetto al logo, non
+       a coordinate fisse, cosi' seguono il logo a ogni larghezza di schermo. */
+    position: relative;
 }
 
 .fst-logo {
@@ -18805,18 +18819,114 @@ td.ps-div-seed {
 /* L'arco della giocata si disegna da solo quando compare: la lunghezza del
    tratto parte da tutta-vuota e si riempie. E' l'animazione che racconta la
    giocata, e costa un'unica proprieta' animabile. */
-/* Il nastro e' un poligono pieno: il tratteggio non lo tocca, quindi entra
-   scoprendosi da sinistra a destra con un ritaglio che si allarga. */
-.fst-nastro {
-    animation: fst-entra-nastro 1500ms cubic-bezier(0.3, 0.7, 0.35, 1) forwards;
-    transform-origin: left center;
+/* Il tratto e' una RIGA: si disegna da sola col tratteggio, che parte tutto
+   vuoto e si riempie. Le linee si sovrappongono senza coprirsi — su un drive
+   intero si legge dove passa ognuna, cosa che i nastri pieni impedivano. */
+.fst-linea {
+    fill: none;
+    stroke-linecap: round;
+    animation: fst-scopri 1500ms cubic-bezier(0.3, 0.7, 0.35, 1) forwards;
+    clip-path: inset(0 100% 0 0);
 }
 
-@keyframes fst-entra-nastro {
-    from { opacity: 0; transform: scaleX(0.02); }
-    40% { opacity: 1; }
-    to { opacity: 1; transform: scaleX(1); }
+.fst-linea-ombra {
+    fill: none;
+    stroke: rgba(0, 0, 0, 0.5);
+    stroke-linecap: round;
+    animation: fst-scopri 1500ms cubic-bezier(0.3, 0.7, 0.35, 1) forwards;
+    clip-path: inset(0 100% 0 0);
 }
+
+/* Il volo: una scia di pallini. Il tratteggio con i capi tondi e il trattino
+   lungo zero disegna cerchi, non segmenti — e il dash non si puo' usare anche
+   per l'animazione, che percio' passa da un ritaglio che si allarga. */
+.fst-volo {
+    stroke-width: 6;
+    stroke-dasharray: 0.1 13;
+}
+
+.fst-volo-ombra {
+    stroke-width: 8.5;
+    stroke-dasharray: 0.1 13;
+}
+
+
+@keyframes fst-scopri {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 -6% 0 0); }
+}
+
+/* Il piede dell'asta e la partenza della giocata: un'ellisse, perche' un
+   cerchio su un piano visto di sbieco e' un'ellisse. */
+.fst-piede {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.9);
+    stroke-width: 2;
+}
+
+/* Il colore lo danno le classi di NFL Hub, che qui tingono il TRATTO invece
+   del riempimento: cosi' le due viste restano d'accordo sui significati. */
+.fst-linea.pp-fd-gain { stroke: var(--accent-green); }
+.fst-linea.pp-fd-loss,
+.fst-linea.pp-fd-to { stroke: var(--accent-red); }
+.fst-linea.pp-fd-sc { stroke: var(--accent-amber); }
+.fst-linea.pp-fd-none { stroke: var(--text-muted); }
+/* Il calcio ha un colore suo: non e' terreno guadagnato, ma nemmeno un
+   fondale grigio da confondere col campo. */
+.fst-linea.pp-fd-kick { stroke: #7fb2ff; }
+/* Il giallo del fazzoletto arbitrale. */
+.fst-linea.pp-fd-pen { stroke: #f5c518; }
+
+/* L'azione cancellata dal fazzoletto: bianca e in secondo piano. E' successa
+   sul campo ma non conta, e il giallo della penalita' le deve stare davanti. */
+.fst-linea.fst-cancellata {
+    stroke: rgba(255, 255, 255, 0.68);
+}
+
+/* La corsa e' piu' scura del volo e non porta l'ombra: appoggiata sul prato
+   il contorno nero la faceva sembrare staccata dal manto. */
+.fst-corsa {
+    stroke-width: 9;
+    stroke-linecap: round;
+    filter: brightness(0.78);
+}
+
+.fst-corsa-ombra {
+    display: none;
+}
+
+/* I capi della corsa: un anello bianco all'inizio e uno alla fine, cosi' si
+   legge dove comincia e dove viene fermata. */
+.fst-fine {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.9);
+    stroke-width: 2;
+}
+
+.fst-punta.pp-fd-gain, .fst-base.pp-fd-gain { fill: var(--accent-green); }
+.fst-punta.pp-fd-loss, .fst-base.pp-fd-loss,
+.fst-punta.pp-fd-to, .fst-base.pp-fd-to { fill: var(--accent-red); }
+.fst-punta.pp-fd-sc, .fst-base.pp-fd-sc { fill: var(--accent-amber); }
+.fst-punta.pp-fd-none, .fst-base.pp-fd-none { fill: var(--text-muted); }
+.fst-punta.pp-fd-kick, .fst-base.pp-fd-kick { fill: #7fb2ff; }
+.fst-punta.pp-fd-pen, .fst-base.pp-fd-pen { fill: #f5c518; }
+
+.fst-punta, .fst-base {
+    stroke: rgba(0, 0, 0, 0.45);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.fst-punta {
+    opacity: 0;
+    animation: fst-arrivo 300ms ease-out 1400ms forwards;
+}
+
+/* Le giocate gia' viste del drive restano, spente: si vede il percorso
+   dell'azione senza che rubino l'occhio a quella scelta. */
+.fst-tratto.is-dim { opacity: 0.3; }
+.fst-tratto.is-dim .fst-linea { stroke: var(--text-muted); }
+.fst-tratto.is-cur { opacity: 1; }
 
 
 
@@ -18841,6 +18951,18 @@ td.ps-div-seed {
 @keyframes fst-arrivo {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+
+
+
+
+
+
+
+
+.fst-last--timeout .fst-last-head b {
+    color: var(--text-secondary);
 }
 
 .fst-last {
@@ -18898,8 +19020,22 @@ td.ps-div-seed {
     -webkit-box-orient: vertical;
 }
 
+/* Sfogliando la timeline il tratto c'e' e basta: l'animazione racconta una
+   giocata che arriva, e qui non arriva niente. */
+.fst--statico .fst-linea,
+.fst--statico .fst-linea-ombra,
+.fst--statico .fst-punta,
+.fst--statico .fst-x,
+.fst--statico .fst-ritratto {
+    animation: none;
+    clip-path: none;
+    opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .fst-nastro,
+    .fst-linea,
+    .fst-linea-ombra,
+    .fst-punta,
     .fst-x,
     .fst-ritratto {
         animation: none;
@@ -19089,13 +19225,27 @@ td.ps-div-seed {
     background: rgba(255, 255, 255, 0.04);
 }
 
+/* Quando e in che situazione: l'ora sopra, il down e la distanza sotto. */
 .fst-recap-when {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
     flex-shrink: 0;
     width: 62px;
     font-size: 0.68rem;
     font-weight: 700;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
+}
+
+.fst-recap-when b {
+    font-weight: 700;
+}
+
+.fst-recap-when i {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .fst-recap-txt {
