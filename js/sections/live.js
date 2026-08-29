@@ -20,7 +20,7 @@ import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=665';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
-import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata } from '../ui/field-strip.js?v=90';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=100';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
@@ -2821,6 +2821,8 @@ function statoCampo(sigla, quadro) {
     const dIdx = Math.max(0, gruppi.findIndex(gr => gr.plays.includes(p)));
     const drive = gruppi[dIdx];
 
+    const cartello = cartelloGiocata(p);
+
     let possesso = null;
     if (p?.offenseTeamId) {
         const idCasa = ESPN_TEAM_IDS[home.abbr];
@@ -2862,7 +2864,7 @@ function statoCampo(sigla, quadro) {
         // Su un timeout il campo resta vuoto. La giocata e' fuori dalla lista
         // (e' filtrata), quindi `indexOf` dava -1 e l'indice ripiegava su
         // zero: restava acceso il calcio d'inizio del drive.
-        giocate: eUnTimeout(p) ? [] :
+        giocate: (eUnTimeout(p) || cartello) ? [] :
             (drive?.plays || []).filter(disegnabile).map(x => giocataDisegnabile(x, home, away)),
         giocataIdx: Math.max(0, (drive?.plays || []).filter(disegnabile).indexOf(p)),
         // Le pastiglie della striscia: una per drive, con la sigla dell'esito.
@@ -2917,6 +2919,13 @@ function statoCampo(sigla, quadro) {
         // posto della giocata si dice chi l'ha chiamato. Prima restava acceso
         // il calcio d'inizio del drive, che non c'entrava nulla.
         timeout: eUnTimeout(p) ? etichettaTimeout(p, home, away) : null,
+        // Sorteggio, fine quarto, intervallo, fine partita: una parola sul
+        // manto al posto di un'azione che non c'e' stata.
+        cartello,
+        // `giocata` resta anche col cartello: e' quella che riempie il
+        // pannello sotto il campo ("End of Game — END GAME"), e azzerandola
+        // spariva la riga insieme al disegno. A non far disegnare niente ci
+        // pensa gia' `giocate: []` qui sopra.
         giocata: (p && p.toEZ != null && !eUnTimeout(p))
             ? giocataDisegnabile(p, home, away) : null,
     };

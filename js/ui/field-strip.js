@@ -594,6 +594,92 @@ function tracciaGiocate(lista, corrente, possesso, g) {
 }
 
 /**
+ * Una parola appoggiata sul campo. Schiacciata come i numeri delle yard,
+ * perche' e' vernice sul manto e non un cartello appeso: la prospettiva la fa
+ * lo schiacciamento verticale, non una rotazione.
+ *
+ * Il corpo si stringe da solo sulle scritte lunghe: "TWO-MINUTE WARNING" a
+ * corpo fisso sbordava oltre le end zone.
+ */
+function cartello(testo) {
+    // La riga dove le lettere POGGIANO i piedi. Non e' il centro del campo:
+    // da li' in su ci vuole spazio per l'altezza, e verso il fondo il campo
+    // si stringe e la scritta non ci starebbe piu'.
+    const V = 0.74;
+    const [x, y] = P(0.5, V);
+    // La larghezza utile la dice la geometria a QUELLA profondita', non un
+    // numero a mano: il campo si stringe salendo.
+    const [xa] = P(uDaYard(0), V), [xb] = P(uDaYard(100), V);
+    const LARGO = Math.abs(xb - xa) * 0.94;
+    /*
+     * Quanto sara' larga, per scegliere il corpo. I coefficienti sono MISURATI
+     * su questo carattere (Inter Tight 900, spaziatura -0.02em): 0.58-0.64 di
+     * corpo per lettera secondo la parola, gli spazi meno della meta'.
+     */
+    const peso = [...testo].reduce((n, c) => n + (c === ' ' ? 0.32 : 0.68), 0);
+    // Il tetto lo impone l'altezza, non la larghezza: a corpo 120 la cima
+    // arriva gia' oltre il bordo in fondo al campo.
+    const corpo = Math.min(108, LARGO / peso);
+
+    /*
+     * Lettere IN PIEDI sul campo, non dipinte sul manto. Si vede la faccia
+     * davanti piu' lo spessore che se ne va verso il fondo: verso il fondo
+     * vuol dire IN ALTO, perche' il campo e' disegnato in prospettiva e il
+     * lontano sta in cima. Le copie stanno quindi sopra la faccia e vengono
+     * disegnate prima, cosi' la faccia le copre.
+     *
+     * Sotto, l'ombra: la stessa parola ribaltata e schiacciata sull'erba a
+     * partire dal piede. E' quella che dice "appoggiata" — senza, le lettere
+     * galleggiano.
+     */
+    const STRATI = 10;
+    const PASSO = Math.max(0.6, corpo * 0.013);
+    const fianco = [];
+    for (let k = STRATI; k >= 1; k--) {
+        const t = 1 - k / STRATI;                 // 0 = il piu' lontano
+        // Ogni strato si stringe un filo, come fa il campo andando verso il
+        // fondo. Senza, le copie sono tutte larghe uguali e la pila si legge
+        // come una seconda parola sopra la prima invece che come spessore.
+        const sx = (1 - k * 0.0045).toFixed(4);
+        fianco.push(`<text x="0" y="${(-k * PASSO / sx).toFixed(1)}" class="fst-cartello-lato"
+            transform="scale(${sx},1)"
+            style="font-size:${corpo.toFixed(1)}px;fill:${sfuma(t)}">${esc(testo)}</text>`);
+    }
+    /*
+     * Due ombre, tutte e due DIETRO — cioe' verso l'alto, che in prospettiva
+     * e' il fondo del campo: la luce viene da davanti e l'ombra cade
+     * dall'altra parte. La lunga e' la proiezione sul manto; la corta e'
+     * il buio dove la lettera tocca l'erba, ed e' lei a togliere
+     * l'impressione che la scritta galleggi.
+     *
+     * Quella corta prima cadeva in AVANTI, sotto il piede verso chi guarda:
+     * con la luce davanti e' il verso sbagliato, e si leggeva come un riflesso
+     * invece che come un'ombra.
+     */
+    return `
+    <g class="fst-cartello-g" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+        <g class="fst-cartello-dietro" transform="scale(1.05,0.5)">
+            <text x="0" y="0" style="font-size:${corpo.toFixed(1)}px">${esc(testo)}</text>
+        </g>
+        <g class="fst-cartello-ombra" transform="scale(1,0.17)">
+            <text x="0" y="0" style="font-size:${corpo.toFixed(1)}px">${esc(testo)}</text>
+        </g>
+        ${fianco.join('')}
+        <text x="0" y="0" class="fst-cartello"
+              style="font-size:${corpo.toFixed(1)}px">${esc(testo)}</text>
+    </g>`;
+}
+
+/** Il grigio dello spessore: scuro in fondo, chiaro sotto la faccia. */
+function sfuma(t) {
+    const a = [18, 30, 22], b = [120, 134, 124];
+    const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+
+
+/**
  * Da che parte del CAMPO e' finita la giocata che segna, o null se non segna.
  * Passa da `tratto` come il disegno, cosi' non ci sono due modi di dire dov'e'
  * finita l'azione: se il tratto e' giusto, e' giusta anche la festa.
@@ -725,7 +811,7 @@ export function fieldStripHTML(s) {
             <g clip-path="url(#${rifId('taglio')})">
                 ${erba()}
             ${yardLines()}
-            ${numeri()}
+            ${s.cartello ? '' : numeri()}
             ${endZone('l', 'var(--fst-osp)', s.away.logo)}
             ${endZone('r', 'var(--fst-casa)', s.home.logo)}
                 <path d="${fascia(EZ, 1 - EZ)}" fill="url(#${rifId('luce')})"/>
@@ -735,6 +821,7 @@ export function fieldStripHTML(s) {
                   stroke="rgba(255,255,255,0.8)" stroke-width="${SPESSORE}"/>
             ${pali('l')}
             ${pali('r')}
+            ${s.cartello ? cartello(s.cartello) : ''}
             ${tracciaGiocate(s.giocate || (g ? [g] : []), s.giocataIdx ?? 0, s.possesso, g)}
         </svg>
 
@@ -940,6 +1027,35 @@ export const eDiServizio = (p) => {
 
 /** Quanto lungo disegnare un passaggio che non ha fatto yard. */
 export const yardStimate = (prof) => (prof === 'deep' ? 18 : prof === 'short' ? 6 : 11);
+
+/* Fine primo, fine terzo, supplementari. Il secondo quarto non e' qui: quello
+   e' l'intervallo, e si chiama col suo nome. */
+const ORDINALE = { 1: '1ST', 2: '2ND', 3: '3RD', 4: '4TH' };
+
+/**
+ * Le righe che non sono giocate ma momenti della partita: sorteggio, fine
+ * quarto, intervallo, fine partita. ESPN le manda con una posizione di comodo
+ * (`toEZ 0` e una fine a meta' campo) e il campo ci disegnava sopra un'azione
+ * che non e' mai esistita — a fine partita restava a schermo un ritratto e una
+ * linea di scrimmage sotto la scritta END GAME.
+ *
+ * Qui diventano una parola sola, dipinta sul manto.
+ */
+export function cartelloGiocata(p) {
+    const tipo = String(p?.type || '');
+    const t = String(p?.text || '').trim();
+    const per = Number(p?.period) || 0;
+    if (/coin toss/i.test(tipo) || /^GAME$/i.test(t)) return 'COIN TOSS';
+    if (/end of game/i.test(tipo) || /^END GAME$/i.test(t)) return 'FINAL';
+    // L'intervallo prima del generico: ESPN lo manda come "END QUARTER 2", e
+    // col ramo generico sarebbe uscito "END OF 2ND" invece di HALFTIME.
+    if (/end of half/i.test(tipo) || (/^END QUARTER/i.test(t) && per === 2)) return 'HALFTIME';
+    if (/end period/i.test(tipo) || /^END QUARTER/i.test(t)) {
+        return per > 4 ? 'END OF OT' : `END OF ${ORDINALE[per] || 'QUARTER'}`;
+    }
+    if (/two-minute/i.test(t)) return 'TWO-MINUTE WARNING';
+    return null;
+}
 
 /*
  * Il testo della sola AZIONE, senza la trasformazione che ESPN accoda sulla

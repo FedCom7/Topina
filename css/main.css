@@ -18756,6 +18756,46 @@ td.ps-div-seed {
     filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.55));
 }
 
+/* La parola dei momenti della partita — HALFTIME, FINAL, COIN TOSS — dipinta
+   sul manto. Piu' spenta dei numeri delle yard: e' una didascalia, non deve
+   gridare piu' forte del campo su cui sta. */
+.fst-cartello,
+.fst-cartello-lato {
+    /* Lo stesso carattere del timbro TOUCHDOWN sulla rosa: quando il campo
+       grida, grida con la stessa voce del resto del Live. */
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-anchor: middle;
+    /* Base alfabetica, non `middle`: y=0 dev'essere la riga dove le lettere
+       toccano il manto, altrimenti la scritta sta in piedi ma sprofondata. */
+}
+
+/* La faccia in alto delle lettere. */
+.fst-cartello {
+    fill: #f4f7f5;
+}
+
+/* L'ombra proiettata sull'erba: la stessa parola ribaltata sotto il piede.
+   E' quella che fa "appoggiata": senza, le lettere galleggiano. */
+.fst-cartello-ombra text,
+.fst-cartello-dietro text {
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-anchor: middle;
+}
+
+/* La proiezione sul manto, verso il fondo del campo: lunga e morbida. */
+.fst-cartello-dietro text {
+    fill: rgba(0, 0, 0, 0.26);
+}
+
+/* Il buio al piede, dove la lettera tocca l'erba: corto e piu' deciso. */
+.fst-cartello-ombra text {
+    fill: rgba(0, 0, 0, 0.42);
+}
+
 /* I numeri sul manto: bianchi e spenti come la vernice vera, non grigi.
    La dimensione la decide il disegno (cresce avvicinandosi), qui c'e' solo
    il ripiego per quando l'attributo non arriva. */
