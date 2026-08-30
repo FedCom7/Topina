@@ -16234,33 +16234,6 @@ td.ps-div-seed {
     text-transform: uppercase;
 }
 
-/* Interruttore preseason: strumento di collaudo, quindi sobrio quando è
-   spento e inequivocabile quando è acceso. */
-.live-preseason-btn {
-    padding: 4px 11px;
-    border-radius: var(--pill-radius);
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-glass);
-    color: var(--text-muted);
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease,
-        background var(--dur-fast) ease;
-}
-
-.live-preseason-btn:hover {
-    color: var(--text-primary);
-    border-color: var(--text-muted);
-}
-
-.live-preseason-btn.is-on {
-    color: var(--accent-amber);
-    border-color: var(--accent-amber);
-    background: color-mix(in srgb, var(--accent-amber) 16%, transparent);
-}
 
 /* ── Live · risultati delle partite NFL vere ─────────────────────
    Solo le gare in cui gioca un tesserato della squadra a schermo. */

@@ -184,6 +184,26 @@ function gameAttr(p) {
 const P = (m) => parseFloat(m) || 0;
 const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
+/*
+ * L'orario di una partita che deve ancora cominciare, in ora ITALIANA.
+ *
+ * ESPN manda gia' pronta la stringa `shortDetail` — "8/28 - 6:00 PM EDT" — ma
+ * e' l'ora della costa est americana, con l'orologio a dodici ore e il mese
+ * prima del giorno. Chi guarda da qui deve fare due conti a mente per sapere
+ * se la partita e' stanotte o domani mattina. Qui si riparte dall'istante
+ * vero (`start`, che e' la data ISO della risposta) e lo si scrive come lo
+ * scriviamo noi: giorno prima del mese, orologio a ventiquattro ore, fuso di
+ * Roma — che il passaggio dall'ora legale lo gestisce il browser.
+ */
+const oraItaliana = (d) => {
+    const q = d instanceof Date ? d : new Date(d);
+    if (!q || Number.isNaN(q.getTime())) return '';
+    const f = (opz) => new Intl.DateTimeFormat('en-GB',
+        { timeZone: 'Europe/Rome', ...opz }).format(q);
+    return `${f({ weekday: 'short' })} ${f({ day: '2-digit', month: '2-digit' })}` +
+        ` · ${f({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
+};
+
 // Projections: before kickoff (started === false) show the projected value.
 // Older/real data without `started`/`projected_*` falls back to real points.
 // Appena la giornata comincia le proiezioni spariscono da TUTTA la pagina, non
@@ -312,7 +332,7 @@ function drivesDi(tutte) {
  * Le card invece sono poche e piccole: solo le azioni dei nostri.
  */
 const pbpCacheKey = () =>
-    `topina_pbp_v1_${CURRENT_SEASON}_${preseasonMode ? 'pre' : 'reg'}${currentWeekNum}`;
+    `topina_pbp_v1_${CURRENT_SEASON}_reg${currentWeekNum}`;
 
 let pbpLoadedKey = null;
 
@@ -923,39 +943,6 @@ async function loadData({ silent = false } = {}) {
 
 let usingEspnFallback = false;
 
-// ─── Modalità preseason (solo collaudo) ──────────────────────────
-//
-// La lega non gioca la preseason, quindi in condizioni normali il calendario
-// chiede solo la stagione regolare. Ad agosto però le uniche partite vere in
-// corso sono quelle: questo interruttore le fa seguire alla pagina, per poter
-// collaudare in diretta il play-by-play e il ripiego mesi prima del kickoff.
-//
-// I punti che compaiono in questo stato NON sono della lega: l'intestazione lo
-// dichiara con un bollino, come per la demo.
-
-const PRESEASON_KEY = 'topina-live-preseason';
-let preseasonMode = (() => {
-    try { return localStorage.getItem(PRESEASON_KEY) === '1'; } catch { return false; }
-})();
-
-/**
- * Quale giornata di preseason seguire: quella con una partita in corso, se
- * c'è; altrimenti la più vicina nel tempo, così fuori dagli orari di gioco la
- * pagina mostra comunque qualcosa di sensato.
- */
-async function pickPreseasonWeek(year) {
-    let migliore = null;
-    for (let w = 1; w <= 4; w++) {
-        const sched = await getWeekSchedule(year, w, 1);
-        if (!sched?.size) continue;
-        const partite = [...sched.values()];
-        if (partite.some(g => g.state === 'in')) return { week: w, sched };
-        const vicinanza = Math.min(...partite.map(g => Math.abs(g.start - Date.now())));
-        if (!migliore || vicinanza < migliore.vicinanza) migliore = { week: w, sched, vicinanza };
-    }
-    return migliore;
-}
-
 /** Tutti a zero: nessun punto reale in tutta la settimana. */
 function boardIsEmpty() {
     for (const m of matchups) {
@@ -1082,13 +1069,7 @@ function fillMissingOpponents() {
 
 async function hydrateScheduleAndRender(year, week) {
     try {
-        if (preseasonMode) {
-            const pre = await pickPreseasonWeek(year);
-            liveSchedule = pre?.sched || null;
-            if (pre) weekLabelText = `${year} · Preseason week ${pre.week}`;
-        } else {
-            liveSchedule = await getWeekSchedule(year, week);
-        }
+        liveSchedule = await getWeekSchedule(year, week);
     } catch {
         liveSchedule = null;
     }
@@ -1475,19 +1456,6 @@ function render() {
 
     hydrateHeadshots(root);
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
-    root.querySelector('[data-preseason]')?.addEventListener('click', () => {
-        preseasonMode = !preseasonMode;
-        try { localStorage.setItem(PRESEASON_KEY, preseasonMode ? '1' : '0'); } catch { /* niente */ }
-        // Le giocate viste e gli scontrini si riferiscono all'altro calendario:
-        // vanno buttati, o il feed mescolerebbe due insiemi di partite.
-        stopPlayPolling();
-        pbpSeen = new Set(); pbpCards = []; pbpDemoQueue = null;
-        pbpFull = new Set(); pbpLoadedKey = null;
-        pbpFirstRun = true;
-        receipts = []; prevSnapshot = null;
-        try { sessionStorage.removeItem('topina-live-receipts'); } catch { /* niente */ }
-        loadData();
-    });
     bindTeamPick(root);
 
     root.querySelector('[data-compare]')?.addEventListener('click', () => {
@@ -1642,7 +1610,6 @@ function headerHTML() {
             <h1 class="live-header-title">${weekLabelText}</h1>
             <span class="live-header-kicker">
                 ${pbpDemo() || simDemo ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
-                ${preseasonMode ? '<span class="live-demo-badge">PRESEASON · test mode</span>' : ''}
                 ${usingEspnFallback ? '<span class="live-source-badge">da ESPN</span>' : ''}
                 ${statusBadgeHTML()}
             </span>
@@ -1650,8 +1617,6 @@ function headerHTML() {
         <div class="live-header-right">
             ${teamSwitcherHTML(teamEntries())}
             <span class="live-header-updated">Updated ${oraCorrente()}</span>
-            <button class="live-preseason-btn${preseasonMode ? ' is-on' : ''}" type="button"
-                    data-preseason title="Follow preseason games (test mode only)">Preseason</button>
             <button class="live-refresh-btn" type="button" aria-label="Refresh">↻</button>
         </div>
     </div>`;
@@ -2656,7 +2621,7 @@ function nflGamesListHTML(team) {
         const fuoriCasa = (g.opponent || '').startsWith('@');
         const nomi = g.giocatori.map(p => shortName(p)).join(', ');
         const punteggio = g.state === 'pre'
-            ? `<span class="live-nfl-kick">${escAttr(g.detail || g.status || '')}</span>`
+            ? `<span class="live-nfl-kick">${escAttr(oraItaliana(g.start) || g.detail || g.status || '')}</span>`
             : `<span class="live-nfl-score"><b>${g.score}</b> – <b>${g.oppScore}</b></span>`;
         return `
         <div class="live-nfl-row${g.state === 'in' ? ' live-nfl-row--live' : ''}">
@@ -3068,7 +3033,13 @@ function deepGames(team) {
                     opponentName: (g.opponent || '').replace('@', ''),
                     home: !String(g.opponent || '').startsWith('@'),
                     score: g.score || 0, oppScore: g.oppScore || 0,
-                    detail: g.detail || g.status || '', state: g.state || 'pre',
+                    // A partita non cominciata l'etichetta e' l'orario, e va
+                    // in ora italiana come nel tabellone qui sopra. In corso
+                    // e' invece quarto e cronometro, che non si toccano.
+                    detail: g.state === 'pre'
+                        ? (oraItaliana(g.start) || g.detail || g.status || '')
+                        : (g.detail || g.status || ''),
+                    state: g.state || 'pre',
                 },
             },
         });
