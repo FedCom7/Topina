@@ -19893,8 +19893,30 @@ td.ps-div-seed {
     stroke-width: 3;
 }
 
+/* Logo e sigla devono sembrare DIPINTI sul prato, non appoggiati sopra: la
+   vernice di un'end zone lascia trasparire il taglio dell'erba sotto.
+   Ci si arriva con la sola opacità. Provato anche `mix-blend-mode: overlay`,
+   che in teoria è il modo "giusto" di far reagire la vernice al fondo: su
+   una banda già scura mangiava il logo fino a farlo sparire. `luminosity`
+   lo teneva ma lo scoloriva. L'opacità semplice lascia passare le bande in
+   modo uniforme, che è esattamente l'effetto di una mano di vernice. */
+/* L'alone non è decorazione: i loghi di lega sono illustrazioni dettagliate,
+   e due su quattro sono scuri (Sommo, Oscurus). Su una banda tinta del loro
+   stesso colore scuro sparivano. Provate le alternative: lo stencil bianco
+   (`brightness(0) invert(1)`) li rende leggibili ma li riduce a una macchia,
+   perché non sono wordmark; schiarire la banda non bastava. Un alone bianco
+   largo e tenue stacca quelli scuri e non si vede su quelli chiari. */
 .mc-duel-ez-logo {
-    opacity: 0.9;
+    opacity: 0.78;
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.4));
+}
+
+.mc-duel-ez-name {
+    fill: #fff;
+    opacity: 0.85;
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: 0.16em;
 }
 
 /* ── Variante notturna: il verde del Live invece del prato chiaro ──

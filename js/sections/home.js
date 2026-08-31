@@ -30,7 +30,7 @@
  * agganciare handler uno per uno.
  */
 
-import { displayName, teamNameHTML, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=540';
+import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=540';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=539';
 import { getHonorsBundle } from '../data/honors.js?v=591';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=591';
@@ -840,9 +840,18 @@ function apMarker({ fx, fy, label, player, side, abbr, year, clipId }) {
 }
 
 /**
- * Le due end zone, una per lato: fascia tinta del colore della squadra col
- * logo dentro e la goal line a chiuderla. Solo il campo del Super Bowl le
- * disegna — l'All-Pro non ha due squadre a cui intestarle.
+ * Le due end zone, una per lato: fascia tinta del colore della squadra, goal
+ * line a chiuderla e dentro il logo con la sigla della squadra. Il contenuto
+ * corre LUNGO la fascia (ruotato di 90°), come la scritta dipinta di una end
+ * zone vera vista dall'alto — non in orizzontale, che sarebbe un'etichetta
+ * appoggiata sopra al campo invece che dipinta dentro.
+ *
+ * La sigla e non il nome: "Capi dei Pianeti" per esteso non ci sta nella
+ * fascia, e mescolare un nome lungo con tre corti sbilanciava le due metà.
+ * Sono le sigle ufficiali di TEAM_ABBR (js/data.js), non inventate qui.
+ *
+ * Solo il campo del Super Bowl le disegna — l'All-Pro non ha due squadre a
+ * cui intestarle.
  */
 function apEndZones(left, right) {
     const zone = (team, side) => {
@@ -850,50 +859,117 @@ function apEndZones(left, right) {
         const x0 = side === 1 ? 0 : apX(AP_FD.spanX - AP_FD.ez);
         const w = apX(AP_FD.ez);
         const goalX = side === 1 ? w : x0;
-        const cx = x0 + w / 2, cy = AP_FD.vbH / 2, size = Math.min(w * 0.82, 130);
+        const cx = x0 + w / 2, cy = AP_FD.vbH / 2;
+        // Ruotate verso l'esterno da lati opposti, così le due scritte si
+        // leggono entrambe girando la testa dallo stesso verso.
+        const rot = side === 1 ? -90 : 90;
+        const name = team.abbr || '';
+        const FS = 34, LOGO = 64, GAP = 14;
+        // La larghezza del testo non si può misurare in SVG generato a
+        // stringa: si stima dal numero di caratteri e serve solo a centrare
+        // il blocco logo+sigla nella fascia. 0.62em è l'avanzamento medio di
+        // una maiuscola del font display; la letter-spacing (0.16em, vedi
+        // .mc-duel-ez-name) va sommata a parte, perché SVG la applica anche
+        // dopo l'ultima lettera — senza, il blocco risultava spostato.
+        const textW = name.length * FS * (0.62 + 0.16);
+        const x = -(LOGO + GAP + textW) / 2;
         return `
         <g class="mc-duel-ez" style="--team-color:${team.color || 'var(--accent-red)'}">
             <rect x="${x0.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${AP_FD.vbH}" class="mc-duel-ez-fill"/>
             <line x1="${goalX.toFixed(1)}" y1="0" x2="${goalX.toFixed(1)}" y2="${AP_FD.vbH}" class="mc-duel-ez-goal"/>
-            ${team.logo ? `<image href="${team.logo}" x="${(cx - size / 2).toFixed(1)}" y="${(cy - size / 2).toFixed(1)}"
-                width="${size.toFixed(1)}" height="${size.toFixed(1)}" class="mc-duel-ez-logo"
-                preserveAspectRatio="xMidYMid meet"/>` : ''}
+            <g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">
+                ${team.logo ? `<image href="${team.logo}" x="${x.toFixed(1)}" y="${(-LOGO / 2).toFixed(1)}"
+                    width="${LOGO}" height="${LOGO}" class="mc-duel-ez-logo" preserveAspectRatio="xMidYMid meet"/>` : ''}
+                <text x="${(x + LOGO + GAP).toFixed(1)}" y="0" dominant-baseline="central"
+                      class="mc-duel-ez-name" style="font-size:${FS}px">${esc(name)}</text>
+            </g>
         </g>`;
     };
     return zone(left, 1) + zone(right, 2);
 }
 
-/** Bande erba (ogni 5 yard) e righe (ogni 5 yard) lungo tutta la lunghezza — stesse classi `nfl-fd2-*` del campo verticale. */
+// Il campo di gioco vero: 100 yard fra le due goal line, distese fra la fine
+// di una end zone e l'inizio dell'altra. Da qui in giù si ragiona in YARD
+// (0 = goal line di sinistra, 100 = quella di destra), non nelle unità di
+// schieramento usate dai giocatori.
+const apYd = (y) => apX(AP_FD.ez + y * (AP_FD.spanX - 2 * AP_FD.ez) / 100);
+
+/**
+ * La segnaletica di un campo da football vero: erba a bande da 5 yard, le
+ * yard line ogni 5 (grosse ogni 10), gli hash mark ogni singola yard su due
+ * file interne e le tacche a bordo campo.
+ *
+ * Le due file di hash stanno a 70'9" da ciascuna linea laterale — cioè a
+ * 23.58 e 29.72 yard su un campo largo 53.3, le stesse misure NFL usate dal
+ * campo verticale della pagina squadra.
+ */
 function apFieldMarkings() {
-    let bands = '', lines = '';
-    for (let fx = 0, i = 0; fx < AP_FD.spanX; fx += 5, i++) {
-        if (i % 2 === 0) continue;
-        const x0 = apX(fx), x1 = apX(Math.min(fx + 5, AP_FD.spanX));
-        bands += `<rect x="${x0.toFixed(1)}" y="0" width="${(x1 - x0).toFixed(1)}" height="${AP_FD.vbH}" class="nfl-fd2-band"/>`;
+    let s = '';
+    for (let y = 0; y < 100; y += 10) {                    // bande di prato, una ogni 5 yd alternata
+        s += `<rect x="${apYd(y + 5).toFixed(1)}" y="0" width="${(apYd(y + 10) - apYd(y + 5)).toFixed(1)}" height="${AP_FD.vbH}" class="nfl-fd2-band"/>`;
     }
-    for (let fx = 5; fx < AP_FD.spanX; fx += 5) {
-        const x = apX(fx);
-        lines += `<line x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${AP_FD.vbH}" class="nfl-fd2-yl"/>`;
+    for (let y = 0; y <= 100; y += 5) {
+        const x = apYd(y).toFixed(1);
+        s += `<line x1="${x}" y1="0" x2="${x}" y2="${AP_FD.vbH}" class="nfl-fd2-yl"${y % 10 ? ' opacity="0.6"' : ''}/>`;
     }
-    return bands + lines;
+    const tick = 9;
+    for (let y = 1; y < 100; y++) {
+        if (y % 5 === 0) continue;                          // dove c'è già la yard line intera
+        const x = apYd(y).toFixed(1);
+        for (const fy of [23.58, 29.72]) {                  // le due file interne
+            const yy = apY(fy);
+            s += `<line x1="${x}" y1="${(yy - tick / 2).toFixed(1)}" x2="${x}" y2="${(yy + tick / 2).toFixed(1)}" class="nfl-fd2-hash"/>`;
+        }
+        s += `<line x1="${x}" y1="0" x2="${x}" y2="${tick}" class="nfl-fd2-hash"/>`;
+        s += `<line x1="${x}" y1="${AP_FD.vbH - tick}" x2="${x}" y2="${AP_FD.vbH}" class="nfl-fd2-hash"/>`;
+    }
+    return s;
 }
 
 /**
- * I numeri dipinti sul campo — stessa classe `nfl-fd2-num` del campo
- * verticale, dove però correvano lungo Y (le laterali sono verticali lì).
- * Qui le laterali sono orizzontali (sopra e sotto): i numeri stanno dritti,
- * niente rotazione. "50" al centro (le 50 yard, dove i due team si
- * affrontano) e "40" dieci yard dentro il campo di ciascuna, vicino a
- * entrambe le laterali — a 9 yard da ognuna, come da regolamento.
+ * I numeri dipinti sul campo: 10-20-30-40-50-40-30-20-10, ogni dieci yard,
+ * su due file a 9 yard da ciascuna linea laterale (la misura del
+ * regolamento, presa al bordo del numero).
+ *
+ * Due dettagli che li fanno sembrare veri invece che etichette:
+ *
+ * 1. Le due cifre stanno A CAVALLO della yard line, che passa in mezzo —
+ *    non accanto ad essa.
+ * 2. Ogni numero si legge dalla PROPRIA linea laterale, quindi la fila in
+ *    alto è girata di 180° rispetto a quella in basso. Su un campo vero è
+ *    così, ed è la stessa scelta già fatta dal campo verticale della pagina
+ *    squadra NFL (`_yardNumber` in nfl-team-home.js), dove però a essere
+ *    specchiati sono i due lati lunghi.
+ *
+ * La freccia accanto al numero punta alla end zone più vicina; il 50, che
+ * non ha un lato più vicino, non ce l'ha.
  */
 function apYardNumbers() {
-    const half = AP_FD.spanX / 2;
-    const sidelines = [9, AP_FD.W - 9];
-    const marks = [[half, '50']];
-    for (const side of [1, 2]) marks.push([side === 1 ? half - 10 : half + 10, '40']);
-    return marks.flatMap(([fx, num]) => sidelines.map(fy =>
-        `<text x="${apX(fx).toFixed(1)}" y="${apY(fy).toFixed(1)}" text-anchor="middle" dominant-baseline="central" class="nfl-fd2-num">${num}</text>`
-    )).join('');
+    const FS = 30, gap = FS * 0.42;
+    let s = '';
+    for (let y = 10; y <= 90; y += 10) {
+        const num = String(y <= 50 ? y : 100 - y).padStart(2, '0');
+        const x = apYd(y);
+        for (const [fy, flip] of [[9, true], [AP_FD.W - 9, false]]) {
+            const cy = apY(fy);
+            // In basso si legge dritto; in alto il numero è capovolto, così
+            // sta in piedi per chi guarda da quella laterale.
+            const rot = flip ? 180 : 0;
+            const [d1, d2] = flip ? [num[1], num[0]] : [num[0], num[1]];
+            for (const [d, dx] of [[d1, -gap], [d2, gap]]) {
+                const px = x + dx;
+                s += `<text x="${px.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+                    transform="rotate(${rot} ${px.toFixed(1)} ${cy.toFixed(1)})" class="nfl-fd2-num" style="font-size:${FS}px">${d}</text>`;
+            }
+            if (y !== 50) {
+                // Proporzioni da regolamento: lati lunghi il doppio della base.
+                const dir = y < 50 ? -1 : 1;                  // verso la end zone più vicina
+                const bx = x + dir * (gap + FS * 0.62), half = FS * 0.16, tip = bx + dir * FS * 0.3;
+                s += `<path d="M ${bx.toFixed(1)} ${(cy - half).toFixed(1)} L ${bx.toFixed(1)} ${(cy + half).toFixed(1)} L ${tip.toFixed(1)} ${cy.toFixed(1)} Z" class="nfl-fd2-arrow"/>`;
+            }
+        }
+    }
+    return s;
 }
 
 /**
@@ -933,8 +1009,10 @@ function apFieldSvg({ left, right, year, clipId, cls = '', label }) {
                 ${apYardNumbers()}
                 ${apEndZones(left, right)}
                 <line x1="${midX.toFixed(1)}" y1="0" x2="${midX.toFixed(1)}" y2="${AP_FD.vbH}" class="nfl-fd2-los"/>
-                <text x="10" y="16" class="nfl-fd2-side-lbl">${esc(left.label)}</text>
-                <text x="${AP_FD.vbW - 10}" y="16" text-anchor="end" class="nfl-fd2-side-lbl">${esc(right.label)}</text>
+                ${/* Solo dove non c'è l'end zone a dire di chi è la metà campo:
+                      sulla card Super Bowl il nome sta già dipinto lì dentro. */
+        left.label ? `<text x="10" y="16" class="nfl-fd2-side-lbl">${esc(left.label)}</text>
+                <text x="${AP_FD.vbW - 10}" y="16" text-anchor="end" class="nfl-fd2-side-lbl">${esc(right.label)}</text>` : ''}
                 ${formation(left, 1)}${formation(right, 2)}
             </svg>
         </div>
@@ -1253,7 +1331,9 @@ async function cardSuperBowl({ season }) {
         const team = TEAMS[keyOf(t.name)];
         return {
             lineup: sbLineup(t),
-            label: (team?.name || displayName(t.name)).toUpperCase(),
+            // Niente `label`: il nome non va all'angolo del campo ma dipinto
+            // nell'end zone, ed è la sigla ufficiale (TEAM_ABBR in data.js).
+            abbr: teamAbbr(t.name),
             color: team?.color, logo: team?.logo,
         };
     };
