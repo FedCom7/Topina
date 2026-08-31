@@ -103,6 +103,9 @@ export async function initHome() {
         hydrateDraftFigPhotos(wrap); // idem per le loro foto (.pm-headshot, non data-headshot)
         hydrateFieldPhotos(wrap, playerImageService); // idem per i marker SVG del campo All-Pro (<image>, non <img>)
         hydrateFieldJerseys(wrap, playerImageService); // idem per i numeri di maglia, sconosciuti finché non risponde il roster
+        // Le scritte delle end zone si ricentrano sulle larghezze vere, e solo
+        // a font caricato: misurate su quello di ripiego darebbero altri conti.
+        (document.fonts?.ready || Promise.resolve()).then(() => fitEndZones(wrap));
     } catch (e) {
         console.error('Home load error:', e);
         wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">Could not load league data</p></div>`;
@@ -854,16 +857,33 @@ const AP_EZ_TRACK = 0.06;   // letter-spacing, in em (vedi .mc-duel-ez-name)
 const apTextEm = (s) => [...s].reduce((w, c) => w + (c === ' ' ? 0.3 : 0.66) + AP_EZ_TRACK, 0);
 
 /**
+ * Le misure dell'incastro logo+nome dentro l'end zone, tutte derivate dalla
+ * profondità della fascia. Il logo NON dipende dalla lunghezza del nome: è
+ * sempre grande uguale per tutte e quattro le squadre, perché un nome lungo
+ * non è una buona ragione per avere un logo piccolo. A restringersi è solo
+ * la scritta.
+ */
+const apEzBox = () => {
+    const depth = apX(AP_FD.ez);
+    return {
+        depth,
+        logo: depth * 0.82,          // il logo, sempre questo
+        gap: depth * 0.82 * 0.24,    // lo stacco fra logo e scritta
+        along: AP_FD.vbH * 0.89,     // lunghezza utile: il resto è margine dal bordo campo
+        maxFs: depth * 0.66,         // oltre, la scritta sborda attraverso la fascia
+    };
+};
+
+/**
  * Le due end zone, una per lato: fascia tinta del colore della squadra, goal
  * line a chiuderla e dentro logo e nome della squadra. Il contenuto corre
  * LUNGO la fascia (ruotato di 90°), come la scritta dipinta di una end zone
  * vera vista dall'alto — non in orizzontale, che sarebbe un'etichetta
  * appoggiata sopra al campo invece che dipinta dentro.
  *
- * Il corpo del testo non è fisso: si calcola per riempire la fascia, quindi
- * "SOMMO" viene grande e "CAPI DEI PIANETI" più piccolo, ognuno il massimo
- * che ci sta. Come su un campo vero, dove un nome lungo è scritto più
- * stretto. Il logo cresce col testo, così le proporzioni non cambiano.
+ * Il corpo della scritta si adatta al nome, ma NON si calcola qui: quello
+ * che esce da questa funzione è solo un primo posizionamento, rifatto sulle
+ * misure vere da `fitEndZones()` appena il DOM esiste. Vedi lì il perché.
  *
  * Solo il campo del Super Bowl le disegna — l'All-Pro non ha due squadre a
  * cui intestarle.
@@ -879,22 +899,14 @@ function apEndZones(left, right) {
         // leggono entrambe girando la testa dallo stesso verso.
         const rot = side === 1 ? -90 : 90;
         const name = (team.name || '').toUpperCase();
-        // Logo e stacco sono espressi in multipli del corpo, così l'incastro
-        // resta lo stesso a ogni dimensione. Risolvendo per FS:
-        //   lunghezza = FS*(logo + stacco + larghezza_testo_in_em)
-        const LOGO_EM = 1.25, GAP_EM = 0.3;
-        const along = AP_FD.vbH * 0.94;                 // quanto è lunga la fascia
-        let FS = along / (LOGO_EM + GAP_EM + apTextEm(name));
-        // Il tetto non è estetico: attraverso la fascia ci devono stare il
-        // logo (il più alto dei due) e i suoi margini, o sborda sul campo.
-        FS = Math.min(FS, (w * 0.82) / LOGO_EM);
-        const LOGO = FS * LOGO_EM, GAP = FS * GAP_EM;
+        const { logo: LOGO, gap: GAP, along, maxFs } = apEzBox();
+        const FS = Math.min(maxFs, (along - LOGO - GAP) / apTextEm(name));
         const x = -(LOGO + GAP + apTextEm(name) * FS) / 2;
         return `
         <g class="mc-duel-ez" style="--team-color:${team.color || 'var(--accent-red)'}">
             <rect x="${x0.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${AP_FD.vbH}" class="mc-duel-ez-fill"/>
             <line x1="${goalX.toFixed(1)}" y1="0" x2="${goalX.toFixed(1)}" y2="${AP_FD.vbH}" class="mc-duel-ez-goal"/>
-            <g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">
+            <g class="mc-duel-ez-mark" transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">
                 ${team.logo ? `<image href="${team.logo}" x="${x.toFixed(1)}" y="${(-LOGO / 2).toFixed(1)}"
                     width="${LOGO.toFixed(1)}" height="${LOGO.toFixed(1)}" class="mc-duel-ez-logo" preserveAspectRatio="xMidYMid meet"/>` : ''}
                 <text x="${(x + LOGO + GAP).toFixed(1)}" y="0" dominant-baseline="central"
@@ -903,6 +915,50 @@ function apEndZones(left, right) {
         </g>`;
     };
     return zone(left, 1) + zone(right, 2);
+}
+
+/**
+ * Rimisura e ricentra logo+nome nelle end zone, sulle larghezze VERE.
+ *
+ * Serve perché in un SVG costruito come stringa il testo non si può
+ * misurare: `apEndZones` deve indovinare quanto sarà largo un nome, e la
+ * stima sbaglia in modo diverso da nome a nome. Misurato: la stima azzeccava
+ * "LASERS" e sbagliava tutti gli altri, con il risultato che il blocco
+ * usciva scentrato — "SOMMO" a 12px dal bordo campo da un lato e 75
+ * dall'altro, e "OSCURUS" addirittura fuori di un pixel dal campo. Non era
+ * un problema di gusto: era la stima.
+ *
+ * Qui il testo esiste davvero, quindi `getBBox()` dice la sua larghezza
+ * esatta: si ricava il corpo che riempie la fascia e si ricentra il blocco.
+ * Va chiamata dopo `document.fonts.ready`, o si misurerebbe il font di
+ * ripiego e i conti cambierebbero appena arriva quello vero.
+ *
+ * Se la misura non è disponibile (elemento non ancora a layout) non fa
+ * nulla: resta il posizionamento stimato, che è approssimativo ma valido.
+ */
+function fitEndZones(root) {
+    const { logo: LOGO, gap: GAP, along, maxFs } = apEzBox();
+    root.querySelectorAll('.mc-duel-ez-mark').forEach((mark) => {
+        const img = mark.querySelector('.mc-duel-ez-logo');
+        const txt = mark.querySelector('.mc-duel-ez-name');
+        if (!txt) return;
+        // Larghezza per unità di corpo: si misura a un corpo noto e si scala.
+        const PROBE = 100;
+        txt.style.fontSize = `${PROBE}px`;
+        const perEm = txt.getBBox().width / PROBE;
+        if (!perEm) return;                                  // non a layout: si tiene la stima
+        const fs = Math.min(maxFs, (along - LOGO - GAP) / perEm);
+        txt.style.fontSize = `${fs.toFixed(1)}px`;
+
+        const x = -(LOGO + GAP + perEm * fs) / 2;
+        if (img) {
+            img.setAttribute('x', x.toFixed(1));
+            img.setAttribute('y', (-LOGO / 2).toFixed(1));
+            img.setAttribute('width', LOGO.toFixed(1));
+            img.setAttribute('height', LOGO.toFixed(1));
+        }
+        txt.setAttribute('x', (x + LOGO + GAP).toFixed(1));
+    });
 }
 
 // Il campo di gioco vero: 100 yard fra le due goal line, distese fra la fine
