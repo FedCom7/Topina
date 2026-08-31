@@ -803,14 +803,20 @@ const apY = (fy) => (fy / AP_FD.W) * AP_FD.vbH;
 // per un solo team, questo è alto 560 per DUE, in metà spazio — spaziatura
 // ricalcolata per il minimo che non fa toccare due dischi vicini, con lo
 // slack in eccesso redistribuito in parti uguali fra i sette varchi.
+//
+// Anche la profondità di QB e RB (`fy`) è il massimo avvicinamento alla
+// linea che non fa toccare niente, cercato allo stesso modo. A fermare i RB
+// non è la linea ma il QB: il suo cognome scende sotto il disco e arriva
+// nella fila del RB destro. Si guadagnerebbero altre 9 yard allargando i due
+// RB di ~40px, ma li vogliamo stretti.
 const AP_OL_FX = { LT: 13.7, LG: 20.9, C: 25.4, RG: 29.8, RT: 34.3 };
 const AP_WR_FX = { L: 5.8, R: 47.5 }; // non più i 5/48.6 "veri" di OFFENSE_SLOTS: qui a ridosso del bordo il nome del giocatore avrebbe sforato la card
 const AP_PRO_SET = {
     // Ordine di ALLPRO_SLOTS in honors.js: QB, RB, RB, WR, WR, TE, FLEX, K, DEF.
     slots: [
-        { fx: AP_OL_FX.C, fy: 17.8 },   // QB, sotto centro — resta lì, il FLEX cambia posto in linea, non lui
-        { fx: 17, fy: 19.8 },           // RB sinistro, split — vicino al lato dove ora gioca il FLEX
-        { fx: 30, fy: 19.8 },           // RB destro, split — riavvicinato al centro (prima era simmetrico sul vecchio centro, più largo)
+        { fx: AP_OL_FX.C, fy: 16.2 },   // QB, sotto centro
+        { fx: 17, fy: 18.1 },           // RB sinistro, split — vicino al lato dove ora gioca il FLEX
+        { fx: 30, fy: 18.1 },           // RB destro, split — riavvicinato al centro (prima era simmetrico sul vecchio centro, più largo)
         { fx: AP_WR_FX.L, fy: 14.2 },   // WR largo
         { fx: AP_WR_FX.R, fy: 14.2 },   // WR largo
         { fx: 39.6, fy: 14.8 },         // TE agganciato
@@ -839,16 +845,25 @@ function apMarker({ fx, fy, label, player, side, abbr, year, clipId }) {
     });
 }
 
+// Larghezza stimata di una scritta in em, per il font display in maiuscolo.
+// In un SVG generato a stringa il testo non si può misurare: serve una stima
+// per dimensionare e centrare il blocco logo+nome. Lo spazio è molto più
+// stretto di una lettera, e va contato a parte o "CAPI DEI PIANETI" (due
+// spazi) risulta più largo del vero e la scritta esce piccola.
+const AP_EZ_TRACK = 0.06;   // letter-spacing, in em (vedi .mc-duel-ez-name)
+const apTextEm = (s) => [...s].reduce((w, c) => w + (c === ' ' ? 0.3 : 0.66) + AP_EZ_TRACK, 0);
+
 /**
  * Le due end zone, una per lato: fascia tinta del colore della squadra, goal
- * line a chiuderla e dentro il logo con la sigla della squadra. Il contenuto
- * corre LUNGO la fascia (ruotato di 90°), come la scritta dipinta di una end
- * zone vera vista dall'alto — non in orizzontale, che sarebbe un'etichetta
+ * line a chiuderla e dentro logo e nome della squadra. Il contenuto corre
+ * LUNGO la fascia (ruotato di 90°), come la scritta dipinta di una end zone
+ * vera vista dall'alto — non in orizzontale, che sarebbe un'etichetta
  * appoggiata sopra al campo invece che dipinta dentro.
  *
- * La sigla e non il nome: "Capi dei Pianeti" per esteso non ci sta nella
- * fascia, e mescolare un nome lungo con tre corti sbilanciava le due metà.
- * Sono le sigle ufficiali di TEAM_ABBR (js/data.js), non inventate qui.
+ * Il corpo del testo non è fisso: si calcola per riempire la fascia, quindi
+ * "SOMMO" viene grande e "CAPI DEI PIANETI" più piccolo, ognuno il massimo
+ * che ci sta. Come su un campo vero, dove un nome lungo è scritto più
+ * stretto. Il logo cresce col testo, così le proporzioni non cambiano.
  *
  * Solo il campo del Super Bowl le disegna — l'All-Pro non ha due squadre a
  * cui intestarle.
@@ -863,25 +878,27 @@ function apEndZones(left, right) {
         // Ruotate verso l'esterno da lati opposti, così le due scritte si
         // leggono entrambe girando la testa dallo stesso verso.
         const rot = side === 1 ? -90 : 90;
-        const name = team.abbr || '';
-        const FS = 34, LOGO = 64, GAP = 14;
-        // La larghezza del testo non si può misurare in SVG generato a
-        // stringa: si stima dal numero di caratteri e serve solo a centrare
-        // il blocco logo+sigla nella fascia. 0.62em è l'avanzamento medio di
-        // una maiuscola del font display; la letter-spacing (0.16em, vedi
-        // .mc-duel-ez-name) va sommata a parte, perché SVG la applica anche
-        // dopo l'ultima lettera — senza, il blocco risultava spostato.
-        const textW = name.length * FS * (0.62 + 0.16);
-        const x = -(LOGO + GAP + textW) / 2;
+        const name = (team.name || '').toUpperCase();
+        // Logo e stacco sono espressi in multipli del corpo, così l'incastro
+        // resta lo stesso a ogni dimensione. Risolvendo per FS:
+        //   lunghezza = FS*(logo + stacco + larghezza_testo_in_em)
+        const LOGO_EM = 1.25, GAP_EM = 0.3;
+        const along = AP_FD.vbH * 0.94;                 // quanto è lunga la fascia
+        let FS = along / (LOGO_EM + GAP_EM + apTextEm(name));
+        // Il tetto non è estetico: attraverso la fascia ci devono stare il
+        // logo (il più alto dei due) e i suoi margini, o sborda sul campo.
+        FS = Math.min(FS, (w * 0.82) / LOGO_EM);
+        const LOGO = FS * LOGO_EM, GAP = FS * GAP_EM;
+        const x = -(LOGO + GAP + apTextEm(name) * FS) / 2;
         return `
         <g class="mc-duel-ez" style="--team-color:${team.color || 'var(--accent-red)'}">
             <rect x="${x0.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${AP_FD.vbH}" class="mc-duel-ez-fill"/>
             <line x1="${goalX.toFixed(1)}" y1="0" x2="${goalX.toFixed(1)}" y2="${AP_FD.vbH}" class="mc-duel-ez-goal"/>
             <g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">
                 ${team.logo ? `<image href="${team.logo}" x="${x.toFixed(1)}" y="${(-LOGO / 2).toFixed(1)}"
-                    width="${LOGO}" height="${LOGO}" class="mc-duel-ez-logo" preserveAspectRatio="xMidYMid meet"/>` : ''}
+                    width="${LOGO.toFixed(1)}" height="${LOGO.toFixed(1)}" class="mc-duel-ez-logo" preserveAspectRatio="xMidYMid meet"/>` : ''}
                 <text x="${(x + LOGO + GAP).toFixed(1)}" y="0" dominant-baseline="central"
-                      class="mc-duel-ez-name" style="font-size:${FS}px">${esc(name)}</text>
+                      class="mc-duel-ez-name" style="font-size:${FS.toFixed(1)}px">${esc(name)}</text>
             </g>
         </g>`;
     };
@@ -1332,8 +1349,8 @@ async function cardSuperBowl({ season }) {
         return {
             lineup: sbLineup(t),
             // Niente `label`: il nome non va all'angolo del campo ma dipinto
-            // nell'end zone, ed è la sigla ufficiale (TEAM_ABBR in data.js).
-            abbr: teamAbbr(t.name),
+            // per esteso dentro l'end zone, che se lo dimensiona da sé.
+            name: team?.name || displayName(t.name),
             color: team?.color, logo: team?.logo,
         };
     };

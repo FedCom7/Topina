@@ -19900,23 +19900,19 @@ td.ps-div-seed {
    una banda già scura mangiava il logo fino a farlo sparire. `luminosity`
    lo teneva ma lo scoloriva. L'opacità semplice lascia passare le bande in
    modo uniforme, che è esattamente l'effetto di una mano di vernice. */
-/* L'alone non è decorazione: i loghi di lega sono illustrazioni dettagliate,
-   e due su quattro sono scuri (Sommo, Oscurus). Su una banda tinta del loro
-   stesso colore scuro sparivano. Provate le alternative: lo stencil bianco
-   (`brightness(0) invert(1)`) li rende leggibili ma li riduce a una macchia,
-   perché non sono wordmark; schiarire la banda non bastava. Un alone bianco
-   largo e tenue stacca quelli scuri e non si vede su quelli chiari. */
 .mc-duel-ez-logo {
-    opacity: 0.78;
-    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.4));
+    opacity: 0.88;
 }
 
+/* La letter-spacing è anche in apTextEm() (js/sections/home.js), che da qui
+   calcola quanto può essere grande il corpo: cambiandola qui va cambiata
+   anche là, o il nome non sta più nella fascia. */
 .mc-duel-ez-name {
     fill: #fff;
-    opacity: 0.85;
+    opacity: 0.88;
     font-family: var(--font-display);
     font-weight: 900;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.06em;
 }
 
 /* ── Variante notturna: il verde del Live invece del prato chiaro ──
