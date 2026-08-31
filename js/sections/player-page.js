@@ -16,10 +16,10 @@ import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=595';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
 import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=567';
 import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=597';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=615';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=594';
-import { playerImageService } from '../services/player-image-service.js?v=520';
-import { canonAbbr } from '../data/nfl-schedule.js?v=525';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=620';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=595';
+import { playerImageService } from '../services/player-image-service.js?v=522';
+import { canonAbbr } from '../data/nfl-schedule.js?v=526';
 import { CURRENT_SEASON } from '../data.js?v=540';
 import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=622';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
@@ -27,7 +27,7 @@ import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, cur
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=513';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=505';
-import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=584';
+import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
 
 export const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 // Da 2019 alla stagione NFL corrente (calcolata dalla data): così l'anno nuovo
@@ -915,7 +915,7 @@ export function injuryHistoryDetails(weeks) {
     const rows = groups.map((g, i) => {
         const statuses = [...new Set(g.weeks.map(w => w.status).filter(Boolean))];
         const range = g.from === g.to ? `W${g.from}` : `W${g.from}–W${g.to}`;
-        const returned = i < groups.length - 1 ? ' <span style="color:var(--accent-green)">· rientrato</span>' : '';
+        const returned = i < groups.length - 1 ? ' <span style="color:var(--accent-green)">· returned</span>' : '';
         return `<div class="pp-inj-hist-row"><b>${range}</b> ${esc(g.injury)}${statuses.length ? ` · ${statuses.map(esc).join(' → ')}` : ' · managed, never in doubt for a game'}${returned}</div>`;
     }).join('');
     return `
@@ -2699,7 +2699,7 @@ function projVsActualBlock({ seasons, projByYear }) {
 }
 
 /** Etichetta infortunio dominante di una stagione (dal record playerInjuries). */
-function injuryLabelForSeason(pi) {
+export function injuryLabelForSeason(pi) {
     if (!pi?.weeks) return null;
     const NOT_INJURY = /not injury related|resting|personal|coach|load management/i;
     const groups = groupInjuryWeeks(pi.weeks).filter(g => !NOT_INJURY.test(g.injury));
@@ -2762,13 +2762,19 @@ function perfExplainBlock(ctx) {
  * un gradino per statistica (verde = ha aggiunto, rosso = ha tolto). I gradini
  * sommano ESATTAMENTE all'errore. Sostituisce le vecchie barre divergenti.
  */
-function perfWaterfall(dec, shown) {
+export function perfWaterfall(dec, shown, opts = {}) {
+    const compact = !!opts.compact;
     const steps = shown.map(r => ({ label: r.label, d: r.pts, proj: r.proj, actual: r.actual }));
     if (Math.abs(dec.residual) >= 2) steps.push({ label: 'Other', d: dec.residual });
     const cats = ['Projected', ...steps.map(s => s.label), 'Actual'];
     const n = cats.length;
-    const W = Math.max(340, 52 + n * 60), H = 214;
-    const M = { l: 40, r: 14, t: 24, b: 52 };
+    // `compact` non vuol dire "mutilato": è la stessa cascata in una colonna
+    // più stretta. Le proporzioni restano alte abbastanza da starci accanto a
+    // un grafico quadrato senza lasciare un buco sotto, e le etichette dei
+    // gradini restano — senza, a metà cascata non si sa più di che stat si parli.
+    const W = Math.max(compact ? 260 : 340, (compact ? 34 : 52) + n * (compact ? 44 : 60));
+    const H = compact ? 200 : 214;
+    const M = compact ? { l: 30, r: 8, t: 20, b: 52 } : { l: 40, r: 14, t: 24, b: 52 };
     const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
     let cum = dec.projPts; const cums = [dec.projPts];
     steps.forEach(s => { cum += s.d; cums.push(cum); });
@@ -2776,7 +2782,7 @@ function perfWaterfall(dec, shown) {
     const ticks = niceTicks(0, top);
     const yMax = ticks[ticks.length - 1] || 1;
     const y = v => M.t + (1 - v / yMax) * plotH;
-    const bw = Math.min(40, (plotW / n) * 0.6);
+    const bw = Math.min(compact ? 24 : 40, (plotW / n) * 0.6);
     const cx = i => M.l + (i + 0.5) * (plotW / n);
 
     const grid = ticks.map(v => `
@@ -2802,7 +2808,7 @@ function perfWaterfall(dec, shown) {
         <text x="${xa.toFixed(1)}" y="${(y(dec.actPts) - 6).toFixed(1)}" class="pp-wf-lbl pp-wf-lbl--actual" text-anchor="middle">${fmt0(dec.actPts)}</text>`);
     const xlabels = cats.map((c, i) => `<text x="${cx(i).toFixed(1)}" y="${H - M.b + 15}" class="pp-wf-xlbl" text-anchor="end" transform="rotate(-32 ${cx(i).toFixed(1)} ${H - M.b + 15})">${c}</text>`).join('');
 
-    return `<div class="pp-wf-wrap"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-wf-svg">${grid}${parts.join('')}${xlabels}</svg></div>`;
+    return `<div class="pp-wf-wrap${compact ? ' pp-wf-wrap--compact' : ''}"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-wf-svg${compact ? ' pp-wf-svg--compact' : ''}">${grid}${parts.join('')}${xlabels}</svg></div>`;
 }
 
 /**

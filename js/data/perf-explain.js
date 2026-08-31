@@ -52,21 +52,21 @@ export function describeCauses(causes, dec) {
     // coerenti col segno (partenze/infortuni → più quota; arrivi → meno quota). ──
     if (share && share.pctPrev != null) {
         const d = share.pct - share.pctPrev;
-        const lbl = share.key === 'rushShare' ? 'quota di corse' : 'target share';
+        const lbl = share.key === 'rushShare' ? 'rush share' : 'target share';
         if (d >= 3) {
             const who = [];
-            if (departures?.length) who.push(`via ${departures.map(x => x.name).join(', ')}`);
-            if (teammateInjuries?.length) who.push(teammateInjuries.map(t => `${t.name} out ${t.missed} gare`).join(', '));
-            out.push({ icon: '🎯', text: `Più palloni: ${lbl} ${share.pctPrev}%→${share.pct}% (+${d}pt)${who.length ? ` — ${who.join('; ')}` : ''}` });
+            if (departures?.length) who.push(`after ${departures.map(x => x.name).join(', ')} left`);
+            if (teammateInjuries?.length) who.push(teammateInjuries.map(t => `${t.name} out ${t.missed} games`).join(', '));
+            out.push({ icon: '🎯', text: `More volume: ${lbl} ${share.pctPrev}%→${share.pct}% (+${d}pt)${who.length ? ` — ${who.join('; ')}` : ''}` });
         } else if (d <= -3) {
-            const who = arrivals?.length ? ` — arrivo di ${arrivals.map(x => x.name).join(', ')}` : '';
-            out.push({ icon: '🎯', text: `Meno palloni: ${lbl} ${share.pctPrev}%→${share.pct}% (${d}pt)${who}` });
+            const who = arrivals?.length ? ` — after ${arrivals.map(x => x.name).join(', ')} arrived` : '';
+            out.push({ icon: '🎯', text: `Less volume: ${lbl} ${share.pctPrev}%→${share.pct}% (${d}pt)${who}` });
         }
         // |d| < 3 → nessuna riga: la mossa non ha inciso sulla quota (non dimostrato)
     } else if (teammateInjuries?.length && share && share.pct >= 18) {
         // niente anno-prima (es. rookie): prova = compagni out + quota realizzata
-        const lbl = share.key === 'rushShare' ? 'quota di corse' : 'target share';
-        out.push({ icon: '🎯', text: `${teammateInjuries.map(t => `${t.name} out ${t.missed} gare`).join(', ')} → ${lbl} ${share.pct}% assorbito` });
+        const lbl = share.key === 'rushShare' ? 'rush share' : 'target share';
+        out.push({ icon: '🎯', text: `${teammateInjuries.map(t => `${t.name} out ${t.missed} games`).join(', ')} → picked up a ${share.pct}% ${lbl}` });
     }
     // ── Punti squadra — PROVATO legando i TD della squadra ai TD REALI del
     // giocatore (WR/TE→TD aerei, RB→TD di corsa). Si mostra solo se l'attacco ha
@@ -82,30 +82,30 @@ export function describeCauses(causes, dec) {
             const dTeam = teamTd - teamTdPrev;
             if (Math.abs(dTeam) >= 4 && Math.sign(dTeam) === Math.sign(tdRow.delta)) {
                 const less = dTeam < 0;
-                out.push({ icon: less ? '📉' : '📈', text: `Attacco che segna ${less ? 'meno' : 'più'}: TD ${isRec ? 'aerei' : 'di corsa'} squadra ${teamTdPrev}→${teamTd}, in linea coi tuoi TD ${isRec ? 'ricezione' : 'corsa'} ${fmtStat(tdRow.proj)}→${fmtStat(tdRow.actual)}` });
+                out.push({ icon: less ? '📉' : '📈', text: `Offense scoring ${less ? 'fewer' : 'more'}: team ${isRec ? 'passing' : 'rushing'} TDs ${teamTdPrev}→${teamTd}, matching your ${isRec ? 'receiving' : 'rushing'} TDs ${fmtStat(tdRow.proj)}→${fmtStat(tdRow.actual)}` });
             }
         }
     }
     if (causes.oline) {
         const o = causes.oline;
         out.push(o.kind === 'pass'
-            ? { icon: '🧱', text: `Protezione ${o.worse ? 'peggiorata' : 'migliorata'}: pressione subita ${o.pressurePrev}%→${o.pressure}%` }
-            : { icon: '🧱', text: `Blocchi di corsa ${o.worse ? 'peggiorati' : 'migliorati'}: ${o.ybc} yard prima del contatto a corsa (erano ${o.ybcPrev})` });
+            ? { icon: '🧱', text: `Protection ${o.worse ? 'got worse' : 'improved'}: pressure rate ${o.pressurePrev}%→${o.pressure}%` }
+            : { icon: '🧱', text: `Run blocking ${o.worse ? 'got worse' : 'improved'}: ${o.ybc} yards before contact per carry (was ${o.ybcPrev})` });
     }
     return out;
 }
 
 /** Statistiche che pesano nello scoring, con label e gruppo. Chiavi = campi Sleeper. */
 const STAT_DEFS = [
-    { key: 'rec', label: 'Ricezioni', unit: '', w: LEAGUE_SCORING.rec, group: 'rec' },
-    { key: 'rec_yd', label: 'Yard su ricezione', unit: 'yd', w: LEAGUE_SCORING.rec_yd, group: 'rec' },
-    { key: 'rec_td', label: 'TD su ricezione', unit: 'TD', w: LEAGUE_SCORING.rec_td, group: 'rec' },
-    { key: 'rush_yd', label: 'Yard su corsa', unit: 'yd', w: LEAGUE_SCORING.rush_yd, group: 'rush' },
-    { key: 'rush_td', label: 'TD su corsa', unit: 'TD', w: LEAGUE_SCORING.rush_td, group: 'rush' },
-    { key: 'pass_yd', label: 'Yard su passaggio', unit: 'yd', w: LEAGUE_SCORING.pass_yd, group: 'pass' },
-    { key: 'pass_td', label: 'TD su passaggio', unit: 'TD', w: LEAGUE_SCORING.pass_td, group: 'pass' },
-    { key: 'pass_int', label: 'Intercetti subiti', unit: '', w: LEAGUE_SCORING.pass_int, group: 'pass' },
-    { key: 'fum_lost', label: 'Fumble persi', unit: '', w: LEAGUE_SCORING.fum_lost, group: 'misc' },
+    { key: 'rec', label: 'Receptions', unit: '', w: LEAGUE_SCORING.rec, group: 'rec' },
+    { key: 'rec_yd', label: 'Receiving yards', unit: 'yd', w: LEAGUE_SCORING.rec_yd, group: 'rec' },
+    { key: 'rec_td', label: 'Receiving TDs', unit: 'TD', w: LEAGUE_SCORING.rec_td, group: 'rec' },
+    { key: 'rush_yd', label: 'Rushing yards', unit: 'yd', w: LEAGUE_SCORING.rush_yd, group: 'rush' },
+    { key: 'rush_td', label: 'Rushing TDs', unit: 'TD', w: LEAGUE_SCORING.rush_td, group: 'rush' },
+    { key: 'pass_yd', label: 'Passing yards', unit: 'yd', w: LEAGUE_SCORING.pass_yd, group: 'pass' },
+    { key: 'pass_td', label: 'Passing TDs', unit: 'TD', w: LEAGUE_SCORING.pass_td, group: 'pass' },
+    { key: 'pass_int', label: 'Interceptions', unit: '', w: LEAGUE_SCORING.pass_int, group: 'pass' },
+    { key: 'fum_lost', label: 'Fumbles lost', unit: '', w: LEAGUE_SCORING.fum_lost, group: 'misc' },
 ];
 
 /** Ordine di rilevanza delle voci per ruolo (le altre restano ma dopo). */
@@ -194,19 +194,19 @@ function readouts(pos, proj, actual, gpP, gpA) {
         // i target proiettati dalle ricezioni con un catch-rate di lega 0.64.
         const projTgtPg = proj.rec != null ? round1((num(proj.rec) / 0.64) / gpP) : null;
         const actTgtPg = actual.rec_tgt != null ? perG(actual, 'rec_tgt', gpA) : null;
-        if (actTgtPg != null) out.push({ key: 'tgt', label: 'Target / gara', proj: projTgtPg, actual: actTgtPg });
-        if (actual.rec_rz_tgt != null) out.push({ key: 'rzTgt', label: 'Target in red zone', proj: null, actual: num(actual.rec_rz_tgt) });
+        if (actTgtPg != null) out.push({ key: 'tgt', label: 'Targets/game', proj: projTgtPg, actual: actTgtPg });
+        if (actual.rec_rz_tgt != null) out.push({ key: 'rzTgt', label: 'Red zone targets', proj: null, actual: num(actual.rec_rz_tgt) });
     }
     if (pos === 'RB') {
         const projCarPg = proj.rush_att != null ? round1(num(proj.rush_att) / gpP) : null;
         const actCarPg = actual.rush_att != null ? perG(actual, 'rush_att', gpA) : null;
-        if (actCarPg != null) out.push({ key: 'carries', label: 'Corse / gara', proj: projCarPg, actual: actCarPg });
-        if (actual.rush_rz_att != null) out.push({ key: 'rzAtt', label: 'Corse in red zone', proj: null, actual: num(actual.rush_rz_att) });
+        if (actCarPg != null) out.push({ key: 'carries', label: 'Carries/game', proj: projCarPg, actual: actCarPg });
+        if (actual.rush_rz_att != null) out.push({ key: 'rzAtt', label: 'Red zone carries', proj: null, actual: num(actual.rush_rz_att) });
     }
     if (pos === 'QB') {
         const projAttPg = proj.pass_att != null ? round1(num(proj.pass_att) / gpP) : null;
         const actAttPg = actual.pass_att != null ? perG(actual, 'pass_att', gpA) : null;
-        if (actAttPg != null) out.push({ key: 'patt', label: 'Tentativi pass / gara', proj: projAttPg, actual: actAttPg });
+        if (actAttPg != null) out.push({ key: 'patt', label: 'Pass attempts/game', proj: projAttPg, actual: actAttPg });
     }
     // snap share (solo reale): off_snp / tm_off_snp
     if (actual.off_snp != null && actual.tm_off_snp) {
@@ -231,18 +231,21 @@ export function seasonVerdict(dec, injuryLabel) {
     // rendimento per-gara (era comunque bravo/scarso quando giocava?).
     if (missed >= 2 && dec.availability <= -8) {
         const lbl = injuryLabel ? ` (${injuryLabel.toLowerCase()})` : '';
-        const perG = dec.perGameError >= 6 ? ' — ma quando ha giocato ha reso sopra le attese'
-            : dec.perGameError <= -6 ? ' — e anche per gara è rimasto sotto le attese' : '';
-        bits.push(`Ha saltato ${missed} ${missed === 1 ? 'gara' : 'gare'}${lbl}: gran parte del calo è per le assenze${perG}`);
+        const perG = dec.perGameError >= 6 ? ' — though he outperformed expectations when he played'
+            : dec.perGameError <= -6 ? ' — and fell short even on a per-game basis' : '';
+        bits.push(`Missed ${missed} ${missed === 1 ? 'game' : 'games'}${lbl}: most of the drop is from missed time${perG}`);
     }
     // le voci di stat più pesanti in valore assoluto
     const rel = dec.rows.filter(r => Math.abs(r.pts) >= 4)
         .sort((a, b) => Math.abs(b.pts) - Math.abs(a.pts)).slice(0, 2);
     for (const r of rel) {
-        const dir = r.delta >= 0 ? 'sopra' : 'sotto';
-        bits.push(`${r.label.toLowerCase()} ${dir} le attese (${fmtStat(r.proj)}→${fmtStat(r.actual)}${r.unit ? ' ' + r.unit : ''}, ${p1(r.pts)} pt)`);
+        const dir = r.delta >= 0 ? 'above' : 'below';
+        // solo l'iniziale minuscola (il pezzo si incastra a metà frase dopo un
+        // "·"): il resto dell'etichetta resta com'è, o "TDs" diventa "tds"
+        const label = r.label.charAt(0).toLowerCase() + r.label.slice(1);
+        bits.push(`${label} ${dir} expectations (${fmtStat(r.proj)}→${fmtStat(r.actual)}${r.unit ? ' ' + r.unit : ''}, ${p1(r.pts)} pt)`);
     }
-    if (!bits.length) return { headline: 'Stagione in linea con le proiezioni.' };
+    if (!bits.length) return { headline: 'Season in line with the projection.' };
     const h = bits.join(' · ') + '.';
     return { headline: h.charAt(0).toUpperCase() + h.slice(1) };
 }

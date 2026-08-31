@@ -14,9 +14,9 @@
  */
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=597';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=594';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=595';
 import { TEAMS } from '../sections/team.js?v=610';
-import { playerImageService } from '../services/player-image-service.js?v=520';
+import { playerImageService } from '../services/player-image-service.js?v=522';
 import { getPlayerInfo } from '../data/player-full.js?v=595';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=591';
 
@@ -407,19 +407,42 @@ export async function hydratePaniniBadges(container) {
     }
 }
 
+/** Stemma NFL vero della squadra (non quello Topina): stesso URL usato da
+ * player-page.js::teamLogo e player-search-core.js::teamLogoUrl, duplicato
+ * qui apposta (una riga) invece di importare quei moduli — player-page.js
+ * importa già player-modal.js, un import inverso creerebbe un ciclo. */
+const posLogoUrl = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${(abbr || '').toLowerCase()}.png`;
+
 export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = false }) {
     const gold = !!hofYear;
     const stars = career?.sbWins ? '★'.repeat(Math.min(career.sbWins, 5)) : '';
     const bio = bioLine(info);
     const seasons = career ? `${career.seasons.size} Topina season${career.seasons.size === 1 ? '' : 's'}` : '';
     const showBubble = !compact && (bio || seasons);
+    // Il nome verticale in basso è a max-height:90%: con un nome lunghissimo
+    // può salire abbastanza da toccare il ruolo in alto. Non c'è modo di
+    // misurare la sovrapposizione vera in puro CSS, quindi si stima dalla
+    // lunghezza: sopra soglia, logo accanto al ruolo (riga) invece che sotto
+    // (colonna), che occupa meno altezza. Nessun nome reale di lega la supera
+    // oggi — scatta solo nei casi estremi.
+    const posInline = name.length > 22;
+    // Sotto i 130px di carta (vedi @container "panini" in main.css, mosaico
+    // Home su telefono) il nome intero non ci sta più: si passa al solo
+    // cognome, l'ultima parola del nome — unico pezzo che serve a
+    // riconoscere il giocatore quando tutto il resto (ruolo, logo, traguardi)
+    // è già sparito.
+    const surname = name.trim().split(/\s+/).pop();
 
     return `
     <div class="pm-panini${gold ? ' pm-panini--gold' : ''}">
         <div class="pm-panini-inner">
-            <span class="pm-panini-side-name">${name}</span>
+            <span class="pm-panini-side-name pm-panini-side-name--full">${name}</span>
+            <span class="pm-panini-side-name pm-panini-side-name--short">${surname}</span>
+            ${pos ? `<span class="pm-panini-pos${posInline ? ' pm-panini-pos--inline' : ''}">
+                <span>${pos}</span>
+                ${nfl ? `<img class="pm-panini-pos-logo" src="${posLogoUrl(nfl)}" alt="" onerror="this.style.display='none'">` : ''}
+            </span>` : ''}
             <div class="pm-panini-top">
-                ${pos ? `<span class="pm-panini-pos">${pos}</span>` : '<span></span>'}
                 <div class="pm-panini-badges">${paniniBadgesHTML(career)}</div>
             </div>
             <div class="pm-panini-photo-wrap">

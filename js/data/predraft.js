@@ -51,7 +51,7 @@ import { ROSTER_SLOTS, FLEX_ELIGIBLE, BENCH_SIZE, RESERVE_SIZE, SCORING } from '
 import { getRosterChange } from './roster-change.js?v=1';
 import { computeSeasonMetrics } from './player-metrics.js?v=530';
 import { getContextScore } from './context-score.js?v=587';
-import { cacheGet, cacheSet, cacheAgeMs } from '../utils/storage.js?v=3';
+import { cacheGet, cacheSet, cacheAgeMs } from '../utils/storage.js?v=4';
 
 const OFF = ['QB', 'RB', 'WR', 'TE'];
 const ALL = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];

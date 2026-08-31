@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Home preview — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        La home cambia faccia cinque volte l'anno (js/sections/home.js, registro
+        MOSAIC) e ogni fase si vede solo nella sua settimana: PLAYOFFS e SB_WEEK
+        capitano una volta a stagione, e non è quando ci si lavora. Qui si
+        sfogliano tutte in un iframe, a qualsiasi larghezza.
+
+        Non simula niente: passa `?phase=…` a index.html e la home usa i dati
+        VERI della stagione scelta. Se una fase si vede bene qui, si vede bene
+        anche il giorno che arriva davvero.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0b;
+            --panel: #141416;
+            --line: rgba(255, 255, 255, .12);
+            --text: #f5f0e8;
+            --muted: #8b8b90;
+            --accent: #B8433A;
+            --amber: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Altezza DEFINITA, non min-height: l'iframe si misura in percentuale
+           sul suo contenitore, e con un'altezza automatica collassava a una
+           striscia di 150px. */
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 18px;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel);
+        }
+
+        h1 {
+            margin: 0;
+            font-family: 'Inter Tight', sans-serif;
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: -.02em;
+        }
+
+        h1 small {
+            display: block;
+            font-family: 'Inter', sans-serif;
+            font-size: .65rem;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .group>label {
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-right: 2px;
+        }
+
+        button,
+        select,
+        input {
+            padding: 7px 13px;
+            border: 1px solid var(--line);
+            border-radius: 100px;
+            background: transparent;
+            color: var(--muted);
+            font: inherit;
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color .15s, border-color .15s, background-color .15s;
+        }
+
+        button:hover {
+            color: var(--text);
+        }
+
+        button[aria-pressed="true"] {
+            color: var(--text);
+            border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+            background: color-mix(in srgb, var(--accent) 18%, transparent);
+        }
+
+        select,
+        input {
+            cursor: auto;
+            color: var(--text);
+            border-radius: 8px;
+        }
+
+        input {
+            width: 84px;
+            text-align: center;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .url {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .7rem;
+            color: var(--muted);
+            user-select: all;
+        }
+
+        .stage {
+            flex: 1 1 auto;
+            min-height: 0;
+            /* senza min-height:0 un flex item non scende sotto il contenuto e
+               l'iframe non ha più un'altezza definita da cui partire */
+            display: flex;
+            justify-content: center;
+            padding: 18px;
+            background:
+                repeating-linear-gradient(45deg, rgba(255, 255, 255, .015) 0 10px, transparent 10px 20px);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #000;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+        }
+
+        .hint {
+            flex: none;
+            margin: 0;
+            padding: 10px 18px 12px;
+            border-top: 1px solid var(--line);
+            background: var(--panel);
+            font-size: .72rem;
+            line-height: 1.5;
+            color: var(--muted);
+        }
+
+        .hint code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: var(--amber);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Home preview<small>Topina League</small></h1>
+
+        <div class="group" id="phases">
+            <label>Phase</label>
+        </div>
+
+        <div class="group">
+            <label>Season</label>
+            <select id="year"></select>
+        </div>
+
+        <div class="group" id="weekGroup">
+            <label>Week</label>
+            <input id="week" type="number" min="1" max="18" placeholder="auto">
+        </div>
+
+        <div class="group" id="daysGroup">
+            <label>Days</label>
+            <input id="days" type="number" min="1" max="60" placeholder="auto">
+        </div>
+
+        <div class="group" id="sizes">
+            <label>Width</label>
+        </div>
+
+        <div class="spacer"></div>
+        <span class="url" id="url"></span>
+    </header>
+
+    <div class="stage">
+        <iframe id="frame" title="Homepage preview"></iframe>
+    </div>
+
+    <p class="hint">
+        Every phase renders from the <strong>real</strong> season data — nothing is mocked. Leave Week and Days on
+        <em>auto</em> to use what the season actually holds. The same override works straight in the address bar:
+        <code>index.html?phase=SB_WEEK&amp;year=2023</code>. A phase name that doesn't exist is ignored, so the real
+        homepage still loads.
+    </p>
+
+    <script>
+        // Le fasi sono quelle del registro MOSAIC in js/sections/home.js:
+        // aggiungendone una là, aggiungerla anche qui.
+        const PHASES = ['PRESEASON', 'REGULAR_SEASON', 'PLAYOFFS', 'SB_WEEK', 'OFFSEASON'];
+        const SIZES = [['Phone', 390], ['Tablet', 768], ['Laptop', 1280], ['Full', 0]];
+        const FALLBACK_YEARS = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+
+        const state = { phase: 'PRESEASON', year: '', week: '', days: '', width: 0 };
+        const $ = (id) => document.getElementById(id);
+
+        function pills(host, items, key, label = (v) => v) {
+            items.forEach(v => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = label(v);
+                b.dataset.value = Array.isArray(v) ? v[1] : v;
+                b.onclick = () => { state[key] = Array.isArray(v) ? v[1] : v; render(); };
+                host.appendChild(b);
+            });
+        }
+
+        pills($('phases'), PHASES, 'phase', v => v.replace('_', ' '));
+        pills($('sizes'), SIZES, 'width', v => v[0]);
+
+        ['week', 'days'].forEach(k => $(k).oninput = () => { state[k] = $(k).value; render(); });
+        $('year').onchange = () => { state.year = $('year').value; render(); };
+
+        function render() {
+            document.querySelectorAll('#phases button').forEach(b =>
+                b.setAttribute('aria-pressed', b.dataset.value === state.phase));
+            document.querySelectorAll('#sizes button').forEach(b =>
+                b.setAttribute('aria-pressed', String(b.dataset.value) === String(state.width)));
+
+            // Week serve solo alla regular season, Days solo alla preseason:
+            // mostrare campi che non fanno niente confonde e basta.
+            $('weekGroup').style.display = state.phase === 'REGULAR_SEASON' ? '' : 'none';
+            $('daysGroup').style.display = state.phase === 'PRESEASON' ? '' : 'none';
+
+            const q = new URLSearchParams({ phase: state.phase });
+            if (state.year) q.set('year', state.year);
+            if (state.week && state.phase === 'REGULAR_SEASON') q.set('week', state.week);
+            if (state.days && state.phase === 'PRESEASON') q.set('days', state.days);
+
+            const url = `index.html?${q}`;
+            $('url').textContent = url;
+            const frame = $('frame');
+            if (frame.dataset.url !== url) { frame.dataset.url = url; frame.src = url; }
+            frame.style.maxWidth = state.width ? state.width + 'px' : '';
+        }
+
+        // Gli anni si chiedono a Firebase come fa data.js, così la tendina non
+        // invecchia da sola a ogni stagione nuova.
+        (async function years() {
+            let list = FALLBACK_YEARS;
+            try {
+                const r = await fetch('https://topina-9cd75-default-rtdb.firebaseio.com/fantasy.json?shallow=true');
+                const keys = Object.keys(await r.json() || {});
+                const found = keys.map(k => (k.match(/fantasy_data_(\d{4})/) || [])[1]).filter(Boolean).sort();
+                if (found.length) list = found;
+            } catch { /* offline: si tiene il fallback */ }
+
+            const sel = $('year');
+            sel.innerHTML = '<option value="">auto (latest played)</option>'
+                + list.map(y => `<option value="${y}">${y}</option>`).join('');
+        })();
+
+        render();
+    </script>
+</body>
+
+</html>

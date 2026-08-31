@@ -29,7 +29,7 @@
 
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
 import { getTeamStats } from './nfl-team-stats.js?v=567';
-import { canonAbbr } from './nfl-schedule.js?v=525';
+import { canonAbbr } from './nfl-schedule.js?v=526';
 
 const { FLEX, ...SLOTS } = ROSTER_SLOTS; // {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1}
 export const NUM_TEAMS = 4;

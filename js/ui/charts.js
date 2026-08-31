@@ -315,10 +315,15 @@ export function multiLine(series, opts = {}) {
     }
 
     // il contesto prima, il protagonista sopra a tutto
+    //
+    // `pathLength="1"` normalizza la lunghezza del tratto: chi vuole far
+    // *disegnare* la linea (la home, allo scroll) può animare stroke-dashoffset
+    // da 1 a 0 in CSS, senza misurare ogni path in JS. È inerte per tutti gli
+    // altri — conta solo se qualcuno usa i trattini, e qui non li usa nessuno.
     const ordinate = [...serie].sort((a, b) => (a.lead ? 1 : 0) - (b.lead ? 1 : 0));
     const linee = ordinate.map(s => `
         <polyline points="${s.values.map(v => `${x(v.x).toFixed(1)},${y(v.y).toFixed(1)}`).join(' ')}"
-                  fill="none" stroke="${s.color}" stroke-width="${s.lead === false ? 1.6 : 2.4}"
+                  pathLength="1" fill="none" stroke="${s.color}" stroke-width="${s.lead === false ? 1.6 : 2.4}"
                   stroke-linejoin="round" stroke-linecap="round"${s.lead === false ? ' opacity="0.75"' : ''}/>`).join('');
 
     const punti = fini.map(({ s, lx, ly, labelY }) => `

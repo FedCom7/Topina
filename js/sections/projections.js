@@ -20,23 +20,30 @@
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=610';
-import { initPlayerModal } from '../components/player-modal.js?v=615';
-import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=594';
+import { initPlayerModal } from '../components/player-modal.js?v=620';
+import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=595';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=26';
 import { multiLine, dumbbell } from '../ui/charts.js?v=7';
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=3';
+import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
+import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=886';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=937';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const POS_NAME = { QB: 'Quarterback', RB: 'Running back', WR: 'Wide receiver', TE: 'Tight end' };
 const TOP_N = 40;
+// Il pannello "Why" (proiettato→reale stat per stat) esiste solo per i ruoli
+// che decomposeSeason sa scomporre — K/DEF non hanno le stat di scoring giuste.
+const WHY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 
 let loaded = false;
 let currentYear = null;
 let currentPos = 'RB';
-let byPos = null;      // { POS: [ {name, team, pts, adp, pick, real, gp} ] }
+let byPos = null;      // { POS: [ {name, team, pts, adp, pick, real, gp, projRaw, actualRaw} ] }
 let seasonDone = false;  // stagione conclusa → si mostrano i punti veri
 let sortBy = 'proj';     // 'proj' | 'real' — solo a stagione conclusa
+let _rowIndex = new Map(); // normName(r.name) → r, ricostruita a ogni renderList: serve al toggle "Why"
 /**
  * 'board'    — il listone di sempre, un ruolo alla volta
  * 'strategy' — che FORMA ha il board: VORP, tier, dove crolla ogni ruolo
@@ -87,6 +94,7 @@ function renderPickRow() {
             loadYear(value);
         } else if (id === 'pos') {
             currentPos = value;
+            renderPickRow(); // altrimenti la capsula resta ferma sul ruolo precedente
             renderList();
         }
     });
@@ -161,6 +169,10 @@ async function loadYear(year) {
             pick: drafted.get(key) || null,
             real: st ? (st.ptsLeague ?? st.ptsStd ?? null) : null,
             gp: st?.gp ?? null,
+            // stat grezze proiettate/reali (stessi nomi-campo Sleeper): alimentano
+            // il pannello "Why", vedi buildWhyPanel più sotto
+            projRaw: e.raw || null,
+            actualRaw: st?.raw || null,
         });
     }
     // senza proiezione (i kicker) si ordina per ADP, l'unico segnale rimasto
@@ -184,6 +196,7 @@ function renderList() {
     if (!host || !byPos) return;
     const all = byPos[currentPos] || [];
     const byReal = seasonDone && sortBy === 'real';
+    _rowIndex = new Map();
 
 /**
      * L'ordinamento cambia SOLO l'ordine delle righe e le frecce di movimento.
@@ -222,6 +235,11 @@ function renderList() {
         const w = r.pts != null ? Math.max(2, Math.round(r.pts / max * 100)) : 0;
         // di quanti posti si è mosso rispetto al rank proiettato
         const move = byReal ? projRank.get(r) - (i + 1) : 0;
+        // "Why": solo a stagione conclusa, sui ruoli che decomposeSeason sa
+        // scomporre, e solo se abbiamo sia la proiezione che il reale grezzi
+        const canWhy = seasonDone && WHY_POSITIONS.has(currentPos) && r.pts != null && r.real != null && r.projRaw && r.actualRaw;
+        const whyKey = normName(r.name);
+        if (canWhy) _rowIndex.set(whyKey, r);
         return `
         <div class="db-row${cliff}${r.pick ? '' : ' db-row--free'}"${t ? ` style="--team-color:${t.color}"` : ''}
              data-player-modal data-player-name="${r.name}" data-pos="${currentPos}"
@@ -236,8 +254,8 @@ function renderList() {
             <span class="db-taken">${r.pick
                 ? `<b>#${r.pick.pick}</b> ${t ? t.name : displayName(r.pick.team)}`
                 : '<i>undrafted</i>'}</span>
-            ${seasonDone ? realCell(r) : ''}
-        </div>`;
+            ${seasonDone ? realCell(r, canWhy, whyKey) : ''}
+        </div>${canWhy ? `<div class="db-accordion" hidden data-why-panel data-why-key="${whyKey}"></div>` : ''}`;
     }).join('');
 
     host.innerHTML = `
@@ -270,7 +288,7 @@ function renderList() {
         <div class="db-rows">${rows}</div>
         <p class="db-foot">Top ${list.length} of ${all.length} projected ${currentPos}s · the league drafted ${drafted}.${seasonDone
             ? ` Real points are ${currentYear} season totals in this league's scoring${currentPos === 'DEF' ? ', defenses on standard scoring' : ''}.`
-            : ''} Click a row for the player's card.</p>
+            : ''} Click a row for the player's card${seasonDone && WHY_POSITIONS.has(currentPos) ? `, or "Why" for the stat-by-stat breakdown of the gap` : ''}.</p>
     </section>`;
 
     document.getElementById('db-sort')?.addEventListener('click', (e) => {
@@ -278,6 +296,12 @@ function renderList() {
         if (!btn || btn.dataset.sort === sortBy) return;
         sortBy = btn.dataset.sort;
         renderList();
+    });
+    host.querySelector('.db-rows')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-why-toggle]');
+        if (!btn) return;
+        e.stopPropagation(); // non deve anche aprire la scheda giocatore della riga
+        handleWhyToggle(btn);
     });
 }
 
@@ -288,7 +312,7 @@ function renderList() {
  * là: un solo metro in tutto il sito.
  * Senza proiezione (i kicker) non c'è scarto da mostrare, solo il totale.
  */
-function realCell(r) {
+function realCell(r, canWhy = false, whyKey = '') {
     if (r.real == null) return `<span class="db-real db-real--none">—</span>`;
     const real = Math.round(r.real);
     if (r.pts == null) {
@@ -300,9 +324,331 @@ function realCell(r) {
         : ratio >= 1.35 ? '<em class="db-tag db-tag--up">beat</em>'
             : ratio <= 0.55 ? '<em class="db-tag db-tag--down">missed</em>' : '';
     const cls = delta >= 0 ? 'up' : 'down';
+    // il bottone apre l'accordion sotto la riga (vedi handleWhyToggle): tocca
+    // fermare la propagazione al click o riapre anche la scheda giocatore
+    const why = canWhy
+        ? `<button type="button" class="db-why-btn" data-why-toggle data-why-key="${whyKey}" aria-expanded="false">Why<span class="db-why-chevron" aria-hidden="true">▾</span></button>`
+        : '';
     // ordine di lettura: badge, scarto, punti — il totale vero resta all'estrema
     // destra, in colonna con gli altri numeri della riga
-    return `<span class="db-real">${tag}<em class="db-delta ${cls}">${delta >= 0 ? '+' : ''}${delta}</em><b>${real}</b></span>`;
+    return `<span class="db-real">${tag}<em class="db-delta ${cls}">${delta >= 0 ? '+' : ''}${delta}</em><b>${real}</b>${why}</span>`;
+}
+
+/**
+ * Apre/chiude il pannello "Why" sotto la riga cliccata, e la prima volta
+ * costruisce il contenuto (lazy: nessun fetch finché nessuno lo chiede).
+ */
+async function handleWhyToggle(btn) {
+    const panel = btn.closest('.db-row')?.nextElementSibling;
+    if (!panel?.matches('.db-accordion')) return;
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    btn.setAttribute('aria-expanded', String(opening));
+    btn.classList.toggle('db-why-btn--open', opening);
+    if (!opening || panel.dataset.loaded) return;
+    panel.dataset.loaded = '1';
+    const r = _rowIndex.get(btn.dataset.whyKey);
+    const pos = currentPos, year = currentYear;
+    panel.innerHTML = `<div class="db-why-loading"><div class="spinner"></div></div>`;
+    try {
+        panel.innerHTML = await buildWhyPanel(r, pos, year);
+    } catch {
+        panel.innerHTML = `<p class="db-foot">Analysis not available for this player right now.</p>`;
+    }
+}
+
+/**
+ * Il pannello "perché ha reso così": stessa scomposizione stat-per-stat di
+ * perfExplainBlock in player-page.js (js/data/perf-explain.js), per la SOLA
+ * stagione mostrata qui. Le cause (infortuni compagni, arrivi/partenze,
+ * produzione di squadra, protezione) vengono da perf_causes_{year}.json;
+ * l'infortunio proprio dal referto nflverse via getPlayerInjuries.
+ */
+async function buildWhyPanel(r, pos, year) {
+    const dec = decomposeSeason({ pos, proj: r.projRaw, actual: r.actualRaw });
+    if (!dec) return `<p class="db-foot">Not enough detail to break down this player's season.</p>`;
+
+    const [causesMap, injRecords] = await Promise.all([
+        getPerfCauses(year).catch(() => null),
+        getPlayerInjuries(null, r.name, pos, [year]).catch(() => []),
+    ]);
+    const causes = causesMap?.get(`${normName(r.name)}|${pos}`);
+    const pi = injRecords?.[0] || null;
+    const injLabel = injuryLabelForSeason(pi);
+    const verdict = seasonVerdict(dec, injLabel);
+    const causeItems = describeCauses(causes, dec);
+    const shown = dec.rows.filter(x => Math.abs(x.pts) >= 1);
+
+    // (lo snap% lo racconta già la riga sotto l'anello: usageChart lo scarta)
+    const readoutHtml = usageChart(dec);
+    const shareHtml = shareSunburst(causes, r.name);
+    const causesHtml = causeItems.length
+        ? `<div class="pp-pe-causes"><span class="pp-pe-causes-lbl">Why</span>${causeItems.map(c => `<div class="pp-pe-cause"><span class="pp-pe-cause-ic">${c.icon}</span> ${c.text}</div>`).join('')}</div>`
+        : '';
+    const injHtml = pi?.weeks?.length ? injuryHistoryDetails(pi.weeks) : '';
+    const missed = dec.gpP - dec.gpA;
+
+    // Due colonne quando c'è anche l'anello: a sinistra DA DOVE arriva lo
+    // scarto (cascata) e perché (le cause a parole, che riempiono la colonna
+    // fino in fondo invece di lasciarci un vuoto sotto il grafico); a destra
+    // QUANTO dell'attacco è passato da lui. I readout sono una riga sola di
+    // testo e stanno sotto a tutta larghezza, non spezzati in una colonna
+    // stretta. Senza anello la cascata si prende da sola tutta la larghezza.
+    const waterfallFig = `
+        <figure class="pp-pe-fig">
+            <figcaption class="pp-pe-fig-cap">From projected to actual</figcaption>
+            ${perfWaterfall(dec, shown, { compact: !!shareHtml })}
+        </figure>`;
+    const body = shareHtml
+        ? `<div class="pp-pe-charts pp-pe-charts--two">
+               <div class="pp-pe-col">${waterfallFig}${causesHtml}</div>
+               ${shareHtml}
+           </div>
+           ${readoutHtml}`
+        : `<div class="pp-pe-charts">${waterfallFig}</div>
+           ${readoutHtml}${causesHtml}`;
+
+    return `
+    <div class="pp-pe-season">
+        <div class="pp-pe-head">${year}: actual <b>${fmt0(dec.actPts)}</b> − projected ${fmt0(dec.projPts)} = <span class="pp-res pp-res--${dec.error >= 0 ? 'w' : 'l'}">${dec.error >= 0 ? '+' : ''}${fmt0(dec.error)}</span> · ${dec.gpA}/${dec.gpP} games${missed >= 2 ? ` <span class="pp-pe-miss">(${missed} missed)</span>` : ''}</div>
+        ${verdict?.headline ? `<div class="pp-perr-verdict pp-perr-verdict--${dec.error >= 0 ? 'w' : 'l'}">${verdict.headline}</div>` : ''}
+        ${body}
+        ${injHtml}
+    </div>`;
+}
+
+/**
+ * Come lo ha usato la squadra: una riga per tipo di pallone, TUTTO A PARTITA.
+ *
+ * L'unità è la cosa importante qui. Prima la riga diceva "Targets/game 5.1→6.1
+ * · Red zone targets 12": una media a partita e un totale di stagione appaiati,
+ * che non si possono confrontare — 12 sembra enorme accanto a 6.1 ed è invece
+ * un undicesimo del volume. Portati tutti a partita i tre numeri stanno sullo
+ * STESSO ASSE e si leggono l'uno contro l'altro.
+ *
+ * A partita e non in totale perché il confronto con la proiezione deve reggere
+ * anche per chi ha saltato gare: chi ne gioca 12 su 17 ha meno target in totale
+ * per assenza, non perché la squadra lo cerchi di meno.
+ *
+ * Forma: bullet chart. La barra chiara è il volume vero, il pezzo pieno in
+ * fondo è la parte in zona da punto, il trattino verticale è quanto ce ne
+ * aspettavamo. Tre cose sulla stessa riga senza tre grafici.
+ */
+function usageChart(dec) {
+    const readouts = (dec.readouts || []).filter(x => x.key !== 'snap');
+    const RZ_OF = { tgt: 'rzTgt', carries: 'rzAtt' };
+    const gp = dec.gpA || 1;
+    const rows = readouts.filter(r => r.proj != null && r.actual != null).map(r => {
+        const rz = readouts.find(x => x.key === RZ_OF[r.key]);
+        return {
+            label: r.label.replace('/game', ''),
+            actual: +r.actual,
+            proj: +r.proj,
+            // il conteggio di red zone è di stagione: diviso per le gare
+            // GIOCATE diventa confrontabile col resto della riga
+            rz: rz != null ? +rz.actual / gp : null,
+            rzTotal: rz != null ? +rz.actual : null,
+        };
+    });
+    if (!rows.length) return '';
+
+    const W = 560, L = 104, R = 104, TOP = 10, ROW = 42;
+    const plotW = W - L - R;
+    const bottom = TOP + rows.length * ROW;
+    const H = bottom + 30;
+    const max = Math.max(...rows.flatMap(r => [r.actual, r.proj]), 1);
+    const ticks = niceTicksLocal(0, max);
+    const xMax = ticks[ticks.length - 1] || 1;
+    const xx = (v) => L + (Math.max(0, v) / xMax) * plotW;
+    const n1 = (v) => (Math.round(v * 10) / 10).toFixed(1);
+
+    const grid = ticks.map(v => `
+        <line x1="${xx(v).toFixed(1)}" y1="${TOP}" x2="${xx(v).toFixed(1)}" y2="${bottom}" class="an-gridline"/>
+        <text x="${xx(v).toFixed(1)}" y="${H - 11}" class="an-tick" text-anchor="middle">${Number.isInteger(v) ? v : n1(v)}</text>`).join('');
+
+    const BAR = 15;
+    const body = rows.map((r, i) => {
+        const yc = TOP + i * ROW + ROW / 2;
+        const yb = yc - BAR / 2;
+        const d = r.actual - r.proj;
+        const rzPart = r.rz != null ? `
+            <rect x="${L}" y="${yb}" width="${(xx(r.rz) - L).toFixed(1)}" height="${BAR}" rx="2" class="pp-us-rz">
+                <title>${n1(r.rz)} ${r.label.toLowerCase()} per game in the red zone (${r.rzTotal} in the season)</title>
+            </rect>` : '';
+        return `
+        <g class="pp-us-row">
+            <text x="${L - 12}" y="${(yc + 4).toFixed(1)}" class="an-tick" text-anchor="end">${r.label}</text>
+            <rect x="${L}" y="${yb}" width="${(xx(r.actual) - L).toFixed(1)}" height="${BAR}" rx="2" class="pp-us-bar">
+                <title>${n1(r.actual)} ${r.label.toLowerCase()} per game</title>
+            </rect>
+            ${rzPart}
+            <line x1="${xx(r.proj).toFixed(1)}" y1="${(yb - 4).toFixed(1)}" x2="${xx(r.proj).toFixed(1)}" y2="${(yb + BAR + 4).toFixed(1)}" class="pp-us-proj">
+                <title>Projected ${n1(r.proj)} per game</title>
+            </line>
+            <text x="${W - R + 10}" y="${(yc + 1).toFixed(1)}" class="pp-us-val">${n1(r.actual)}</text>
+            <text x="${W - R + 10}" y="${(yc + 12).toFixed(1)}" class="pp-us-delta${d === 0 ? '' : ` pp-us-delta--${d > 0 ? 'up' : 'down'}`}">${d === 0 ? 'as projected' : `${d > 0 ? '+' : '−'}${n1(Math.abs(d))} vs proj.`}</text>
+        </g>`;
+    }).join('');
+
+    const hasRz = rows.some(r => r.rz != null);
+    return `
+    <figure class="pp-pe-fig pp-pe-fig--usage">
+        <figcaption class="pp-pe-fig-cap">How the offense used him — everything per game</figcaption>
+        <div class="pp-us-legend">
+            <span class="pp-us-key"><i class="pp-us-key-bar"></i>Actual</span>
+            ${hasRz ? '<span class="pp-us-key"><i class="pp-us-key-rz"></i>Of which in the red zone</span>' : ''}
+            <span class="pp-us-key"><i class="pp-us-key-proj"></i>Projected</span>
+        </div>
+        <div class="an-scroll"><svg viewBox="0 0 ${W} ${H}" class="an-svg pp-us-svg">${grid}${body}</svg></div>
+    </figure>`;
+}
+
+/* ── Quota di squadra: sunburst a due anelli ──────────────────────────
+ *
+ * Anello interno: come si divide l'attacco fra aria e terra (i palloni che la
+ * squadra ha mosso NELLE GARE DEL GIOCATORE). Anello esterno: dentro ciascuno
+ * dei due, la sua fetta contro quella di tutti gli altri. Al centro, quanto
+ * dell'attacco è passato dalle sue mani in tutto.
+ *
+ * Così il target share di un RB e la quota di corse di un ricevitore non sono
+ * due grafici scollegati: sono due spicchi dello stesso attacco, e si legge in
+ * un colpo d'occhio se uno prende palloni dove la squadra ne muove tanti.
+ *
+ * IL DENOMINATORE — le quote nflverse sono sulle gare GIOCATE, non sulla
+ * stagione: i totali di squadra qui sono "nelle sue N gare", e la didascalia
+ * lo dice. Vedi shareDetail() in scripts/build-perf-causes.mjs.
+ */
+
+const SB_PHASES = [
+    { key: 'target', label: 'Through the air', unit: 'targets', tone: 'pass' },
+    { key: 'rush', label: 'On the ground', unit: 'carries', tone: 'rush' },
+];
+
+function shareSunburst(causes, playerName) {
+    const s = causes?.shares;
+    if (!s) return '';
+    // un ramo esiste solo col totale di squadra: sotto il 2% di quota la
+    // divisione è rumore (vedi build-perf-causes), e un ramo senza denominatore
+    // non si può disegnare
+    const branches = SB_PHASES
+        .map(p => ({ ...p, d: s[p.key] }))
+        .filter(b => b.d?.team > 0)
+        .map(b => ({ ...b, mine: b.d.player, team: b.d.team, rest: Math.max(0, b.d.team - b.d.player) }));
+    if (!branches.length) return '';
+
+    // `total` serve solo a dare l'ampiezza ai due settori dell'anello interno:
+    // quanto pesa l'aria e quanto la terra nell'attacco di quella squadra.
+    const total = branches.reduce((t, b) => t + b.team, 0);
+    const two = branches.length > 1;
+
+    const W = 420, H = 300, cx = 210, cy = 146;
+    // un anello solo quando c'è un ramo: un cerchio interno intero non
+    // direbbe nulla (è per forza il 100%), quindi si allarga la corona
+    const rings = two
+        ? { in: [58, 84], out: [88, 112] }
+        : { in: null, out: [62, 112] };
+
+    const parts = [], labels = [];
+    let angle = 0;
+    for (const b of branches) {
+        const sweep = b.team / total * 360;
+        const mineSweep = sweep * (b.mine / b.team);
+
+        if (two) {
+            parts.push(arcSeg(cx, cy, rings.in[0], rings.in[1], angle, angle + sweep,
+                `pp-sb-band pp-sb-band--${b.tone}`, `${b.label}: ${fmt0(b.team)} ${b.unit}`));
+            // etichetta di categoria DENTRO la fascia, come nel modello
+            const midIn = angle + sweep / 2;
+            const pIn = sbPoint(cx, cy, (rings.in[0] + rings.in[1]) / 2, midIn);
+            labels.push(`<text x="${pIn.x.toFixed(1)}" y="${(pIn.y - 2).toFixed(1)}" class="pp-sb-band-lbl" text-anchor="middle">${b.label.split(' ')[0] === 'Through' ? 'Air' : 'Ground'}</text>
+                <text x="${pIn.x.toFixed(1)}" y="${(pIn.y + 10).toFixed(1)}" class="pp-sb-band-val" text-anchor="middle">${fmt0(b.team)}</text>`);
+        }
+
+        // fetta del giocatore, poi il resto della squadra
+        parts.push(arcSeg(cx, cy, rings.out[0], rings.out[1], angle, angle + mineSweep,
+            `pp-sb-mine pp-sb-mine--${b.tone}`, `${playerName}: ${fmt0(b.mine)} ${b.unit} (${b.d.pct}%)`));
+        parts.push(arcSeg(cx, cy, rings.out[0], rings.out[1], angle + mineSweep, angle + sweep,
+            `pp-sb-rest pp-sb-rest--${b.tone}`, `Rest of the offense: ${fmt0(b.rest)} ${b.unit}`));
+
+        // etichette dirette fuori dall'anello: nome sopra, valore in grassetto
+        // sotto. La fetta del giocatore la etichetto solo se è visibile.
+        if (mineSweep >= 12) {
+            labels.push(sbLabel(cx, cy, rings.out[1] + 8, angle + mineSweep / 2, lastName(playerName), `${fmt0(b.mine)} ${b.unit}`, 'pp-sb-lbl--mine'));
+        }
+        if (sweep - mineSweep >= 12) {
+            labels.push(sbLabel(cx, cy, rings.out[1] + 8, angle + mineSweep + (sweep - mineSweep) / 2, 'Rest of offense', `${fmt0(b.rest)} ${b.unit}`));
+        }
+        angle += sweep;
+    }
+
+    // Al centro le quote RESTANO SEPARATE, una riga per reparto: "20% dei
+    // target" e "60% delle corse" dicono due cose diverse su come lo usa la
+    // squadra, e sommarle in un unico numero (la opportunity share) le
+    // nascondeva entrambe — un 39% che non si capiva da dove uscisse.
+    // Il pallino colorato lega la riga al suo anello: così l'identità non è
+    // affidata al solo colore del numero, e non serve una legenda.
+    const centreRows = branches.map(b => ({
+        pct: b.d.pct, unit: b.unit, tone: b.tone,
+        title: `${fmt0(b.mine)} of ${fmt0(b.team)} ${b.unit} (${b.d.pct}%)`,
+    }));
+    const capWhat = two ? 'the offense'
+        : (branches[0].key === 'rush' ? 'the running game' : 'the passing game');
+    const gp = s.gp ? ` in his ${s.gp} games` : '';
+    const snapLine = s.snapPct != null
+        ? `On the field for <b>${s.snapPct}%</b> of the offensive snaps${s.snapPctPrev != null ? ` <span class="pp-sb-prev">(${s.snapPctPrev}% the year before)</span>` : ''}.`
+        : '';
+
+    // le righe si impilano centrate nel buco: una sola sta al centro esatto,
+    // due si aprono simmetriche attorno ad esso
+    const ROW_H = 40;
+    const top = cy - ((centreRows.length - 1) * ROW_H) / 2;
+    const centre = centreRows.map((r, i) => {
+        const y = top + i * ROW_H;
+        return `
+        <text x="${cx}" y="${y.toFixed(1)}" class="pp-sb-centre-num" text-anchor="middle">${r.pct}%<title>${r.title}</title></text>
+        <text x="${cx}" y="${(y + 13).toFixed(1)}" class="pp-sb-centre-lbl" text-anchor="middle"><tspan class="pp-sb-dot pp-sb-dot--${r.tone}">●</tspan> of ${r.unit}</text>`;
+    }).join('');
+
+    return `
+    <figure class="pp-pe-fig pp-pe-fig--sb">
+        <figcaption class="pp-pe-fig-cap">Share of ${capWhat}${gp}</figcaption>
+        <svg viewBox="0 0 ${W} ${H}" class="pp-sb-svg" role="img"
+             aria-label="Share of ${capWhat}${gp}: ${centreRows.map(r => r.title).join('; ')}">
+            ${parts.join('')}
+            ${centre}
+            ${labels.join('')}
+        </svg>
+        ${snapLine ? `<div class="pp-sb-foot">${snapLine}</div>` : ''}
+    </figure>`;
+}
+
+/** Punto sul cerchio: 0° = ore 12, in senso orario. */
+function sbPoint(cx, cy, r, deg) {
+    const rad = (deg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+/** Settore di corona circolare (donut segment) da startDeg a endDeg. */
+function arcSeg(cx, cy, rIn, rOut, startDeg, endDeg, cls, title) {
+    if (endDeg - startDeg <= 0.05) return '';
+    // 359.99 e non 360: un arco che torna al punto di partenza non viene reso
+    const end = Math.min(endDeg, startDeg + 359.99);
+    const large = end - startDeg > 180 ? 1 : 0;
+    const a = sbPoint(cx, cy, rOut, startDeg), b = sbPoint(cx, cy, rOut, end);
+    const c = sbPoint(cx, cy, rIn, end), d = sbPoint(cx, cy, rIn, startDeg);
+    const p = (v) => v.toFixed(2);
+    return `<path class="${cls}" d="M ${p(a.x)} ${p(a.y)} A ${rOut} ${rOut} 0 ${large} 1 ${p(b.x)} ${p(b.y)} L ${p(c.x)} ${p(c.y)} A ${rIn} ${rIn} 0 ${large} 0 ${p(d.x)} ${p(d.y)} Z"><title>${title}</title></path>`;
+}
+
+/** Etichetta diretta fuori dall'anello: nome sopra, valore in grassetto sotto. */
+function sbLabel(cx, cy, r, deg, name, value, extraCls = '') {
+    const p = sbPoint(cx, cy, r, deg);
+    const right = p.x >= cx;
+    const anchor = right ? 'start' : 'end';
+    const x = (p.x + (right ? 4 : -4)).toFixed(1);
+    return `
+    <text x="${x}" y="${(p.y - 3).toFixed(1)}" class="pp-sb-lbl ${extraCls}" text-anchor="${anchor}">${name}</text>
+    <text x="${x}" y="${(p.y + 9).toFixed(1)}" class="pp-sb-lbl-val ${extraCls}" text-anchor="${anchor}">${value}</text>`;
 }
 
 /* ═══════════════════════════ Draft Strategy ═══════════════════════════

@@ -2137,13 +2137,251 @@ img {
     text-align: center;
 }
 
+/* Il logo di caricamento: un ricevitore corre sulla linea, la palla arriva da
+   destra, lui la prende e riparte. La scena la disegna js/ui/spinner.js dentro
+   ogni `.spinner` del sito; qui c'è solo il movimento.
+   La figura è un pittogramma: tratti spessi con capo tondo, testa grande e
+   busto molto inclinato. È lo stesso rig snodato di prima — a cambiare sono
+   spessore e proporzioni, non la meccanica.
+   Due tempi indipendenti: la falcata (0.4s, continua) e l'azione della palla
+   (2.4s, il ciclo lungo che si vede). Tenerli separati evita di infilare sei
+   falcate dentro i keyframe della presa. Le braccia stanno sul tempo lungo
+   perché devono pompare E poi alzarsi sulla palla: nella fase di corsa i loro
+   keyframe cadono ogni 8.333% = mezza falcata, così restano in passo con le
+   gambe. Cambiando la durata della falcata vanno rifatte quelle percentuali. */
 .spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--border-card);
-    border-top-color: var(--accent-red);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    width: 84px;
+    height: 50px;
+    color: var(--text-secondary);
+}
+
+.tl-run {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.tl-run-line {
+    stroke: var(--border-card);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 8;
+    animation: tl-run-ground 0.4s linear infinite;
+}
+
+.tl-run-streak {
+    stroke: var(--border-card);
+    stroke-width: 2;
+    animation: tl-run-streak 0.5s linear infinite;
+}
+
+.tl-run-streak-2 { animation-delay: -0.17s; }
+.tl-run-streak-3 { animation-delay: -0.33s; }
+
+.tl-run-guy {
+    animation: tl-run-bob 0.2s ease-in-out infinite;
+}
+
+.tl-run-head {
+    fill: currentColor;
+    stroke: none;
+}
+
+.tl-run-torso,
+.tl-run-leg,
+.tl-run-arm {
+    stroke: currentColor;
+    stroke-width: 4.6;
+}
+
+.tl-run-leg,
+.tl-run-shin,
+.tl-run-arm,
+.tl-run-forearm {
+    transform-box: view-box;
+}
+
+/* coscia attorno all'anca, stinco attorno al ginocchio */
+.tl-run-leg {
+    transform-origin: 20.5px 25px;
+    animation: tl-run-thigh 0.4s ease-in-out infinite;
+}
+
+.tl-run-shin {
+    transform-origin: 20.5px 31.5px;
+    animation: tl-run-shin 0.4s ease-in-out infinite;
+}
+
+/* Gli arti lontani sono dello stesso colore, appena spenti: nel pittogramma
+   sono tutti pieni, ma a 84px senza un minimo di stacco il braccio dietro
+   sparisce dentro il busto. */
+.tl-run-leg-b,
+.tl-run-arm-b {
+    opacity: 0.55;
+}
+
+/* la gamba dietro è in controtempo: mezza falcata di ritardo */
+.tl-run-leg-b,
+.tl-run-leg-b .tl-run-shin {
+    animation-delay: -0.2s;
+}
+
+/* braccio attorno alla spalla, avambraccio attorno al gomito */
+.tl-run-arm {
+    transform-origin: 24.5px 14px;
+    transform: rotate(-4deg);
+    animation: tl-run-arm 2.4s ease-in-out infinite;
+}
+
+.tl-run-forearm {
+    transform-origin: 24.5px 20px;
+    transform: rotate(-107deg);
+    animation: tl-run-forearm 2.4s ease-in-out infinite;
+}
+
+.tl-run-arm-b {
+    transform: rotate(2deg);
+    animation-name: tl-run-arm-back;
+}
+
+.tl-run-arm-b .tl-run-forearm {
+    transform: rotate(-100deg);
+    animation-name: tl-run-forearm-back;
+}
+
+.tl-run-ball {
+    transform-box: fill-box;
+    transform-origin: center;
+    /* la posa di riposo è quella a palla presa: con prefers-reduced-motion le
+       animazioni sono spente e senza questa la palla starebbe sull'origine del
+       viewBox, fuori dalla scena. */
+    transform: translate(30px, 18px) rotate(-62deg);
+    animation: tl-run-ball 2.4s linear infinite;
+}
+
+.tl-run-ball-body {
+    fill: var(--accent-red);
+    stroke: none;
+}
+
+.tl-run-lace {
+    stroke: var(--text-primary);
+    stroke-width: 0.7;
+}
+
+/* La linea scorre all'indietro: è quello che fa leggere la corsa come
+   avanzamento, l'omino sul posto non basta. */
+@keyframes tl-run-ground {
+    to { stroke-dashoffset: 14; }
+}
+
+@keyframes tl-run-streak {
+    0%   { transform: translateX(8px); opacity: 0; }
+    35%  { opacity: 0.9; }
+    100% { transform: translateX(-10px); opacity: 0; }
+}
+
+@keyframes tl-run-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-1.4px); }
+}
+
+@keyframes tl-run-thigh {
+    0%, 100% { transform: rotate(40deg); }
+    50%      { transform: rotate(-42deg); }
+}
+
+/* Il ginocchio piega SEMPRE all'indietro: rotazioni positive, che portano il
+   piede verso -x. Col segno negativo (quello del gomito, che invece piega in
+   avanti) la gamba si inginocchia al contrario — sembra corra, ma storto.
+   Le quattro pose: stacco dietro a ginocchio quasi steso (0%), tallone tirato
+   al sedere mentre la gamba rientra (25%), ginocchio alto davanti col piede
+   che pende sotto (50%), gamba che si distende per appoggiare (75%). */
+@keyframes tl-run-shin {
+    0%   { transform: rotate(20deg); }
+    25%  { transform: rotate(110deg); }
+    50%  { transform: rotate(60deg); }
+    75%  { transform: rotate(5deg); }
+    100% { transform: rotate(20deg); }
+}
+
+/* Braccio davanti: pompa in passo con le gambe fino al 41.6%, poi si allunga
+   sulla palla (48%, dove arriva) e la porta al petto. */
+@keyframes tl-run-arm {
+    0%      { transform: rotate(35deg); }
+    8.333%  { transform: rotate(-35deg); }
+    16.667% { transform: rotate(35deg); }
+    25%     { transform: rotate(-35deg); }
+    33.333% { transform: rotate(35deg); }
+    41.667% { transform: rotate(-55deg); }
+    48%     { transform: rotate(-79deg); }
+    58%     { transform: rotate(-40deg); }
+    72%     { transform: rotate(-4deg); }
+    92%     { transform: rotate(-4deg); }
+    100%    { transform: rotate(35deg); }
+}
+
+@keyframes tl-run-arm-back {
+    0%      { transform: rotate(-35deg); }
+    8.333%  { transform: rotate(35deg); }
+    16.667% { transform: rotate(-35deg); }
+    25%     { transform: rotate(35deg); }
+    33.333% { transform: rotate(-35deg); }
+    41.667% { transform: rotate(-48deg); }
+    48%     { transform: rotate(-72deg); }
+    58%     { transform: rotate(-34deg); }
+    72%     { transform: rotate(2deg); }
+    92%     { transform: rotate(2deg); }
+    100%    { transform: rotate(-35deg); }
+}
+
+/* Gomito: chiuso mentre corre, si apre solo per prendere la palla. */
+@keyframes tl-run-forearm {
+    0%, 41.667% { transform: rotate(-85deg); }
+    48%         { transform: rotate(-78deg); }
+    58%         { transform: rotate(-95deg); }
+    72%         { transform: rotate(-107deg); }
+    92%         { transform: rotate(-107deg); }
+    100%        { transform: rotate(-85deg); }
+}
+
+@keyframes tl-run-forearm-back {
+    0%, 41.667% { transform: rotate(-80deg); }
+    48%         { transform: rotate(-70deg); }
+    58%         { transform: rotate(-88deg); }
+    72%         { transform: rotate(-100deg); }
+    92%         { transform: rotate(-100deg); }
+    100%        { transform: rotate(-80deg); }
+}
+
+/* Parabola: entra da fuori a destra, sale, scende nelle mani a 48%. Dopo la
+   presa resta agganciata al petto e sfuma sul finale, così il ciclo riparte
+   senza vedere la palla saltare indietro. */
+@keyframes tl-run-ball {
+    0%   { transform: translate(88px, 20px) rotate(-10deg); opacity: 0; }
+    8%   { opacity: 1; }
+    26%  { transform: translate(64px, 12px) rotate(-22deg); }
+    40%  { transform: translate(46px, 8px) rotate(-32deg); }
+    48%  { transform: translate(32.5px, 10px) rotate(-40deg); opacity: 1; }
+    58%  { transform: translate(31.5px, 13.5px) rotate(-52deg); }
+    72%  { transform: translate(30px, 18px) rotate(-62deg); }
+    88%  { transform: translate(30px, 18px) rotate(-62deg); opacity: 1; }
+    100% { transform: translate(30px, 18px) rotate(-62deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tl-run-line,
+    .tl-run-streak,
+    .tl-run-guy,
+    .tl-run-leg,
+    .tl-run-shin,
+    .tl-run-arm,
+    .tl-run-forearm,
+    .tl-run-ball {
+        animation: none;
+    }
 }
 
 .empty-state {
@@ -2518,10 +2756,6 @@ img {
         grid-template-columns: 1fr;
     }
 
-    .draft-grid {
-        grid-template-columns: 1fr;
-    }
-
     .stats-grid {
         grid-template-columns: 1fr;
     }
@@ -2575,21 +2809,39 @@ img {
     }
 }
 
+/* Restava a 1 colonna qui sotto (carta a piena larghezza, enorme) perché la
+   figurina non reggeva larghezze piccole. Ora la carta stessa si adatta
+   (vedi i @container su .pm-panini in main.css: sotto i 215px via logo e
+   traguardi, sotto i 129px anche il ruolo) esattamente come nel mosaico Home
+   — quindi 2 colonne anche qui, non serve più lo scroll di 60 card una alla
+   volta. */
 @media (max-width: 480px) {
     .draft-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* Card del draft = figurina Panini con cornice tinta del team che l'ha scelto */
+/* Card del draft = figurina Panini con cornice tinta del team che l'ha scelto.
+   `position: relative` non è decorativo: senza un contesto posizionato lo
+   z-index dell'hover (sotto) non avrebbe effetto — serve a portare la
+   figurina sopra il mazzo finto di .mc-draft-deck (home.js) quando il mouse
+   ci passa sopra. */
+/* fill-mode `backwards`, non `both`: l'animazione d'ingresso finisce uguale
+   al riposo (`to { transform: none }`), ma con `both` restava "attiva" per
+   sempre e un'animazione CSS batte sempre una dichiarazione normale — il
+   `transform` dell'hover qui sotto veniva ignorato a vita. `backwards` tiene
+   comunque lo stato iniziale durante l'eventuale animation-delay (draft.js
+   la usa) senza latchare la fine. */
 .draft-fig {
+    position: relative;
     cursor: pointer;
-    animation: cell-rise var(--dur-slow) var(--ease) both;
-    transition: transform var(--dur-med) var(--ease);
+    animation: cell-rise var(--dur-slow) var(--ease) backwards;
+    transition: transform var(--dur-med) var(--ease), z-index var(--dur-med) var(--ease);
 }
 
 .draft-fig:hover {
-    transform: translateY(-4px);
+    z-index: 10;
+    transform: translateY(-14px) scale(1.03);
 }
 
 .draft-fig-card {
@@ -2605,6 +2857,14 @@ img {
         color-mix(in srgb, var(--team-color) 18%, #f7f7f7) 45%,
         color-mix(in srgb, var(--team-color) 60%, #888888) 68%,
         color-mix(in srgb, var(--team-color) 32%, #d8d8d8) 100%);
+}
+
+/* Solo qui la fascia dei traguardi (.pm-panini-top) condivide l'angolo in alto
+   a destra con un altro overlay, il numero di pick (.draft-fig-pick, fino a
+   #60 su 15 giri × 4 squadre): senza questo margine i due si sovrappongono
+   (visto con "3× MVP ★★★ 4× AP1" sopra "#3" — la pillola copriva il numero). */
+.draft-fig-card .pm-panini-top {
+    right: 54px;
 }
 
 .draft-fig-pick {
@@ -5790,10 +6050,6 @@ img {
     padding: 34px 24px;
 }
 
-.mc-hero-glow {
-    display: none;
-}
-
 .mc-hero-grid {
     position: absolute;
     inset: 0;
@@ -5859,6 +6115,59 @@ img {
     display: flex;
     flex-direction: column;
     border-top: 1px solid var(--border-subtle);
+}
+
+/* Draft Grade: SB% e voto in colonna, non appesi ognuno al proprio
+   margin-left:auto. Con due margini automatici in sequenza il secondo non ha
+   più spazio libero da consumare (il primo se l'è già preso tutto), quindi
+   il gruppo si leggeva ma non si allineava. Un solo margin-left:auto sul
+   GRUPPO, poi SB% e voto hanno CIASCUNO una larghezza fissa — non min-width,
+   proprio width — e si allineano al loro interno: vedi sotto perché deve
+   essere fissa anche quella del voto, non solo di SB%. */
+.dg-row-stats {
+    margin-left: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+}
+
+.dg-row-stats .mc-row-value {
+    margin-left: 0;
+    min-width: 4.2em;
+    text-align: right;
+}
+
+/* La colonna dei voti allinea la LETTERA (B/C/D), non la stringa intera:
+   provato ad allineare "B" e "C-" a destra come blocco, ma "C-" — due
+   caratteri contro l'unico di "B" — doveva partire più a sinistra per finire
+   sullo stesso bordo, e il bordo comune da solo non bastava a farli leggere
+   come colonna: l'occhio segue la lettera, non l'ultimo pixel della casella.
+   Qui la lettera è il primo figlio di .dg-grade e parte da sinistra —
+   nessun allineamento suo da fare — mentre il segno "+"/"-" la segue come
+   fratello, senza spostarla.
+
+   .dg-grade con `width` FISSA (non min-width) e non `flex-shrink`: senza,
+   restava larga quanto il suo contenuto, e con "C-" più largo di "B" tutto
+   il gruppo — ancorato a destra da margin-left:auto qui sopra — si spostava
+   a sinistra per fargli posto, portandosi dietro anche SB%. Con SB% e voto
+   *entrambi* a larghezza fissa la somma non cambia mai riga per riga, quindi
+   margin-left:auto finisce sempre nello stesso punto e ogni colonna parte
+   sempre dallo stesso punto. */
+.dg-row-stats .dg-grade {
+    margin-left: 0;
+    width: 1.7em;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.dg-letter-sign {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.5rem;
+    line-height: 1;
+    /* leggero avvicinamento alla lettera: il segno ha di suo dello spazio
+       bianco nel carattere, staccato la spaziatura sembrava eccessiva */
+    margin-left: -0.05em;
 }
 
 .mc-row,
@@ -5939,113 +6248,82 @@ img {
     font-weight: 800;
 }
 
-/* ── Latest results: solo stemmi, grandi, a riempire la card ──
-   Le righe si dividono l'altezza disponibile (mc-body cresce), e le colonne
-   sono fisse: stemma | punti a destra | trattino | punti a sinistra | stemma.
-   Così i punteggi di righe diverse cadono sulla stessa colonna. */
-.mc-results-card .mc-body {
-    flex: 1;
-    display: flex;
-    margin-top: 6px;
+/* ── Draft board: le stesse figurine di Draft Recap, con un mazzo dietro ──
+   "The first round" in home.js riusa .draft-fig/.pm-panini di
+   js/sections/draft.js — stessa card cliccabile che si trova nella pagina
+   completa, non un'anteprima diversa. Qui solo il grid che le ospita dentro
+   la card del mosaico: .draft-grid porta già le sue colonne responsive, va
+   solo tolto il margine pensato per stare sotto il titolo di pagina.
+
+   Si mostra solo il girone 1 — niente dati veri del secondo giro. Dietro
+   ogni figurina, .mc-draft-deck (solo qui, non su .draft-fig-card in
+   generale: quella la riusa anche Draft Recap per ogni pick vera) aggiunge
+   due bordi sfalsati via ::before/::after, per dare l'idea di un mazzo. */
+.mosaic-card .draft-grid {
+    margin-top: 0;
 }
 
-.mc-vs-rows {
+.mc-draft-deck .draft-fig-card::before,
+.mc-draft-deck .draft-fig-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--team-color) 22%, #1c1c1c 78%);
+    border: 1px solid color-mix(in srgb, var(--team-color) 45%, var(--border-subtle));
+    z-index: -1;
+    pointer-events: none;
+}
+
+.mc-draft-deck .draft-fig-card::before {
+    transform: translate(7px, 9px) rotate(-2deg);
+    opacity: 0.75;
+}
+
+.mc-draft-deck .draft-fig-card::after {
+    transform: translate(13px, 17px) rotate(-4deg);
+    opacity: 0.45;
+}
+
+/* Da telefono .draft-grid è già a 1fr (la sua regola, condivisa con Draft
+   Recap): qui le figurine riempiono tutta la larghezza e diventano enormi —
+   4 card intere da scorrere solo per "The first round". Il selettore parte
+   da `.mosaic-card` apposta: tocca solo questa card della home, non la
+   griglia della pagina Draft Recap che a quella larghezza resta a 1 colonna
+   per scelta (60 pick, non 4). */
+@media (max-width: 560px) {
+    .mosaic-card .draft-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
+
+/* ── Card che ospitano uno score-bug (sfide in corso, ultimi risultati) ──
+   Il componente (js/ui/score-bug.js) ha già tutto il suo aspetto — barra,
+   stemmi, colori squadra pieni — la card qui intorno fa solo da cornice, con
+   le sfide impilate quando sono più di una. Sostituiva le vecchie righe
+   "solo stemmi" (mc-vs-row) di Latest results, che disegnavano a mano quello
+   che il componente condiviso fa già meglio.
+
+   Nessun vincolo di taglia qui: la card si stira come tutte le altre
+   (align-items: stretch di default sulla griglia) fino ad essere alta quanto
+   la sua vicina di riga. .mc-body e .mc-scorebug-list crescono con lei e
+   centrano le sfide nello spazio verticale che avanza, invece di lasciarle
+   appiccicate in alto con un vuoto sotto. */
+.mc-scorebug-card .mc-body {
+    flex: 1;
+    display: flex;
+    margin-top: 10px;
+    min-height: 0;
+}
+
+.mc-scorebug-list {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: 100%;
-}
-
-.mc-vs-row {
-    flex: 1;
-    display: grid;
-    /* Le due colonne dei punteggi non devono scendere sotto la larghezza del
-       numero: con minmax(0, 1fr) si restringevano a 24px per 46px di contenuto
-       e i due punteggi finivano uno sopra l'altro al centro, coprendo pure il
-       trattino. min-content su un numero e' il numero intero, perche' non ha
-       punti dove andare a capo. */
-    grid-template-columns: auto minmax(min-content, 1fr) auto minmax(min-content, 1fr) auto;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border-radius: 12px;
-}
-
-/* La cella è uguale per tutti — è quella che tiene incolonnati i punteggi —
-   ed è generosa: i loghi vengono rimpiccioliti di --crest-scale per pareggiare
-   la dimensione disegnata, quindi il riquadro deve stare largo quanto serve al
-   logo con più margine interno. */
-.mc-vs-crest {
-    display: grid;
-    place-items: center;
-    /* Ridotto: a 150px i due loghi si prendevano il 59% della riga e i
-       punteggi a tre cifre non ci stavano piu'. */
-    width: clamp(52px, 8vw, 112px);
-    height: clamp(48px, 7.4vw, 104px);
-}
-
-/* Stemma in trasparenza, niente alone colorato: solo il logo su nero. Si
-   accende passando sulla riga. */
-.mc-vs-crest img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    scale: var(--crest-scale, 1); /* proporzioni intatte: è una scala uniforme */
-    opacity: 0.55;
-    transition: opacity var(--dur-med) var(--ease);
-}
-
-.mc-vs-row:hover .mc-vs-crest img {
-    opacity: 0.85;
-}
-
-.mc-vs-score {
-    font-family: var(--font-display);
-    font-size: clamp(1.3rem, 2.6vw, 2rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-secondary);
-}
-
-.mc-vs-score--l { text-align: right; }
-.mc-vs-score--r { text-align: left; }
-
-.mc-vs-score.w {
-    color: var(--accent-green);
-    font-weight: 900;
-}
-
-.mc-vs-dash {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-/* Su schermo stretto la riga non ci sta: due loghi da 96px sono il 60% di un
-   telefono da 320px, e quello che resta non basta a due punteggi a tre cifre
-   con i decimali. Si stringono logo, spazi e corpo del numero — l'alternativa
-   era lasciare che i punteggi si accavallassero al centro, che e' il difetto
-   di partenza. */
-@media (max-width: 480px) {
-    .mc-vs-row {
-        gap: 6px;
-        padding: 10px;
-    }
-
-    .mc-vs-score {
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 360px) {
-    .mc-vs-score {
-        font-size: 0.86rem;
-    }
-
-    .mc-vs-crest {
-        width: 44px;
-        height: 42px;
-    }
+    justify-content: center;
+    gap: 16px;
+    min-height: 0;
 }
 
 /* ── Campione ── */
@@ -6069,11 +6347,37 @@ img {
     min-height: 260px;
 }
 
-.mc-champion-card .mc-kicker,
-.mc-champion-card .mc-body,
-.mc-champion-card .mc-cta {
-    max-width: 54%;
+/* Qui la filigrana è il SOGGETTO della card, non una texture di fondo: più
+   grande e molto più presente che nelle Four contenders, dove il logo deve
+   solo colorare il fondo dietro tre righe di statistiche. */
+.mc-champion-card .mc-watermark {
+    right: -3%;
+    height: 190%;
+    opacity: 0.3;
 }
+
+.mc-champion-card:hover .mc-watermark {
+    opacity: 0.42;
+}
+
+/* Sotto i ~420px il nome del campione va a capo e si prende tutta la card:
+   con la presenza del desktop il logo finirebbe dietro OGNI riga e il titolo
+   non si leggerebbe più. Resta ben visibile, ma arretra.
+   La soglia è 480px e non 768px di proposito: il problema è il nome che va a
+   capo, non "il mobile". Su tablet la card è larga e BASSA, e lì `right` in
+   percentuale (che si misura sulla larghezza) spingerebbe il logo quasi tutto
+   fuori dal bordo destro. */
+@media (max-width: 480px) {
+    .mc-champion-card .mc-watermark {
+        right: -16%;
+        height: 122%;
+        opacity: 0.17;
+    }
+}
+
+/* Niente più tetto di larghezza: il logo era affiancato al testo e bisognava
+   lasciargli il 46% della card. Ora è filigrana di sfondo, e il nome del
+   campione può passarci sopra come nelle card Four contenders. */
 
 /* Il body cresce a riempire l'altezza della card e spinge il nome in basso */
 .mc-champion-card .mc-body {
@@ -6166,18 +6470,38 @@ img {
     color: var(--text-muted);
 }
 
-/* ── Countdown ── */
-.mc-countdown {
+/* ── Timbro del prossimo kickoff, nell'angolo dell'hero ──────────
+   Era una card intera ("Next chapter"); ora è un timbro che si stampa
+   nell'angolo alto della hero, ruotato come un vero timbro di gomma. */
+.mc-hero-stamp {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 8px 0;
+    padding: 10px 14px;
+    border: 2px solid color-mix(in srgb, var(--accent-red) 70%, transparent);
+    border-radius: 12px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--blur-sm));
+    -webkit-backdrop-filter: blur(var(--blur-sm));
+    color: inherit;
+    transform: rotate(6deg);
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+    animation: mc-hero-stamp-in 0.5s var(--ease) 0.5s backwards;
 }
 
-.mc-countdown-days {
+.mc-hero-stamp:hover {
+    transform: rotate(0deg) scale(1.04);
+    border-color: var(--accent-red);
+}
+
+.mc-hero-stamp-days {
     font-family: var(--font-display);
-    font-size: clamp(3.2rem, 8.5vw, 5.2rem);
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
     font-weight: 800;
     line-height: 1;
     background: var(--accent-gradient);
@@ -6187,47 +6511,146 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
-.mc-countdown-label {
-    font-size: 0.7rem;
+.mc-hero-stamp-label {
+    font-size: 0.58rem;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
+    text-align: center;
+    line-height: 1.3;
     color: var(--text-muted);
 }
 
-/* ── Super Bowl ── */
-.mc-sb {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    flex-wrap: wrap;
-    padding: 10px 0;
+/* Timbrata: parte grande, ruotata e trasparente, e "colpisce" la sua
+   posizione finale — lo stesso gesto di un timbro di gomma sulla carta. */
+@keyframes mc-hero-stamp-in {
+    0% { opacity: 0; transform: rotate(6deg) scale(2.4); }
+    60% { opacity: 1; transform: rotate(6deg) scale(0.92); }
+    100% { opacity: 1; transform: rotate(6deg) scale(1); }
 }
 
-.mc-sb-side {
+@media (prefers-reduced-motion: reduce) {
+    .mc-hero-stamp {
+        animation: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .mc-hero-stamp {
+        top: 12px;
+        right: 12px;
+        padding: 7px 10px;
+    }
+}
+
+/* ── Hall of champions: honours board stile Wimbledon ────────────
+   Le tavole verde scurissimo appese nel corridoio del Centre Court, un
+   rigo per anno in lettere dorate. Prima era una lamina di metallo
+   luccicante (trofeo); qui il verde è opaco — legno laccato, non metallo —
+   quindi niente riflesso che scorre: l'animazione è nei nomi stessi, che si
+   accendono in cascata quando la card entra in vista, come se qualcuno
+   stesse scorrendo l'albo con lo sguardo (vedi --ri per riga, in JS). */
+.mc-trophy-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(160deg, #0d2b1b 0%, #123822 45%, #0a2015 100%);
+    border-color: rgba(197, 160, 89, 0.4);
+}
+
+/* Vignetta morbida in alto, come la luce che prende la tavola dall'alto in
+   una bacheca vera — altrimenti il verde piatto legge come uno sfondo web,
+   non come un pannello fisico appeso a una parete. */
+.mc-trophy-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255, 255, 255, 0.07) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.mc-trophy-card .mc-kicker {
+    color: rgba(216, 186, 118, 0.75);
+}
+
+.mc-trophy-card .mc-title {
+    position: relative;
+    background: linear-gradient(120deg, #f7e08b, #c9a227, #f5e7b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mc-trophy-card .mc-cta {
+    color: #d8ba76;
+}
+
+.mc-trophy-card .mc-cta:hover {
+    opacity: 0.7;
+}
+
+.mc-trophy-plate {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 2px 28px;
+}
+
+.mc-trophy-row {
     display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(197, 160, 89, 0.18);
+    opacity: 0;
+}
+
+/* La cascata: ogni riga parte un po' dopo la precedente. --ri è l'indice,
+   scritto inline da cardChampions() in home.js — stessa convenzione di
+   --card-i sulle figurine draft. */
+.mc-trophy-card.mc-in .mc-trophy-row {
+    animation: mc-trophy-row-in 0.5s var(--ease) both;
+    animation-delay: calc(var(--ri, 0) * 90ms);
+}
+
+@keyframes mc-trophy-row-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mc-trophy-row {
+        opacity: 1;
+    }
+
+    .mc-trophy-card.mc-in .mc-trophy-row {
+        animation: none;
+    }
+}
+
+/* Oro inciso su fondo scuro: niente più coppia di ombre chiaro/scuro (era
+   per il metallo chiaro) — qui basta la lamina dorata del testo con
+   un'ombra netta sotto, che sul verde legge già come rilievo. */
+.mc-trophy-year {
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    background: linear-gradient(120deg, #f7e08b, #c9a227, #f5e7b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.mc-sb-side img {
-    width: 92px;
-    height: 92px;
-    object-fit: contain;
-    filter: drop-shadow(0 0 30px color-mix(in srgb, var(--team-color) 50%, transparent));
+.mc-trophy-team {
+    font-weight: 700;
+    color: rgba(224, 199, 138, 0.82);
 }
 
-.mc-sb-vs {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 1.3rem;
-    color: var(--text-muted);
-}
+/* La card Super Bowl non ha più regole sue qui: era due loghi affiancati da
+   un "VS" (.mc-sb / .mc-sb-side / .mc-sb-vs) sopra il campo in prospettiva
+   come fondale sfocato. Adesso è il campo visto dall'alto con le due
+   formazioni schierate — stesso disegno della card All-Pro, vedi
+   "ALL-PRO / SUPER BOWL — CAMPO ORIZZONTALE" a fondo file. */
 
 /* ── Rail a scorrimento orizzontale (stile Apple TV) ── */
 .mc-rail {
@@ -6361,19 +6784,24 @@ img {
 /* ── Reskin visual: watermark, sfondi, avatar, seed ── */
 
 /* Logo team gigante in filigrana dentro la card (stile .teams-card-watermark) */
+/* Stessa ricetta di .teams-card-watermark (card Four contenders): il logo è
+   sfondo, non un'immagine affiancata al testo. Tenerli allineati — se cambia
+   uno, cambia l'altro, o le due card smettono di sembrare parenti. */
 .mc-watermark {
     position: absolute;
-    right: -6%;
+    right: -8%;
     top: 50%;
-    height: 135%;
+    height: 150%;
     transform: translateY(-50%);
-    opacity: 0.06;
+    opacity: 0.07;
     filter: drop-shadow(0 0 40px var(--team-color, var(--accent-red)));
     pointer-events: none;
+    user-select: none;
+    transition: opacity var(--dur-med) var(--ease);
 }
 
 .mosaic-card:hover .mc-watermark {
-    opacity: 0.11;
+    opacity: 0.12;
 }
 
 /* I contenuti stanno sopra watermark e sfondo */
@@ -6545,12 +6973,6 @@ img {
         max-width: 60%;
         opacity: 0.16;
         filter: none;
-    }
-
-    .mc-champion-card .mc-kicker,
-    .mc-champion-card .mc-body,
-    .mc-champion-card .mc-cta {
-        max-width: 100%;
     }
 
     .mc-seed {
@@ -9891,10 +10313,21 @@ div.gb-out-player:last-of-type {
     line-height: 1.5;
 }
 
+/* Su macOS la scrollbar è overlay e invisibile finché non scorri; su
+   Windows/Linux è sempre a schermo e, senza stile, è quella di sistema —
+   grigio chiaro/bianco, che sul fondo nero della card salta all'occhio.
+   Stessa ricetta già usata per .an-scroll (js/ui/charts.js), che a sua volta
+   l'aveva copiata da qui: sottile e scura invece che quella di default. */
 .dgt-chart-wrap {
     position: relative;
     overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
 }
+
+.dgt-chart-wrap::-webkit-scrollbar { height: 6px; }
+.dgt-chart-wrap::-webkit-scrollbar-track { background: transparent; }
+.dgt-chart-wrap::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 999px; }
 
 .dgt-chart-wrap .an-svg { min-width: 560px; }
 
@@ -10032,6 +10465,14 @@ div.gb-out-player:last-of-type {
 /* Waterfall della performance (pagina giocatore, stile NYT) */
 .pp-wf-wrap { overflow-x: auto; margin: 8px 0 6px; }
 .pp-wf-svg { min-width: 340px; width: 100%; height: auto; }
+/* versione da colonna: nell'accordion di Projections sta accanto al sunburst,
+   quindi NON va incappucciata da una max-width — deve riempire la sua colonna
+   e arrivare all'altezza del grafico che ha di fianco */
+.pp-wf-wrap--compact { margin: 6px 0 0; overflow: visible; }
+.pp-wf-svg--compact { min-width: 0; }
+.pp-wf-svg--compact .pp-wf-lbl { font-size: 8.5px; }
+.pp-wf-svg--compact .pp-wf-xlbl { font-size: 8px; }
+.pp-wf-svg--compact .an-tick { font-size: 8px; }
 .pp-wf-base { fill: color-mix(in srgb, var(--accent-blue, #4f8cff) 78%, transparent); }
 .pp-wf-actual { fill: var(--accent-amber, #f0b429); }
 .pp-wf-step--up { fill: var(--accent-green, #30d158); }
@@ -10243,6 +10684,49 @@ div.gb-out-player:last-of-type {
     .dgt-pick-grade { margin-left: auto; }
 }
 
+/* Header squadra (.dg-head nella lista di Draft Grades, .dgt-hero nella pagina
+   di una squadra): a riga, sotto i 900px lo stemma (64px) restava un figlio
+   flex allineato al centro di TUTTO il blocco — con testo lungo (la frase che
+   spiega il voto) il blocco è alto, e lo stemma finiva a galleggiare a metà
+   paragrafo invece che vicino al titolo. Da telefono si stacca dal flusso:
+   stemma in alto a destra, voto lettera+numero subito sotto di lui — sempre
+   nell'angolo, mai in mezzo al testo — e le scritte (titolo, meta, spiegazione)
+   tornano a occupare tutta la larghezza da sinistra, con solo un margine a
+   destra che lascia il posto all'angolo. */
+@media (max-width: 640px) {
+    .dg-head,
+    .dgt-hero {
+        position: relative;
+        display: block;
+        /* misurato: un voto a due caratteri ("A+", "C+"...) a font-size:3.4rem
+           è largo ~78px, non i 64px dello stemma — il vincolo è lui, non il
+           logo. Senza questo margine più largo il testo (la frase che spiega
+           il voto) sconfinava sotto la lettera per un paio di righe. */
+        padding-right: 92px;
+    }
+    .dg-head-logo,
+    .dgt-hero-logo {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 52px;
+        height: 52px;
+    }
+    .dg-head-info,
+    .dgt-hero-info {
+        margin-right: 0;
+        text-align: left;
+    }
+    .dg-head .dg-grade-stack,
+    .dgt-hero .dg-grade-stack {
+        position: absolute;
+        top: 62px;
+        right: 0;
+        margin-left: 0;
+        align-items: flex-end; /* lettera e numero restano ancorati al bordo destro, sotto lo stemma */
+    }
+}
+
 /* ============================================================
    STORICO GIOCATORI — trend, rischio, righe carriera (draft grades)
    ============================================================ */
@@ -10388,19 +10872,39 @@ div.gb-out-player:last-of-type {
 }
 .dg-grade-score small { color: var(--text-muted); font-weight: 600; font-size: 0.72rem; }
 
-/* riepilogo lista: nome, punteggio, lettera */
+/* riepilogo lista: nome, punteggio, lettera — punteggio e lettera in colonna,
+   non appesi ognuno al proprio margin-left:auto. Con due margini automatici
+   in sequenza il gruppo si allineava a destra come blocco, ma dentro slittava
+   riga per riga: "97/100" + "A+" lascia meno spazio della lettera stretta
+   "84/100" + "B", quindi il numero partiva più a sinistra in una riga che
+   nell'altra. Stessa tecnica di .dg-row-stats (home.js): UN margin-left:auto
+   sul GRUPPO, poi numero e lettera hanno ciascuno una larghezza fissa e si
+   allineano al loro interno — il numero a destra, la lettera sul carattere
+   base (gradeLetterHTML in draftgrades.js). */
 .dg-sum { flex-wrap: nowrap; }
 .dg-sum-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
-.dg-sum-score {
+.dg-sum-stats {
     margin-left: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
     flex-shrink: 0;
+}
+.dg-sum-stats .dg-sum-score {
+    margin-left: 0;
+    width: 4.4em;
+    text-align: right;
     font-weight: 700;
     font-size: 0.9rem;
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
 }
 .dg-sum-score small { color: var(--text-muted); font-weight: 600; font-size: 0.7rem; }
-.dg-sum .dg-sum-score + .dg-letter { margin-left: 10px; flex-shrink: 0; }
+.dg-sum-stats .dg-grade {
+    width: 1.7em;
+    flex-shrink: 0;
+    text-align: left;
+}
 
 /* la frase che spiega il voto */
 .dg-why {
@@ -10449,7 +10953,13 @@ div.gb-out-player:last-of-type {
 }
 
 /* ─── Scatter talento × efficienza (stile NYT) ──────────────────── */
-.dg-scat-svg { width: 100%; height: auto; min-width: 480px; }
+/* min-width 480 costringeva allo scroll orizzontale su telefono (contenitore
+   reale ~316px a 390px di viewport): a differenza della tabella qui sotto,
+   questo grafico è un SVG con viewBox — si può restringere e scalare tutto
+   insieme (assi, punti, etichette) senza spezzare il layout, quindi niente
+   scroll. 300px è la soglia minima sotto cui le etichette diventerebbero
+   davvero illeggibili; ci sta anche sui telefoni più stretti (~360px). */
+.dg-scat-svg { width: 100%; height: auto; min-width: 300px; }
 .dg-scat-guide {
     stroke: color-mix(in srgb, var(--text-muted) 45%, transparent);
     stroke-width: 1;
@@ -10800,14 +11310,23 @@ body.pm-open { overflow: hidden; }
    cornice dorata solo per i veri eletti, bianca/argento per tutti gli altri. */
 /* width: 100% → si adatta al contenitore (232px nel modal via .pm-left,
    la cella della griglia nella pagina Hall of Fame). aspect-ratio fissa. */
+/* Si misura sul CONTENITORE, non sulla finestra (stessa ragione di .sb-wrap
+   sul tabellone): la STESSA card sta a 232px nel modal, ~220 in Hall of Fame,
+   ma solo ~150px nel mosaico Home su telefono (griglia a 2 colonne dentro una
+   card già stretta) — lì logo, traguardi e ruolo si accavallavano perché le
+   loro misure sono fisse in px e non si riducono con la carta. Le regole
+   @container sotto tolgono informazione via via che lo spazio cala, invece
+   di lasciarla sovrapporsi. */
 .pm-panini {
     position: relative;
     width: 100%;
     aspect-ratio: 464 / 631;
     border-radius: 14px;
-    padding: 4px;
+    padding: 2px;
     background: linear-gradient(150deg, #e8e8e8 0%, #a8a8a8 22%, #f7f7f7 45%, #888888 68%, #d8d8d8 100%);
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.06);
+    container-type: inline-size;
+    container-name: panini;
 }
 
 .pm-panini--gold {
@@ -10824,17 +11343,6 @@ body.pm-open { overflow: hidden; }
     border-radius: 11px;
     background: #000;
     overflow: hidden;
-}
-
-.pm-panini-inner::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 11px;
-    background: linear-gradient(115deg,
-            transparent 30%, rgba(255, 255, 255, 0.14) 42%,
-            rgba(255, 255, 255, 0.03) 50%, transparent 62%);
-    pointer-events: none;
 }
 
 /* Nome verticale grande sul bordo sinistro, dal basso verso l'alto */
@@ -10858,46 +11366,86 @@ body.pm-open { overflow: hidden; }
     z-index: 2;
 }
 
+/* Solo cognome: stessa posizione/stile del nome intero (eredita
+   .pm-panini-side-name), nascosta finché il @container qui sopra non la
+   attiva sotto i 130px. Le due varianti non stanno mai a schermo insieme. */
+.pm-panini-side-name--short {
+    display: none;
+}
+
 .pm-panini:not(.pm-panini--gold) .pm-panini-side-name {
     color: var(--text-primary);
 }
 
-/* Badge in overlay sopra la foto, incolonnati in alto a sinistra (ruolo in
-   cima, poi stelle SB e selezioni All-Pro): liberano il lato destro così il
-   busto può allargarsi verso destra. */
+/* Fascia dei traguardi (MVP, anelli SB, selezioni All-Pro) in overlay sopra la
+   foto: RIGA orizzontale, non più colonna — cresce in larghezza invece che in
+   altezza, così anche impilando MVP + anelli + AP1 + AP2 tutti insieme non
+   scende mai sul busto (prima, in colonna, ci arrivava). Va a capo su una
+   seconda riga solo se davvero non entrano.
+   left:44/right:8: lascia libera la colonna ruolo+logo in alto a sinistra
+   (.pm-panini-pos, ora impilata quindi stretta) e chiude a destra col margine
+   della foto, così la riga sa dove andare a capo invece di traboccare oltre
+   il bordo della carta. */
 .pm-panini-top {
     position: absolute;
     top: 12px;
-    left: 12px;
+    left: 44px;
+    right: 8px;
     z-index: 3;
+}
+
+/* Ruolo in alto a sinistra, col logo della squadra NFL vera SOTTO (non più
+   accanto): colonna, non riga. Niente più badge a pillola, solo testo+stemma
+   in overlay sopra la foto. Il nome resta verticale in basso, non tocca
+   questa regola. gap ridotto (4px a 1px): il logo si avvicina al testo del
+   ruolo, colonna più raccolta. */
+.pm-panini-pos {
+    position: absolute;
+    left: 8px;
+    top: 10px;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 5px;
-}
-
-.pm-panini-pos {
+    gap: 1px;
     font-family: var(--font-display);
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    color: #f0d78c;
-    border: 1px solid rgba(212, 175, 55, 0.55);
-    border-radius: 6px;
-    padding: 2px 9px;
-    flex-shrink: 0;
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #e8c95f;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .pm-panini:not(.pm-panini--gold) .pm-panini-pos {
-    color: var(--text-secondary);
-    border-color: var(--border-card);
+    color: var(--text-primary); /* come .pm-panini-side-name in argento */
+}
+
+/* Fallback per i nomi lunghissimi (vedi posInline in paniniCard): riga invece
+   di colonna, così la scritta ruolo+logo resta bassa e non rischia di toccare
+   il nome che sale da sotto. */
+.pm-panini-pos--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+}
+
+.pm-panini-pos-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
 }
 
 .pm-panini-badges {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 3px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end; /* si accumulano verso il bordo destro, lontano dal ruolo/nome */
+    gap: 4px;
 }
 
 .pm-panini-stars {
@@ -10953,19 +11501,24 @@ body.pm-open { overflow: hidden; }
 /* Contenitore verticale che riempie la card dall'alto fino alle info: essendo
    più alto che largo (formato ritratto), "cover" mostra tutta l'altezza del
    busto (testa e spalle) e taglia i lati in eccesso — niente zoom su un pezzo
-   del volto. Angoli inferiori arrotondati per non avere lo spigolo secco. */
+   del volto. Il margine stacca il busto dal contorno della carta invece di
+   farlo arrivare fino in fondo. */
 /* Insets via margin (non padding): così il border-box del contenitore
-   coincide con la foto e il border-radius la ritaglia in modo pulito. Con il
-   padding l'arrotondamento partiva nella fascia vuota e si interrompeva netto
-   sul bordo dell'immagine (evidente con spalle larghe). */
+   coincide con la foto. Margine destro e basso UGUALI (8px) apposta: solo così
+   un raggio singolo (non un'ellisse) può restare concentrico al bordo esterno
+   della carta lungo tutta la curva. Conto: bordo esterno .pm-panini 14px,
+   cornice metallica 2px, margine 8px → scarto 10px su entrambi gli assi →
+   raggio che mantiene lo spazio costante = 14-10 = 4px. Gli altri tre angoli
+   restano vivi (0): a sinistra e in alto il busto sfiora già la vignetta e il
+   nome verticale, un raggio lì taglierebbe la foto invece di scostarla. */
 .pm-panini-photo-wrap {
     flex: 1;
     position: relative;
     z-index: 1;
-    margin: 0 8px 0 30px;
+    margin: 0 8px 8px 30px;
     min-height: 0;
     overflow: hidden;
-    border-radius: 0 0 34px 0; /* solo basso-destra arrotondato, basso-sinistra a spigolo */
+    border-radius: 0 0 4px 0;
 }
 
 /* Busto intero, non ingrandito su un dettaglio: object-fit cover con il
@@ -10979,39 +11532,50 @@ body.pm-open { overflow: hidden; }
     object-position: 50% 4%;
 }
 
-/* Info allineata alla foto (stessi margini): la bolla è larga quanto il busto */
+/* Non più un pannello SOTTO la foto (che la accorciava, rubandole altezza):
+   un'ombra sfumata SOPRA il busto, ancorata allo stesso riquadro della foto
+   (stessi left/right/bottom di .pm-panini-photo-wrap, così combaciano) e che
+   sfuma verso il trasparente salendo — il busto resta intero, il testo si
+   legge appoggiato sull'ombra invece che dentro una bolla separata.
+   pointer-events:none: è decorazione sopra un'immagine cliccabile, il click
+   deve passare oltre. */
 .pm-panini-info {
-    position: relative;
-    z-index: 1;
-    padding: 8px 8px 10px 30px;
+    position: absolute;
+    left: 30px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 2;
+    padding: 40px 4px 10px;
+    border-radius: 0 0 4px 0; /* stesso raggio del riquadro foto sotto */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.5) 55%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    text-align: center;
+    pointer-events: none;
 }
 
-/* Bolla unica con le scritte (data/altezza/peso + stagioni Topina):
-   semi-trasparente, angolo basso-sinistra a spigolo vivo come la card,
-   gli altri arrotondati con raggio uniforme. Oro per gli Hall of Famer. */
+.pm-panini--gold .pm-panini-info {
+    /* stessa ombra ma virata al caldo, in tema con la cornice oro */
+    background: linear-gradient(to top, rgba(38, 26, 0, 0.88) 0%, rgba(38, 26, 0, 0.5) 55%, transparent 100%);
+}
+
+/* Non più una bolla visibile (bordo/sfondo/blur): solo il contenitore che
+   impila bio e stagioni, ora appoggiate sull'ombra di .pm-panini-info. */
 .pm-panini-bubble {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1px;
-    padding: 7px 14px;
-    /* raggio destro grande: i due angoli a destra si fondono in una curva
-       unica continua; basso-sinistra a spigolo vivo come la card */
-    border-radius: 27px 27px 27px 0;
-    background: rgba(245, 240, 232, 0.6);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    text-align: center;
 }
 
-.pm-panini--gold .pm-panini-bubble {
-    background: linear-gradient(150deg, rgba(247, 224, 139, 0.68), rgba(232, 201, 95, 0.68));
-}
-
+/* Testo chiaro: prima leggeva su una bolla chiara, ora sull'ombra scura. */
 .pm-panini-bio {
     font-size: 0.72rem;
     font-weight: 600;
-    color: #222;
+    color: rgba(255, 255, 255, 0.82);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -11021,7 +11585,58 @@ body.pm-open { overflow: hidden; }
 .pm-panini-seasons {
     font-size: 0.82rem;
     font-weight: 800;
-    color: #000;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.pm-panini--gold .pm-panini-seasons {
+    color: #f5d576; /* stesso oro di .pm-panini-stars/.pm-panini-side-name */
+}
+
+/* ── Figurina piccola: si toglie informazione, non si accavalla ──
+   Due soglie, in ordine dal meno al più drastico. Non sono a sentimento: il
+   nome verticale ha un'altezza FISSA (non si scala con la carta) — cresce con
+   la lunghezza del nome, non con lo spazio disponibile — quindi su una carta
+   abbastanza bassa la sua cima può risalire fin dentro l'angolo del ruolo.
+   Misurato con "Christian McCaffrey" (il nome vero più lungo del roster
+   testato): a 220px di carta il nome si ferma 7px sopra il ruolo, a 210px lo
+   sconfina di 7px. Le soglie qui sotto sono tarate su quella misura, non su
+   una larghezza "che sembra piccola" a occhio.
+
+   Sotto i ~236px (il massimo che la griglia Hall of Fame usa già) non scatta
+   mai nulla per le pagine desktop/tablet di oggi: qui si interviene dove
+   prima si accavallava davvero, cioè il mosaico Home su telefono (~150px). */
+
+/* ≤215px di contenitore (~219px di carta, il padding della cornice conta):
+   via logo squadra, fascia traguardi E bolla bio insieme — e nome ridotto al
+   cognome nella STESSA soglia, non in una più bassa: un nome intero coi soli
+   logo/traguardi tolti va comunque a sbattere contro il ruolo (è la misura
+   del nome a spingerlo su, non la presenza del logo). Il ruolo da solo resta:
+   a queste larghezze un cognome corto ci sta sempre sotto di lui. */
+@container panini (max-width: 215px) {
+
+    .pm-panini-pos-logo,
+    .pm-panini-top,
+    .pm-panini-info {
+        display: none;
+    }
+
+    .pm-panini-side-name--full {
+        display: none;
+    }
+
+    .pm-panini-side-name--short {
+        display: block;
+    }
+}
+
+/* ≤129px (~133px di carta): anche un cognome lungo (es. "McCaffrey", il
+   più alto testato) può risalire abbastanza da toccare il ruolo. Ultimo
+   taglio: via anche quello, resta solo l'essenziale — foto e cognome. */
+@container panini (max-width: 129px) {
+    .pm-panini-pos {
+        display: none;
+    }
 }
 
 .pm-chips {
@@ -12394,6 +13009,115 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-pe-row--muted .pp-pe-stat, .pp-pe-row--muted .pp-pe-val { color: var(--text-muted); font-weight: 500; }
 .pp-pe-readouts { font-size: 0.74rem; color: var(--text-muted); margin-top: 7px; padding-top: 6px; border-top: 1px dashed color-mix(in srgb, var(--text-muted) 18%, transparent); }
 .pp-pe-readouts b { color: var(--text-secondary); }
+
+/* ── i due grafici del pannello, affiancati ──
+   Il contenuto ha un tetto e sta al centro: senza, su uno schermo largo il
+   pannello arriva a mille pixel e i due grafici si spalmano fino ai bordi
+   opposti lasciando un vuoto in mezzo — larghi il doppio del necessario e
+   lontani fra loro proprio mentre vanno letti insieme. */
+.pp-pe-season { max-width: 940px; margin-inline: auto; }
+.pp-pe-charts { margin-top: 8px; }
+.pp-pe-charts--two {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 18px;
+    align-items: start;
+}
+.pp-pe-col { min-width: 0; display: flex; flex-direction: column; }
+/* i grafici stanno CENTRATI nella loro colonna: appoggiati a sinistra
+   lasciavano una fascia vuota a destra e il pannello sembrava sbilanciato */
+.pp-pe-fig { margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.pp-pe-fig-cap {
+    font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); margin-bottom: 2px; text-align: center;
+}
+.pp-pe-fig > .pp-wf-wrap, .pp-pe-fig > .an-scroll { width: 100%; }
+.pp-sb-svg { margin-inline: auto; }
+/* la fascia dell'utilizzo sta sotto le due colonne, centrata a tutta larghezza */
+.pp-pe-fig--usage { margin: 10px auto 0; max-width: 620px; width: 100%; }
+.pp-us-svg { width: 100%; height: auto; }
+/* volume vero e, dentro, la parte in zona da punto: stessa tinta, due
+   intensità — è un pezzo dello stesso totale, non un'altra grandezza */
+.pp-us-bar { fill: color-mix(in srgb, var(--accent-amber, #f0b429) 34%, transparent); }
+.pp-us-rz { fill: var(--accent-amber, #f0b429); }
+/* la proiezione è un riferimento, non un volume: un trattino, non una barra */
+.pp-us-proj { stroke: var(--accent-blue, #4f8cff); stroke-width: 2.5; stroke-linecap: round; }
+.pp-us-val {
+    font-family: var(--font-display); font-weight: 800; font-size: 12px;
+    fill: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+.pp-us-delta { font-family: var(--font-body); font-size: 9px; fill: var(--text-muted); }
+.pp-us-delta--up { fill: var(--accent-green, #30d158); }
+.pp-us-delta--down { fill: var(--accent-red, #ff453a); }
+.pp-us-row:hover .pp-us-bar { opacity: 0.85; }
+
+.pp-us-legend {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
+    font-size: 0.68rem; color: var(--text-muted); margin: 2px 0 4px;
+}
+.pp-us-key { display: inline-flex; align-items: center; gap: 5px; }
+.pp-us-key i { display: inline-block; border-radius: 2px; }
+.pp-us-key-bar { width: 14px; height: 9px; background: color-mix(in srgb, var(--accent-amber, #f0b429) 34%, transparent); }
+.pp-us-key-rz { width: 14px; height: 9px; background: var(--accent-amber, #f0b429); }
+.pp-us-key-proj { width: 3px; height: 13px; background: var(--accent-blue, #4f8cff); border-radius: 2px; }
+
+/* Sunburst della quota di squadra. Due anelli: dentro come si divide
+   l'attacco, fuori la fetta del giocatore contro quella di tutti gli altri.
+   Il colore dice la FASE (aria/terra), l'intensità dice di CHI è la fetta —
+   così la legenda non serve: le etichette stanno attaccate agli spicchi. */
+.pp-sb-svg { width: 100%; max-width: 420px; height: auto; display: block; }
+/* lo stacco fra gli spicchi è lo sfondo della card, non una riga disegnata */
+.pp-sb-band, .pp-sb-mine, .pp-sb-rest {
+    stroke: var(--bg-secondary, #14161a);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    transition: opacity var(--dur-fast, .12s) var(--ease, ease);
+}
+.pp-sb-band:hover, .pp-sb-mine:hover, .pp-sb-rest:hover { opacity: 0.82; }
+/* anello interno: tinta media della fase */
+.pp-sb-band--pass { fill: color-mix(in srgb, var(--accent-blue, #4f8cff) 52%, transparent); }
+.pp-sb-band--rush { fill: color-mix(in srgb, var(--accent-amber, #f0b429) 46%, transparent); }
+/* anello esterno: pieno la sua fetta, tinta smorzata quella degli altri */
+.pp-sb-mine--pass { fill: var(--accent-blue, #4f8cff); }
+.pp-sb-mine--rush { fill: var(--accent-amber, #f0b429); }
+.pp-sb-rest--pass { fill: color-mix(in srgb, var(--accent-blue, #4f8cff) 17%, transparent); }
+.pp-sb-rest--rush { fill: color-mix(in srgb, var(--accent-amber, #f0b429) 15%, transparent); }
+
+.pp-sb-centre-num {
+    font-family: var(--font-display); font-weight: 800; font-size: 23px;
+    fill: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+.pp-sb-centre-lbl { font-family: var(--font-body); font-size: 9.5px; fill: var(--text-muted); }
+/* il pallino lega la riga al suo anello: l'identità non sta nel colore del
+   numero (che resta inchiostro normale), ma in un segno accanto */
+.pp-sb-dot--pass { fill: var(--accent-blue, #4f8cff); }
+.pp-sb-dot--rush { fill: var(--accent-amber, #f0b429); }
+.pp-sb-band-lbl {
+    font-family: var(--font-body); font-size: 9px; font-weight: 700; fill: var(--text-primary);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    paint-order: stroke; stroke: rgba(0, 0, 0, .35); stroke-width: 2.5px;
+}
+.pp-sb-band-val {
+    font-family: var(--font-display); font-size: 11px; font-weight: 800; fill: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: rgba(0, 0, 0, .35); stroke-width: 2.5px;
+}
+/* etichette dirette: nome grigio sopra, valore in evidenza sotto */
+.pp-sb-lbl { font-family: var(--font-body); font-size: 9.5px; fill: var(--text-muted); }
+.pp-sb-lbl-val {
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 800;
+    fill: var(--text-secondary); font-variant-numeric: tabular-nums;
+}
+.pp-sb-lbl--mine { fill: var(--text-secondary); }
+.pp-sb-lbl-val.pp-sb-lbl--mine { fill: var(--text-primary); }
+.pp-sb-foot { font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; margin-top: 2px; }
+.pp-sb-foot b { color: var(--text-secondary); }
+.pp-sb-prev { color: var(--text-muted); }
+
+@media (max-width: 720px) {
+    /* in colonna: il sunburst ha bisogno di larghezza per le etichette */
+    .pp-pe-charts--two { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
 /* cause reali (fase 2): perché i numeri sono cambiati */
 .pp-pe-causes { margin-top: 9px; }
 .pp-pe-causes-lbl { display: inline-block; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
@@ -12472,9 +13196,23 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     background: linear-gradient(90deg, color-mix(in srgb, var(--team-color, var(--accent-red)) 70%, transparent), var(--team-color, var(--accent-red)));
 }
 
-/* Classifica forza roster (sotto le card riassunto) */
+/* Classifica forza roster (sotto le card riassunto). Con 8 colonne (Team,
+   Total, 6 posizioni) non si adatta a un telefono senza diventare illeggibile
+   — resta scroll orizzontale per scelta. Scrollbar sottile e scura invece di
+   quella di sistema: su Mac lo scroll overlay è già invisibile, ma su
+   Windows/Linux è sempre a schermo e quella di default (grigio chiaro) salta
+   all'occhio sul fondo nero. Stessa ricetta di .dgt-chart-wrap
+   (draftgrade-team.js) — condivisa da entrambe, non reinventata qui. */
 .dg-ranking { min-height: 0; margin-bottom: 16px; }
-.dg-rk-wrap { overflow-x: auto; }
+.dg-rk-wrap {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+.dg-rk-wrap::-webkit-scrollbar { height: 6px; }
+.dg-rk-wrap::-webkit-scrollbar-track { background: transparent; }
+.dg-rk-wrap::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 999px; }
+
 .dg-rk-table {
     width: 100%;
     border-collapse: collapse;
@@ -12585,6 +13323,62 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 .ps-search-input:focus { border-color: var(--accent-blue, #4f9dff); }
 .ps-search-input::placeholder { color: var(--text-muted); }
+
+/* ── Blocchi dell'NFL Hub: card a fondo nero come in Projections ──
+   Prima erano `.pp-block` grigie (--bg-card, velo su grigio scuro): fra un
+   lollipop, una beeswarm e le tabelle ESPN il velo chiaro abbassava il
+   contrasto dei grafici, e la sezione stonava con #projections che è la sua
+   gemella per densità di dati. Qui si prende la stessa ricetta di
+   .mosaic-card/.db-card — fondo pieno --surface-card, bordo a vetro, raggio
+   grande, ombra e riflesso in alto — senza cambiare markup: le sezioni
+   restano `.pm-block .pp-block`.
+   `--card-glow` va ridichiarato: fuori da .mosaic-card non esiste, e senza di
+   lui il color-mix di .mc-kicker è invalido e il titolino perde il rosso. */
+#players .pp-block {
+    --card-glow: var(--accent-red);
+    position: relative;
+    padding: 28px;
+    border: 1px solid var(--bg-glass-border);
+    border-radius: var(--radius-xl);
+    background: var(--surface-card);
+    background-image: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42), var(--glass-sheen);
+}
+
+@media (max-width: 768px) {
+    #players .pp-block { padding: 22px 18px; }
+}
+
+/* Dentro le card niente superfici annidate, come in Projections: là l'unica
+   superficie è la card e le righe sono trasparenti, con un velo solo al
+   passaggio del mouse. Qui invece tessere del tabellone, riquadri di division
+   e righe di ricerca avevano --bg-glass (velo bianco 6%): sul fondo nero
+   diventavano rettangoli grigi, una seconda card dentro la prima. A definirli
+   basta il bordo, che c'era già. */
+#players .ps-sb-game,
+#players .ps-div,
+#players .ps-row { background: transparent; }
+
+/* tolto il velo fisso resta quello al passaggio, stesso di .db-row */
+#players a.ps-sb-game:hover,
+#players .ps-row:hover { background: color-mix(in srgb, var(--text-muted) 10%, transparent); }
+
+/* le pillole dei ruoli: stessa ricetta di .db-sort/.db-sort-btn (le tab
+   Board/Draft Strategy e il toggle Projected/Actual di Projections) */
+#players .lp-pos-tabs {
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border-color: var(--border-subtle);
+}
+#players .lp-pos-btn.active {
+    background: color-mix(in srgb, var(--text-primary) 90%, transparent);
+    color: var(--bg-primary);
+    box-shadow: none;
+}
+
+/* le select restano opache — il menu a tendina nativo eredita questo fondo e
+   con un colore semi-trasparente il browser lo comporrebbe sul bianco — ma
+   nere come la card invece che velo grigio */
+#players .lc-field select { background: var(--bg-tertiary); }
 
 /* ── Tabellone NFL della settimana (sotto la ricerca) ──
    Le partite su DUE file: su desktop le colonne si allargano fino a riempire
@@ -16615,6 +17409,40 @@ td.ps-div-seed {
     background: color-mix(in srgb, var(--accent-red, #ff453a) 16%, transparent);
 }
 
+/* Pannello "Why": bottone sulla riga + accordion sotto, vedi projections.js */
+.db-why-btn {
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border: none;
+    border-radius: 5px;
+    padding: 2px 6px;
+    margin-left: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    transition: background var(--dur-fast, .12s) var(--ease, ease), color var(--dur-fast, .12s) var(--ease, ease);
+}
+.db-why-btn:hover { color: var(--text-secondary); background: color-mix(in srgb, var(--text-muted) 20%, transparent); }
+.db-why-btn--open { color: var(--accent-blue, #4f8cff); background: color-mix(in srgb, var(--accent-blue, #4f8cff) 16%, transparent); }
+.db-why-chevron { display: inline-block; transition: transform var(--dur-fast, .12s) var(--ease, ease); font-size: 0.6rem; }
+.db-why-btn--open .db-why-chevron { transform: rotate(-180deg); }
+.db-accordion {
+    margin: 2px 0 6px;
+    padding: 10px 12px 4px;
+    border-radius: 8px;
+    border-left: 3px solid var(--team-color, var(--accent-blue, #4f8cff));
+    /* gemello trasparente della banda colorata: senza, il bordo di sinistra
+       sposta di 3px tutto il contenuto e i grafici centrati non lo sono */
+    border-right: 3px solid transparent;
+    background: color-mix(in srgb, var(--text-muted) 6%, transparent);
+}
+.db-why-loading { display: flex; justify-content: center; padding: 18px 0; }
+
 /* Stretto: la riga diventa un blocchetto su quattro livelli invece di
    comprimere sette colonne. I team di questa lega hanno nomi lunghi
    ("Capi dei Pianeti"): la colonna di destra si dimensiona sul contenuto,
@@ -18030,4 +18858,1522 @@ td.ps-div-seed {
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: var(--text-secondary);
+}
+
+/* ================================
+   HOME — MOSAICO: animazioni e card interattive
+   Estende il blocco "HOME — MOSAICO DINAMICO" qui sopra. Tutto è scoped a
+   `.mosaic`: `.mosaic-card` e `.mc-kicker/.mc-title/.mc-body/.mc-cta` sono
+   riusate da una dozzina di altre sezioni (draft grades, live, game center,
+   pagina giocatore…) e non devono muoversi di un pixel.
+   Si animano solo `transform` e `opacity`.
+   ================================ */
+
+/* ── Reveal sfalsato ──
+   --i lo assegna l'IntersectionObserver alle card che entrano INSIEME, non al
+   render: una card raggiunta da sola dopo mezzo scroll parte subito, invece di
+   portarsi dietro per sempre il ritardo della sua posizione in pagina. */
+.mosaic .mosaic-card,
+.mosaic .mc-rail {
+    transition:
+        opacity 0.7s var(--ease) calc(var(--i, 0) * 90ms),
+        transform 0.7s var(--ease) calc(var(--i, 0) * 90ms),
+        border-color var(--dur-med) var(--ease),
+        box-shadow var(--dur-med) var(--ease);
+}
+
+/* ── Luce che segue il puntatore ──
+   Nessun elemento nuovo: un ::after che legge --mx/--my scritte in rAF da
+   motion.js. Solo sulla card puntata, e mai su touch/reduced-motion. */
+.mosaic .mosaic-card::after,
+.mosaic .mc-rail-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle 240px at var(--mx, 50%) var(--my, 50%),
+            color-mix(in srgb, var(--card-glow) 16%, transparent) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.mosaic .mosaic-card.mc-lit::after,
+.mosaic .mc-rail-card.mc-lit::after {
+    opacity: 1;
+}
+
+@media (hover: none) {
+
+    .mosaic .mosaic-card::after,
+    .mosaic .mc-rail-card::after {
+        content: none;
+    }
+}
+
+/* Il contenuto sta sopra la luce. Sulle card del mosaico ci pensa già la
+   regola `.mosaic-card > .mc-kicker/.mc-title/.mc-body/.mc-cta` qui sopra —
+   e un `> *` indiscriminato romperebbe `.mc-side-img`, che è in posizione
+   assoluta e tornerebbe nel flusso. Nei rail i figli sono tutti span. */
+.mosaic .mc-rail-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Righe cliccabili (corsa MVP → pagina giocatore) ── */
+.mc-row--link {
+    color: inherit;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease), padding-left var(--dur-fast) var(--ease);
+}
+
+.mc-row--link:hover {
+    background: color-mix(in srgb, var(--team-color, var(--accent-red)) 12%, transparent);
+    padding-left: 10px;
+}
+
+.mc-rail-card--link {
+    color: inherit;
+    cursor: pointer;
+}
+
+/* ================================
+   CARD CLASSIFICA — righe che si aprono
+   ================================ */
+
+.mc-rows--teams {
+    border-top: 0;
+}
+
+.mc-team-row {
+    border-bottom: 1px solid var(--border-subtle);
+    transition: opacity var(--dur-med) var(--ease);
+}
+
+/* Aperta una squadra, le altre arretrano: è la selezione a essere
+   enfatizzata, non la riga cliccata a gonfiarsi da sola. */
+.mc-rows--teams.has-open .mc-team-row:not(.is-open) {
+    opacity: 0.45;
+}
+
+.mc-row--btn {
+    width: 100%;
+    background: none;
+    border: 0;
+    border-bottom: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease);
+}
+
+.mc-row--btn:hover,
+.mc-team-row.is-open .mc-row--btn {
+    background: color-mix(in srgb, var(--team-color, var(--accent-red)) 10%, transparent);
+}
+
+.mc-row-toggle {
+    position: relative;
+    flex: none;
+    width: 12px;
+    height: 12px;
+    margin-left: 10px;
+}
+
+.mc-row-toggle::before,
+.mc-row-toggle::after {
+    content: '';
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 1.5px;
+    background: var(--text-muted);
+    transition: transform var(--dur-med) var(--ease);
+}
+
+.mc-row-toggle::after {
+    transform: rotate(90deg);
+}
+
+.mc-team-row.is-open .mc-row-toggle::after {
+    transform: rotate(0deg);
+}
+
+/* Apertura animata senza toccare `height: auto`: la riga di griglia passa da
+   0fr a 1fr e il browser interpola. */
+.mc-tdet {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.42s var(--ease);
+}
+
+.mc-team-row.is-open .mc-tdet {
+    grid-template-rows: 1fr;
+}
+
+.mc-tdet-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Il padding vive qui dentro: fuori terrebbe alta la riga anche da chiusa. */
+.mc-team-row.is-open .mc-tdet-inner {
+    padding: 4px 4px 18px;
+}
+
+.mc-tstats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    gap: 14px 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.mc-tstat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mc-tstat-v {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+.mc-tstat-l {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.mc-h2h {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.mc-h2h-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+.mc-h2h-rec {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.mc-tdet-inner .mc-cta {
+    margin-top: 14px;
+    padding-top: 0;
+}
+
+/* ── Pallini della forma ── */
+.mc-form {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 4px;
+}
+
+.mc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.3;
+}
+
+.mc-dot--w { background: var(--accent-green); opacity: 1; }
+.mc-dot--l { background: var(--accent-red); opacity: 0.85; }
+.mc-dot--t { background: var(--accent-amber); opacity: 0.9; }
+
+/* ================================
+   CARD NUMERI — stagione / storia
+   ================================ */
+
+.mc-seg {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--pill-radius);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.mc-seg-btn {
+    padding: 6px 14px;
+    border: 0;
+    border-radius: var(--pill-radius);
+    background: transparent;
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color var(--dur-med) var(--ease), background-color var(--dur-med) var(--ease);
+}
+
+.mc-seg-btn:hover {
+    color: var(--text-secondary);
+}
+
+.mc-seg-btn.is-active {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--card-glow) 26%, transparent);
+}
+
+.mc-nums {
+    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+
+.mc-nums.is-swapping {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+/* La card dei numeri ha due righe in più (segmented + postille): senza questo
+   il contenuto tocca il fondo prima della CTA. */
+.mc-nums-card .mc-num {
+    padding: 10px 8px;
+}
+
+/* ================================
+   RAIL — frecce stile Apple TV
+   ================================ */
+
+.mc-rail-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.mc-rail-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: opacity var(--dur-med) var(--ease), color var(--dur-fast) var(--ease),
+        border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+
+.mc-rail-nav:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--accent-red) 45%, transparent);
+    background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+}
+
+.mc-rail-nav:disabled {
+    opacity: 0.25;
+    cursor: default;
+}
+
+/* Rail che ci sta tutto: le frecce non servono e sparirebbero comunque
+   entrambe spente. */
+.mc-rail--static .mc-rail-nav {
+    display: none;
+}
+
+/* Su touch si scorre col dito: le frecce sono ingombro inutile. */
+@media (hover: none) {
+    .mc-rail-nav {
+        display: none;
+    }
+}
+
+/* ================================
+   RESPONSIVE
+   ================================ */
+
+@media (max-width: 768px) {
+
+    /* La riga squadra passa a due livelli: seed + nome + apri sopra, forma e
+       record sotto. Serve una GRIGLIA, non flex-wrap: col wrap l'andata a capo
+       dipende da quanto è lungo il nome, e le quattro righe si spezzavano in
+       punti diversi l'una dall'altra. */
+    .mc-row--btn {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "seed team toggle"
+            "form form rec";
+        align-items: center;
+        row-gap: 8px;
+    }
+
+    .mc-row--btn .mc-seed { grid-area: seed; }
+    .mc-row--btn .mc-team { grid-area: team; }
+
+    .mc-row--btn .mc-row-toggle {
+        grid-area: toggle;
+        margin-left: 0;
+    }
+
+    .mc-row--btn .mc-form {
+        grid-area: form;
+        margin-left: 0;
+    }
+
+    .mc-row--btn .mc-row-value {
+        grid-area: rec;
+        margin-left: 0;
+        justify-self: end;
+    }
+
+    .mc-tstats {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .mc-seg-btn {
+        padding: 6px 11px;
+        font-size: 0.7rem;
+    }
+}
+
+/* Bandierina dell'anteprima fasi (?phase=…, vedi preview-home.html).
+   Deve dare fastidio quanto basta: forzando una fase si guardano dati fuori
+   dal loro momento, e non deve capitare di scambiarli per lo stato vero. */
+.mc-preview-flag {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    transform: translateX(-50%);
+    border: 1px solid color-mix(in srgb, var(--accent-amber) 45%, transparent);
+    border-radius: var(--pill-radius);
+    background: color-mix(in srgb, var(--accent-amber) 14%, rgba(0, 0, 0, 0.88));
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.mc-preview-tag {
+    padding: 2px 8px;
+    border-radius: var(--radius-xs);
+    background: var(--accent-amber);
+    color: #000;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.mc-preview-flag a {
+    color: var(--accent-amber);
+    font-weight: 700;
+}
+
+/* ================================
+   ALL-PRO / SUPER BOWL — CAMPO ORIZZONTALE (SB week)
+   Due card della home mostrano lo stesso campo, disegnato da `apFieldSvg` in
+   js/sections/home.js: due Pro Set specchiati sulla linea delle 50.
+     · "The ideal lineup, lined up"  → First Team contro Second Team
+     · "It all comes down to one night" → le due finaliste, con le end zone
+       tinte e i loghi dentro (variante .mc-duel--night, scura come il campo
+       del Live)
+   È il campo formazione della pagina squadra NFL (.nfl-fd2 / .nfl-fd-*,
+   disegno condiviso in js/ui/field-formation.js) sdraiato: stesse classi,
+   stesso aspetto. Qui c'è solo ciò che quel campo non sapeva già fare — le
+   end zone, la variante scura e lo scroll su schermo stretto.
+   ================================ */
+
+.mc-apfield-card,
+.mc-sb-card {
+    min-height: 0;
+}
+
+.mc-apfield-card .mc-body,
+.mc-sb-card .mc-body {
+    margin-top: 4px;
+}
+
+/* Il campo è 2× più largo che alto: sotto ~700px lo SVG scala tutto, scritte
+   comprese, a illeggibile. Sotto quella soglia il campo tiene una larghezza
+   minima e si scrolla in orizzontale DENTRO la card, non la pagina. */
+.mc-apfield-scroll {
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 700px) {
+    .mc-apfield-scroll .nfl-fd2 {
+        width: 700px;
+    }
+}
+
+/* ── End zone: tinta della squadra, goal line e logo dentro ──
+   Il colore NON si usa puro: due dei quattro di lega sono scuri (#800020,
+   #1c4750) e su un campo notturno la loro end zone sparirebbe, mentre le
+   altre due griderebbero. Si schiarisce con la stessa ricetta di inkFor()
+   in js/ui/charts.js, così le quattro squadre pesano uguale. */
+.mc-duel-ez-fill {
+    fill: color-mix(in srgb, var(--team-color, var(--accent-red)) 68%, white 32%);
+    opacity: 0.5;
+}
+
+.mc-duel-ez-goal {
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 3;
+}
+
+.mc-duel-ez-logo {
+    opacity: 0.9;
+}
+
+/* ── Variante notturna: il verde del Live invece del prato chiaro ──
+   Stessi elementi, altri colori. Le scritte dei giocatori nascono verde
+   scuro (sono fatte per il prato chiaro della pagina squadra): su questo
+   fondo sparirebbero, quindi qui passano al bianco. */
+.mc-duel--night .nfl-fd2-turf { fill: #16211e; }
+.mc-duel--night .nfl-fd2-band { fill: #1b2724; }
+.mc-duel--night .nfl-fd2-yl { stroke: rgba(255, 255, 255, 0.13); }
+.mc-duel--night .nfl-fd2-num { fill: rgba(255, 255, 255, 0.16); }
+.mc-duel--night .nfl-fd2-los { stroke: rgba(255, 255, 255, 0.3); }
+/* I nomi delle due finaliste stanno sopra la loro end zone tinta, non sul
+   prato: servono più corposi dei "FIRST/SECOND TEAM" dell'All-Pro. */
+.mc-duel--night .nfl-fd2-side-lbl {
+    fill: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+}
+
+.mc-duel--night .nfl-fd-name { fill: #f4f7f5; }
+.mc-duel--night .nfl-fd-pos { fill: rgba(255, 255, 255, 0.55); }
+
+/* Il numero di maglia è dark-on-white sul prato chiaro (fill scuro, contorno
+   bianco che lo stacca dall'erba). Qui l'erba è scura: si inverte. */
+.mc-duel--night .nfl-fd-jersey {
+    fill: #ffffff;
+    stroke: rgba(0, 0, 0, 0.55);
+}
+
+/* I dischi vuoti della linea offensiva, sul prato chiaro, sono bianchi al
+   55%: su fondo scuro quel bianco diventa il pieno più luminoso del campo e
+   si mangia i giocatori veri. Qui restano un'ombra appena accennata. */
+.mc-duel--night .nfl-fd-slot.is-empty .nfl-fd-disc {
+    fill: rgba(255, 255, 255, 0.12);
+}
+
+/* ═══════════════════ Score bug (in lavorazione) ═══════════════════════
+   Il tabellone del matchup fantasy — vedi js/ui/score-bug.js.
+
+   ⚠️ NON ANCORA COLLEGATO AL SITO: nessun markup a schermo usa queste classi
+   oggi, si guardano solo da preview-scorebug.html. Stanno qui e non in un
+   foglio a parte perché la convenzione del progetto è un CSS solo, e perché
+   così quando il componente entra in produzione non c'è niente da spostare:
+   basta cambiare la chiamata in live.js / game-center.js / history.js.
+
+   Tre varianti, una griglia sola:
+     .sb--broadcast  due righe impilate + modulo di stato  (Live)
+     .sb--marquee    simmetrica, nomi ai lati              (Game Center, storico)
+     .sb--ticker     una riga, per una barra appiccicata
+
+   Sui colori squadra: due dei quattro sono scuri (#800020, #1c4750) e su fondo
+   nero spariscono. Non si sostituiscono — si schiariscono SOLO dove servono a
+   disegnare (barre, pastiglie), con la stessa ricetta di inkFor() in
+   js/ui/charts.js, mentre il colore pieno resta dov'è riconoscibile. */
+
+/* Il tabellone si misura sul CONTENITORE, non sulla finestra.
+   Non è un vezzo: lo stesso componente sta a tutta larghezza in Live, dentro
+   una card-link in Game Center e in una colonna stretta nello storico. Con una
+   media query si adatterebbe alla larghezza dello SCHERMO — cioè resterebbe
+   largo dentro una colonna stretta, che è esattamente il caso da evitare. E si
+   adatta davvero anche nel banco di prova, dove la larghezza è un contenitore
+   e non la finestra: senza questo, "Mobile 390px" mostrava il layout desktop
+   schiacciato, con l'etichetta di stato sopra i numeri. */
+.sb-wrap {
+    container-type: inline-size;
+    container-name: sb;
+}
+
+/**
+ * Tema di COLORE del componente, indipendente dal tema della PAGINA che lo
+ * ospita (quello è preview-scorebug.html:.lab-light, questo è js/ui/score-bug.js
+ * — un altro asse). `data-sb-theme` lo mette lo script su questo wrapper, che
+ * è l'antenato comune sia della card (.sb) sia dei nomi della marquee (.sb-notch,
+ * che vive fuori dalla card — vedi sotto): dichiarando qui i token, arrivano
+ * dove servono senza doverli ripetere due volte.
+ *
+ * Due famiglie separate, non una sola:
+ *   --sbv-*    broadcast (v1) + marquee + ticker. Il loro "scuro" È il nero
+ *              della pagina: non hanno una superficie propria, si separano
+ *              dal fondo con l'anello di 1px (--sbv-frame). Il loro "chiaro"
+ *              prende invece una superficie vera, perché un anello sottile
+ *              su una pagina chiara non baserebbe a definirle.
+ *   --sb-bc-*  broadcast 2. Ha sempre bisogno di una superficie propria (non
+ *              ha anello, ha solo un'ombra), quindi il suo "scuro" non può
+ *              essere il nero della pagina — sparirebbe — ed è un grigio
+ *              scuro apposta.
+ * Tenerle separate non è ridondanza: sono due modi diversi di stare sul
+ * fondo, e forzarle sullo stesso set avrebbe rotto l'uno o l'altro.
+ */
+.sb-wrap[data-sb-theme="dark"] {
+    --sbv-surface: var(--bg-primary, #000);
+    --sbv-frame: var(--border-card);
+    --sbv-ink: var(--text-primary);
+    --sbv-ink-2: var(--text-secondary);
+    --sbv-muted: var(--text-muted);
+    --sbv-soft: rgba(255, 255, 255, 0.07);
+    --sbv-tie: rgba(255, 255, 255, 0.045);
+    /* quota di colore squadra puro in --sb-ink (sotto): sul nero un colore
+       squadra scuro (Oscurus #800020, Sommo #1c4750) va schiarito verso il
+       bianco per leggersi — è inkFor() di charts.js. Sul chiaro NON va
+       schiarito: un colore scuro sopra la carta HA GIÀ contrasto, ed è
+       esattamente perché lo schiarisci lo laveresti. 100% qui vuol dire "il
+       secondo colore del mix non conta", cioè via la schiaritura. */
+    --sbv-ink-pct: 68%;
+
+    --sb-bc-paper: #1c1c20;
+    --sb-bc-ink: #f2f1ed;
+}
+
+.sb-wrap[data-sb-theme="light"] {
+    --sbv-surface: #f0efeb;
+    --sbv-frame: rgba(0, 0, 0, 0.18);
+    --sbv-ink: #17171a;
+    --sbv-ink-2: #3f3f47;
+    --sbv-muted: #6b6b73;
+    --sbv-soft: rgba(0, 0, 0, 0.055);
+    --sbv-tie: rgba(0, 0, 0, 0.04);
+    --sbv-ink-pct: 100%;
+
+    --sb-bc-paper: #f0efeb;
+    --sb-bc-ink: #17171a;
+}
+
+/* Il wrapper ospita anche i nomi della marquee, che stanno FUORI dalla card
+   perché il suo clip-path li cancellerebbe (vedi la nota in score-bug.js).
+   Le misure della rientranza vivono quindi qui, non su .sb--marquee: le usano
+   sia la sagoma della card sia il blocco dei nomi, e tenerle in due posti
+   voleva dire vederle scollarsi al primo ritocco. */
+.sb-wrap--notched {
+    --sb-notch-d: 30px;
+    /* metà larghezza della rientranza */
+    --sb-notch-w: 27%;
+    /* pendenza della spalla */
+    --sb-notch-s: 22px;
+    position: relative;
+}
+
+/* ─── Il profilo: angoli TAGLIATI a 45°, raggio zero ───────────────
+   Il resto del sito ha raggi morbidi da 16-20px. Qui no, ed è voluto: un
+   tabellone deve leggersi come un oggetto diverso dalle card che gli stanno
+   intorno. Lo smusso è il linguaggio dei tabelloni sportivi e lo dice senza
+   alzare la voce — molto più di uno spigolo vivo, che a fianco di una card
+   arrotondata sembra solo un raggio dimenticato.
+
+   Il bordo NON può essere `border`: clip-path taglia anche quello, e sulle
+   diagonali sparirebbe. Quindi il fondo dell'elemento FA da bordo e il
+   ::before, incassato di 1px e ritagliato con la stessa forma, ci disegna
+   sopra la superficie vera. Un anello di un pixel che segue lo smusso. */
+.sb {
+    --sb-cut: 18px;
+    --sb-shape: polygon(var(--sb-cut) 0,
+            calc(100% - var(--sb-cut)) 0, 100% var(--sb-cut),
+            100% calc(100% - var(--sb-cut)), calc(100% - var(--sb-cut)) 100%,
+            var(--sb-cut) 100%, 0 calc(100% - var(--sb-cut)), 0 var(--sb-cut));
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 18px;
+    border-radius: 0;
+    border: 0;
+    clip-path: var(--sb-shape);
+    /* l'anello: --sbv-frame in dark è lo stesso var(--border-card) di sempre
+       (zero cambi visivi quando il tema è quello di default); in light
+       diventa un filo nero, perché su pagina chiara un anello bianco
+       traslucido non separerebbe niente */
+    background: var(--sbv-frame, var(--border-card));
+    text-decoration: none;
+    color: inherit;
+}
+
+/* La superficie: incassata di 1px sul fondo-bordo, con lo stesso smusso.
+   Porta anche l'alone dei due colori ai capi, tenuto BASSO di proposito — il
+   banner di oggi sta al 30%, e su questa forma, che è più piccola e ha già una
+   barra colorata per squadra, a quell'intensità il colore lava i numeri e le
+   due metà si tingono fin sotto il punteggio dell'altra. Qui il colore lo
+   portano barra e pastiglie; questo è solo un accenno di appartenenza. */
+.sb::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    clip-path: var(--sb-shape);
+    background:
+        radial-gradient(ellipse 42% 120% at 0% 50%, color-mix(in srgb, var(--sb-c1) 15%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 42% 120% at 100% 50%, color-mix(in srgb, var(--sb-c2) 15%, transparent) 0%, transparent 60%),
+        var(--sbv-surface, var(--bg-primary, #000));
+    pointer-events: none;
+}
+
+a.sb {
+    transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease),
+        box-shadow var(--dur-med) var(--ease);
+}
+
+/* Niente box-shadow sull'hover: clip-path ritaglia anche l'ombra, che
+   comparirebbe mozzata sui lati dritti e assente sugli smussi. Si accende il
+   bordo — cioè il fondo dell'elemento — che lo smusso invece lo segue. */
+a.sb:hover {
+    transform: translateY(-3px);
+    background: color-mix(in srgb, var(--sbv-ink, var(--text-primary)) 34%, var(--sbv-frame, var(--border-card)));
+}
+
+/* ─── il punteggio, comune a tutte le varianti ─── */
+.sb .sb-score {
+    position: relative;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--sbv-muted, var(--text-muted));
+    white-space: nowrap;
+}
+
+.sb .sb-score .pts-val { color: inherit; }
+
+/* la proiezione accanto al numero vero: piccola, spenta, e SEMPRE fuori da
+   .pts-val — vedi il vincolo in testa a js/ui/score-bug.js */
+.sb .pts-proj {
+    margin-left: 0.42em;
+    font-size: 0.34em;
+    font-weight: 700;
+    color: var(--sbv-muted, var(--text-muted));
+    vertical-align: 0.35em;
+}
+
+/* prima del kickoff il punteggio È la proiezione: si vede che lo è */
+.sb .proj-pts {
+    color: var(--sbv-muted, var(--text-muted));
+    font-style: italic;
+}
+
+/* ─── modulo di stato ─── */
+.sb-status {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.sb-status-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sbv-ink-2, var(--text-secondary));
+}
+
+.sb-status--live .sb-status-label { color: var(--accent-red); }
+.sb-status--final .sb-status-label { color: var(--sbv-ink, var(--text-primary)); }
+.sb-status--undrafted .sb-status-label { color: var(--sbv-muted, var(--text-muted)); }
+
+.sb-status-note {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--sbv-muted, var(--text-muted));
+    font-variant-numeric: tabular-nums;
+}
+
+.sb-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-red);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-red) 70%, transparent);
+    animation: sb-pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes sb-pulse {
+    70% { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ─── barra della quota punti ─── */
+.sb-prob {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sb-prob-pct {
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--sbv-muted, var(--text-muted));
+    min-width: 2.4em;
+}
+
+.sb-prob-pct--r { text-align: right; }
+
+.sb-prob-track {
+    position: relative;
+    flex: 1;
+    min-width: 60px;
+    height: 4px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--sb-c2) 55%, #000);
+}
+
+.sb-prob-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--sb-c1) 75%, white 25%);
+    transition: width var(--dur-slow) var(--ease);
+}
+
+/* ══════════════ v1 · broadcast ══════════════
+   Due righe impilate + modulo di stato a destra. La forma scura, quella che
+   sta insieme al resto del sito. */
+.sb--broadcast { padding: 12px 16px; }
+
+.sb--broadcast .sb-rows {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* `--sb-ink` si dichiara QUI, non su .sb: una custom property che referenzia
+   un'altra viene risolta sull'elemento dove è dichiarata, e su .sb il colore
+   della squadra ancora non esiste (lo porta la riga). */
+.sb-row {
+    --sb-ink: color-mix(in srgb, var(--sb-c) var(--sbv-ink-pct, 68%), white);
+    display: grid;
+    grid-template-columns: 3px 26px 3.4rem auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 6px 0;
+    border-radius: var(--radius-sm);
+    transition: background var(--dur-fast) var(--ease);
+}
+
+/* la riga di chi sta guardando: un contorno, non un fondo colorato — quello
+   entrerebbe in conflitto con il fondo di chi è in vantaggio, e le due
+   informazioni sono diverse ("è la mia" / "sta vincendo") */
+.sb-row--mine { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sb-c) 55%, transparent); }
+.sb-row--lead { background: color-mix(in srgb, var(--sb-c) 12%, transparent); }
+
+/* Chi NON è in vantaggio si spegne per davvero: su due colori squadra scuri
+   quel 12% quasi non si vedeva e le righe sembravano uguali. */
+.sb-row:not(.sb-row--lead) .sb-logo { opacity: 0.42; }
+.sb-row:not(.sb-row--lead) .sb-abbr { color: var(--sbv-muted, var(--text-muted)); }
+
+/* Pareggio: nessuno è in vantaggio, nessuna riga si accende. */
+.sb--tie .sb-row { background: var(--sbv-tie, rgba(255, 255, 255, 0.045)); }
+.sb--tie .sb-bar { opacity: 0.8; }
+.sb--tie .sb-abbr,
+.sb--tie .sb-score { color: var(--sbv-ink, var(--text-primary)); }
+
+.sb-bar {
+    align-self: stretch;
+    border-radius: 2px;
+    background: var(--sb-ink);
+    opacity: 0.45;
+}
+
+.sb-row--lead .sb-bar { opacity: 1; }
+
+.sb-logo {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    opacity: 0.85;
+}
+
+.sb-abbr {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--sbv-ink-2, var(--text-secondary));
+}
+
+.sb-row--lead .sb-abbr { color: var(--sbv-ink, var(--text-primary)); }
+
+.sb-name {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--sbv-muted, var(--text-muted));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ─── Avanzamento sulla propria proiezione ───
+   Riempie il vuoto fra il nome e il punteggio con INFORMAZIONE: "92.44 contro
+   78.06" non dice chi sta vincendo per davvero se il primo ha finito i suoi
+   giocatori e il secondo ne ha sette in campo. */
+.sb-pace {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.sb-pace-track {
+    position: relative;
+    flex: 1;
+    min-width: 40px;
+    height: 5px;
+    overflow: hidden;
+    background: var(--sbv-soft, rgba(255, 255, 255, 0.07));
+}
+
+.sb-pace-fill {
+    display: block;
+    height: 100%;
+    background: var(--sb-ink);
+    opacity: 0.55;
+    transition: width var(--dur-slow) var(--ease);
+}
+
+.sb-row--lead .sb-pace-fill { opacity: 1; }
+
+.sb-pace-pct {
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--sbv-muted, var(--text-muted));
+    min-width: 2.6em;
+    text-align: right;
+}
+
+.sb--broadcast .sb-score { font-size: 1.9rem; }
+.sb-row--lead .sb-score { color: var(--sbv-ink, var(--text-primary)); }
+
+.sb-aside {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    min-width: 150px;
+    padding-left: 18px;
+    border-left: 1px solid var(--sbv-frame, var(--border-subtle));
+}
+
+/* ══════════════ v1b · broadcast 2 ══════════════
+   Ricalco del tabellone NFL/YouTube, misurato sul fotogramma dritto
+   (2262×374). Tutto qui sotto è espresso in rapporti sull'ALTEZZA DELLA
+   BARRA, perché è così che quel disegno è costruito: cambia --sb-bc-h e
+   tutto il resto lo segue.
+
+   Le misure che contano, prese dal riferimento (barra alta 180px su
+   quell'immagine):
+     tessera stemma   185px  →  1.03 × h   (quadrata)
+     fessure          20px   →  0.11 × h
+     altezza maiuscole della sigla e del punteggio
+                      113 e 124px → 0.63 e 0.69 × h
+     tacche           spesse 10px → 0.055 × h, e lunghe quanto il pannello
+     cassetto orario  largo 620px su 2000 → 31% della barra
+
+   I tre scarti che avevo alla passata precedente, tutti e tre visibili solo
+   con il fotogramma dritto sotto:
+
+   1. IL TESTO ERA MOLTO TROPPO PICCOLO. Nel riferimento le maiuscole
+      riempiono il 63% dell'altezza della barra; io stavo al 28%. Un tabellone
+      televisivo è quasi tutto testo — l'aria intorno è pochissima, ed è
+      quello che gli dà l'aria da tabellone invece che da etichetta.
+   2. IL PUNTEGGIO NON È IL DOPPIO DELLA SIGLA. Sono quasi uguali (1.10×).
+      Avevo corretto in un senso e poi esagerato nell'altro: prima erano pari,
+      poi il numero era una volta e mezza la sigla. Il riferimento dice che si
+      somigliano.
+   3. LE TACCHE SONO UNA BARRA SEGMENTATA, non trattini. Le tre tacche
+      coprono tutta la campata della squadra, divise in tre; non sono tre
+      segnetti in un angolo.
+
+   E una cosa che avevo preso per scelta mia e invece c'è: gli angoli INTERNI
+   dei pannelli sono arrotondati, quelli esterni no. Le tessere si affacciano
+   sulla fessura con lo spigolo tondo e chiudono dritte sui due capi. */
+.sb--broadcast2 {
+    display: block;
+    padding: 0;
+    background: transparent;
+    clip-path: none;
+    filter: none;
+}
+
+/* Un tabellone televisivo NON si stira per tutta la larghezza: sta in un
+   angolo dello schermo e ha una dimensione sua. */
+.sb-wrap:has(.sb--broadcast2) { display: flex; justify-content: center; }
+/* 900 e non 780: il riferimento ha "KC" e "0" — tre glifi in tutto — mentre
+   qui ci sono "SOM" e "92.44", che sono otto. Tenendo i rapporti tipografici
+   del riferimento (che sono la cosa da cui dipende l'aria da tabellone), la
+   barra viene per forza più allungata di quella vera: là il rapporto
+   lunghezza/altezza è 11:1, qui è circa 14:1. È una conseguenza del
+   contenuto, non una scelta — e schiacciare il testo per far tornare il
+   rapporto sarebbe stato il modo sbagliato di farlo tornare. */
+/* 960 e non 780 come il riferimento: là ci sono "KC" e "0" — tre glifi in
+   tutto — qui "SOM" e "110.00", che sono nove. Tenendo i rapporti tipografici
+   del riferimento (che sono la cosa da cui dipende l'aria da tabellone) la
+   barra viene per forza più allungata: là il rapporto lunghezza/altezza è
+   11:1, qui circa 15:1. È una conseguenza del contenuto, non una scelta —
+   e schiacciare il testo per far tornare il rapporto sarebbe stato il modo
+   sbagliato di farlo tornare. Il caso che detta la misura è il pareggio a tre
+   cifre: "SOM 110.00" contro "CP 110.00". */
+.sb--broadcast2 { width: min(100%, 960px); }
+
+.sb--broadcast2::before { content: none; }
+
+.sb-bc {
+    --sb-bc-h: 62px;
+    --sb-bc-gap: calc(var(--sb-bc-h) * 0.1);
+    --sb-bc-r: calc(var(--sb-bc-h) * 0.13);
+    /* --sb-bc-paper e --sb-bc-ink NON si dichiarano qui: arrivano ereditati da
+       .sb-wrap[data-sb-theme], che ha sia il valore chiaro (identità di
+       questa variante) sia uno scuro apposta — un grigio antracite, non il
+       nero della pagina, perché qui i pannelli non hanno un anello a
+       separarli dal fondo come in broadcast/marquee/ticker: sul nero puro
+       sparirebbero. Dichiararli di nuovo qui, anche fissi, li ombrerebbe:
+       una proprietà specificata sull'elemento vince SEMPRE su quella
+       ereditata, a prescindere da chi ha la selettore più specifico. */
+    position: relative;
+    filter: drop-shadow(0 5px 14px rgba(0, 0, 0, 0.6));
+}
+
+/* ─── la barra: un fondo unico, e sopra le tessere ───
+   Questa è la struttura vera, e non è quella che avevo dedotto guardando.
+   Non sono cinque tessere affiancate: c'è UN blocco di fondo che va da un capo
+   all'altro, un po' più basso della barra, e i due pannelli squadra ci stanno
+   SOPRA a piena altezza. Il nome dell'emittente non ha una tessera sua — è
+   scritto direttamente sul blocco di fondo, nello spazio fra i due pannelli.
+
+   Cambia tutto nella lettura: le "fessure" non sono buchi sul campo, sono
+   finestre sul fondo. Ed è per questo che il centro sembrava rientrato in
+   verticale: non era un pannello più corto, era il fondo che si vedeva. */
+.sb-bc-bar {
+    position: relative;
+    display: grid;
+    grid-template-columns:
+        calc(var(--sb-bc-h) * 1.03) minmax(0, 1fr) auto minmax(0, 1fr) calc(var(--sb-bc-h) * 1.03);
+    align-items: stretch;
+    height: var(--sb-bc-h);
+    /* Nessuna fessura di griglia: lo stemma è ATTACCATO al suo pannello, e la
+       fessura esiste solo verso il centro — la mette il margine del pannello.
+       Le quattro tessere sopra sono due coppie, non quattro pezzi
+       equidistanti: con il gap uniforme il gruppo si leggeva come una fila di
+       cinque cose uguali.
+
+       NB: la prima versione usava `:first-of-type`, che guarda il TIPO di
+       elemento e non la classe. Qui i figli sono tutti `<span>`, quindi il
+       primo "del suo tipo" è lo stemma e le regole non colpivano niente: la
+       fessura restava a sinistra e spariva a destra. */
+    gap: 0;
+}
+
+.sb-bc-team:not(.sb-bc-team--r) { margin-right: var(--sb-bc-gap); }
+.sb-bc-team--r { margin-left: var(--sb-bc-gap); }
+
+/* Il blocco di fondo: tutta la larghezza e TUTTA l'altezza — alto quanto i
+   pannelli che gli stanno sopra, non un po' meno. Ad accorciarlo si vedeva
+   una cornice grigia intorno alle tessere, e il gruppo tornava a leggersi
+   come cinque pezzi affiancati invece che come due livelli.
+
+   Traslucido: nel riferimento il campo si intravede attraverso, e da noi
+   dietro c'è il nero, quindi legge come un grigio più spento del bianco
+   pieno dei pannelli — che è esattamente il rapporto giusto fra i due. */
+.sb-bc-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /* Traslucido rispetto al PROPRIO paper, non a un bianco fisso: così segue
+       il tema. In chiaro resta la carta smorzata di sempre; in scuro diventa
+       un velo dell'antracite dei pannelli — la stessa idea di "il fondo si
+       intravede" applicata a un fondo che stavolta è scuro anche lui. */
+    background: color-mix(in srgb, var(--sb-bc-paper) 78%, transparent);
+}
+
+.sb-bc-crest {
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: var(--sb-c);
+    overflow: hidden;
+}
+
+.sb-bc-crest img {
+    width: 76%;
+    height: 76%;
+    object-fit: contain;
+    /* i loghi sono PNG pensati per il fondo nero: su una tinta piena chiara
+       (l'oro dei Lasers) alcuni si perdono, e un filo d'ombra li stacca */
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+
+.sb-bc-team {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    background: var(--sb-bc-paper);
+}
+
+/* Il punteggio guarda sempre verso il CENTRO e la sigla verso il proprio
+   stemma, con l'aria dalla parte del centro: nel riferimento i due numeri non
+   toccano mai il pannello dell'emittente. */
+.sb-bc-team {
+    padding: 0 calc(var(--sb-bc-h) * 0.3) 0 calc(var(--sb-bc-h) * 0.16);
+    border-radius: 0 var(--sb-bc-r) var(--sb-bc-r) 0;
+}
+
+.sb-bc-team--r {
+    /* Il sorgente resta sigla-poi-punteggio per tutti e due i pannelli (serve
+       a tenere lo stesso markup a destra e a sinistra), ma sul lato destro
+       l'ordine VISIVO va invertito: senza row-reverse, "space-between" mette
+       la sigla vicino al centro e il punteggio vicino al logo — il contrario
+       di quello che vogliamo. Con row-reverse la sigla (primo figlio) va
+       all'estremità di fine riga, cioè verso il logo su questo lato, e il
+       punteggio finisce verso il centro. Così entrambi i nomi restano
+       vicini al proprio stemma, simmetrici. */
+    flex-direction: row-reverse;
+    padding: 0 calc(var(--sb-bc-h) * 0.16) 0 calc(var(--sb-bc-h) * 0.3);
+    border-radius: var(--sb-bc-r) 0 0 var(--sb-bc-r);
+}
+
+.sb-bc-abbr {
+    font-family: var(--font-display);
+    /* 0.63 × h di altezza maiuscole; Inter Tight ha cap-height ≈ 0.73 em */
+    font-size: calc(var(--sb-bc-h) * 0.63 / 0.73);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--sb-c);
+    white-space: nowrap;
+}
+
+.sb--broadcast2 .sb-score {
+    font-size: calc(var(--sb-bc-h) * 0.69 / 0.73);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--sb-bc-ink);
+}
+
+.sb--broadcast2 .pts-proj {
+    font-size: 0.26em;
+    /* grigio A META' STRADA fra ink e paper: relativo, non un hex fisso, così
+       nel tema scuro (paper e ink invertiti) resta comunque "un grigio in
+       mezzo ai due" invece di sparire dentro l'uno o l'altro */
+    color: color-mix(in srgb, var(--sb-bc-ink) 60%, var(--sb-bc-paper));
+}
+
+.sb--broadcast2 .proj-pts { color: color-mix(in srgb, var(--sb-bc-ink) 68%, var(--sb-bc-paper)); }
+
+/* chi insegue si spegne: grigio invece che nero */
+.sb-bc-team:not(.is-lead) .sb-score { color: color-mix(in srgb, var(--sb-bc-ink) 55%, var(--sb-bc-paper)); }
+.sb--tie .sb-bc-team .sb-score { color: var(--sb-bc-ink); }
+
+/* la squadra selezionata: un filo di colore sul bordo basso del pannello */
+.sb-bc-team.is-mine::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--sb-c);
+}
+
+/* Il nome dell'emittente NON ha una tessera sua: è scritto sul blocco di
+   fondo, nella finestra fra i due pannelli. Niente background, niente raggio —
+   dargliene uno era la cosa che faceva sembrare cinque tessere quello che
+   invece è un fondo con due tessere sopra. */
+.sb-bc-mid {
+    position: relative;
+    z-index: 1;
+    align-self: center;
+    display: grid;
+    place-items: center;
+    padding: 0 calc(var(--sb-bc-h) * 0.34);
+    font-family: var(--font-display);
+    font-size: calc(var(--sb-bc-h) * 0.2);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--sb-bc-ink) 72%, var(--sb-bc-paper));
+    white-space: nowrap;
+}
+
+/* ─── sotto la barra: due fasce, tutte e due larghe quanto la card ───
+   Non sono elementi centrati che galleggiano: sono due rettangoli pieni che
+   vanno da un capo all'altro, esattamente come il blocco di fondo sopra. La
+   prima, bassa e nera, porta le tacche; la seconda, trasparente, le scritte.
+
+   È la differenza fra un tabellone e una didascalia: il tabellone è fatto di
+   fasce sovrapposte che occupano tutte la stessa campata, e la gerarchia la
+   fanno l'altezza e il colore — non la larghezza. */
+.sb-bc-ticksbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    height: calc(var(--sb-bc-h) * 0.17);
+    padding: 0 calc(var(--sb-bc-h) * 0.06);
+    background: #000;
+}
+
+/* Le tacche coprono la campata della loro squadra, divise in parti uguali:
+   nel riferimento sono una barra segmentata, non tre segnetti in un angolo. */
+.sb-bc-ticks {
+    display: flex;
+    gap: calc(var(--sb-bc-h) * 0.09);
+}
+
+.sb-bc-tick {
+    flex: 1;
+    height: calc(var(--sb-bc-h) * 0.055);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sb-bc-tick.is-done { background: #fff; }
+
+/* La fascia delle scritte: trasparente sul serio.
+   Nel riferimento sotto c'è il campo e si vede attraverso. Da noi sotto c'è
+   il nero della pagina, quindi un velo scuro su nero sarebbe invisibile: il
+   velo qui è CHIARO e appena accennato, che è il modo di ottenere lo stesso
+   effetto — una superficie che si sente ma non si chiude — partendo da un
+   fondo opposto. */
+.sb-bc-strip {
+    display: grid;
+    place-items: center;
+    /* "un po' meno alta del blocco principale" */
+    height: calc(var(--sb-bc-h) * 0.85);
+    padding: 0 calc(var(--sb-bc-h) * 0.28);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.sb-bc-strip .sb-status {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    gap: calc(var(--sb-bc-h) * 0.16);
+}
+
+.sb-bc-strip .sb-status-label { font-size: calc(var(--sb-bc-h) * 0.17); }
+
+.sb-bc-strip .sb-status-note {
+    font-family: var(--font-display);
+    /* "12:00" nel riferimento è alto 0.36 × h */
+    font-size: calc(var(--sb-bc-h) * 0.36 / 0.73);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+}
+
+/* ══════════════ v2 · marquee ══════════════ */
+/* ─── Il profilo con la rientranza ────────────────────────────────
+   Il bordo alto SCENDE nella campata centrale, e i nomi stanno lassù, fuori
+   dalla sagoma piena. Le spalle scendono in diagonale invece che a squadra:
+   con gli angoli già tagliati a 45°, uno scalino a 90° in mezzo sarebbe stato
+   l'unico spigolo retto della forma e si sarebbe visto come una dimenticanza.
+
+   La campata è una PERCENTUALE, non una misura fissa: la rientranza deve
+   restare fra i due loghi a qualunque larghezza, e i loghi stanno ai capi in
+   percentuale. Con un valore in pixel, sotto i 600px la rientranza si mangiava
+   i loghi e sopra i 1200 diventava una fessura in mezzo al niente. */
+.sb--marquee {
+    --sb-shape: polygon(var(--sb-cut) 0,
+            calc(50% - var(--sb-notch-w)) 0,
+            calc(50% - var(--sb-notch-w) + var(--sb-notch-s)) var(--sb-notch-d),
+            calc(50% + var(--sb-notch-w) - var(--sb-notch-s)) var(--sb-notch-d),
+            calc(50% + var(--sb-notch-w)) 0,
+            calc(100% - var(--sb-cut)) 0, 100% var(--sb-cut),
+            100% calc(100% - var(--sb-cut)), calc(100% - var(--sb-cut)) 100%,
+            var(--sb-cut) 100%, 0 calc(100% - var(--sb-cut)), 0 var(--sb-cut));
+    display: block;
+    padding: var(--sb-notch-d) 24px 12px;
+}
+
+/* Filigrana del logo ai due capi.
+   Il 210% del banner di oggi qui non va: quella card è più alta, e su questa
+   lo stesso rapporto produceva un logo largo quanto un terzo della card che
+   passava SOPRA il nome della squadra — su "LASERS" si leggeva metà parola.
+   Altezza più contenuta e, soprattutto, un tetto in larghezza: è il tetto a
+   garantire che qualunque logo, anche uno più largo che alto, resti al suo
+   capo e non entri nella zona dei numeri. */
+.sb-wm {
+    position: absolute;
+    top: 50%;
+    height: 96%;
+    max-width: 13%;
+    object-fit: contain;
+    transform: translateY(-50%);
+    opacity: 0.10;
+    pointer-events: none;
+    user-select: none;
+}
+
+.sb-wm--l { left: 0; filter: drop-shadow(0 0 24px var(--sb-c1)); }
+.sb-wm--r { right: 0; filter: drop-shadow(0 0 24px var(--sb-c2)); }
+
+.sb-mq {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ─── La targa incassata ───────────────────────────────────────────
+   Sta in alto al centro, nella campata fra i due loghi, e porta i due nomi.
+   È incassata sul serio: fondo più scuro della card e un filo di luce sul
+   bordo alto — la stessa lettura di un pezzo di metallo montato dentro il
+   pannello, che è quello che sembra su un tabellone vero.
+
+   La larghezza è un TETTO, non una misura fissa: `max-width: 74%` la tiene
+   lontana dai loghi a qualunque dimensione, mentre `min-width: 0` le permette
+   di stringersi finché i nomi ci stanno. Con una larghezza fissa, "Sommo vs
+   Lasers" e "Capi dei Pianeti vs Oscurus" avrebbero avuto la stessa targa e
+   due densità completamente diverse dentro. */
+/* I nomi vivono NELLA rientranza: alti quanto la rientranza è profonda, e
+   senza fondo né bordo. È il punto della forma — se avessero una superficie
+   loro tornerebbe a essere una targa appoggiata sopra, cioè la cosa che
+   questa sagoma serve a togliere. */
+.sb-notch {
+    position: absolute;
+    top: 0;
+    /* Un nome per spigolo: il sinistro appoggiato dove la spalla di sinistra
+       finisce di scendere, il destro dove comincia a risalire quella di destra.
+       Centrati restavano sospesi in mezzo al vuoto senza niente che li
+       tenesse; così sono i due tagli del profilo a fargli da spalla, e il
+       "vs" cade da solo in mezzo.
+
+       `width` e non `max-width`: serve che il blocco OCCUPI tutta la campata
+       piatta della rientranza, altrimenti `space-between` non ha spazio da
+       distribuire e i due nomi tornano attaccati. Il −14px li tiene un filo
+       dentro le diagonali, che altrimenti sfiorano il testo. */
+    left: calc(50% - var(--sb-notch-w) + var(--sb-notch-s));
+    width: calc(var(--sb-notch-w) * 2 - var(--sb-notch-s) * 2 - 14px);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    height: var(--sb-notch-d);
+    min-width: 0;
+    pointer-events: none;
+}
+
+.sb-notch-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    font-family: var(--font-display);
+    font-size: clamp(0.78rem, 1.5cqi, 1.06rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sbv-ink, var(--text-primary));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sb-notch-sep {
+    flex-shrink: 0;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--sbv-muted, var(--text-muted));
+    opacity: 0.65;
+}
+
+/* ─── I punteggi, sotto la rientranza ─── */
+.sb-mq-scores {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 5cqi, 44px);
+    width: 100%;
+}
+
+.sb--marquee .sb-score {
+    font-size: clamp(1.8rem, 6cqi, 2.8rem);
+    flex-shrink: 0;
+}
+
+.sb-score--lead { color: var(--sbv-ink, var(--text-primary)); }
+
+.sb-mq-mid { flex-shrink: 0; text-align: center; }
+.sb-mq-mid .sb-status { align-items: center; }
+
+.sb--marquee .sb-prob { position: relative; margin-top: 10px; }
+
+/* ══════════════ v3 · ticker ══════════════ */
+.sb--ticker {
+    display: block;
+    padding: 8px 14px;
+    border-radius: var(--pill-radius);
+}
+
+.sb-tk {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sb-tk-side {
+    --sb-ink: color-mix(in srgb, var(--sb-c) var(--sbv-ink-pct, 68%), white);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.sb-tk-chip {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    background: var(--sb-ink);
+    opacity: 0.5;
+}
+
+.sb-tk-side.is-lead .sb-tk-chip { opacity: 1; }
+
+.sb-tk-abbr {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--sbv-muted, var(--text-muted));
+}
+
+.sb-tk-side.is-lead .sb-tk-abbr { color: var(--sbv-ink-2, var(--text-secondary)); }
+.sb-tk-side.is-mine .sb-tk-abbr { text-decoration: underline; text-underline-offset: 3px; }
+
+.sb--ticker .sb-score { font-size: 1.05rem; }
+.sb-tk-side.is-lead .sb-score { color: var(--sbv-ink, var(--text-primary)); }
+.sb-tk-sep { color: var(--sbv-muted, var(--text-muted)); font-size: 0.9rem; }
+.sb--ticker .sb-status { margin-left: auto; }
+.sb--ticker .sb-status-label { font-size: 0.58rem; }
+
+/* ══════════════ largo ma non larghissimo ══════════════
+   Fra i 900 e i 560px di contenitore la barra chiara non ci sta più alla sua
+   altezza naturale: il contenuto minimo è più largo del posto disponibile e
+   sbordava di una quindicina di pixel. Basta abbassare la barra — tutto il
+   resto è espresso in rapporti su di lei e la segue da solo. */
+@container sb (max-width: 900px) {
+    .sb-bc { --sb-bc-h: 50px; }
+}
+
+/* ══════════════ stretto ══════════════
+   Sotto i 560px DI CONTENITORE il modulo di stato scende sotto le due righe
+   invece di restringersi: schiacciato contro il punteggio si sovrapponeva ai
+   numeri ("141.62INAL"). */
+@container sb (max-width: 560px) {
+
+    /* La rientranza si allarga e si abbassa: a 390px la campata larga il 54%
+       lasciava 150px per due nomi e un "vs", e usciva "SOMM vs OSCUR".
+
+       Il selettore è `> *` e non `.sb-wrap--notched` per un motivo preciso: le
+       misure vivono sul wrapper, ma il wrapper È il container, e una container
+       query non può cambiare le proprietà del contenitore su cui si misura —
+       si applica solo ai discendenti. Ridichiararle sui due figli che le
+       leggono (la card, per la sagoma, e il blocco dei nomi) le tiene comunque
+       allineate fra loro, che è la cosa che conta. */
+    .sb-wrap--notched>* {
+        --sb-notch-w: 45%;
+        --sb-notch-s: 13px;
+        --sb-notch-d: 26px;
+    }
+
+    .sb-notch { gap: 7px; }
+    .sb-notch-name { font-size: 0.72rem; letter-spacing: 0.03em; }
+    .sb-notch-sep { font-size: 0.52rem; letter-spacing: 0.1em; }
+    .sb--marquee { padding-left: 12px; padding-right: 12px; }
+    .sb-mq-scores { gap: 10px; }
+
+    /* Broadcast (scura): il modulo di stato scende sotto le due righe invece
+       di restringersi — schiacciato contro il punteggio si sovrapponeva ai
+       numeri ("141.62INAL"). */
+    .sb--broadcast {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sb-aside {
+        min-width: 0;
+        padding-left: 0;
+        padding-top: 10px;
+        border-left: none;
+        border-top: 1px solid var(--sbv-frame, var(--border-subtle));
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .sb-aside .sb-prob { flex: 1; max-width: 55%; }
+    .sb-row { grid-template-columns: 3px 22px 3.2rem auto; }
+    .sb-name,
+    .sb-pace { display: none; }
+    .sb--broadcast .sb-score { font-size: 1.6rem; margin-left: auto; }
+
+    /* Broadcast 2 stretta: la barra si accorcia e le tacche escono di scena.
+       Su 390px nove trattini per parte diventano una riga di puntini che non
+       si conta più — e una tacca che non si può contare non dice niente.
+
+       Sigla + punteggio devono stare nei ~112px del pannello: con "CDP" e un
+       punteggio a tre cifre ("129.10", 6 caratteri) il contenuto misurava
+       105px contro 84px disponibili — 20px di overlap, i due numeri finivano
+       uno sopra l'altro ("129.1025.02"). Padding e gap più stretti più le due
+       taglie ridotte recuperano lo spazio; testato con punteggi a tre cifre,
+       non solo i due-cifre con cui è stato disegnato il componente. */
+    .sb-bc { --sb-bc-h: 42px; }
+    .sb-bc-bar { gap: 1px; }
+    .sb-bc-team { padding: 0 4px; gap: 4px; }
+    .sb-bc-abbr { font-size: 0.95rem; }
+    .sb--broadcast2 .sb-score { font-size: 1.05rem; }
+    .sb-bc-mid { display: none; }
+    .sb-bc-bar { grid-template-columns: var(--sb-bc-h) 1fr 1fr var(--sb-bc-h); }
+    /* Nove tacche per parte su 390px diventano puntini che non si contano
+       più, e una tacca che non si può contare non dice niente: via la fascia
+       intera, non solo il suo contenuto. */
+    .sb-bc-ticksbar { display: none; }
+    .sb--broadcast2 .sb-prob { margin: 8px 0 0; }
 }

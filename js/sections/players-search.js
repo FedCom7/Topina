@@ -12,9 +12,9 @@ import { CURRENT_SEASON } from '../data.js?v=540';
 import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=583';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=567';
 import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=622';
-import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=525';
+import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=526';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=594';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=595';
 import { currentNflSeason } from '../data/nfl-team-extras.js?v=937';
 
 // ─── Selettore stagione · governa tutta la pagina (tabellone, classifiche,

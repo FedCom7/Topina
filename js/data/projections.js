@@ -12,7 +12,7 @@
  */
 
 import { scoreProjectedStats } from './scoring.js?v=592';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
 
 const TTL_MS = 24 * 60 * 60 * 1000; // le proiezioni cambiano di rado
 const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano
@@ -144,10 +144,13 @@ export async function getSeasonProjections(year) {
 export async function getSeasonStats(year) {
     if (_memStats[year]) return _memStats[year];
 
-    // v5: aggiunti rushTd/recTd (dipendenza dai TD nel tab Pre-Draft). Bumpare
-    // qui NON basta — la versione va cambiata anche in FAMILIES.current dentro
-    // utils/storage.js, altrimenti i blob v4 restano lì per sempre.
-    const cacheKey = `topina_stats_v5_${year}`;
+    // v6: aggiunto `raw` (stat grezze trimmate) — serve a decomposeSeason in
+    // perf-explain.js per il pannello "Why" di Projections, stessi nomi-campo
+    // di getSeasonProjections così i due lati (proiettato/reale) si confrontano
+    // stat per stat senza rimappare nulla. Bumpare qui NON basta — la versione
+    // va cambiata anche in FAMILIES.current dentro utils/storage.js, altrimenti
+    // i blob v5 restano lì per sempre.
+    const cacheKey = `topina_stats_v6_${year}`;
     const hit = cacheGet(cacheKey, STATS_TTL_MS);
     if (hit) return (_memStats[year] = new Map(hit));
 
@@ -181,6 +184,7 @@ export async function getSeasonStats(year) {
             snaps: s.off_snp ?? null,
             fgm: s.fgm ?? null, xpm: s.xpm ?? null,
             sacks: s.sack ?? null, defInt: s.int ?? null,
+            raw: trimStats(s),
         };
         const key = `${normName(name)}|${pos}`;
         // omonimi: tieni chi ha giocato di più

@@ -4,6 +4,7 @@
     "description": "Topina League Fantasy Football",
     "main": "script.js",
     "scripts": {
+        "preview": "node scripts/dev-server.mjs",
         "upload-data": "node scripts/upload-data.js",
         "build-team-stats": "node scripts/build-nfl-team-stats.mjs",
         "build-nflverse": "node scripts/build-nflverse-features.mjs",

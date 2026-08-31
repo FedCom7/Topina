@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Player card preview — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        Banco di prova della figurina Panini (js/components/player-modal.js →
+        paniniCard/paniniBadgesHTML), la card giocatore usata in QUATTRO posti
+        diversi: la scheda modal (232px, sempre compact), la griglia Hall of
+        Fame (200-236px, bordo oro, con la bolla bio/stagioni), le card del
+        Draft Recap (cornice tinta del colore squadra) e la fila All-Pro /
+        Franchise Players (compact, cornice argento). Vive qui e non nel banco
+        dello score-bug: variante di UN componente diverso, si sarebbe solo
+        accavallato.
+
+        Come preview-scorebug.html: il CSS è quello VERO del sito
+        (css/main.css) e le foto passano dal servizio VERO
+        (js/services/player-image-service.js, nessuna dipendenza da Firebase).
+        paniniCard/paniniBadgesHTML/bioLine invece sono COPIATE qui sotto e non
+        importate da player-modal.js — quel modulo importa anche
+        sections/team.js per TEAMS, che a sua volta ha un top-level await su
+        Firebase (data.js): esattamente la ragione per cui lo score-bug lab
+        copia i dati squadra invece di importare team.js. Un banco grafico non
+        deve dipendere da una connessione. Se cambia la funzione vera,
+        allineare la copia qui sotto.
+
+        I giocatori sono VERI (nomi, ruoli, foto). Carriera Topina, bio e
+        bacheca premi sono INVENTATI apposta: servono stati che un giocatore
+        solo non ha mai tutti insieme (MVP + 5 anelli + AP1 + AP2 + oro). Sono
+        marcati come fixture a schermo, come nello score-bug lab.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito: se una cosa si vede bene qui, si vede bene là -->
+    <link rel="stylesheet" href="css/main.css?v=1037">
+    <style>
+        /* Cromatura del banco di prova, non del sito — vedi preview-scorebug.html
+           per lo stesso ragionamento sul perché è deliberatamente diversa. */
+        :root {
+            --lab-bg: #0a0a0b;
+            --lab-fg: var(--text-primary);
+            --lab-muted: var(--text-muted);
+            --lab-border: rgba(255, 255, 255, .14);
+            --lab-panel: rgba(255, 255, 255, .06);
+        }
+
+        body.lab-light {
+            --lab-bg: #eeece6;
+            --lab-fg: #17171a;
+            --lab-muted: #55555c;
+            --lab-border: rgba(0, 0, 0, .14);
+            --lab-panel: rgba(0, 0, 0, .05);
+        }
+
+        body {
+            margin: 0;
+            background: var(--lab-bg);
+            color: var(--lab-fg);
+            font-family: var(--font-body);
+            transition: background var(--dur-med) var(--ease), color var(--dur-med) var(--ease);
+        }
+
+        .lab-head {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            padding: 14px 22px;
+            background: var(--lab-bg);
+            border-bottom: 1px solid var(--lab-border);
+            transition: background var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease);
+        }
+
+        .lab-title {
+            margin: 0 0 3px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .lab-title b {
+            color: var(--accent-amber);
+            font-size: .62rem;
+            letter-spacing: .14em;
+            vertical-align: 3px;
+            margin-left: 8px;
+        }
+
+        .lab-sub {
+            margin: 0;
+            font-size: .74rem;
+            color: var(--lab-muted);
+            max-width: 92ch;
+            line-height: 1.5;
+        }
+
+        .lab-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin-top: 12px;
+            align-items: center;
+        }
+
+        .lab-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lab-group>span {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+            margin-right: 2px;
+        }
+
+        .lab-btn {
+            border: 1px solid var(--lab-border);
+            background: transparent;
+            color: var(--lab-fg);
+            border-radius: 100px;
+            padding: 5px 12px;
+            font-family: var(--font-body);
+            font-size: .72rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .lab-btn.on {
+            background: var(--lab-fg);
+            color: var(--lab-bg);
+            border-color: var(--lab-fg);
+        }
+
+        .lab-num {
+            width: 46px;
+            padding: 5px 8px;
+            border: 1px solid var(--lab-border);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--lab-fg);
+            font: inherit;
+            font-size: .72rem;
+            text-align: center;
+        }
+
+        .lab-text {
+            padding: 5px 10px;
+            border: 1px solid var(--lab-border);
+            border-radius: 100px;
+            background: transparent;
+            color: var(--lab-fg);
+            font: inherit;
+            font-size: .72rem;
+            width: 120px;
+        }
+
+        .lab-slider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        .lab-slider input {
+            width: 120px;
+        }
+
+        .lab-body {
+            padding: 26px 22px 80px;
+        }
+
+        .lab-case {
+            max-width: 1180px;
+            margin: 0 auto 44px;
+        }
+
+        .lab-case>h2 {
+            margin: 0 0 4px;
+            font-family: var(--font-display);
+            font-size: .76rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent-red);
+        }
+
+        .lab-case>p {
+            margin: 0 0 16px;
+            font-size: .74rem;
+            color: var(--lab-muted);
+            line-height: 1.5;
+            max-width: 80ch;
+        }
+
+        /* Il "playground": una card sola, tutte le manopole in testata */
+        #playground {
+            display: flex;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        #playground-stage {
+            width: 232px;
+            transition: width .2s var(--ease);
+        }
+
+        /* Griglia di stati fissi, tutti assieme, larghezza comune */
+        .lab-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 220px));
+            justify-content: center;
+            gap: 34px 24px;
+        }
+
+        /* La riga responsive ha item anche da 90px: niente minmax(200px, …)
+           da .lab-gallery, ogni item porta già la sua larghezza via wrapFor().
+           align-items:flex-end così le carte, di altezza diversa, si
+           allineano sul fondo invece che sul centro. */
+        #gallery-responsive {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 34px 24px;
+        }
+
+        .lab-gitem {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lab-gitem-label {
+            font-size: .68rem;
+            font-weight: 700;
+            color: var(--lab-muted);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .lab-note {
+            max-width: 1180px;
+            margin: 30px auto 0;
+            padding: 14px 16px;
+            border: 1px solid rgba(245, 158, 11, .3);
+            border-radius: 12px;
+            background: rgba(245, 158, 11, .07);
+            font-size: .74rem;
+            line-height: 1.6;
+            color: var(--lab-fg);
+        }
+
+        .labnav {
+            margin: 0 0 6px;
+            font-size: .68rem;
+            color: var(--lab-muted);
+        }
+
+        .labnav a {
+            color: var(--lab-muted);
+        }
+
+        .labnav a:hover {
+            color: var(--lab-fg);
+        }
+
+        .labnav .current {
+            color: var(--lab-fg);
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="lab-head">
+        <h1 class="lab-title">Player card <b>BANCO DI PROVA</b></h1>
+        <p class="labnav">
+            <a href="preview.html">Preview hub</a> ·
+            <a href="preview-scorebug.html">Score-bug lab</a> ·
+            <span class="current">Player card lab</span> ·
+            <a href="index.html">Real site</a>
+        </p>
+        <p class="lab-sub">
+            La figurina Panini (<code>paniniCard</code>) col CSS vero del sito, nei quattro contesti in cui vive:
+            modal, Hall of Fame, Draft Recap, All-Pro/Franchise Players. Giocatori e foto reali; carriera, bio e
+            bacheca premi inventate per poter vedere stati che un giocatore solo non ha mai tutti insieme.
+        </p>
+        <div class="lab-controls">
+            <div class="lab-group" id="lab-player">
+                <span>Giocatore</span>
+                <button class="lab-btn on" data-player="mahomes">Mahomes · QB</button>
+                <button class="lab-btn" data-player="mccaffrey">McCaffrey · RB</button>
+                <button class="lab-btn" data-player="jefferson">Jefferson · WR</button>
+                <button class="lab-btn" data-player="kelce">Kelce · TE</button>
+                <button class="lab-btn" data-player="tucker">Tucker · K</button>
+                <button class="lab-btn" data-player="niners">49ers · DEF</button>
+                <button class="lab-btn" data-player="custom">Custom…</button>
+            </div>
+            <div class="lab-group" id="lab-custom" hidden>
+                <input class="lab-text" id="custom-name" placeholder="Nome">
+                <input class="lab-text" id="custom-pos" placeholder="Pos (QB, RB…)" style="width:90px">
+                <input class="lab-text" id="custom-nfl" placeholder="Squadra NFL (KC…)" style="width:90px">
+            </div>
+        </div>
+        <div class="lab-controls">
+            <div class="lab-group" id="lab-context">
+                <span>Contesto</span>
+                <button class="lab-btn on" data-context="modal">Modal (232px)</button>
+                <button class="lab-btn" data-context="hof">Hall of Fame</button>
+                <button class="lab-btn" data-context="draft">Draft pick</button>
+                <button class="lab-btn" data-context="allpro">All-Pro / Franchise</button>
+            </div>
+            <div class="lab-group" id="lab-team" hidden>
+                <span>Squadra (cornice)</span>
+                <button class="lab-btn on" data-team="capi">Capi</button>
+                <button class="lab-btn" data-team="lasers">Lasers</button>
+                <button class="lab-btn" data-team="oscurus">Oscurus</button>
+                <button class="lab-btn" data-team="sommo">Sommo</button>
+            </div>
+        </div>
+        <div class="lab-controls">
+            <div class="lab-group" id="lab-bubble">
+                <span>Bolla bio</span>
+                <button class="lab-btn" data-bubble="auto">Auto (dal contesto)</button>
+                <button class="lab-btn on" data-bubble="0">No (compact)</button>
+                <button class="lab-btn" data-bubble="1">Sì</button>
+            </div>
+            <div class="lab-group" id="lab-gold">
+                <span>Hall of Fame</span>
+                <button class="lab-btn on" data-gold="0">Argento</button>
+                <button class="lab-btn" data-gold="1">Oro</button>
+            </div>
+        </div>
+        <div class="lab-controls">
+            <label class="lab-slider">MVP <input type="number" class="lab-num" id="n-mvp" min="0" max="9" value="0"></label>
+            <label class="lab-slider">Anelli SB <input type="number" class="lab-num" id="n-rings" min="0" max="9" value="0"></label>
+            <label class="lab-slider">All-Pro 1st <input type="number" class="lab-num" id="n-ap1" min="0" max="9" value="0"></label>
+            <label class="lab-slider">All-Pro 2nd <input type="number" class="lab-num" id="n-ap2" min="0" max="9" value="0"></label>
+            <label class="lab-slider">Stagioni Topina <input type="number" class="lab-num" id="n-seasons" min="0" max="20" value="4"></label>
+            <label class="lab-slider">Larghezza <input type="range" id="n-width" min="80" max="320" value="232"><span id="n-width-val">232px</span></label>
+        </div>
+    </header>
+
+    <main class="lab-body">
+        <section class="lab-case">
+            <h2>Playground</h2>
+            <p>Una card sola, tutte le manopole sopra. Il contesto imposta larghezza e cornice di default — poi si può
+                scavalcare tutto a mano per vedere combinazioni che nel sito non capitano mai insieme.</p>
+            <div id="playground">
+                <div id="playground-stage"></div>
+            </div>
+        </section>
+
+        <section class="lab-case">
+            <h2>Galleria — i quattro contesti veri</h2>
+            <p>Stesso identico markup, così come lo produce ognuna delle quattro pagine che lo usano oggi.</p>
+            <div class="lab-gallery" id="gallery-contexts"></div>
+        </section>
+
+        <section class="lab-case">
+            <h2>Responsive — la stessa carta, sempre più stretta</h2>
+            <p>Sotto i 200px il logo squadra e la fascia traguardi spariscono (restano ruolo, foto, nome per
+                intero); sotto i 130px sparisce anche il ruolo e il nome si riduce al solo cognome. Le soglie sono
+                <code>@container</code> sulla carta stessa (<code>container-name: panini</code> in main.css), non sulla
+                finestra: la stessa card si comporta così ovunque diventi così stretta, mosaico Home compreso — è lì
+                che si è visto il problema per la prima volta (~150px, due colonne dentro una card di home già
+                stretta).</p>
+            <div class="lab-gallery" id="gallery-responsive"></div>
+        </section>
+
+        <section class="lab-case">
+            <h2>Galleria — casi limite</h2>
+            <p>Stati che il sito non mostra quasi mai, ma che il CSS deve reggere lo stesso: bacheca piena, nome
+                lunghissimo, foto assente.</p>
+            <div class="lab-gallery" id="gallery-stress"></div>
+        </section>
+
+        <div class="lab-note">
+            <b>Fixture, non dati veri.</b> Nomi, ruoli e foto dei giocatori sono reali (passano dal servizio foto
+            vero). Bacheca premi, bio e stagioni Topina sono inventate per esplorare stati — non sono la carriera
+            reale di quei giocatori nella lega.
+        </div>
+    </main>
+
+    <script type="module">
+        import { playerImageService } from './js/services/player-image-service.js?v=520';
+
+        // ─── Copiate da js/components/player-modal.js (paniniCard, paniniBadgesHTML,
+        // bioLine) — vedi il commento in testa al file sul perché non sono importate.
+        // Se la funzione vera cambia, allineare qui. ─────────────────────────────
+        const fmtDate = (iso) => {
+            const d = new Date(iso);
+            if (isNaN(d)) return null;
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        function bioLine(info) {
+            if (!info) return '';
+            const parts = [];
+            const date = info.birth_date ? fmtDate(info.birth_date) : null;
+            if (date) parts.push(date);
+            const hIn = parseFloat(info.height);
+            if (hIn) parts.push(`${(hIn * 0.0254).toFixed(2).replace('.', ',')} m`);
+            const wLb = parseFloat(info.weight);
+            if (wLb) parts.push(`${Math.round(wLb * 0.453592)} kg`);
+            return parts.join(' · ');
+        }
+
+        function paniniBadgesHTML(career) {
+            if (!career) return '';
+            const stars = career.sbWins ? '★'.repeat(Math.min(career.sbWins, 5)) : '';
+            return `
+                ${career.mvp ? `<span class="pm-panini-mvp">${career.mvp}× MVP</span>` : ''}
+                ${stars ? `<span class="pm-panini-stars">${stars}</span>` : ''}
+                ${career.firstTeam ? `<span class="pm-panini-allpro pm-panini-allpro--1">${career.firstTeam}× AP1</span>` : ''}
+                ${career.secondTeam ? `<span class="pm-panini-allpro pm-panini-allpro--2">${career.secondTeam}× AP2</span>` : ''}`;
+        }
+
+        function paniniCard({ name, pos, nfl, info, career, hofYear, compact = false }) {
+            const gold = !!hofYear;
+            const bio = bioLine(info);
+            const seasons = career ? `${career.seasons.size} Topina season${career.seasons.size === 1 ? '' : 's'}` : '';
+            const showBubble = !compact && (bio || seasons);
+            const posInline = name.length > 22; // vedi commento in player-modal.js::paniniCard
+            const surname = name.trim().split(/\s+/).pop(); // idem, sotto i 130px di carta
+
+            return `
+            <div class="pm-panini${gold ? ' pm-panini--gold' : ''}">
+                <div class="pm-panini-inner">
+                    <span class="pm-panini-side-name pm-panini-side-name--full">${name}</span>
+                    <span class="pm-panini-side-name pm-panini-side-name--short">${surname}</span>
+                    ${pos ? `<span class="pm-panini-pos${posInline ? ' pm-panini-pos--inline' : ''}">
+                        <span>${pos}</span>
+                        ${nfl ? `<img class="pm-panini-pos-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${nfl.toLowerCase()}.png" alt="" onerror="this.style.display='none'">` : ''}
+                    </span>` : ''}
+                    <div class="pm-panini-top">
+                        <div class="pm-panini-badges">${paniniBadgesHTML(career)}</div>
+                    </div>
+                    <div class="pm-panini-photo-wrap">
+                        <img class="pm-headshot pm-panini-photo" src="images/fallback-player.svg" alt="${name}"
+                             data-player-name="${name}" data-team="${nfl || ''}" data-pos="${pos || ''}">
+                    </div>
+                    ${showBubble ? `
+                    <div class="pm-panini-info">
+                        <div class="pm-panini-bubble">
+                            ${bio ? `<span class="pm-panini-bio">${bio}</span>` : ''}
+                            ${seasons ? `<span class="pm-panini-seasons">${seasons}</span>` : ''}
+                        </div>
+                    </div>` : ''}
+                </div>
+            </div>`;
+        }
+        // ─── Fine copia ──────────────────────────────────────────────────────────
+
+        // Le quattro squadre VERE (colori), copiate come nello score-bug lab —
+        // stesso motivo: niente import di team.js/data.js qui dentro.
+        const TEAM_COLORS = {
+            capi: '#FF6600', lasers: '#D4AF37', oscurus: '#800020', sommo: '#1c4750',
+        };
+
+        // Preset di giocatori VERI (nome/pos/squadra NFL) scelti perché hanno una
+        // foto affidabile nel servizio reale — niente a che fare con la loro
+        // carriera Topina, che qui è sempre inventata.
+        const PLAYERS = {
+            mahomes: { name: 'Patrick Mahomes', pos: 'QB', nfl: 'KC' },
+            mccaffrey: { name: 'Christian McCaffrey', pos: 'RB', nfl: 'SF' },
+            jefferson: { name: 'Justin Jefferson', pos: 'WR', nfl: 'MIN' },
+            kelce: { name: 'Travis Kelce', pos: 'TE', nfl: 'KC' },
+            tucker: { name: 'Justin Tucker', pos: 'K', nfl: 'BAL' },
+            niners: { name: 'San Francisco 49ers', pos: 'DEF', nfl: 'SF' },
+        };
+
+        const $ = (sel, root = document) => root.querySelector(sel);
+        const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+        function wirePills(groupId, attr, onPick) {
+            const host = $(`#${groupId}`);
+            host.querySelectorAll('.lab-btn').forEach(b => {
+                b.addEventListener('click', () => {
+                    host.querySelectorAll('.lab-btn').forEach(x => x.classList.remove('on'));
+                    b.classList.add('on');
+                    onPick(b.dataset[attr]);
+                });
+            });
+        }
+
+        const state = {
+            player: 'mahomes', context: 'modal', team: 'capi',
+            bubble: '0', gold: '0', width: 232,
+        };
+
+        wirePills('lab-player', 'player', v => {
+            state.player = v;
+            $('#lab-custom').hidden = v !== 'custom';
+            render();
+        });
+        wirePills('lab-context', 'context', v => {
+            state.context = v;
+            $('#lab-team').hidden = v !== 'draft';
+            // La larghezza di default segue il contesto reale, ma solo se
+            // l'utente non ha già smanettato lo slider a mano.
+            const defaults = { modal: 232, hof: 220, draft: 220, allpro: 240 };
+            state.width = defaults[v];
+            $('#n-width').value = state.width;
+            $('#n-width-val').textContent = state.width + 'px';
+            render();
+        });
+        wirePills('lab-team', 'team', v => { state.team = v; render(); });
+        wirePills('lab-bubble', 'bubble', v => { state.bubble = v; render(); });
+        wirePills('lab-gold', 'gold', v => { state.gold = v; render(); });
+
+        ['n-mvp', 'n-rings', 'n-ap1', 'n-ap2', 'n-seasons'].forEach(id => $(`#${id}`).addEventListener('input', render));
+        $('#custom-name').addEventListener('input', render);
+        $('#custom-pos').addEventListener('input', render);
+        $('#custom-nfl').addEventListener('input', render);
+        $('#n-width').addEventListener('input', () => {
+            state.width = +$('#n-width').value;
+            $('#n-width-val').textContent = state.width + 'px';
+            render();
+        });
+
+        function currentPlayer() {
+            if (state.player === 'custom') {
+                return {
+                    name: $('#custom-name').value.trim() || 'Nome Cognome',
+                    pos: $('#custom-pos').value.trim() || 'WR',
+                    nfl: $('#custom-nfl').value.trim(),
+                };
+            }
+            return PLAYERS[state.player];
+        }
+
+        function fixtureCareer() {
+            const mvp = +$('#n-mvp').value || 0;
+            const sbWins = +$('#n-rings').value || 0;
+            const firstTeam = +$('#n-ap1').value || 0;
+            const secondTeam = +$('#n-ap2').value || 0;
+            const seasonsCount = +$('#n-seasons').value || 0;
+            if (!mvp && !sbWins && !firstTeam && !secondTeam && !seasonsCount) return null;
+            return {
+                mvp, sbWins, firstTeam, secondTeam,
+                seasons: new Set(Array.from({ length: seasonsCount }, (_, i) => 2019 + i)),
+            };
+        }
+
+        // Bio d'esempio: unica, non legata al giocatore scelto — serve solo a
+        // vedere la bolla popolata, non è l'anagrafica vera di nessuno.
+        const FIXTURE_INFO = { birth_date: '1995-09-17', height: '75', weight: '225' };
+
+        /** Wrapper del contesto: cornice/larghezza reali di dove vive la card. */
+        function wrapFor(context, team, widthPx, innerHtml) {
+            const style = `width:${widthPx}px`;
+            if (context === 'draft') {
+                return `<div class="draft-fig-card" style="${style};--team-color:${TEAM_COLORS[team]}">${innerHtml}</div>`;
+            }
+            if (context === 'allpro') {
+                return `<div class="allpro-fig" style="${style}">${innerHtml}</div>`;
+            }
+            // modal e hof non hanno una classe contenitore che tocca .pm-panini:
+            // solo la larghezza conta (.pm-left nel modal, la cella .hof-grid nella HOF).
+            return `<div style="${style}">${innerHtml}</div>`;
+        }
+
+        function defaultCompact(context) {
+            return context === 'hof' ? false : true; // solo la HOF mostra la bolla di default
+        }
+
+        async function hydrate(root) {
+            for (const img of $$('.pm-headshot', root)) {
+                img.onerror = () => {
+                    if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg';
+                };
+                const { playerName, team, pos } = img.dataset;
+                try {
+                    const url = await playerImageService.getPlayerImageUrl(playerName, team, pos);
+                    if (url) img.src = url;
+                } catch { /* resta il fallback */ }
+            }
+        }
+
+        function render() {
+            const p = currentPlayer();
+            const compact = state.bubble === 'auto' ? defaultCompact(state.context) : state.bubble === '0';
+            const card = paniniCard({
+                ...p, info: FIXTURE_INFO, career: fixtureCareer(),
+                hofYear: state.gold === '1' ? 2026 : null, compact,
+            });
+            const stage = $('#playground-stage');
+            stage.style.width = state.width + 'px';
+            stage.innerHTML = wrapFor(state.context, state.team, state.width, card);
+            hydrate(stage);
+        }
+
+        // ─── Galleria: i quattro contesti veri, fissi, uno accanto all'altro ──
+        function galleryItem(label, html) {
+            return `<div class="lab-gitem"><div class="lab-gitem-html">${html}</div><span class="lab-gitem-label">${label}</span></div>`;
+        }
+
+        function buildContextGallery() {
+            const host = $('#gallery-contexts');
+            const seasons3 = new Set([2022, 2023, 2024]);
+
+            const modalCard = wrapFor('modal', null, 220, paniniCard({
+                ...PLAYERS.mahomes, career: { mvp: 1, sbWins: 2, firstTeam: 0, secondTeam: 0, seasons: seasons3 }, compact: true,
+            }));
+            const hofCard = wrapFor('hof', null, 220, paniniCard({
+                ...PLAYERS.kelce, info: FIXTURE_INFO,
+                career: { mvp: 0, sbWins: 1, firstTeam: 2, secondTeam: 1, seasons: seasons3 },
+                hofYear: 2026,
+            }));
+            const draftCard = wrapFor('draft', 'lasers', 220, paniniCard({
+                ...PLAYERS.jefferson, career: { mvp: 0, sbWins: 0, firstTeam: 1, secondTeam: 0, seasons: new Set([2024]) }, compact: true,
+            }));
+            const allproCard = wrapFor('allpro', null, 220, paniniCard({
+                ...PLAYERS.mccaffrey, career: { mvp: 0, sbWins: 0, firstTeam: 0, secondTeam: 1, seasons: seasons3 }, compact: true,
+            }));
+
+            host.innerHTML = [
+                galleryItem('Modal · scheda giocatore (232px reale, qui 220 per allineare la griglia)', modalCard),
+                galleryItem('Hall of Fame · griglia (oro, con bolla bio/stagioni)', hofCard),
+                galleryItem('Draft Recap · cornice tinta squadra (qui Lasers)', draftCard),
+                galleryItem('All-Pro / Franchise Players · cornice argento', allproCard),
+            ].join('');
+            hydrate(host);
+        }
+
+        // ─── Galleria: casi limite ──────────────────────────────────────────
+        function buildStressGallery() {
+            const host = $('#gallery-stress');
+
+            const stacked = wrapFor('modal', null, 220, paniniCard({
+                ...PLAYERS.mahomes,
+                career: { mvp: 3, sbWins: 5, firstTeam: 4, secondTeam: 3, seasons: new Set(Array.from({ length: 7 }, (_, i) => 2019 + i)) },
+                hofYear: 2026, compact: false, info: FIXTURE_INFO,
+            }));
+            const longName = wrapFor('modal', null, 220, paniniCard({
+                name: 'Amon-Ra St. Brown Jr. III', pos: 'WR', nfl: 'DET',
+                career: { mvp: 0, sbWins: 0, firstTeam: 0, secondTeam: 0, seasons: new Set([2024]) }, compact: true,
+            }));
+            // Foto assente apposta: niente hydrate() su questa, resta il
+            // fallback-player.svg che la card monta di default.
+            const noPhoto = wrapFor('modal', null, 220, paniniCard({
+                name: 'Giocatore Sconosciuto', pos: 'RB', nfl: '', compact: true,
+            }));
+            const skeleton = wrapFor('modal', null, 220, paniniCard({
+                name: 'In caricamento…', pos: '', nfl: '', compact: true,
+            }));
+
+            host.innerHTML = [
+                galleryItem('Bacheca piena + oro: MVP×3, 5 anelli, AP1×4, AP2×3, bolla bio', stacked),
+                galleryItem('Nome lunghissimo: il testo verticale sul bordo', longName),
+                galleryItem('Foto non trovata → silhouette di fallback (nessuna hydrate)', noPhoto),
+                galleryItem('Scheletro di caricamento: niente ruolo, niente badge', skeleton),
+            ].join('');
+            // noPhoto (indice 2) va escluso apposta: deve restare sul fallback
+            // che la card monta di default, senza passare dal servizio foto.
+            const items = $$('.lab-gitem', host);
+            hydrate(items[0]);
+            hydrate(items[1]);
+            hydrate(items[3]);
+        }
+
+        // ─── Responsive: la stessa card a più larghezze fisse ─────────────────
+        // Griglia diversa da .lab-gallery apposta: quella impone
+        // minmax(200px,220px) per colonna, qui servono item anche da 90px.
+        function buildResponsiveGallery() {
+            const host = $('#gallery-responsive');
+            const WIDTHS = [
+                [236, 'Normale (= max Hall of Fame)'], [216, 'Soglia logo/traguardi/cognome'],
+                [150, '≈ mosaico Home telefono, il bug di partenza'], [129, 'Soglia ruolo'], [90, 'Micro'],
+            ];
+            // McCaffrey apposta: il nome vero più lungo testato, quello che ha
+            // dettato le soglie sopra (vedi il commento in main.css).
+            const card = () => paniniCard({
+                ...PLAYERS.mccaffrey, career: { mvp: 1, sbWins: 0, firstTeam: 0, secondTeam: 1, seasons: new Set([2023, 2024]) }, compact: true,
+            });
+            host.innerHTML = WIDTHS.map(([w, label]) =>
+                galleryItem(`${w}px · ${label}`, wrapFor('allpro', null, w, card()))
+            ).join('');
+            hydrate(host);
+        }
+
+        buildContextGallery();
+        buildStressGallery();
+        buildResponsiveGallery();
+        render();
+    </script>
+</body>
+
+</html>

@@ -7,9 +7,10 @@
  * Nessun fetch proprio: riceve dati già caricati da nfl-team-page.js.
  */
 
-import { esc, teamLogo } from './player-page.js?v=873';
+import { esc, teamLogo } from './player-page.js?v=886';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { playerImageService } from '../services/player-image-service.js?v=520';
+import { playerImageService } from '../services/player-image-service.js?v=522';
+import { fieldMarker, fieldClipDefs, hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
 
 // ─── Calendario a blocchi ─────────────────────────────────────────────────
 
@@ -198,14 +199,6 @@ const DEFENSE_SLOTS_34 = [
 
 const _norm = (s) => (s || '').toUpperCase();
 
-// Cognome del giocatore per l'etichetta sotto la foto (stile screenshot: nome + posizione).
-const _SUFFIX = new Set(['JR', 'JR.', 'SR', 'SR.', 'II', 'III', 'IV', 'V']);
-function _lastName(full) {
-    const parts = (full || '').trim().split(/\s+/).filter(Boolean);
-    while (parts.length > 1 && _SUFFIX.has(parts[parts.length - 1].toUpperCase())) parts.pop();
-    return parts.length ? parts[parts.length - 1] : (full || '');
-}
-
 /**
  * Primi `count` giocatori (dedup per nome) dai gruppi depth-chart il cui `pos`
  * matcha uno dei pattern, in ordine di pattern.
@@ -376,20 +369,7 @@ function _fieldMarkings() {
 }
 
 function _playerMarker({ fx, fy, label, player, side, abbr, year }) {
-    const x = tdX(fx), y = tdY(fy);
-    const name = player?.name || '';
-    const jersey = player?.jersey;
-    const hasPlayer = !!name;
-    return `
-    <g class="nfl-fd-slot nfl-fd-slot--${side}${hasPlayer ? '' : ' is-empty'}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
-        <circle r="19" class="nfl-fd-disc"/>
-        ${hasPlayer ? `<image class="nfl-fd-photo" data-headshot data-player-name="${esc(name)}" data-team="${esc(abbr)}" data-pos="${esc(label)}" data-year="${year}"
-            href="images/fallback-player.svg" x="-19" y="-19" width="38" height="38"
-            clip-path="url(#nfl-fd-clip)" preserveAspectRatio="xMidYMid slice"><title>${esc(name)}${jersey != null ? ` · #${esc(String(jersey))}` : ''}</title></image>` : ''}
-        ${hasPlayer && jersey != null ? `<text class="nfl-fd-jersey" y="-23" text-anchor="middle">${esc(String(jersey))}</text>` : ''}
-        ${hasPlayer ? `<text class="nfl-fd-name" y="32" text-anchor="middle">${esc(_lastName(name))}</text>` : ''}
-        <text class="nfl-fd-pos" y="${hasPlayer ? 43 : 5}" text-anchor="middle">${esc(label)}</text>
-    </g>`;
+    return fieldMarker({ x: tdX(fx), y: tdY(fy), label, player, side, abbr, year, clipId: 'nfl-fd-clip' });
 }
 
 /** Campo vista dall'alto con attacco/difesa titolari schierati (template 11 personnel / 4-3 base). */
@@ -411,7 +391,7 @@ export function formationFieldBlock(depthChart, abbr, year) {
         <span class="mc-kicker">Starting lineup · base ${scheme}</span>
         <div class="nfl-fd2" data-fd2>
             <svg class="nfl-fd2-svg" viewBox="0 0 ${TDF.vbW} ${TDF.vbH}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Starting lineup, top-down view">
-                <defs><clipPath id="nfl-fd-clip" clipPathUnits="userSpaceOnUse"><circle r="19" cx="0" cy="0"/></clipPath></defs>
+                <defs>${fieldClipDefs('nfl-fd-clip')}</defs>
                 <rect x="0" y="0" width="${TDF.vbW}" height="${TDF.vbH}" class="nfl-fd2-turf"/>
                 ${_fieldMarkings()}
                 <line x1="0" y1="${losY.toFixed(1)}" x2="${TDF.vbW}" y2="${losY.toFixed(1)}" class="nfl-fd2-los"/>
@@ -426,12 +406,5 @@ export function formationFieldBlock(depthChart, abbr, year) {
 
 /** Idrata le foto (elementi SVG &lt;image&gt;: si aggiorna l'attributo href, non .src). */
 export function hydrateFormationPhotos(section) {
-    section.querySelectorAll('.nfl-fd-photo[data-headshot]').forEach((img) => {
-        img.addEventListener('error', () => {
-            if (!img.getAttribute('href')?.endsWith('fallback-player.svg')) img.setAttribute('href', 'images/fallback-player.svg');
-        });
-        playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, img.dataset.pos, img.dataset.year)
-            .then((url) => { if (url) img.setAttribute('href', url); })
-            .catch(() => {});
-    });
+    hydrateFieldPhotos(section, playerImageService);
 }

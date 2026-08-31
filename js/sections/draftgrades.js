@@ -36,10 +36,10 @@ import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=610';
 import { getHonorsBundle } from '../data/honors.js?v=591';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=595';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
-import { initPlayerModal } from '../components/player-modal.js?v=615';
-import { playerImageService } from '../services/player-image-service.js?v=520';
+import { initPlayerModal } from '../components/player-modal.js?v=620';
+import { playerImageService } from '../services/player-image-service.js?v=522';
 import { predictSeason } from '../data/draft-predictions.js?v=633';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=622';
 import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=572';
@@ -275,6 +275,30 @@ export function computeSeasonDelivery(picks, meta) {
 
 export { gradeBand };
 
+/**
+ * Lettera-voto pronta per essere allineata IN COLONNA, non solo colorata:
+ * un voto è "B", "C-" o "D" — se si allinea la stringa intera a destra, "C-"
+ * (due caratteri) parte prima di "B" (uno solo) e il bordo destro comune non
+ * basta a farli leggere come colonna, perché l'occhio segue la LETTERA, non
+ * l'ultimo pixel della casella. Qui la base (B/C/D) è il primo figlio di
+ * `.dg-grade` e il segno "+"/"-" la segue come fratello senza spostarla: un
+ * contenitore a larghezza FISSA con la base allineata a sinistra (vedi
+ * `.dg-grade` nel CSS, tarato per ogni riga che lo usa) la mantiene sempre
+ * nello stesso punto, con o senza segno. Il colore sta sul contenitore, non
+ * sulla lettera, perché il segno è un fratello e non un discendente di
+ * `.dg-letter` — da solo resterebbe nel colore di default.
+ * Condivisa fra la lista di riepilogo qui sotto e il widget "How the draft
+ * went" della home (js/sections/home.js).
+ */
+export function gradeLetterHTML(letter) {
+    const sign = /[+-]$/.exec(letter)?.[0] || '';
+    const base = sign ? letter.slice(0, -1) : letter;
+    return `
+    <span class="dg-grade dg-letter--${gradeBand(letter)}">
+        <span class="dg-letter">${base}</span>${sign ? `<span class="dg-letter-sign">${sign}</span>` : ''}
+    </span>`;
+}
+
 /** Badge "com'è andata poi" — confronta produzione reale con la proiezione */
 export function outcomeBadge(p) {
     if (p.actual == null || p.value < 15) return '';
@@ -347,8 +371,10 @@ function renderGrades(year, grades, meta, pred, model, dg) {
         <div class="dg-sum" style="--team-color:${t.color};--dg-i:${i}">
             <img src="${t.logo}" alt="${t.name}" onerror="this.style.display='none'">
             <span class="dg-sum-name">${t.name}</span>
-            ${d ? `<span class="dg-sum-score">${d.grade}<small>/100</small></span>
-                   <span class="dg-letter dg-letter--${gradeBand(d.letter)}">${d.letter}</span>` : ''}
+            ${d ? `<span class="dg-sum-stats">
+                <span class="dg-sum-score">${d.grade}<small>/100</small></span>
+                ${gradeLetterHTML(d.letter)}
+            </span>` : ''}
         </div>`;
     }).join('');
 
@@ -390,7 +416,13 @@ function methodNote(year, meta, pred, model, dg) {
 function leagueScatter(dg) {
     if (!dg?.ranking?.length) return '';
     const teams = dg.ranking.map(k => dg.byKey[k]);
-    const W = 660, H = 380, L = 62, R = 128, T = 40, B = 52;
+    // L=R: il riquadro del grafico resta centrato nel canvas, non spostato a
+    // sinistra. R era 128 (il doppio di L) per lasciare posto alle etichette
+    // quando il punto è vicino al bordo destro — ma quel margine, misurato
+    // su tutte le 7 stagioni coi dati veri, non veniva mai usato: l'etichetta
+    // più a destra di sempre arriva a x=498 su un canvas di 660, con margine
+    // destro che iniziava già a 532. Va bene restringerlo.
+    const W = 660, H = 380, L = 56, R = 56, T = 36, B = 44;
     const iw = W - L - R, ih = H - T - B;
 
     // dominio guidato dai dati, con margine, ma sempre comprensivo della media

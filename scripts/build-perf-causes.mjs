@@ -17,7 +17,7 @@
  *       node scripts/build-perf-causes.mjs 2023 2024
  */
 
-import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { ROOT } from './lib/nflverse.mjs';
@@ -25,8 +25,23 @@ import { ROOT } from './lib/nflverse.mjs';
 const OUT_DIR = path.join(ROOT, 'data', 'model');
 const NFL_DIR = path.join(ROOT, 'data', 'nfl');
 const OFF = new Set(['QB', 'RB', 'WR', 'TE']);
-const DEFAULT_YEARS = [2019, 2020, 2021, 2022, 2023, 2024];
+const FIRST_YEAR = 2019; // prima stagione con adv_players utilizzabili
 const POOL_OF = { WR: 'REC', TE: 'REC', RB: 'RUSH', QB: 'QB' };
+
+/**
+ * Anni da generare = TUTTI quelli che hanno un adv_players, non una lista
+ * scritta a mano. Con la lista fissa (si fermava al 2024) il 2025 non è mai
+ * stato generato: sul sito la stagione più recente restava senza cause e
+ * senza grafico della quota, mentre le stagioni vecchie li avevano — un buco
+ * silenzioso, perché un anno mancante non dà errore, semplicemente sparisce.
+ */
+async function discoverYears() {
+    const files = await readdir(NFL_DIR);
+    const years = files
+        .map(f => /^adv_players_(\d{4})\.json$/.exec(f)?.[1])
+        .filter(Boolean).map(Number).filter(y => y >= FIRST_YEAR);
+    return [...new Set(years)].sort((a, b) => a - b);
+}
 
 const { scoreProjectedStats } = await import(pathToFileURL(path.join(ROOT, 'js', 'data', 'scoring.js')));
 const normName = (n) => (n || '').toLowerCase().replace(/[.,']/g, '').replace(/\s+/g, ' ').trim();
@@ -167,8 +182,51 @@ function buildCauses({ k, pos, team, prevTeam, pool, poolsCur, poolsPrev, tsCur,
         share = { key: shareKey, pct: Math.round(a[shareKey] * 100), pctPrev: (aPrev && aPrev[shareKey] != null) ? Math.round(aPrev[shareKey] * 100) : null };
     }
 
-    const has = teammateInjuries.length || departures.length || arrivals.length || teamCtx || oline || share;
-    return has ? { teammateInjuries, departures, arrivals, team: teamCtx, oline, share } : null;
+    // ENTRAMBE le quote, per il grafico ad anelli: un RB prende anche palloni in
+    // aria e un ricevitore ogni tanto corre, e vederle insieme è metà del punto.
+    // `share` qui sopra resta quella DOMINANTE del ruolo, la sola che il verdetto
+    // testuale cita: non si tocca, o cambierebbe describeCauses.
+    const shares = buildShares(a, aPrev);
+
+    const has = teammateInjuries.length || departures.length || arrivals.length || teamCtx || oline || share || shares;
+    return has ? { teammateInjuries, departures, arrivals, team: teamCtx, oline, share, shares } : null;
+}
+
+/**
+ * Quota + volumi assoluti di una singola voce (target o corse).
+ *
+ * ATTENZIONE al denominatore: le quote nflverse sono calcolate sulle gare che
+ * il giocatore HA GIOCATO, non sulla stagione intera. Quindi `team` qui è
+ * "quanti ne ha avuti la squadra NELLE SUE GARE" — un numero corretto e anzi
+ * più giusto per una quota, ma che NON è il totale di stagione: chi lo mostra
+ * deve dirlo (Jefferson 2023 = 28% su 10 gare, non sulle 17).
+ * Sotto il 2% la divisione amplifica l'arrotondamento (uno 0,2% dà totali
+ * assurdi): lì il totale-squadra si omette e resta la sola percentuale.
+ */
+function shareDetail(rec, shareKey, perGameKey) {
+    const frac = rec?.[shareKey];
+    if (frac == null || rec[perGameKey] == null || !rec.gp) return null;
+    const player = Math.round(rec[perGameKey] * rec.gp);
+    return {
+        pct: Math.round(frac * 100),
+        player,
+        team: frac >= 0.02 ? Math.round(player / frac) : null,
+    };
+}
+
+function buildShares(a, aPrev) {
+    if (!a) return null;
+    const target = shareDetail(a, 'targetShare', 'tgtPerGame');
+    const rush = shareDetail(a, 'rushShare', 'carriesPerGame');
+    if (!target && !rush) return null;
+    const prevPct = (rec, k) => (rec?.[k] != null ? Math.round(rec[k] * 100) : null);
+    return {
+        gp: a.gp ?? null,
+        target: target ? { ...target, pctPrev: prevPct(aPrev, 'targetShare') } : null,
+        rush: rush ? { ...rush, pctPrev: prevPct(aPrev, 'rushShare') } : null,
+        snapPct: a.snapPct != null ? Math.round(a.snapPct * 100) : null,
+        snapPctPrev: prevPct(aPrev, 'snapPct'),
+    };
 }
 
 async function buildYear(Y) {
@@ -200,7 +258,7 @@ async function buildYear(Y) {
 
 async function main() {
     const years = process.argv.slice(2).map(Number).filter(Boolean);
-    const list = years.length ? years : DEFAULT_YEARS;
+    const list = years.length ? years : await discoverYears();
     await mkdir(OUT_DIR, { recursive: true });
     console.log(`build-perf-causes — anni: ${list.join(', ')}`);
     for (const Y of list) {

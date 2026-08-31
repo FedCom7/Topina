@@ -3,7 +3,7 @@ import { PLAYER_ID_MAP, TEAM_ABBR_MAP, ESPN_TEAM_IDS } from '../data/player-map.
 // Bump della versione = svuota la cache locale: le versioni v3 e precedenti
 // hanno accumulato ID sbagliati dall'era del bug di ricerca (q= invece di
 // query=), che restituivano URL headshot in 404.
-import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
 
 const CACHE_KEY = 'topina_player_ids_v4';
 const FALLBACK_IMAGE = 'images/fallback-player.svg';
@@ -75,15 +75,8 @@ export class PlayerImageService {
             return FALLBACK_IMAGE;
         }
 
-        // Check if we should use roster strategy
-        // We only use roster strategy if:
-        // 1. Team is known
-        // 2. We are in the current season (or no year specified)
-        // This avoids searching for 2012 players in 2025 rosters
-        const isCurrentSeason = !year || year == new Date().getFullYear() || year == '2025'; // Simplification for demo
-
         // 3. ROSTER STRATEGY (If team is known and current season)
-        if (teamAbbr && ESPN_TEAM_IDS[teamAbbr] && isCurrentSeason) {
+        if (teamAbbr && ESPN_TEAM_IDS[teamAbbr] && this._isCurrentSeason(year)) {
             const teamId = ESPN_TEAM_IDS[teamAbbr];
             const rosterImage = await this._findInRoster(playerName, teamId);
             if (rosterImage) {
@@ -261,6 +254,32 @@ export class PlayerImageService {
             return null;
         } catch (e) {
             console.warn(`Error fetching ID for ${name}:`, e);
+            return null;
+        }
+    }
+
+    // Come nel commento sopra: si usa il roster ESPN corrente solo per la
+    // stagione corrente, sennò si cercherebbe un giocatore del 2012 nella
+    // rosa 2025 — vale sia per l'headshot che per il numero di maglia.
+    _isCurrentSeason(year) {
+        return !year || year == new Date().getFullYear() || year == '2025'; // Simplification for demo
+    }
+
+    /**
+     * Numero di maglia, a costo quasi zero quando il roster è già stato
+     * scaricato per l'headshot: stessa cache in memoria (`_rosterCache`),
+     * solo letta due volte. Come le foto, vale per la rosa CORRENTE — su una
+     * stagione passata il giocatore potrebbe aver cambiato maglia o squadra
+     * (o non fetcha proprio, stesso cancello di `_isCurrentSeason`), quindi
+     * qui si preferisce niente numero piuttosto che uno sbagliato.
+     */
+    async getPlayerJersey(playerName, teamAbbr, year) {
+        if (!playerName || !teamAbbr || !ESPN_TEAM_IDS[teamAbbr] || !this._isCurrentSeason(year)) return null;
+        try {
+            const roster = await this._fetchTeamRoster(ESPN_TEAM_IDS[teamAbbr]);
+            const match = this._findBestMatch(roster, playerName);
+            return match?.jersey ?? null;
+        } catch {
             return null;
         }
     }

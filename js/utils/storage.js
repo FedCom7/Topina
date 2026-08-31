@@ -58,7 +58,7 @@ const BUDGET_CHARS = 2 * 1024 * 1024;
  */
 const FAMILIES = [
     { current: 'topina_proj_v5_',      stale: /^topina_proj_v\d+_/,       tier: 0 },
-    { current: 'topina_stats_v5_',     stale: /^topina_stats_v\d+_/,      tier: 0 },
+    { current: 'topina_stats_v6_',     stale: /^topina_stats_v\d+_/,      tier: 0 },
     { current: 'topina_predraft_v1_',  stale: /^topina_predraft_v\d+_/,   tier: 0 },
     { current: 'nfl-sched4-',          stale: /^nfl-sched\d*-/,           tier: 1 },
     { current: 'nfl-weekgames1-',      stale: /^nfl-weekgames\d*-/,       tier: 1 },

@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
-import { sweepStorage } from "./utils/storage.js?v=2";
+import { sweepStorage } from "./utils/storage.js?v=4";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBwGgLLBmHaq1DXKwtvj-Au6bGlzk8Yq_s",

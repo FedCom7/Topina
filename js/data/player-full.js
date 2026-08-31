@@ -10,10 +10,10 @@
  */
 
 import { getSeasonStats, matchProjection, trimStats } from './projections.js?v=594';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
 import { scoreProjectedStats, LEAGUE_SCORING } from './scoring.js?v=592';
 import { TEAM_ABBR_MAP } from './player-map.js?v=513';
-import { canonAbbr } from './nfl-schedule.js?v=525';
+import { canonAbbr } from './nfl-schedule.js?v=526';
 import { CURRENT_SEASON } from '../data.js?v=540';
 
 export const FIRST_STATS_YEAR = 2015; // prima stagione con stats Sleeper affidabili

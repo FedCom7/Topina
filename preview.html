@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Preview hub — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito. `npm run preview` lo apre
+        da solo (scripts/dev-server.mjs).
+
+        Un solo posto per raggiungere QUALUNQUE schermata del sito con un
+        clic, senza costruire l'URL a mano: le sezioni dirette (in app.js:
+        SECTIONS), le pagine squadra, qualche deep-link di esempio per le
+        route con parametri (#game/…, #draftgrades/…, #nfl-team/…), e per la
+        home — che da sola cambia faccia cinque volte l'anno (js/sections/
+        home.js, registro MOSAIC) — i controlli di fase/stagione/settimana.
+
+        Non simula niente: ogni pulsante porta a index.html coi dati VERI.
+        Se una schermata si vede bene qui, si vede bene anche navigando.
+
+        I laboratori di componente (score-bug, player card: varianti/tema/stato
+        di UNA card, non di una pagina) restano a parte in preview-scorebug.html
+        e preview-player-card.html, linkati in fondo — scopo diverso, si
+        sarebbero solo accavallati qui.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0b;
+            --panel: #141416;
+            --line: rgba(255, 255, 255, .12);
+            --text: #f5f0e8;
+            --muted: #8b8b90;
+            --accent: #B8433A;
+            --amber: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Altezza DEFINITA, non min-height: l'iframe si misura in percentuale
+           sul suo contenitore, e con un'altezza automatica collassava a una
+           striscia di 150px. */
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 18px;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel);
+        }
+
+        h1 {
+            margin: 0;
+            font-family: 'Inter Tight', sans-serif;
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: -.02em;
+            flex: none;
+        }
+
+        h1 small {
+            display: block;
+            font-family: 'Inter', sans-serif;
+            font-size: .65rem;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 18px;
+            width: 100%;
+        }
+
+        .group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .group>label {
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-right: 2px;
+        }
+
+        button,
+        select,
+        input {
+            padding: 7px 13px;
+            border: 1px solid var(--line);
+            border-radius: 100px;
+            background: transparent;
+            color: var(--muted);
+            font: inherit;
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color .15s, border-color .15s, background-color .15s;
+        }
+
+        button:hover {
+            color: var(--text);
+        }
+
+        button[aria-pressed="true"] {
+            color: var(--text);
+            border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+            background: color-mix(in srgb, var(--accent) 18%, transparent);
+        }
+
+        .examples button[aria-pressed="true"] {
+            border-color: color-mix(in srgb, var(--amber) 55%, transparent);
+            background: color-mix(in srgb, var(--amber) 16%, transparent);
+        }
+
+        select,
+        input {
+            cursor: auto;
+            color: var(--text);
+            border-radius: 8px;
+        }
+
+        input {
+            width: 84px;
+            text-align: center;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .url {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .7rem;
+            color: var(--muted);
+            user-select: all;
+        }
+
+        .stage {
+            flex: 1 1 auto;
+            min-height: 0;
+            /* senza min-height:0 un flex item non scende sotto il contenuto e
+               l'iframe non ha più un'altezza definita da cui partire */
+            display: flex;
+            justify-content: center;
+            padding: 18px;
+            background:
+                repeating-linear-gradient(45deg, rgba(255, 255, 255, .015) 0 10px, transparent 10px 20px);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #000;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+        }
+
+        .hint {
+            flex: none;
+            margin: 0;
+            padding: 10px 18px 12px;
+            border-top: 1px solid var(--line);
+            background: var(--panel);
+            font-size: .72rem;
+            line-height: 1.5;
+            color: var(--muted);
+        }
+
+        .hint code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: var(--amber);
+        }
+
+        .hint a {
+            color: var(--text);
+        }
+
+        .labnav {
+            margin: 4px 0 0;
+            font-size: .68rem;
+            color: var(--muted);
+        }
+
+        .labnav a {
+            color: var(--muted);
+        }
+
+        .labnav a:hover {
+            color: var(--text);
+        }
+
+        .labnav .current {
+            color: var(--text);
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Preview hub<small>Topina League</small></h1>
+        <p class="labnav">
+            <span class="current">Preview hub</span> ·
+            <a href="preview-scorebug.html">Score-bug lab</a> ·
+            <a href="preview-player-card.html">Player card lab</a> ·
+            <a href="index.html">Real site</a>
+        </p>
+
+        <div class="row">
+            <div class="group" id="sections">
+                <label>Screen</label>
+            </div>
+            <div class="group examples" id="examples">
+                <label>Examples</label>
+            </div>
+        </div>
+
+        <div class="row" id="homeControls">
+            <div class="group" id="phases">
+                <label>Phase</label>
+            </div>
+            <div class="group">
+                <label>Season</label>
+                <select id="year"></select>
+            </div>
+            <div class="group" id="weekGroup">
+                <label>Week</label>
+                <input id="week" type="number" min="1" max="18" placeholder="auto">
+            </div>
+            <div class="group" id="daysGroup">
+                <label>Days</label>
+                <input id="days" type="number" min="1" max="60" placeholder="auto">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="group" id="sizes">
+                <label>Width</label>
+            </div>
+            <div class="spacer"></div>
+            <span class="url" id="url"></span>
+        </div>
+    </header>
+
+    <div class="stage">
+        <iframe id="frame" title="Screen preview"></iframe>
+    </div>
+
+    <p class="hint">
+        Every screen renders from the <strong>real</strong> data — nothing is mocked. <strong>Screen</strong> jumps
+        straight to a section; <strong>Examples</strong> are sample deep-links for the routes that need parameters
+        (a game recap, a draft grade team page, an NFL team hub). Picking <strong>Home</strong> reveals its own
+        phase/season/week/days controls, because the home mosaic changes shape five times a year and most of those
+        moments only happen once a season. Looking for a component lab instead (variants, theme, state of one card)?
+        Use the links above.
+    </p>
+
+    <script>
+        // Le sezioni dirette sono quelle in js/app.js: SECTIONS, più le
+        // quattro pagine squadra (TEAM_KEYS_NAV) — aggiungendone una là,
+        // aggiungerla anche qui.
+        const SECTIONS = [
+            ['Home', 'home'], ['Game Center', 'game-center'], ['Live', 'live'],
+            ['Standings', 'standings'], ['Playoffs', 'playoffs'], ['Teams', 'teams'],
+            ['Analysis', 'analysis'], ['Draft', 'draft'], ['Draft Grades', 'draftgrades'],
+            ['Projections', 'projections'], ['Stats', 'stats'], ['History', 'history'],
+            ['Honors', 'honors'], ['All-Pro', 'allpro'], ['Hall of Fame', 'halloffame'],
+            ['Magazine', 'magazine'], ['Players', 'players'],
+            ['Capi (team)', 'team-capi'], ['Lasers (team)', 'team-lasers'],
+            ['Oscurus (team)', 'team-oscurus'], ['Sommo (team)', 'team-sommo'],
+        ];
+        // Route con parametri: un esempio a testa, non un form da compilare.
+        const EXAMPLES = [
+            ['Game recap', 'game/2024/1/0'],
+            ['Draft grade · team', 'draftgrades/2024/capi'],
+            ['NFL team hub', 'nfl-team/KC'],
+        ];
+        const PHASES = ['PRESEASON', 'REGULAR_SEASON', 'PLAYOFFS', 'SB_WEEK', 'OFFSEASON'];
+        const SIZES = [['Phone', 390], ['Tablet', 768], ['Laptop', 1280], ['Full', 0]];
+        const FALLBACK_YEARS = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+
+        // mode: 'section' (Screen pills, home compreso) oppure 'example'
+        // (deep-link fisso). I due gruppi si escludono a vicenda.
+        const state = { mode: 'section', section: 'home', example: '', phase: 'PRESEASON', year: '', week: '', days: '', width: 0 };
+        const $ = (id) => document.getElementById(id);
+
+        function pills(host, items, onPick, label = (v) => v) {
+            items.forEach(v => {
+                const value = Array.isArray(v) ? v[1] : v;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = label(v);
+                b.dataset.value = value;
+                b.onclick = () => onPick(value);
+                host.appendChild(b);
+            });
+        }
+
+        pills($('sections'), SECTIONS, (v) => { state.mode = 'section'; state.section = v; render(); }, v => v[0]);
+        pills($('examples'), EXAMPLES, (v) => { state.mode = 'example'; state.example = v; render(); }, v => v[0]);
+        pills($('phases'), PHASES, (v) => { state.phase = v; render(); }, v => v.replace('_', ' '));
+        pills($('sizes'), SIZES, (v) => { state.width = v; render(); }, v => v[0]);
+
+        ['week', 'days'].forEach(k => $(k).oninput = () => { state[k] = $(k).value; render(); });
+        $('year').onchange = () => { state.year = $('year').value; render(); };
+
+        function render() {
+            const isHome = state.mode === 'section' && state.section === 'home';
+
+            document.querySelectorAll('#sections button').forEach(b =>
+                b.setAttribute('aria-pressed', state.mode === 'section' && b.dataset.value === state.section));
+            document.querySelectorAll('#examples button').forEach(b =>
+                b.setAttribute('aria-pressed', state.mode === 'example' && b.dataset.value === state.example));
+            document.querySelectorAll('#phases button').forEach(b =>
+                b.setAttribute('aria-pressed', b.dataset.value === state.phase));
+            document.querySelectorAll('#sizes button').forEach(b =>
+                b.setAttribute('aria-pressed', String(b.dataset.value) === String(state.width)));
+
+            $('homeControls').style.display = isHome ? '' : 'none';
+            // Week serve solo alla regular season, Days solo alla preseason:
+            // mostrare campi che non fanno niente confonde e basta.
+            $('weekGroup').style.display = state.phase === 'REGULAR_SEASON' ? '' : 'none';
+            $('daysGroup').style.display = state.phase === 'PRESEASON' ? '' : 'none';
+
+            let url;
+            if (state.mode === 'example') {
+                url = `index.html#${state.example}`;
+            } else if (isHome) {
+                const q = new URLSearchParams({ phase: state.phase });
+                if (state.year) q.set('year', state.year);
+                if (state.week && state.phase === 'REGULAR_SEASON') q.set('week', state.week);
+                if (state.days && state.phase === 'PRESEASON') q.set('days', state.days);
+                url = `index.html?${q}`;
+            } else {
+                url = `index.html#${state.section}`;
+            }
+
+            $('url').textContent = url;
+            const frame = $('frame');
+            if (frame.dataset.url !== url) { frame.dataset.url = url; frame.src = url; }
+            frame.style.maxWidth = state.width ? state.width + 'px' : '';
+        }
+
+        // Gli anni si chiedono a Firebase come fa data.js, così la tendina non
+        // invecchia da sola a ogni stagione nuova.
+        (async function years() {
+            let list = FALLBACK_YEARS;
+            try {
+                const r = await fetch('https://topina-9cd75-default-rtdb.firebaseio.com/fantasy.json?shallow=true');
+                const keys = Object.keys(await r.json() || {});
+                const found = keys.map(k => (k.match(/fantasy_data_(\d{4})/) || [])[1]).filter(Boolean).sort();
+                if (found.length) list = found;
+            } catch { /* offline: si tiene il fallback */ }
+
+            const sel = $('year');
+            sel.innerHTML = '<option value="">auto (latest played)</option>'
+                + list.map(y => `<option value="${y}">${y}</option>`).join('');
+        })();
+
+        render();
+    </script>
+</body>
+
+</html>

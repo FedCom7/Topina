@@ -5,9 +5,9 @@
 import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=610';
-import { playerImageService } from '../services/player-image-service.js?v=520';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=615';
-import { db } from '../firebase-config.js?v=2';
+import { playerImageService } from '../services/player-image-service.js?v=522';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=620';
+import { db } from '../firebase-config.js?v=3';
 import { fetchDraftStatus } from '../data/espn-fantasy.js?v=9';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 

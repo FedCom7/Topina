@@ -7,7 +7,7 @@
  * Cache in localStorage: il calendario storico non cambia mai.
  */
 
-import { cacheGet, cacheSet } from '../utils/storage.js?v=2';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
 import { NFL_TEAMS } from './nfl-teams.js?v=511';
 
 const GAME_DURATION_MS = 3.25 * 60 * 60 * 1000; // ~3h15m
@@ -214,6 +214,19 @@ export async function getCurrentNflWeek() {
         console.warn('[nfl-schedule] settimana corrente non disponibile:', e.message);
         return null;
     }
+}
+
+/**
+ * Data di kickoff della week 1 di una stagione, dal tabellone vero (prima
+ * gara in assoluto, `getWeekGames` le ordina già per orario) — non un giorno
+ * indovinato. Serve al countdown della home. Null se il calendario non è
+ * ancora pubblico o ESPN non risponde: il chiamante ripiega su una stima.
+ */
+export async function getNextKickoffDate(year) {
+    const board = await getWeekGames(year, 1, 2);
+    if (!board?.games?.length) return null;
+    const date = new Date(board.games[0].date);
+    return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function _toMap(entries) {

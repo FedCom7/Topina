@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Score bug preview — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        Il tabellone del matchup si vede in uno stato per volta e solo quando
+        quello stato capita: "live" esiste la domenica sera, "final" il martedì,
+        "not drafted" due settimane l'anno. Qui ci sono tutti insieme, in tutte
+        le varianti e a tutte le larghezze.
+
+        Come preview-home.html, questa pagina NON è il sito: è un banco di
+        prova. Ma il componente che disegna è quello vero — importa
+        js/ui/score-bug.js e css/main.css, quindi token, font e colori sono gli
+        stessi. Quello che si vede qui è quello che si vedrà là.
+
+        ── Sui numeri ────────────────────────────────────────────────────
+        Le squadre sono VERE (nomi, colori e loghi della lega). I punteggi, il
+        cronometro e i "da giocare" sono INVENTATI, e devono esserlo: servono
+        stati che oggi non esistono. Non si usa questa pagina per leggere un
+        risultato — si usa per guardare una forma. Sono marcati come fixture
+        anche a schermo, così nessuno se ne dimentica.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito: se una cosa si vede bene qui, si vede bene là -->
+    <link rel="stylesheet" href="css/main.css?v=1037">
+    <style>
+        /* Cromatura del banco di prova. Volutamente diversa dal sito: deve
+           essere ovvio a colpo d'occhio che non si sta guardando la pagina
+           vera. Nessuna di queste classi finisce mai in produzione. */
+        /* Il fondo del BANCO, non del sito: Topina non ha un tema chiaro (main.css
+           è pensato nero, zero variabili light), quindi qui non si sta
+           simulando un tema del sito — si sta cambiando lo sfondo dietro ai
+           componenti per vedere come reggono in due condizioni diverse. Ha
+           senso soprattutto per la Broadcast 2, l'unico pezzo con una barra
+           chiara: su fondo scuro è un tabellone acceso, su fondo chiaro
+           potrebbe sparire dentro la pagina. Le altre tre varianti sono nere
+           e non cambiano: il punto è guardare i contrasti, non travestire
+           il banco da sito diverso. */
+        :root {
+            --lab-bg: #0a0a0b;
+            --lab-fg: var(--text-primary);
+            --lab-muted: var(--text-muted);
+            --lab-border: rgba(255, 255, 255, .14);
+            --lab-panel: rgba(255, 255, 255, .06);
+        }
+
+        body.lab-light {
+            --lab-bg: #eeece6;
+            --lab-fg: #17171a;
+            --lab-muted: #55555c;
+            --lab-border: rgba(0, 0, 0, .14);
+            --lab-panel: rgba(0, 0, 0, .05);
+        }
+
+        body {
+            margin: 0;
+            background: var(--lab-bg);
+            color: var(--lab-fg);
+            font-family: var(--font-body);
+            transition: background var(--dur-med) var(--ease), color var(--dur-med) var(--ease);
+        }
+
+        .lab-head {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            padding: 14px 22px;
+            background: var(--lab-bg);
+            border-bottom: 1px solid var(--lab-border);
+            transition: background var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease);
+        }
+
+        .lab-title {
+            margin: 0 0 3px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .lab-title b {
+            color: var(--accent-amber);
+            font-size: .62rem;
+            letter-spacing: .14em;
+            vertical-align: 3px;
+            margin-left: 8px;
+        }
+
+        .lab-sub {
+            margin: 0;
+            font-size: .74rem;
+            color: var(--lab-muted);
+            max-width: 92ch;
+            line-height: 1.5;
+        }
+
+        .lab-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin-top: 12px;
+            align-items: center;
+        }
+
+        .lab-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lab-group>span {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+            margin-right: 2px;
+        }
+
+        .lab-btn {
+            border: 1px solid var(--lab-border);
+            background: transparent;
+            color: var(--lab-fg);
+            border-radius: 100px;
+            padding: 5px 12px;
+            font-family: var(--font-body);
+            font-size: .72rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .lab-btn.on {
+            background: var(--lab-fg);
+            color: var(--lab-bg);
+            border-color: var(--lab-fg);
+        }
+
+        .lab-body {
+            padding: 26px 22px 80px;
+        }
+
+        /* Il simulatore di larghezza: il componente sta dentro una colonna di
+           larghezza DEFINITA, non nella finestra. Ridimensionare il browser per
+           provare i 390px significa perdere di vista tutto il resto. */
+        .lab-stage {
+            margin: 0 auto;
+            transition: max-width .25s var(--ease);
+        }
+
+        .lab-case {
+            margin-bottom: 30px;
+        }
+
+        .lab-case>h2 {
+            margin: 0 0 4px;
+            font-family: var(--font-display);
+            font-size: .76rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent-red);
+        }
+
+        .lab-case>p {
+            margin: 0 0 12px;
+            font-size: .74rem;
+            color: var(--lab-muted);
+            line-height: 1.5;
+        }
+
+        .lab-ruler {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            font-size: .62rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        .lab-ruler::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--lab-border);
+        }
+
+        /* `hidden` è un attributo, ma qualunque regola d'autore con `display`
+           lo batte: la riga degli slider ha `display:flex` da .lab-controls e
+           restava a schermo anche prima di caricare l'immagine. */
+        [hidden] { display: none !important; }
+
+        .lab-slider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lab-slider input { width: 120px; }
+
+        .lab-hint {
+            font-size: .68rem;
+            font-style: italic;
+            color: var(--text-muted);
+        }
+
+        /* Il riferimento sta sopra la pagina, non dentro una card: così lo si
+           trascina sopra QUALUNQUE stato o variante senza doverlo ricaricare.
+           `difference` è lo strumento vero del confronto: dove le due immagini
+           combaciano il risultato è nero, e un bordo fuori posto di due pixel
+           si accende da solo. A occhio, su un fotogramma ruotato, quei due
+           pixel non li vedrebbe nessuno. */
+        #ref-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 40;
+            transform-origin: center center;
+            cursor: grab;
+            user-select: none;
+            display: none;
+        }
+
+        #ref-layer.on { display: block; }
+        #ref-layer.dragging { cursor: grabbing; }
+        #ref-layer.diff { mix-blend-mode: difference; }
+
+        .lab-note {
+            margin: 30px auto 0;
+            padding: 14px 16px;
+            border: 1px solid rgba(245, 158, 11, .3);
+            border-radius: 12px;
+            background: rgba(245, 158, 11, .07);
+            font-size: .74rem;
+            line-height: 1.6;
+            color: var(--lab-fg);
+        }
+
+        .labnav {
+            margin: 0 0 6px;
+            font-size: .68rem;
+            color: var(--lab-muted);
+        }
+
+        .labnav a {
+            color: var(--lab-muted);
+        }
+
+        .labnav a:hover {
+            color: var(--lab-fg);
+        }
+
+        .labnav .current {
+            color: var(--lab-fg);
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="lab-head">
+        <h1 class="lab-title">Score bug <b>BANCO DI PROVA</b></h1>
+        <p class="labnav">
+            <a href="preview.html">Preview hub</a> ·
+            <span class="current">Score-bug lab</span> ·
+            <a href="preview-player-card.html">Player card lab</a> ·
+            <a href="index.html">Real site</a>
+        </p>
+        <p class="lab-sub">
+            Il componente vero (<code>js/ui/score-bug.js</code>) con il CSS vero del sito, in tutti gli stati
+            e a tutte le larghezze. Squadre reali, punteggi inventati. Non è collegato al sito: finché non
+            si decide, Live, Game Center e lo storico continuano a usare il banner di adesso.
+        </p>
+        <div class="lab-controls">
+            <div class="lab-group" id="lab-variant">
+                <span>Variante</span>
+                <button class="lab-btn" data-variant="broadcast">Broadcast</button>
+                <button class="lab-btn" data-variant="broadcast2">Broadcast 2</button>
+                <button class="lab-btn on" data-variant="marquee">Marquee</button>
+                <button class="lab-btn" data-variant="ticker">Ticker</button>
+                <button class="lab-btn" data-variant="all">Tutte</button>
+            </div>
+            <div class="lab-group" id="lab-width">
+                <span>Larghezza</span>
+                <button class="lab-btn on" data-width="1100">Desktop</button>
+                <button class="lab-btn" data-width="780">Tablet</button>
+                <button class="lab-btn" data-width="390">Mobile</button>
+            </div>
+            <div class="lab-group" id="lab-prob">
+                <span>Barra quota</span>
+                <button class="lab-btn on" data-prob="1">Sì</button>
+                <button class="lab-btn" data-prob="0">No</button>
+            </div>
+            <div class="lab-group" id="lab-theme">
+                <span>Tema pagina</span>
+                <button class="lab-btn on" data-theme="dark">Dark</button>
+                <button class="lab-btn" data-theme="light">Light</button>
+            </div>
+            <div class="lab-group" id="lab-color">
+                <span>Colore scorebug</span>
+                <button class="lab-btn on" data-color="dark">Dark</button>
+                <button class="lab-btn" data-color="light">Light</button>
+            </div>
+            <div class="lab-group">
+                <span>Riferimento</span>
+                <label class="lab-btn" for="ref-file">Carica foto…</label>
+                <input type="file" id="ref-file" accept="image/*" hidden>
+                <button class="lab-btn" id="ref-diff" title="Sovrapposizione a differenza: dove combacia diventa nero">Differenza</button>
+                <button class="lab-btn" id="ref-off" hidden>Togli</button>
+            </div>
+        </div>
+        <div class="lab-controls" id="ref-sliders" hidden>
+            <label class="lab-slider">Opacità <input type="range" id="ref-op" min="0" max="100" value="55"></label>
+            <label class="lab-slider">Scala <input type="range" id="ref-sc" min="10" max="300" value="100"></label>
+            <label class="lab-slider">Rotazione <input type="range" id="ref-rot" min="-200" max="200" value="0"></label>
+            <span class="lab-hint">Trascina l'immagine per spostarla · rotella per scalare</span>
+        </div>
+    </header>
+
+    <img id="ref-layer" alt="riferimento">
+
+    <main class="lab-body">
+        <div class="lab-stage" id="stage" style="max-width:1100px"></div>
+        <div class="lab-stage lab-note" style="max-width:1100px">
+            <b>Dove siamo.</b> La <b>marquee</b> resta la forma principale — profilo con la rientranza in alto,
+            nomi fuori dalla sagoma. La <b>broadcast</b> (scura) è quella che si sposa col resto del sito.
+            La <b>broadcast 2</b> è ricalcata sul tabellone NFL/YouTube: barra chiara, stemmi ai capi, striscia
+            sotto. Vivono affiancate apposta — fra la scura e la chiara la differenza non si decide a parole.
+            La <b>ticker</b> serve solo se servirà una barra fissa in cima mentre si scorre.
+            <br><br>
+            <b>Ancora aperto.</b> La barra chiara della v2 è l'unico pezzo non nero del sito: nel banco, isolata,
+            funziona — in cima a Live, sopra il campo e le card scure, va vista in contesto. E il segno di
+            &laquo;questa &egrave; la mia squadra&raquo; esiste solo nella broadcast (il filo di colore sotto il
+            pannello): nella marquee &egrave; sparito insieme alla sottolineatura e va rimesso prima dello swap.
+        </div>
+    </main>
+
+    <script type="module">
+        import { scoreBugHTML } from './js/ui/score-bug.js?v=1';
+
+        /* Le quattro squadre VERE: nomi, colori e loghi sono quelli di
+           js/sections/team.js. Copiati qui e non importati apposta — team.js
+           tira dentro data.js, che ha un await su Firebase in cima al modulo:
+           un banco di prova grafico non deve dipendere da una connessione. */
+        const T = {
+            capi: { name: 'Capi dei Pianeti', color: '#FF6600', logo: 'Team%20Logo/team_capi_transparent.png' },
+            lasers: { name: 'Lasers', color: '#D4AF37', logo: 'Team%20Logo/team_lasers_transparent.png' },
+            oscurus: { name: 'Oscurus', color: '#800020', logo: 'Team%20Logo/team_oscurus_transparent.png' },
+            sommo: { name: 'Sommo', color: '#1c4750', logo: 'Team%20Logo/team_sommo_transparent.png' },
+        };
+
+        /* ── I CASI ────────────────────────────────────────────────────────
+           Uno per ogni stato che il tabellone deve saper reggere, più i due
+           che di solito si scoprono rotti in produzione: il pareggio e il
+           divario enorme. I numeri sono FIXTURE. */
+        const CASES = [
+            {
+                id: 'live',
+                title: 'Live — domenica sera',
+                why: 'Punti veri per tutti, zeri compresi, con la proiezione accanto in piccolo. È lo stato che si guarda di più e quello in cui il numero si muove: <code>countUp()</code> anima dentro <code>.pts-val</code>, e la proiezione deve restargli fuori.',
+                m: {
+                    left: { ...T.sommo, score: 92.44, projected: 128.10, selected: true, starters: 9, done: 5 },
+                    right: { ...T.oscurus, score: 78.06, projected: 121.55, starters: 9, done: 4 },
+                    state: 'live', label: 'Live', note: '7 still to play', winProb: 54, mid: 'Week 12',
+                },
+            },
+            {
+                id: 'projected',
+                title: 'Prima del kickoff — la proiezione È il punteggio',
+                why: 'Nessuna partita è cominciata: mostrare zeri direbbe "hanno giocato e non hanno fatto niente". Il numero è in corsivo tenue e l\'etichetta dice che è una previsione.',
+                m: {
+                    left: { ...T.capi, score: 0, projected: 131.88, starters: 9, done: 0 },
+                    right: { ...T.lasers, score: 0, projected: 124.02, selected: true, starters: 9, done: 0 },
+                    state: 'projected', label: 'Projected', note: 'Kickoff Sunday 19:00', mid: 'Week 13',
+                },
+            },
+            {
+                id: 'final',
+                title: 'Finale — settimana chiusa',
+                why: 'Niente proiezione, niente barra che si muove: resta chi ha vinto. È anche la forma che serve al banner del Super Bowl nello storico.',
+                m: {
+                    left: { ...T.lasers, score: 141.62, starters: 9, done: 9 },
+                    right: { ...T.capi, score: 118.30, starters: 9, done: 9 },
+                    state: 'final', label: 'Final', note: 'Week 12', winProb: 54, mid: 'Week 12',
+                },
+            },
+            {
+                id: 'undrafted',
+                title: 'Lega non ancora draftata',
+                why: 'Due settimane l\'anno. Non c\'è punteggio e non si finge che ci sia: trattino, e lo stato lo dice.',
+                m: {
+                    left: { ...T.sommo, score: null }, right: { ...T.oscurus, score: null },
+                    state: 'undrafted', label: 'Not drafted yet', note: 'Draft on Aug 30',
+                },
+            },
+            {
+                id: 'tie',
+                title: 'Caso limite — pareggio esatto',
+                why: 'Con <code>&gt;=</code> da tutte e due le parti risultano entrambe in vantaggio. È giusto così — non c\'è un vincitore da indicare — ma va guardato: due righe accese insieme non devono sembrare un errore.',
+                m: {
+                    left: { ...T.capi, score: 110.00 }, right: { ...T.sommo, score: 110.00 },
+                    state: 'final', label: 'Final', note: 'Tie', winProb: 50,
+                },
+            },
+            {
+                id: 'blowout',
+                title: 'Caso limite — numeri lunghi e divario enorme',
+                why: 'Tre cifre più due decimali da tutte e due le parti, nome lungo a sinistra e barra quasi tutta di un colore. È la larghezza peggiore possibile.',
+                m: {
+                    left: { ...T.capi, score: 198.74, projected: 176.20, selected: true, starters: 9, done: 8 },
+                    right: { ...T.oscurus, score: 61.08, projected: 119.44, starters: 9, done: 8 },
+                    state: 'live', label: 'Live', note: '2 still to play', winProb: 77, mid: 'Week 9',
+                },
+            },
+        ];
+
+        const VARIANTS = {
+            broadcast: 'Broadcast — scura, quella che sta col resto del sito',
+            broadcast2: 'Broadcast 2 — ricalcata sul tabellone NFL/YouTube',
+            marquee: 'Marquee — la forma principale',
+            ticker: 'Ticker — una riga sola',
+        };
+        const state = { variant: 'marquee', width: 1100, prob: true, color: 'dark' };
+
+        function render() {
+            const vs = state.variant === 'all' ? Object.keys(VARIANTS) : [state.variant];
+            document.getElementById('stage').innerHTML = CASES.map(c => {
+                const m = { ...c.m, winProb: state.prob ? c.m.winProb : null };
+                const bugs = vs.map(v => `
+                    ${vs.length > 1 ? `<div class="lab-ruler">${VARIANTS[v]}</div>` : ''}
+                    ${scoreBugHTML(m, { variant: v, theme: state.color })}`).join('');
+                return `
+                <section class="lab-case">
+                    <h2>${c.title}</h2>
+                    <p>${c.why}</p>
+                    ${bugs}
+                </section>`;
+            }).join('');
+            document.querySelectorAll('.lab-stage').forEach(el => { el.style.maxWidth = state.width + 'px'; });
+        }
+
+        function group(id, key, cast = (v) => v) {
+            document.getElementById(id).addEventListener('click', (e) => {
+                const b = e.target.closest('.lab-btn');
+                if (!b) return;
+                state[key] = cast(b.dataset[key]);
+                document.querySelectorAll(`#${id} .lab-btn`).forEach(x => x.classList.toggle('on', x === b));
+                render();
+            });
+        }
+        /* ── Sovrapposizione del riferimento ────────────────────────────
+           L'immagine NON entra nel repo: si legge dal disco con un
+           object URL e resta nella scheda del browser. È un fotogramma di una
+           trasmissione, e un banco di prova non è il posto dove archiviarlo. */
+        const ref = {
+            el: document.getElementById('ref-layer'),
+            x: 0, y: 160, scale: 1, rot: 0, drag: null,
+        };
+
+        function refApply() {
+            ref.el.style.transform =
+                `translate(${ref.x}px, ${ref.y}px) scale(${ref.scale}) rotate(${ref.rot}deg)`;
+        }
+
+        document.getElementById('ref-file').addEventListener('change', (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            ref.el.src = URL.createObjectURL(f);
+            ref.el.classList.add('on');
+            ref.el.style.opacity = document.getElementById('ref-op').value / 100;
+            document.getElementById('ref-sliders').hidden = false;
+            document.getElementById('ref-off').hidden = false;
+            refApply();
+        });
+
+        document.getElementById('ref-op').addEventListener('input', (e) => {
+            ref.el.style.opacity = e.target.value / 100;
+        });
+        document.getElementById('ref-sc').addEventListener('input', (e) => {
+            ref.scale = e.target.value / 100; refApply();
+        });
+        document.getElementById('ref-rot').addEventListener('input', (e) => {
+            // decimi di grado: la foto è storta di pochi gradi, e con lo step
+            // intero non si riesce a raddrizzarla
+            ref.rot = e.target.value / 10; refApply();
+        });
+        document.getElementById('ref-diff').addEventListener('click', (e) => {
+            ref.el.classList.toggle('diff');
+            e.target.classList.toggle('on', ref.el.classList.contains('diff'));
+        });
+        document.getElementById('ref-off').addEventListener('click', (e) => {
+            ref.el.classList.remove('on');
+            document.getElementById('ref-sliders').hidden = true;
+            e.target.hidden = true;
+        });
+
+        ref.el.addEventListener('pointerdown', (e) => {
+            ref.drag = { x: e.clientX - ref.x, y: e.clientY - ref.y };
+            ref.el.setPointerCapture(e.pointerId);
+            ref.el.classList.add('dragging');
+        });
+        ref.el.addEventListener('pointermove', (e) => {
+            if (!ref.drag) return;
+            ref.x = e.clientX - ref.drag.x;
+            ref.y = e.clientY - ref.drag.y;
+            refApply();
+        });
+        ref.el.addEventListener('pointerup', () => {
+            ref.drag = null; ref.el.classList.remove('dragging');
+        });
+        ref.el.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            ref.scale = Math.max(0.1, Math.min(3, ref.scale * (e.deltaY < 0 ? 1.05 : 0.952)));
+            document.getElementById('ref-sc').value = Math.round(ref.scale * 100);
+            refApply();
+        }, { passive: false });
+
+        // Tema del banco: solo lo sfondo dietro ai componenti. Non tocca i
+        // componenti — quelli leggono i token di css/main.css, che sono fissi
+        // e neri: non c'è un tema chiaro da simulare, quindi non fingiamo che
+        // ci sia. Serve a guardare i contrasti, in particolare della Broadcast
+        // 2 (l'unica con una barra chiara) contro i due fondi.
+        document.getElementById('lab-theme').addEventListener('click', (e) => {
+            const b = e.target.closest('.lab-btn');
+            if (!b) return;
+            document.body.classList.toggle('lab-light', b.dataset.theme === 'light');
+            document.querySelectorAll('#lab-theme .lab-btn').forEach(x => x.classList.toggle('on', x === b));
+        });
+
+        group('lab-variant', 'variant');
+        group('lab-width', 'width', Number);
+        group('lab-prob', 'prob', (v) => v === '1');
+        group('lab-color', 'color');
+        render();
+    </script>
+</body>
+
+</html>

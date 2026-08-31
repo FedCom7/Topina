@@ -36,7 +36,7 @@ import {
     STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
     TEAMMATE_PRAISE,
 } from '../data/magazine-voices.js?v=518';
-import { playerImageService } from '../services/player-image-service.js?v=520';
+import { playerImageService } from '../services/player-image-service.js?v=522';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
