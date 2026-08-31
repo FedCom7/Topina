@@ -9,9 +9,12 @@
  *   REGULAR_SEASON → sfide in corso, risultati week, classifica, rail top performance
  *   PLAYOFFS       → sfide in corso, semifinali, honors sigillati, rail corsa MVP
  *   SB_WEEK        → sfide in corso, finale, rail premiati, all-pro
- *   OFFSEASON      → campione, premiati, card-trofeo dei campioni
+ *   OFFSEASON      → campione, premiati, all-pro
  *
- *   PRESEASON      → campione in carica, albo d'oro
+ *   PRESEASON      → campione in carica, pagelle del draft, forza rose
+ *
+ * In FONDO, in tutte le fasi, l'albo d'oro (cardChampions): non sta in
+ * nessuna delle liste di MOSAIC, si accoda da solo in initHome.
  *
  * Il countdown al prossimo kickoff non è più una card: è il timbro che
  * compare nell'hero (cardHero) quando la fase è PRESEASON o OFFSEASON.
@@ -21,7 +24,8 @@
  *
  * Per aggiungere una fase (es. PRE_DRAFT, POST_DRAFT): aggiungere il caso
  * in detectPhase() e una entry nel registro MOSAIC qui sotto. Le card sono
- * funzioni riusabili: ogni fase compone la propria sequenza.
+ * funzioni riusabili: ogni fase compone la propria sequenza — l'albo d'oro
+ * in coda arriva da sé.
  *
  * Tre card non si limitano a mostrare: si aprono. La classifica espande la
  * squadra scelta, i numeri commutano fra stagione e storia della lega, i rail
@@ -93,7 +97,10 @@ export async function initHome() {
         const ctx = { league, season, bundle, phase };
 
         const builder = MOSAIC[phase.type] || MOSAIC.OFFSEASON;
-        const cards = (await Promise.all(builder(ctx))).filter(Boolean);
+        // L'albo d'oro chiude SEMPRE il mosaico, in qualunque fase. Non sta
+        // nelle liste di MOSAIC ma si accoda qui, così una fase nuova se lo
+        // ritrova in fondo senza che nessuno debba ricordarsene.
+        const cards = (await Promise.all([...builder(ctx), cardChampions(ctx)])).filter(Boolean);
 
         wrap.innerHTML = `${previewFlag(preview, season)}<div class="mosaic">${cards.join('')}</div>`;
         mountMotion(wrap);
@@ -223,7 +230,6 @@ const MOSAIC = {
         cardStandings(ctx),
         cardNumbers(ctx),
         cardTeams(ctx),
-        cardChampions(ctx),
     ],
     OFFSEASON: (ctx) => [
         cardHero(ctx),
@@ -231,7 +237,6 @@ const MOSAIC = {
         cardHonors(ctx),
         cardHallOfFame(ctx),
         cardTeams(ctx),
-        cardChampions(ctx),
         cardAllPro(ctx),
         cardNumbers(ctx),
     ],
@@ -1432,6 +1437,9 @@ async function cardSuperBowl({ season }) {
  * anno, tutti allo stesso peso, senza mettere in risalto l'ultimo. --ri è
  * l'indice di riga: main.css lo usa per accendere i nomi in cascata quando
  * la card entra in vista (vedi .mc-trophy-row in main.css).
+ *
+ * Chiude il mosaico in TUTTE le fasi: la accoda initHome, non le liste di
+ * MOSAIC. Aggiungerla anche là la farebbe uscire due volte.
  */
 function cardChampions({ league }) {
     const rows = [...league.seasons]
