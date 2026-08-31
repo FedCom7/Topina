@@ -38,7 +38,16 @@ const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 // Stesso motore di scoring del sito: niente coefficienti duplicati qui.
 const { scoreWeeklyStats } = await import(pathToFileURL(path.join(ROOT, 'js', 'data', 'scoring.js')));
 
-const norm = (s) => (s || '').toLowerCase().replace(/[^a-z]/g, '');
+// Stesso suffisso tolto da `nameKey` in lib/nflverse.mjs: nflverse scrive "Chris
+// Godwin Jr." nel referto, ma la nostra Firebase per lo stesso giocatore ha
+// "Chris Godwin" senza suffisso (l'inverso capita anche, es. "Marvin Harrison
+// Jr." è uguale su entrambe le fonti). Senza toglierlo qui, le due chiavi
+// normalizzate divergono e il giocatore sparisce silenziosamente da
+// unrostered/seasonAvg/best-available: verificato su 18 dei 592 skill player
+// del 2024 (Godwin compreso) che portano un suffisso in nflverse.
+const norm = (s) => (s || '').toLowerCase()
+    .replace(/\s+(jr|sr|ii|iii|iv|v)\.?$/i, '')
+    .replace(/[^a-z]/g, '');
 
 /** stats_player_week_{anno}.csv (nflverse) -> stessa forma di stats{} del sito. */
 function toOurStats(row) {

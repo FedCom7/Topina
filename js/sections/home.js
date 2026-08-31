@@ -34,27 +34,27 @@ import { displayName, teamNameHTML, fetchFantasyData, fetchDraftData, flattenDra
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=539';
 import { getHonorsBundle } from '../data/honors.js?v=591';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=591';
-import { TEAMS } from './team.js?v=610';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=620';
-import { teamsCardsHTML } from './teams.js?v=585';
+import { TEAMS } from './team.js?v=665';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=670';
+import { teamsCardsHTML } from './teams.js?v=640';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=2';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=9';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
-import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=526';
+import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
 import { scoreBugHTML } from '../ui/score-bug.js?v=1';
 import { getSeasonProjections } from '../data/projections.js?v=595';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
-import { predictSeason } from '../data/draft-predictions.js?v=633';
-import { evaluateLeague } from '../data/team-eval.js?v=572';
-import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=40';
+import { predictSeason } from '../data/draft-predictions.js?v=654';
+import { evaluateLeague } from '../data/team-eval.js?v=593';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=61';
 // Il motore di voto (computeGrades/makeEvaluator) vive in draftgrades.js, non
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=659';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=708';
 
 let initialized = false;
 

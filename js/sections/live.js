@@ -17,17 +17,20 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=610';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=526';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=511';
+import { TEAMS } from './team.js?v=665';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
+import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=100';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=507';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=9';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=30';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
 import { fieldSVG } from '../ui/field-svg.js?v=4';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=620';
+import { initPlayerModal } from '../components/player-modal.js?v=670';
+import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
 
@@ -73,6 +76,9 @@ const BIG_EVENTS = new Set(['pass_td', 'rush_td', 'rec_td', 'ret_td', 'fum_td', 
 let prevSnapshot = null;   // { playerName: { pts, stats } }
 let receipts = [];         // storico scontrini (più recenti in testa)
 let compareMode = false;   // false = campo, true = confronto titolari
+let fxLayer = null;        // livello degli effetti, vive dentro il campo
+let fxDemoFatta = false;   // ?fxdemo= parte una volta per caricamento
+let simDemo = false;       // simulatore da console acceso: i numeri sono finti
 
 let loaded = false;
 let pollTimer = null;
@@ -115,6 +121,37 @@ function injuryOf(p) {
     return v && !['ACTIVE', 'NORMAL'].includes(v) ? v : null;
 }
 
+/**
+ * Targhetta infortunio, la stessa del Game Center: pillola colorata per stato.
+ * ESPN scrive in maiuscolo e con l'underscore ("INJURY_RESERVE"), qui si porta
+ * alla forma leggibile e alla classe di colore. `corto` serve sul campo, dove
+ * lo slot è largo un centinaio di pixel e la parola intera non ci sta.
+ */
+const INJ_LABEL = {
+    questionable: ['Questionable', 'Q'],
+    doubtful: ['Doubtful', 'D'],
+    out: ['Out', 'OUT'],
+    'injury-reserve': ['IR', 'IR'],
+    suspension: ['Susp', 'SUS'],
+    'day-to-day': ['Day to day', 'DTD'],
+    probable: ['Probable', 'P'],
+};
+
+function injuryTagHTML(p, corto = false) {
+    const raw = injuryOf(p);
+    if (!raw) return '';
+    const k = String(raw).toLowerCase().replace(/[^a-z]+/g, '-');
+    const [lungo, breve] = INJ_LABEL[k] || [String(raw), String(raw).slice(0, 3)];
+    return `<span class="gb-out-inj gb-out-inj--${k}" data-short="${breve}">${corto ? breve : lungo}</span>`;
+}
+
+/** "@NYJ" / "NYJ" → "@ NYJ" / "vs NYJ", vuoto se la partita non si sa. */
+function avversarioHTML(p) {
+    const raw = String(p?.opponent || '').trim();
+    if (!raw) return '';
+    return `<i class="live-vs">${raw.startsWith('@') ? '@' : 'vs'} ${escAttr(raw.replace('@', ''))}</i>`;
+}
+
 function teamOf(rawName) {
     return TEAMS[TEAM_KEYS[displayName(rawName)]] || null;
 }
@@ -122,22 +159,9 @@ function teamOf(rawName) {
 /**
  * Contesto partita per la scheda giocatore: nel Live conta la gara in corso,
  * non la carriera, quindi si passano punti e statistiche mostrati (proiezione
- * prima del kickoff, reali da lì in poi).
+ * prima del kickoff, reali da lì in poi). La squadra NFL vera è già nel
+ * `data-nfl` con cui si apre la scheda — qui non si ripete.
  */
-/** La squadra fantasy che ha questo giocatore in rosa, per la scheda. */
-function squadraDi(p) {
-    for (const m of matchups) {
-        for (const lato of ['team1', 'team2']) {
-            const t = m[lato];
-            if (!t) continue;
-            if ([...(t.starters || []), ...(t.bench || [])].some(x => x.name === p?.name)) {
-                return displayName(t.name);
-            }
-        }
-    }
-    return '';
-}
-
 function gameAttr(p) {
     const payload = {
         pts: effPts(p),
@@ -147,7 +171,6 @@ function gameAttr(p) {
         week: currentWeekNum,
         year: CURRENT_SEASON,
         started: true,
-        fantasyTeam: squadraDi(p),
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
         // sempre anche la previsione, che la scheda mostra in piccolo accanto
         // a ogni numero reale — a giornata iniziata è l'unico modo per capire
@@ -160,6 +183,26 @@ function gameAttr(p) {
 
 const P = (m) => parseFloat(m) || 0;
 const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/*
+ * L'orario di una partita che deve ancora cominciare, in ora ITALIANA.
+ *
+ * ESPN manda gia' pronta la stringa `shortDetail` — "8/28 - 6:00 PM EDT" — ma
+ * e' l'ora della costa est americana, con l'orologio a dodici ore e il mese
+ * prima del giorno. Chi guarda da qui deve fare due conti a mente per sapere
+ * se la partita e' stanotte o domani mattina. Qui si riparte dall'istante
+ * vero (`start`, che e' la data ISO della risposta) e lo si scrive come lo
+ * scriviamo noi: giorno prima del mese, orologio a ventiquattro ore, fuso di
+ * Roma — che il passaggio dall'ora legale lo gestisce il browser.
+ */
+const oraItaliana = (d) => {
+    const q = d instanceof Date ? d : new Date(d);
+    if (!q || Number.isNaN(q.getTime())) return '';
+    const f = (opz) => new Intl.DateTimeFormat('en-GB',
+        { timeZone: 'Europe/Rome', ...opz }).format(q);
+    return `${f({ weekday: 'short' })} ${f({ day: '2-digit', month: '2-digit' })}` +
+        ` · ${f({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
+};
 
 // Projections: before kickoff (started === false) show the projected value.
 // Older/real data without `started`/`projected_*` falls back to real points.
@@ -244,6 +287,42 @@ let pbpCards = [];         // card pronte, più recenti in testa
 let pbpFull = new Set();   // partite già scaricate per intero (non si rileggono da capo)
 let pbpFirstRun = true;    // al primo giro si riempie senza animare
 let pbpBusy = false;
+/**
+ * eventId → TUTTE le giocate viste, in ordine, filtro rosa escluso. Le card
+ * del feed mostrano solo le azioni dei nostri giocatori; il campo invece deve
+ * seguire la partita per intero, altrimenti resta fermo per interi drive — e
+ * a partita finita servono tutte per poterle riguardare.
+ * Stanno in memoria e basta: 180 giocate per partita sono niente in RAM, ma
+ * in `localStorage` mangerebbero la riserva che tiene in piedi il websocket.
+ */
+let giocateDi = new Map();
+
+/** Giocata scelta dalla timeline: null = si segue il vivo. */
+let giocataScelta = null;
+/** Sigla NFL da id ESPN: la mappa esiste solo nel verso opposto. */
+let _siglaDaId = null;
+function siglaDaId(id) {
+    if (!_siglaDaId) {
+        _siglaDaId = new Map(Object.entries(ESPN_TEAM_IDS).map(([ab, i]) => [String(i), ab]));
+    }
+    return _siglaDaId.get(String(id)) || '';
+}
+
+/**
+ * Le giocate raggruppate in drive, nell'ordine in cui sono successe.
+ * L'esito del drive lo dice la sua ultima giocata: e' quella che lo chiude,
+ * col touchdown, il punt o la palla persa.
+ */
+function drivesDi(tutte) {
+    const out = [];
+    for (const p of tutte) {
+        const id = p.driveId || 'x';
+        const ultimo = out[out.length - 1];
+        if (ultimo && ultimo.id === id) ultimo.plays.push(p);
+        else out.push({ id, plays: [p] });
+    }
+    return out;
+}
 
 /**
  * Le giocate della giornata restano in localStorage: una partita conclusa pesa
@@ -253,7 +332,7 @@ let pbpBusy = false;
  * Le card invece sono poche e piccole: solo le azioni dei nostri.
  */
 const pbpCacheKey = () =>
-    `topina_pbp_v1_${CURRENT_SEASON}_${preseasonMode ? 'pre' : 'reg'}${currentWeekNum}`;
+    `topina_pbp_v1_${CURRENT_SEASON}_reg${currentWeekNum}`;
 
 let pbpLoadedKey = null;
 
@@ -523,8 +602,15 @@ async function pollPlays() {
     // Una partita conclusa si legge una volta sola e per intero; una in corso
     // si rilegge a ogni giro, ma solo l'ultima pagina (~2 KB).
     const inCorso = new Set(gamesToWatch().map(String));
+    // `pbpFull` sopravvive fra una visita e l'altra (sta in localStorage) e
+    // serve a non ricostruire card gia' fatte. Ma le giocate per il campo
+    // vivono in memoria e alla ricarica non ci sono piu': marcata "gia' letta",
+    // una partita conclusa non veniva piu' scaricata e timeline e recap
+    // restavano vuoti per sempre. Se le giocate mancano, si rilegge.
     const games = gamesToWatch({ finite: true })
-        .filter(id => inCorso.has(String(id)) || !pbpFull.has(String(id)));
+        .filter(id => inCorso.has(String(id))
+            || !pbpFull.has(String(id))
+            || !giocateDi.has(String(id)));
     if (!games.length) return;
     pbpBusy = true;
     try {
@@ -536,13 +622,22 @@ async function pollPlays() {
             if (!pbpDemoQueue) pbpDemoQueue = await fetchPlays(games[0], { all: true });
             lists = [pbpDemoQueue.splice(0, 3)];
         } else {
+            // `all` va deciso con lo stesso criterio del filtro qui sopra:
+            // marcata "gia' letta" ma senza giocate in memoria, la partita
+            // scaricava solo l'ultima pagina — venticinque azioni invece di
+            // centottanta, e il recap ne mostrava una manciata.
             lists = await Promise.all(games.map(id =>
-                fetchPlays(id, { all: !pbpFull.has(String(id)) })));
+                fetchPlays(id, { all: !pbpFull.has(String(id)) || !giocateDi.has(String(id)) })));
             games.forEach(id => pbpFull.add(String(id)));
         }
         const nuove = [];
         for (const plays of lists) {
             for (const play of plays) {
+                // Fuori dal filtro delle giocate NUOVE: dov'e' la palla e' un
+                // fatto della partita, non un evento. Dentro, con la cache del
+                // play-by-play gia' piena tutte risultano viste e il campo
+                // restava vuoto per sempre alla riapertura della pagina.
+                segnaUltimaGiocata(play);
                 if (pbpSeen.has(play.id)) continue;
                 pbpSeen.add(play.id);
                 if (pbpDemo()) applyDemoPlay(play, scorePlay(play));
@@ -590,7 +685,102 @@ async function pollPlays() {
     } finally {
         pbpFirstRun = false;
         pbpBusy = false;
+        // La striscia del campo segue il play-by-play, non il refresh generale
+        // della pagina: aspettare quello voleva dire vedere il campo fermo,
+        // senza nessuna giocata, per i primi trenta secondi. Sta nel `finally`
+        // perche' deve aggiornarsi anche nei giri in cui non succede niente ai
+        // NOSTRI giocatori — la partita va avanti lo stesso.
+        aggiornaCampo();
     }
+}
+
+/* I colori della festa: vivaci e non della squadra. Con le tinte NFL un
+   touchdown dei Raiders sarebbe stato nero su nero. */
+const COLORI_FESTA = ['#f5c518', '#ff7a45', '#4cc2ff', '#7ee787', '#ff5c8a', '#ffffff'];
+
+/**
+ * I fuochi accanto al logo di chi ha appena segnato, nello scorebug di
+ * "Inside the game".
+ *
+ * Parte UNA volta per scena, e il segnale e' il livello stesso: se c'e' gia',
+ * la festa e' gia' partita. Costruita invece dentro il markup ripartiva da
+ * capo a ogni polling, perche' `aggiornaCampo` rimpiazza lo scorebug appena
+ * l'orologio scorre — e a partita finita, dove l'orologio sta fermo, non si
+ * vedeva. Il livello sta su `.fst` e non sul bug proprio per questo: il bug
+ * viene buttato via, `.fst` no.
+ */
+function festeggiaSegnatura(fst) {
+    const lato = fst?.dataset?.festa;
+    if (!lato) return;
+    if ([...fst.children].some(c => c.classList?.contains('live-fx'))) return;
+    const slot = fst.querySelector(lato === 'r' ? '.fst-lato--r' : '.fst-lato');
+    if (!slot) return;
+    festaAttorno(montaLivello(fst, 'live-fx live-fx--bug'), slot, COLORI_FESTA,
+        // Piu' fitta della festa sulla card: li' lo spazio e' un campo
+        // intero, qui e' la fascia dello scorebug, e con i numeri di la'
+        // restavano quattro puntini sparsi. Su telefono `stretto()` dimezza
+        // comunque tutto.
+        { dura: 20000, coriandoli: 190, razzi: 8, ogni: 560 });
+}
+
+
+/** Ridisegna la sola striscia, e solo se e' cambiata: cosi' l'animazione
+ *  dell'arco riparte a ogni giocata nuova e non a ogni giro a vuoto. */
+function aggiornaCampo() {
+    const sez = document.getElementById('live-deep');
+    const vecchia = sez?.querySelector('.fst');
+    if (!vecchia) return;
+    const entry = teamEntries()[teamIdx];
+    if (!entry) return;
+    const g = deepGames(entry.team)[deepIdx];
+    if (!g) return;
+    const st = statoCampo(g.sigla, g.quadro);
+    if (!st) return;
+    // L'elenco delle giocate si tiene aperto fra un giro e l'altro: lo si apre
+    // per leggerlo, e vederselo richiudere a ogni polling sarebbe una guerra.
+    const aperto = vecchia.querySelector('.fst-recap')?.open;
+    const nuova = fieldStripHTML(st).trim();
+    if (vecchia.outerHTML === nuova) return;
+
+    // Se sul campo c'e' la stessa scena, si aggiorna SOLO lo scorebug e si
+    // lascia stare l'SVG: rifarlo da capo per un orologio che scorre faceva
+    // ripartire l'animazione della giocata, e le linee del drive con lei.
+    if (vecchia.dataset.scena && vecchia.dataset.scena === st.scena) {
+        // Solo lo scorebug: il campo non si tocca finche' la scena e' quella.
+        const tmp = document.createElement('div');
+        tmp.innerHTML = nuova;
+        const bugNuovo = tmp.querySelector('.fst-bug');
+        const bugVecchio = vecchia.querySelector('.fst-bug');
+        if (bugNuovo && bugVecchio && bugVecchio.outerHTML !== bugNuovo.outerHTML) {
+            bugVecchio.replaceWith(bugNuovo);
+        }
+        return;
+    }
+
+    vecchia.outerHTML = nuova;
+    const fresca = sez.querySelector('.fst');
+    if (!fresca) return;
+    const det = fresca.querySelector('.fst-recap');
+    if (det && aperto) det.open = true;
+    bindFieldStrip(fresca, scegliGiocata);
+    festeggiaSegnatura(fresca);
+}
+
+/** Una giocata scelta dalla timeline o dall'elenco: il campo la disegna. */
+function scegliGiocata(i, drive) {
+    if (drive != null) {
+        // Pastiglia di un drive: si salta alla sua PRIMA azione, cosi' il
+        // campo riparte da capo invece di mostrarlo gia' finito.
+        const entry = teamEntries()[teamIdx];
+        const g = entry && deepGames(entry.team)[deepIdx];
+        const tutte = giocateDellaPartita(liveSchedule?.get(g?.sigla)?.eventId);
+        const gruppi = drivesDi(tutte);
+        const primo = gruppi[drive]?.plays?.find(x => x.toEZ != null);
+        giocataScelta = primo ? tutte.indexOf(primo) : giocataScelta;
+    } else {
+        giocataScelta = i;
+    }
+    aggiornaCampo();
 }
 
 /** Nome leggibile per ogni protagonista: prima la mappa locale, poi ESPN. */
@@ -753,39 +943,6 @@ async function loadData({ silent = false } = {}) {
 
 let usingEspnFallback = false;
 
-// ─── Modalità preseason (solo collaudo) ──────────────────────────
-//
-// La lega non gioca la preseason, quindi in condizioni normali il calendario
-// chiede solo la stagione regolare. Ad agosto però le uniche partite vere in
-// corso sono quelle: questo interruttore le fa seguire alla pagina, per poter
-// collaudare in diretta il play-by-play e il ripiego mesi prima del kickoff.
-//
-// I punti che compaiono in questo stato NON sono della lega: l'intestazione lo
-// dichiara con un bollino, come per la demo.
-
-const PRESEASON_KEY = 'topina-live-preseason';
-let preseasonMode = (() => {
-    try { return localStorage.getItem(PRESEASON_KEY) === '1'; } catch { return false; }
-})();
-
-/**
- * Quale giornata di preseason seguire: quella con una partita in corso, se
- * c'è; altrimenti la più vicina nel tempo, così fuori dagli orari di gioco la
- * pagina mostra comunque qualcosa di sensato.
- */
-async function pickPreseasonWeek(year) {
-    let migliore = null;
-    for (let w = 1; w <= 4; w++) {
-        const sched = await getWeekSchedule(year, w, 1);
-        if (!sched?.size) continue;
-        const partite = [...sched.values()];
-        if (partite.some(g => g.state === 'in')) return { week: w, sched };
-        const vicinanza = Math.min(...partite.map(g => Math.abs(g.start - Date.now())));
-        if (!migliore || vicinanza < migliore.vicinanza) migliore = { week: w, sched, vicinanza };
-    }
-    return migliore;
-}
-
 /** Tutti a zero: nessun punto reale in tutta la settimana. */
 function boardIsEmpty() {
     for (const m of matchups) {
@@ -883,18 +1040,40 @@ async function fillFromEspn() {
     return true;
 }
 
+/**
+ * Avversario di giornata a chi ne è privo. Terzo riempitivo generico accanto a
+ * `fillFromEspn` (punti) e `fillMissingProjections` (proiezioni): le rose
+ * composte dalle scelte del draft portano nome e squadra NFL ma non la partita,
+ * e senza questo campo e confronto mostrano "QB · LV" e basta. Non costa una
+ * richiesta: il tabellone della settimana è già in `liveSchedule`. Chi ha il
+ * bye non compare nella mappa e resta senza, che è la cosa giusta da mostrare.
+ */
+function fillMissingOpponents() {
+    if (!liveSchedule) return 0;
+    let n = 0;
+    for (const m of matchups) {
+        for (const lato of ['team1', 'team2']) {
+            for (const p of [...(m[lato]?.starters || []), ...(m[lato]?.bench || [])]) {
+                if (p.opponent) continue;
+                // Le difese non portano la sigla: il loro nome è già quello
+                // della squadra NFL ("Arizona Cardinals"), quindi si ricava da lì.
+                const sigla = p.nfl_team || teamAbbrFromName(p.name);
+                if (!sigla) continue;
+                const g = liveSchedule.get(canonAbbr(sigla));
+                if (g?.opponent) { p.opponent = g.opponent; n++; }
+            }
+        }
+    }
+    return n;
+}
+
 async function hydrateScheduleAndRender(year, week) {
     try {
-        if (preseasonMode) {
-            const pre = await pickPreseasonWeek(year);
-            liveSchedule = pre?.sched || null;
-            if (pre) weekLabelText = `${year} · Preseason week ${pre.week}`;
-        } else {
-            liveSchedule = await getWeekSchedule(year, week);
-        }
+        liveSchedule = await getWeekSchedule(year, week);
     } catch {
         liveSchedule = null;
     }
+    fillMissingOpponents();
     // Rete di sicurezza: se una partita è cominciata ma nessuno ha ancora un
     // punto, chi doveva darceli non sta rispondendo — l'API fantasy o lo script
     // che riempie Firebase. Si compongono allora i totali dal tabellino
@@ -1027,7 +1206,12 @@ function ptsHTML(p) {
     if (pIsProjected(p)) return `<span class="pts-val proj-pts">${val}</span>`;
     // Non ha ancora giocato: uno zero direbbe "ha giocato e non ha fatto
     // niente", che è un'altra cosa. Trattino finché la sua partita non parte.
-    if (!daGiocare(p)) return `<span class="pts-val">–</span>`;
+    //
+    // Blu come le proiezioni, perché dice la stessa cosa: questo non è un
+    // punteggio vero. Nel sito il blu vuol dire "previsto, non ancora
+    // successo" — e un trattino è il caso limite, dove nemmeno la previsione
+    // c'è. In nero si confondeva con un punteggio a zero.
+    if (!daGiocare(p)) return `<span class="pts-val proj-pts">–</span>`;
     const previsto = p?.projected_points == null ? ''
         : `<small class="pts-proj" title="projected">${fmt(P(p.projected_points))}</small>`;
     return `<span class="pts-val">${val}</span>${previsto}`;
@@ -1036,6 +1220,10 @@ function ptsHTML(p) {
 /** La sua partita è cominciata? (se non si sa nulla, si suppone di sì) */
 function daGiocare(p) {
     if (!p || p.placeholder) return false;
+    // Col simulatore le partite si giocano per finta: senza questa riga il
+    // calendario vero (partite ancora `pre`) rimetteva il trattino al posto dei
+    // punti a ogni ridisegno, e i totali sembravano azzerarsi.
+    if (simDemo) return true;
     const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
     const g = ab ? liveSchedule?.get(ab) : null;
     return g ? g.state !== 'pre' : true;
@@ -1134,8 +1322,22 @@ function refreshInPlace(events = []) {
     if (deep && deepHTML) {
         const nuovo = deepHTML.trim();
         if (deep.outerHTML !== nuovo) {
-            deep.outerHTML = nuovo;
+            // Il campo disegnato si TRAPIANTA nel blocco nuovo PRIMA che
+            // questo entri nel documento. Sostituirlo dopo non bastava: il
+            // nuovo SVG entrava comunque, l'animazione partiva, e solo un
+            // istante dopo veniva rimpiazzato — a schermo si vedeva
+            // ridisegnare lo stesso.
+            const tmp = document.createElement('div');
+            tmp.innerHTML = nuovo;
+            const fstVecchia = deep.querySelector('.fst');
+            const fstNuova = tmp.querySelector('.fst');
+            if (fstVecchia && fstNuova && fstNuova.dataset.scena
+                && fstNuova.dataset.scena === fstVecchia.dataset.scena) {
+                fstNuova.replaceWith(fstVecchia);
+            }
+            deep.replaceWith(tmp.firstElementChild);
             bindDeepDive(root);
+            festeggiaSegnatura(root.querySelector('.fst'));
         }
     } else if (deep && !deepHTML) {
         deep.remove();          // le partite sono finite fuori dal tabellino
@@ -1254,19 +1456,6 @@ function render() {
 
     hydrateHeadshots(root);
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
-    root.querySelector('[data-preseason]')?.addEventListener('click', () => {
-        preseasonMode = !preseasonMode;
-        try { localStorage.setItem(PRESEASON_KEY, preseasonMode ? '1' : '0'); } catch { /* niente */ }
-        // Le giocate viste e gli scontrini si riferiscono all'altro calendario:
-        // vanno buttati, o il feed mescolerebbe due insiemi di partite.
-        stopPlayPolling();
-        pbpSeen = new Set(); pbpCards = []; pbpDemoQueue = null;
-        pbpFull = new Set(); pbpLoadedKey = null;
-        pbpFirstRun = true;
-        receipts = []; prevSnapshot = null;
-        try { sessionStorage.removeItem('topina-live-receipts'); } catch { /* niente */ }
-        loadData();
-    });
     bindTeamPick(root);
 
     root.querySelector('[data-compare]')?.addEventListener('click', () => {
@@ -1276,6 +1465,19 @@ function render() {
     root.querySelector('[data-swap]')?.addEventListener('click', showOpponent);
     bindSwipe(root.querySelector('[data-swipe]'));
     bindDeepDive(root);
+    festeggiaSegnatura(root.querySelector('.fst'));
+    // Il campo è stato riscritto: il livello effetti se n'è andato con lui,
+    // e con esso qualunque festa in volo.
+    fermaEffetti();
+    fxLayer = mountFx(root);
+
+    // ?fxdemo=rec_td — una volta sola per caricamento, non a ogni ridisegno:
+    // altrimenti ripartirebbe a ogni cambio squadra.
+    const daUrl = new URLSearchParams(location.search).get('fxdemo');
+    if (daUrl && fxLayer && !fxDemoFatta) {
+        fxDemoFatta = true;
+        setTimeout(() => provaEffetto(daUrl), 400);
+    }
 }
 
 /**
@@ -1407,8 +1609,7 @@ function headerHTML() {
         <div class="live-header-left">
             <h1 class="live-header-title">${weekLabelText}</h1>
             <span class="live-header-kicker">
-                ${pbpDemo() ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
-                ${preseasonMode ? '<span class="live-demo-badge">PRESEASON · test mode</span>' : ''}
+                ${pbpDemo() || simDemo ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
                 ${usingEspnFallback ? '<span class="live-source-badge">da ESPN</span>' : ''}
                 ${statusBadgeHTML()}
             </span>
@@ -1416,8 +1617,6 @@ function headerHTML() {
         <div class="live-header-right">
             ${teamSwitcherHTML(teamEntries())}
             <span class="live-header-updated">Updated ${oraCorrente()}</span>
-            <button class="live-preseason-btn${preseasonMode ? ' is-on' : ''}" type="button"
-                    data-preseason title="Follow preseason games (test mode only)">Preseason</button>
             <button class="live-refresh-btn" type="button" aria-label="Refresh">↻</button>
         </div>
     </div>`;
@@ -1536,7 +1735,7 @@ function chip(p, side) {
         </span>
         <span class="live-chip-name">${shortName(p)}</span>
         <span class="live-chip-pts">${ptsHTML(p)}</span>
-        ${injury ? `<span class="live-chip-injury-badge">${injury}</span>` : ''}
+        ${injury || p.opponent ? `<span class="live-chip-meta">${injuryTagHTML(p)}${avversarioHTML(p)}</span>` : ''}
     </div>`;
 }
 
@@ -1654,7 +1853,7 @@ function fieldSlot(p, extraClass = '') {
         <span class="slot-name">${shortName(p)}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
-        ${injury ? `<span class="live-slot-inj">${escAttr(injury)}</span>` : ''}
+        ${injury ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}</span>` : ''}
     </div>`;
 }
 
@@ -1694,20 +1893,39 @@ function emptyRoster(team) {
  * Formazione vista dall'alto, con l'attacco rivolto verso la end zone in alto:
  * righe orizzontali (scrimmage → QB → RB → K/DEF), come le yard line del campo.
  */
+/**
+ * I titolari come li DISEGNA il campo, posto per posto.
+ *
+ * Il campo ha nove posti fissi: se una rosa porta fra i titolari un terzo RB o
+ * un secondo TE, quello non viene disegnato. Vale la pena avere la selezione in
+ * un posto solo, perché chiunque debba ragionare su "chi si vede" (il
+ * simulatore, per esempio) deve guardare esattamente questa lista, altrimenti
+ * assegna punti a un giocatore che a schermo non c'è e i totali non tornano.
+ */
+function titolariInCampo(team) {
+    const s = team?.starters || [];
+    return {
+        K: byPos(s, 'K'), DEF: byPos(s, 'DEF') || byPos(s, 'D/ST'),
+        WR1: byPos(s, 'WR', 0), TE: byPos(s, 'TE'),
+        FLEX: byPos(s, 'FLEX'), WR2: byPos(s, 'WR', 1),
+        RB1: byPos(s, 'RB', 0), QB: byPos(s, 'QB'), RB2: byPos(s, 'RB', 1),
+    };
+}
+
 function fieldFormationHTML(team) {
-    const s = team.starters || [];
+    const t = titolariInCampo(team);
     return `
-    <div class="live-row live-row--st">${fieldSlot(byPos(s, 'K'))}${fieldSlot(byPos(s, 'DEF') || byPos(s, 'D/ST'))}</div>
+    <div class="live-row live-row--st">${fieldSlot(t.K)}${fieldSlot(t.DEF)}</div>
     <div class="live-formation-bottom">
         <div class="live-row live-row--line">
-            ${fieldSlot(byPos(s, 'WR', 0))}${fieldSlot(byPos(s, 'TE'))}
+            ${fieldSlot(t.WR1)}${fieldSlot(t.TE)}
             ${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}${olineSlot()}
-            ${fieldSlot(byPos(s, 'FLEX'))}${fieldSlot(byPos(s, 'WR', 1))}
+            ${fieldSlot(t.FLEX)}${fieldSlot(t.WR2)}
         </div>
         <div class="live-row live-row--backfield">
-            ${fieldSlot(byPos(s, 'RB', 0))}
-            ${fieldSlot(byPos(s, 'QB'))}
-            ${fieldSlot(byPos(s, 'RB', 1))}
+            ${fieldSlot(t.RB1)}
+            ${fieldSlot(t.QB)}
+            ${fieldSlot(t.RB2)}
         </div>
     </div>`;
 }
@@ -1822,15 +2040,21 @@ const CMP_STAT_COLS = 3;
 function compareName(p, side) {
     if (!p) return `<div class="live-cmp-who live-cmp-who--${side}"><span class="live-cmp-empty">—</span></div>`;
     const role = (p.position_in_team || p.position || '').toUpperCase();
-    const meta = [role, p.nfl_team].filter(Boolean).join(' · ')
-        + (p.opponent ? ` | vs ${String(p.opponent).replace('@', '')}` : '');
+    // Tre pezzi separati invece di una stringa sola: ruolo e squadra possono
+    // accorciarsi, avversario e targhetta no. Attaccati com'erano, su schermo
+    // stretto l'ellissi mangiava proprio l'avversario e lo stato — le due
+    // informazioni che servono a decidere. L'ordine è speculare fra i due lati.
+    const testo = `<span class="live-cmp-metatxt">${escAttr([role, p.nfl_team].filter(Boolean).join(' · '))}</span>`;
+    const vs = avversarioHTML(p);
+    const tag = injuryTagHTML(p);
+    const meta = side === 'r' ? `${tag}${vs}${testo}` : `${testo}${vs}${tag}`;
     return `
     <div class="live-cmp-who live-cmp-who--${side}"
          data-player-modal data-player-name="${escAttr(p.name)}"
          data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
         <span class="live-cmp-name">${escAttr(p.name)}</span>
-        <span class="live-cmp-meta">${escAttr(meta)}</span>
+        <span class="live-cmp-meta">${meta}</span>
     </div>`;
 }
 
@@ -2029,16 +2253,299 @@ function flashNewReceipts(events) {
                 || (slot.classList.contains('live-cmp-pts') ? slot : null);
             let sum = () => { };
             if (ptsEl && ev.ptsDelta) {
-                const to = P(numEl(ptsEl).textContent);
+                // Il totale vero si chiede al DATO, non al numero a schermo.
+                // Quel numero è tenuto indietro apposta per dieci secondi, e
+                // usarlo come punto di partenza faceva scendere il conto a ogni
+                // evento che arrivava prima che il precedente fosse assorbito:
+                // due giocate ravvicinate e il giocatore andava in negativo,
+                // poi tornava a zero. Con 30 secondi di polling capita di rado,
+                // ma capita — due punteggi nello stesso giro bastano.
+                const vero = () => P(effPts(playersByName().get(ev.name)));
+                const to = vero();
                 const from = +(to - ev.ptsDelta).toFixed(2);
                 numEl(ptsEl).textContent = fmt(from);
-                sum = () => countUp(ptsEl, from, to);
+                // e alla fine si riparte da dove si è e si arriva al totale di
+                // ADESSO, che nel frattempo può essere cambiato ancora
+                sum = () => countUp(ptsEl, P(numEl(ptsEl).textContent), vero());
             }
             if (ev.ptsDelta) popPoints(slot, ev.ptsDelta, sum);
             else sum();
         }
         document.querySelector(`[data-receipt="${ev.id}"]`)?.classList.add('live-receipt--new');
     }
+    festeggia(events);
+}
+
+/**
+ * Coriandoli, fuochi e timbro per gli eventi che se lo meritano.
+ *
+ * Fuori dal ciclo qui sopra apposta: quello gira su TUTTE le card dello stesso
+ * giocatore (campo, panchina, confronto) e sparerebbe la raffica tre volte.
+ *
+ * Due limiti voluti, non due dimenticanze:
+ *  - solo la squadra che si sta guardando. Il campo ne mostra una sola, quindi
+ *    chi segna lì è sempre dei nostri;
+ *  - solo sul campo. Nel confronto le due squadre sono affiancate in una
+ *    tabella fitta di numeri, e dieci secondi di fuochi sopra renderebbero
+ *    illeggibile proprio quello che si è aperti a leggere (lì `mountFx`
+ *    torna null da solo, perché il campo non c'è).
+ */
+function festeggia(events) {
+    if (!fxLayer?.isConnected || !events.length) return;
+    const guardata = teamEntries()[teamIdx]?.team?.name;
+    // Stessa formula di `inkFor` in js/ui/charts.js: l'identità di Oscurus è
+    // #800020 e quella di Sommo #1c4750, che su un campo scuro darebbero
+    // coriandoli invisibili. Si schiarisce solo per il disegno. Ripetuta qui
+    // invece di importare charts.js, che sono 450 righe per una riga sola.
+    const tinta = teamOf(guardata)?.color || 'var(--accent-red)';
+    const colori = [`color-mix(in srgb, ${tinta} 68%, white 32%)`, '#ffffff', '#f5c451'];
+
+    // Una festa per poll, e dev'essere la più importante: in trenta secondi
+    // possono segnare in due, e a vincere dev'essere il touchdown, non chi
+    // capita prima nell'elenco degli eventi.
+    const campo = fxLayer.closest('.matchup-field-horizontal');
+    let scelto = null;
+    for (const ev of events) {
+        if (ev.team !== guardata) continue;
+        const spec = effettoPer(ev);
+        if (!spec) continue;
+        // Solo i titolari sul campo: la panchina è fuori da questo contenitore
+        // (vedi `fieldHTML`), e i suoi punti non fanno vincere nessuno —
+        // festeggiare un TD dalla panchina direbbe una cosa falsa.
+        const slot = campo?.querySelector(`[data-slot-player="${CSS.escape(ev.name)}"]`);
+        if (!slot) continue;
+        if (!scelto || spec.rango < scelto.spec.rango) scelto = { slot, spec, punti: ev.ptsDelta };
+    }
+    if (scelto) sparaEffetto(fxLayer, scelto.slot, scelto.spec, colori, scelto.punti);
+}
+
+/* ============================================================
+   SIMULATORE — solo per provare, si lancia a mano dalla console
+   ============================================================ */
+
+/**
+ * Inventa giocate a caso e le riversa sui giocatori a schermo, così da vedere
+ * muoversi TUTTO senza aspettare la domenica: punti che salgono, cerchi che
+ * lampeggiano, scontrini, referto medico, coriandoli e timbri.
+ *
+ * Da console:
+ *     TOPINA_SIM()          parte, una giocata ogni 3 secondi
+ *     TOPINA_SIM(800)       una ogni 0,8 secondi, per vedere tanta roba subito
+ *     TOPINA_SIM.stop()     ferma
+ *     TOPINA_SIM.td()       un touchdown adesso, su chi stai guardando
+ *     TOPINA_SIM.reset()    riazzera il tabellone
+ *
+ * Passa dallo stesso percorso della demo del play-by-play
+ * (`updateReceipts` → `refreshInPlace` → `flashNewReceipts`), quindi non è una
+ * scorciatoia che accende le luci a mano: è la catena vera, innescata da numeri
+ * finti.
+ *
+ * I numeri NON sono della lega e restano in memoria: non si scrivono da nessuna
+ * parte e un ricaricamento li spazza via. Finché gira, l'intestazione mostra il
+ * bollino DEMO, perché non si mostrano mai numeri inventati senza dirlo.
+ */
+let simTimer = null;
+
+const sInt = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
+
+/* Il pescaggio è sbilanciato: le giocate normali sono la maggioranza, i
+   touchdown capitano, gli intercetti sono rari.
+
+   I pesi degli eventi GROSSI sono tarati sulla durata della festa, non a
+   sentimento: una celebrazione dura dieci secondi, quindi con un touchdown
+   ogni sei giocate (16%, la prima versione) a tre secondi l'una si sarebbe
+   festeggiato per metà del tempo. Ora i touchdown sono ~8% del pescaggio —
+   uno ogni ~37 secondi al ritmo predefinito, che lascia respirare il campo
+   fra una festa e l'altra. */
+const SIM_GIOCATE = [
+    { peso: 30, ruoli: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'], stat: () => ({ targets: 1, rec: 1, rec_yds: sInt(3, 24) }) },
+    { peso: 12, ruoli: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'], stat: () => ({ targets: 1 }) },
+    { peso: 26, ruoli: ['RB'], stat: () => ({ rush_att: 1, rush_yds: sInt(-2, 14) }) },
+    { peso: 24, ruoli: ['QB'], stat: () => ({ pass_att: 1, pass_comp: 1, pass_yds: sInt(4, 28) }) },
+    { peso: 10, ruoli: ['QB'], stat: () => ({ pass_att: 1 }) },
+    { peso: 4, ruoli: ['WR', 'TE', 'W/R', 'RB/WR', 'FLEX'], stat: () => ({ targets: 1, rec: 1, rec_yds: sInt(8, 55), rec_td: 1 }) },
+    { peso: 3, ruoli: ['RB'], stat: () => ({ rush_att: 1, rush_yds: sInt(1, 30), rush_td: 1 }) },
+    { peso: 3, ruoli: ['QB'], stat: () => ({ pass_att: 1, pass_comp: 1, pass_yds: sInt(6, 48), pass_td: 1 }) },
+    { peso: 3, ruoli: ['QB'], stat: () => ({ pass_att: 1, pass_int: 1 }) },
+    { peso: 2, ruoli: ['RB', 'WR', 'TE'], stat: () => ({ fum_lost: 1 }) },
+    // Il kicker fa tre cose diverse, e valgono tre punteggi diversi: extra
+    // point 1, field goal 3, field goal da 50+ 5. Il calcio da lontano è il più
+    // raro dei tre, come nella realtà.
+    { peso: 6, ruoli: ['K'], stat: () => ({ pat_made: 1 }) },
+    { peso: 5, ruoli: ['K'], stat: () => ({ fg_att: 1, fg_made: 1, fg_0_39: 1 }) },
+    { peso: 2, ruoli: ['K'], stat: () => ({ fg_att: 1, fg_made: 1, fg_50_plus: 1 }) },
+    { peso: 8, ruoli: ['DEF'], stat: () => (Math.random() < 0.6 ? { sack: 1 } : { def_int: 1 }) },
+    { peso: 1, ruoli: ['DEF'], stat: () => ({ def_int: 1, def_td: 1 }) },
+];
+
+/**
+ * I titolari della sfida guardata — solo quelli che il campo DISEGNA davvero.
+ *
+ * Prima si pescava da `t.starters`, che può contenere più giocatori dei nove
+ * posti: chi restava fuori prendeva punti che finivano nel totale di squadra
+ * ma non comparivano su nessuna card, e il banner non tornava con la somma dei
+ * giocatori a schermo (2,5 punti di scarto, misurati).
+ */
+function simCandidati(soloGuardata) {
+    const e = teamEntries()[teamIdx];
+    if (!e) return [];
+    const squadre = soloGuardata ? [e.team] : [e.team, e.opp];
+    const out = [];
+    for (const t of squadre) {
+        for (const p of Object.values(titolariInCampo(t))) if (p?.name) out.push(p);
+    }
+    return out;
+}
+
+/**
+ * Una giocata inventata. Sbilanciata sulla squadra guardata: è quella a
+ * schermo, ed è lì che si vuole vedere se le cose si muovono.
+ */
+function simUnaGiocata(mirata) {
+    const rosa = simCandidati(Math.random() < 0.7);
+    if (!rosa.length) { console.warn('[sim] nessun titolare a schermo'); return false; }
+
+    let scelta = mirata;
+    if (!scelta) {
+        const tot = SIM_GIOCATE.reduce((a, g) => a + g.peso, 0);
+        let n = Math.random() * tot;
+        scelta = SIM_GIOCATE[0];
+        for (const g of SIM_GIOCATE) { n -= g.peso; if (n <= 0) { scelta = g; break; } }
+    }
+
+    const adatti = rosa.filter(p =>
+        scelta.ruoli.includes((p.position_in_team || p.position || '').toUpperCase()));
+    if (!adatti.length) return false;
+
+    const p = adatti[Math.floor(Math.random() * adatti.length)];
+    const ruolo = (p.position_in_team || p.position || '').toUpperCase();
+    p.started = true;
+    p.stats = p.stats || {};
+    for (const [k, v] of Object.entries(scelta.stat())) {
+        p.stats[k] = (parseFloat(p.stats[k]) || 0) + v;
+    }
+    // I punti si RICALCOLANO dal totale delle statistiche con il motore della
+    // lega, non si sommano a mano: così il numero a schermo è sempre coerente
+    // con la riga di statistiche che gli sta accanto.
+    p.fantasy_points = +(scoreWeeklyStats(p.stats, ruolo) || 0).toFixed(2);
+    return true;
+}
+
+/** Ricalcola i totali di squadra e fa girare la catena vera. */
+function simApplica() {
+    for (const m of matchups) {
+        for (const side of ['team1', 'team2']) {
+            const t = m[side];
+            if (!t) continue;
+            t.score = (t.starters || [])
+                .reduce((a, p) => a + (parseFloat(p.fantasy_points) || 0), 0).toFixed(2);
+        }
+    }
+    const events = updateReceipts();
+    refreshInPlace(events);
+    if (events.length) flashNewReceipts(events);
+}
+
+if (typeof window !== 'undefined') {
+    const sim = (ms = 3000) => {
+        if (!matchups.length) { console.warn('[sim] apri #live prima'); return; }
+        clearInterval(simTimer);
+        if (!simDemo) {
+            simDemo = true;
+            // Il polling vero va FERMATO, altrimenti ogni 30 secondi
+            // `loadData()` riscarica da ESPN, sostituisce `matchups` e cancella
+            // tutto quello che il simulatore ha aggiunto: i punteggi si
+            // azzeravano invece di sommarsi. Per tornare ai dati veri si
+            // ricarica la pagina.
+            stopPolling();
+            // La giornata è "cominciata": altrimenti il banner mostrerebbe la
+            // proiezione finché il punteggio è a zero, e i due numeri — totale
+            // di squadra e somma dei giocatori — non tornerebbero mai.
+            giornataCominciata = true;
+            // Si parte da zero, come fa `resetDemoBoard` per la demo del
+            // play-by-play e per lo stesso motivo: i punti di partenza vengono
+            // da Firebase, le statistiche no, e ricalcolando i punti dalle sole
+            // statistiche alcuni giocatori SCENDEREBBERO. Da zero salgono e
+            // basta — tranne intercetti e fumble, che tolgono per davvero.
+            sim.reset();
+            render();                                // fa comparire il bollino DEMO
+        }
+        simTimer = setInterval(() => { if (simUnaGiocata()) simApplica(); }, ms);
+        console.info('[sim] via, una giocata ogni ' + ms + 'ms. TOPINA_SIM.stop() per fermare.');
+    };
+    sim.stop = () => {
+        clearInterval(simTimer);
+        simTimer = null;
+        console.info('[sim] fermo. Ricarica la pagina per tornare ai dati veri.');
+    };
+    sim.td = () => {
+        const ok = simUnaGiocata(SIM_GIOCATE.find(g => g.ruoli.includes('WR') && g.peso === 8));
+        if (ok) simApplica();
+        return ok;
+    };
+    sim.reset = () => {
+        for (const m of matchups) {
+            for (const side of ['team1', 'team2']) {
+                for (const p of [...(m[side]?.starters || []), ...(m[side]?.bench || [])]) {
+                    p.fantasy_points = 0; p.stats = {}; p.started = true;
+                }
+            }
+        }
+        prevSnapshot = null;   // niente scontrini fasulli al giro dopo
+        simApplica();
+        console.info('[sim] tabellone azzerato.');
+    };
+    window.TOPINA_SIM = sim;
+}
+
+/**
+ * Prova a mano degli effetti. Stessa idea di `?pbpdemo=`: serve a vedere fuori
+ * stagione una cosa che altrimenti si vede solo la domenica, quando i numeri
+ * cambiano davvero fra due polling.
+ *
+ * Da console:
+ *     TOPINA_FX()            l'elenco delle chiavi
+ *     TOPINA_FX('rec_td')    un touchdown sul primo titolare
+ *     TOPINA_FX('pass_int', 'Puka Nacua')   su un giocatore preciso
+ *
+ * Oppure con un link:  index.html?fxdemo=rec_td#live
+ * (il parametro sta prima del cancelletto: il sito instrada sull'hash,
+ * ma il flag si legge da `location.search`, come già fa `?pbpdemo=`)
+ *
+ * Non cambia nulla del comportamento reale: non tocca i dati, non altera i
+ * punteggi, disegna e basta.
+ */
+function provaEffetto(chiave, nome) {
+    if (!fxLayer?.isConnected) {
+        console.warn('[live-fx] nessun campo a schermo: apri #live e non il confronto');
+        return false;
+    }
+    const spec = effettoPer({ changes: [{ key: chiave, delta: 1 }] });
+    if (!spec) {
+        console.warn(`[live-fx] "${chiave}" non innesca niente. Chiavi buone:`, CHIAVI_FX.join(', '));
+        return false;
+    }
+    const campo = fxLayer.closest('.matchup-field-horizontal');
+    const slot = nome
+        ? campo?.querySelector(`[data-slot-player="${CSS.escape(nome)}"]`)
+        : campo?.querySelector('[data-slot-player]');
+    if (!slot) {
+        console.warn(`[live-fx] "${nome || 'primo titolare'}" non è in campo`);
+        return false;
+    }
+    const tinta = teamOf(teamEntries()[teamIdx]?.team?.name)?.color || 'var(--accent-red)';
+    return sparaEffetto(fxLayer, slot, spec,
+        [`color-mix(in srgb, ${tinta} 68%, white 32%)`, '#ffffff', '#f5c451']);
+}
+
+const CHIAVI_FX = ['rec_td', 'rush_td', 'pass_td', 'def_td', 'ret_td', 'fum_td',
+    'fg_50_plus', 'safety', 'pass_int', 'fum_lost', 'sack', 'def_int'];
+
+if (typeof window !== 'undefined') {
+    window.TOPINA_FX = (chiave, nome) => {
+        if (!chiave) { console.info('[live-fx] chiavi:', CHIAVI_FX.join(', ')); return CHIAVI_FX; }
+        return provaEffetto(chiave, nome);
+    };
 }
 
 /**
@@ -2114,7 +2621,7 @@ function nflGamesListHTML(team) {
         const fuoriCasa = (g.opponent || '').startsWith('@');
         const nomi = g.giocatori.map(p => shortName(p)).join(', ');
         const punteggio = g.state === 'pre'
-            ? `<span class="live-nfl-kick">${escAttr(g.detail || g.status || '')}</span>`
+            ? `<span class="live-nfl-kick">${escAttr(oraItaliana(g.start) || g.detail || g.status || '')}</span>`
             : `<span class="live-nfl-score"><b>${g.score}</b> – <b>${g.oppScore}</b></span>`;
         return `
         <div class="live-nfl-row${g.state === 'in' ? ' live-nfl-row--live' : ''}">
@@ -2207,8 +2714,300 @@ function usoBloccoHTML(titolo, righe) {
     return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${righe}</div>`;
 }
 
+/**
+ * Tiene la giocata piu' recente di ogni partita. Si confronta la sequenza, non
+ * l'ordine di arrivo: recuperando lo storico le pagine tornano fuori ordine e
+ * l'ultima letta non e' l'ultima giocata.
+ */
+function segnaUltimaGiocata(play) {
+    if (!play?.eventId) return;
+    const lista = giocateDi.get(play.eventId) || [];
+    if (lista.some(x => x.id === play.id)) return;
+    lista.push(play);
+    // Si ordina per sequenza, non per ordine di arrivo: recuperando lo storico
+    // le pagine tornano fuori ordine e l'ultima letta non e' l'ultima giocata.
+    lista.sort((a, b) => (a.seq || 0) - (b.seq || 0));
+    giocateDi.set(play.eventId, lista);
+}
+
+/** Le giocate di una partita, dalla prima all'ultima. */
+const giocateDellaPartita = (ev) => (ev ? giocateDi.get(String(ev)) : null) || [];
+
+const LOGO_NFL = (abbr) =>
+    `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;
+
+
+/**
+ * Lo stato per la striscia del campo, messo insieme da due fonti che gia'
+ * esistono: il tabellino (chi gioca, il punteggio, a che punto e') e l'ultima
+ * giocata del play-by-play (dove sta la palla, il down, chi attacca).
+ * Nessuna richiesta in piu'.
+ */
+function statoCampo(sigla, quadro) {
+    const g = quadro?.info;
+    if (!g) return null;
+    const oppAbbr = canonAbbr(g.opponent || '') || g.opponent || '';
+    if (!oppAbbr) return null;
+
+    const sched = liveSchedule?.get(sigla);
+    const io_ = {
+        abbr: sigla, name: g.teamName || sigla,
+        logo: g.logo || LOGO_NFL(sigla),
+        color: getTeamIdentity(sigla)?.color || 'var(--accent-red)',
+        color2: getTeamIdentity(sigla)?.color2 || '',
+        score: g.score ?? 0,
+        timeouts: sched?.timeouts ?? null,
+    };
+    const loro = {
+        abbr: oppAbbr, name: g.opponentName || oppAbbr,
+        logo: LOGO_NFL(oppAbbr),
+        color: getTeamIdentity(oppAbbr)?.color || 'var(--accent-blue)',
+        color2: getTeamIdentity(oppAbbr)?.color2 || '',
+        score: g.oppScore ?? 0,
+        timeouts: sched?.oppTimeouts ?? null,
+    };
+    // `g.home` dice se la squadra che sto guardando gioca in casa: l'ospite va
+    // sempre a sinistra, come sugli scorebug in TV.
+    const home = g.home ? io_ : loro;
+    const away = g.home ? loro : io_;
+
+    const ev = sched?.eventId;
+    const tutte = giocateDellaPartita(ev);
+    // A partita finita si puo' riguardare: `giocataScelta` e' l'indice
+    // scelto dalla timeline, null vuol dire "segui il vivo".
+    const idx = giocataScelta != null && giocataScelta < tutte.length
+        ? giocataScelta : tutte.length - 1;
+    const p = tutte[idx] || null;
+
+    // Il drive e' SEMPRE quello della giocata corrente, mai uno stato a parte:
+    // due indici da tenere d'accordo si sarebbero sfasati al primo polling.
+    // Toccare una pastiglia sposta la giocata, e il drive la segue.
+    const gruppi = drivesDi(tutte);
+    const dIdx = Math.max(0, gruppi.findIndex(gr => gr.plays.includes(p)));
+    const drive = gruppi[dIdx];
+
+    const cartello = cartelloGiocata(p);
+
+    let possesso = null;
+    if (p?.offenseTeamId) {
+        const idCasa = ESPN_TEAM_IDS[home.abbr];
+        possesso = String(p.offenseTeamId) === String(idCasa) ? 'home' : 'away';
+    }
+
+    return {
+        home, away,
+        periodo: p?.period ?? null,
+        orologio: p?.clock || g.detail || '',
+        down: p?.down || null,
+        distance: p?.distance ?? null,
+        possesso,
+        toEZ: p?.toEZ ?? null,
+        stato: g.state || 'pre',
+        // La timeline solo a partita conclusa: durante il vivo il campo deve
+        // restare sul presente, e una barra che si allunga sotto le dita
+        // mentre si guarda sarebbe da combattere invece che da usare.
+        timeline: (g.state === 'post' && tutte.length > 1)
+            ? { n: tutte.length, i: idx } : null,
+        // Dal vivo si guarda quello che sta succedendo, non l'archivio: il
+        // recap compare a partita chiusa, insieme alla timeline.
+        recap: g.state !== 'post' ? [] : tutte.map((x, k) => ({
+            i: k,
+            titolo: titoloGiocata(x),
+            testo: x.text || '',
+            periodo: x.period,
+            clock: x.clock,
+            // Il down e la distanza dicono il PESO della giocata: un passaggio
+            // da otto yard al terzo e sette e uno al primo e dieci sono due
+            // cose diverse, e scorrendo l'elenco non si distinguevano.
+            dd: x.down ? `${x.down}${['st', 'nd', 'rd', 'th'][Math.min(x.down, 4) - 1]} & ${x.distance ?? 10}` : '',
+            segna: !!x.scoring,
+            persa: !!x.turnover,
+        })).reverse(),
+        // Coin toss, fine quarto, timeout: hanno una posizione di comodo
+        // (`toEZ 0` con una fine a meta' campo) e tracciavano una riga lunga
+        // che non corrisponde a nessuna azione. Non si disegnano.
+        // Su un timeout il campo resta vuoto. La giocata e' fuori dalla lista
+        // (e' filtrata), quindi `indexOf` dava -1 e l'indice ripiegava su
+        // zero: restava acceso il calcio d'inizio del drive.
+        giocate: (eUnTimeout(p) || cartello) ? [] :
+            (drive?.plays || []).filter(disegnabile).map(x => giocataDisegnabile(x, home, away)),
+        giocataIdx: Math.max(0, (drive?.plays || []).filter(disegnabile).indexOf(p)),
+        // Le pastiglie della striscia: una per drive, con la sigla dell'esito.
+        // L'esito si cerca A RITROSO fra le azioni del drive, non sull'ultima:
+        // in coda ci finiscono timeout e trasformazioni, e un drive chiuso col
+        // touchdown si leggeva dall'extra point che viene dopo.
+        drives: gruppi.map((gr, k) => {
+            const utili = gr.plays.filter(x => !eDiServizio(x));
+            const fine = utili[utili.length - 1];
+            for (let j = utili.length - 1; j >= 0; j--) {
+                const t = tagDrive(utili[j].text || '');
+                if (t.l !== '—') {
+                    return { i: k, tag: t.l, cls: t.c,
+                        team: siglaDaId(utili[j].offenseTeamId), res: utili[j].text || '' };
+                }
+            }
+            // Nessuna parola chiave nel testo, ma il DOWN lo sappiamo: un drive
+            // che si chiude al quarto senza punt ne' field goal e' finito sui
+            // downs. E' il dato che salva la meta' dei drive che restavano
+            // senza sigla, e non e' una parola indovinata — c'e' nei fatti.
+            // (ESPN ha anche l'esito ufficiale in /drives, ma quella risposta
+            // pesa 836 KB per partita perche' ci annida dentro tutte le
+            // giocate: troppo per un telefono, e le giocate ce le abbiamo gia'.)
+            // ESPN mette il calcio che CHIUDE un drive in testa a quello
+            // dopo, come fa col kickoff: un drive finito col punt si leggeva
+            // "DWN" perche' l'ultima sua azione era un terzo down fallito.
+            const dopo = (gruppi[k + 1]?.plays || []).find(x => !/timeout/i.test(x.text || ''));
+            if (/punts?/i.test(dopo?.text || '')) {
+                return { i: k, tag: 'PNT', cls: 'punt',
+                    team: siglaDaId(fine?.offenseTeamId), res: dopo.text || '' };
+            }
+            if (fine?.down === 4) {
+                return { i: k, tag: 'DWN', cls: 'to',
+                    team: siglaDaId(fine.offenseTeamId), res: fine.text || '' };
+            }
+            return { i: k, tag: '—', cls: 'end', team: '', res: '' };
+        // Una pastiglia senza esito non dice niente: si toglie, e il drive
+        // resta comunque raggiungibile scorrendo le giocate.
+        }).filter(d => d.tag !== '—'),
+        driveIdx: dIdx,
+        // Identifica CIO' CHE E' DISEGNATO, non lo stato intero: l'orologio
+        // e i punteggi cambiano a ogni giro di polling, e ridisegnare l'SVG
+        // per quelli faceva ripartire l'animazione della giocata ogni trenta
+        // secondi, all'infinito.
+        scena: `${sigla}|${dIdx}|${p?.id || ''}|${gruppi.length}`,
+        // L'animazione racconta una giocata che ARRIVA. Riguardando l'azione
+        // a partita finita non arriva niente — si sta sfogliando — e un
+        // secondo e mezzo di attesa a ogni passo, per centosettantotto
+        // giocate, e' un impaccio invece di un racconto.
+        statico: giocataScelta != null,
+        // Un timeout non e' un'azione: sul campo non va disegnato niente, e al
+        // posto della giocata si dice chi l'ha chiamato. Prima restava acceso
+        // il calcio d'inizio del drive, che non c'entrava nulla.
+        timeout: eUnTimeout(p) ? etichettaTimeout(p, home, away) : null,
+        // Sorteggio, fine quarto, intervallo, fine partita: una parola sul
+        // manto al posto di un'azione che non c'e' stata.
+        cartello,
+        // `giocata` resta anche col cartello: e' quella che riempie il
+        // pannello sotto il campo ("End of Game — END GAME"), e azzerandola
+        // spariva la riga insieme al disegno. A non far disegnare niente ci
+        // pensa gia' `giocate: []` qui sopra.
+        giocata: (p && p.toEZ != null && !eUnTimeout(p))
+            ? giocataDisegnabile(p, home, away) : null,
+    };
+}
+
+/**
+ * Una giocata che ha senso disegnare sul campo.
+ *
+ * NON usa `eDiServizio`: quella esclude anche i calci, perche' serve a un'altra
+ * domanda — "com'e' finito il drive?", dove un kickoff non e' l'esito ma cio'
+ * che viene dopo. Usarla anche qui buttava via kickoff e punt dal campo, e il
+ * pannello raccontava una giocata mentre il disegno ne mostrava un'altra.
+ * Qui si tolgono solo le righe che una posizione non ce l'hanno davvero.
+ */
+const eUnTimeout = (x) => /timeout/i.test(String(x?.text || ''));
+
+/** "Timeout — Buffalo Bills", o "Official timeout" se non e' di nessuno. */
+function etichettaTimeout(p, home, away) {
+    const m = String(p?.text || '').match(/timeout #?[0-9]*\s*by\s+([A-Za-z]{2,3})/i);
+    if (!m) return { titolo: 'Official timeout', squadra: '' };
+    const sig = m[1].toUpperCase();
+    const q = [home, away].find(x => (x.abbr || '').toUpperCase() === sig);
+    // Il nome per esteso quando si riesce: nella scheda c'e' spazio, e
+    // "Pittsburgh Steelers" si legge meglio di una sigla di tre lettere.
+    // La tabella viene PRIMA di `q.name`: li' il nome ripiega sulla sigla
+    // quando il tabellone non lo manda, e si finiva per scrivere "Timeout —
+    // PIT" pur avendo il nome esteso a disposizione.
+    const esteso = teamNameFromAbbr(sig);
+    return {
+        titolo: 'Timeout',
+        squadra: esteso !== sig ? esteso : (q?.name || sig),
+    };
+}
+
+const disegnabile = (x) => x.toEZ != null
+    && !/^(GAME|END GAME|END QUARTER|END OF|Timeout|Official Timeout|Two-Minute)/i
+        .test(String(x.text || '').trim());
+
+/**
+ * Da giocata grezza a giocata disegnabile. Sta fuori da `statoCampo` perche'
+ * ora serve per OGNI azione del drive, non solo per l'ultima.
+ */
+function giocataDisegnabile(p, home, away) {
+    const dir = direzioneGiocata(p);
+    let tipo = tipoGiocata(p);
+    const calcio = yardCalcio(p);
+    // Sulla sola azione, come tipoGiocata: la coda della trasformazione
+    // parla di un'altra giocata.
+    if (/field goal/i.test(testoAzione(p.text))) tipo = 'fg';   // dopo: sovrascrive 'kick'
+
+    // Le yard: quelle ufficiali quando ci sono, quelle del testo per i calci
+    // (un punt risulta da zero yard), una stima per gli incompleti.
+    let yards = p.yards || 0;
+    if (calcio != null) yards = calcio;
+    else if (tipo === 'incomplete' && !yards) yards = yardStimate(dir.profondita);
+
+    const idCasa = ESPN_TEAM_IDS[home.abbr];
+    const poss = p.offenseTeamId
+        ? (String(p.offenseTeamId) === String(idCasa) ? 'home' : 'away') : null;
+    const foto = (...ruoli) => {
+        const a = p.actors || {};
+        for (const r of ruoli) if (a[r]) return headshotUrl(a[r]);
+        return '';
+    };
+    return {
+        titolo: titoloGiocata(p),
+        testo: p.text || '',
+        yards,
+        tipo,
+        lato: dir.lato,
+        buono: fgBuono(p),
+        segna: !!p.scoring,
+        persa: !!p.turnover,
+        penalita: !!p.penalita,
+        // Cosa era successo prima del fazzoletto, quando la penalita' annulla
+        // la giocata ("- No Play"): serve a disegnarla cancellata.
+        annullata: azioneAnnullata(p.text),
+        toEZ: p.toEZ,
+        // DOVE E' FINITA la palla, non quanto ha percorso: e' il dato che
+        // ESPN registra, e sulle giocate dove le due cose non coincidono —
+        // i calci prima di tutto — sommare le yard sbagliava di netto.
+        toEZFine: p.toEZEnd,
+        // Il volo del calcio, letto dal testo: da dove parte e dove atterra.
+        // Il tabellino da' solo la raccolta e la fine del ritorno.
+        ...(tipo === 'kick' ? volodelCalcio(p.text, home.abbr) : {}),
+        possesso: poss,
+        logo: poss ? (poss === 'home' ? home.logo : away.logo) : '',
+        // Due facce: chi la manda e chi la riceve. Su una corsa e' la stessa
+        // persona, quindi la seconda resta vuota.
+        // `punter` e non `kicker`: sui punt ESPN usa l'altro nome, e senza
+        // questo la faccia di chi calcia non compariva mai.
+        fotoDa: foto('passer', 'rusher', 'kicker', 'punter', 'scorer'),
+        fotoA: (p.actors?.passer || p.actors?.kicker || p.actors?.punter)
+            ? foto('receiver', 'returner') : '',
+    };
+}
+
 /** Quale partita si sta guardando nel "dentro la partita". */
 let deepIdx = 0;
+/** Vero appena l'utente sceglie: da li' in poi comanda lui. */
+let deepScelto = false;
+
+/**
+ * All'apertura si parte da una partita che ha qualcosa da far vedere: prima
+ * quelle in corso, poi quelle finite (da rivedere con la timeline), e solo
+ * per ultime quelle che devono ancora cominciare. Partendo dalla prima
+ * dell'elenco si finiva su un campo vuoto anche avendo tre partite giocate
+ * a due clic di distanza, senza nessun indizio che ci fossero.
+ */
+function deepIdxIniziale(partite) {
+    const peso = (p) => ({ in: 0, post: 1 }[p.quadro?.info?.state] ?? 2);
+    let best = 0;
+    for (let i = 1; i < partite.length; i++) {
+        if (peso(partite[i]) < peso(partite[best])) best = i;
+    }
+    return best;
+}
 
 /** Le partite da mostrare, una per squadra NFL in cui ho qualcuno. */
 function deepGames(team) {
@@ -2234,7 +3033,13 @@ function deepGames(team) {
                     opponentName: (g.opponent || '').replace('@', ''),
                     home: !String(g.opponent || '').startsWith('@'),
                     score: g.score || 0, oppScore: g.oppScore || 0,
-                    detail: g.detail || g.status || '', state: g.state || 'pre',
+                    // A partita non cominciata l'etichetta e' l'orario, e va
+                    // in ora italiana come nel tabellone qui sopra. In corso
+                    // e' invece quarto e cronometro, che non si toccano.
+                    detail: g.state === 'pre'
+                        ? (oraItaliana(g.start) || g.detail || g.status || '')
+                        : (g.detail || g.status || ''),
+                    state: g.state || 'pre',
                 },
             },
         });
@@ -2339,6 +3144,7 @@ function deepGameHTML({ sigla, miei, quadro }) {
                 : `<span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>`}
             <span class="live-deep-when">${escAttr(g.detail || '')}</span>
         </header>
+        ${(() => { const st = statoCampo(sigla, quadro); return st ? fieldStripHTML(st) : ''; })()}
         <p class="live-deep-sub">${escAttr(g.teamName || sigla)} offense only${nostri.length
             ? ` · yours: <b>${nostri.map(escAttr).join(', ')}</b>` : ''}</p>
         ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
@@ -2371,6 +3177,7 @@ function deepDiveHTML(team) {
     const partite = deepGames(team);
     if (!partite.length) return '';
     if (deepIdx >= partite.length) deepIdx = 0;
+    if (!deepScelto) deepIdx = deepIdxIniziale(partite);
 
     // Con più partite se ne guarda una per volta e si gira, come le card delle
     // giocate: affiancarle le stringerebbe fino a rendere illeggibili le barre.
@@ -2379,8 +3186,15 @@ function deepDiveHTML(team) {
     // sezione si impuntava invece di proseguire.
     const nav = partite.length < 2 ? '' : `
         <div class="live-deep-nav">
-            ${partite.map((p, i) => `<button class="live-deep-dot${i === deepIdx ? ' active' : ''}"
-                type="button" data-deep-go="${i}">${escAttr(p.sigla)}</button>`).join('')}
+            ${partite.map((p, i) => {
+                // La sigla dice anche in che stato e' quella partita: un punto
+                // acceso se e' in corso, spento se deve ancora cominciare.
+                const st = p.quadro?.info?.state || 'pre';
+                return `<button class="live-deep-dot live-deep-dot--${st}${i === deepIdx ? ' active' : ''}"
+                    type="button" data-deep-go="${i}"
+                    title="${st === 'in' ? 'In progress' : st === 'post' ? 'Final — plays available' : 'Not started'}"
+                    >${escAttr(p.sigla)}</button>`;
+            }).join('')}
         </div>`;
 
     const colore = teamOf(team.name)?.color || 'var(--accent-red)';
@@ -2400,10 +3214,13 @@ function bindDeepDive(root) {
     const sez = root.querySelector('#live-deep');
     if (!sez) return;
     const quante = sez.querySelectorAll('[data-deep-go]').length;
+    bindFieldStrip(sez, scegliGiocata);
     sez.querySelectorAll('[data-deep-go]').forEach(b =>
         b.addEventListener('click', () => {
             if (quante < 2) return;
             deepIdx = (Number(b.dataset.deepGo) + quante) % quante;
+            deepScelto = true;      // da qui in poi decide l'utente
+            giocataScelta = null;   // partita nuova, si riparte dal vivo
             const entry = teamEntries()[teamIdx];
             if (!entry) return;
             sez.outerHTML = deepDiveHTML(entry.team).trim();

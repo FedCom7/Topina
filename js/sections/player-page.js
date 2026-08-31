@@ -12,19 +12,19 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=595';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=616';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
-import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=567';
+import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=588';
 import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=597';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=620';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=670';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=595';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { canonAbbr } from '../data/nfl-schedule.js?v=526';
+import { canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { CURRENT_SEASON } from '../data.js?v=540';
-import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=622';
+import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=643';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=937';
-import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=513';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=961';
+import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=534';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=505';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';

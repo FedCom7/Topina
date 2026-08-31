@@ -31,8 +31,8 @@
  */
 
 import { normName } from './projections.js?v=592';
-import { getAdvancedPlayers } from './context-score.js?v=587';
-import { canonAbbr } from './nfl-schedule.js?v=526';
+import { getAdvancedPlayers } from './context-score.js?v=608';
+import { canonAbbr } from './nfl-schedule.js?v=544';
 
 const _cache = {};   // year → Promise<risultato | null>
 

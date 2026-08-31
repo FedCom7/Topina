@@ -7,7 +7,8 @@
 
 import { CURRENT_SEASON } from '../data.js?v=540';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=591';
-import { TEAMS } from './team.js?v=610';
+import { TEAMS } from './team.js?v=665';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -22,15 +23,18 @@ export function initHonors() {
 function renderYearSelector() {
     const container = document.getElementById('hn-year-selector');
     if (!container) return;
-    container.innerHTML = honorsSeasons().map(y =>
-        `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`
-    ).join('');
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.year-pill');
-        if (!btn) return;
-        container.querySelectorAll('.year-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        loadYear(btn.dataset.year);
+    const anni = honorsSeasons();
+    const items = anni.map(y => ({ value: y, label: y }));
+    // `bindPickDropdown` aggancia i listener agli elementi, non al contenitore:
+    // riscrivendo l'HTML vanno riagganciati, come fanno Draft e Game Center.
+    container.innerHTML = pickDropdownHTML('year', items, anni.indexOf(String(currentYear)));
+    bindPickDropdown(container, (_id, value) => {
+        // prima l'anno, poi il ridisegno: al contrario la capsula si
+        // riscriveva con quello vecchio e mostrava una scelta diversa da
+        // quella caricata
+        currentYear = value;
+        renderYearSelector();
+        loadYear(value);
     });
 }
 
