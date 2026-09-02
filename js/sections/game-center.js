@@ -1,10 +1,10 @@
-import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
+import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=580';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=30';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
-import { initPlayerModal } from '../components/player-modal.js?v=670';
+import { TEAMS } from './team.js?v=705';
+import { initPlayerModal } from '../components/player-modal.js?v=710';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { cachedAsset } from '../utils/asset-cache.js?v=1';
@@ -151,13 +151,17 @@ function renderPickRow(maxWeek) {
 
     let weekHtml = '';
     if (maxWeek) {
+        // Dalla piu' recente in giu', come gli anni: si apre sulla giornata
+        // in corso e da li' si guarda indietro.
         const weekItems = [];
-        for (let w = 1; w <= maxWeek; w++) weekItems.push({ value: String(w), label: weekLabel(w) });
+        for (let w = maxWeek; w >= 1; w--) weekItems.push({ value: String(w), label: weekLabel(w) });
         const weekIdx = weekItems.findIndex(it => it.value === String(currentWeek));
         weekHtml = pickDropdownHTML('week', weekItems, weekIdx);
     }
-    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
-    const yearIdx = SEASONS.indexOf(String(currentYear));
+    // Dalla piu' recente: voci e indice dalla STESSA lista, o la capsula
+    // mostrerebbe un anno diverso da quello caricato.
+    const yearItems = SEASONS_DESC.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS_DESC.indexOf(String(currentYear));
 
     container.innerHTML = weekHtml + pickDropdownHTML('year', yearItems, yearIdx);
     bindPickDropdown(container, (id, value) => {

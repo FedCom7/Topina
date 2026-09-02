@@ -2,11 +2,11 @@
  * Draft Section
  * Year selector + Round filter → draft pick cards
  */
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
+import { TEAMS } from './team.js?v=705';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=670';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=710';
 import { db } from '../firebase-config.js?v=3';
 import { fetchDraftStatus } from '../data/espn-fantasy.js?v=30';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
@@ -62,8 +62,10 @@ function renderPickRow(maxRound) {
     const modeIdx = modeItems.findIndex(it => it.value === currentMode);
     const modeHtml = pickDropdownHTML('mode', modeItems, modeIdx);
 
-    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
-    const yearIdx = SEASONS.indexOf(String(currentYear));
+    // Dalla piu' recente: voci e indice dalla STESSA lista, o la capsula
+    // mostrerebbe un anno diverso da quello caricato.
+    const yearItems = SEASONS_DESC.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS_DESC.indexOf(String(currentYear));
 
     container.innerHTML = roundHtml + modeHtml + pickDropdownHTML('year', yearItems, yearIdx);
     bindPickDropdown(container, (id, value) => {

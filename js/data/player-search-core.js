@@ -6,7 +6,7 @@
  * (ui/navbar.js), così esiste una sola fonte di verità.
  */
 
-import { buildCareers } from './careers.js?v=597';
+import { buildCareers } from './careers.js?v=604';
 import { NFL_TEAMS } from './nfl-teams.js?v=513';
 import { normName } from './projections.js?v=594';
 

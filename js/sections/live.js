@@ -15,21 +15,21 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=540';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
+import { TEAMS } from './team.js?v=705';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
-import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=100';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=126';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=30';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
-import { fieldSVG } from '../ui/field-svg.js?v=4';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
+import { fieldSVG } from '../ui/field-svg.js?v=20';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=670';
+import { initPlayerModal } from '../components/player-modal.js?v=710';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
@@ -86,6 +86,10 @@ let matchups = [];
 let teamIdx = 0; // indice nell'elenco "piatto" delle 4 squadre (teamEntries())
 let isLiveSource = false;
 let weekLabelText = '';
+/* Solo la giornata — "Week 1", "Playoffs", "Super Bowl" — senza l'anno.
+   Sta sul campo, non nell'intestazione: chi guarda il Live sa in che anno
+   siamo, e quella riga rubava spazio a quello che cambia davvero. */
+let etichettaRound = '';
 let currentWeekNum = 1;  // settimana mostrata, passata alla scheda giocatore
 let liveSchedule = null; // Map abbr → {start,end} per la settimana corrente (liveNow)
 // Finché il draft non è fatto ESPN riempie le squadre di rose segnaposto:
@@ -886,6 +890,7 @@ async function loadData({ silent = false } = {}) {
             const config = getSeasonConfig(CURRENT_SEASON);
             const round = week === config.superBowlWeek ? 'Super Bowl'
                 : week === config.playoffWeek ? 'Playoffs' : `Week ${week}`;
+            etichettaRound = round;
             weekLabelText = `${CURRENT_SEASON} · ${round}`;
             await hydrateScheduleAndRender(CURRENT_SEASON, week);
             startPolling();
@@ -927,6 +932,7 @@ async function loadData({ silent = false } = {}) {
     const config = getSeasonConfig(CURRENT_SEASON);
     const roundLabel = pickedWeek === config.superBowlWeek ? 'Super Bowl'
         : pickedWeek === config.playoffWeek ? 'Playoffs' : `Week ${pickedWeek}`;
+    etichettaRound = roundLabel;
     weekLabelText = `${CURRENT_SEASON} · ${roundLabel}`;
     await hydrateScheduleAndRender(CURRENT_SEASON, pickedWeek);
 }
@@ -1311,7 +1317,7 @@ function refreshInPlace(events = []) {
     // risultati NFL: cambiano punteggio e cronometro, nessuna immagine
     // l'orologio in alto: si aggiorna a ogni giro, come i numeri
     const orologio = root.querySelector('.live-header-updated');
-    if (orologio) orologio.textContent = `Updated ${oraCorrente()}`;
+    if (orologio) orologio.textContent = oraCorrente();
 
     const nfl = document.getElementById('live-nfl-games');
     if (nfl) nfl.innerHTML = nflGamesListHTML(entry.team);
@@ -1597,7 +1603,8 @@ function statusBadgeHTML() {
     return '';
 }
 
-/** Ora locale hh:mm, per l'etichetta "Updated". */
+/** Ora locale hh:mm dell'ultimo aggiornamento: si mostra da sola, senza
+ *  etichetta — accanto al tasto di ricarica si capisce da se'. */
 function oraCorrente() {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -1607,7 +1614,6 @@ function headerHTML() {
     return `
     <div class="live-header">
         <div class="live-header-left">
-            <h1 class="live-header-title">${weekLabelText}</h1>
             <span class="live-header-kicker">
                 ${pbpDemo() || simDemo ? '<span class="live-demo-badge">DEMO · not real numbers</span>' : ''}
                 ${usingEspnFallback ? '<span class="live-source-badge">da ESPN</span>' : ''}
@@ -1616,7 +1622,7 @@ function headerHTML() {
         </div>
         <div class="live-header-right">
             ${teamSwitcherHTML(teamEntries())}
-            <span class="live-header-updated">Updated ${oraCorrente()}</span>
+            <span class="live-header-updated">${oraCorrente()}</span>
             <button class="live-refresh-btn" type="button" aria-label="Refresh">↻</button>
         </div>
     </div>`;
@@ -1712,7 +1718,7 @@ function matchupCardHTML(entry) {
             </div>
             <div class="live-mc-prob">
                 <span class="live-mc-probpct">${pct1}%</span>
-                <span class="live-mc-probbar"><i class="live-mc-probfill" style="width:${pct1}%"></i></span>
+                <span class="live-mc-probbar" style="--p:${pct1}%"></span>
                 <span class="live-mc-probpct live-mc-probpct--r">${100 - pct1}%</span>
             </div>
         </div>
@@ -1785,9 +1791,17 @@ function statVoci(p) {
     const stats = (proj ? p.projected_stats : p.stats) || p.stats || {};
     return keys.map(k => {
         const raw = statValue(stats, k);
-        // Le proiezioni arrivano con due decimali (es. 83.48): troppo lunghe per
-        // la card. Interi per i conteggi, un decimale per le frazioni piccole.
-        const v = proj ? (raw >= 10 ? Math.round(raw) : Math.round(raw * 10) / 10) : raw;
+        /*
+         * Interi per i conteggi, un decimale per le frazioni piccole — e vale
+         * per TUTTI i numeri, non solo per le proiezioni.
+         *
+         * L'arrotondamento prima toccava la sola proiezione, e il dato vero
+         * finiva sulla card cosi' com'era: basta che una somma passi per un
+         * float e ne esce la coda binaria (241.00000000000003). Sull'anello
+         * ogni carattere costa un pezzo di circonferenza, quindi diciassette
+         * cifre si mangiavano il giro intero e coprivano tutte le altre voci.
+         */
+        const v = Math.abs(raw) >= 10 ? Math.round(raw) : Math.round(raw * 10) / 10;
         return { valore: v === 0 ? '–' : String(v), etichetta: shortStatLabel(k), zero: v === 0 };
     });
 }
@@ -1955,10 +1969,11 @@ function fieldHTML(team) {
     // il selettore in cima e il banner del punteggio. Il tasto Compare vive
     // dentro il campo, in alto a destra.
     return `
-    <div class="live-stage">
+    <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}">
         <div class="live-field-slider" data-swipe>
             <div class="matchup-field-horizontal live-field-solo">
                 ${fieldSVG()}
+                ${etichettaRound ? `<span class="live-field-week">${escAttr(etichettaRound)}</span>` : ''}
                 <div class="field-overlay">
                     <div class="live-formation-stack">
                         ${fieldFormationHTML(team)}
@@ -2004,11 +2019,23 @@ function compareStatsHTML(p, side) {
     // (stesso criterio dei punti, vedi pIsProjected).
     const proj = pIsProjected(p);
     const s = (proj ? p?.projected_stats : p?.stats) || p?.stats || {};
-    // le proiezioni sono decimali (es. 2.52 ricezioni): una cifra basta
-    const n = (v) => {
-        const x = Number(v) || 0;
-        return proj ? Math.round(x * 10) / 10 : x;
-    };
+    /*
+     * Una cifra basta: le proiezioni sono decimali (2.52 ricezioni), e i dati
+     * reali sono conteggi che l'arrotondamento non tocca.
+     *
+     * Arrotonda ANCHE i valori reali, non solo le proiezioni: senza, un float
+     * con la coda binaria finiva a schermo per intero.
+     */
+    const n = (v) => Math.round((Number(v) || 0) * 10) / 10;
+    /*
+     * Le somme si arrotondano ALLA FINE, mai gli addendi.
+     *
+     * `n(a) + n(b)` sembra innocuo e non lo e': arrotondati a 1.0 e 0.2, la
+     * loro somma in virgola binaria fa 1.2000000000000002, e quel numero
+     * finiva nel confronto al posto dei takeaway di una difesa. Sommando
+     * prima i valori grezzi il problema non esiste.
+     */
+    const somma = (...vs) => n(vs.reduce((t, v) => t + (Number(v) || 0), 0));
     let role = (p?.position_in_team || p?.position || '').toUpperCase();
     if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX') role = 'WR';
     if (role === 'D/ST') role = 'DEF';
@@ -2018,8 +2045,8 @@ function compareStatsHTML(p, side) {
         RB: [[n(s.rush_yds), 'rush yd'], [n(s.rush_td), 'td'], [n(s.rec_yds), 'rec yd'], [n(s.rec_td), 'rec td']],
         WR: [[n(s.rec), 'rec'], [n(s.rec_yds), 'rec yd'], [n(s.rec_td), 'td']],
         TE: [[n(s.rec), 'rec'], [n(s.rec_yds), 'rec yd'], [n(s.rec_td), 'td']],
-        K: [[n(s.fg_0_19) + n(s.fg_20_29) + n(s.fg_30_39) + n(s.fg_40_49) + n(s.fg_50_plus), 'fg'], [n(s.pat_made), 'xp']],
-        DEF: [[n(s.sack), 'sack'], [n(s.def_int) + n(s.fum_rec), 'to'], [n(s.def_td), 'td']],
+        K: [[somma(s.fg_0_19, s.fg_20_29, s.fg_30_39, s.fg_40_49, s.fg_50_plus), 'fg'], [n(s.pat_made), 'xp']],
+        DEF: [[n(s.sack), 'sack'], [somma(s.def_int, s.fum_rec), 'to'], [n(s.def_td), 'td']],
     };
     const list = (CANDIDATES[role] || CANDIDATES.WR).filter(([v], i) => i < 2 || v > 0).slice(0, 3);
     const cells = list.map(([v, l]) =>
@@ -2078,7 +2105,7 @@ function compareHTML(team, opp) {
     const t1 = teamOf(team.name), t2 = teamOf(opp.name);
 
     return `
-    <div class="live-stage">
+    <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}">
     <div class="live-compare" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
         <button class="live-compare-btn live-compare-btn--on" type="button" data-compare>Field</button>
         ${pairs.map(({ slot, a, b }) => {

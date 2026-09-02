@@ -41,6 +41,19 @@ async function discoverSeasons() {
 export const SEASONS = await discoverSeasons();
 export const CURRENT_SEASON = SEASONS[SEASONS.length - 1];
 
+/*
+ * Le stesse stagioni dalla piu' RECENTE. E' l'ordine con cui vanno riempite le
+ * tendine dell'anno: si apre quasi sempre sull'anno in corso, e da li' si
+ * guarda indietro — con le piu' vecchie in cima bisogna scorrere fino in
+ * fondo per trovare quella che serve.
+ *
+ * Esiste come costante e non come `[...SEASONS].reverse()` sparso nei file
+ * perche' voci e indice della voce attiva devono venire dalla STESSA lista:
+ * calcolando l'indice su una e le voci sull'altra la capsula mostra un anno e
+ * il contenuto ne carica un altro. E' successo davvero.
+ */
+export const SEASONS_DESC = [...SEASONS].reverse();
+
 // Team display-name mapping (Firebase name → display name)
 const TEAM_DISPLAY_NAMES = {
     'riccardo97com': 'Oscurus',
@@ -212,10 +225,26 @@ export function processStandings(fantasyData, year) {
         if (!week?.matchups) continue;
         week.matchups.forEach(m => {
             if (!m.team1 || !m.team2) return;
+            const s1 = parseFloat(m.team1.score) || 0;
+            const s2 = parseFloat(m.team2.score) || 0;
+            /*
+             * Una partita SENZA DATI non si conta. Su Firebase il calendario
+             * esiste per intero fin da subito, con i punteggi a zero: la
+             * giornata in corso, e tutte quelle dopo, arrivavano qui come 0-0
+             * e finivano nel ramo del pareggio. Il record mostrava allora un
+             * pareggio che non e' mai stato giocato, e la serie in corso
+             * diventava una fila di "T".
+             *
+             * Zero contro zero non e' un pareggio possibile: nel fantasy
+             * qualcuno segna sempre qualcosa. E' quindi il segnale che la
+             * partita non c'e' ancora — la stessa regola che usa il Magazine
+             * per sapere quali edizioni esistono.
+             */
+            // Le squadre si registrano comunque, anche a stagione non
+            // cominciata: la classifica deve mostrarle a 0-0, non sparire.
             init(m.team1.name);
             init(m.team2.name);
-            const s1 = parseFloat(m.team1.score);
-            const s2 = parseFloat(m.team2.score);
+            if (s1 <= 0 && s2 <= 0) return;
             teams[m.team1.name].pf += s1;
             teams[m.team1.name].pa += s2;
             teams[m.team2.name].pf += s2;
@@ -309,6 +338,73 @@ export function getSuperBowlMatchup(fantasyData, year) {
     );
 
     return sbMatchup || sbWeek.matchups[0]; // fallback to first if not found
+}
+
+/**
+ * Classifica FINALE della stagione: quella che esce dai playoff, non dal
+ * record.
+ *
+ * In una lega a quattro non c'e' un tabellone da ricostruire. La settimana dei
+ * playoff sono due semifinali; la settimana dopo si giocano la finale, fra le
+ * due che hanno vinto, e la finalina fra le due che hanno perso. Il posto di
+ * ognuno e' deciso da quelle due partite, e puo' non somigliare per niente
+ * alla regular season — e' esattamente il motivo per cui vale la pena
+ * mostrarla accanto.
+ *
+ * Sui pari punti vince `team1`, la stessa convenzione di
+ * `getSuperBowlMatchup`: due regole diverse avrebbero potuto dare due campioni
+ * diversi nella stessa pagina.
+ */
+export function processPlayoffStandings(fantasyData, year) {
+    if (!fantasyData?.weeks) return [];
+    const config = getSeasonConfig(year);
+    const po = fantasyData.weeks[String(config.playoffWeek)]?.matchups || [];
+    const sb = fantasyData.weeks[String(config.superBowlWeek)]?.matchups || [];
+    if (!po.length || !sb.length) return [];
+
+    const punti = (t) => parseFloat(t?.score) || 0;
+    const vinta = (m) => (punti(m.team1) >= punti(m.team2) ? m.team1 : m.team2);
+    const persa = (m) => (punti(m.team1) >= punti(m.team2) ? m.team2 : m.team1);
+
+    const vincenti = new Set();
+    for (const m of po) {
+        if (!m.team1 || !m.team2) continue;
+        vincenti.add(vinta(m).name);
+    }
+
+    const finale = sb.find(m => m.team1 && m.team2
+        && vincenti.has(m.team1.name) && vincenti.has(m.team2.name));
+    if (!finale) return [];
+    const finalina = sb.find(m => m !== finale && m.team1 && m.team2);
+
+    const ordine = [vinta(finale).name, persa(finale).name];
+    if (finalina) {
+        ordine.push(vinta(finalina).name, persa(finalina).name);
+    } else {
+        // Niente finalina (e' successo in qualche stagione): terzo e quarto si
+        // ordinano allora sui punti della semifinale persa, che e' l'unico
+        // confronto diretto che hanno.
+        const perdenti = po.filter(m => m.team1 && m.team2).map(m => persa(m));
+        perdenti.sort((a, b) => punti(b) - punti(a));
+        ordine.push(...perdenti.map(t => t.name));
+    }
+
+    // Record e punti della POSTSEASON: due partite a testa, ed e' quello che
+    // racconta come ci sono arrivati.
+    const conto = new Map();
+    for (const m of [...po, ...sb]) {
+        if (!m.team1 || !m.team2) continue;
+        for (const [t, mio, suo] of [[m.team1, punti(m.team1), punti(m.team2)],
+            [m.team2, punti(m.team2), punti(m.team1)]]) {
+            const c = conto.get(t.name) || { w: 0, l: 0, pf: 0, pa: 0 };
+            if (mio >= suo) c.w++; else c.l++;
+            c.pf += mio;
+            c.pa += suo;
+            conto.set(t.name, c);
+        }
+    }
+
+    return ordine.map(name => ({ name, ...(conto.get(name) || { w: 0, l: 0, pf: 0, pa: 0 }) }));
 }
 
 /**

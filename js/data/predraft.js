@@ -48,9 +48,9 @@ import { replacementLevels, demandByPos, NUM_TEAMS, getByeWeeks } from './team-e
 import { NEED_TARGET, marketSurvival, getAdpDispersion } from './draft-grade.js?v=33';
 import { computeStrategy, pickNumber, roundOf, ROUND_MAX, STRATEGY_POSITIONS } from './draft-strategy.js?v=47';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE, BENCH_SIZE, RESERVE_SIZE, SCORING } from './league-rules.js?v=528';
-import { getRosterChange } from './roster-change.js?v=22';
+import { getRosterChange } from './roster-change.js?v=29';
 import { computeSeasonMetrics } from './player-metrics.js?v=530';
-import { getContextScore } from './context-score.js?v=608';
+import { getContextScore } from './context-score.js?v=615';
 import { cacheGet, cacheSet, cacheAgeMs } from '../utils/storage.js?v=4';
 
 const OFF = ['QB', 'RB', 'WR', 'TE'];

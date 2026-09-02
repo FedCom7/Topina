@@ -23,7 +23,7 @@
  * rende contestabili tutte le altre.
  */
 
-import { buildPreDraft, buildRoundPlan, hydrateContext } from '../data/predraft.js?v=22';
+import { buildPreDraft, buildRoundPlan, hydrateContext } from '../data/predraft.js?v=62';
 import { POSITION_COLORS, TAIL_COLORS, lastName, ordinal, ROUND_MAX } from '../data/draft-strategy.js?v=47';
 import { scatter, dumbbell } from '../ui/charts.js?v=7';
 

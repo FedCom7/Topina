@@ -165,19 +165,126 @@ function numeri() {
     }).join('');
 }
 
+/* In quante strisce si taglia il logo per farlo stare nel piano del campo.
+   Sedici bastano: le giunture non si vedono e restano trentadue elementi in
+   tutto, che e' poco per un disegno gia' fatto di centinaia di nodi. */
+const FETTE = 16;
+
+/**
+ * Il logo DISTESO nel piano del campo, dentro la end zone.
+ *
+ * Non e' una rotazione, ed e' il punto in cui avevo sbagliato: la end zone e'
+ * un TRAPEZIO — le sue due righe verticali convergono verso il fondo, perche'
+ * il campo si stringe andando lontano — quindi nessun angolo puo' squadrarle
+ * entrambe. Allineando il logo alla riga interna resta storto sull'esterna, e
+ * viceversa.
+ *
+ * Un `<image>` SVG pero' accetta solo trasformazioni affini, e un'affine manda
+ * rettangoli in rettangoli: il trapezio non lo sa fare. Si taglia allora il
+ * logo in strisce sottili — lungo la direzione che a schermo diventa la
+ * profondita' — e ognuna prende la SUA affine, calcolata con la stessa
+ * `P(u, v)` che disegna il campo. Su una striscia sola l'errore e' invisibile;
+ * messe in fila compongono il trapezio.
+ *
+ * Il vantaggio di passare da `P` invece che da numeri a mano: se un domani
+ * cambia la prospettiva del campo, il logo la segue da solo.
+ */
+function logoDisteso(lato, logo) {
+    if (!logo) return '';
+    const [u0, u1] = lato === 'l' ? [0, EZ] : [1 - EZ, 1];
+    const um = (u0 + u1) / 2;
+    // Quanto occupa: una frazione della end zone in larghezza, e una fetta
+    // centrale in profondita'.
+    // Misure prese per stare quanto il logo di prima, 52x35 unita': a occhio
+    // riempiva la end zone, e coricato la riempiva ancora di piu'.
+    const du = (u1 - u0) * 0.22;
+    const dv = 0.14;
+    const S = 100;                       // lato del quadrato sorgente
+
+    /*
+     * Il quarto di giro sta qui, nella CORRISPONDENZA fra gli assi: l'altezza
+     * del logo corre lungo il campo (u) e la sua larghezza lungo la
+     * profondita' (v). A sinistra la cima del logo guarda verso il fondo
+     * campo, a destra dalla parte opposta — cosi' le due scritte si leggono
+     * ognuna dalla sua parte, come nelle end zone vere.
+     */
+    const uSu = lato === 'l' ? um - du : um + du;    // sorgente y = 0
+    const uGiu = lato === 'l' ? um + du : um - du;   // sorgente y = S
+    const vSx = lato === 'l' ? 0.5 + dv : 0.5 - dv;  // sorgente x = 0
+    const vDx = lato === 'l' ? 0.5 - dv : 0.5 + dv;  // sorgente x = S
+
+    const pezzi = [], tagli = [];
+    for (let k = 0; k < FETTE; k++) {
+        const xa = (k * S) / FETTE;
+        // un filo di sovrapposizione: senza, fra una striscia e l'altra
+        // resta una riga di sfondo larga meno di un pixel ma visibile
+        const xb = ((k + 1) * S) / FETTE + 0.35;
+        const va = vSx + (vDx - vSx) * (xa / S);
+        const vb = vSx + (vDx - vSx) * (xb / S);
+
+        const [x00, y00] = P(uSu, va);     // sorgente (xa, 0)
+        const [x10, y10] = P(uGiu, va);    // sorgente (xa, S)
+        const [x01, y01] = P(uSu, vb);     // sorgente (xb, 0)
+
+        // matrix(a,b,c,d,e,f):  x' = a·x + c·y + e
+        const a = (x01 - x00) / (xb - xa);
+        const bb = (y01 - y00) / (xb - xa);
+        const c = (x10 - x00) / S;
+        const d = (y10 - y00) / S;
+        const e = x00 - a * xa;
+        const f = y00 - bb * xa;
+
+        // Le clipPath si dichiarano UNA volta sola: le strisce vengono
+        // disegnate due volte (alone e logo) e ripetere le definizioni
+        // avrebbe messo nel documento trentadue id doppi.
+        const id = rifId(`ez${lato}${k}`);
+        tagli.push(`<clipPath id="${id}"><rect x="${xa.toFixed(2)}" y="0"
+            width="${(xb - xa).toFixed(2)}" height="${S}"/></clipPath>`);
+        pezzi.push(`
+        <g clip-path="url(#${id})"
+           transform="matrix(${a.toFixed(4)},${bb.toFixed(4)},${c.toFixed(4)},${d.toFixed(4)},${e.toFixed(2)},${f.toFixed(2)})">
+            <image href="${logo}" x="0" y="0" width="${S}" height="${S}"
+                   preserveAspectRatio="xMidYMid meet"/>
+        </g>`);
+    }
+    /*
+     * Due passate. Sotto l'alone bianco, che senza i loghi scuri sparivano
+     * dentro le end zone scure; sopra il logo vero, non filtrato.
+     *
+     * Filtrando il gruppo unico, come si faceva prima, `feMorphology`
+     * lavorava sull'immagine gia' composta e amplificava le microdifferenze
+     * di alfa lungo i tagli: le sedici strisce si vedevano una per una.
+     * Nell'alone quelle differenze finiscono dentro una sagoma bianca piena e
+     * spariscono, e il logo sopra non passa per nessun filtro.
+     */
+    const strisce = pezzi.join('');
+    return `
+    <defs>${tagli.join('')}</defs>
+    <g opacity="0.95" filter="url(#${rifId('alone')})" aria-hidden="true">${strisce}</g>
+    <g opacity="0.95">${strisce}</g>`;
+}
+
 function endZone(lato, colore, logo) {
     const [u0, u1] = lato === 'l' ? [0, EZ] : [1 - EZ, 1];
     const d = fascia(u0, u1);
     const um = (u0 + u1) / 2;
-    // Solo il logo, al centro della end zone. La sigla accanto raddoppiava la
-    // stessa informazione — sta gia' nello scorebug sopra — e in due lettere
-    // larghe quanto la end zone finiva per coprire il logo.
-    const [lx, ly] = P(um, 0.5);
+    /*
+     * Solo il logo, al centro della end zone. La sigla accanto raddoppiava la
+     * stessa informazione — sta gia' nello scorebug sopra — e in due lettere
+     * larghe quanto la end zone finiva per coprire il logo.
+     *
+     * Il logo e' CORICATO come sul campo vero: guardando la partita da bordo campo, la
+     * scritta nella end zone di sinistra si legge girando la testa a sinistra
+     * e quella di destra girandola a destra. Quindi -90 gradi a sinistra e
+     * +90 a destra. La rotazione sta DENTRO allo schiacciamento verticale
+     * (l'ordine dei transform e' dall'ultimo al primo): prima si gira il
+     * disegno, poi la prospettiva lo accorcia, come farebbe con qualunque
+     * cosa dipinta sul manto.
+     */
     // Sotto va il nero: senza, una squadra dal colore scuro (il verde dei
     // Packers) finiva a filo dell'erba e la end zone spariva.
     const uG = lato === 'l' ? u1 : u0;
     const [gx0, gy0] = P(uG, LINEA_DA), [gx1, gy1] = P(uG, LINEA_A);
-    const R = 26;
     return `
     <path d="${d}" fill="#0b0d0f"/>
     <path d="${d}" fill="${colore}"/>
@@ -185,10 +292,7 @@ function endZone(lato, colore, logo) {
           stroke-linejoin="round"/>
     <line x1="${gx0.toFixed(1)}" y1="${gy0.toFixed(1)}" x2="${gx1.toFixed(1)}" y2="${gy1.toFixed(1)}"
           stroke="#fff" stroke-width="${SPESSORE}" opacity="0.92"/>
-    ${logo ? `<g transform="translate(${lx.toFixed(1)},${ly.toFixed(1)}) scale(1,0.68)">
-        <image href="${logo}" x="${-R}" y="${-R}" width="${R * 2}" height="${R * 2}"
-               opacity="0.95" filter="url(#${rifId('bordo')})"/>
-    </g>` : ''}`;
+    ${logoDisteso(lato, logo)}`;
 }
 
 /**
@@ -802,6 +906,19 @@ export function fieldStripHTML(s) {
                         <feMergeNode in="contorno"/>
                         <feMergeNode in="SourceGraphic"/>
                     </feMerge>
+                </filter>
+                <!-- Lo stesso alone ma SENZA l'originale sopra: serve al logo
+                     della end zone, che va disegnato in due passate. Filtrando
+                     il logo intero, la dilatazione lavorava sul gruppo gia'
+                     composto e faceva risaltare le giunture fra una striscia e
+                     l'altra; cosi' invece il filtro tocca solo la passata di
+                     sotto, dove le giunture finiscono dentro una sagoma bianca
+                     piena e non si vedono, e la passata di sopra, il logo
+                     vero, non e' filtrata affatto. -->
+                <filter id="${rifId('alone')}" x="-25%" y="-25%" width="150%" height="150%">
+                    <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="grosso"/>
+                    <feFlood flood-color="#ffffff" flood-opacity="0.95" result="bianco"/>
+                    <feComposite in="bianco" in2="grosso" operator="in"/>
                 </filter>
             </defs>
             <!-- Lo spessore del tappeto: due copie sfalsate sotto, non un

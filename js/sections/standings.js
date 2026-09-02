@@ -4,12 +4,22 @@
  *   #standings → Regular Season (card di classifica col seed gigante)
  *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
-import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=540';
-import { TEAMS } from './team.js?v=665';
+import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, SEASONS, SEASONS_DESC, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=580';
+import { TEAMS } from './team.js?v=705';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loadedStandings = false;
 let loadedPlayoffs = false;
-let _season = null; // { data, standings, config, playoffsStarted } — condiviso dalle due viste
+
+/* L'anno scelto vale per TUTTE E DUE le viste: classifica e tabellone sono lo
+   stesso anno guardato da due lati, e vederli su stagioni diverse passando da
+   una voce all'altra del menu sarebbe solo un modo per sbagliarsi. */
+let annoScelto = CURRENT_SEASON;
+
+/* Una stagione per anno, tenuta da parte: tornando indietro non si riscarica
+   niente. `fetchFantasyData` ha gia' una cache sua, ma qui c'e' anche il
+   lavoro di `processStandings` e del conteggio delle settimane. */
+const stagioni = new Map();
 
 // Team info (colore + logo) dal display name
 function teamInfo(rawName) {
@@ -17,71 +27,108 @@ function teamInfo(rawName) {
     return Object.values(TEAMS).find(t => t.name === dn) || { name: dn, color: '#888', logo: 'images/nfl_logo.png' };
 }
 
-/** Dati di stagione, calcolati una volta sola e riusati da entrambe le viste. */
-async function getSeason() {
-    if (_season) return _season;
-    const data = await fetchFantasyData(CURRENT_SEASON);
+/** Dati di una stagione, calcolati una volta sola e riusati da entrambe le viste. */
+async function getSeason(year = annoScelto) {
+    const chiave = String(year);
+    if (stagioni.has(chiave)) return stagioni.get(chiave);
+    const data = await fetchFantasyData(year);
     if (!data) return null;
 
-    const standings = processStandings(data, CURRENT_SEASON);
-    const config = getSeasonConfig(CURRENT_SEASON);
+    const standings = processStandings(data, year);
+    const config = getSeasonConfig(year);
     const maxWeek = Math.max(...Object.keys(data.weeks || {}).map(Number), 0);
     const playoffsStarted = maxWeek >= config.playoffWeek;
 
-    return (_season = { data, standings, config, playoffsStarted });
+    const s = { year, data, standings, config, playoffsStarted };
+    stagioni.set(chiave, s);
+    return s;
+}
+
+/**
+ * Il selettore dell'anno, uguale a quello delle altre pagine. Ce n'e' uno per
+ * vista perche' sono due sezioni distinte del sito, ma leggono e scrivono lo
+ * stesso `annoScelto`: cambiandolo di qua si aggiorna anche di la'.
+ */
+function montaSelettore(contenitore) {
+    if (!contenitore) return;
+    const anni = SEASONS_DESC;
+    const voci = anni.map(y => ({ value: String(y), label: String(y) }));
+    contenitore.style.display = '';
+    // Confronto per stringa: `SEASONS` sono stringhe ('2026'), e cercando un
+    // numero l'indice tornava -1 — la capsula ripiegava allora sulla prima
+    // voce e diceva sempre l'anno corrente mentre sotto cambiava tutto.
+    const attivo = anni.findIndex(y => String(y) === String(annoScelto));
+    // L'id e' 'year' e non qualcosa di piu' preciso: e' la chiave con cui il
+    // CSS colora di rosso la capsula dell'anno (`[data-pick-id="year"]`), la
+    // stessa di Draft, Analysis e All-Pro.
+    contenitore.innerHTML = pickDropdownHTML('year', voci, attivo < 0 ? 0 : attivo);
+    bindPickDropdown(contenitore, (_id, valore) => {
+        const y = String(valore);
+        if (y === String(annoScelto)) return;
+        annoScelto = y;
+        // La capsula non si riscrive da sola: `bindPickDropdown` cambia la
+        // voce accesa nel menu, l'etichetta la ridisegna chi lo usa. Senza
+        // questo il contenuto passava al 2021 e il bottone continuava a dire
+        // 2026.
+        montaSelettori();
+        // Si ridisegnano entrambe le viste: le sezioni restano nel DOM anche
+        // quando non si vedono, quindi quella nascosta e' gia' pronta quando
+        // ci si torna.
+        disegnaStandings();
+        disegnaPlayoffs();
+    });
+}
+
+/** Le due capsule, tenute allineate sull'anno scelto. */
+function montaSelettori() {
+    montaSelettore(document.getElementById('st-year-selector'));
+    montaSelettore(document.getElementById('po-year-selector'));
 }
 
 const spinner = (label) =>
     `<div class="loading-state"><div class="spinner"></div><p>Loading ${label}...</p></div>`;
 const noData = '<div class="empty-state"><p class="empty-state-text">Data not available</p></div>';
 
+async function disegnaStandings() {
+    const wrap = document.getElementById('standings-table-wrap');
+    if (!wrap) return;
+    const atteso = annoScelto;
+    wrap.innerHTML = spinner('Standings');
+
+    const s = await getSeason(atteso);
+    // L'anno puo' essere cambiato mentre si aspettava la risposta: scrivere
+    // adesso vorrebbe dire mostrare la stagione che l'utente ha gia' lasciato.
+    if (atteso !== annoScelto) return;
+    if (!s) { wrap.innerHTML = noData; return; }
+
+    wrap.innerHTML = generateRankingCards(s.standings);
+}
+
+async function disegnaPlayoffs() {
+    const wrap = document.getElementById('playoffs-wrap');
+    if (!wrap) return;
+    const atteso = annoScelto;
+    wrap.innerHTML = spinner('Playoff Picture');
+
+    const s = await getSeason(atteso);
+    if (atteso !== annoScelto) return;
+    if (!s) { wrap.innerHTML = noData; return; }
+
+    wrap.innerHTML = generateBracket(s.standings, s.data, s.config, s.playoffsStarted, s.year);
+}
+
 export async function initStandings() {
     if (loadedStandings) return;
     loadedStandings = true;
-
-    const selector = document.getElementById('st-year-selector');
-    if (selector) selector.style.display = 'none';
-
-    const wrap = document.getElementById('standings-table-wrap');
-    wrap.innerHTML = spinner('Standings');
-
-    const s = await getSeason();
-    if (!s) { wrap.innerHTML = noData; return; }
-
-    wrap.innerHTML = `
-        <p class="st-block-desc">${rankingDescription()}</p>
-        ${generateRankingCards(s.standings)}`;
+    montaSelettori();
+    await disegnaStandings();
 }
 
 export async function initPlayoffs() {
     if (loadedPlayoffs) return;
     loadedPlayoffs = true;
-
-    const wrap = document.getElementById('playoffs-wrap');
-    if (!wrap) return;
-    wrap.innerHTML = spinner('Playoff Picture');
-
-    const s = await getSeason();
-    if (!s) { wrap.innerHTML = noData; return; }
-
-    wrap.innerHTML = `
-        <p class="st-block-desc">${bracketDescription(s.standings, s.data, s.config, s.playoffsStarted)}</p>
-        ${generateBracket(s.standings, s.data, s.config, s.playoffsStarted)}`;
-}
-
-/* ============================================================
-   DESCRIZIONI DEI BLOCCHI
-   ============================================================ */
-
-function bracketDescription(standings, data, config, playoffsStarted) {
-    const base = `The playoff bracket: 1st vs 4th and 2nd vs 3rd in the semifinals (W${config.playoffWeek}), the winners meet in the Super Bowl (W${config.superBowlWeek}).`;
-    return playoffsStarted
-        ? `${base} Eliminated teams in grey, the champion in gold.`
-        : `${base} Projection based on the current standings.`;
-}
-
-function rankingDescription() {
-    return `This season's standings, ordered by record: the big number is the playoff seed. Click a card to open the franchise page.`;
+    montaSelettori();
+    await disegnaPlayoffs();
 }
 
 /* ============================================================
@@ -126,7 +173,7 @@ function generateRankingCards(standings) {
    PLAYOFF PICTURE — griglia esplicita (1v4 sx, finalisti centro, 2v3 dx)
    ============================================================ */
 
-function generateBracket(standings, fantasyData, config, playoffsStarted) {
+function generateBracket(standings, fantasyData, config, playoffsStarted, year) {
     if (standings.length < 4) return '';
 
     const seed1 = standings[0];
@@ -134,8 +181,12 @@ function generateBracket(standings, fantasyData, config, playoffsStarted) {
     const seed3 = standings[2];
     const seed4 = standings[3];
 
-    const playoffMatchups = getPlayoffMatchups(fantasyData, CURRENT_SEASON);
-    const sbMatchup = getSuperBowlMatchup(fantasyData, CURRENT_SEASON);
+    // L'anno e' quello SCELTO, non quello corrente: con la costante il
+    // tabellone di una stagione vecchia sarebbe stato letto con le settimane
+    // di quest'anno, e il 2021 (che ha un calendario suo) sarebbe uscito
+    // sbagliato.
+    const playoffMatchups = getPlayoffMatchups(fantasyData, year);
+    const sbMatchup = getSuperBowlMatchup(fantasyData, year);
 
     let winner1v4 = null, loser1v4 = null;
     let winner2v3 = null, loser2v3 = null;

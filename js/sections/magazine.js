@@ -14,13 +14,14 @@
  */
 
 import {
-    fetchFantasyData, displayName, SEASONS, CURRENT_SEASON,
+    fetchFantasyData, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
-} from '../data.js?v=540';
+} from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
-import { getLeagueData } from '../data/league-data.js?v=539';
-import { getHonorsBundle } from '../data/honors.js?v=591';
+import { TEAMS } from './team.js?v=705';
+import { getLeagueData } from '../data/league-data.js?v=579';
+import { getHonorsBundle } from '../data/honors.js?v=631';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=555';
 import {
     pickSeeded, TRASH_TALK, STREAK_JABS, GOSSIP_EXCUSES,
@@ -86,26 +87,68 @@ export function initMagazine() {
     const container = document.getElementById('magazine-content');
     if (!container) return;
 
+    // Anno e week in due tendine affiancate, come nel resto del sito: qui
+    // erano rimaste due file di capsule, e con otto stagioni e diciassette
+    // week occupavano piu' spazio della testata del giornale.
+    // Week e anno in una riga sola, allineata a destra: e' la stessa `pick-row`
+    // di Game Center, Draft e Analysis. L'anno sta per ultimo — piu' a destra —
+    // ed e' quello rosso, perche' `[data-pick-id="year"]` e' l'aggancio con cui
+    // il CSS lo distingue dall'altra scelta.
     container.innerHTML = `
-        <div class="year-selector" id="mg-year-selector"></div>
-        <div class="week-selector" id="mg-week-selector"></div>
+        <div class="pick-row" id="mg-pick-row"></div>
         <div id="mg-paper"><div class="loading-state"><div class="spinner"></div><p>Printing...</p></div></div>`;
 
-    document.getElementById('mg-year-selector').innerHTML = SEASONS.map(y =>
-        `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`).join('');
-    document.getElementById('mg-year-selector').addEventListener('click', (e) => {
-        const btn = e.target.closest('.year-pill');
-        if (!btn) return;
-        document.querySelectorAll('#mg-year-selector .year-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        loadYear(btn.dataset.year);
-    });
-
+    montaPicks();
     loadYear(currentYear);
+}
+
+/* Le week dell'anno in corso, tenute qui perche' servono a ridisegnare la
+   riga delle tendine anche quando cambia solo la week. */
+let _played = [];
+let _config = null;
+
+/** Week e anno, ridisegnate insieme: sono una riga sola. */
+function montaPicks() {
+    const box = document.getElementById('mg-pick-row');
+    if (!box) return;
+
+    const anni = SEASONS_DESC;
+    // Confronto per stringa: `SEASONS` sono stringhe, e cercare un numero
+    // farebbe ripiegare la capsula sulla prima voce.
+    const iAnno = anni.findIndex(y => String(y) === String(currentYear));
+    const vociAnno = anni.map(y => ({ value: String(y), label: String(y) }));
+
+    let settimane = '';
+    if (_played.length && _config) {
+        const ordine = [..._played].reverse();
+        const voci = ordine.map(w => ({
+            value: String(w),
+            label: w === _config.superBowlWeek ? 'Super Bowl'
+                : w === _config.playoffWeek ? 'Playoffs' : `Week ${w}`,
+        }));
+        const i = ordine.indexOf(currentWeek);
+        settimane = pickDropdownHTML('week', voci, i < 0 ? 0 : i);
+    }
+
+    box.innerHTML = settimane + pickDropdownHTML('year', vociAnno, iAnno < 0 ? 0 : iAnno);
+    bindPickDropdown(box, (id, valore) => {
+        if (id === 'year') {
+            if (String(valore) === String(currentYear)) return;
+            loadYear(String(valore));
+            return;
+        }
+        const w = parseInt(valore, 10);
+        if (w === currentWeek) return;
+        currentWeek = w;
+        montaPicks();
+        renderEdition();
+    });
 }
 
 async function loadYear(year) {
     currentYear = year;
+    _played = []; _config = null;   // le week sono quelle dell'anno vecchio
+    montaPicks();                   // la capsula non si riscrive da sola
     const paper = document.getElementById('mg-paper');
     paper.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Printing the ${year} edition...</p></div>`;
 
@@ -113,7 +156,6 @@ async function loadYear(year) {
     const data = _cache[year];
     if (!data?.weeks) {
         paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">No edition for ${year}</p></div>`;
-        document.getElementById('mg-week-selector').innerHTML = '';
         return;
     }
 
@@ -125,30 +167,16 @@ async function loadYear(year) {
     }
     if (!played.length) {
         paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">${year} season not started yet</p></div>`;
-        document.getElementById('mg-week-selector').innerHTML = '';
         return;
     }
 
     currentWeek = played[played.length - 1]; // ultima edizione = ultima week giocata
-    const config = getSeasonConfig(year);
-    const sel = document.getElementById('mg-week-selector');
-    sel.innerHTML = played.map(w => {
-        let label = String(w), cls = '';
-        if (w === config.playoffWeek) { label = 'Playoffs'; cls = ' playoff-pill'; }
-        else if (w === config.superBowlWeek) { label = 'Super Bowl'; cls = ' sb-pill'; }
-        return `<button class="week-pill${w === currentWeek ? ' active' : ''}${cls}" data-week="${w}">${label}</button>`;
-    }).join('');
-    sel.onclick = (e) => {
-        const btn = e.target.closest('.week-pill');
-        if (!btn) return;
-        sel.querySelectorAll('.week-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentWeek = parseInt(btn.dataset.week);
-        renderEdition();
-    };
-
+    _played = played;
+    _config = getSeasonConfig(year);
+    montaPicks();
     renderEdition();
 }
+
 
 // ─── L'edizione ──────────────────────────────────────────────────
 

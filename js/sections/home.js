@@ -34,31 +34,31 @@
  * agganciare handler uno per uno.
  */
 
-import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=540';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=539';
-import { getHonorsBundle } from '../data/honors.js?v=591';
-import { electHallOfFame } from '../data/hall-of-fame.js?v=591';
-import { TEAMS } from './team.js?v=665';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=670';
-import { teamsCardsHTML } from './teams.js?v=640';
+import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=580';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=579';
+import { getHonorsBundle } from '../data/honors.js?v=631';
+import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
+import { TEAMS } from './team.js?v=705';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=710';
+import { teamsCardsHTML } from './teams.js?v=680';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=2';
+import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=42';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=9';
-import { applyDraftLineups } from '../data/draft-lineups.js?v=8';
+import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
 import { scoreBugHTML } from '../ui/score-bug.js?v=1';
 import { getSeasonProjections } from '../data/projections.js?v=595';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
-import { predictSeason } from '../data/draft-predictions.js?v=654';
+import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { evaluateLeague } from '../data/team-eval.js?v=593';
 import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=61';
 // Il motore di voto (computeGrades/makeEvaluator) vive in draftgrades.js, non
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=708';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=748';
 
 let initialized = false;
 

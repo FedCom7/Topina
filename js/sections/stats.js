@@ -1,7 +1,8 @@
-import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=540';
+import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=580';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=712';
+import { TEAMS } from './team.js?v=705';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=752';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=630';
 
 let loaded = false;
 
@@ -231,6 +232,19 @@ function calculateStats(allSeasons) {
                 initTeam(t1);
                 initTeam(t2);
                 initH2H(t1, t2);
+
+                /*
+                 * Partita SENZA DATI: non e' successa, e non deve entrare in
+                 * niente. Su Firebase il calendario c'e' per intero dal primo
+                 * giorno, coi punteggi a zero, e uno 0-0 finiva nel ramo del
+                 * pareggio: nel record all-time compariva un pareggio mai
+                 * giocato, e la partita veniva contata fra quelle disputate
+                 * falsando le medie a partita.
+                 *
+                 * Zero contro zero non e' un risultato possibile nel fantasy:
+                 * e' il segnale che la giornata non c'e' ancora.
+                 */
+                if (s1 <= 0 && s2 <= 0) return;
 
                 // Chart accumulation — tutte le settimane, playoff e SB inclusi
                 chartSeasonTeamPts[t1] = (chartSeasonTeamPts[t1] || 0) + s1;
@@ -681,9 +695,41 @@ function renderRecords(stats) {
             ${leaderPanel('K', stats.top5.ptsK, 1)}
             ${leaderPanel('DEF', stats.top5.ptsDEF, 1)}
         </div>
+
+        <h3 class="an-sub-title st-leader-sub">Most Decorated</h3>
+        <div class="st-leader-grid st-leader-grid--3" id="st-albo">
+            <div class="st-leader-panel"><div class="st-leader-panel-title">Loading…</div></div>
+        </div>
     `;
 
     bindRecordModeToggle();
+    // I riconoscimenti arrivano dopo: leggono tutte le stagioni una per una e
+    // farebbero aspettare il resto della pagina, che e' gia' pronto.
+    riempiAlbo();
+}
+
+/* I bundle degli honors si leggono UNA volta sola: li usano sia i pannelli dei
+   premi sia il distintivo del Coach of the Year sulle card di squadra. */
+let _albo = null;
+const albo = () => (_albo ||= alboDoro());
+
+/** Riempie i pannelli dei riconoscimenti quando i conti sono finiti. */
+async function riempiAlbo() {
+    const box = document.getElementById('st-albo');
+    if (!box) return;
+    let dati;
+    try {
+        dati = await albo();
+    } catch (e) {
+        console.warn('[stats] riconoscimenti non calcolabili:', e.message);
+        return;
+    }
+    if (!document.body.contains(box)) return;   // la pagina e' cambiata nel frattempo
+    box.innerHTML =
+        leaderPanel('Rings', dati.anelli)
+        + dati.premi.map(p => leaderPanel(p.titolo, p.righe)).join('')
+        + leaderPanel('All-Pro — First Team', dati.primo)
+        + leaderPanel('All-Pro selections', dati.allpro);
 }
 
 function recordTile(value, label, holder) {
@@ -693,6 +739,145 @@ function recordTile(value, label, holder) {
         <div class="record-tile-label">${label}</div>
         ${holder ? `<div class="record-tile-holder">${holder}</div>` : ''}
     </div>`;
+}
+
+/**
+ * Chi ha vinto piu' volte OGNI riconoscimento, premio per premio.
+ *
+ * Si contano SOLO le stagioni gia' assegnate, e le due famiglie hanno due
+ * soglie diverse perche' nascono in momenti diversi: gli Honors si aprono la
+ * vigilia del Super Bowl (`revealed`), l'All-Pro Team si sceglie alla fine
+ * della regular season (`rsComplete`). Contare la stagione in corso vorrebbe
+ * dire dare l'MVP a chi conduce dopo una giornata.
+ *
+ * L'elenco dei premi non e' scritto qui: si prende da quello che i bundle
+ * contengono davvero, nell'ordine in cui `computeAwards` li mette. Cosi'
+ * aggiungendo un premio la pagina lo mostra da sola, e non ne resta mai uno
+ * indietro.
+ */
+async function alboDoro() {
+    const anni = honorsSeasons();
+    const bundle = await Promise.all(anni.map(y => getHonorsBundle(y).catch(() => null)));
+
+    // premio -> chiave del vincitore -> { etichetta, squadra, volte }
+    const perPremio = new Map();
+    const ordine = [];
+    const allpro = new Map();
+    const coty = new Map();          // squadra -> quanti Coach of the Year
+    const anelli = new Map();        // giocatore -> quanti Super Bowl vinti
+
+    /*
+     * Premi che in cinque posizioni non dicono niente e restano fuori:
+     *  - OROY e Steal of the Draft si vincono UNA volta sola per definizione
+     *    (rookie ci si e' una stagione, e una scelta di draft e' quella), quindi
+     *    la classifica sarebbe una fila di "1" in ordine alfabetico;
+     *  - COTY va in All-Time Teams accanto ai titoli, perche' e' di squadra.
+     */
+    const FUORI = new Set(['oroy', 'steal', 'coach']);
+
+    const nomeSquadra = (k) => (k ? (TEAMS[k]?.name || k) : '');
+
+    for (const b of bundle) {
+        if (!b) continue;
+
+        if (b.revealed) {
+            for (const a of b.awards || []) {
+                if (!a.winner) continue;
+                if (!perPremio.has(a.id)) {
+                    perPremio.set(a.id, new Map());
+                    // `abbr` quando c'e' (MVP, DPOY...), altrimenti il nome
+                    // esteso: i premi di ruolo non hanno una sigla.
+                    ordine.push({ id: a.id, titolo: a.abbr || a.name });
+                }
+                // Il Coach of the Year si conta a parte: e' di una squadra, e
+                // il suo posto e' fra i titoli, in All-Time Teams.
+                if (a.kind === 'coach') {
+                    const sq = nomeSquadra(a.winner.teamKey);
+                    if (sq) coty.set(sq, (coty.get(sq) || 0) + 1);
+                }
+                /*
+                 * Il Coach of the Year lo vince un MANAGER, non un giocatore:
+                 * il suo vincitore porta `teamKey` e non `name`. Nella riga va
+                 * quindi il nome della squadra, che qui e' il premiato.
+                 */
+                const chiave = a.kind === 'coach'
+                    ? nomeSquadra(a.winner.teamKey)
+                    : a.winner.name;
+                if (!chiave) continue;
+                const tab = perPremio.get(a.id);
+                if (!tab.has(chiave)) {
+                    tab.set(chiave, {
+                        player: chiave,
+                        team: a.kind === 'coach' ? '' : nomeSquadra(a.winner.teamKey),
+                        value: 0,
+                    });
+                }
+                tab.get(chiave).value += 1;
+            }
+        }
+
+        if (b.rsComplete) {
+            for (const [squadra, primo] of [[b.allPro?.first, true], [b.allPro?.second, false]]) {
+                for (const voce of squadra || []) {
+                    const g = voce.player;
+                    if (!g?.name) continue;
+                    if (!allpro.has(g.name)) {
+                        allpro.set(g.name, {
+                            player: g.name, team: nomeSquadra(g.teamKey), primo: 0, tutte: 0,
+                        });
+                    }
+                    const v = allpro.get(g.name);
+                    if (!v.team) v.team = nomeSquadra(g.teamKey);
+                    v.tutte += 1;
+                    if (primo) v.primo += 1;
+                }
+            }
+        }
+    }
+
+    /*
+     * Gli anelli: chi era nella rosa che ha vinto il Super Bowl, stagione per
+     * stagione. Si contano titolari E panchina, perche' l'anello lo prende
+     * tutta la squadra, non solo chi e' sceso in campo quella domenica.
+     *
+     * La finale dev'essere stata giocata davvero: uno 0-0 e' il calendario che
+     * esiste gia' su Firebase, non una partita.
+     */
+    const stagioni = await Promise.all(anni.map(y => fetchFantasyData(y).catch(() => null)));
+    anni.forEach((y, k) => {
+        const data = stagioni[k];
+        if (!data) return;
+        const sb = getSuperBowlMatchup(data, y);
+        if (!sb?.team1 || !sb?.team2) return;
+        const s1 = parseFloat(sb.team1.score) || 0;
+        const s2 = parseFloat(sb.team2.score) || 0;
+        if (s1 <= 0 && s2 <= 0) return;
+        const vincitrice = s1 >= s2 ? sb.team1 : sb.team2;
+        const squadra = displayName(vincitrice.name);
+        for (const g of [...(vincitrice.starters || []), ...(vincitrice.bench || [])]) {
+            if (!g?.name) continue;
+            if (!anelli.has(g.name)) anelli.set(g.name, { player: g.name, team: squadra, value: 0 });
+            anelli.get(g.name).value += 1;
+        }
+    });
+
+    // A parita' di vittorie decide il nome: senza un criterio stabile l'ordine
+    // cambiava a ogni caricamento.
+    const cinque = (righe, campo = 'value') => righe
+        .filter(r => r[campo] > 0)
+        .sort((a, b) => b[campo] - a[campo] || a.player.localeCompare(b.player))
+        .slice(0, 5)
+        .map(r => ({ player: r.player, team: r.team, value: r[campo] }));
+
+    return {
+        anelli: cinque([...anelli.values()]),
+        premi: ordine
+            .filter(({ id }) => !FUORI.has(id))
+            .map(({ id, titolo }) => ({ titolo, righe: cinque([...perPremio.get(id).values()]) })),
+        coty,
+        primo: cinque([...allpro.values()], 'primo'),
+        allpro: cinque([...allpro.values()], 'tutte'),
+    };
 }
 
 function leaderPanel(title, rows, decimals = 0) {
@@ -768,7 +953,8 @@ function renderTeamPanels(stats) {
             }).join('');
 
         return `
-        <div class="team-alltime-panel${isChamp ? ' team-alltime-panel--champ' : ''}" style="animation-delay:${i * 100}ms">
+        <div class="team-alltime-panel${isChamp ? ' team-alltime-panel--champ' : ''}"
+             data-squadra="${disp}" style="animation-delay:${i * 100}ms">
             <div class="team-alltime-header">
                 <img class="team-alltime-logo" src="${logo}" alt="${disp}">
                 <span class="team-alltime-name">${disp}</span>
@@ -810,6 +996,38 @@ function renderTeamPanels(stats) {
         <h2 class="records-title">All-Time Teams</h2>
         <div class="team-alltime-grid">${panels}</div>
     `;
+    // Il distintivo del Coach of the Year arriva dopo: va letto dagli honors
+    // di tutte le stagioni, e non deve far aspettare le card.
+    riempiCoty(el);
+}
+
+/**
+ * Il distintivo "N× Coach of the Year" accanto ai titoli, in giallo.
+ *
+ * Sta qui e non fra i premi dei giocatori perche' lo vince una SQUADRA: nella
+ * classifica dei piu' premiati sarebbe stata una riga di un'altra gara, e
+ * accanto ai titoli invece si legge insieme a quello che dice — quanto e'
+ * stata brava la squadra, non un suo giocatore.
+ */
+async function riempiCoty(root) {
+    let dati;
+    try {
+        dati = await albo();
+    } catch (e) {
+        console.warn('[stats] Coach of the Year non calcolabile:', e.message);
+        return;
+    }
+    if (!dati?.coty?.size || !document.body.contains(root)) return;
+    root.querySelectorAll('.team-alltime-panel').forEach(card => {
+        const n = dati.coty.get(card.dataset.squadra);
+        if (!n) return;
+        const testa = card.querySelector('.team-alltime-header');
+        if (!testa || testa.querySelector('.team-alltime-coty')) return;
+        const span = document.createElement('span');
+        span.className = 'team-alltime-coty';
+        span.textContent = `${n}× COTY`;
+        testa.appendChild(span);
+    });
 }
 
 /**

@@ -9,9 +9,9 @@
  * in meno che una cifra finta.
  */
 
-import { displayName } from '../data.js?v=540';
+import { displayName } from '../data.js?v=547';
 import { TEAM_KEYS } from './team-config.js?v=533';
-import { TEAM_KEY_LIST } from './league-data.js?v=539';
+import { TEAM_KEY_LIST } from './league-data.js?v=546';
 
 const toKey = (rawName) => TEAM_KEYS[displayName(rawName)] || null;
 

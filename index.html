@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1045">
+    <link rel="stylesheet" href="css/main.css?v=1078">
 </head>
 
 <body>
@@ -136,6 +136,10 @@
     <!-- ====== LIVE MATCHUP CENTER ====== -->
     <section class="page-section" id="live">
         <div class="section-inner live-page-inner">
+            <div class="section-header">
+                <h1 class="section-title">Live</h1>
+                <p class="section-subtitle">Every point, as it happens</p>
+            </div>
             <div id="live-root">
                 <div class="loading-state">
                     <div class="spinner"></div>
@@ -164,7 +168,7 @@
                 <h1 class="section-title">Regular Season</h1>
                 <p class="section-subtitle">This season's standings</p>
             </div>
-            <div class="year-selector" id="st-year-selector"></div>
+            <div class="pick-row" id="st-year-selector"></div>
             <div class="standings-table-wrap" id="standings-table-wrap">
                 <div class="loading-state">
                     <div class="spinner"></div>
@@ -181,6 +185,7 @@
                 <h1 class="section-title">Playoff Picture</h1>
                 <p class="section-subtitle">The bracket to the Super Bowl</p>
             </div>
+            <div class="pick-row" id="po-year-selector"></div>
             <div class="standings-table-wrap" id="playoffs-wrap">
                 <div class="loading-state">
                     <div class="spinner"></div>
@@ -386,7 +391,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1134"></script>
+    <script type="module" src="js/app.js?v=1174"></script>
 </body>
 
 </html>

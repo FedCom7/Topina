@@ -8,7 +8,7 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
-} from '../data.js?v=540';
+} from '../data.js?v=547';
 import { TEAM_KEYS } from './team-config.js?v=533';
 import { FLEX_ELIGIBLE } from './league-rules.js?v=528';
 
@@ -407,5 +407,7 @@ export function computeAllPro(players) {
 
 /** Stagioni con dati (per i selettori anno delle pagine honors/all-pro) */
 export function honorsSeasons() {
-    return [...SEASONS];
+    // Dalla piu' recente, come tutte le altre tendine dell'anno: la usano solo
+    // Topina Honors e All-Pro, ed e' l'ordine in cui si guardano gli albi.
+    return [...SEASONS].reverse();
 }

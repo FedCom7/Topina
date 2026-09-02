@@ -6,9 +6,9 @@
  *  - Champion + highlights per-giocatore (MVP stagione, miglior prova, MVP del SB)
  *  - Dynamic season recap narratives
  */
-import { fetchFantasyData, processStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=540';
+import { fetchFantasyData, processStandings, processPlayoffStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=580';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
+import { TEAMS } from './team.js?v=705';
 
 let loaded = false;
 
@@ -25,13 +25,14 @@ export async function initHistory() {
             const data = await fetchFantasyData(year);
             if (!data) return null;
             const standings = processStandings(data, year);
+            const finali = processPlayoffStandings(data, year);
             const sbMatchup = getSuperBowlMatchup(data, year);
             const highlights = seasonHighlights(data, sbMatchup);
             // Indice del SB nella sua settimana, per il link #game/{year}/{week}/{idx}
             const config = getSeasonConfig(year);
             const sbWeekMatchups = data.weeks?.[String(config.superBowlWeek)]?.matchups || [];
             const sbIdx = sbWeekMatchups.indexOf(sbMatchup);
-            return { year, standings, sbMatchup, highlights, sbWeek: config.superBowlWeek, sbIdx };
+            return { year, standings, finali, sbMatchup, highlights, sbWeek: config.superBowlWeek, sbIdx };
         })
     );
 
@@ -43,7 +44,59 @@ export async function initHistory() {
         return;
     }
 
+    stagioni = seasons;
     container.innerHTML = seasons.map((s, i) => renderSeasonCard(s, i)).join('');
+    bindModo(container);
+}
+
+/* ── Quale classifica si guarda ──────────────────────────────────────────
+   Due classifiche per la stessa stagione, e non dicono la stessa cosa: il
+   record premia la costanza di quindici settimane, i playoff decidono chi
+   alza la coppa. In questa lega capita spesso che non coincidano, ed e'
+   proprio il confronto a essere interessante — per questo si scambiano sul
+   posto invece di stare una sotto l'altra. */
+
+/* Una scelta per STAGIONE, non una per la pagina: si va in History per
+   guardare un anno alla volta, e volendo confrontare il 2019 col 2025 servono
+   due modalita' aperte insieme. Chi non tocca niente vede la regular season. */
+const modi = new Map();
+let stagioni = [];
+
+const modoDi = (year) => modi.get(String(year)) || 'regular';
+
+function modoSwitchHTML(year) {
+    const attuale = modoDi(year);
+    const voce = (chiave, testo) =>
+        `<button class="an-avg-pill hist-modo-pill${attuale === chiave ? ' active' : ''}"
+                 type="button" data-hist-modo="${chiave}">${testo}</button>`;
+    return `
+    <div class="an-avg-toggle hist-modo-toggle">
+        ${voce('regular', 'Regular Season')}
+        ${voce('finale', 'Final')}
+    </div>`;
+}
+
+/**
+ * Un ascoltatore solo, sul contenitore: i pulsanti vivono dentro il pezzo che
+ * viene riscritto a ogni cambio, quindi agganciarli uno per uno significava
+ * perderli al primo clic.
+ *
+ * Si riscrive SOLO la classifica, non la scheda: rifacendo tutto riparte
+ * l'animazione d'ingresso della stagione, e a ogni clic il blocco si
+ * rianimava da capo.
+ */
+function bindModo(root) {
+    root.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-hist-modo]');
+        if (!b || !root.contains(b)) return;
+        const box = b.closest('[data-hist-standings]');
+        if (!box) return;
+        const year = box.dataset.histStandings;
+        if (b.dataset.histModo === modoDi(year)) return;
+        modi.set(String(year), b.dataset.histModo);
+        const s = stagioni.find(x => String(x.year) === String(year));
+        if (s) box.innerHTML = standingsHTML(s);
+    });
 }
 
 /**
@@ -253,7 +306,7 @@ function generateRecap({ year, standings, sbMatchup }) {
     return parts.join(' ');
 }
 
-function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbIdx }, index) {
+function renderSeasonCard({ year, standings, finali, sbMatchup, highlights, sbWeek, sbIdx }, index) {
     // Determine champion from SB matchup
     let champion = null;
     let sbHtml = '';
@@ -310,24 +363,9 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
     if (hl.bestGame) chips.push(hlChip('Best Performance', hl.bestGame.name, `W${hl.bestGame.wk} · ${hl.bestGame.pts.toFixed(1)} pt`));
     const highlightsHtml = chips.length ? `<div class="history-highlights">${chips.join('')}</div>` : '';
 
-    // Regular season standings — editorial rows, no card background
-    const standingsHtml = standings.length ? `
-        <div class="history-sub-title">Regular Season</div>
-        <div class="history-standings-list">
-            ${standings.map((t, i) => {
-        const logo = TEAM_LOGOS[displayName(t.name)] || 'images/nfl_logo.png';
-        const winPct = ((t.w / (t.w + t.l)) * 100).toFixed(0);
-        return `
-                <div class="history-standing-row${t.name === champion ? ' champion' : ''}" data-rank="${i + 1}">
-                    <span class="standing-rank rank-${i + 1}">${i + 1}</span>
-                    <img src="${logo}" alt="${displayName(t.name)}" class="standing-logo">
-                    <span class="standing-team">${displayName(t.name)}</span>
-                    <span class="standing-record">${t.w}-${t.l}</span>
-                    <span class="standing-pct">${winPct}%</span>
-                </div>`;
-    }).join('')}
-        </div>
-    ` : '';
+    // Le classifiche stanno in un contenitore proprio: al cambio di modalita'
+    // si riscrive solo quello.
+    const standingsHtml = `<div data-hist-standings="${year}">${standingsHTML({ year, standings, finali, sbMatchup })}</div>`;
 
     return `
     <div class="history-season-block" style="animation-delay:${index * 100}ms">
@@ -342,6 +380,52 @@ function renderSeasonCard({ year, standings, sbMatchup, highlights, sbWeek, sbId
             ${sbHtml}
         </div>
     </div>`;
+}
+
+/**
+ * La classifica nella modalita' scelta.
+ *
+ * Le due colonne di destra cambiano significato insieme alla classifica: in
+ * regular season sono record e percentuale di vittorie, nei playoff sono il
+ * record della POSTSEASON (due partite a testa) e i punti fatti in quelle due.
+ * La percentuale li' non direbbe niente — su due partite vale 100, 50 o 0.
+ */
+function standingsHTML({ year, standings, finali, sbMatchup }) {
+    // Stessa regola del resto della pagina, pari punti compresi: chi vince il
+    // Super Bowl e' `team1` se non ha meno punti.
+    const champion = sbMatchup && sbMatchup.team1 && sbMatchup.team2
+        ? ((parseFloat(sbMatchup.team1.score) || 0) >= (parseFloat(sbMatchup.team2.score) || 0)
+            ? sbMatchup.team1.name : sbMatchup.team2.name)
+        : null;
+    const playoff = modoDi(year) === 'finale';
+    const lista = playoff ? (finali || []) : (standings || []);
+    // L'interruttore sta sopra la classifica di QUESTA stagione, ed e' anche
+    // la sua intestazione: la voce accesa dice gia' cosa si sta guardando,
+    // quindi un titolo separato ripeterebbe la stessa parola due volte.
+    const testa = modoSwitchHTML(year);
+    if (!lista.length) {
+        return `${testa}<p class="pm-empty">No playoff bracket for this season.</p>`;
+    }
+    return `
+        ${testa}
+        <div class="history-standings-list">
+            ${lista.map((t, i) => {
+        const nome = displayName(t.name);
+        const logo = TEAM_LOGOS[nome] || 'images/nfl_logo.png';
+        const destra = playoff
+            ? `<span class="standing-record">${t.w}-${t.l}</span>
+               <span class="standing-pct">${(t.pf || 0).toFixed(1)}</span>`
+            : `<span class="standing-record">${t.w}-${t.l}</span>
+               <span class="standing-pct">${((t.w / (t.w + t.l)) * 100).toFixed(0)}%</span>`;
+        return `
+                <div class="history-standing-row${t.name === champion ? ' champion' : ''}" data-rank="${i + 1}">
+                    <span class="standing-rank rank-${i + 1}">${i + 1}</span>
+                    <img src="${logo}" alt="${nome}" class="standing-logo">
+                    <span class="standing-team">${nome}</span>
+                    ${destra}
+                </div>`;
+    }).join('')}
+        </div>`;
 }
 
 function hlChip(label, name, meta) {

@@ -3038,6 +3038,31 @@ img {
             transparent 60%);
 }
 
+/* La seconda luce, da SOTTO. Quella di sopra da sola dava un taglio netto a
+   meta' card: il logo si accendeva in alto e sprofondava nel nero in basso,
+   come illuminato da un faretto. Questa fa da rimbalzo — piu' bassa di
+   intensita', perche' una luce riflessa non batte mai come quella diretta — e
+   chiude la figura invece di lasciarla tagliata. Sta sullo stesso angolo
+   orizzontale della prima, cosi' le due si leggono come una luce sola che
+   avvolge. */
+.st-rank-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 90% 110% at 85% 110%,
+            color-mix(in srgb, var(--team-color) 18%, transparent) 0%,
+            transparent 62%);
+    opacity: 0.7;
+    pointer-events: none;
+    transition: opacity var(--dur-med) var(--ease);
+}
+
+.st-rank-wrap--right .st-rank-card::after {
+    background: radial-gradient(ellipse 90% 110% at 15% 110%,
+            color-mix(in srgb, var(--team-color) 18%, transparent) 0%,
+            transparent 62%);
+}
+
 .st-rank-card:hover {
     transform: translateY(-4px);
     border-color: color-mix(in srgb, var(--team-color) 45%, transparent);
@@ -3045,7 +3070,8 @@ img {
         0 0 50px color-mix(in srgb, var(--team-color) 14%, transparent);
 }
 
-.st-rank-card:hover::before {
+.st-rank-card:hover::before,
+.st-rank-card:hover::after {
     opacity: 1;
 }
 
@@ -4963,6 +4989,51 @@ img {
     margin: 32px 0;
 }
 
+/* Il selettore fra le due classifiche, uno per stagione, appoggiato sopra la
+   sua classifica. Prende il posto del sotto-titolo: la voce accesa dice gia'
+   quale si sta guardando. Corpo piccolo come le altre etichette di sezione,
+   perche' non deve pesare piu' della classifica che introduce. */
+/* La giornata sul campo, in alto a sinistra: bianca e quasi trasparente, si
+   intravede sull'erba come una scritta dipinta. Sta sotto alle card
+   (`z-index` basso) e non intercetta il tocco: e' una didascalia, non un
+   comando, e non deve mai finire davanti a un giocatore. */
+.live-field-week {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    z-index: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    /* Stessa filigrana dei titoli di sezione (`.section-header .section-title`):
+       lettere vuote col solo contorno chiaro. Riempita di bianco trasparente
+       sembrava un'etichetta appiccicata sopra; in outline si legge come una
+       scritta dipinta sull'erba, ed e' la stessa voce del resto del sito. */
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.5rem, 4vw, 2.6rem);
+    letter-spacing: 0.04em;
+    line-height: 0.9;
+    text-transform: uppercase;
+    background: none;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    /* 1px come i titoli su desktop: e' lo stesso tratto, non uno piu' spesso. */
+    -webkit-text-stroke: 1px rgba(245, 240, 232, 0.55);
+}
+
+.hist-modo-toggle {
+    display: flex;
+    gap: 6px;
+    margin: 26px 0 10px;
+}
+
+.hist-modo-pill {
+    padding: 3px 11px;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 .st-record-mode-toggle {
     display: flex;
     justify-content: center;
@@ -5246,10 +5317,39 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+/* Il Coach of the Year accanto ai titoli, in giallo: stessa forma del
+   distintivo dei campionati, colore diverso perche' e' un'altra cosa — quello
+   dice quante volte hai vinto, questo quanto bene hai allenato. Niente
+   `margin-left: auto`, che ce l'ha gia' il distintivo dei titoli: due
+   spingerebbero l'uno contro l'altro. */
+.team-alltime-coty {
+    margin-left: 8px;
+    padding: 4px 12px;
+    border-radius: var(--pill-radius);
+    background: rgba(245, 197, 24, 0.14);
+    border: 1px solid rgba(245, 197, 24, 0.42);
+    color: #e0b93a;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+/* Senza titoli il distintivo del coach e' l'unico della riga: gli serve lui
+   la spinta a destra, che altrimenti resterebbe appiccicato al nome. */
+.team-alltime-header > .team-alltime-coty:not(.team-alltime-titles ~ *) {
+    margin-left: auto;
+}
+
+/* Il record all-play sopra e la sua etichetta SOTTO, non di fianco: in riga
+   il numero e la parola si leggevano come una cosa sola, e "all-play" pareva
+   parte del punteggio. */
 .team-alltime-ap {
     display: inline-flex;
-    align-items: baseline;
-    gap: 5px;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
     font-family: var(--font-display);
     font-size: 1rem;
     font-weight: 700;
@@ -14367,6 +14467,70 @@ td.ps-div-seed {
    container, quindi la nav a tab sticky resta invariata e l'anno fixed pure). */
 #nfl-team-page { overflow-x: clip; }
 
+/* ── Barre di scorrimento dell'NFL Hub ────────────────────────────────
+   Le tre pagine dell'hub (elenco, scheda giocatore, scheda squadra) sono
+   piene di fasce che scorrono di lato: calendario, classifiche, tabelle
+   lunghe. Senza queste regole Windows ci mette la sua barra chiara, che su
+   un sito nero e' la cosa piu' luminosa dello schermo e si prende l'occhio
+   prima del contenuto.
+   Stessa tinta gia' usata altrove nel progetto (`.pick-dd-menu`, `.an-scroll`),
+   cosi' le barre si assomigliano tutte invece di essere scure a chiazze.
+   `scrollbar-color` e `scrollbar-width` si ereditano: bastano sulla sezione,
+   e coprono Firefox. Le pseudo-classi `::-webkit-scrollbar` no, e per quelle
+   serve il selettore discendente. */
+#players,
+#player-page,
+#nfl-team-page {
+    scrollbar-width: thin;
+    scrollbar-color: #2f2f2f transparent;
+}
+
+#players ::-webkit-scrollbar,
+#player-page ::-webkit-scrollbar,
+#nfl-team-page ::-webkit-scrollbar,
+#players::-webkit-scrollbar,
+#player-page::-webkit-scrollbar,
+#nfl-team-page::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#players ::-webkit-scrollbar-track,
+#player-page ::-webkit-scrollbar-track,
+#nfl-team-page ::-webkit-scrollbar-track,
+#players::-webkit-scrollbar-track,
+#player-page::-webkit-scrollbar-track,
+#nfl-team-page::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#players ::-webkit-scrollbar-thumb,
+#player-page ::-webkit-scrollbar-thumb,
+#nfl-team-page ::-webkit-scrollbar-thumb,
+#players::-webkit-scrollbar-thumb,
+#player-page::-webkit-scrollbar-thumb,
+#nfl-team-page::-webkit-scrollbar-thumb {
+    background: #2f2f2f;
+    border-radius: 999px;
+}
+
+#players ::-webkit-scrollbar-thumb:hover,
+#player-page ::-webkit-scrollbar-thumb:hover,
+#nfl-team-page ::-webkit-scrollbar-thumb:hover,
+#players::-webkit-scrollbar-thumb:hover,
+#player-page::-webkit-scrollbar-thumb:hover,
+#nfl-team-page::-webkit-scrollbar-thumb:hover {
+    background: #3f3f3f;
+}
+
+/* L'angolo fra barra orizzontale e verticale: senza, resta un quadratino
+   chiaro in basso a destra. */
+#players ::-webkit-scrollbar-corner,
+#player-page ::-webkit-scrollbar-corner,
+#nfl-team-page ::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 /* Barra full-bleed (tutte le larghezze): sfonda il container centrato con la
    tecnica "bulletproof". Il contenuto interno resta incolonnato. */
 #nfl-team-page .pp-hero {
@@ -15320,21 +15484,23 @@ td.ps-div-seed {
     color: color-mix(in srgb, var(--tc2) 60%, white 40%);
 }
 
+/* Un solo nastro che passa da un colore all'altro, senza il taglio netto di
+   prima: il punto di scambio e' `--p`, e attorno c'e' una fascia di sfumatura
+   larga il 14% per lato. Due blocchi affiancati mettevano una linea dura in
+   mezzo, che diceva "qui finisce uno e comincia l'altro" — ma questa e' una
+   quota che scorre, non un confine. */
 .live-mc-probbar {
     position: relative;
     flex: 1;
     height: 4px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--tc2) 45%, rgba(255, 255, 255, 0.1));
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--tc1) 85%, white 15%) 0,
+        color-mix(in srgb, var(--tc1) 85%, white 15%) max(0%, calc(var(--p, 50%) - 14%)),
+        color-mix(in srgb, var(--tc2) 55%, rgba(255, 255, 255, 0.14)) min(100%, calc(var(--p, 50%) + 14%)),
+        color-mix(in srgb, var(--tc2) 55%, rgba(255, 255, 255, 0.14)) 100%);
+    transition: background var(--dur-med) var(--ease);
     overflow: hidden;
-}
-
-.live-mc-probfill {
-    display: block;
-    height: 100%;
-    background: var(--tc1);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--tc1) 60%, transparent);
-    transition: width var(--dur-med) var(--ease);
 }
 
 
@@ -15801,12 +15967,17 @@ td.ps-div-seed {
 
 .fsv-num {
     /* i numeri delle yard stanno sullo sfondo: devono farsi riconoscere e
-       nient'altro, o competono con i punteggi dei giocatori */
+       nient'altro, o competono con i punteggi dei giocatori. Piu' grandi si
+       leggono come vernice sul manto invece che come un'etichetta, ma il velo
+       resta lo stesso: e' l'opacita' a tenerli indietro, non la misura. */
     fill: rgba(255, 255, 255, 0.07);
     font-family: var(--font-display), sans-serif;
-    font-size: 30px;
+    font-size: 52px;
     font-weight: 800;
     text-anchor: middle;
+    /* Centrato sulla riga, non appoggiato sotto: cosi' la yard line passa
+       fra le due cifre. */
+    dominant-baseline: central;
     transform-box: fill-box;
     transform-origin: center;
     transform: rotate(-90deg);
@@ -16698,6 +16869,10 @@ td.ps-div-seed {
         order: 1;
         grid-template-columns: 1fr;
         margin-bottom: 0;
+        /* In colonna sola la prima scheda finiva attaccata a "Inside the
+           game", che sopra non ha margine: misurati zero pixel fra le due, e
+           i due bordi arrotondati si toccavano come fossero un pannello solo. */
+        margin-top: 26px;
     }
 
     /* niente mazzo qui: la lista scorre e la rotella resta della pagina */
@@ -17548,29 +17723,35 @@ td.ps-div-seed {
 
    DEVE ANCORA GIOCARE: tutto spento, punteggio compreso — non c'è niente da
    guardare, e il trattino al posto dello zero lo dice esplicitamente. */
-.live-slot--soon {
+/* DEVE ANCORA GIOCARE. Prima del kickoff della giornata non si spegne
+   nessuno: a schermo ci sono le proiezioni di tutti, e sono l'unica cosa da
+   guardare — spenta, meta' formazione sembrava gia' fuori causa. Da quando la
+   giornata comincia (`.is-giornata`) il senso si ribalta: chi non e' ancora
+   sceso in campo va messo da parte, perche' l'occhio deve andare a chi sta
+   facendo punti adesso. */
+.is-giornata .live-slot--soon {
     opacity: 0.4;
 }
 
-.live-slot--soon .slot-photo img {
+.is-giornata .live-slot--soon .slot-photo img {
     filter: grayscale(1);
 }
 
-.live-slot--soon .slot-pts {
+.is-giornata .live-slot--soon .slot-pts {
     color: var(--text-muted);
 }
 
-/* HA FINITO: il suo contributo è definitivo, quindi foto e punteggio restano
-   accesi. Si spegne il contorno — nome, statistiche, proiezione — perché non
-   cambierà più niente. */
+/* HA FINITO: il suo contributo è definitivo. La card resta ACCESA — punti,
+   nome e statistiche si leggono come prima, perché sono il risultato — e a
+   dire che la sua giornata è chiusa ci pensa la foto in bianco e nero. E' il
+   contrario di chi deve ancora giocare, che invece si spegne del tutto:
+   quello non ha ancora niente da mostrare, questo ha finito di mostrarlo. */
 .live-cmp-row--done {
     opacity: 0.55;
 }
 
-.live-slot--done .slot-name,
-.live-slot--done .live-slot-stats,
-.live-slot--done .live-chip-name {
-    opacity: 0.45;
+.live-slot--done .slot-photo img {
+    filter: grayscale(1);
 }
 
 .live-slot--done .slot-photo {

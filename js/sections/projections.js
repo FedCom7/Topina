@@ -17,18 +17,18 @@
  * Come draft.js: `loaded` per non re-inizializzare, stato del ruolo in modulo.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=665';
-import { initPlayerModal } from '../components/player-modal.js?v=670';
+import { TEAMS } from './team.js?v=705';
+import { initPlayerModal } from '../components/player-modal.js?v=710';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=595';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=47';
 import { multiLine, dumbbell } from '../ui/charts.js?v=7';
-import { renderPreDraft, resetPreDraft } from './predraft.js?v=24';
+import { renderPreDraft, resetPreDraft } from './predraft.js?v=64';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
-import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=886';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=961';
+import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=926';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1001';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const POS_NAME = { QB: 'Quarterback', RB: 'Running back', WR: 'Wide receiver', TE: 'Tight end' };
@@ -83,8 +83,10 @@ function renderPickRow() {
 
     const posItems = view === 'board' ? POSITIONS.filter(p => byPos?.[p]?.length).map(p => ({ value: p, label: p })) : [];
     const posIdx = posItems.findIndex(it => it.value === currentPos);
-    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
-    const yearIdx = SEASONS.indexOf(String(currentYear));
+    // Dalla piu' recente: voci e indice dalla STESSA lista, o la capsula
+    // mostrerebbe un anno diverso da quello caricato.
+    const yearItems = SEASONS_DESC.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS_DESC.indexOf(String(currentYear));
 
     container.innerHTML = tabs
         + (view === 'board' ? pickDropdownHTML('pos', posItems, posIdx) : '')

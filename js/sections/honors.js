@@ -5,9 +5,9 @@
  * Super Bowl week: prima si mostrano solo i finalisti, come nella realtà.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=540';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=591';
-import { TEAMS } from './team.js?v=665';
+import { CURRENT_SEASON } from '../data.js?v=580';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=631';
+import { TEAMS } from './team.js?v=705';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let initialized = false;

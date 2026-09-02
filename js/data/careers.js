@@ -14,9 +14,9 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     SEASONS, getSeasonConfig, getSuperBowlMatchup, displayName,
-} from '../data.js?v=540';
+} from '../data.js?v=547';
 import { TEAM_KEYS } from './team-config.js?v=533';
-import { getHonorsBundle } from './honors.js?v=591';
+import { getHonorsBundle } from './honors.js?v=598';
 import { normName } from './projections.js?v=594';
 
 let careersCache = null;

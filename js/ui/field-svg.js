@@ -32,10 +32,20 @@ function yardLines() {
         out.push(`<line x1="0" y1="${y}" x2="${VB_W}" y2="${y}"
             stroke="rgba(255,255,255,${grossa ? 0.16 : 0.075})" stroke-width="${grossa ? 2.4 : 1.4}"/>`);
         if (grossa && i > 0) {
-            // le linee grosse sono una ogni due: il numero segue quelle, non tutte
-            const n = Math.max(10, 50 - (i / 2 - 1) * 10);
-            out.push(`<text x="70" y="${y + 30}" class="fsv-num">${n}</text>`);
-            out.push(`<text x="${VB_W - 70}" y="${y + 30}" class="fsv-num fsv-num--r">${n}</text>`);
+            // Le linee grosse sono una ogni due: il numero segue quelle, non
+            // tutte. Si conta dall'ALTO — 10, 20, 30, 40 — come scendendo il
+            // campo dalla propria end zone; oltre meta' campo si torna
+            // indietro, che e' come sono dipinti i numeri veri.
+            const k = i / 2;
+            const n = k <= 5 ? k * 10 : (10 - k) * 10;
+            if (n > 0) {
+                // `y` e non `y + 30`: il numero sta A CAVALLO della riga. Le
+                // due cifre, che la rotazione impila una sopra l'altra, la
+                // lasciano passare in mezzo — con `dominant-baseline: central`
+                // nel CSS il centro del testo cade esattamente sulla linea.
+                out.push(`<text x="70" y="${y}" class="fsv-num">${n}</text>`);
+                out.push(`<text x="${VB_W - 70}" y="${y}" class="fsv-num fsv-num--r">${n}</text>`);
+            }
         }
     }
     return out.join('');

@@ -6,12 +6,12 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, CURRENT_SEASON } from '../data.js?v=540';
-import { TEAMS } from './team.js?v=665';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
+import { TEAMS } from './team.js?v=705';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
-import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=961';
+import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1001';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
 
 let initialized = false;
@@ -74,8 +74,10 @@ function renderPickRow() {
         })),
     ];
     const teamIdx = teamItems.findIndex(it => it.value === currentTeam);
-    const yearItems = SEASONS.map(y => ({ value: y, label: y }));
-    const yearIdx = SEASONS.indexOf(String(currentYear));
+    // Dalla piu' recente: voci e indice dalla STESSA lista, o la capsula
+    // mostrerebbe un anno diverso da quello caricato.
+    const yearItems = SEASONS_DESC.map(y => ({ value: y, label: y }));
+    const yearIdx = SEASONS_DESC.indexOf(String(currentYear));
 
     container.innerHTML = pickDropdownHTML('team', teamItems, teamIdx) + pickDropdownHTML('year', yearItems, yearIdx);
     bindPickDropdown(container, (id, value) => {
