@@ -2827,6 +2827,16 @@ img {
     margin-top: 24px;
 }
 
+/* Il messaggio "non c'e' ancora il draft" prende TUTTE le colonne: e' un
+   avviso, non una delle quattro squadre. Dentro una griglia a quattro colonne
+   finiva schiacciato in un quarto di schermo, mentre in Game Center — dove il
+   contenitore non e' una griglia — era largo com'e' giusto.
+   `1 / -1` e non `span 4`: le colonne diventano tre sotto i 1024px e due piu'
+   giu', e cosi' il blocco le copre tutte comunque. */
+.draft-grid > .live-nodraft {
+    grid-column: 1 / -1;
+}
+
 @media (max-width: 1024px) {
     .draft-grid {
         grid-template-columns: repeat(3, 1fr);
