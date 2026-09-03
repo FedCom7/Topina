@@ -1882,13 +1882,17 @@ function olineSlot() {
  * aggiornare e nessuna scheda da aprire.
  */
 function emptySlot(p, extraClass = '') {
+    // Le statistiche in ANELLO attorno alla foto, come le card vere: il posto
+    // vuoto deve avere la stessa forma di quello che prendera' il suo posto,
+    // o al momento del draft la pagina cambia impaginazione sotto gli occhi.
+    // Col riquadro a due colonne le maglie vuote erano piu' alte delle altre.
     const role = (p.position_in_team || p.position || '').toUpperCase();
     return `
     <div class="formation-slot live-slot live-slot--empty${extraClass}">
         <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"></span>
         <span class="slot-name">–</span>
         <span class="slot-pts">–</span>
-        <span class="live-slot-stats">${statBoxHTML({ position: role, stats: {} })}</span>
+        <span class="live-slot-stats live-slot-stats--ring">${statRingHTML({ position: role, stats: {} })}</span>
     </div>`;
 }
 
