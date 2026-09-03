@@ -92,6 +92,26 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+    /* Niente evidenziazione: il sito si usa come un'applicazione, non si
+       legge come un documento. Trascinando su una card o su un grafico
+       partiva la selezione — con le maniglie blu sul telefono — e il gesto
+       che doveva scorrere finiva per selezionare mezza pagina.
+       `-webkit-tap-highlight-color` toglie il lampo grigio al tocco su
+       iOS e Android, che e' la stessa cosa vista da un altro lato. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* I campi di testo restano selezionabili: senza questa riga non si potrebbe
+   correggere quello che si sta scrivendo nella ricerca, ne' fare doppio clic
+   per sostituire una parola. */
+input,
+textarea,
+select,
+[contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 a {
@@ -7295,9 +7315,16 @@ img {
    infortuni — e due elenchi affiancati si leggevano diversi. Resta il colore
    del ruolo, che serve a distinguerli a colpo d'occhio; via lo sfondo, che
    faceva da evidenziatore. */
+/* Il ruolo accanto al nome resta COLORATO ma perde la pastiglia: il colore
+   basta a dire di che ruolo si tratta, e uno sfondo dietro due lettere, in una
+   riga che ha gia' foto, nome, squadra e statistiche, aggiungeva un rettangolo
+   e nessuna informazione.
+   `.st-leader-name` sono i pannelli Top 5 / Flop 5 Performance, ultimi in
+   Analysis a portarsela: gli altri erano gia' cosi'. */
 .an-player-name .player-pos,
 .an-lineup-meta .player-pos,
-.an-inj-name .player-pos {
+.an-inj-name .player-pos,
+.st-leader-name .player-pos {
     background: none;
     padding: 0;
     border-radius: 0;
@@ -15985,6 +16012,26 @@ td.ps-div-seed {
 
 .fsv-num--r {
     transform: rotate(90deg);
+}
+
+/*
+ * Sotto i 700px i numeri delle yard non si disegnano.
+ *
+ * Il campo usa `preserveAspectRatio="xMidYMin slice"`: riempie il riquadro e
+ * si fa tagliare ai LATI. I numeri stanno a x=70 e x=930, cioe' proprio dove
+ * il taglio morde. Il conto: sono interi solo se il riquadro e' largo almeno
+ * 1,45 volte la sua altezza — con l'altezza che ha sul telefono vuol dire
+ * circa 610px di larghezza, che nessun telefono ha.
+ *
+ * Fra i 560 e i 650 uscivano quindi mezzi, incolonnati sui due bordi. Portarli
+ * verso il centro per salvarli li avrebbe messi sotto le figurine dei
+ * giocatori, cioe' spostato il problema; e le yard line restano comunque
+ * leggibili da sole. Meglio non disegnarli che disegnarne meta'.
+ */
+@media (max-width: 700px) {
+    .fsv-num {
+        display: none;
+    }
 }
 
 /* Velo scuro sopra il campo: le figurine e i punteggi devono staccarsi dallo

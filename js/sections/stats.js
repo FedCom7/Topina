@@ -204,8 +204,19 @@ function calculateStats(allSeasons) {
                 const puntiSettimana = [];
                 weekData.matchups.forEach(m => {
                     if (!m.team1 || !m.team2) return;
-                    puntiSettimana.push([m.team1.name, parseFloat(m.team1.score || 0)]);
-                    puntiSettimana.push([m.team2.name, parseFloat(m.team2.score || 0)]);
+                    const a = parseFloat(m.team1.score) || 0;
+                    const c = parseFloat(m.team2.score) || 0;
+                    /*
+                     * Giornata non giocata: fuori anche da qui. Questo blocco
+                     * gira PRIMA del ciclo dei risultati, quindi la guardia
+                     * messa la' non lo copriva — ed era la fonte dei mezzi
+                     * punti nel record all-play. Con tutti a zero ogni
+                     * confronto e' un pari, e ognuno si prendeva +1,5 vinte e
+                     * +1,5 perse contro i tre avversari.
+                     */
+                    if (a <= 0 && c <= 0) return;
+                    puntiSettimana.push([m.team1.name, a]);
+                    puntiSettimana.push([m.team2.name, c]);
                 });
                 for (const [nome, punti] of puntiSettimana) {
                     initTeam(nome);
@@ -357,6 +368,16 @@ function calculateStats(allSeasons) {
                             rec.rushYds = (rec.rushYds || 0) + (Number(p.stats.rush_yds) || 0);
                             rec.passYds = (rec.passYds || 0) + (Number(p.stats.pass_yds) || 0);
                             rec.recYds = (rec.recYds || 0) + (Number(p.stats.rec_yds) || 0);
+                            /*
+                             * Calci: field goal piu' trasformazioni. `fg_made`
+                             * arriva gia' pronto nei dati recenti; nello schema
+                             * vecchio esistono solo le fasce, e vanno sommate.
+                             */
+                            const fg = p.stats.fg_made != null
+                                ? (Number(p.stats.fg_made) || 0)
+                                : ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_0_39', 'fg_40_49', 'fg_50_plus']
+                                    .reduce((t, f) => t + (Number(p.stats[f]) || 0), 0);
+                            rec.fgXp = (rec.fgXp || 0) + fg + (Number(p.stats.pat_made) || 0);
 
                             // Receiving-TD breakdown by position
                             if (!rec.recTDByPos) rec.recTDByPos = { WR: 0, RB: 0, TE: 0 };
@@ -932,6 +953,7 @@ function renderTeamPanels(stats) {
         passTD: Math.max(...entries.map(([, r]) => r.passTD || 0)),
         recTD: Math.max(...entries.map(([, r]) => r.recTD || 0)),
         defTD: Math.max(...entries.map(([, r]) => r.defTD || 0)),
+        fgXp: Math.max(...entries.map(([, r]) => r.fgXp || 0)),
         rushYds: Math.max(...entries.map(([, r]) => r.rushYds || 0)),
         passYds: Math.max(...entries.map(([, r]) => r.passYds || 0)),
         recYds: Math.max(...entries.map(([, r]) => r.recYds || 0))
@@ -986,6 +1008,7 @@ function renderTeamPanels(stats) {
                 ${ministat((r.rushYds || 0).toLocaleString('en-US'), 'Rush Yds', (r.rushYds || 0) === best.rushYds && best.rushYds > 0)}
                 ${ministat((r.passYds || 0).toLocaleString('en-US'), 'Pass Yds', (r.passYds || 0) === best.passYds && best.passYds > 0)}
                 ${ministat((r.recYds || 0).toLocaleString('en-US'), 'Rec Yds', (r.recYds || 0) === best.recYds && best.recYds > 0)}
+                ${ministat((r.fgXp || 0).toLocaleString('en-US'), 'FG + XP', (r.fgXp || 0) === best.fgXp && best.fgXp > 0)}
             </div>
             ${recTdSplit(r.recTDByPos)}
             <div class="team-h2h-row">${pills}</div>
