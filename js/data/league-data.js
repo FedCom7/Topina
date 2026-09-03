@@ -68,6 +68,20 @@ function _buildSeason(year, fantasyData, draftData) {
         if (!week?.matchups) continue;
         week.matchups.forEach(m => {
             if (!m.team1 || !m.team2) return;
+            /*
+             * Partita SENZA DATI: non e' successa, e non entra in niente — ne'
+             * nel record, ne' nel registro delle partite da cui escono serie,
+             * sweep e miglior prova. Su Firebase il calendario c'e' per intero
+             * dal primo giorno coi punteggi a zero, e uno 0-0 finiva nel ramo
+             * del pareggio: nella pagina squadra compariva un pari mai
+             * giocato.
+             *
+             * Zero contro zero non e' un risultato possibile nel fantasy:
+             * e' il segnale che la giornata non c'e' ancora. Stessa regola di
+             * `processStandings` e del conteggio all-time in `stats.js`.
+             */
+            if ((parseFloat(m.team1.score) || 0) <= 0
+                && (parseFloat(m.team2.score) || 0) <= 0) return;
             const sides = [[m.team1, m.team2], [m.team2, m.team1]];
             sides.forEach(([me, opp]) => {
                 const key = toKey(me.name);

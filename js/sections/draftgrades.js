@@ -34,11 +34,11 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=705';
+import { TEAMS } from './team.js?v=709';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=595';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
-import { initPlayerModal } from '../components/player-modal.js?v=710';
+import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=683';

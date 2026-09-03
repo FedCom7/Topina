@@ -19,15 +19,15 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=705';
-import { initPlayerModal } from '../components/player-modal.js?v=710';
+import { TEAMS } from './team.js?v=709';
+import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=595';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=47';
 import { multiLine, dumbbell } from '../ui/charts.js?v=7';
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=64';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
-import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=926';
+import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=928';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1001';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];

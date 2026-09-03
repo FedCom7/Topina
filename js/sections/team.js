@@ -6,10 +6,10 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=580';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=579';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
 import { computeTeamBadges } from '../data/badges.js?v=557';
 import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=518';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=710';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
