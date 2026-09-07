@@ -17,7 +17,10 @@ import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAd
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1001';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=588';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';
-import { FLD3, fdProj, fdProjH, fdScale, fieldScene } from '../ui/field3d.js?v=1';
+import {
+    campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
+    yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
+} from '../ui/field-strip.js?v=129';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
@@ -28,11 +31,11 @@ import {
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=972';
+} from './player-page.js?v=977';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1028';
+} from './nfl-team-home.js?v=1032';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');
@@ -893,7 +896,7 @@ function _tsPercentiles(pool) {
 
 // Colore heatmap dal percentile (0 rosso → 100 verde), translucido per il tema scuro
 const _tsHeat = (pr) => pr == null ? 'transparent' : `hsla(${Math.round(pr * 1.2)}, 68%, 42%, 0.34)`;
-const _tsOrd = (pr) => `${Math.round(pr)}ª`;
+const _tsOrd = (pr) => ord(Math.round(pr));
 
 // Tick "tondi" per gli assi
 function _tsTicks(min, max, n = 4) {
@@ -1101,7 +1104,7 @@ function _statHeatmap(seasons, metrics, side, title) {
         const cells = metrics.map(m => {
             const { v, rank } = _statCell(s, m, side);
             const good = rank != null ? (33 - rank) / 32 * 100 : null;
-            return `<td style="background:${_tsHeat(good)}" title="${esc(`${m.label} ${s.year}: ${v == null ? '—' : m.fmt(v)}${rank != null ? ` · ${rank}ª NFL` : ''}`)}">${v == null ? '—' : m.fmt(v)}</td>`;
+            return `<td style="background:${_tsHeat(good)}" title="${esc(`${m.label} ${s.year}: ${v == null ? '—' : m.fmt(v)}${rank != null ? ` · ${ord(rank)} NFL` : ''}`)}">${v == null ? '—' : m.fmt(v)}</td>`;
         }).join('');
         return `<tr><td class="ts-hname">${s.year}</td>${cells}</tr>`;
     }).join('');
@@ -1136,7 +1139,7 @@ function _sparkGrid(seasons, items) {
         const vals = seasons.map(s => _statCell(s, it.m, it.side).v);
         const { v, rank } = _statCell(last, it.m, it.side);
         return `<div class="ts-spark-cell">
-            <div class="ts-spark-top"><span class="ts-spark-lbl">${esc(it.m.label)}</span><span class="ts-spark-val">${v == null ? '—' : it.m.fmt(v)}${rank != null ? ` <small class="${_rankClass(rank)}">${rank}ª</small>` : ''}</span></div>
+            <div class="ts-spark-top"><span class="ts-spark-lbl">${esc(it.m.label)}</span><span class="ts-spark-val">${v == null ? '—' : it.m.fmt(v)}${rank != null ? ` <small class="${_rankClass(rank)}">${ord(rank)}</small>` : ''}</span></div>
             ${_sparkline(vals, '#4f8cff')}
         </div>`;
     }).join('')}</div>`;
@@ -1312,8 +1315,8 @@ function teamDnaBlock(ctx) {
     const tiles = [
         netPg != null ? tile((netPg >= 0 ? '+' : '') + fmt1(netPg), 'Point differential/game') : '',
         rec ? tile(`${rec.w}-${rec.l}${rec.t ? '-' + rec.t : ''}`, `Record ${year}`) : '',
-        toMargin != null ? tile((toMargin >= 0 ? '+' : '') + toMargin, 'Margine turnover') : '',
-        epaRank ? tile(ord(epaRank), 'Rank EPA offensiva') : '',
+        toMargin != null ? tile((toMargin >= 0 ? '+' : '') + toMargin, 'Turnover margin') : '',
+        epaRank ? tile(ord(epaRank), 'Offensive EPA rank') : '',
         off.playsPg != null ? tile(fmt1(off.playsPg), 'Pace · plays/game') : '',
         a.proe != null ? tile((a.proe >= 0 ? '+' : '') + fmt1(a.proe) + '%', 'PROE · pass aggressiveness') : '',
     ].filter(Boolean).join('');
@@ -1398,8 +1401,8 @@ function teamDnaBlock(ctx) {
         </div>` : '';
     const fd = (strengths.length || weaknesses.length) ? `
         <div class="ts-charts" style="margin-top:16px">
-            ${fdCol(strengths, '💪 Strengths', 'good')}
-            ${fdCol(weaknesses, '⚠️ Da migliorare', 'bad')}
+            ${fdCol(strengths, 'Strengths', 'good')}
+            ${fdCol(weaknesses, 'Needs work', 'bad')}
         </div>` : '';
 
     if (!tiles && !scatter && !offBars && !defBars) return '';
@@ -1415,7 +1418,7 @@ function teamDnaBlock(ctx) {
                 <p class="pm-note">One dot per team (0-100, NFL percentiles for the season), <b style="color:var(--accent-red)">${esc(abbr)}</b> in red. Lines = medians: top-right the complete teams, bottom-left those rebuilding. Offense = EPA/play percentile, defense = inverse percentile of ${useDefEpa ? "EPA allowed" : 'points allowed'}.</p>
             </div>` : ''}
             <div class="ts-card">
-                <h4 class="ts-sub">Footprint · NFL rank (1st–${nTeams}th)</h4>
+                <h4 class="ts-sub">Footprint · NFL rank (1st–${ord(nTeams)})</h4>
                 ${offBars ? `<h5 class="ts-sub" style="font-size:12px;opacity:.75;margin:4px 0">Offense</h5>${offBars}` : ''}
                 ${defBars ? `<h5 class="ts-sub" style="font-size:12px;opacity:.75;margin:10px 0 4px">Defense</h5>${defBars}` : ''}
             </div>
@@ -1484,7 +1487,7 @@ function _rankBars(items) {
                 <span class="ts-rdot-fill" style="left:${fillLeft.toFixed(1)}%;width:${fillW.toFixed(1)}%"></span>
                 <span class="ts-rdot-pt" style="left:${pos}%"></span>
             </span>
-            <span class="ts-rankv">${esc(String(i.value))} <small>${i.rank}ª</small></span>
+            <span class="ts-rankv">${esc(String(i.value))} <small>${ord(i.rank)}</small></span>
         </div>`;
     }).join('');
     if (!rows) return '';
@@ -1673,7 +1676,7 @@ function _statFingerprint(categories) {
         const y = m.t + i * rowH + rowH / 2;
         const track = `<line x1="${m.l}" y1="${y.toFixed(1)}" x2="${(m.l + pw).toFixed(1)}" y2="${y.toFixed(1)}" class="ts-fp-track"/>`;
         const lbl = `<text x="${(m.l - 10).toFixed(1)}" y="${(y + 4).toFixed(1)}" class="ts-fp-lbl" text-anchor="end">${esc(row.label)}</text>`;
-        const dots = row.dots.map(d => `<circle cx="${xAt(d.rank).toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${tier(d.rank)}" fill-opacity="0.85" stroke="#000" stroke-width="0.8"><title>${esc(d.label)}: ${esc(String(d.value))} · ${d.rank}ª NFL</title></circle>`).join('');
+        const dots = row.dots.map(d => `<circle cx="${xAt(d.rank).toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${tier(d.rank)}" fill-opacity="0.85" stroke="#000" stroke-width="0.8"><title>${esc(d.label)}: ${esc(String(d.value))} · ${ord(d.rank)} NFL</title></circle>`).join('');
         return `${track}${lbl}${dots}`;
     }).join('');
     return `<div class="ts-chart"><svg viewBox="0 0 ${W} ${H}" class="ts-svg ts-fp-svg" role="img" aria-label="Impronta rank statistiche ufficiali ESPN">${zones}${scale}${body}</svg></div>`;
@@ -2019,30 +2022,56 @@ function scorebugHtml(s) {
     </div>`;
 }
 
-/** Frecce delle azioni di un drive sul campo (data-pi = indice giocata nel drive). */
-function buildFieldArrows(d) {
-    const W = FLD3.W, hw = 1.35;
-    const arr = d.plays.map((p, idx) => ({ p, idx })).filter(x => x.p.k && x.p.s != null);
-    return arr.map((x, k) => {
-        const p = x.p;
-        const startFx = d.hm ? p.s : 100 - p.s;
-        const endFx = Math.max(-8, Math.min(108, d.hm ? p.s - (p.g || 0) : (100 - p.s) + (p.g || 0)));
-        const fz = W * (0.30 + 0.40 * (k + 0.5) / arr.length);
-        const cat = p.sc ? 'sc' : p.to ? 'to' : (p.g > 0 ? 'gain' : (p.g < 0 ? 'loss' : 'none'));
-        const dir = endFx >= startFx ? 1 : -1;
-        const peak = p.pa ? Math.max(3, Math.min(14, Math.abs(endFx - startFx) * 0.35)) : 0;
-        const N = p.pa ? 16 : 2;
-        const top = [], bot = [];
-        for (let j = 0; j <= N; j++) {
-            const t = j / N, fx = startFx + (endFx - startFx) * t, y = peak * 4 * t * (1 - t);
-            top.push(fdProjH(fx, fz + hw, y)); bot.push(fdProjH(fx, fz - hw, y));
-        }
-        const bT = fdProjH(endFx, fz + hw * 2.1, 0), tip = fdProjH(endFx + dir * 3.8, fz, 0), bB = fdProjH(endFx, fz - hw * 2.1, 0);
-        const poly = [...top, bT, tip, bB, ...bot.reverse()].map(pt => `${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join(' ');
-        const [sx, sy] = fdProj(startFx, fz);
-        return `<polygon points="${poly}" class="pp-fd-rib pp-fd-${cat}" data-pi="${x.idx}"/>`
-            + `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.4" class="pp-fd-dot pp-fd-${cat}" data-pi="${x.idx}"/>`;
-    }).join('');
+/**
+ * Da una giocata del Game Center a quella che il campo del Live sa disegnare.
+ * I due formati vengono dalla stessa risposta ESPN ma con nomi diversi (`t`
+ * per il testo, `s`/`e` per la posizione): qui si traduce e basta. Tipo,
+ * lato, volo del calcio e azione annullata li ricava field-strip.js dal
+ * referto, e ricopiare quella lettura qui vorrebbe dire due campi che si
+ * comportano diverso sulla stessa giocata.
+ *
+ * Quello che non arriva: le FOTO. Il tabellino del Live porta gli attori di
+ * ogni azione, questa risposta no — senza `fotoDa`/`fotoA` il campo disegna
+ * il tratto e salta il ritratto appeso all'asta, che e' esattamente cio' che
+ * serve qui, dove le giocate a schermo sono tutte insieme.
+ */
+function giocataCampo(p, poss, homeAbbr) {
+    const base = {
+        text: p.t || '', type: p.ty || '', yards: p.g || 0,
+        scoring: !!p.sc, turnover: !!p.to,
+    };
+    const dir = direzioneGiocata(base);
+    let tipo = tipoGiocata(base);
+    const calcio = yardCalcio(base);
+    if (/field goal/i.test(testoAzione(base.text))) tipo = 'fg';
+    let yards = base.yards;
+    if (calcio != null) yards = calcio;
+    else if (tipo === 'incomplete' && !yards) yards = yardStimate(dir.profondita);
+    return {
+        pi: p.pi,
+        titolo: titoloGiocata(base), testo: base.text,
+        yards, tipo, lato: dir.lato, buono: fgBuono(base),
+        segna: base.scoring, persa: base.turnover, penalita: !!p.pe,
+        annullata: azioneAnnullata(base.text),
+        toEZ: p.s, toEZFine: p.e,
+        ...(tipo === 'kick' ? volodelCalcio(base.text, homeAbbr) : {}),
+        possesso: poss,
+    };
+}
+
+/**
+ * Le azioni di un drive sul campo (data-pi = indice giocata nel drive).
+ * Il disegno e' quello della striscia del Live: una riga che si scopre da
+ * sola, tratteggiata se la palla vola e piena se corre, col colore dell'esito.
+ * Le giocate disegnabili restano le stesse di prima — quelle da scrimmage con
+ * una posizione nota — perche' qui cambia il campo, non cosa ci si mette.
+ */
+function buildFieldArrows(d, homeAbbr) {
+    const poss = d.hm ? 'home' : 'away';
+    const giocate = d.plays
+        .map((p, pi) => (p.k && p.s != null) ? giocataCampo({ ...p, pi }, poss, homeAbbr) : null)
+        .filter(Boolean);
+    return tracceDrive(giocate, poss);
 }
 
 /** Lista giocate di un drive (stile play-by-play, data-pi per l'evidenziazione). */
@@ -2275,9 +2304,10 @@ function signaturesHtml(s) {
         </div>`).join('')}</div>`;
 }
 
-// Il campo in prospettiva (omografia campo-yard → schermo) vive in
-// js/ui/field3d.js: lo usa anche la home come fondale, e l'omografia deve
-// esistere in un posto solo. Qui restano le sole giocate.
+// Il campo lo disegna js/ui/field-strip.js — lo stesso del Live, tappeto,
+// end zone coi loghi e animazioni comprese. Qui restano le sole giocate.
+// (Il campo precedente, a omografia, vive ancora in js/ui/field3d.js ma non
+// lo importa piu' nessuno.)
 
 /** Etichetta breve + categoria colore per l'esito di un drive (timeline). */
 function driveResultTag(res) {
@@ -2319,7 +2349,11 @@ function fieldSceneHtml(s) {
                 plays: raw.map(p => {
                     const scrim = p.s2e != null && !SKIP.test(p.type || '');
                     const g = p.gain != null ? p.gain : (p.e2e != null && p.s2e != null ? p.s2e - p.e2e : 0);
-                    return { s: p.s2e, g, sc: p.scoring ? 1 : 0, to: p.turnover ? 1 : 0, dd: p.dd || '', t: p.text || '', a: p.away, h: p.home, k: scrim ? 1 : 0, pa: /pass|sack/i.test(p.type || '') ? 1 : 0 };
+                    // `e` (dove finisce la palla), `ty` (tipo ESPN) e `pe`
+                    // (fazzoletto) li vuole il campo del Live: senza, un
+                    // touchdown, un calcio e una penalita' finivano tutti
+                    // disegnati come una corsa qualunque.
+                    return { s: p.s2e, e: p.e2e, g, sc: p.scoring ? 1 : 0, to: p.turnover ? 1 : 0, pe: p.penalty ? 1 : 0, dd: p.dd || '', t: p.text || '', ty: p.type || '', a: p.away, h: p.home, k: scrim ? 1 : 0, pa: /pass|sack/i.test(p.type || '') ? 1 : 0 };
                 }),
             };
         })
@@ -2332,25 +2366,21 @@ function fieldSceneHtml(s) {
     const awayCol = getTeamIdentity(awayAbbr)?.color || '#334155';
     const homeCol = getTeamIdentity(homeAbbr)?.color || '#334155';
 
-    // Erba, end zone, yard line, numeri, loghi e pali arrivano dal modulo
-    // condiviso (js/ui/field3d.js): qui restano solo i marker delle frecce, che
-    // sono roba delle giocate e non del campo.
-    const { defs, body } = fieldScene({
-        leftColor: awayCol, rightColor: homeCol,
-        leftLogo: teamLogo(awayAbbr), rightLogo: teamLogo(homeAbbr),
-        idPrefix: 'fd',
-    });
+    // Il campo e' quello del Live (js/ui/field-strip.js): stesso tappeto, stesse
+    // end zone coi loghi posati nel piano, stessi pali, stesse animazioni del
+    // tratto. Qui dentro ci va solo il gruppo delle frecce — tutto il resto
+    // della pagina (scorebug, win probability, tabella) non cambia.
+    // `home`/`away` seguono la convenzione della striscia: l'ospite a
+    // sinistra, come sugli scorebug in TV, ed e' la stessa che usava il campo
+    // di prima (leftColor = away).
+    const scena = campoHTML({
+        home: { abbr: homeAbbr, logo: teamLogo(homeAbbr), color: homeCol },
+        away: { abbr: awayAbbr, logo: teamLogo(awayAbbr), color: awayCol },
+    }, '<g class="pp-fd-arrows"></g>');
 
     const scene = `
-            <div class="pp-fd" data-fd>
-                <svg class="pp-fd-svg pp-fd3" viewBox="0 0 ${FLD3.vbW} ${FLD3.vbH}" preserveAspectRatio="xMidYMid meet">
-                    <defs>
-                        ${['gain', 'loss', 'sc', 'to', 'none'].map(k => `<marker id="fdh-${k}" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="18" refX="13" refY="9" orient="auto"><path d="M0,1 L16,9 L0,17 Z" class="pp-fd-mk pp-fd-${k}"/></marker>`).join('')}
-                        ${defs}
-                    </defs>
-                    ${body}
-                    <g class="pp-fd-arrows"></g>
-                </svg>
+            <div class="pp-fd" data-fd data-home="${esc(homeAbbr)}">
+                ${scena}
                 <div class="pp-fd-info"></div>
             </div>
             <script type="application/json" class="pp-fd-data">${json}</script>`;
@@ -2501,6 +2531,7 @@ function bindGameCenter(root) {
     const svg = wpEl.querySelector('.pp-wp-svg'), vb = svg?.viewBox?.baseVal;
     const cursor = wpEl.querySelector('.pp-wp-cursor'), dot = wpEl.querySelector('.pp-wp-dot');
     const arrows = fd.querySelector('.pp-fd-arrows'), info = fd.querySelector('.pp-fd-info');
+    const homeAbbr = fd.dataset.home || '';
     const playsEl = root.querySelector('.pp-fd-plays');
     const qEl = sb.querySelector('[data-q]'), clockEl = sb.querySelector('[data-clock]'), ddEl = sb.querySelector('[data-dd]');
     const awayT = sb.querySelector('.pp-sb-away'), homeT = sb.querySelector('.pp-sb-home');
@@ -2513,7 +2544,7 @@ function bindGameCenter(root) {
         const d = drives[di];
         if (d && di !== curDi) {
             curDi = di;
-            if (arrows) arrows.innerHTML = buildFieldArrows(d);
+            if (arrows) arrows.innerHTML = buildFieldArrows(d, homeAbbr);
             if (info) info.innerHTML = buildFieldInfo(d);
             if (playsEl) playsEl.innerHTML = buildFieldPlays(d);
         }
@@ -2617,11 +2648,12 @@ function bindFieldStandalone(root) {
     let drives = [];
     try { drives = JSON.parse(root.querySelector('.pp-fd-data')?.textContent || '[]'); } catch { drives = []; }
     const arrows = fd.querySelector('.pp-fd-arrows'), info = fd.querySelector('.pp-fd-info');
+    const homeAbbr = fd.dataset.home || '';
     const timeline = root.querySelector('.pp-fd-timeline'), playsEl = root.querySelector('.pp-fd-plays');
     const draw = (i) => {
         const d = drives[i]; if (!d) return;
         timeline?.querySelectorAll('.pp-fd-ev').forEach(c => c.classList.toggle('is-active', +c.dataset.drive === i));
-        if (arrows) arrows.innerHTML = buildFieldArrows(d);
+        if (arrows) arrows.innerHTML = buildFieldArrows(d, homeAbbr);
         if (info) info.innerHTML = buildFieldInfo(d);
         if (playsEl) playsEl.innerHTML = buildFieldPlays(d);
     };

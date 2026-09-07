@@ -42,7 +42,9 @@ export const fmt1 = (n) => n == null ? '—' : (+n).toLocaleString('it-IT', { mi
 export const fmt2 = (n) => n == null ? '—' : (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const teamLogo = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${(abbr || '').toLowerCase()}.png`;
-export const ord = (n) => n == null ? '' : `${n}ª`;
+// Ordinale all'inglese (3rd, 21st, 12th): lo usano solo la scheda giocatore e
+// quella squadra, e a schermo compariva ancora la forma italiana "3ª".
+export const ord = (n) => n == null ? '' : `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
 /** Classe CSS extra per gravità infortunio: rosso per Out/IR/Doubtful/PUP, ambra (default) per il resto. */
 export const severityClass = (status) => /^(out|ir|injured reserve|doubtful|pup|physically unable)/i.test(status || '') ? ' pp-inj-status--out' : '';
 
@@ -1487,12 +1489,9 @@ function seasonRidgeline(seasons, nextSeasonProj, nextSeason) {
     const xAt = v => C.l + (v / xMax) * plotW;
     const baseY = i => C.t + C.amp + i * C.rowStep; // i=0 = riga in alto
 
-    const defs = `<defs>
-        <linearGradient id="pp-ridge-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6aa4ff" stop-opacity="0.55"/>
-            <stop offset="100%" stop-color="#5a9bff" stop-opacity="0.10"/>
-        </linearGradient>
-    </defs>`;
+    // Il gradiente non serve piu': la sagoma resta senza riempimento e a
+    // raccontare la distribuzione basta il suo profilo.
+    const defs = '';
 
     const axisY = baseY(N - 1) + 14;
     const grid = [0, 0.25, 0.5, 0.75, 1].map(f => {
@@ -1514,7 +1513,7 @@ function seasonRidgeline(seasons, nextSeasonProj, nextSeason) {
         const path = `M${xAt(0).toFixed(1)},${by.toFixed(1)} L${top.join(' L')} L${xAt(xMax).toFixed(1)},${by.toFixed(1)} Z`;
         const medY = by - kdeAt(c.pts, c.med, c.bw) / maxD * C.amp;
         seasonRows += `<g class="pp-bp-g pp-ridge-g" data-bpv data-year="${c.year}" data-media="${fmt1(c.mean)}" data-med="${fmt1(c.med)}" data-q1="${fmt1(c.q1)}" data-q3="${fmt1(c.q3)}" data-min="${fmt1(c.min)}" data-max="${fmt1(c.max)}" data-n="${c.n}">
-            <path d="${path}" fill="url(#pp-ridge-grad)" class="pp-ridge-shape"/>
+            <path d="${path}" class="pp-ridge-shape"/>
             <polyline points="${top.join(' ')}" class="pp-ridge-line"/>
             <line x1="${xAt(c.med).toFixed(1)}" y1="${by.toFixed(1)}" x2="${xAt(c.med).toFixed(1)}" y2="${medY.toFixed(1)}" class="pp-ridge-median"/>
             <circle cx="${xAt(c.mean).toFixed(1)}" cy="${by.toFixed(1)}" r="3" class="pp-bp-mean"/>
@@ -1655,9 +1654,6 @@ function seasonFormChart(seasons, projByYear) {
     const xLabels = games.map((g, i) => i % step === 0
         ? `<text x="${xAt(i).toFixed(1)}" y="${C.h - 8}" class="an-tick" text-anchor="middle">${g.week}</text>` : '').join('');
 
-    const areaPath = `M${xAt(0).toFixed(1)},${yAt(0).toFixed(1)} `
-        + games.map((g, i) => `L${xAt(i).toFixed(1)},${yAt(g.pts).toFixed(1)}`).join(' ')
-        + ` L${xAt(n - 1).toFixed(1)},${yAt(0).toFixed(1)} Z`;
     const linePts = games.map((g, i) => `${xAt(i).toFixed(1)},${yAt(g.pts).toFixed(1)}`).join(' ');
     const rollPts = roll.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
 
@@ -1685,16 +1681,14 @@ function seasonFormChart(seasons, projByYear) {
     };
     const annots = annot(bi, true) + (wi !== bi ? annot(wi, false) : '');
 
-    const defs = `<defs>
-        <linearGradient id="pp-form-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6aa4ff" stop-opacity="0.42"/>
-            <stop offset="100%" stop-color="#5a9bff" stop-opacity="0.04"/>
-        </linearGradient>
-    </defs>`;
+    // Niente `defs`: il riempimento sotto la linea non c'e' piu' e il suo
+    // gradiente non serve a nessuno. L'area colorata suggeriva un totale
+    // accumulato — "quanto ha fatto in tutto" — mentre qui ogni punto e' una
+    // partita a se': quello che conta e' l'andamento, non l'area sotto.
     const bg = `<rect x="${C.l}" y="${C.t}" width="${plotW.toFixed(1)}" height="${plotH.toFixed(1)}" rx="8" class="pp-bp-bg"/>`;
     const legend = `
     <div class="pp-cmp-legend">
-        <span class="pp-cmp-leg"><i class="pp-form-lg-area"></i>pt/gara</span>
+        <span class="pp-cmp-leg"><i class="pp-form-lg-line"></i>pt/gara</span>
         <span class="pp-cmp-leg"><i class="pp-form-lg-roll"></i>4-game moving avg</span>
         ${projMean != null ? `<span class="pp-cmp-leg"><i class="pp-form-lg-proj"></i>preseason expectation</span>` : ''}
     </div>`;
@@ -1702,8 +1696,7 @@ function seasonFormChart(seasons, projByYear) {
     return `
     <div class="pp-cmp-chart pp-form-chart" data-form-year="${season.year}">
         <svg viewBox="0 0 ${C.w} ${C.h}" class="an-svg pp-form-svg" preserveAspectRatio="xMidYMid meet">
-            ${defs}${bg}${grid}
-            <path d="${areaPath}" fill="url(#pp-form-grad)" class="pp-form-area"/>
+            ${bg}${grid}
             <polyline points="${linePts}" class="pp-form-line"/>
             <polyline points="${rollPts}" class="pp-form-roll"/>
             ${projLine}${dots}${annots}${xLabels}
@@ -3112,7 +3105,7 @@ export function teamContextBlock({ ctx, abbr, pos, advTeam }) {
         ${defMeters ? `
         <span class="mc-kicker" style="margin-top:18px">Defense ${abbr}</span>
         <div class="dgt-sos-bars">${defMeters}</div>` : ''}
-        <p class="pm-note">Meter = percentile su 32 squadre (pieno = 1ª, vuoto = 32ª); verde = tra le prime 10, rosso = tra le ultime 10.${advTeam ? ' EPA/success/PROE dal play-by-play nflverse.' : ''}</p>
+        <p class="pm-note">Meter = percentile among the 32 teams (full = 1st, empty = 32nd); green = top 10, red = bottom 10.${advTeam ? ' EPA/success/PROE from nflverse play-by-play.' : ''}</p>
     </section>`;
 }
 

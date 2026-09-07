@@ -39,6 +39,10 @@ const _lcF2 = v => v == null ? '—' : v.toFixed(2);
 const _lcPct = v => v == null ? '—' : Math.round(v * 100) + '%';
 const _lcSigned = v => v == null ? '—' : (v >= 0 ? '+' : '') + _lcF1(v);
 const _lcTierT = r => r == null ? '' : r <= 10 ? 'ts-good-t' : r >= 23 ? 'ts-bad-t' : 'ts-mid-t';
+// Ordinale all'inglese. Gemello di `ord` in player-page.js, ricopiato invece
+// che importato: tirare dentro quel modulo (grosso, e caricato solo quando si
+// apre la scheda di un giocatore) per una riga sola non vale il peso.
+const _ord = (n) => n == null ? '' : `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
 
 /** Metriche selezionabili sugli assi/colore dello scatter configurabile.
  *  low:true = valore più basso è migliore → assi e colore orientati così che
@@ -327,7 +331,7 @@ function leagueTable(rows) {
     const body = sorted.map(r => {
         const cells = LC_COLS.map(c => {
             const v = r[c.key], rk = c.rank ? r[c.rank] : null;
-            return `<td data-v="${v == null ? -1e9 : v}" style="text-align:center" class="${_lcTierT(rk)}">${c.fmt(v)}${rk != null ? ` <small>${rk}ª</small>` : ''}</td>`;
+            return `<td data-v="${v == null ? -1e9 : v}" style="text-align:center" class="${_lcTierT(rk)}">${c.fmt(v)}${rk != null ? ` <small>${_ord(rk)}</small>` : ''}</td>`;
         }).join('');
         return `<tr><td><a class="ps-inline-team" href="#nfl-team/${r.abbr}"><img src="${teamLogoUrl(r.abbr)}" alt="" onerror="this.style.display='none'"> ${esc(r.abbr)}</a></td>${cells}</tr>`;
     }).join('');

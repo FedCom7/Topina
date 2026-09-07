@@ -7124,6 +7124,13 @@ img {
     background: none;
 }
 
+/* Il ruolo accanto al nome nel titolo della scheda giocatore: niente velo
+   colorato dietro. A 34px la pastiglia diventava una macchia larga quanto una
+   parola del nome; il colore del ruolo resta sul testo, che basta a leggerlo. */
+.mc-title .allpro-pos {
+    background: none;
+}
+
 /* Score row con gradienti nei colori delle due squadre */
 .mc-score-row--vs {
     --w1-mix: 12%;
@@ -12856,26 +12863,36 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 /* Forma game-by-game (player · Rendimento) */
 .pp-form-chart { position: relative; }
 .pp-form-svg { width: 100%; height: auto; }
-.pp-form-line { fill: none; stroke: var(--accent-blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; }
+/* La linea delle singole gare e' il DATO GREZZO e sta in neutro; a portare il
+   colore e' la media mobile, che e' la cosa da guardare. Prima erano due
+   accenti che si contendevano l'occhio, blu contro rosso, e il grafico non
+   diceva quale delle due leggere. */
+.pp-form-line { fill: none; stroke: rgba(255, 255, 255, 0.5); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 .pp-form-roll { fill: none; stroke: var(--accent-red); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
-.pp-form-dot { fill: var(--accent-blue); stroke: #000; stroke-width: 1.2; transition: r 0.12s ease; }
+.pp-form-dot { fill: rgba(255, 255, 255, 0.62); stroke: #000; stroke-width: 1.2; transition: r 0.12s ease; }
 .pp-form-g { cursor: default; }
-.pp-form-g:hover .pp-form-dot { r: 5; fill: #fff; stroke: var(--accent-blue); stroke-width: 2; }
+.pp-form-g:hover .pp-form-dot { r: 5; fill: #fff; stroke: var(--accent-red); stroke-width: 2; }
 .pp-form-proj { stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.7; }
 .pp-form-projlbl { fill: var(--text-muted); }
-.pp-cmp-leg i.pp-form-lg-area { width: 12px; height: 10px; border-radius: 2px; background: linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 42%, transparent), transparent); }
+/* Il campione in legenda ora e' una LINEA, non un rettangolo sfumato: sotto la
+   riga non c'e' piu' nessuna area da spiegare. */
+.pp-cmp-leg i.pp-form-lg-line { width: 14px; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.5); }
 .pp-cmp-leg i.pp-form-lg-roll { width: 14px; height: 3px; border-radius: 2px; background: var(--accent-red); }
 .pp-cmp-leg i.pp-form-lg-proj { width: 14px; height: 0; border-top: 2px dashed var(--text-muted); background: none; }
 
 /* Ridgeline distribuzione punti per stagione (player · Rendimento) */
 .pp-ridge-svg { width: 100%; height: auto; }
-.pp-ridge-shape { stroke: none; transition: fill-opacity 0.12s ease; }
-.pp-ridge-line { fill: none; stroke: #6aa4ff; stroke-width: 1.6; stroke-linejoin: round; }
-.pp-ridge-median { stroke: var(--text-primary); stroke-width: 1.6; opacity: 0.8; }
+/* La sagoma resta SOLO come area sensibile al passaggio del mouse: senza
+   riempimento non si vede, ma `pointer-events: all` la tiene cliccabile, o il
+   riquadro con mediana e quartili non comparirebbe piu'. */
+.pp-ridge-shape { fill: none; stroke: none; pointer-events: all; }
+.pp-ridge-line { fill: none; stroke: rgba(255, 255, 255, 0.5); stroke-width: 1.6; stroke-linejoin: round; }
+/* La mediana passa all'accento: tolto il riempimento, in bianco su bianco
+   spariva dentro al profilo che ha accanto. */
+.pp-ridge-median { stroke: var(--accent-red); stroke-width: 1.8; opacity: 0.95; }
 .pp-ridge-base { stroke: var(--border-subtle); stroke-width: 1; }
 .pp-ridge-ylbl { fill: var(--text-secondary); font-weight: 600; }
-.pp-ridge-g:hover .pp-ridge-shape { fill-opacity: 1.15; }
-.pp-ridge-g:hover .pp-ridge-line { stroke-width: 2.4; }
+.pp-ridge-g:hover .pp-ridge-line { stroke: rgba(255, 255, 255, 0.9); stroke-width: 2.4; }
 
 /* Radar avanzato di ruolo (player · Rendimento) */
 .pp-radar { display: flex; justify-content: center; margin: 10px 0 4px; }
@@ -12883,8 +12900,12 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-radar-ring { fill: none; stroke: var(--border-subtle); stroke-width: 1; }
 .pp-radar-spoke { stroke: var(--border-subtle); stroke-width: 1; }
 .pp-radar-axl { fill: var(--text-secondary); font-size: 11px; font-weight: 600; }
-.pp-radar-area { fill: color-mix(in srgb, var(--accent-blue) 20%, transparent); stroke: var(--accent-blue); stroke-width: 2; stroke-linejoin: round; }
-.pp-radar-dot { fill: var(--accent-blue); stroke: #000; stroke-width: 1; cursor: default; }
+/* Niente campitura e niente blu: il profilo e' un solo contorno rosso, lo
+   stesso colore con cui il giocatore compare come serie "io" nel radar di
+   confronto poco piu' sotto. Col riempimento la forma pesava piu' dei valori,
+   e il blu qui non e' un colore di casa. */
+.pp-radar-area { fill: none; stroke: var(--accent-red); stroke-width: 2.2; stroke-linejoin: round; }
+.pp-radar-dot { fill: var(--accent-red); stroke: var(--surface-card); stroke-width: 1.2; cursor: default; }
 
 /* Traiettoria proiettato→reale per stagione (player · Carriera & arco) */
 .pp-pp-svg { width: 100%; height: auto; max-width: 620px; display: block; margin: 0 auto; }
@@ -13021,6 +13042,23 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-tline-dot { position: absolute; left: 0; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-red); box-shadow: 0 0 0 2px var(--bg-primary, #000); }
 .pp-tline-yr { font-weight: 700; font-size: 12.5px; color: var(--text-primary); min-width: 44px; font-variant-numeric: tabular-nums; }
 .pp-tline-txt { font-size: 13px; color: var(--text-secondary); }
+
+/* Le tab della pagina squadra impilano piu' card in un contenitore solo
+   (Schedule = fascia stagione + tabellone; Stats ne ha sette): senza gap le
+   card si toccavano e sembravano una sola. Stesso rimedio di .pp-tab-panel
+   nella scheda giocatore — si ripete il gap di .gb-page dentro il pannello.
+   `[hidden]` va riaffermato: display:flex batte il display:none dell'UA. */
+.nfl-sec,
+.nfl-sec > div {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.nfl-sec[hidden] { display: none; }
+/* i contenitori che non producono nulla (blocco assente per quella stagione)
+   resterebbero elementi flex a altezza zero, con il loro gap da entrambi i
+   lati: due buchi di 16px per niente. */
+.nfl-sec > div:empty { display: none; }
 
 /* Nav di sezione sticky (squadra) */
 .nfl-secnav { position: sticky; top: var(--nav-height); z-index: 20; display: flex; gap: 6px; flex-wrap: wrap;
@@ -13746,8 +13784,14 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
    grande, ombra e riflesso in alto — senza cambiare markup: le sezioni
    restano `.pm-block .pp-block`.
    `--card-glow` va ridichiarato: fuori da .mosaic-card non esiste, e senza di
-   lui il color-mix di .mc-kicker è invalido e il titolino perde il rosso. */
-#players .pp-block {
+   lui il color-mix di .mc-kicker è invalido e il titolino perde il rosso.
+   Vale per tutta l'area NFL Hub, non solo per la pagina di ricerca: la scheda
+   giocatore (#player-page) e quella squadra (#nfl-team-page) sono la stessa
+   area e restavano col grigio di --bg-card, che accanto all'hero nero si
+   vedeva. */
+#players .pp-block,
+#player-page .pp-block,
+#nfl-team-page .pp-block {
     --card-glow: var(--accent-red);
     position: relative;
     padding: 28px;
@@ -13759,7 +13803,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 }
 
 @media (max-width: 768px) {
-    #players .pp-block { padding: 22px 18px; }
+    #players .pp-block,
+    #player-page .pp-block,
+    #nfl-team-page .pp-block { padding: 22px 18px; }
 }
 
 /* Dentro le card niente superfici annidate, come in Projections: là l'unica
@@ -13771,6 +13817,15 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 #players .ps-sb-game,
 #players .ps-div,
 #players .ps-row { background: transparent; }
+
+/* Stessa regola nelle due pagine di dettaglio: sul fondo nero i riquadri dei
+   grafici (.ts-card) e le tessere KPI (.pm-tile) erano velo bianco 6%, cioe'
+   rettangoli grigi dentro una card nera. Il bordo, che avevano gia', basta a
+   delimitarli. */
+#player-page .ts-card,
+#player-page .pm-tile,
+#nfl-team-page .ts-card,
+#nfl-team-page .pm-tile { background: transparent; }
 
 /* tolto il velo fisso resta quello al passaggio, stesso di .db-row */
 #players a.ps-sb-game:hover,

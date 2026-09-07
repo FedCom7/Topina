@@ -369,7 +369,7 @@ function pali(lato) {
  * pieno. Le linee si sovrappongono senza coprirsi, e su un drive intero si
  * legge dove passa ognuna — i nastri affiancati diventavano una macchia.
  */
-function tratto(g, possesso, corrente, lato) {
+function tratto(g, possesso, corrente, lato, attr = '') {
     // Su un calcio il ritorno comincia dove la palla ATTERRA, non dalla
     // `start` del tabellino: quella e' un punto di comodo che non combacia
     // col referto, e faceva partire la corsa da meta' campo.
@@ -587,7 +587,7 @@ function tratto(g, possesso, corrente, lato) {
         // e' la misura del fallo, non una corsa — i due volti finivano
         // appiccicati sulla stessa yard.
         annX, annY,
-        svg: `<g class="fst-tratto${stato}">
+        svg: `<g class="fst-tratto${stato}"${attr ? ' ' + attr : ''}>
             <path class="fst-linea-ombra ${classe}-ombra" d="${d}"/>
             ${cancellata}
             <path class="fst-linea ${classe} pp-fd-${cat}" d="${d}"/>
@@ -835,6 +835,111 @@ const punteggio = (t, attivo) => `
         </span>` : ''}
     </div>`;
 
+/**
+ * SOLO il campo: erba, end zone coi loghi, yard line, numeri, pali e luce.
+ * `contenuto` finisce dentro l'SVG, sopra il manto — le tracce della striscia
+ * qui, il gruppo delle frecce nel Game Center di NFL Hub.
+ *
+ * Esiste perche' il campo lo disegnano in due: la striscia del Live e il
+ * play-by-play della pagina squadra. Copiarlo avrebbe voluto dire due campi
+ * che si somigliano finche' qualcuno non tocca il primo.
+ */
+function campoSVG(s, contenuto = '') {
+    return `
+    <svg class="fst-campo" viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="xMidYMid meet"
+         role="img" aria-label="Field position">
+        <defs>
+            <linearGradient id="${rifId('erba')}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#285c33"/>
+                <stop offset="0.55" stop-color="#347541"/>
+                <stop offset="1" stop-color="#3c884a"/>
+            </linearGradient>
+            <!-- La luce dello stadio: batte dal fondo e si spegne verso di
+                 noi. Senza, il manto e' una campitura piatta. -->
+            <linearGradient id="${rifId('luce')}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+                <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.02"/>
+                <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+            </linearGradient>
+            <clipPath id="${rifId('taglio')}"><path d="${tappeto()}"/></clipPath>
+            <!-- Contorno che segue la SAGOMA del logo: si dilata il suo
+                 canale alfa, lo si riempie di bianco e ci si rimette
+                 sopra l'originale. Un cerchio avrebbe bordato il
+                 riquadro dell'immagine, non lo stemma. -->
+            <filter id="${rifId('bordo')}" x="-25%" y="-25%" width="150%" height="150%">
+                <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="grosso"/>
+                <feFlood flood-color="#ffffff" flood-opacity="0.95" result="bianco"/>
+                <feComposite in="bianco" in2="grosso" operator="in" result="contorno"/>
+                <feMerge>
+                    <feMergeNode in="contorno"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+            <!-- Lo stesso alone ma SENZA l'originale sopra: serve al logo
+                 della end zone, che va disegnato in due passate. Filtrando
+                 il logo intero, la dilatazione lavorava sul gruppo gia'
+                 composto e faceva risaltare le giunture fra una striscia e
+                 l'altra; cosi' invece il filtro tocca solo la passata di
+                 sotto, dove le giunture finiscono dentro una sagoma bianca
+                 piena e non si vedono, e la passata di sopra, il logo
+                 vero, non e' filtrata affatto. -->
+            <filter id="${rifId('alone')}" x="-25%" y="-25%" width="150%" height="150%">
+                <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="grosso"/>
+                <feFlood flood-color="#ffffff" flood-opacity="0.95" result="bianco"/>
+                <feComposite in="bianco" in2="grosso" operator="in"/>
+            </filter>
+        </defs>
+        <!-- Lo spessore del tappeto: due copie sfalsate sotto, non un
+             rettangolo — cosi' anche il bordo e' arrotondato. -->
+        <g transform="translate(0,10)"><path d="${tappeto()}" fill="#122e19"/></g>
+        <g transform="translate(0,5)"><path d="${tappeto()}" fill="#193d22"/></g>
+        <g clip-path="url(#${rifId('taglio')})">
+            ${erba()}
+        ${yardLines()}
+        ${s.cartello ? '' : numeri()}
+        ${endZone('l', 'var(--fst-osp)', s.away.logo)}
+        ${endZone('r', 'var(--fst-casa)', s.home.logo)}
+            <path d="${fascia(EZ, 1 - EZ)}" fill="url(#${rifId('luce')})"/>
+        </g>
+        <!-- La sideline: una riga dipinta, rientrata come le altre. -->
+        <path d="${tappeto(11, 0.012, LINEA_DA)}" fill="none"
+              stroke="rgba(255,255,255,0.8)" stroke-width="${SPESSORE}"/>
+        ${pali('l')}
+        ${pali('r')}
+        ${s.cartello ? cartello(s.cartello) : ''}
+        ${contenuto}
+    </svg>`;
+}
+
+/**
+ * Il campo da solo, senza scorebug ne' pannelli: il contenitore `.fst` serve
+ * lo stesso, perche' i colori delle end zone e le classi delle tracce leggono
+ * `--fst-casa` / `--fst-osp` da li'.
+ */
+export function campoHTML(s, contenuto = '') {
+    ID = String(++nIstanza);
+    const cCasa = s.home?.color || 'var(--accent-red)';
+    const cOsp = s.away?.color2 || s.away?.color || 'var(--accent-blue)';
+    return `
+    <div class="fst fst--solo${s.statico ? ' fst--statico' : ''}"
+         style="--fst-casa:${cCasa};--fst-osp:${cOsp}">
+        ${campoSVG(s, contenuto)}
+    </div>`;
+}
+
+/**
+ * Le tracce di un drive INTERO, una per giocata, con `data-pi` addosso: e' la
+ * chiave con cui il Game Center accende quella del momento e spegne le altre.
+ * La striscia del Live invece disegna fino alla giocata scelta e ci appende i
+ * ritratti, quindi resta su `tracciaGiocate`.
+ */
+export function tracceDrive(giocate, possesso) {
+    return (giocate || []).map((g, k) => {
+        if (g?.toEZ == null) return '';
+        return tratto(g, g.possesso || possesso, null, null, `data-pi="${k}"`).svg;
+    }).join('');
+}
+
 export function fieldStripHTML(s) {
     ID = String(++nIstanza);
     /*
@@ -878,69 +983,7 @@ export function fieldStripHTML(s) {
             </div>
         </div>
 
-        <svg class="fst-campo" viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="xMidYMid meet"
-             role="img" aria-label="Field position">
-            <defs>
-                <linearGradient id="${rifId('erba')}" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#285c33"/>
-                    <stop offset="0.55" stop-color="#347541"/>
-                    <stop offset="1" stop-color="#3c884a"/>
-                </linearGradient>
-                <!-- La luce dello stadio: batte dal fondo e si spegne verso di
-                     noi. Senza, il manto e' una campitura piatta. -->
-                <linearGradient id="${rifId('luce')}" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
-                    <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.02"/>
-                    <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
-                </linearGradient>
-                <clipPath id="${rifId('taglio')}"><path d="${tappeto()}"/></clipPath>
-                <!-- Contorno che segue la SAGOMA del logo: si dilata il suo
-                     canale alfa, lo si riempie di bianco e ci si rimette
-                     sopra l'originale. Un cerchio avrebbe bordato il
-                     riquadro dell'immagine, non lo stemma. -->
-                <filter id="${rifId('bordo')}" x="-25%" y="-25%" width="150%" height="150%">
-                    <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="grosso"/>
-                    <feFlood flood-color="#ffffff" flood-opacity="0.95" result="bianco"/>
-                    <feComposite in="bianco" in2="grosso" operator="in" result="contorno"/>
-                    <feMerge>
-                        <feMergeNode in="contorno"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-                <!-- Lo stesso alone ma SENZA l'originale sopra: serve al logo
-                     della end zone, che va disegnato in due passate. Filtrando
-                     il logo intero, la dilatazione lavorava sul gruppo gia'
-                     composto e faceva risaltare le giunture fra una striscia e
-                     l'altra; cosi' invece il filtro tocca solo la passata di
-                     sotto, dove le giunture finiscono dentro una sagoma bianca
-                     piena e non si vedono, e la passata di sopra, il logo
-                     vero, non e' filtrata affatto. -->
-                <filter id="${rifId('alone')}" x="-25%" y="-25%" width="150%" height="150%">
-                    <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="grosso"/>
-                    <feFlood flood-color="#ffffff" flood-opacity="0.95" result="bianco"/>
-                    <feComposite in="bianco" in2="grosso" operator="in"/>
-                </filter>
-            </defs>
-            <!-- Lo spessore del tappeto: due copie sfalsate sotto, non un
-                 rettangolo — cosi' anche il bordo e' arrotondato. -->
-            <g transform="translate(0,10)"><path d="${tappeto()}" fill="#122e19"/></g>
-            <g transform="translate(0,5)"><path d="${tappeto()}" fill="#193d22"/></g>
-            <g clip-path="url(#${rifId('taglio')})">
-                ${erba()}
-            ${yardLines()}
-            ${s.cartello ? '' : numeri()}
-            ${endZone('l', 'var(--fst-osp)', s.away.logo)}
-            ${endZone('r', 'var(--fst-casa)', s.home.logo)}
-                <path d="${fascia(EZ, 1 - EZ)}" fill="url(#${rifId('luce')})"/>
-            </g>
-            <!-- La sideline: una riga dipinta, rientrata come le altre. -->
-            <path d="${tappeto(11, 0.012, LINEA_DA)}" fill="none"
-                  stroke="rgba(255,255,255,0.8)" stroke-width="${SPESSORE}"/>
-            ${pali('l')}
-            ${pali('r')}
-            ${s.cartello ? cartello(s.cartello) : ''}
-            ${tracciaGiocate(s.giocate || (g ? [g] : []), s.giocataIdx ?? 0, s.possesso, g)}
-        </svg>
+        ${campoSVG(s, tracciaGiocate(s.giocate || (g ? [g] : []), s.giocataIdx ?? 0, s.possesso, g))}
 
         ${s.drives?.length ? `
         <div class="fst-ds">
