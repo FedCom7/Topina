@@ -9864,19 +9864,50 @@ div.gb-out-player:last-of-type .gb-out-meta {
     }
 }
 
-@media (max-width: 640px) {
+/* ── Head to head su schermo stretto ─────────────────────────────────
+   Le dieci colonne della riga (ruolo, foto, nome, stat, punti, punti, stat,
+   nome, foto, ruolo) chiedono piu' spazio di quanto ce ne sia: quel che
+   restava al nome erano una ventina di pixel, e il giocatore di destra si
+   leggeva "J. ..." con la sua foto finita a capo, su una seconda riga che la
+   griglia si inventava da sola (otto figli visibili in sei colonne).
 
-    /* Su mobile: via le mini-stat, restano entrambi i badge ruolo;
-       i nomi passano alla forma corta "M. Cognome" */
+   Rifatta come il confronto del Live, che lo stesso problema lo aveva gia'
+   risolto: due livelli, sopra foto/nome/punti col ruolo al centro a fare da
+   perno, sotto le statistiche a tutta larghezza. Il ruolo compare una volta
+   sola — a destra e a sinistra diceva la stessa cosa, e in mezzo separa i due
+   punteggi meglio di quanto facesse ai bordi. */
+@media (max-width: 900px) {
     .gb-out-row {
-        grid-template-columns: 36px 1fr auto auto 1fr 36px;
-        gap: 5px;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
+        grid-template-rows: auto auto;
+        gap: 3px 5px;
+        padding: 8px 2px;
     }
 
+    .gb-out-row > :nth-child(1) { display: none; }             /* ruolo di sinistra */
+    .gb-out-row > :nth-child(2) { grid-area: 1 / 1; }          /* foto sinistra */
+    .gb-out-row > :nth-child(3) { grid-area: 1 / 2; }          /* nome sinistra */
+    .gb-out-row > :nth-child(4) { grid-area: 2 / 1 / 3 / 4; }  /* stat sinistra */
+    .gb-out-row > :nth-child(5) { grid-area: 1 / 3; }          /* punti sinistra */
+    .gb-out-row > :nth-child(10) { grid-area: 1 / 4 / 3 / 5; } /* ruolo, su due righe */
+    .gb-out-row > :nth-child(6) { grid-area: 1 / 5; }          /* punti destra */
+    .gb-out-row > :nth-child(7) { grid-area: 2 / 5 / 3 / 8; }  /* stat destra */
+    .gb-out-row > :nth-child(8) { grid-area: 1 / 6; }          /* nome destra */
+    .gb-out-row > :nth-child(9) { grid-area: 1 / 7; }          /* foto destra */
+
+    /* Le stat hanno una riga loro: tre colonne elastiche invece delle
+       larghezze fisse del desktop, ma sempre tre e quindi incolonnate. */
     .gb-out-stat {
-        display: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
     }
 
+    .gb-out-stat--r .gb-out-mini { text-align: right; }
+}
+
+@media (max-width: 640px) {
+    /* I nomi passano alla forma corta "M. Cognome" */
     .gb-out-name-full {
         display: none;
     }
@@ -9884,6 +9915,32 @@ div.gb-out-player:last-of-type .gb-out-meta {
     .gb-out-name-short {
         display: inline;
     }
+
+    /* Tutto il resto si stringe per fare posto al nome, che e' l'unica cosa
+       della riga che non si puo' indovinare: misurata, la riga ha 316px e la
+       fascia delle statistiche ne pretendeva 125, lasciandone 40 al nome —
+       "J. Hurts" ci usciva come "J. H...". Sono le stesse strette del
+       confronto del Live, che sta nella stessa larghezza. */
+    .gb-outcome {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .gb-out-row .gb-headshot-xs {
+        width: 32px;
+        height: 32px;
+    }
+
+    .gb-out-row .allpro-pos {
+        width: 26px;
+        font-size: 0.55rem;
+    }
+
+    .gb-out-pts { font-size: 0.92rem; }
+    .gb-out-mini b { font-size: 0.76rem; }
+    .gb-out-mini i { font-size: 0.46rem; letter-spacing: 0.02em; }
+    .gb-out-name { font-size: 0.76rem; }
+    .gb-out-meta { font-size: 0.56rem; }
 }
 
 /* ================================
@@ -22675,6 +22732,7 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 
 .dgt-md-num.down {
     color: var(--accent-red);
+}
 
 
 /* ================================
