@@ -2521,7 +2521,7 @@ img {
        Il transform resta in transizione solo per lo scorrimento del livello 1
        quando si entra nel drill-down (translateX), non per apertura/chiusura. */
     .nav-links {
-        gap: 4px;
+        gap: 0;
         padding: 22px 22px 32px;
         opacity: 0;
         visibility: hidden;
@@ -2536,15 +2536,18 @@ img {
         transition: opacity 0.28s var(--ease), transform 0.4s var(--ease), visibility 0s;
     }
 
-    /* Voci grandi e distanziate, stile Apple */
+    /* Voci grandi e vicine, stile Apple: il passo scende da 69 a ~54px.
+       Distanziate lo erano gia' troppo — nove voci occupavano piu' di una
+       schermata, e per arrivare a History bisognava scorrere. */
     .nav-links .nav-link {
         display: block;
         font-family: var(--font-display);
         font-size: 1.75rem;
         font-weight: 800;
+        line-height: 1.2;
         letter-spacing: -0.01em;
         color: var(--text-primary);
-        padding: 10px 6px;
+        padding: 5px 6px;
         border-radius: var(--radius-sm);
     }
 
@@ -2758,19 +2761,25 @@ img {
         padding: 0;
     }
 
+    /* Il secondo livello e' un menu quanto il primo, non una lista di note:
+       stessa famiglia e scala vicina, cosi' entrando non sembra di essere
+       finiti in un'altra pagina. */
     .nav-l2-link {
         display: block;
-        padding: 13px 12px;
+        padding: 7px 6px;
         border-radius: var(--radius-sm, 8px);
-        font-size: 0.95rem;
-        font-weight: 500;
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
         color: var(--text-secondary);
         transition: color var(--dur-fast, 0.2s) var(--ease),
                     background var(--dur-fast, 0.2s) var(--ease);
     }
 
     .nav-l2-link--header {
-        font-weight: 700;
+        font-weight: 800;
         color: var(--text-primary);
     }
 
@@ -12356,16 +12365,28 @@ body.pm-open { overflow: hidden; }
 }
 
 @media (max-width: 640px) {
+    /* Foglio che sale dal basso. `vh` qui mente: sul telefono vale la finestra
+       GRANDE, quella con la barra degli indirizzi ritirata, che e' piu' alta di
+       quello che si vede davvero appena si apre la scheda. Il risultato era il
+       bordo di sopra in vista e il fondo del foglio nascosto sotto la barra del
+       browser. `dvh` segue la finestra vera mentre la barra entra ed esce; `vh`
+       resta come ripiego per i browser che non lo conoscono. */
     .pm-overlay {
         padding: 0;
         align-items: flex-end;
+        height: 100vh;
+        height: 100dvh;
     }
 
     .pm-dialog {
         width: 100%;
         max-height: 92vh;
+        max-height: 92dvh;
         border-radius: 20px 20px 0 0;
         padding: 20px 16px;
+        /* Sotto c'e' la barra dei gesti dell'iPhone: senza questo l'ultima riga
+           della scheda ci finisce sotto. */
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 
     .pm-layout { flex-direction: column; align-items: center; gap: 14px; }

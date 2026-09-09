@@ -161,18 +161,16 @@ function initDropdowns(navbar) {
     });
 }
 
-/** Contenitore del secondo livello, creato una volta sola. Il controllo
- *  "indietro" vive nella barra in alto (#nav-back), non qui dentro. */
+/** Contenitore del secondo livello, creato una volta sola.
+ *
+ *  Niente pulsante "Back" qui dentro: per tornare indietro ci sono gia' la
+ *  freccia in alto a sinistra (#nav-back) e la X, ed erano tre comandi per due
+ *  gesti. Quello che c'era non lo ascoltava nemmeno nessuno — scriveva "Back" e
+ *  basta. Via anche il titolo, che non veniva mai riempito. */
 function buildLevel2(navbar) {
     const el = document.createElement('div');
     el.className = 'nav-l2';
-    el.innerHTML = `
-        <button class="nav-l2-back" type="button">
-            <span class="nav-l2-back-icon" aria-hidden="true">‹</span>
-            <span class="nav-l2-back-label">Back</span>
-        </button>
-        <span class="nav-l2-title"></span>
-        <ul class="nav-l2-list"></ul>`;
+    el.innerHTML = `<ul class="nav-l2-list"></ul>`;
     navbar.appendChild(el);
 
     return {
