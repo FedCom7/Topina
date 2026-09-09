@@ -3,6 +3,8 @@
  * ATTENZIONE: la struttura DOM del giornale (template newspaper) è fragile
  * e va mantenuta IDENTICA — qui cambiano solo testi, immagini e, in modo
  * additivo, l'accento colore (edizione Super Bowl a tema campione).
+ * Quella struttura vive in UN SOLO posto, `paperTemplate()`: chi aggiunge
+ * un'edizione non la tocca, prepara le stesse caselle e gliele passa.
  *
  * Ogni testo è generato dai dati, in prosa da quotidiano sportivo:
  * recap prolissi dei due matchup, rivalità (H2H stagionale/all-time e
@@ -11,10 +13,19 @@
  * giocatore: da quanto era in rosa, chi l'aveva scaricato, punti fatti),
  * anteprima della giornata dopo, numeri della week, edizioni dedicate
  * per playoff e Super Bowl. Le "voci" vivono in data/magazine-voices.js.
+ *
+ * EDIZIONE POST-DRAFT — l'unica che non racconta una giornata: sta in fondo
+ * alla tendina delle week (è il numero zero della stagione) e riempie le
+ * stesse caselle con le pagelle del draft. Il voto NON si ricalcola qui: si
+ * importa il motore di Draft Grades, perché in tutto il sito il voto è uno.
+ * Vedi `loadDraftEdition`/`draftParts` in fondo al file. È anche l'unica
+ * edizione possibile prima del kickoff, quindi `loadYear` chiede il draft
+ * insieme alla stagione e non si ferma più a "season not started yet".
  */
 
 import {
-    fetchFantasyData, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON,
+    fetchFantasyData, fetchDraftData, flattenDraft,
+    displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
@@ -36,30 +47,70 @@ import {
     SECONDARY_LEDE_OPENERS, SECONDARY_NO_FLOP_LINES,
     STAKES_SB_LINES, STAKES_PLAYOFF_LINES, SB_TITLE_COUNT_LINES,
     TEAMMATE_PRAISE,
-} from '../data/magazine-voices.js?v=518';
+    DRAFT_LEDE_OPENERS, DRAFT_GM_QUOTES, DRAFT_GM_DEFENSE_QUOTES,
+    DRAFT_STEAL_LINES, DRAFT_REACH_LINES, DRAFT_NOTE_LEADS, DRAFT_CLOSERS,
+} from '../data/magazine-voices.js?v=519';
 import { playerImageService } from '../services/player-image-service.js?v=522';
+import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
+import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
+// Edizione post-draft: il voto NON si ricalcola qui. Si importa lo stesso
+// motore di Draft Grades — un solo voto in tutto il sito — con la stessa
+// catena usata dalle card della home (vedi home.js:loadPostDraftGrades).
+import { getSeasonProjections } from '../data/projections.js?v=595';
+import { getHistoryIndex } from '../data/player-history.js?v=595';
+import { predictSeason } from '../data/draft-predictions.js?v=694';
+import { evaluateLeague } from '../data/team-eval.js?v=594';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=62';
+import { computeGrades, makeEvaluator } from './draftgrades.js?v=751';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
 let currentWeek = 1;
 const _cache = {};
 const _timelines = {};
+/* L'edizione post-draft non e' una giornata: sta PRIMA della week 1 e vive
+   su una "week" fittizia, perche' tutta la sezione ragiona per week. */
+const DRAFT_WEEK = 'draft';
+const _draftEditions = {};   // anno -> { picks, grades, dg, pred }
 
 const P = (v) => parseFloat(v) || 0;
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const teamOf = (raw) => TEAMS[TEAM_KEYS[displayName(raw)]] || null;
 const nameOf = (raw) => teamOf(raw)?.name || displayName(raw);
 const keyOf = (raw) => TEAM_KEYS[displayName(raw)] || null;
 
-// Mapping nomi → chiavi wallpaper campo (come in game-center)
-const FIELD_KEYS = { 'Oscurus': 'OSCURUS', 'Lasers': 'LASERS', 'Sommo': 'SOMMO', 'Capi dei Pianeti': 'C.D.P' };
-const FIELD_IMG_VERSION = 3; // bump quando si sostituiscono i wallpaper (vedi game-center.js)
-function fieldImage(m) {
-    const k1 = FIELD_KEYS[displayName(m.team1.name)];
-    const k2 = FIELD_KEYS[displayName(m.team2.name)];
-    const file = (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
-    return `${file}?v=${FIELD_IMG_VERSION}`;
+/**
+ * La foto di apertura: il campo DISEGNATO, lo stesso del Game Center
+ * (js/ui/field-gc-svg.js). Fino al 2026-09-09 qui c'era uno dei dodici
+ * wallpaper da ~3,5 MB — il magazine era rimasto l'ultimo a scaricarli — con
+ * le end zone rosse per tutti, cioè un campo che non diceva di chi fosse.
+ * Disegnato le end zone prendono i colori delle due squadre, arriva insieme
+ * al modulo e non c'è più niente da scaricare.
+ *
+ * Nell'edizione Super Bowl il campo è verniciato come quello vero: i due
+ * loghi dell'edizione sulle 25 e lo scudetto di lega sulle 50, identici al
+ * Game Center. `idPrefix` diverso da quello del Game Center perché le due
+ * sezioni convivono nel DOM e gli id dentro l'SVG sono globali.
+ */
+function heroFieldSVG(nameA, nameB, { finale = false, year = null } = {}) {
+    const ed = year != null ? sbEdition(year) : null;
+    // il carattere del numero cambia ogni sette edizioni: si chiede solo se
+    // il logo si dipinge davvero
+    if (finale && ed) ensureFaceFont(faceFor(ed));
+    return gameCenterFieldSVG({
+        className: 'mg-field',
+        left: { name: nameA, color: TEAMS[TEAM_KEYS[nameA]]?.color },
+        right: { name: nameB, color: TEAMS[TEAM_KEYS[nameB]]?.color },
+        endzone: 'team',
+        show: { logo: finale, mid: finale },
+        logo: (rect, i) => superBowlLogoSVG({
+            edition: ed, embed: rect, crop: true, idPrefix: `mgsb${year}-${i}`,
+        }),
+        logoYards: 16, logoRatio: SB_LOGO_INK.ratio,
+        mid: (rect) => leagueShieldSVG({ embed: rect, idPrefix: `mgtl${year}` }),
+    });
 }
 
 // ─── Testata: SVG inline (niente asset esterni) ──────────────────
@@ -106,6 +157,7 @@ export function initMagazine() {
    riga delle tendine anche quando cambia solo la week. */
 let _played = [];
 let _config = null;
+let _hasDraft = false;
 
 /** Week e anno, ridisegnate insieme: sono una riga sola. */
 function montaPicks() {
@@ -119,14 +171,18 @@ function montaPicks() {
     const vociAnno = anni.map(y => ({ value: String(y), label: String(y) }));
 
     let settimane = '';
-    if (_played.length && _config) {
-        const ordine = [..._played].reverse();
+    if (_config && (_played.length || _hasDraft)) {
+        // le week dalla piu' recente e, in fondo, il draft: e' il numero zero
+        // della stagione, non una giornata, quindi chiude la lista
+        const ordine = [..._played].reverse().map(String);
+        if (_hasDraft) ordine.push(DRAFT_WEEK);
         const voci = ordine.map(w => ({
-            value: String(w),
-            label: w === _config.superBowlWeek ? 'Super Bowl'
-                : w === _config.playoffWeek ? 'Playoffs' : `Week ${w}`,
+            value: w,
+            label: w === DRAFT_WEEK ? 'Draft'
+                : +w === _config.superBowlWeek ? 'Super Bowl'
+                    : +w === _config.playoffWeek ? 'Playoffs' : `Week ${w}`,
         }));
-        const i = ordine.indexOf(currentWeek);
+        const i = ordine.indexOf(String(currentWeek));
         settimane = pickDropdownHTML('week', voci, i < 0 ? 0 : i);
     }
 
@@ -137,8 +193,8 @@ function montaPicks() {
             loadYear(String(valore));
             return;
         }
-        const w = parseInt(valore, 10);
-        if (w === currentWeek) return;
+        const w = valore === DRAFT_WEEK ? DRAFT_WEEK : parseInt(valore, 10);
+        if (String(w) === String(currentWeek)) return;
         currentWeek = w;
         montaPicks();
         renderEdition();
@@ -152,25 +208,32 @@ async function loadYear(year) {
     const paper = document.getElementById('mg-paper');
     paper.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Printing the ${year} edition...</p></div>`;
 
-    if (!_cache[year]) _cache[year] = await fetchFantasyData(year);
-    const data = _cache[year];
-    if (!data?.weeks) {
-        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">No edition for ${year}</p></div>`;
-        return;
-    }
+    // Stagione e draft si chiedono INSIEME: prima del kickoff l'unica edizione
+    // possibile e' quella del draft, e senza questa richiesta la pagina si
+    // fermerebbe a "stagione non ancora cominciata" proprio quando c'e' la
+    // notizia piu' fresca dell'anno.
+    const [data, picks] = await Promise.all([
+        _cache[year] ?? fetchFantasyData(year).catch(() => null),
+        fetchDraftData(year).then(flattenDraft).catch(() => []),
+    ]);
+    if (currentYear !== year) return;   // l'utente ha gia' cambiato anno
+    _cache[year] = data;
+    _hasDraft = (picks?.length || 0) >= 4;
 
     // week giocate (con punteggi reali)
     const played = [];
     for (let w = 1; w <= getWeekCount(data); w++) {
-        const wk = data.weeks[String(w)];
+        const wk = data.weeks?.[String(w)];
         if (wk?.matchups?.some(m => m.team1 && m.team2 && (P(m.team1.score) > 0 || P(m.team2.score) > 0))) played.push(w);
     }
-    if (!played.length) {
-        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">${year} season not started yet</p></div>`;
+    if (!played.length && !_hasDraft) {
+        const msg = data?.weeks ? `${year} season not started yet` : `No edition for ${year}`;
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">${msg}</p></div>`;
         return;
     }
 
-    currentWeek = played[played.length - 1]; // ultima edizione = ultima week giocata
+    // ultima edizione = ultima week giocata, o il draft se non si e' giocato
+    currentWeek = played.length ? played[played.length - 1] : DRAFT_WEEK;
     _played = played;
     _config = getSeasonConfig(year);
     montaPicks();
@@ -181,6 +244,7 @@ async function loadYear(year) {
 // ─── L'edizione ──────────────────────────────────────────────────
 
 async function renderEdition() {
+    if (String(currentWeek) === DRAFT_WEEK) return renderDraftEdition();
     const paper = document.getElementById('mg-paper');
     const year = currentYear, week = currentWeek;
     const data = _cache[year];
@@ -699,15 +763,34 @@ function newspaperHTML(ctx) {
     const foot = footerStory(ctx);
     const topics = topicsRow(ctx);
 
-    const paperClass = champion ? 'news-page mag-accented' : 'news-page';
-    const paperStyle = champion ? ` style="--mag-accent:${champion.color}"` : '';
+    return paperTemplate({
+        masthead: champion ? `${champion.name} Weekly` : 'Topina Weekly',
+        accent: champion?.color || null,
+        head, cq, paras, notesTexts, notebook, strip, secondary, weather, foot, topics,
+        hero: heroFieldSVG(displayName(main.team1.name), displayName(main.team2.name),
+            { finale: isSB, year }),
+        pageLabel: 'week', pageNumber: week,
+    });
+}
+
+/**
+ * IL TEMPLATE DEL GIORNALE — unico posto in cui vive la struttura DOM, che
+ * resta IDENTICA per ogni edizione (settimanale, playoff, Super Bowl,
+ * post-draft). Chi vuole una nuova edizione non tocca questa funzione:
+ * prepara le stesse caselle (testata, striscia, pezzo principale, taccuino,
+ * storia secondaria, numeri, fondo pagina, argomenti) e gliele passa.
+ */
+function paperTemplate(t) {
+    const { head, cq, paras, notesTexts, notebook, strip, secondary, weather, foot, topics } = t;
+    const paperClass = t.accent ? 'news-page mag-accented' : 'news-page';
+    const paperStyle = t.accent ? ` style="--mag-accent:${t.accent}"` : '';
 
     return `
 <div class="mag-wrapper">
 <div class="${paperClass}"${paperStyle}>
   <div class="news-page__section publisher">
     <div class="publisher_name">
-      <img src="${mastheadSVG(champion ? `${champion.name} Weekly` : 'Topina Weekly')}" alt="${champion ? champion.name : 'Topina'} Weekly">
+      <img src="${mastheadSVG(t.masthead)}" alt="${t.masthead}">
       <div class="tagline">IL SETTIMANALE UFFICIALE DELLA TOPINA LEAGUE · DAL 2019</div>
     </div>
   </div>
@@ -758,7 +841,7 @@ function newspaperHTML(ctx) {
             </div>
           </div>
           <div class="story-column column--second-third">
-            <p class="story-featured-photo"><img src="${fieldImage(main)}" onerror="this.src='Wallpapers/GameCenterHorizontal.PNG?v=${FIELD_IMG_VERSION}'" alt=""></p>
+            <p class="story-featured-photo">${t.hero}</p>
             <div class="blockquote-wrapper">
               <div class="blockquote-title">
                 <div class="text--superscript">${cq.title.sup}</div>
@@ -821,7 +904,7 @@ function newspaperHTML(ctx) {
           <div class="story-featured-photo">
             <img src="${secondary.photo}"
                  ${secondary.bigImgPlayer ? `class="mg-headshot" data-player-name="${secondary.bigImgPlayer}" data-team="${secondary.bigImgTeam || ''}" data-pos="${secondary.bigImgPos || ''}"` : ''}
-                 onerror="this.src='${secondary.bigImgPlayer ? 'images/fallback-player.svg' : `Wallpapers/GameCenterHorizontal.PNG?v=${FIELD_IMG_VERSION}`}'" alt="">
+                 onerror="this.src='images/fallback-player.svg'" alt="">
           </div>
           <div class="caption${secondary.captionWrap ? ' mag-wrap' : ''}">
             <div class="caption_content${secondary.captionClass ? ` ${secondary.captionClass}` : ''}">${secondary.caption}</div>
@@ -869,8 +952,8 @@ function newspaperHTML(ctx) {
     <div class="story-title--footer">${foot.title}</div>
     <div class="story_excerpt_and_number">
       <div class="story_page_number">
-        <div>week</div>
-        <div class="number">${week}</div>
+        <div>${t.pageLabel}</div>
+        <div class="number">${t.pageNumber}</div>
       </div>
       <div class="story_excerpt">
         <div>${foot.line1}</div>
@@ -1124,4 +1207,381 @@ function topicsRow({ standings, league }) {
         { label: 'Stagioni', n: league.seasons.length },
     );
     return topics.slice(0, 8);
+}
+
+// ─── EDIZIONE POST-DRAFT ─────────────────────────────────────────
+
+/**
+ * Il numero del giorno dopo il draft. Stessa identica struttura del
+ * settimanale — cambia solo cosa si mette nelle caselle: al posto dei due
+ * matchup ci sono le pagelle, il colpo di mano e il tabellone.
+ *
+ * IL VOTO NON SI RICALCOLA QUI. Arriva dallo stesso motore che alimenta
+ * Draft Grades e le card della home (computeGrades/makeEvaluator +
+ * computeDraftGrade): un solo voto in tutto il sito, altrimenti il giornale
+ * finirebbe per contraddire la sezione che lo assegna. Il giornale ci mette
+ * le parole, non i numeri.
+ *
+ * Le pagelle sono un di piu': se manca un pezzo dei dati (proiezioni assenti
+ * — e' il caso del 2019 —, ADP o soglie di calibrazione) l'edizione esce lo
+ * stesso e racconta il draft senza voti, invece di non uscire affatto.
+ */
+async function loadDraftEdition(year) {
+    if (_draftEditions[year]) return _draftEditions[year];
+    _draftEditions[year] = (async () => {
+        const picks = await fetchDraftData(year).then(flattenDraft).catch(() => []);
+        if (picks.length < 4) return null;   // draft non fatto, o appena iniziato
+
+        let grades = null, dg = null, pred = null;
+        try {
+            const [proj, histIndex, adpDisp, calib] = await Promise.all([
+                getSeasonProjections(year),
+                getHistoryIndex(year).catch(() => null),
+                getAdpDispersion(year).catch(() => null),
+                getDraftGradeCalib().catch(() => null),
+            ]);
+            const evaluator = makeEvaluator(proj, histIndex, year);
+            grades = computeGrades(picks, evaluator.valueOf, {
+                mode: 'proj', proj, seasonPlayed: false, actualPlayers: {},
+                detailOf: evaluator.detailOf,
+            });
+            dg = computeDraftGrade(grades, proj, { adpDisp, calib });
+            // predictSeason legge value/pos/nfl dalle pick, evaluateLeague
+            // attacca g.tsi allo stesso array: nessuna delle due legge l'altra
+            [pred] = await Promise.all([
+                predictSeason(year, grades).catch(() => null),
+                evaluateLeague(grades, year).catch(() => null),
+            ]);
+        } catch (e) {
+            console.warn('[magazine] pagelle del draft non disponibili:', e.message);
+        }
+        return { year, picks, grades, dg, pred };
+    })();
+    return _draftEditions[year];
+}
+
+async function renderDraftEdition() {
+    const paper = document.getElementById('mg-paper');
+    const year = currentYear;
+    paper.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Printing the ${year} draft edition...</p></div>`;
+
+    const ed = await loadDraftEdition(year);
+    if (currentYear !== year || String(currentWeek) !== DRAFT_WEEK) return; // edizione gia' cambiata
+    if (!ed) {
+        paper.innerHTML = `<div class="empty-state"><p class="empty-state-text">No draft edition for ${year}</p></div>`;
+        return;
+    }
+    paper.innerHTML = paperTemplate(draftParts(ed));
+    loadHeadshots(paper, year);
+}
+
+/** Ordinale femminile: "1ª in lega" (squadra, pagella, chiamata) */
+const ord = (n) => `${n}ª`;
+
+/**
+ * Il tabellone del primo giro in stile broadcast, gemello dello score bug:
+ * numero della chiamata, giocatore, ruolo/squadra NFL e chi l'ha preso, con
+ * la fascia del colore della franchigia. Resta un <img>, quindi la struttura
+ * del template non cambia.
+ */
+function draftBoardSVG(list) {
+    const W = 640, RH = 56, GAP = 10;
+    const shown = list.slice(0, 4);
+    const rows = shown.map((p, i) => {
+        const y = i * (RH + GAP);
+        const color = teamOf(p.team)?.color || '#B8433A';
+        const nm = esc(String(p.player || '').toUpperCase());
+        // i nomi lunghi si comprimono per non finire sotto la squadra a destra
+        const tl = nm.length > 18 ? ' textLength="330" lengthAdjust="spacingAndGlyphs"' : '';
+        return `
+        <rect x="0" y="${y}" width="${W}" height="${RH}" rx="10" fill="#101318"/>
+        <rect x="0" y="${y}" width="14" height="${RH}" rx="6" fill="${color}"/>
+        <text x="32" y="${y + 36}" font-size="23" font-weight="bold"
+              font-family="Helvetica, Arial, sans-serif" fill="#ffd24d">#${p.pick}</text>
+        <text x="88" y="${y + 26}" font-size="21" font-weight="bold"
+              font-family="Helvetica, Arial, sans-serif" fill="#fff"${tl}>${nm}</text>
+        <text x="88" y="${y + 45}" font-size="14" letter-spacing="1"
+              font-family="Helvetica, Arial, sans-serif" fill="#9aa3ad">${esc(p.pos || '')}${p.nfl ? ` · ${esc(p.nfl)}` : ''}</text>
+        <text x="${W - 20}" y="${y + 35}" text-anchor="end" font-size="15" font-weight="bold"
+              letter-spacing="1" font-family="Helvetica, Arial, sans-serif"
+              fill="${color}">${esc(nameOf(p.team).toUpperCase())}</text>`;
+    }).join('');
+    const H = shown.length * (RH + GAP) - GAP;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${rows}</svg>`);
+}
+
+/**
+ * Le caselle del giornale riempite con il draft. Tutto quello che segue e'
+ * generato dai numeri del motore: nessun testo scritto a mano su una squadra
+ * o su un giocatore in particolare.
+ */
+function draftParts(ed) {
+    const { year, picks, dg, pred } = ed;
+    const seed = (+year) * 37 + 101;           // seed dell'edizione draft
+    const rounds = Math.max(...picks.map(p => p.round));
+
+    // squadre in ordine di pagella (o, senza pagelle, in ordine di prima scelta)
+    const teamPicks = {};
+    picks.forEach(p => {
+        const k = keyOf(p.team);
+        if (k) (teamPicks[k] = teamPicks[k] || []).push(p);
+    });
+    const order = dg ? dg.ranking.filter(k => teamPicks[k]) : Object.keys(teamPicks);
+    const rows = order.map((key, i) => ({
+        key, rank: i + 1,
+        name: TEAMS[key]?.name || key,
+        t: dg?.byKey?.[key] || null,
+        picks: (teamPicks[key] || []).sort((a, b) => a.pick - b.pick),
+    }));
+    const best = rows[0], worst = rows[rows.length - 1];
+
+    // tutte le pick valutate, con la squadra che le ha fatte attaccata
+    const allRes = rows.flatMap(r => (r.t?.picks || []).map(x => ({ ...x, teamKey: r.key, teamName: r.name })));
+    const capturable = allRes.filter(r => r.capturable);
+    // Il colpo: la pick col voto piu' alto, cercata PRIMA fra i giri dal
+    // secondo in poi. Al primo giro nessuno puo' rubare niente a nessuno — il
+    // voto e' costruito per essere neutro rispetto al giro, ma "colpo di mano"
+    // su una scelta che nessuno poteva anticipare non e' una notizia.
+    // Servono anche le pick con una percentuale di sopravvivenza: l'ultima
+    // scelta di ogni squadra non ha un turno successivo, quindi non ha niente
+    // da raccontare su chi stava per portarla via.
+    const byScore = (a, b) => b.score - a.score || b.vor - a.vor;
+    const stealPool = capturable.filter(r => r.survivalPct != null);
+    const steal = [...stealPool].filter(r => r.round >= 2).sort(byScore)[0]
+        || [...stealPool].sort(byScore)[0]
+        || [...capturable].sort(byScore)[0] || null;
+    const reach = [...capturable].filter(r => r.bestAlt && (!steal || r.pick !== steal.pick))
+        .sort((a, b) => a.score - b.score)[0] || null;
+
+    const posCount = {};
+    picks.forEach(p => { posCount[p.pos] = (posCount[p.pos] || 0) + 1; });
+    const firstAt = (pos) => picks.find(p => p.pos === pos) || null;
+    const topPos = Object.entries(posCount).sort((a, b) => b[1] - a[1])[0] || null;
+    const round1 = picks.filter(p => p.round === 1);
+
+    // ── Testata del pezzo principale ──────────────────────────────
+    const head = best?.t
+        ? { vertical: `draft ${year}`, l1: `${best.name} vince il draft,`, l2: `pagella da ${best.t.letter}` }
+        : { vertical: `draft ${year}`, l1: `${picks.length} chiamate, ${rounds} giri:`, l2: `il draft ${year} è servito` };
+
+    // ── I tre paragrafi del pezzo principale ──────────────────────
+    const opener = pick(DRAFT_LEDE_OPENERS, seed);
+    let p1;
+    if (best?.t) {
+        const c = best.t.components;
+        const both = c.talentRank === 1 && c.efficiencyRank === 1;
+        const chiusa = both
+            ? 'Ha preso i giocatori migliori e li ha pure pagati poco: le due cose insieme non capitano quasi mai.'
+            : c.talentRank === 1
+                ? 'La rosa più ricca della lega è la sua, anche se in qualche turno il tabellone gli ha regalato più di quanto abbia costruito.'
+                : c.efficiencyRank === 1
+                    ? 'Non ha la rosa più piena di talento, ma è quello che ha spremuto meglio ogni singolo turno.'
+                    : 'Un draft senza strappi, vinto tenendo la barra dritta mentre gli altri si innamoravano dei nomi.';
+        p1 = `${opener} il draft ${year} della Topina League si è chiuso dopo ${picks.length} chiamate in ${rounds} giri, e la prima pagella se la prende ${best.name}: ${best.t.grade} su 100, voto ${best.t.letter}. Il motore delle pagelle gli riconosce ${Math.round(c.talent)} di talento raccolto (${ord(c.talentRank)} in lega, ${c.starterVOR} punti sopra il livello di sostituzione nel lineup titolare) e ${Math.round(c.efficiency)} di efficienza nel leggere il tabellone (${ord(c.efficiencyRank)}). ${chiusa}`;
+    } else {
+        const f = picks[0];
+        p1 = `${opener} il draft ${year} della Topina League si è chiuso dopo ${picks.length} chiamate in ${rounds} giri. Ad aprire le danze è stato ${f.player}${f.pos ? ` (${f.pos}${f.nfl ? `, ${f.nfl}` : ''})` : ''}, chiamato con la prima scelta assoluta da ${nameOf(f.team)}${topPos ? `; il ruolo più gettonato della serata è stato il ${topPos[0]}, con ${topPos[1]} chiamate su ${picks.length}` : ''}.`;
+    }
+
+    let p2;
+    if (steal) {
+        p2 = pick(DRAFT_STEAL_LINES, seed + 1)({
+            player: steal.player, pos: steal.pos, pick: steal.pick, round: steal.round,
+            next: steal.nextPick, pct: steal.survivalPct ?? 0, team: steal.teamName,
+        });
+        if (steal.scarcity >= 20) {
+            p2 += ` Dietro di lui il ruolo è franato di ${steal.scarcity} punti: chi ha aspettato sul ${steal.pos} ha trovato le briciole.`;
+        } else if (steal.takenBy && TEAMS[steal.takenBy.teamKey]) {
+            p2 += ` Il modello dice anche per mano di chi sarebbe sparito: ${TEAMS[steal.takenBy.teamKey].name}, che pickava al numero ${steal.takenBy.pick} e quel buco in rosa ce l'aveva eccome.`;
+        } else {
+            p2 += ` Una di quelle chiamate che al momento non fanno rumore e a dicembre si citano ancora.`;
+        }
+    } else {
+        const late = picks.filter(p => p.round >= Math.max(2, rounds - 3));
+        p2 = `Senza proiezioni d'annata non c'è una pagella da assegnare, ma il tabellone racconta lo stesso: ${round1.map(p => `${p.player} a ${nameOf(p.team)}`).join(', ')} nel primo giro, e ${late.length} chiamate concentrate negli ultimi giri, quando il pescaggio libero è già a un passo.`;
+    }
+
+    const p3parts = [];
+    if (reach) {
+        p3parts.push(pick(DRAFT_REACH_LINES, seed + 2)({
+            player: reach.player, pos: reach.pos, pick: reach.pick,
+            alt: reach.bestAlt.name, altPos: reach.bestAlt.pos, team: reach.teamName,
+        }));
+    }
+    if (dg) {
+        p3parts.push(`La classifica delle pagelle si legge così: ${rows.map(r => `${r.rank}. ${r.name} (${r.t.letter}, ${r.t.grade})`).join('; ')}.`);
+    }
+    p3parts.push(pick(DRAFT_CLOSERS, seed + 3));
+    const paras = [p1, p2, p3parts.join(' ')];
+
+    // ── L'intervista: il GM della pagella migliore ─────────────────
+    const bestPickName = best?.t?.bestPick?.player || best?.picks?.[0]?.player || 'la prima scelta';
+    const cqTitles = [
+        { sup: `Il GM di ${best.name}`, main: 'si gode la pagella' },
+        { sup: `Dalla war room di ${best.name}`, main: 'nessuna modestia' },
+        { sup: `Microfoni aperti:`, main: `${best.name} non si nasconde` },
+        { sup: `Il GM di ${best.name}`, main: 'apre le ostilità' },
+    ];
+    const cq = {
+        quote: pick(DRAFT_GM_QUOTES, seed + 4)({
+            team: best.name, letter: best.t?.letter || 'un bel voto',
+            grade: best.t?.grade ?? '—', best: bestPickName, rival: worst.name,
+        }),
+        title: pick(cqTitles, seed + 4),
+    };
+
+    // ── I quattro trafiletti: una squadra ciascuno ────────────────
+    const notesTexts = rows.map((r, i) => {
+        const lead = pick(DRAFT_NOTE_LEADS, seed + i * 3);
+        if (!r.t) {
+            const f = r.picks[0];
+            return `${lead} ${r.name} — ${r.picks.length} chiamate, aperte da ${f.player} (${f.pos}) al numero ${f.pick}.`;
+        }
+        const c = r.t.components;
+        const b = r.t.bestPick, w = r.t.worstPick;
+        const bits = [`voto ${r.t.letter}, ${r.t.grade} su 100 (${ord(r.rank)} in lega)`];
+        if (b) bits.push(`il colpo è ${b.player} (${b.pos}) al numero ${b.pick}`);
+        if (w && (!b || w.pick !== b.pick)) bits.push(`il rimpianto ${w.player} al ${w.pick}`);
+        bits.push(`talento ${Math.round(c.talent)}, efficienza ${Math.round(c.efficiency)}`);
+        return `${lead} ${r.name} — ${bits.join(', ')}.`;
+    });
+
+    // ── Il Taccuino: board, panchine e previsioni ─────────────────
+    const notebook = [];
+    if (dg && rows.length >= 2) {
+        const gap = best.t.grade - rows[1].t.grade;
+        notebook.push(`In cima alle pagelle c'è ${best.name} con ${best.t.grade} su 100, ${gap === 0 ? 'appaiata a' : `${gap} punti sopra`} ${rows[1].name}. In fondo alla fila ${worst.name} (${worst.t.grade}, voto ${worst.t.letter}): fra la prima e l'ultima ballano ${best.t.grade - worst.t.grade} punti di pagella, che a settembre pesano meno di quanto sembri.`);
+        const byTalent = [...rows].sort((a, b) => b.t.components.talent - a.t.components.talent)[0];
+        const byEff = [...rows].sort((a, b) => b.t.components.efficiency - a.t.components.efficiency)[0];
+        notebook.push(byTalent.key === byEff.key
+            ? `${byTalent.name} guida entrambi gli assi del voto: più talento raccolto (${byTalent.t.components.starterVOR} punti sopra il livello di sostituzione fra i titolari) e miglior lettura del tabellone. Quando le due cose coincidono, la pagella si scrive da sola.`
+            : `I due assi del voto però si dividono: il talento grezzo è di ${byTalent.name} (${byTalent.t.components.starterVOR} punti sopra il livello di sostituzione nel lineup titolare, il massimo della lega), mentre il tabellone l'ha giocato meglio ${byEff.name}, primo per efficienza con ${Math.round(byEff.t.components.efficiency)} e ${byEff.t.components.starterVOR} punti di talento raccolto.`);
+    } else {
+        notebook.push(`Il primo giro ha già detto molto: ${round1.map(p => `${p.player} a ${nameOf(p.team)}`).join(', ')}. Da lì in poi il tabellone si è svuotato in fretta, giro dopo giro, fino alle ${picks.length} chiamate complessive.`);
+    }
+
+    const qb1 = firstAt('QB'), te1 = firstAt('TE'), k1 = firstAt('K');
+    const runBits = [];
+    if (topPos) runBits.push(`il ruolo più gettonato è stato il ${topPos[0]} con ${topPos[1]} chiamate`);
+    if (qb1) runBits.push(`il primo QB è uscito al numero ${qb1.pick} (${qb1.player}, a ${nameOf(qb1.team)})`);
+    if (te1) runBits.push(`il primo TE al numero ${te1.pick} con ${te1.player}`);
+    if (k1) runBits.push(`e per il primo kicker si è aspettato fino al numero ${k1.pick}`);
+    notebook.push(`Sul tabellone ${runBits.join(', ')}. In totale sono andati via ${['QB', 'RB', 'WR', 'TE'].filter(x => posCount[x]).map(x => `${posCount[x]} ${x}`).join(', ')}: la fotografia di una lega a quattro squadre, dove il pescaggio libero resta profondissimo e sbagliare un turno costa meno che altrove.`);
+
+    const benchRows = rows.filter(r => r.t?.strategy?.bench);
+    if (benchRows.length) {
+        const peggio = [...benchRows].sort((a, b) => b.t.strategy.bench.dead - a.t.strategy.bench.dead)[0];
+        const meglio = [...benchRows].sort((a, b) => a.t.strategy.bench.dead - b.t.strategy.bench.dead)[0];
+        const d = peggio.t.strategy.bench.dead;
+        notebook.push(d === 0
+            ? `Capitolo panchine: per una volta nessuno ha buttato un turno, ogni riserva chiamata proietta meglio di quello che si trovava gratis sul mercato dei liberi. Segnatevelo, non succede spesso.`
+            : `Capitolo panchine: ${peggio.name} ha ${d} scelt${d === 1 ? 'a' : 'e'} di riserva che non batt${d === 1 ? 'e' : 'ono'} il pescaggio libero${peggio.t.strategy.bench.worstCount > 1 ? `, ${peggio.t.strategy.bench.worstCount} delle quali fra i ${peggio.t.strategy.bench.worstPos}` : ''}, mentre ${meglio.name} si ferma a ${meglio.t.strategy.bench.dead}. In una lega a quattro squadre la differenza fra una riserva e un free agent è sottile: bruciarci sopra dei turni è il modo più silenzioso di perdere valore.`);
+    } else {
+        notebook.push(`Il mercato dei liberi apre subito dopo: in una lega a quattro squadre resta lì di tutto, e le rose di oggi non sono quelle che si presenteranno alla week 1.`);
+    }
+
+    if (pred?.byTeam) {
+        const sim = rows.map(r => ({ name: r.name, ...(pred.byTeam[r.key] || {}) }))
+            .filter(x => x.sbPct != null).sort((a, b) => b.sbPct - a.sbPct);
+        if (sim.length) {
+            notebook.push(`Il simulatore della redazione ha girato la stagione ${(pred.iterations || 0).toLocaleString('it-IT')} volte partendo da queste rose: ${sim.map(x => `${x.name} ${x.sbPct}% di titolo (${x.record})`).join(', ')}. Sono probabilità, non profezie — ma è da qui che partono gli sfottì di settembre.`);
+        }
+    }
+    // la chiusura entra solo se resta spazio: le cinque caselle del Taccuino
+    // sono fisse, e un paragrafo di dati vale piu' di un saluto
+    if (notebook.length < 5) {
+        notebook.push(`Il Taccuino chiude qui e si rimette in attesa: dalla week 1 si torna a contare i punti veri, gli unici che non si possono contestare.`);
+    }
+    while (notebook.length < 5) {
+        notebook.push(`Da qui in avanti si scrive tutto sul campo: le rose di stanotte reggeranno finché reggeranno, poi comincerà il traffico sulle waiver.`);
+    }
+
+    // ── La striscia in alto ───────────────────────────────────────
+    const strip = {
+        marker: `draft ${year}`,
+        t1: 'il tabellone è vuoto,', t2: 'le rose sono piene',
+        left: round1.length
+            ? `Primo giro, nell'ordine: ${round1.map(p => `${p.player} (${p.pos}) a ${nameOf(p.team)}`).join(', ')}. Quattro chiamate che hanno dato il tono a tutta la nottata.`
+            : `Il draft ${year} è andato in archivio con ${picks.length} chiamate.`,
+        right: dg
+            ? `Le pagelle sono già arrivate: ${rows.map(r => `${r.name} ${r.t.letter}`).join(', ')}. Ognuno giura di aver fatto il draft migliore, e per una settimana nessuno può smentirlo.`
+            : `Ognuno giura di aver fatto il draft migliore. Da qui alla week 1 nessuno può smentirlo, ed è esattamente il periodo preferito da tutti.`,
+        link: 'Le pagelle complete, pick per pick, in Draft Grades.',
+    };
+
+    // ── La storia secondaria: l'altra campana ─────────────────────
+    const facePick = worst.t?.bestPick || worst.picks[0];
+    const defense = pick(DRAFT_GM_DEFENSE_QUOTES, seed + 5)({
+        team: worst.name, letter: worst.t?.letter || '—',
+        grade: worst.t?.grade ?? '—', rival: best.name,
+    });
+    const r1line = round1.map(p => {
+        const res = allRes.find(x => x.pick === p.pick);
+        return `${p.player} a ${nameOf(p.team)}${res ? ` (${res.grade}/100)` : ''}`;
+    }).join(', ');
+    const lateBest = [...capturable]
+        .filter(r => r.round >= Math.max(2, Math.ceil(rounds / 2)) && (!steal || r.pick !== steal.pick))
+        .sort(byScore)[0] || null;
+
+    const secondary = {
+        title: `${worst.name}: «Le pagelle di agosto non fanno punti»`
+            + (worst.t ? `<span class="mag-subtitle">Ultima pagella del draft ${year} (${worst.t.grade} su 100, voto ${worst.t.letter}), ${worst.picks.length} chiamate e nessuna intenzione di scusarsi: dalla war room arriva il controcanto alla festa altrui.</span>` : ''),
+        photo: 'images/fallback-player.svg',
+        bigImgPlayer: facePick?.player || '',
+        bigImgTeam: facePick?.nfl || '',
+        bigImgPos: facePick?.pos || '',
+        caption: `Il GM di ${worst.name}: «${defense}»${facePick ? ` Nella foto ${facePick.player}${facePick.pos ? ` (${facePick.pos})` : ''}, la chiamata su cui poggia tutto il resto: ${facePick.grade != null ? `${facePick.grade} su 100, il voto più alto della sua nottata` : `la prima della sua nottata`}.` : ''}${worst.t ? ` I numeri, per la cronaca, dicono ${Math.round(worst.t.components.talent)} di talento raccolto (${worst.t.components.starterVOR} punti sopra il livello di sostituzione fra i titolari, contro i ${worst.t.components.leagueBestVOR} della miglior rosa della lega) e ${Math.round(worst.t.components.efficiency)} di efficienza sul tabellone: la war room può raccontarla come vuole, ma il turno per turno l'ha giocato peggio di tutti.` : ''} Il campionato, va detto, non si è mai giocato a settembre: se ne riparla alla week 1.`,
+        captionClass: 'mag-quotes',
+        captionWrap: true,
+        page: `draft ${year}`,
+        smallName: 'IL TABELLONE',
+        bigWord: 'Board',
+        subTitle: 'Primo giro',
+        subText: 'chi è uscito subito, chi ha aspettato e con quale voto.',
+        sideImg: draftBoardSVG(round1.length ? round1 : picks),
+        sideBanner: true,
+        p1: r1line ? `Il primo giro, nell'ordine: ${r1line}.` : `${picks.length} chiamate in ${rounds} giri.`,
+        p2: lateBest
+            ? `Nei giri finali il colpo migliore porta la firma di ${lateBest.teamName}: ${lateBest.player} (${lateBest.pos}) al numero ${lateBest.pick}, voto ${lateBest.grade} su 100 quando ormai il tabellone era una distesa di nomi da riempire.`
+            : `Dai giri centrali in poi il tabellone si è appiattito, e le ultime chiamate contano meno di quanto piaccia ammettere.`,
+    };
+
+    // ── I numeri dell'edizione ────────────────────────────────────
+    const weather = rows.map((r, i) => ({
+        value: r.t ? r.t.grade : r.picks.length,
+        unit: r.t ? '/100' : 'pick',
+        label: r.name,
+        mod: i === 0 ? ' text_shadow--hot' : i === rows.length - 1 ? ' text_shadow--cold' : '',
+    }));
+    weather.push({ value: picks.length, unit: 'pick', label: 'Chiamate', mod: '' });
+    weather.push({ value: rounds, unit: 'giri', label: 'Giri di draft', mod: '' });
+
+    // ── Fondo pagina e argomenti ──────────────────────────────────
+    // il titolo del fondo pagina resta CORTO e senza nomi di squadra: il timbro
+    // tondo con l'anno (quattro cifre, non una week a due) gli mangia lo spazio
+    // sulla destra, e "Capi dei Pianeti" lo sfonderebbe da solo
+    const foot = best.t
+        ? { title: 'IL DRAFT È SERVITO', line1: `PAGELLA ${best.t.letter}`, line2: `${best.name.toLowerCase()} in cattedra, gli altri a rincorrere` }
+        : { title: 'IL DRAFT È SERVITO', line1: `${picks.length} CHIAMATE`, line2: 'adesso però tocca al campo' };
+
+    const topics = rows.map(r => ({ label: r.name.split(' ')[0], n: r.t ? r.t.grade : r.picks.length }));
+    while (topics.length < 4) topics.push({ label: '—', n: 0 });
+    ['QB', 'RB', 'WR', 'TE'].forEach(pos => topics.push({ label: pos, n: posCount[pos] || 0 }));
+
+    return {
+        masthead: 'Topina Weekly',
+        accent: null,
+        head, cq, paras, notesTexts,
+        notebook: notebook.slice(0, 5),
+        strip, secondary,
+        weather: weather.slice(0, 6),
+        foot, topics: topics.slice(0, 8),
+        // le due squadre di cui parla il giornale: la prima pagella (pezzo
+        // principale) e l'ultima (la storia secondaria)
+        hero: heroFieldSVG(best.name, worst.name),
+        // il timbro tondo del fondo pagina e' tarato su DUE cifre (la week):
+        // l'anno intero sbordava dal cerchio, quindi passa l'annata corta
+        pageLabel: 'draft', pageNumber: String(year).slice(2),
+    };
 }

@@ -1952,21 +1952,31 @@ function fieldFormationHTML(team) {
 }
 
 /**
- * Freccia accanto all'immagine: punta a destra quando si guarda la prima
+ * Freccia per cambiare squadra: punta a destra quando si guarda la prima
  * squadra del matchup (si va all'avversario), a sinistra sull'avversario
  * (si torna indietro).
+ *
+ * Sta dentro una FASCIA sul bordo, non da sola: la fascia è uno sfumato che
+ * compare col puntatore sopra il campo e sparisce appena esce (vedi
+ * `.live-swap-edge`). Prima la freccia era sempre lì, un cerchio pieno fermo a
+ * metà altezza, e sullo schermo del telefono cadeva esattamente sulla faccia
+ * di un titolare. Su touch l'hover non esiste e la fascia non si disegna
+ * affatto: la squadra si cambia scorrendo col dito (`bindSwipe`).
  */
 function swapArrowHTML() {
     const back = teamIdx % 2 === 1;
     const points = back ? '15 6 9 12 15 18' : '9 6 15 12 9 18';
+    const lato = back ? 'left' : 'right';
     return `
-    <button class="live-swap-btn live-swap-btn--${back ? 'left' : 'right'}" type="button" data-swap
-            aria-label="${back ? 'Back to the other team' : 'Show the opponent'}">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
-             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="${points}"></polyline>
-        </svg>
-    </button>`;
+    <div class="live-swap-edge live-swap-edge--${lato}">
+        <button class="live-swap-btn" type="button" data-swap
+                aria-label="${back ? 'Back to the other team' : 'Show the opponent'}">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="${points}"></polyline>
+            </svg>
+        </button>
+    </div>`;
 }
 
 /** Classe di animazione da applicare al riquadro dopo uno swap. */

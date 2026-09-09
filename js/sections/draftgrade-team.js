@@ -22,7 +22,7 @@ import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/p
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=595';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { pickSeeded } from '../data/magazine-voices.js?v=518';
+import { pickSeeded } from '../data/magazine-voices.js?v=519';
 import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,

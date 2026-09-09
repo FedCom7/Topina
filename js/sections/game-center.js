@@ -8,7 +8,7 @@ import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
-import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
+import { superBowlLogoSVG, markSVG, leagueShieldSVG, LEAGUE_MARK, PLAYOFF_MARK, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -30,33 +30,47 @@ let leagueDrafted = true;
    filtro di scurimento e la rotazione a 90° su mobile. Il disegno ha la stessa
    viewBox del wallpaper, quindi tutte quelle regole valgono uguali.
 
-   ── La verniciatura da finale ────────────────────────────────────────
+   ── La verniciatura, tre casi ────────────────────────────────────────
    Nelle partite normali il campo è pulito: erba, righe, numeri, i due nomi
-   nelle end zone. Il Topina Bowl è l'unica partita con qualcosa dipinto
-   sopra — i due loghi dell'edizione sulle 25 e lo scudetto della lega sulle
-   50 — e si riconosce da lontano proprio per questo.
+   nelle end zone. Le partite che contano si riconoscono da lontano perché
+   sono le uniche con qualcosa dipinto sopra:
+
+       playoff      il logo playoff NFL sulle due linee delle 25
+       Topina Bowl  il logo dell'edizione sulle 25
+
+   e in tutte e due lo scudetto della lega sulla linea delle 50.
 
    L'edizione la dà l'anno (2019 = I), non la settimana: il logo dipinto sul
    campo del 2023 deve restare quello del 2023 anche riguardandolo oggi. */
-function campoSVG(m, finale) {
+function campoSVG(m, fase) {
     const t1 = displayName(m.team1.name), t2 = displayName(m.team2.name);
     const c1 = TEAMS[TEAM_KEYS[t1]]?.color, c2 = TEAMS[TEAM_KEYS[t2]]?.color;
     const ed = sbEdition(currentYear);
     /* Il carattere del numero cambia ogni sette edizioni. Archivo Black (le
        prime sette) è già in index.html perché serve ai numeri delle iarde;
        gli altri si chiedono solo quando servono davvero, cioè qui. */
-    if (finale) ensureFaceFont(faceFor(ed));
+    if (fase === 'sb') ensureFaceFont(faceFor(ed));
+
+    /* Il logo dei playoff è un file e ha le proporzioni sue: `logoRatio`
+       resta quello del logo Super Bowl solo quando è quello a essere
+       dipinto. Con `preserveAspectRatio` l'immagine entra centrata nel
+       riquadro comunque, quindi un rapporto diverso non la deforma. */
+    const dipinge = fase === 'sb' || fase === 'playoff';
     return gameCenterFieldSVG({
         className: 'field-bg',
         left: { name: t1, color: c1 },
         right: { name: t2, color: c2 },
         endzone: 'team',
-        show: { logo: finale, mid: finale },
-        logo: (rect, i) => superBowlLogoSVG({
-            edition: ed, embed: rect, crop: true, idPrefix: `sb${currentYear}-${i}`,
-        }),
-        logoYards: 16, logoRatio: SB_LOGO_INK.ratio,
-        mid: (rect) => leagueShieldSVG({ embed: rect, idPrefix: `tl${currentYear}` }),
+        show: { logo: dipinge, mid: dipinge },
+        logo: (rect, i) => (fase === 'sb'
+            ? superBowlLogoSVG({ edition: ed, embed: rect, crop: true, idPrefix: `sb${currentYear}-${i}` })
+            : markSVG({ href: PLAYOFF_MARK, embed: rect, idPrefix: `po${currentYear}-${i}`,
+                // finche' il file non c'e': il logo dell'edizione, che c'e' gia'
+                fallback: superBowlLogoSVG({ edition: ed, embed: rect, crop: true, idPrefix: `pofb${currentYear}-${i}` }) })),
+        logoYards: 16, logoRatio: fase === 'sb' ? SB_LOGO_INK.ratio : 1,
+        mid: (rect) => markSVG({ href: LEAGUE_MARK, embed: rect, idPrefix: `lg${currentYear}`,
+            // finche' il file non c'e': lo scudetto disegnato
+            fallback: leagueShieldSVG({ embed: rect, idPrefix: `lgfb${currentYear}` }) }),
     });
 }
 
@@ -69,6 +83,15 @@ function isSuperBowl(m) {
     if (Number(currentWeek) !== getSeasonConfig(currentYear).superBowlWeek) return false;
     const sb = getSuperBowlMatchup(currentData, currentYear);
     return !!sb && sb.team1?.name === m.team1?.name && sb.team2?.name === m.team2?.name;
+}
+
+/** In che fase siamo: 'sb' | 'playoff' | ''. La settimana dei playoff dipinge
+ *  TUTTE le sue partite — là si giocano solo le semifinali, non c'è una
+ *  finalina da distinguere come nella settimana del Super Bowl. */
+function faseDi(m) {
+    if (isSuperBowl(m)) return 'sb';
+    if (Number(currentWeek) === getSeasonConfig(currentYear).playoffWeek) return 'playoff';
+    return '';
 }
 
 // --- Solo dati REALI ---------------------------------------------------
@@ -295,7 +318,7 @@ function renderMatchups(grid) {
         const logo2 = TEAM_LOGOS[displayName(m.team2.name)] || 'images/nfl_logo.png';
         const c1 = TEAMS[TEAM_KEYS[displayName(m.team1.name)]]?.color || 'var(--accent-red)';
         const c2 = TEAMS[TEAM_KEYS[displayName(m.team2.name)]]?.color || 'var(--accent-blue)';
-        const campo = campoSVG(m, isSuperBowl(m));
+        const campo = campoSVG(m, faseDi(m));
 
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${idx}">

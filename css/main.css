@@ -4645,6 +4645,17 @@ img {
 .news-page .story-column.column--second-third { flex: 2; }
 .news-page .story-featured-photo              { margin-bottom: 0.5rem; }
 .news-page .story-featured-photo img          { width: 100%; }
+/* Il campo di apertura e' DISEGNATO (js/ui/field-gc-svg.js), non fotografato:
+   non e' un <img>, quindi la regola qui sopra non lo raggiunge. Stessa
+   larghezza e stessa proporzione del wallpaper che ha sostituito. Nessun
+   filtro di scurimento — quello serve al Game Center, dove sopra il campo ci
+   vanno le figurine: qui il campo E' la foto dell'articolo. */
+.news-page .story-featured-photo .mg-field {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2432 / 1760;
+}
 
 /* Blockquote */
 .news-page .blockquote-title {
