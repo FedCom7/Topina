@@ -129,6 +129,15 @@ jobs:
       - name: Genera punti reali di ogni giocatore (buchi "Unrostered" + best available)
         run: node scripts/build-nfl-player-scores.mjs ${{ steps.yrs.outputs.seasons }}
 
+      # Manager DNA: profili per allenatore + i due cancelli statistici.
+      # Va per forza QUI IN FONDO: legge roster_*, injuries_*, adp_ffc_* e
+      # unrostered_scores_*, cioè l'output dei passi qui sopra. Messo prima
+      # girerebbe sui dati della settimana scorsa senza dirlo.
+      # Non usa la rete e non tocca il motore delle Draft Grades: solo data/.
+      - name: Manager DNA (profili allenatore + test di permutazione)
+        if: steps.giro.outputs.leggero != '1'
+        run: node scripts/build-manager-dna.mjs
+
       # Deve stare DOPO il report infortuni: legge injuries_*.json per sapere
       # quali giocatore-settimana valga la pena chiedere a ESPN.
       - name: Esito reale della domenica (inactive) per chi era sul referto
@@ -149,6 +158,7 @@ jobs:
           # resto passa lo stesso.
           for p in data/nfl/adv_*.json data/nfl/playerids.json \
                    data/model/draft_model_v1.json data/model/perf_causes_*.json \
+                   data/model/manager_dna.json \
                    data/nfl/adp_ffc_*.json \
                    data/nfl/roster_*.json data/nfl/injuries_*.json \
                    data/nfl/combine_draft.json data/nfl/team_trades.json \

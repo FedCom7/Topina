@@ -123,12 +123,13 @@ Firebase resta l'archivio: settimane chiuse e stagioni 2019-2025.
 ### Team Name Mapping
 Firebase stores team names differently from display names (e.g., `riccardo97com` → `Oscurus`, `FedCom` → `Sommo`). Mapping lives in `data.js:TEAM_DISPLAY_NAMES`. Team keys, logos, and stadium images are in `js/data/team-config.js`.
 
-### Area Draft — tre sezioni sorelle
+### Area Draft — quattro sezioni sorelle
 
-Il dropdown "Draft" del nav ha tre voci, tutte con `NAV_PARENT → 'draft'`:
+Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:
 `#draft` (Draft Recap, `sections/draft.js`), `#draftgrades` (le pagelle,
-`sections/draftgrades.js` + la pagina squadra `draftgrade-team.js`) e
-`#projections` (`sections/projections.js`).
+`sections/draftgrades.js` + la pagina squadra `draftgrade-team.js`),
+`#projections` (`sections/projections.js`) e `#managerdna` (Manager DNA,
+`sections/managerdna.js` + la pagina allenatore `managerdna-team.js`).
 
 **Projections è il listone in chiaro**: le stesse proiezioni Sleeper/Rotowire
 che alimentano `draft-grade.js`, per ruolo e in ordine di punti, con ADP e chi
@@ -138,6 +139,65 @@ allineata — altrimenti mostra numeri che non sono quelli usati per votare.
 I kicker restano senza punti (Sleeper non li proietta a livello stagionale) e
 si ordinano per ADP: il fallback storico da 125 pt vive solo dentro al motore,
 a schermo sarebbe un numero inventato.
+
+### Manager DNA — due cancelli, e non si tocca il voto
+
+`#managerdna` descrive **come** drafta e come si muove sul mercato ciascun
+allenatore, su tutte le stagioni. Non giudica le scelte: quello resta alle
+Pagelle. Motore in `js/data/manager-dna.js`, builder offline in
+`scripts/build-manager-dna.mjs` → `data/model/manager_dna.json` (committato,
+rigenerato dal giro completo di `build-nflverse.yml`).
+
+1. **È isolata dal motore del voto, di proposito.** Non importa `draftgrades.js`,
+   `draft-grade.js` né `data.js`, e non c'è nessun tratto derivato da
+   `score`/`survivalPct`/`need`. Tutto quello che mostra si calcola da file su
+   disco (`data/draft/`, `adp_ffc_*`, `roster_*`, `injuries_*`, `fantasy_data_*`,
+   `unrostered_scores_*`). Conseguenza voluta: **niente lettere, per
+   costruzione** — il JSON non contiene `letter`/`score`/`grade`, quindi la
+   regola dell'unico voto a schermo regge da sé. Se un domani servono tratti
+   derivati dal motore, si aggiungono; non si rifattorizza Draft Grades.
+2. **Due cancelli, non uno.** Un tratto diventa `signature` — e solo allora può
+   diventare un'etichetta o una frase — se passa entrambi:
+   *differenza* (permutazione delle etichette + Benjamini-Hochberg a q ≤ 0.10 su
+   TUTTA la famiglia insieme) e *persistenza* (autocorrelazione lag-1 fra
+   stagioni consecutive). Il secondo è quello che separa un'identità dalla
+   fortuna: i colpi tardivi e gli infortuni passano il primo e falliscono il
+   secondo, e infatti sono fortuna (r −0.18 e −0.02). Un tratto che passa solo
+   il primo è `differs` e si mostra come numero, mai come abitudine.
+3. **Due nulli diversi, uno per famiglia.** I tratti di draft si permutano
+   **dentro il giro** (in uno snake a 4 ogni allenatore ha esattamente una pick
+   per giro: rimescolare liberamente gonfia ogni tratto legato al timing); quelli
+   di mercato **dentro la stagione**. Usare il nullo sbagliato invalida metà
+   sezione.
+4. **Ogni tratto di tipo-giocatore esiste in due unità**, `perPick` e
+   `perPlayer` (deduplicando chi ricompare in più stagioni), e il gate guarda
+   `perPlayer` per i gusti. Non è pignoleria: a livello di pick un allenatore
+   sembrava il collezionista di veterani (34% contro 15%, q 0.04), ma sui
+   giocatori unici il segnale sparisce (18% contro 11%, q 0.88) — non drafta
+   veterani, **ridrafta gli stessi che invecchiano con lui**. Dove le due unità
+   divergono, la divergenza si mostra.
+5. **I movimenti di mercato si classificano.** Ricostruiti per differenza fra
+   roster settimanali: 81% `clean` (vera decisione), 15% `boomerang` (rientro di
+   uno già avuto: IR, bye), 4% `trade`. I tratti contano i soli `clean`, altrimenti
+   chi parcheggia infortunati sembra un iperattivo del mercato.
+6. **Passare i cancelli non basta per un archetipo.** Serve anche
+   `archetype: true` nel catalogo: la concentrazione per college passa (q 0.057)
+   su valori praticamente identici fra i quattro. Il gate dice se una differenza
+   è reale, non se vale la pena raccontarla. La soglia `Z_APART` è 0.75 perché
+   con quattro valori equispaziati gli z sono ±1.34 e ±0.45 — 0.75 separa
+   l'estremo dagli altri tre.
+7. **Ogni allenatore ha SEMPRE un nome, ma con la solidità dichiarata.**
+   `archetypeFor` prova tre livelli sempre più larghi e restituisce il primo che
+   combacia, marcandolo in `confidence`: `netta` (due tratti `signature` oltre
+   `Z_APART`), `sfumata` (si accettano anche i `differs`, soglia 0.5σ), `debole`
+   (solo la direzione). La UI mostra il badge accanto al nome: l'onestà sta lì,
+   non nel negare l'etichetta. Il gruppo `luck` resta escluso a ogni livello —
+   la fortuna non è un carattere.
+8. Il builder **non usa la rete** e ha seed fisso: due esecuzioni di fila devono
+   dare un file identico a meno di `generatedAt`. Aggiungere tratti al catalogo
+   **peggiora le q di quelli già dentro** (BH su tutta la famiglia): dopo ogni
+   aggiunta si rilegge il report per vedere se qualcosa è scivolato da
+   `signature` a `differs`.
 
 ### Draft Grade — un voto solo, e deve restare uno
 
