@@ -125,30 +125,46 @@ function initDropdowns(navbar) {
         });
     });
 
+    /* ── Desktop: hover ─────────────────────────────────────────────
+       Il timer di chiusura e' UNO SOLO per tutta la barra, non uno per voce.
+       Con un timer per voce, passando da una sezione a quella di fianco
+       succedeva questo: la prima programmava la sua chiusura, la seconda
+       apriva azzerando IL PROPRIO timer — non quello della prima — e 150ms
+       dopo il timer della prima toglieva `dropdown-active`, che sta sulla
+       BARRA ed e' condivisa. Il sottomenu della seconda compariva e spariva
+       subito, pur essendoci il puntatore sopra.
+
+       Per lo stesso motivo l'apertura chiude il pannello precedente: con due
+       `panel-active` insieme i due sottomenu si sovrapponevano per un attimo. */
+    let closeTimer = null;
+    let apertoOra = null;
+
+    const open = (panel) => {
+        clearTimeout(closeTimer);
+        if (apertoOra && apertoOra !== panel) apertoOra.classList.remove('panel-active');
+        navbar.classList.add('dropdown-active');
+        panel.classList.add('panel-active');
+        apertoOra = panel;
+    };
+
+    const scheduleClose = () => {
+        clearTimeout(closeTimer);
+        closeTimer = setTimeout(() => {
+            navbar.classList.remove('dropdown-active');
+            navbar.querySelectorAll('.nav-dropdown-panel.panel-active')
+                .forEach(p => p.classList.remove('panel-active'));
+            apertoOra = null;
+        }, 150); // 150ms di grazia per spostarsi sul pannello
+    };
+
     navbar.querySelectorAll('.nav-item.has-dropdown').forEach(item => {
         const panelName = item.dataset.dropdown;
         const panel = navbar.querySelector(`[data-panel="${panelName}"]`);
         if (!panel) return;
 
-        // ── Desktop: hover ──
-        let closeTimer = null;
-
-        const open = () => {
-            clearTimeout(closeTimer);
-            navbar.classList.add('dropdown-active');
-            panel.classList.add('panel-active');
-        };
-
-        const scheduleClose = () => {
-            closeTimer = setTimeout(() => {
-                navbar.classList.remove('dropdown-active');
-                panel.classList.remove('panel-active');
-            }, 150); // 150ms di grazia per spostarsi sul panel
-        };
-
-        item.addEventListener('mouseenter', open);
+        item.addEventListener('mouseenter', () => open(panel));
         item.addEventListener('mouseleave', scheduleClose);
-        panel.addEventListener('mouseenter', open);
+        panel.addEventListener('mouseenter', () => open(panel));
         panel.addEventListener('mouseleave', scheduleClose);
 
         // ── Mobile: apre il secondo livello invece di navigare ──
