@@ -132,8 +132,11 @@ function injuryOf(p) {
  * lo slot è largo un centinaio di pixel e la parola intera non ci sta.
  */
 const INJ_LABEL = {
-    questionable: ['Questionable', 'Q'],
-    doubtful: ['Doubtful', 'D'],
+    // Accorciate: la parola intera era piu' larga del nome che accompagna, e
+    // sta in una targhetta, non in una frase. Il testo per esteso resta nel
+    // `title`, per chi ci passa sopra.
+    questionable: ['Quest', 'Q'],
+    doubtful: ['Doub', 'D'],
     out: ['Out', 'OUT'],
     'injury-reserve': ['IR', 'IR'],
     suspension: ['Susp', 'SUS'],
@@ -146,7 +149,7 @@ function injuryTagHTML(p, corto = false) {
     if (!raw) return '';
     const k = String(raw).toLowerCase().replace(/[^a-z]+/g, '-');
     const [lungo, breve] = INJ_LABEL[k] || [String(raw), String(raw).slice(0, 3)];
-    return `<span class="gb-out-inj gb-out-inj--${k}" data-short="${breve}">${corto ? breve : lungo}</span>`;
+    return `<span class="gb-out-inj gb-out-inj--${k}" data-short="${breve}" title="${String(raw)}">${corto ? breve : lungo}</span>`;
 }
 
 /** "@NYJ" / "NYJ" → "@ NYJ" / "vs NYJ", vuoto se la partita non si sa. */

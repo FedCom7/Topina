@@ -313,12 +313,15 @@ function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
     const cell = (p, side) => {
         if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
         const stato = injuryMap?.get(p.name);
-        // `data-short` è la forma che il CSS mostra al posto della parola quando la
-        // colonna si stringe: su telefono il meta sta in una quarantina di pixel.
+        // Due forme, non una: `data-short` e' quella che il CSS mostra quando la
+        // colonna si stringe (su telefono il meta sta in una quarantina di
+        // pixel), l'altra e' l'etichetta normale — accorciata anche lei, perche'
+        // "Questionable" per intero e' piu' larga del nome che accompagna.
         const BREVE = { questionable: 'Q', doubtful: 'D', out: 'OUT', ir: 'IR' };
+        const ETICHETTA = { questionable: 'Quest', doubtful: 'Doub' };
         const k = String(stato || '').toLowerCase();
         const tag = stato
-            ? `<span class="gb-out-inj gb-out-inj--${k}" data-short="${BREVE[k] || stato.slice(0, 3)}">${stato}</span>`
+            ? `<span class="gb-out-inj gb-out-inj--${k}" data-short="${BREVE[k] || stato.slice(0, 3)}" title="${stato}">${ETICHETTA[k] || stato}</span>`
             : '';
         const testo = `${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}`;
         const txt = `<span class="gb-out-metatxt">${testo}</span>`;
