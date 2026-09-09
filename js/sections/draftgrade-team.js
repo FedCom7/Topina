@@ -16,6 +16,7 @@
 import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=709';
+import { decorateTerms } from '../ui/glossary.js?v=4';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=595';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=595';
@@ -27,8 +28,8 @@ import {
     outcomeBadge, computeSeasonDelivery,
 } from './draftgrades.js?v=751';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=683';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters } from '../data/team-eval.js?v=593';
-import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=61';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=594';
+import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=62';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -225,6 +226,10 @@ function sosCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Context beyond the projections · advanced NFL data (nflverse)</span>
         <h2 class="mc-title">Player Context Score <small class="dgt-sos-big">avg SOS+ ${sos.sosAvg}</small></h2>
+        ${explain(`Everything around the player that a point projection doesn't see, on a 0-100 scale built from the
+            previous season's percentiles: the quality of his NFL offense, expected volume, efficiency, how hard his
+            schedule is <i>for his position</i>, the playoff weeks, trend, age curve and durability. It doesn't touch
+            the grade — it explains it, and it produces the flop probability.`)}
         <p class="dgt-card-sub">Average offense profile across 8 dimensions (0-100, previous year's percentiles): players' NFL offense quality, expected volume, efficiency, schedule difficulty by position, playoff-week schedule, trend, age curve and durability. Fixed reference weights; the model confirms the value projections and adds flop probability.</p>
         <div class="dgt-sos-bars">${bars}</div>
         ${notes}
@@ -272,6 +277,9 @@ function teamStrengthCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">How strong is the roster · roster evaluation</span>
         <h2 class="mc-title">Team Strength Index <small class="dgt-sos-big dgt-tsi-big">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}${g.tsiRank === 1 ? 'st' : g.tsiRank === 2 ? 'nd' : g.tsiRank === 3 ? 'rd' : 'th'} in league` : ''}</small></h2>
+        ${explain(`A 0-100 read of the <b>roster</b>, not of the picks: 50 is the league average. It answers a
+            different question from the grade — not "did you draft well" but "how strong is what you now own" — and
+            for that reason it <b>never changes the grade</b>. Its weights are declared design choices.`)}
         <p class="dgt-card-sub">A 0-100 index that evaluates the <b>roster</b>, not the sum of picks: starter strength, slot-by-slot positional advantage, scarcity (value above the 4-team league replacement level), bench depth, risk, balance, bye optimization, stacking and NFL offensive context. It's a read-only index (design weights, 50 ≈ league average) shown alongside the official grade, which <b>does not</b> change.</p>
         <div class="dgt-sos-bars">${bars}</div>
         ${notes}
@@ -343,6 +351,9 @@ function render(section, ctx) {
         <p class="dg-footnote">Analysis based on ${year} preseason projections and real career stats (up to 6 seasons, Rotowire/Sleeper) converted into the league's scoring${g.list.some(p => p.adp) ? ', full-PPR ADP for reach and steal' : ' (ADP not available for this year)'}. For kicker and defense the value also weighs recent real production (60% and 35%, weights calibrated on the 419 picks from 2019-2025); for offense the projections have proven more reliable than any historical metric, and history feeds trend and risk signals. Alternatives calculated only among players drafted after each pick.</p>
     </div>`;
 
+    // i termini si marcano DOPO il disegno: lavorano sul testo, non sulle stringhe
+    bindMetrics(section);
+    decorateTerms(section);
     bindCurve(section.querySelector('#dgt-curve'));
     bindDraftScatterCard(section.querySelector('#dgt-scatter'), ctx);
     loadHeadshots(section, seasonPlayed ? year : prevYear);
@@ -360,27 +371,267 @@ function gradeBreakdownCard(ctx) {
     if (!dg) return '';
     const c = dg.components;
     const w = dgAll?.weights || { talent: 0.6, efficiency: 0.4 };
-    const metric = (label, val, unit, rank, note) => `
-        <div class="dgt-metric">
-            <span class="dgt-metric-label">${label}</span>
-            <span class="dgt-metric-val">${val}${unit ? `<small>${unit}</small>` : ''}</span>
-            <span class="dgt-metric-note">${rank ? `${ordinal(rank)} in league · ` : ''}${note}</span>
+
+    /* Le tre metriche sono BOTTONI: cliccandone una si apre il dettaglio di
+       questa squadra e le altre due si stringono. Non un accordion sotto la
+       riga — il numero e il suo perché devono restare nello stesso posto,
+       se no per confrontarli si scorre avanti e indietro. */
+    const metric = (id, label, val, unit, rank, note, detail) => `
+        <div class="dgt-metric" data-m="${id}">
+            <button class="dgt-metric-head" type="button" aria-expanded="false" aria-controls="dgm-${id}">
+                <span class="dgt-metric-label">${label}</span>
+                <span class="dgt-metric-val">${val}${unit ? `<small>${unit}</small>` : ''}</span>
+                <span class="dgt-metric-note">${rank ? `${ordinal(rank)} in league · ` : ''}${note}</span>
+            </button>
+            <div class="dgt-metric-detail" id="dgm-${id}" hidden>${detail}</div>
         </div>`;
 
     return `
-    <div class="mosaic-card mc-wide dgt-card mc-in">
-        <span class="mc-kicker">Why this grade</span>
-        <h2 class="mc-title">Draft Grade
-            <small class="dgt-sos-big dgt-grade-big dg-letter--${gradeBand(dg.letter)}">${dg.letter} · ${dg.grade}/100 · ${ordinal(dg.rank)} in league</small>
-        </h2>
+    <div class="mosaic-card mc-wide dgt-card mc-in" id="dgt-grade-card">
+        <div class="dgt-card-head">
+            <div>
+                <span class="mc-kicker">Why this grade</span>
+                <h2 class="mc-title">Draft Grade
+                    <small class="dgt-sos-big dgt-grade-big dg-letter--${gradeBand(dg.letter)}">${dg.letter} · ${dg.grade}/100 · ${ordinal(dg.rank)} in league</small>
+                </h2>
+            </div>
+            ${gradeDerivation(ctx)}
+        </div>
+        ${explain(`The grade weighs two things: <b>talent</b> — how far the best starting nine this draft could
+            field sits above a replacement-level lineup — and <b>efficiency</b>, how well the board was played to get
+            it. Replacement level here is the last starter in the league. The letter's thresholds are empirical
+            quantiles of every draft since 2019, and the number beside it is that band remapped onto report-card
+            anchors: a monotone remap, so a higher number is always a better draft.`)}
         <p class="dgt-why">${dg.why}</p>
-        <div class="dgt-metrics">
-            ${metric('Talent collected', fmt0(c.starterVOR), ' VOR', c.talentRank, `how far the best lineup this draft could field sits above a replacement-level starting nine, against a league best of ${fmt0(c.leagueBestVOR)}`)}
-            ${metric('Draft efficiency', c.efficiencyGrade, '/100', c.efficiencyRank, 'draft-capital-weighted average of the pick grades below')}
-            ${metric('Value in the starters', Math.round(c.starterShare * 100), '%', null, `${fmt0(c.starterVOR)} of ${fmt0(c.totalVOR)} total value ends up in the starting lineup`)}
+        <div class="dgt-metrics" id="dgt-metrics">
+            ${metric('talent', 'Talent collected', fmt0(c.starterVOR), ' VOR', c.talentRank,
+        `how far the best lineup this draft could field sits above a replacement-level starting nine, against a league best of ${fmt0(c.leagueBestVOR)}`,
+        talentDetail(ctx))}
+            ${metric('eff', 'Draft efficiency', c.efficiencyGrade, '/100', c.efficiencyRank,
+        'draft-capital-weighted average of the pick grades below', efficiencyDetail(ctx))}
+            ${metric('starters', 'Value in the starters', Math.round(c.starterShare * 100), '%', null,
+        `${fmt0(c.starterVOR)} of ${fmt0(c.totalVOR)} total value ends up in the starting lineup`,
+        startersDetail(ctx))}
         </div>
         <p class="dgt-card-sub">The grade weighs talent ${Math.round(w.talent * 100)}% and efficiency ${Math.round(w.efficiency * 100)}%. Talent is what you walked away with; efficiency is how well you played the board to get it. A team can reach the same letter from either side — the two numbers above say which.</p>
     </div>`;
+}
+
+/* ── I tre dettagli ──────────────────────────────────────────────────
+   Ognuno risponde alla stessa domanda — «da dove esce questo numero, per
+   QUESTA squadra» — mostrando le righe che lo compongono. Il totale in fondo
+   deve combaciare col numero grande: è il controllo che il dettaglio non stia
+   raccontando un'altra cosa. */
+
+/** Il replacement di team-eval: la stessa linea con cui il motore ha calcolato
+ *  il talento. Ricalcolarla qui è l'unico modo per scomporre i 153 VOR nei
+ *  nove titolari che li fanno — il motore restituisce solo il totale. */
+function teamReplacement(grades) {
+    const all = grades.flatMap(x => x.list).filter(p => p.value != null);
+    return replacementLevels(all, 'value');
+}
+
+function talentDetail(ctx) {
+    const { g, grades, dg, team } = ctx;
+    if (!g.starters?.length) return '';
+    const repl = teamReplacement(grades);
+    const rows = g.starters.map(p => {
+        const vor = Math.max(0, (p.value || 0) - (repl[p.pos] || 0));
+        return { p, vor };
+    }).sort((a, b) => b.vor - a.vor);
+    const tot = rows.reduce((s, r) => s + r.vor, 0);
+    const max = rows[0]?.vor || 1;
+    return `
+        <p class="dgt-md-lead">The nine starters this draft could field, and what each is worth
+            <b>above the replacement line for his position</b> — the sum is the number above.</p>
+        <ul class="dgt-md-list">
+            ${rows.map(r => `
+            <li>
+                <span class="dgt-md-pos">${r.p.pos}</span>
+                <span class="dgt-md-name">${r.p.player}</span>
+                <span class="dgt-md-bar"><i style="width:${Math.round(r.vor / max * 100)}%"></i></span>
+                <span class="dgt-md-num">${fmt0(r.vor)}</span>
+            </li>`).join('')}
+        </ul>
+        <p class="dgt-md-foot">Total <b>${fmt0(tot)} VOR</b> · league best ${fmt0(dg.components.leagueBestVOR)}
+            · ${team.name} is ${ordinal(dg.components.talentRank)}.</p>`;
+}
+
+function efficiencyDetail(ctx) {
+    const { dg } = ctx;
+    const picks = (dg.picks || []).filter(r => r.capital != null);
+    if (!picks.length) return '';
+    const eff = dg.components.efficiency;
+    const den = picks.reduce((s, r) => s + r.capital + 1, 0) || 1;
+    const rows = picks.map(r => ({ r, w: r.capital + 1, d: (r.capital + 1) * (r.score - eff) / den }))
+        .sort((a, b) => b.d - a.d);
+    return `
+        <p class="dgt-md-lead">Every pick, its grade, and how much it moved the average. The weight is the
+            draft capital that pick cost — that's what makes an early miss expensive.</p>
+        <ul class="dgt-md-list dgt-md-list--eff">
+            ${rows.map(x => `
+            <li>
+                <span class="dgt-md-pos">R${x.r.round}</span>
+                <span class="dgt-md-name">${x.r.player}</span>
+                <span class="dgt-md-grade dg-letter--${gradeBand(x.r.letter)}">${x.r.letter}</span>
+                <span class="dgt-md-w">×${x.w}</span>
+                <span class="dgt-md-num ${Math.abs(x.d) < 0.05 ? '' : x.d > 0 ? 'up' : 'down'}">${
+            Math.abs(x.d) < 0.05 ? '0.0' : `${x.d > 0 ? '+' : ''}${x.d.toFixed(1)}`}</span>
+            </li>`).join('')}
+        </ul>
+        <p class="dgt-md-foot">They sum to zero by construction: that balance <b>is</b> the ${eff.toFixed(1)}
+            shown as ${dg.components.efficiencyGrade}/100.</p>`;
+}
+
+function startersDetail(ctx) {
+    const { g, grades, dg } = ctx;
+    const repl = teamReplacement(grades);
+    const starterPicks = new Set((g.starters || []).map(p => p.pick));
+    const bench = g.list.filter(p => p.value != null && !starterPicks.has(p.pick))
+        .map(p => ({ p, vor: Math.max(0, (p.value || 0) - (repl[p.pos] || 0)) }))
+        .filter(x => x.vor > 0)
+        .sort((a, b) => b.vor - a.vor);
+    const perso = bench.reduce((s, x) => s + x.vor, 0);
+    const c = dg.components;
+    return `
+        <p class="dgt-md-lead">${perso > 0
+            ? `The value that <b>didn't</b> make the lineup: real points, sitting on the bench. It counts for
+               depth and for trades, not for the weekly score.`
+            : `Nothing is left on the bench: every point of value this draft produced is in the starting nine.`}</p>
+        ${bench.length ? `
+        <ul class="dgt-md-list">
+            ${bench.map(x => `
+            <li>
+                <span class="dgt-md-pos">${x.p.pos}</span>
+                <span class="dgt-md-name">${x.p.player}</span>
+                <span class="dgt-md-bar"><i style="width:${Math.round(x.vor / (bench[0].vor || 1) * 100)}%"></i></span>
+                <span class="dgt-md-num">${fmt0(x.vor)}</span>
+            </li>`).join('')}
+        </ul>` : ''}
+        <p class="dgt-md-foot">${fmt0(c.starterVOR)} in the starters + ${fmt0(perso)} on the bench =
+            <b>${fmt0(c.totalVOR)}</b> total · ${Math.round(c.starterShare * 100)}% where it scores.</p>`;
+}
+
+/** Apre una metrica e stringe le altre. Una alla volta: due dettagli aperti
+ *  insieme rimettono la riga a tre colonne strette, che è il problema che
+ *  l'apertura doveva risolvere. */
+function bindMetrics(root) {
+    const row = root?.querySelector('#dgt-metrics');
+    if (!row) return;
+    row.addEventListener('click', (e) => {
+        const head = e.target.closest('.dgt-metric-head');
+        if (!head) return;
+        const cella = head.closest('.dgt-metric');
+        const gia = cella.classList.contains('open');
+        row.querySelectorAll('.dgt-metric').forEach(x => {
+            x.classList.remove('open');
+            x.querySelector('.dgt-metric-head').setAttribute('aria-expanded', 'false');
+            x.querySelector('.dgt-metric-detail').hidden = true;
+        });
+        row.classList.toggle('has-open', !gia);
+        if (!gia) {
+            cella.classList.add('open');
+            head.setAttribute('aria-expanded', 'true');
+            cella.querySelector('.dgt-metric-detail').hidden = false;
+        }
+    });
+}
+
+/* ─── «Cosa vuol dire» dentro le card ────────────────────────────────
+   La prima stesura era un glossario solo, in cima: sedici voci in un posto
+   dove nessuna di loro era usata. Leggendo la pagina toccava tornare su,
+   cercare la voce, tornare giù. Adesso ogni definizione sta nella card che usa
+   quel termine, chiusa, sotto il titolo: si apre dove serve e non allunga
+   niente finché non la chiedi.
+
+   `explain()` è la stessa forma per tutte — se un domani cambia, cambia in un
+   punto solo. */
+function explain(html) {
+    return `<details class="dgt-explain"><summary>What this means</summary><p>${html}</p></details>`;
+}
+
+/* ─── Come si arriva a questo voto ───────────────────────────────────
+   Non la definizione: il CONTO di questa squadra, con i suoi numeri. Il voto
+   nasce da una catena di quattro passaggi e ognuno è verificabile —
+
+     1. talento     VOR dei titolari, come quota del totale di lega
+     2. efficienza  media dei voti-pick pesata per draft capital
+     3. punteggio   0.6 × talento + 0.4 × efficienza (percentile interno)
+     4. lettera     in che fascia cade quel percentile, e il numero a schermo
+
+   Il quarto passaggio è quello che di solito sorprende: il numero grande NON è
+   il punteggio interno, è la sua rimappatura sugli ancoraggi di una pagella.
+   Mostrarli entrambi nella stessa riga è l'unico modo per non far sembrare
+   quel 65 una sufficienza risicata.
+
+   I pesi delle pick vengono da `r.capital`, che il motore mette su ogni pick
+   apposta per questa tabella: così le spinte mostrate sono quelle vere, non
+   una ricostruzione a occhio. */
+function gradeDerivation(ctx) {
+    const { dg, dgAll, team } = ctx;
+    if (!dg || !dgAll) return '';
+    const c = dg.components;
+    const w = dgAll.weights || { talent: 0.6, efficiency: 0.4 };
+
+    // il totale di lega: la somma dei VOR titolari delle quattro squadre
+    const all = Object.values(dgAll.byKey || {});
+    const leagueVOR = all.reduce((s, t) => s + (t.components?.starterVOR || 0), 0);
+    const share = leagueVOR ? c.starterVOR / leagueVOR : 0;
+
+    // quanto ogni pick ha spostato l'efficienza: peso × scarto dalla media
+    const picks = (dg.picks || []).filter(r => r.capital != null);
+    const den = picks.reduce((s, r) => s + r.capital + 1, 0) || 1;
+    const moved = picks.map(r => ({ r, d: (r.capital + 1) * (r.score - c.efficiency) / den }))
+        .sort((a, b) => b.d - a.d);
+    const chip = (x, up) => `<span class="dgt-move ${up ? 'up' : 'down'}">
+        <b>${x.r.player}</b> <small>R${x.r.round} · ${x.r.letter}</small>
+        <i>${x.d > 0 ? '+' : ''}${x.d.toFixed(1)}</i></span>`;
+    const su = moved.filter(x => x.d > 0).slice(0, 3).map(x => chip(x, true)).join('');
+    const giu = moved.filter(x => x.d < 0).slice(-3).reverse().map(x => chip(x, false)).join('');
+
+    const step = (n, label, val, note) => `
+        <div class="dgt-step">
+            <span class="dgt-step-n">${n}</span>
+            <div>
+                <span class="dgt-step-label">${label} <b>${val}</b></span>
+                <span class="dgt-step-note">${note}</span>
+            </div>
+        </div>`;
+
+    return `
+    <details class="dgt-explain dgt-derive">
+        <summary>How this grade is reached</summary>
+        <div class="dgt-steps">
+            ${step(1, 'Talent', c.talent.toFixed(1) + '/100',
+        `the starting nine ${team.name} could field is worth <b>${c.starterVOR} VOR</b> above replacement,
+             out of <b>${leagueVOR}</b> across the four teams — a <b>${(share * 100).toFixed(1)}%</b> share.
+             An even split (25%) sits at 50, and every <b>percentage point</b> of share above or below that moves the number by 4.`)}
+            ${step(2, 'Efficiency', c.efficiency.toFixed(1) + '/100',
+        `the average of the ${picks.length} pick grades, each weighted by the draft capital it cost
+             (a first-round pick weighs ${picks[0] ? picks[0].capital + 1 : '—'}, the last one
+             ${picks.length ? picks[picks.length - 1].capital + 1 : '—'}). Shown on the card as
+             <b>${c.efficiencyGrade}/100</b>, the same remap the letter uses.`)}
+            ${step(3, 'Score', dg.score.toFixed(1) + '/100',
+        `${w.talent} × ${c.talent.toFixed(1)} + ${w.efficiency} × ${c.efficiency.toFixed(1)} =
+             <b>${dg.score.toFixed(1)}</b>. This is a percentile against every draft since 2019, where the
+             league average sits near 47 — not a score out of a hundred.`)}
+            ${step(4, 'Letter', dg.letter,
+        `${dg.score.toFixed(1)} falls in the <b>${dg.letter}</b> band. Band edges are empirical quantiles of
+             the real drafts, not round numbers. The <b>${dg.grade}/100</b> on the card is that band remapped
+             onto report-card anchors (A+ = 97 … D = 65): same order, readable scale.`)}
+        </div>
+        ${su || giu ? `
+        <div class="dgt-moved">
+            <span class="dgt-moved-h">What pushed the efficiency</span>
+            <div class="dgt-moved-row">${su || '<em>nothing above the average</em>'}</div>
+            <span class="dgt-moved-h">What pulled it down</span>
+            <div class="dgt-moved-row">${giu || '<em>nothing below the average</em>'}</div>
+            <p class="dgt-card-sub">Each number is how many points that single pick moved the efficiency:
+                its grade's distance from the average, times the draft capital it cost. Across all
+                ${picks.length} picks they sum to zero by construction — that balance <i>is</i> the
+                ${c.efficiency.toFixed(1)}. Only the three largest each way are shown.</p>
+        </div>` : ''}
+    </details>`;
 }
 
 // ─── Card: la storia del draft ───────────────────────────────────
@@ -402,6 +653,9 @@ function draftStoryCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">The story of the draft · from the data</span>
         <h2 class="mc-title">What worked and what didn't</h2>
+        ${explain(`Written from the picks, not by hand: the engine looks for the patterns it can measure — picks
+            graded A, players who would have been gone at the next turn, value handed to the waiver line, positions
+            taken just before their cliff — and states the ones this draft actually shows.`)}
         <div class="dgt-story-cols">
             <div class="dgt-story-col">
                 <span class="mc-kicker dgt-story-h dgt-story-h--good">What you did well</span>
@@ -499,6 +753,9 @@ function scarcityCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Where the value cliffs · positional scarcity</span>
         <h2 class="mc-title">Where each position runs out</h2>
+        ${explain(`A position's value doesn't fall evenly, it drops in steps. A <b>cliff</b> is where the next
+            player available is clearly worse than the last one: taking a position just before its cliff is worth far
+            more than taking it just after, and this is where you see whether that happened.`)}
         <p class="dgt-card-sub">The top of the board at each position, measured in value above a replacement-level starter. All four panels share one vertical scale, so the heights are directly comparable. The vertical line marks the <b>steepest drop</b> — past it, the position stops paying. Bars in team colour are yours, grey ones went elsewhere, faint ones were never drafted.</p>
         <div class="dgt-sc-grid">${panels}</div>
     </div>`;
@@ -535,6 +792,9 @@ function strategyCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Timing by position · was the reach worth it</span>
         <h2 class="mc-title">When you took each position</h2>
+        ${explain(`A <b>reach</b> is a player taken earlier than the market expected. On its own that says nothing:
+            what matters is the two-turn plan — whether waiting would still have got you someone at that position, or
+            whether the position would have run dry. That comparison is what this card makes.`)}
         <p class="dgt-card-sub">For the pick that landed your best player at each position, two plans are compared across <b>both</b> of your turns: taking that position now and letting the board come to you next, against taking the best other position now and getting the leftover at this one. Positive means moving early paid; negative means the position would have kept.</p>
         <div class="dgt-strat">${rows}</div>
         <p class="dgt-strat-bench">${st.bench.note} <span>${st.bench.live} of ${st.bench.live + st.bench.dead} bench picks beat the waiver wire.</span></p>
@@ -858,6 +1118,9 @@ function swapAnalysisCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Roster VOR · position by position</span>
         <h2 class="mc-title">Could a different pick have helped?</h2>
+        ${explain(`The alternatives are computed <b>only among players actually drafted after that pick</b>. Anyone
+            still on the board when the draft ended was available to everybody all along and proves nothing about the
+            choice.`)}
         <p class="dgt-card-sub">Every pick against the best player realistically still on the board at that moment — same model as "When you took each position" — scored in VOR above this league's last starter, the same bar the Team Strength Index uses for roster value. This team collected <b>${fmt0(totalVOR)} VOR</b>; up to <b>+${fmt0(upside)}</b> more was on the board, counting each available player once even where he was the best option at more than one turn. The three biggest single gaps are marked below.</p>
         <div class="dg-bars">${posBars}</div>
         <div class="dgt-swap-list">${rowsHtml}</div>
@@ -984,6 +1247,9 @@ function capitalFlowCard(ctx) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Draft capital · who plays where</span>
         <h2 class="mc-title">Where the picks ended up</h2>
+        ${explain(`<b>Draft capital</b> is what a pick cost you: an early pick is worth several late ones, which is
+            why efficiency weighs them differently. This card follows that capital — how much went into each position,
+            and how much of it ended up in the starting lineup instead of on the bench.`)}
         <p class="dgt-card-sub">Every pick this team made, one block each in draft order; on the right, the starting slot it fills this year (league roster rules) or the bench. Bold blocks and ribbon are the first quarter of the draft.</p>
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${FLOW.w} ${H}" class="an-svg dgt-flow-svg">${ribbons}${leftSvg}${slotSvg}${benchSvg}</svg>
@@ -1072,6 +1338,9 @@ function curveCard(g, team) {
     <div class="mosaic-card mc-wide dgt-card mc-in" id="dgt-curve">
         <span class="mc-kicker">Round by round</span>
         <h2 class="mc-title">The draft curve</h2>
+        ${explain(`Value accumulated pick after pick. A curve that climbs early and then flattens says the capital
+            was spent at the top; one that keeps climbing says the late rounds paid. Neither shape is right by
+            itself — the grade already accounts for where the value came from.`)}
         <p class="dgt-card-sub">The colored line is who was picked; the dashed one is the best player of the same position still on the board (later drafted by another team). The area is the value left on the table: <b>${fmt0(leftOnBoard)} projected pt</b>.</p>
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${CV.w} ${CV.h}" class="an-svg" data-rounds='${dataAttr}'>
@@ -1379,6 +1648,10 @@ function picksSection(ctx, prevYear) {
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">The full dossier</span>
         <h2 class="mc-title">Pick by pick</h2>
+        ${explain(`Every pick is judged on the <b>counterfactual</b>: the value captured against what would still
+            have been waiting at the next turn — not against the slot, which made early rounds impossible to ace.
+            <b>Survival</b> is the chance that player would have lasted until then, read off the market order pushed
+            by roster need and shown in three bands, because a yes/no is more certainty than the model has.`)}
         ${timeline}
         <div class="dgt-picks">${rows}</div>
     </div>`;

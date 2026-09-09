@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Field SVG preview — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        Il campo del Game Center oggi è un PNG per ogni accoppiamento: dodici
+        file da ~3,5 MB. Qui si prova a disegnarlo (js/ui/field-gc-svg.js) e a
+        metterlo accanto al suo wallpaper, con gli stessi slot dei giocatori
+        sopra, per decidere guardando invece che a parole.
+
+        Da non confondere con js/ui/field-svg.js, che esiste già ed è il campo
+        del LIVE: verticale, end zone in cima, grafite e verde spento. Sono due
+        disegni diversi e restano due file diversi finché non si decide.
+
+        Come gli altri banchi: il CSS è quello VERO del sito (css/main.css) e
+        il markup del campo è quello vero di game-center.js, classe per
+        classe — `.matchup-field-horizontal`, `.field-overlay`,
+        `.formations-area`, `.formation-slot`. L'unica cosa finta sono i
+        giocatori: nomi e punti sono FIXTURE, marcati anche a schermo.
+
+        Niente Firebase: le quattro squadre stanno scritte qui sotto, come in
+        preview-scorebug.html.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800;900&family=Anton&family=Playfair+Display:wght@900&family=Bebas+Neue&family=Alfa+Slab+One&family=Oswald:wght@700&family=Bungee&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito: il campo si vede nel contesto in cui vivrà -->
+    <link rel="stylesheet" href="css/main.css?v=1057">
+    <style>
+        /* Cromatura del banco, non del sito: deve essere ovvio a colpo
+           d'occhio che non si sta guardando la pagina vera. Nessuna di queste
+           classi finisce mai in produzione. */
+        :root {
+            --lab-bg: #0a0a0b;
+            --lab-border: rgba(255, 255, 255, .14);
+            --lab-panel: rgba(255, 255, 255, .06);
+        }
+
+        body {
+            margin: 0;
+            background: var(--lab-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .lab-head {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--lab-border);
+            background: #141416;
+        }
+
+        .lab-title {
+            margin: 0 0 4px;
+            font-family: 'Inter Tight', sans-serif;
+            font-size: 1rem;
+            font-weight: 900;
+        }
+
+        .lab-title b {
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--accent-amber, #f59e0b);
+            color: #17171a;
+            font-size: .62rem;
+            letter-spacing: .12em;
+        }
+
+        .labnav {
+            margin: 0 0 10px;
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        .labnav a {
+            color: var(--text-secondary);
+        }
+
+        .labnav .current {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .lab-sub {
+            max-width: 78ch;
+            margin: 0 0 12px;
+            font-size: .78rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .lab-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            align-items: center;
+        }
+
+        .lab-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lab-group>span {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lab-btn,
+        .lab-group select {
+            padding: 5px 10px;
+            border: 1px solid var(--lab-border);
+            border-radius: 7px;
+            background: var(--lab-panel);
+            color: var(--text-secondary);
+            font: inherit;
+            font-size: .72rem;
+            cursor: pointer;
+        }
+
+        .lab-btn.on {
+            background: var(--accent-red);
+            border-color: transparent;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .lab-body {
+            padding: 22px 20px 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+            align-items: center;
+        }
+
+        .lab-stage {
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .lab-cap {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: .68rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lab-cap b {
+            color: var(--text-primary);
+        }
+
+        /* Il filtro che il sito applica al wallpaper (main.css, .field-bg):
+           qui si può spegnere, perché è metà della differenza fra i due. */
+        .lab-dim .matchup-field-horizontal>svg,
+        .lab-dim .matchup-field-horizontal>img {
+            filter: brightness(0.62) saturate(0.92);
+        }
+
+        .gcf {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 2432 / 1760;
+        }
+
+        .lab-meter {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1px;
+            border: 1px solid var(--lab-border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--lab-border);
+        }
+
+        .lab-meter div {
+            padding: 12px 14px;
+            background: #121214;
+        }
+
+        .lab-meter dt {
+            font-size: .58rem;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lab-meter dd {
+            margin: 4px 0 0;
+            font-family: 'Inter Tight', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 900;
+        }
+
+        .lab-meter .win {
+            color: #7ddf9a;
+        }
+
+        /* Il logo dipinto sul PNG: un <svg> inline in HTML senza width prende
+           300x150 e ignora il riquadro, quindi la misura gliela diamo qui. */
+        .sb-paint {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            opacity: .9;
+            pointer-events: none;
+        }
+
+        .sb-paint-svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .lab-note {
+            max-width: 1100px;
+            padding: 16px 18px;
+            border: 1px solid var(--lab-border);
+            border-radius: 10px;
+            background: var(--lab-panel);
+            font-size: .8rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .lab-note code {
+            color: var(--accent-amber, #f59e0b);
+        }
+
+        .lab-fixture {
+            font-size: .62rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--accent-amber, #f59e0b);
+        }
+    </style>
+</head>
+
+<body>
+    <header class="lab-head">
+        <h1 class="lab-title">Field SVG <b>BANCO DI PROVA</b></h1>
+        <p class="labnav">
+            <a href="preview.html">Preview hub</a> ·
+            <a href="preview-scorebug.html">Score-bug lab</a> ·
+            <a href="preview-player-card.html">Player card lab</a> ·
+            <span class="current">Field lab</span> ·
+            <a href="preview-sb-logo.html">SB logo lab</a> ·
+            <a href="index.html">Real site</a>
+        </p>
+        <p class="lab-sub">
+            Il campo del Game Center disegnato in SVG (<code>js/ui/field-gc-svg.js</code>) contro il wallpaper vero,
+            stessa larghezza e stessi slot dei giocatori sopra. Le misure dell'SVG sono prese dal PNG
+            (2432×1760), così le percentuali che posizionano i giocatori restano valide.
+            <span class="lab-fixture">Giocatori e punti: fixture.</span>
+        </p>
+        <div class="lab-controls">
+            <div class="lab-group">
+                <span>Sinistra</span><select id="teamL"></select>
+            </div>
+            <div class="lab-group">
+                <span>Destra</span><select id="teamR"></select>
+            </div>
+            <div class="lab-group" id="ez">
+                <span>End zone</span>
+                <button class="lab-btn on" data-ez="team">Colori squadra</button>
+                <button class="lab-btn" data-ez="red">Rosso come i PNG</button>
+            </div>
+            <div class="lab-group" id="layers">
+                <span>Strati</span>
+                <button class="lab-btn on" data-layer="erba">Erba</button>
+                <button class="lab-btn on" data-layer="righe">Righe</button>
+                <button class="lab-btn on" data-layer="numeri">Numeri</button>
+                <button class="lab-btn on" data-layer="nomi">Nomi</button>
+                <button class="lab-btn on" data-layer="pali">Pali</button>
+                <button class="lab-btn on" data-layer="cornice">Linea di limite</button>
+                <button class="lab-btn on" data-layer="logo">Logo SB (25 yd)</button>
+                <button class="lab-btn on" data-layer="mid">Scudetto (50 yd)</button>
+            </div>
+            <div class="lab-group">
+                <span>Edizione</span><select id="sbEd"></select>
+            </div>
+            <div class="lab-group" id="sbSize">
+                <span>Misura</span>
+                <button class="lab-btn" data-yd="12">12 yd</button>
+                <button class="lab-btn on" data-yd="16">16 yd</button>
+                <button class="lab-btn" data-yd="22">22 yd</button>
+            </div>
+            <div class="lab-group">
+                <span>Sopra</span>
+                <button class="lab-btn on" id="tPlayers">Giocatori</button>
+                <button class="lab-btn on" id="tDim">Filtro del sito</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="lab-body">
+        <div class="lab-stage">
+            <div class="lab-cap"><b>SVG — disegnato</b><span id="capSvg">…</span></div>
+            <div id="stageSvg"></div>
+        </div>
+
+        <div class="lab-stage">
+            <div class="lab-cap"><b>PNG — il wallpaper di oggi</b><span id="capPng">…</span></div>
+            <div id="stagePng"></div>
+        </div>
+
+        <dl class="lab-meter" id="meter"></dl>
+
+        <div class="lab-note">
+            <b>Cosa guardare.</b> Il PNG è più caldo e più «stampato»: ha grana, vignetta e un grado di
+            inclinazione. L'SVG è dritto e nitido — è il motivo per cui si prova, non un effetto collaterale.
+            Le due cose che l'SVG fa e il PNG no: <b>end zone nel colore della squadra</b> (i dodici wallpaper le
+            hanno rosse per tutti, quindi oggi il campo non dice di chi è) e una geometria <b>uguale a se
+            stessa</b> in tutti gli accoppiamenti — i wallpaper cambiano numero di strisce e posizione degli hash
+            da un file all'altro.
+            <br><br>
+            <b>Misurato, non stimato.</b> Le coordinate vengono da un'analisi per colore del PNG:
+            linee di meta al 16.12% e all'83.96% della tela, erba fra il 15.7% e l'82.3% in altezza.
+            Da lì è saltata fuori una cosa: il commento in <code>main.css</code> dice «endzones are ~10% width
+            each, goal lines are at 10% and 90%», e non è vero nemmeno per il PNG di oggi. Gli slot dei DEF/K
+            sono posizionati su quel presupposto (<code>left: 9%</code>), quindi stanno sopra l'end zone e non
+            sulla linea delle 5 iarde come dice il commento.
+            <br><br>
+            <b>Ancora da fare</b>, se si adotta: il campo del Live (<code>.live-field-solo</code>) usa lo stesso
+            riquadro con regole diverse e va provato a parte; e va deciso se il filtro <code>brightness(0.62)</code>
+            resta o se i colori si abbassano direttamente nel disegno — spegnendo «Filtro del sito» si vede
+            l'SVG com'è.
+        </div>
+    </main>
+
+    <script type="module">
+        import { gameCenterFieldSVG, gcLogoRects, gcMidRect } from './js/ui/field-gc-svg.js?v=15';
+        import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, toRoman, sbYear, SB_EDITIONS, LAST_EDITION } from './js/ui/sb-logo-svg.js?v=10';
+
+        /* Le quattro squadre VERE. Copiate qui e non importate: js/sections/team.js
+           tira dentro data.js, che ha un await su Firebase in cima al modulo, e un
+           banco di prova grafico non deve dipendere da una connessione. */
+        const T = {
+            capi: { key: 'capi', name: 'C.D.P', full: 'Capi dei Pianeti', color: '#FF6600', png: 'C.D.P' },
+            lasers: { key: 'lasers', name: 'Lasers', full: 'Lasers', color: '#D4AF37', png: 'LASERS' },
+            oscurus: { key: 'oscurus', name: 'Oscurus', full: 'Oscurus', color: '#800020', png: 'OSCURUS' },
+            sommo: { key: 'sommo', name: 'Sommo', full: 'Sommo', color: '#1c4750', png: 'SOMMO' },
+        };
+
+        /* FIXTURE: nove titolari per parte, gli stessi ruoli del Game Center.
+           Nomi e punti inventati — servono a occupare lo spazio giusto, non a
+           dire un risultato. */
+        const ROSTER = [
+            ['QB', 'J. Allen', '24.8'], ['RB', 'B. Robinson', '18.2'], ['RB', 'K. Walker', '11.4'],
+            ['WR', 'J. Jefferson', '22.6'], ['WR', 'A. St. Brown', '15.1'], ['TE', 'T. Kelce', '9.7'],
+            ['FLEX', 'R. Rice', '13.3'], ['K', 'H. Butker', '8.0'], ['DEF', 'Ravens', '11.0'],
+        ];
+
+        const slot = ([pos, name, pts]) => `
+            <div class="formation-slot">
+                <span class="slot-photo"><img src="images/fallback-player.svg" alt=""></span>
+                <span class="slot-name">${name}</span>
+                <span class="slot-pts">${pts}</span>
+            </div>`;
+        const oline = () => `<div class="formation-slot oline-x">✕</div>`;
+        const get = (pos, nth = 0) => ROSTER.filter(r => r[0] === pos)[nth];
+
+        /* Stesse colonne di renderRoster() in game-center.js: RB, QB, linea. */
+        function formation(side) {
+            const rb = `<div class="formation-col col-rb">${slot(get('RB', 0))}${slot(get('RB', 1))}</div>`;
+            const qb = `<div class="formation-col col-qb">${slot(get('QB'))}</div>`;
+            const line = `<div class="formation-col col-line">`
+                + slot(get('WR', 0)) + slot(get('TE'))
+                + oline() + oline() + oline() + oline() + oline()
+                + slot(get('FLEX')) + slot(get('WR', 1))
+                + `</div>`;
+            return side === 'left' ? rb + qb + line : line + qb + rb;
+        }
+
+        function special(side) {
+            const cls = side === 'left' ? 'left' : 'right';
+            return `
+            <div class="special-slot ${cls}-def">${slot(get('DEF'))}</div>
+            <div class="special-slot ${cls}-k">${slot(get('K'))}</div>`;
+        }
+
+        /** Il markup del campo, identico a game-center.js: cambia solo cosa ci
+         *  sta dentro come sfondo — l'SVG o il wallpaper. */
+        /* Sul pannello del PNG il logo non può stare dentro l'immagine: si
+           sovrappone in HTML, con le stesse quote in percentuale che il campo
+           SVG usa in unità di tela. Le due strade devono cadere nello stesso
+           punto — se un giorno divergono, è il segno che gcLogoRect è stato
+           toccato da una parte sola. */
+        function logoOverlay() {
+            // niente z-index: l'ordine nel DOM basta, e i giocatori vengono dopo
+            const paint = (p, inner) => `<div class="sb-paint" style="left:${p.left}%;top:${p.top}%;width:${p.width}%">${inner}</div>`;
+            let out = '';
+            if (state.layers.logo) {
+                out += gcLogoRects(state.yards, SB_LOGO_INK.ratio).map((r, i) => paint(r.pct,
+                    superBowlLogoSVG({ edition: state.sbEd, crop: true, className: 'sb-paint-svg', idPrefix: `sb-png${i}-${state.sbEd}` }))).join('');
+            }
+            if (state.layers.mid) {
+                out += paint(gcMidRect().pct, leagueShieldSVG({ className: 'sb-paint-svg', idPrefix: 'mid-png' }));
+            }
+            return out;
+        }
+
+        function campo(sfondo, L, R, players, conLogo) {
+            return `
+            <div class="matchup-field-horizontal">
+                <span class="field-team-label field-team-label-top">${L.full}</span>
+                ${sfondo}
+                ${conLogo ? logoOverlay() : ''}
+                ${players ? `<div class="field-overlay">
+                    <div class="formations-area">
+                        <div class="team-formation left">${formation('left')}</div>
+                        <div class="scrimmage-center"></div>
+                        <div class="team-formation right">${formation('right')}</div>
+                    </div>
+                    ${special('left')}${special('right')}
+                </div>` : ''}
+                <span class="field-team-label field-team-label-bottom">${R.full}</span>
+            </div>`;
+        }
+
+        const state = {
+            L: 'capi', R: 'lasers', ez: 'team', players: true, dim: true,
+            layers: { erba: true, righe: true, numeri: true, nomi: true, pali: true, cornice: true, logo: true, mid: true },
+            sbEd: 7, yards: 16,   // dalla 17 alla 33, centrato sulla 25
+        };
+
+        /* Il logo dell'edizione, dipinto a centrocampo come fa la NFL al Super
+           Bowl. Ogni copia a schermo vuole il suo prefisso di id: il campo SVG
+           e il PNG mostrano lo stesso logo due volte nella stessa pagina, e due
+           gradienti omonimi si sovrascrivono a vicenda. */
+        const sbLogo = (rect, who, i) => superBowlLogoSVG({
+            edition: state.sbEd, embed: rect, crop: true, idPrefix: `sb-${who}${i}-${state.sbEd}`,
+        });
+
+        const $ = (s) => document.querySelector(s);
+        const kb = (n) => n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(2)} MB`;
+
+        for (const sel of ['#teamL', '#teamR']) {
+            $(sel).innerHTML = Object.values(T).map(t => `<option value="${t.key}">${t.full}</option>`).join('');
+        }
+        $('#teamL').value = state.L; $('#teamR').value = state.R;
+
+        let pngBytes = 0, pngMs = 0;
+
+        async function render() {
+            const L = T[state.L], R = T[state.R];
+            document.body.classList.toggle('lab-dim', state.dim);
+
+            // ── SVG: peso della stringa e tempo che il browser ci mette a
+            //    metterlo a schermo (innerHTML + un layout forzato, se no si
+            //    misurerebbe solo la scrittura in memoria).
+            const markup = gameCenterFieldSVG({
+                left: { name: L.name, color: L.color }, right: { name: R.name, color: R.color },
+                endzone: state.ez, show: state.layers,
+                logo: (rect, i) => sbLogo(rect, 'svg', i),
+                logoYards: state.yards, logoRatio: SB_LOGO_INK.ratio,
+                mid: (rect) => leagueShieldSVG({ embed: rect, idPrefix: 'mid-svg' }),
+            });
+            const t0 = performance.now();
+            $('#stageSvg').innerHTML = campo(markup, L, R, state.players);
+            $('#stageSvg').firstElementChild.getBoundingClientRect();
+            const svgMs = performance.now() - t0;
+            const svgBytes = new Blob([markup]).size;
+            const r = gcLogoRects(state.yards, SB_LOGO_INK.ratio)[0];
+            const y0 = Math.round((r.x - 388) / 16.51), y1 = Math.round((r.x + r.w - 388) / 16.51);
+            $('#capSvg').textContent = `${kb(svgBytes)} · ${svgMs.toFixed(1)} ms · logo ${state.yards} yd`
+                + ` (dalla ${y0} alla ${y1})`;
+
+            // ── PNG: il file vero, col suo nome vero. Il peso è quello che
+            //    scarica il browser, non una stima.
+            const file = `Wallpapers/GameCenterHorizontal_${L.png}_${R.png}.png`;
+            const p0 = performance.now();
+            let img = `<div style="aspect-ratio:2432/1760;display:grid;place-items:center;color:#666">
+                       nessun wallpaper per questo accoppiamento</div>`;
+            try {
+                const res = await fetch(file);
+                if (!res.ok) throw new Error(res.status);
+                const blob = await res.blob();
+                pngBytes = blob.size;
+                const url = URL.createObjectURL(blob);
+                const el = new Image(); el.src = url;
+                await el.decode();
+                pngMs = performance.now() - p0;
+                img = `<img class="field-bg" src="${url}" alt="">`;
+                $('#capPng').textContent = `${kb(pngBytes)} · ${pngMs.toFixed(0)} ms (rete + decodifica)`;
+            } catch {
+                pngBytes = 0;
+                $('#capPng').textContent = 'non disponibile';
+            }
+            $('#stagePng').innerHTML = campo(img, L, R, state.players, true);
+
+            $('#meter').innerHTML = `
+                <div><dt>SVG</dt><dd class="win">${kb(svgBytes)}</dd></div>
+                <div><dt>PNG</dt><dd>${pngBytes ? kb(pngBytes) : '—'}</dd></div>
+                <div><dt>Rapporto</dt><dd class="win">${pngBytes ? Math.round(pngBytes / svgBytes) + '×' : '—'}</dd></div>
+                <div><dt>SVG a schermo</dt><dd class="win">${svgMs.toFixed(1)} ms</dd></div>
+                <div><dt>PNG a schermo</dt><dd>${pngBytes ? pngMs.toFixed(0) + ' ms' : '—'}</dd></div>
+                <div><dt>Tutti e dodici</dt><dd>${pngBytes ? kb(pngBytes * 12) + ' nel repo' : '—'}</dd></div>`;
+        }
+
+        $('#teamL').onchange = (e) => { state.L = e.target.value; render(); };
+        $('#teamR').onchange = (e) => { state.R = e.target.value; render(); };
+        $('#ez').onclick = (e) => {
+            const b = e.target.closest('[data-ez]'); if (!b) return;
+            state.ez = b.dataset.ez;
+            $('#ez').querySelectorAll('.lab-btn').forEach(x => x.classList.toggle('on', x === b));
+            render();
+        };
+        $('#layers').onclick = (e) => {
+            const b = e.target.closest('[data-layer]'); if (!b) return;
+            const k = b.dataset.layer;
+            state.layers[k] = !state.layers[k];
+            b.classList.toggle('on', state.layers[k]);
+            render();
+        };
+        $('#sbEd').innerHTML = Array.from({ length: LAST_EDITION }, (_, i) => i + 1).map((e) => {
+            const c = SB_EDITIONS[e]?.city || '';
+            return `<option value="${e}">${toRoman(e)} — ${sbYear(e)} · ${c}</option>`;
+        }).join('');
+        $('#sbEd').value = state.sbEd;
+        $('#sbEd').onchange = (e) => { state.sbEd = Number(e.target.value); render(); };
+        $('#sbSize').onclick = (e) => {
+            const b = e.target.closest('[data-yd]'); if (!b) return;
+            state.yards = Number(b.dataset.yd);
+            $('#sbSize').querySelectorAll('.lab-btn').forEach(x => x.classList.toggle('on', x === b));
+            render();
+        };
+
+        $('#tPlayers').onclick = (e) => {
+            state.players = !state.players;
+            e.target.classList.toggle('on', state.players); render();
+        };
+        $('#tDim').onclick = (e) => {
+            state.dim = !state.dim;
+            e.target.classList.toggle('on', state.dim); render();
+        };
+
+        render();
+    </script>
+</body>
+
+</html>

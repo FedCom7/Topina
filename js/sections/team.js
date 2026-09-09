@@ -8,7 +8,8 @@
 import { CURRENT_SEASON } from '../data.js?v=580';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
 import { computeTeamBadges } from '../data/badges.js?v=557';
-import { stickerSVG, sbStickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=518';
+import { stickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=519';
+import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
 import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 
@@ -154,17 +155,32 @@ export function initTeam() {
     });
 }
 
-// ─── Hero: sticker Super Bowl (in alto a destra, uno per titolo) ──
+/* ─── Hero: i Topina Bowl vinti (in alto a destra, uno per titolo) ───
+   Fino al 2026-09-08 qui c'era lo sticker ovale di `badge-svg.js`: numero
+   romano dentro un ovale nei colori del team, tre righe di testo in 96×56.
+   Adesso c'è il LOGO dell'edizione — lo stesso che il Game Center dipinge sul
+   campo della finale — così il titolo del 2025 si riconosce dal suo logo e non
+   da una scritta.
 
+   `crop` toglie l'aria sopra e sotto il marchio: dentro un riquadro di 104px
+   la tela quadrata sprecherebbe un terzo dell'altezza. Il rapporto del
+   riquadro nel CSS (104×84) è quello del marchio, se no il logo entra
+   rimpicciolito.
+
+   Il carattere del numero cambia ogni sette edizioni: dalla VIII in poi va
+   chiesto, perché il sito carica a monte solo Archivo Black. */
 function renderSBStickers(years) {
     const el = document.getElementById('team-sb-stickers');
     if (!el) return;
     if (!years.length) { el.innerHTML = ''; return; }
-    el.innerHTML = years.map((year, i) => `
-        <div class="sb-sticker" style="--stk-i:${i}" title="Super Bowl ${_sbRoman(year)} — ${year}">
-            ${sbStickerSVG(_sbRoman(year), year)}
-        </div>
-    `).join('');
+    el.innerHTML = years.map((year, i) => {
+        const ed = sbEdition(year);
+        ensureFaceFont(faceFor(ed));
+        return `
+        <div class="sb-sticker" style="--stk-i:${i}" title="Topina Bowl ${_sbRoman(year)} — ${year}">
+            ${superBowlLogoSVG({ edition: ed, crop: true, className: 'sb-logo-badge', idPrefix: `hero-${year}` })}
+        </div>`;
+    }).join('');
 }
 
 function renderQuickStats(at) {

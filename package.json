@@ -14,7 +14,8 @@
         "build-nfl-injuries": "node scripts/build-nfl-injuries.mjs",
         "build-nfl-combine-draft": "node scripts/build-nfl-combine-draft.mjs",
         "build-nfl-trades": "node scripts/build-nfl-trades.mjs",
-        "build-nfl-player-scores": "node scripts/build-nfl-player-scores.mjs"
+        "build-nfl-player-scores": "node scripts/build-nfl-player-scores.mjs",
+        "build-manager-dna": "node scripts/build-manager-dna.mjs"
     },
     "dependencies": {
         "firebase-admin": "^12.0.0"

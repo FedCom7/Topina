@@ -1,5 +1,5 @@
-import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=580';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=48';
+import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=580';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=49';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
@@ -7,7 +7,8 @@ import { TEAMS } from './team.js?v=709';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { cachedAsset } from '../utils/asset-cache.js?v=1';
+import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
+import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
@@ -17,25 +18,57 @@ let loaded = false;
 // sono di nessuno. Con questo a falso non se ne mostra nessuno.
 let leagueDrafted = true;
 
-// Mapping display names → image filename abbreviations
-const TEAM_FIELD_KEYS = {
-    'Oscurus': 'OSCURUS',
-    'Lasers': 'LASERS',
-    'Sommo': 'SOMMO',
-    'Capi dei Pianeti': 'C.D.P'
-};
+/* ── Il campo ────────────────────────────────────────────────────────
+   Disegnato, non fotografato: `js/ui/field-gc-svg.js`. Fino al 2026-09-08 qui
+   c'era un PNG per accoppiamento — dodici file da ~3,5 MB, 44 MB nel repo — e
+   con loro tutta l'impalcatura per reggerli: `cachedAsset()` sulla Cache API,
+   una versione da bumpare a mano, e un'attesa di decodifica prima di mostrare
+   la card. L'SVG pesa 45 KB, arriva insieme al modulo e non ha niente da
+   scaricare: la cache non serve più, e infatti è stata tolta.
 
-// Cache-bust dei wallpaper del campo: da bumpare quando si sostituiscono i file
-// (il browser altrimenti li tiene in cache disco a tempo indefinito, non avendo
-// header Cache-Control il server locale di sviluppo).
-const FIELD_IMG_VERSION = 3;
+   La classe `field-bg` resta: è quella che porta proporzione (2432/1760),
+   filtro di scurimento e la rotazione a 90° su mobile. Il disegno ha la stessa
+   viewBox del wallpaper, quindi tutte quelle regole valgono uguali.
 
-/** Build the correct field image path for a matchup */
-function getFieldImage(team1Name, team2Name) {
-    const k1 = TEAM_FIELD_KEYS[displayName(team1Name)];
-    const k2 = TEAM_FIELD_KEYS[displayName(team2Name)];
-    const file = (k1 && k2) ? `Wallpapers/GameCenterHorizontal_${k1}_${k2}.png` : 'Wallpapers/GameCenterHorizontal.PNG';
-    return `${file}?v=${FIELD_IMG_VERSION}`;
+   ── La verniciatura da finale ────────────────────────────────────────
+   Nelle partite normali il campo è pulito: erba, righe, numeri, i due nomi
+   nelle end zone. Il Topina Bowl è l'unica partita con qualcosa dipinto
+   sopra — i due loghi dell'edizione sulle 25 e lo scudetto della lega sulle
+   50 — e si riconosce da lontano proprio per questo.
+
+   L'edizione la dà l'anno (2019 = I), non la settimana: il logo dipinto sul
+   campo del 2023 deve restare quello del 2023 anche riguardandolo oggi. */
+function campoSVG(m, finale) {
+    const t1 = displayName(m.team1.name), t2 = displayName(m.team2.name);
+    const c1 = TEAMS[TEAM_KEYS[t1]]?.color, c2 = TEAMS[TEAM_KEYS[t2]]?.color;
+    const ed = sbEdition(currentYear);
+    /* Il carattere del numero cambia ogni sette edizioni. Archivo Black (le
+       prime sette) è già in index.html perché serve ai numeri delle iarde;
+       gli altri si chiedono solo quando servono davvero, cioè qui. */
+    if (finale) ensureFaceFont(faceFor(ed));
+    return gameCenterFieldSVG({
+        className: 'field-bg',
+        left: { name: t1, color: c1 },
+        right: { name: t2, color: c2 },
+        endzone: 'team',
+        show: { logo: finale, mid: finale },
+        logo: (rect, i) => superBowlLogoSVG({
+            edition: ed, embed: rect, crop: true, idPrefix: `sb${currentYear}-${i}`,
+        }),
+        logoYards: 16, logoRatio: SB_LOGO_INK.ratio,
+        mid: (rect) => leagueShieldSVG({ embed: rect, idPrefix: `tl${currentYear}` }),
+    });
+}
+
+/** È LA finale? Non basta la settimana: in quella del Super Bowl si giocano
+ *  DUE partite — la finale e la finalina fra chi ha perso le semifinali — e la
+ *  verniciatura va solo sulla prima. `getSuperBowlMatchup` la riconosce
+ *  risalendo ai vincitori dei playoff, che è l'unico modo: nei dati le due
+ *  partite sono identiche in tutto il resto. */
+function isSuperBowl(m) {
+    if (Number(currentWeek) !== getSeasonConfig(currentYear).superBowlWeek) return false;
+    const sb = getSuperBowlMatchup(currentData, currentYear);
+    return !!sb && sb.team1?.name === m.team1?.name && sb.team2?.name === m.team2?.name;
 }
 
 // --- Solo dati REALI ---------------------------------------------------
@@ -214,7 +247,7 @@ async function showMatchups({ refresh = true } = {}) {
     // Le immagini partono anche fuori dal documento: si aspetta che siano
     // davvero dipinte, ma non oltre il tetto.
     await Promise.race([
-        Promise.all([hydrateFieldImages(holder), hydrateSlotPhotos(holder)]),
+        hydrateSlotPhotos(holder),
         attendi(READY_TIMEOUT_MS),
     ]);
     grid.replaceChildren(...holder.childNodes);
@@ -262,7 +295,7 @@ function renderMatchups(grid) {
         const logo2 = TEAM_LOGOS[displayName(m.team2.name)] || 'images/nfl_logo.png';
         const c1 = TEAMS[TEAM_KEYS[displayName(m.team1.name)]]?.color || 'var(--accent-red)';
         const c2 = TEAMS[TEAM_KEYS[displayName(m.team2.name)]]?.color || 'var(--accent-blue)';
-        const fieldImg = getFieldImage(m.team1.name, m.team2.name);
+        const campo = campoSVG(m, isSuperBowl(m));
 
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${idx}">
@@ -287,7 +320,7 @@ function renderMatchups(grid) {
             </a>
             <div class="matchup-field-horizontal">
                 <span class="field-team-label field-team-label-top">${teamNameHTML(m.team1.name)}</span>
-                <img data-field="${fieldImg}" class="field-bg" alt="">
+                ${campo}
                 <div class="field-overlay">
                     <div class="formations-area">
                         <div class="team-formation left">
@@ -319,23 +352,6 @@ function renderMatchups(grid) {
     }).join('');
 
     return true;
-}
-
-/**
- * Gli sfondi del campo arrivano dalla cache degli asset invece che dalla rete:
- * pesano ~3,5 MB l'uno e senza cache si riscaricavano a ogni visita. Il
- * riquadro ha già la sua proporzione dal CSS, quindi la card non si muove
- * mentre l'immagine arriva.
- */
-function hydrateFieldImages(grid) {
-    const imgs = [...grid.querySelectorAll('img.field-bg[data-field]')];
-    return Promise.all(imgs.map(async (img) => {
-        const path = img.dataset.field;
-        if (!path) return;
-        try { img.src = await cachedAsset(path, FIELD_IMG_VERSION); }
-        catch { img.src = path; }
-        await dipinta(img);
-    }));
 }
 
 /** Attende che l'immagine sia davvero decodificata; un errore non blocca. */

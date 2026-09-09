@@ -2274,6 +2274,22 @@ img {
     stroke-width: 0.7;
 }
 
+/* La spirale. Girando attorno all'asse lungo la SAGOMA della palla non cambia
+   mai (un ellissoide che ruota sul proprio asse resta identico): a girare sono
+   solo le cuciture. Quindi le muoviamo lungo l'asse corto — su per la faccia,
+   schiacciate sul bordo, via dietro, e di nuovo su dal basso — che è la
+   proiezione di un punto che gira. Stando dentro `.tl-run-ball`, il loro asse
+   segue da sé l'inclinazione della palla.
+   Sta sullo stesso orologio da 2.4s della palla: quattro giri esatti dentro i
+   48% del volo (12% a giro, ~3.5 giri/s), poi dal 48% in poi le cuciture
+   restano ferme in faccia perché la palla è in mano, non vola più. Toccando il
+   momento della presa vanno rifatte anche queste percentuali. */
+.tl-run-laces {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: tl-run-spiral 2.4s linear infinite;
+}
+
 /* La linea scorre all'indietro: è quello che fa leggere la corsa come
    avanzamento, l'omino sul posto non basta. */
 @keyframes tl-run-ground {
@@ -2361,17 +2377,46 @@ img {
 
 /* Parabola: entra da fuori a destra, sale, scende nelle mani a 48%. Dopo la
    presa resta agganciata al petto e sfuma sul finale, così il ciclo riparte
-   senza vedere la palla saltare indietro. */
+   senza vedere la palla saltare indietro.
+
+   Le posizioni NON sono a occhio e le rotazioni nemmeno: il muso di un pallone
+   lanciato bene sta sulla tangente della parabola, quindi l'angolo di ogni
+   keyframe è l'inclinazione della traiettoria in quel punto, non un numero
+   scelto perché «sembra giusto».
+   Traiettoria (u = frazione di volo, keyframe ogni 8% = ogni u di 1/6):
+       x(u) = 90 − 57.5u        (orizzontale a velocità costante, come un
+                                 proiettile senza attrito: perciò `linear`)
+       y(u) = 22 − 48u + 36u²   (apice y=6 a u≈0.67, presa a (32.5,10))
+       angolo = atan(y'(u) / x'(u)) = atan((72u − 48) / −57.5)
+   → 40°, 32°, 22.7°, 11.8°, 0°, −11.8°, −22.7°. Cambiando un punto della
+   parabola vanno ricalcolati gli angoli, se no la palla vola di traverso.
+   Dal 48% in poi non è più balistica: è una palla che viene stretta al fianco,
+   e ruota fino alla presa in mano (−62°). */
 @keyframes tl-run-ball {
-    0%   { transform: translate(88px, 20px) rotate(-10deg); opacity: 0; }
-    8%   { opacity: 1; }
-    26%  { transform: translate(64px, 12px) rotate(-22deg); }
-    40%  { transform: translate(46px, 8px) rotate(-32deg); }
-    48%  { transform: translate(32.5px, 10px) rotate(-40deg); opacity: 1; }
-    58%  { transform: translate(31.5px, 13.5px) rotate(-52deg); }
+    0%   { transform: translate(90px, 22px) rotate(40deg); opacity: 0; }
+    8%   { transform: translate(80.4px, 15px) rotate(32deg); opacity: 1; }
+    16%  { transform: translate(70.8px, 10px) rotate(22.7deg); }
+    24%  { transform: translate(61.3px, 7px) rotate(11.8deg); }
+    32%  { transform: translate(51.7px, 6px) rotate(0deg); }
+    40%  { transform: translate(42.1px, 7px) rotate(-11.8deg); }
+    48%  { transform: translate(32.5px, 10px) rotate(-22.7deg); opacity: 1; }
+    58%  { transform: translate(31.5px, 13.5px) rotate(-45deg); }
     72%  { transform: translate(30px, 18px) rotate(-62deg); }
     88%  { transform: translate(30px, 18px) rotate(-62deg); opacity: 1; }
     100% { transform: translate(30px, 18px) rotate(-62deg); opacity: 0; }
+}
+
+/* Un giro di cuciture ogni 12%: in faccia (0), sul bordo di sopra dove si
+   appiattiscono e spariscono (3), dietro (fino a 9), di nuovo in faccia
+   risalendo dal basso (12). Le quattro terne coprono i quattro giri del volo;
+   l'ultima posa, centrata, tiene fermo dal 48% alla fine.
+   Lo spostamento massimo (2.1) resta dentro il semiasse corto dell'ovale
+   (2.7): fuori, le cuciture uscirebbero dalla palla e allargherebbero il
+   bounding box che fa da origine alla rotazione del gruppo padre. */
+@keyframes tl-run-spiral {
+    0%, 12%, 24%, 36%, 48%, 100% { transform: translateY(0) scaleY(1); opacity: 1; }
+    3%, 15%, 27%, 39%            { transform: translateY(-2.1px) scaleY(0.08); opacity: 0; }
+    9%, 21%, 33%, 45%            { transform: translateY(2.1px) scaleY(0.08); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2382,7 +2427,8 @@ img {
     .tl-run-shin,
     .tl-run-arm,
     .tl-run-forearm,
-    .tl-run-ball {
+    .tl-run-ball,
+    .tl-run-laces {
         animation: none;
     }
 }
@@ -3640,19 +3686,24 @@ img {
     z-index: 4;
 }
 
+/* Il riquadro ha il rapporto del MARCHIO (600×484 ritagliato), non della sua
+   tela quadrata: con un riquadro di proporzione diversa il logo entrerebbe
+   rimpicciolito e si poserebbe scentrato. */
 .sb-sticker {
-    width: 118px;
-    height: 69px;
+    width: 104px;
+    height: 84px;
     animation: sticker-stick 0.5s var(--ease) both;
     animation-delay: calc(var(--stk-i, 0) * 130ms + 0.25s);
 }
 
-.sb-sticker:nth-child(odd) .stk-svg {
-    transform: rotate(-3deg);
-}
-
-.sb-sticker:nth-child(even) .stk-svg {
-    transform: rotate(2.5deg);
+/* L'inclinazione era dell'ovale — un adesivo appiccicato sul casco. Un logo
+   d'edizione storto sembra solo storto, quindi va dritto: resta l'ombra, che
+   è quello che lo stacca dallo sfondo dell'hero. */
+.sb-logo-badge {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
 }
 
 .sb-sticker:nth-child(even) {
@@ -4310,8 +4361,8 @@ img {
     }
 
     .sb-sticker {
-        width: 78px;
-        height: 46px;
+        width: 72px;
+        height: 58px;
     }
 
     .sticker-field {
@@ -6514,6 +6565,30 @@ img {
     justify-content: center;
     gap: 16px;
     min-height: 0;
+}
+
+/* Il confine fra la settimana aperta e quella chiusa dentro la stessa
+   striscia. Serve perché il salto dalla barra chiara a quella antracite, da
+   solo, si legge come un difetto di stampa invece che come «questa è
+   archiviata»: l'etichetta dice di cosa è il cambio di luce. */
+.mc-sb-sep {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 2px 0;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+}
+
+.mc-sb-sep::before,
+.mc-sb-sep::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
 }
 
 /* ── Campione ── */
@@ -15649,12 +15724,69 @@ td.ps-div-seed {
     margin-bottom: 0;
 }
 
-/* Freccia accanto all'immagine: destra sulla prima squadra, sinistra sull'avversario */
-.live-swap-btn {
+/* ── Bordo per cambiare squadra: sfumato + freccia ────────────────────
+   La freccia non sta più da sola in mezzo al campo. Vive dentro una fascia
+   verticale sul bordo — uno sfumato che scurisce quel lato — e le due cose
+   compaiono INSIEME quando il puntatore entra nel campo, sparendo appena esce.
+   Prima era un cerchio pieno sempre acceso a metà altezza: su schermo stretto
+   cadeva in faccia a un titolare e non c'era modo di spostarlo.
+
+   Su touch (`hover: none`) la fascia non esiste proprio: senza puntatore
+   resterebbe accesa per sempre, cioè il problema di partenza. Là si cambia
+   squadra scorrendo col dito — `bindSwipe` in live.js. */
+.live-swap-edge {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    bottom: 0;
+    width: clamp(72px, 15%, 132px);
+    display: flex;
+    align-items: center;
     z-index: 4;
+    /* stessi angoli del contenitore: lo sfumato arriva fino al bordo tondo
+       senza squadrarlo */
+    border-radius: inherit;
+    opacity: 0;
+    /* invisibile = intoccabile: da spenta non deve rubare i clic alle card */
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease);
+}
+
+.live-swap-edge--right {
+    right: 0;
+    justify-content: flex-end;
+    padding-right: 12px;
+    background: linear-gradient(270deg, rgba(4, 8, 10, 0.86) 0%,
+        rgba(4, 8, 10, 0.5) 45%, rgba(4, 8, 10, 0) 100%);
+}
+
+.live-swap-edge--left {
+    left: 0;
+    justify-content: flex-start;
+    padding-left: 12px;
+    background: linear-gradient(90deg, rgba(4, 8, 10, 0.86) 0%,
+        rgba(4, 8, 10, 0.5) 45%, rgba(4, 8, 10, 0) 100%);
+}
+
+/* Si accende col puntatore sul campo (o sul confronto), e con la tastiera
+   quando la freccia prende il fuoco: altrimenti sarebbe irraggiungibile da
+   chi naviga col TAB. */
+@media (hover: hover) and (pointer: fine) {
+    .matchup-field-horizontal:hover > .live-swap-edge,
+    .live-compare:hover > .live-swap-edge,
+    .live-swap-edge:focus-within {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (hover: none) {
+    .live-swap-edge { display: none; }
+}
+
+/* Freccia dentro la fascia: destra sulla prima squadra, sinistra sull'avversario */
+.live-swap-btn {
+    position: relative;
+    flex: 0 0 auto;
     width: 44px;
     height: 44px;
     display: inline-flex;
@@ -15671,10 +15803,6 @@ td.ps-div-seed {
     transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 
-/* La freccia vive dentro al campo (che ha overflow: hidden), quindi va tenuta
-   un po' più interna per non essere tagliata dal bordo arrotondato. */
-.live-swap-btn--right { right: 14px; }
-.live-swap-btn--left { left: 14px; }
 
 .live-swap-btn:hover {
     border-color: var(--accent-green);
@@ -15895,13 +16023,23 @@ td.ps-div-seed {
     min-width: 44px;
 }
 
+/* Il nome per intero, su due righe se serve. Su una riga sola i puntini si
+   mangiavano mezza rubrica — "Drake M…", "Seattle S…" — e due nomi tagliati
+   allo stesso punto non si distinguono più. La seconda riga cresce verso
+   l'ALTO (la riga è centrata verticalmente), così punti e statistiche restano
+   incolonnati con le righe vicine. Oltre le due righe si torna ai puntini:
+   serve un tetto, altrimenti un nome lunghissimo alzerebbe la riga da solo. */
 .live-cmp-name {
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--text-primary);
-    white-space: nowrap;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     max-width: 100%;
 }
 
@@ -16079,8 +16217,7 @@ td.ps-div-seed {
 }
 
 /* i giocatori restano sopra al velo */
-.live-field-solo .field-overlay,
-.live-field-solo .live-swap-btn {
+.live-field-solo .field-overlay {
     z-index: 1;
 }
 
@@ -16986,6 +17123,15 @@ td.ps-div-seed {
     overflow: hidden;
 }
 
+
+/* Il livello della festa del campione nella home. `.live-fx` si stende con
+   `inset: 0` sul suo contenitore; qui invece il riquadro se lo misura il JS
+   attorno alla card (vedi festaCampione in home.js), perché deve sbordare
+   dalla card e restare comunque proporzionato — non prendersi tutto il
+   mosaico. Serve solo a spegnere l'inset ereditato. */
+.mc-fx {
+    inset: auto;
+}
 
 .live-fx-confetto,
 .live-fx-spark,
@@ -20867,6 +21013,11 @@ a.sb:hover {
    È la differenza fra un tabellone e una didascalia: il tabellone è fatto di
    fasce sovrapposte che occupano tutte la stessa campata, e la gerarchia la
    fanno l'altezza e il colore — non la larghezza. */
+/* Senza dato le tacche non si disegnano (ticksHTML), ma la fascia che le
+   ospita ha un'altezza sua e un fondo nero: resterebbe una banda vuota sotto
+   la barra. L'intento del componente è che senza dato non si veda niente. */
+.sb-bc-ticksbar:not(:has(.sb-bc-tick)) { display: none; }
+
 .sb-bc-ticksbar {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -21903,6 +22054,627 @@ a.sb:hover {
     box-shadow: inset 3px 0 0 var(--accent-red, #d3383a);
     padding-left: 9px;
 }
+
+/* ============================================================
+   MANAGER DNA (#managerdna, #managerdna/{teamKey})
+   Namespace `dna-`. Riusa .mosaic-card / .mc-* / .an-* / .an-player-row:
+   qui ci sono solo i pezzi che non esistevano — la banda del caso dello
+   strip plot, i chip con la soglia, le catene di ridraft.
+   ============================================================ */
+
+.dna-mosaic { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.dna-card { grid-column: 1 / -1; padding: 24px; }
+.dna-card-sub {
+    color: var(--text-secondary); font-size: .95rem; line-height: 1.55;
+    margin: 6px 0 18px; max-width: 78ch;
+}
+.dna-card-sub b { color: var(--text-primary); }
+.dna-sub {
+    font-family: var(--font-display); font-size: 1.02rem; color: var(--text-primary);
+    margin: 22px 0 8px; letter-spacing: .01em;
+}
+.dna-note {
+    color: var(--text-muted); font-size: .82rem; line-height: 1.5; margin: 10px 0 0; max-width: 82ch;
+}
+.dna-footnote {
+    grid-column: 1 / -1; color: var(--text-muted); font-size: .82rem;
+    line-height: 1.55; margin: 6px 0 0; max-width: 82ch;
+}
+.dna-note a, .dna-card-sub a, .dna-footnote a { color: var(--accent-blue); }
+
+/* --- le quattro card allenatore --- */
+/* Gli allenatori sono quattro e restano quattro: colonne fisse, non auto-fit.
+   Con `auto-fit` la larghezza disponibile ne faceva stare tre, lasciando il
+   quarto da solo su una riga come se fosse un caso a parte. */
+.dna-mgr-grid {
+    grid-column: 1 / -1; display: grid; gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1100px) { .dna-mgr-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px)  { .dna-mgr-grid { grid-template-columns: 1fr; } }
+/* `grid-column: auto` annulla lo `span 3` che .mosaic-card eredita dal
+   mosaico: dentro questa griglia a colonne strette faceva stare una sola card
+   per riga, incolonnando i quattro allenatori invece di affiancarli. */
+.dna-mgr {
+    grid-column: auto;
+    position: relative; overflow: hidden; padding: 22px; text-decoration: none;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.dna-mgr:hover { transform: translateY(-3px); border-color: var(--team-color); }
+.dna-mgr-title { font-size: clamp(1.25rem, 2.4vw, 1.6rem); margin: 0; }
+.dna-mgr-blurb {
+    color: var(--text-secondary); font-size: .88rem; line-height: 1.5; margin: 0; flex: 1;
+}
+.dna-mgr-foot {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px;
+    color: var(--text-muted); font-size: .76rem;
+}
+.dna-mgr-foot b { color: var(--text-primary); font-size: .9rem; }
+
+/* --- chip di prova: valore in σ + soglia che l'ha fatto scattare --- */
+.dna-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.dna-chip {
+    display: inline-flex; align-items: baseline; gap: 5px;
+    padding: 4px 9px; border-radius: var(--pill-radius);
+    background: var(--bg-glass); border: 1px solid var(--bg-glass-border);
+    font-size: .74rem; color: var(--text-secondary);
+}
+.dna-chip b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.dna-chip i { color: var(--text-muted); font-style: normal; font-size: .7rem; }
+
+/* --- KPI dell'hero allenatore --- */
+.dna-hero { position: relative; overflow: hidden; padding: 28px; }
+.dna-hero-title { font-size: clamp(1.7rem, 4vw, 2.6rem); margin: 2px 0 0; }
+.dna-hero-blurb {
+    color: var(--text-secondary); font-size: 1rem; line-height: 1.55;
+    margin: 8px 0 14px; max-width: 62ch;
+}
+.dna-kpis { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 16px; }
+.dna-kpi { display: flex; flex-direction: column; }
+.dna-kpi b {
+    font-family: var(--font-display); font-size: 1.5rem; color: var(--text-primary);
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.dna-kpi span { color: var(--text-muted); font-size: .74rem; }
+
+/* --- strip plot: la banda del caso è il pezzo che rende onesto il grafico --- */
+.dna-strip-band { fill: var(--text-muted); opacity: .1; }
+.dna-dot { cursor: default; }
+.dna-strip-label { font-size: .74rem; }
+.dna-tier-signature { color: var(--accent-green); }
+.dna-tier-differs { color: var(--accent-amber); }
+.dna-tier-luck { color: var(--accent-blue); }
+.dna-tier-noise { color: var(--text-muted); }
+text.dna-strip-label.dna-tier-signature { fill: var(--accent-green); }
+text.dna-strip-label.dna-tier-differs { fill: var(--accent-amber); }
+text.dna-strip-label.dna-tier-luck { fill: var(--accent-blue); }
+text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
+
+.dna-legend {
+    color: var(--text-muted); font-size: .76rem; line-height: 1.6; margin-top: 10px;
+}
+.dna-legend-dots { display: block; margin-top: 6px; }
+.dna-legend-dots i {
+    display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+    margin: 0 5px 0 12px; vertical-align: baseline;
+}
+.dna-legend-dots i:first-child { margin-left: 0; }
+
+/* --- verdetto fortuna: la conclusione si mostra quanto il numero --- */
+.dna-verdict {
+    font-size: .86rem; margin: 8px 0 0; padding-left: 10px;
+    border-left: 3px solid var(--text-muted); color: var(--text-secondary);
+}
+.dna-verdict.is-luck { border-left-color: var(--accent-blue); }
+.dna-verdict.is-skill { border-left-color: var(--accent-green); }
+
+/* --- metodo --- */
+.dna-method-list {
+    margin: 8px 0 12px; padding-left: 20px; color: var(--text-secondary);
+    font-size: .88rem; line-height: 1.6;
+}
+.dna-method-list li { margin-bottom: 8px; }
+.dna-method-list b { color: var(--text-primary); }
+
+/* --- catene di ridraft: un pallino per stagione, acceso quando era suo --- */
+.dna-chains { display: flex; flex-direction: column; gap: 3px; }
+.dna-chain {
+    display: grid; grid-template-columns: 1fr auto 42px; align-items: center; gap: 12px;
+    padding: 6px 8px; border-radius: var(--radius-sm);
+}
+.dna-chain:nth-child(odd of .dna-chain:not(.dna-chain-head)) { background: rgba(255, 255, 255, .02); }
+.dna-chain-head { color: var(--text-muted); font-size: .7rem; padding-bottom: 2px; }
+.dna-chain-name {
+    color: var(--text-primary); font-size: .88rem; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+}
+.dna-chain-dots { display: flex; gap: 6px; }
+.dna-chain-dots i {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--bg-glass); border: 1px solid var(--bg-glass-border);
+    font-style: normal; font-size: .6rem; color: var(--text-muted);
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.dna-chain-dots i.is-on { background: var(--team-color, var(--accent-red)); border-color: transparent; }
+.dna-chain-dots i.is-label {
+    background: none; border: none; width: 11px; color: var(--text-muted);
+}
+.dna-chain-n {
+    color: var(--text-muted); font-size: .78rem; text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- i migliori acquisti dal mercato --- */
+.dna-adds { display: flex; flex-direction: column; gap: 2px; }
+.dna-add-row { grid-template-columns: 1fr auto auto 60px; gap: 12px; }
+.dna-add-meta { color: var(--text-muted); font-size: .78rem; white-space: nowrap; }
+
+.dna-pickrow { margin-bottom: 12px; }
+
+@media (max-width: 700px) {
+    .dna-mosaic { grid-template-columns: 1fr; gap: 12px; }
+    .dna-card, .dna-hero { padding: 18px; }
+    .dna-kpis { gap: 18px; }
+    .dna-add-row { grid-template-columns: 1fr 60px; }
+    .dna-add-row .dna-add-meta { display: none; }
+    .dna-chain { grid-template-columns: 1fr auto; }
+    .dna-chain-n { display: none; }
+}
+
+/* --- filigrana: proporzioni intatte, logo INTERO ---------------------------
+   La regola base .mc-watermark usa `height: 150%`: su una card stretta il logo
+   diventa più largo della card e `overflow: hidden` ne mostra solo una fetta
+   centrale — che a occhio si legge come un logo deformato. Qui si dimensiona
+   sulla LARGHEZZA con `height: auto`, così il PNG quadrato entra per intero e
+   il rapporto resta quello vero. `TEAM_LOGO_SCALE` (da team-config.js) pareggia
+   la porzione di tela realmente disegnata, che nei quattro file è diversa. */
+.dna-mgr .mc-watermark {
+    /* Centrato e più largo della card: sborda sui lati e il bordo lo taglia.
+       Il dimensionamento resta sulla sola larghezza con `height: auto`, quindi
+       il rapporto del PNG non si tocca mai — quello che si vede tagliato è il
+       logo vero, non un logo deformato. Volutamente molto oltre la larghezza
+       della card: il logo riempie tutto e viene tagliato su tutti e quattro i
+       lati, che è l'effetto voluto.
+
+       `max-width: none` è OBBLIGATORIO: il reset globale `img { max-width: 100% }`
+       altrimenti riporta la larghezza al 100% della card e QUALUNQUE valore qui
+       sopra viene ignorato in silenzio — 145%, 200% e 300% rendevano identici. */
+    width: 240%;
+    max-width: none;
+    height: auto;
+    left: 50%;
+    right: auto;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(var(--logo-scale, 1));
+    opacity: .085;
+}
+.dna-mgr:hover .mc-watermark { opacity: .15; }
+
+/* L'hero è largo: qui il logo può stare più grande e uscire di poco dal bordo,
+   che è meglio di vederlo tagliato a metà. */
+.dna-hero { overflow: visible; }
+.dna-hero .mc-watermark {
+    height: 150%;
+    width: auto;
+    right: 1%;
+    transform: translateY(-50%) scale(var(--logo-scale, 1));
+    opacity: .1;
+}
+
+/* --- quanto è solida l'etichetta ------------------------------------------
+   Ogni allenatore ha SEMPRE un nome; l'onestà si sposta dal darlo o non darlo
+   al dire quanto regge. Il badge è la differenza fra "è una firma" e "è la
+   direzione in cui pende". */
+.dna-conf {
+    align-self: flex-start;
+    display: inline-block; margin: -2px 0 6px;
+    padding: 2px 9px; border-radius: var(--pill-radius);
+    font-size: .68rem; letter-spacing: .04em; text-transform: uppercase;
+    border: 1px solid currentColor; cursor: help;
+}
+.dna-conf--netta { color: var(--accent-green); }
+.dna-conf--sfumata { color: var(--accent-amber); }
+.dna-conf--debole { color: var(--text-muted); }
+.dna-conf-note {
+    color: var(--text-muted); font-size: .78rem; line-height: 1.5;
+    margin: 0 0 10px; max-width: 60ch;
+}
+
+
+/* ===== DRAFT GRADE TEAM — «cosa vuol dire», dentro le card ===== */
+/* Sta sotto il titolo di ogni card, chiuso. Chiuso deve pesare quanto una
+   riga: se da chiuso occupasse spazio, dodici card diventerebbero dodici
+   buchi. */
+.dgt-explain {
+    margin: 6px 0 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.dgt-explain>summary {
+    cursor: pointer;
+    list-style: none;
+    color: var(--accent-red);
+    font-weight: 700;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.dgt-explain>summary::-webkit-details-marker {
+    display: none;
+}
+
+.dgt-explain>summary::before {
+    content: 'ⓘ ';
+}
+
+.dgt-explain>p {
+    margin: 8px 0 0;
+    padding: 12px 14px;
+    border-left: 2px solid var(--border-subtle);
+    line-height: 1.55;
+    max-width: 78ch;
+}
+
+/* Il conto del voto: quattro passaggi numerati, uno sotto l'altro. */
+.dgt-derive {
+    margin-top: 10px;
+}
+
+.dgt-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0 0;
+    padding: 14px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.dgt-step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.dgt-step-n {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--team-color, var(--accent-red));
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.dgt-step-label {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.dgt-step-label b {
+    color: var(--team-color, var(--accent-red));
+    margin-left: 4px;
+}
+
+.dgt-step-note {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    max-width: 74ch;
+}
+
+/* Le pick che hanno spostato l'efficienza */
+.dgt-moved {
+    margin-top: 12px;
+}
+
+.dgt-moved-h {
+    display: block;
+    margin: 10px 0 6px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.dgt-moved-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dgt-move {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    font-size: 0.76rem;
+}
+
+.dgt-move small {
+    color: var(--text-muted);
+    font-size: 0.66rem;
+}
+
+.dgt-move i {
+    font-style: normal;
+    font-weight: 800;
+}
+
+.dgt-move.up i {
+    color: var(--accent-green, #30d158);
+}
+
+.dgt-move.down i {
+    color: var(--accent-red);
+}
+
+
+/* ===== TERMINI TECNICI CLICCABILI (js/ui/glossary.js) ===== */
+/* Il termine resta testo: stesso corpo, stesso colore, stessa riga. Cambia
+   solo il tratteggio sotto — se cambiasse anche il colore, una frase con tre
+   sigle diventerebbe un semaforo. */
+.gl-term {
+    all: unset;
+    cursor: help;
+    border-bottom: 1px dotted currentColor;
+    padding-bottom: 1px;
+}
+
+.gl-term:hover,
+.gl-term:focus-visible {
+    border-bottom-style: solid;
+    color: var(--accent-red);
+}
+
+.gl-term[aria-expanded="true"] {
+    color: var(--accent-red);
+    border-bottom-style: solid;
+}
+
+/* Il fumetto è in position:fixed e si posiziona da JS: dentro una card con
+   overflow nascosto un popover in absolute verrebbe tagliato. */
+.gl-pop {
+    position: fixed;
+    z-index: 120;
+    padding: 14px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    background: var(--bg-elevated, #17171a);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.gl-pop[hidden] {
+    display: none;
+}
+
+.gl-pop-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+}
+
+.gl-pop-def {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.gl-pop-ex {
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.gl-pop-ex span {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+
+/* ===== DRAFT GRADE — testata della card e metriche apribili ===== */
+/* Il «come si arriva a questo voto» sta in alto a destra: è una spiegazione
+   del titolo, non un pezzo del contenuto, e in mezzo alle metriche
+   interromperebbe la lettura dei numeri. */
+.dgt-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.dgt-card-head .dgt-derive {
+    margin: 4px 0 0;
+    text-align: right;
+}
+
+/* La riga delle tre metriche. Da chiusa: tre colonne uguali. Con una aperta:
+   quella cresce e le altre si stringono — restano leggibili (numero e
+   etichetta) ma cedono lo spazio. Su schermo stretto la griglia va a una
+   colonna da sola e l'apertura è solo il pannello che compare. */
+.dgt-metric {
+    padding: 0;
+    overflow: hidden;
+    transition: flex-grow 0.25s var(--ease, ease), background-color 0.2s;
+}
+
+.dgt-metrics {
+    align-items: start;
+}
+
+.dgt-metric-head {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 12px 14px;
+    cursor: pointer;
+}
+
+.dgt-metric-head:focus-visible {
+    outline: 2px solid var(--accent-red);
+    outline-offset: -2px;
+}
+
+.dgt-metric-head::after {
+    content: 'Show the detail ▾';
+    margin-top: 6px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+    opacity: 0.75;
+}
+
+.dgt-metric.open .dgt-metric-head::after {
+    content: 'Hide the detail ▴';
+}
+
+.dgt-metric.open {
+    background: color-mix(in srgb, var(--team-color, var(--accent-red)) 10%, transparent);
+    border-color: color-mix(in srgb, var(--team-color, var(--accent-red)) 40%, transparent);
+}
+
+@media (min-width: 861px) {
+    .dgt-metrics {
+        display: flex;
+        gap: 14px;
+    }
+
+    .dgt-metrics>.dgt-metric {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .dgt-metrics.has-open>.dgt-metric {
+        flex-grow: 0.45;
+    }
+
+    .dgt-metrics.has-open>.dgt-metric.open {
+        flex-grow: 3;
+    }
+}
+
+/* Il dettaglio */
+.dgt-metric-detail {
+    padding: 0 14px 14px;
+}
+
+.dgt-metric-detail[hidden] {
+    display: none;
+}
+
+.dgt-md-lead,
+.dgt-md-foot {
+    margin: 0 0 8px;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.dgt-md-foot {
+    margin: 10px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.dgt-md-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dgt-md-list li {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 70px 46px;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.dgt-md-list--eff li {
+    grid-template-columns: 30px minmax(0, 1fr) 26px 34px 46px;
+}
+
+.dgt-md-pos,
+.dgt-md-w {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.dgt-md-name {
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dgt-md-grade {
+    font-weight: 800;
+    font-size: 0.72rem;
+}
+
+.dgt-md-bar {
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--text-muted) 18%, transparent);
+    overflow: hidden;
+}
+
+.dgt-md-bar i {
+    display: block;
+    height: 100%;
+    background: var(--team-color, var(--accent-red));
+}
+
+.dgt-md-num {
+    text-align: right;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.dgt-md-num.up {
+    color: var(--accent-green, #30d158);
+}
+
+.dgt-md-num.down {
+    color: var(--accent-red);
 
 
 /* ================================

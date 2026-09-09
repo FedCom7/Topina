@@ -58,7 +58,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
  */
 /* Le due misure della festa. Stanno qui e non sparse nelle righe: touchdown e
    pick six devono vedersi identici, e i due field goal pure. */
-const FESTA_PIENA = { coriandoli: 76, razzi: 3, ogni: 620, dura: FUOCHI_MS,
+export const FESTA_PIENA = { coriandoli: 76, razzi: 3, ogni: 620, dura: FUOCHI_MS,
     // tre colpi e una coda lunga: si sente che e' successo qualcosa di grosso
     vibra: [70, 60, 70, 60, 220] };
 const FESTA_CALCIO = { coriandoli: 34, razzi: 2, ogni: 1150, dura: 5000,
@@ -174,6 +174,25 @@ export function montaLivello(host, cls = 'live-fx') {
 }
 
 /**
+ * I SOLI coriandoli attorno a un elemento. Sta staccato da `festaAttorno`
+ * perche' la festa del campione nella home vuole i coriandoli di qui ma i
+ * fuochi dai lati (`razziDaiLati`), non l'anello di scoppi attorno alla card:
+ * quella card e' larga quanto la pagina, e l'anello le scoppierebbe addosso.
+ */
+export function coriandoliAttorno(layer, slot, colori, opts = {}) {
+    if (!layer || !slot || !colori?.length) return false;
+    if (ridotto()) return false;
+    const dura = opts.dura || FUOCHI_MS;
+    const p = punto(layer, slot);
+    const meta = stretto() ? 0.5 : 1;
+
+    const ondate = Math.max(3, Math.round(dura / 2600));
+    coriandoli(layer, p, colori, Math.round((opts.coriandoli || 76) * meta),
+        ondate, dura / ondate, () => layer.isConnected);
+    return true;
+}
+
+/**
  * SOLO fuochi, razzi e coriandoli, attorno a un elemento qualunque: niente
  * timbro, niente fumetto, niente faro sul palco, nessuna coda.
  *
@@ -183,16 +202,12 @@ export function montaLivello(host, cls = 'live-fx') {
  * cioe' la rosa, che sta tutt'altrove nella pagina.
  */
 export function festaAttorno(layer, slot, colori, opts = {}) {
-    if (!layer || !slot || !colori?.length) return false;
-    if (ridotto()) return false;
+    if (!coriandoliAttorno(layer, slot, colori, opts)) return false;
     const dura = opts.dura || FUOCHI_MS;
     const p = punto(layer, slot);
     const meta = stretto() ? 0.5 : 1;
     const vivo = () => layer.isConnected;
 
-    const ondate = Math.max(3, Math.round(dura / 2600));
-    coriandoli(layer, p, colori, Math.round((opts.coriandoli || 76) * meta),
-        ondate, dura / ondate, vivo);
     // I razzi salgono sotto al logo di chi ha segnato, non a caso per la
     // striscia: e' la stessa ragione per cui i coriandoli stanno da quella
     // parte — la festa deve dire anche di CHI e'.
@@ -350,21 +365,87 @@ function scoppio(layer, x, y, col, scala = 1) {
 }
 
 /** Un razzo che sale da sotto e scoppia in alto: serve al field goal da 50+. */
-function razzo(layer, colori, H, xFisso) {
+function razzo(layer, colori, H, xFisso, opts = {}) {
     const x = xFisso != null ? xFisso
         : rnd(layer.clientWidth * 0.25, layer.clientWidth * 0.75);
-    const apice = rnd(H * 0.07, H * 0.18);
+    // Senza `opts` esce esattamente il razzo di prima: e' quello che spara il
+    // Live a ogni touchdown, e non deve cambiare per una festa d'altrove.
+    const apice = opts.apice != null ? opts.apice : rnd(H * 0.07, H * 0.18);
+    const scala = opts.scala || 1;
     const col = pick(colori);
 
+    // Il colpo grosso ha anche la scia grossa: la larghezza va con la radice,
+    // se no a taglia 1.75 la scia sembra un tubo.
     const r = crea(layer, 'live-fx-rocket',
-        `left:${x}px;top:${H}px;background:linear-gradient(180deg,${col},transparent)`);
+        `left:${x}px;top:${H}px;width:${(3 * Math.sqrt(scala)).toFixed(1)}px;` +
+        `height:${Math.round(16 * scala)}px;` +
+        `background:linear-gradient(180deg,${col},transparent)`);
     via(r, [
         { transform: 'translate(-50%,0) scaleY(1)', opacity: 1 },
         { transform: `translate(-50%, ${apice - H}px) scaleY(1.8)`, opacity: 0.9, offset: 0.86 },
         { transform: `translate(-50%, ${apice - H}px) scaleY(0.2)`, opacity: 0 },
     ], { duration: 640, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
 
-    setTimeout(() => { if (layer.isConnected) scoppio(layer, x, apice, col, 1.1); }, 620);
+    setTimeout(() => { if (layer.isConnected) scoppio(layer, x, apice, col, 1.1 * scala); }, 620);
+}
+
+/**
+ * Fuochi che salgono DAI DUE LATI, di taglie diverse. Serve alla festa del
+ * campione nella home, dove non c'e' un giocatore a cui stare addosso: la
+ * card e' larga quanto la pagina e i razzi tutti nello stesso punto — quello
+ * che fa `festaAttorno` — si leggono come uno sbuffo solo.
+ *
+ * Tre cose lo rendono uno spettacolo invece che una fila di scoppi uguali:
+ *
+ * 1. I LATI, alternati. Le due bande sono i bordi esterni del livello (2-13%
+ *    e 86-96%): i colpi salgono ai fianchi e scoppiano sopra, non davanti a
+ *    quello che c'e' scritto. Le bande non toccano il bordo del livello — uno
+ *    scoppio ha un raggio suo, e sul bordo esatto ne resterebbe fuori meta'.
+ * 2. LE TAGLIE. `scala` fra 0.65 e 1.75 muove insieme scia, numero di
+ *    scintille e raggio dello scoppio (vedi `scoppio`).
+ * 3. L'ALTEZZA VA CON LA TAGLIA, che e' come vanno i fuochi veri: il colpo
+ *    grosso sale in cima, quello piccolo scoppia basso. Sorteggiando le due
+ *    cose separatamente si ottengono bombe che scoppiano all'altezza delle
+ *    ginocchia, e si vede che e' finto.
+ *
+ * `opts.tetto` e' fin dove possono salire, in pixel dal bordo alto del
+ * livello: chi chiama sa dove comincia il soggetto e non vuole scoppi
+ * davanti. Senza, si prende un terzo del livello — e allora i colpi piccoli
+ * scoppiano a mezza altezza, cioe' addosso a quello che c'e' sotto.
+ *
+ * Il primo colpo e' una salva doppia, uno per lato insieme: apre la festa
+ * senza aspettare il turno dell'alternanza.
+ */
+export function razziDaiLati(layer, colori, opts = {}) {
+    if (!layer || !colori?.length) return false;
+    if (ridotto()) return false;
+    const dura = opts.dura || FUOCHI_MS;
+    const ogni = opts.ogni || 760;
+    // Sul telefono il livello e' stretto e i colpi grossi lo riempiono tutto.
+    const meta = stretto() ? 0.62 : 1;
+    const fine = performance.now() + dura;
+
+    const uno = (lato) => {
+        const H = layer.clientHeight, W = layer.clientWidth;
+        const scala = rnd(0.65, 1.75) * meta;
+        const t = (scala / meta - 0.65) / 1.1;                  // 0 piccolo, 1 grosso
+        const tetto = opts.tetto || H * 0.34;
+        const apice = Math.max(H * 0.02,
+            tetto * (0.95 - 0.78 * t) + rnd(-tetto * 0.06, tetto * 0.06));
+        const x = lato ? rnd(W * 0.86, W * 0.96) : rnd(W * 0.04, W * 0.14);
+        razzo(layer, colori, H, x, { scala, apice });
+    };
+
+    uno(0); uno(1);                                             // la salva d'apertura
+    let lato = 0;
+    const poi = () => {
+        if (!layer.isConnected || performance.now() > fine) return;
+        uno(lato);
+        lato ^= 1;
+        setTimeout(poi, rnd(ogni * 0.55, ogni * 1.45) / meta);
+    };
+    setTimeout(poi, ogni);
+    return true;
 }
 
 /**

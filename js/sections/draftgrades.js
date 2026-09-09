@@ -42,8 +42,9 @@ import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=683';
-import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=593';
-import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=61';
+import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=594';
+import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=62';
+import { decorateTerms } from '../ui/glossary.js?v=4';
 
 let initialized = false;
 let currentYear = null;
@@ -142,6 +143,7 @@ async function loadYear() {
         if (currentYear !== year) return;
 
         content.innerHTML = renderGrades(year, grades, meta, pred, model, dg);
+        decorateTerms(content);   // i termini si marcano sul testo disegnato
         loadHeadshots(content, year);
         setTimeout(() => console.log(`[draftgrades] pick matchate su proiezioni ${year}: ${evaluator.matched()}/${picks.length}`), 0);
     } catch (e) {

@@ -32,7 +32,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
         rel="stylesheet">
     <!-- il CSS VERO del sito: se una cosa si vede bene qui, si vede bene là -->
-    <link rel="stylesheet" href="css/main.css?v=1110">
+    <link rel="stylesheet" href="css/main.css?v=1111">
     <style>
         /* Cromatura del banco di prova. Volutamente diversa dal sito: deve
            essere ovvio a colpo d'occhio che non si sta guardando la pagina
@@ -279,19 +279,24 @@
             <a href="preview.html">Preview hub</a> ·
             <span class="current">Score-bug lab</span> ·
             <a href="preview-player-card.html">Player card lab</a> ·
+            <a href="preview-field.html">Field lab</a> ·
+            <a href="preview-sb-logo.html">SB logo lab</a> ·
             <a href="index.html">Real site</a>
         </p>
         <p class="lab-sub">
-            Il componente vero (<code>js/ui/score-bug.js</code>) con il CSS vero del sito, in tutti gli stati
-            e a tutte le larghezze. Squadre reali, punteggi inventati. Non è collegato al sito: finché non
-            si decide, Live, Game Center e lo storico continuano a usare il banner di adesso.
+            Due componenti veri col CSS vero del sito, in tutti gli stati e a tutte le larghezze.
+            <b>Attuale</b> (<code>js/ui/score-bug-current.js</code>) è il tabellone che il sito disegna
+            adesso in <code>#live</code>: modificarlo qui significa modificare quello che si vede la
+            domenica sera. Le altre quattro (<code>js/ui/score-bug.js</code>) sono la proposta, e non sono
+            ancora collegate a niente. Squadre reali, punteggi inventati.
         </p>
         <div class="lab-controls">
             <div class="lab-group" id="lab-variant">
                 <span>Variante</span>
+                <button class="lab-btn on" data-variant="current">Attuale (in uso)</button>
                 <button class="lab-btn" data-variant="broadcast">Broadcast</button>
                 <button class="lab-btn" data-variant="broadcast2">Broadcast 2</button>
-                <button class="lab-btn on" data-variant="marquee">Marquee</button>
+                <button class="lab-btn" data-variant="marquee">Marquee</button>
                 <button class="lab-btn" data-variant="ticker">Ticker</button>
                 <button class="lab-btn" data-variant="all">Tutte</button>
             </div>
@@ -337,6 +342,18 @@
     <main class="lab-body">
         <div class="lab-stage" id="stage" style="max-width:1100px"></div>
         <div class="lab-stage lab-note" style="max-width:1100px">
+            <b>Attuale.</b> La prima variante non è una proposta: è il banner che il sito disegna adesso in
+            Live, tirato dentro da <code>js/ui/score-bug-current.js</code> — lo stesso modulo che usa
+            <code>live.js</code>. Modificarlo qui lo modifica sul sito, quindi si guarda prima nei sei stati
+            e poi si tocca. La barra in basso è la quota di punti fatti, non una probabilità di vittoria: il
+            pulsante &laquo;barra quota&raquo; la toglie per vedere il banner senza.
+            <br><br>
+            <b>Un avvertimento sulla larghezza.</b> L'attuale si rimpicciolisce con una
+            <code>@media (max-width:768px)</code>, che guarda la FINESTRA, non la colonna: coi pulsanti
+            Tablet/Mobile la colonna si stringe ma i caratteri restano quelli del desktop, e i nomi si
+            schiacciano. Non è un difetto del banner — per vederlo davvero da telefono va stretta la
+            finestra. Le quattro varianti nuove non hanno questo problema perché si misurano da sole.
+            <br><br>
             <b>Dove siamo.</b> La <b>marquee</b> resta la forma principale — profilo con la rientranza in alto,
             nomi fuori dalla sagoma. La <b>broadcast</b> (scura) è quella che si sposa col resto del sito.
             La <b>broadcast 2</b> è ricalcata sul tabellone NFL/YouTube: barra chiara, stemmi ai capi, striscia
@@ -352,6 +369,13 @@
 
     <script type="module">
         import { scoreBugHTML } from './js/ui/score-bug.js?v=1';
+        /* Il tabellone ATTUALE è quello vero, importato dal sito: quello che si
+           tocca qui è quello che il sito disegna. Nel banco arriva senza il
+           contorno di Live (niente teamNameHTML da data.js, che ha un await su
+           Firebase in cima al modulo): i nomi li componiamo qui sotto nella
+           stessa forma che refitTeamNames() si aspetta. */
+        import { currentScoreBugHTML } from './js/ui/score-bug-current.js?v=1';
+        import { refitTeamNames } from './js/utils/team-abbr.js?v=1';
 
         /* Le quattro squadre VERE: nomi, colori e loghi sono quelli di
            js/sections/team.js. Copiati qui e non importati apposta — team.js
@@ -429,13 +453,60 @@
             },
         ];
 
+        /* ── Il tabellone ATTUALE, alimentato con le stesse fixture ───────
+           `currentScoreBugHTML` vuole i pezzi già pronti (HTML del nome, HTML
+           del punteggio): è la stessa cosa che gli passa live.js, e non è un
+           caso — così il banco non re-inventa le regole del punteggio, le
+           ricopia dalle due funzioni che le tengono in live.js. */
+
+        // `fmt` di live.js: UNA cifra decimale, non due come nello score-bug nuovo.
+        const fmt1 = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+        // teamNameHTML() di data.js, con le sigle di TEAM_ABBR.
+        const ABBR = { 'Capi dei Pianeti': 'CDP', Lasers: 'LAS', Oscurus: 'OSC', Sommo: 'SOM' };
+        const nameHTML = (n) => `<span class="tname" data-abbr="${ABBR[n] || n}">${n}</span>`;
+
+        // bannerScoreHTML() di live.js: il numero vero sta SEMPRE in .pts-val da
+        // solo (countUp() scrive lì dentro) e la proiezione gli resta fuori.
+        function scoreHTML(side, state) {
+            if (state === 'undrafted') return '–';
+            if (state === 'projected') return `<span class="pts-val proj-pts">${fmt1(side.projected)}</span>`;
+            const prev = side.projected == null ? ''
+                : `<small class="pts-proj" title="projected">${fmt1(side.projected)}</small>`;
+            return `<span class="pts-val">${fmt1(side.score)}</span>${prev}`;
+        }
+
+        function currentHTML(c) {
+            const { left, right, state } = c;
+            const drafted = state !== 'undrafted';
+            const eff = (t) => (state === 'projected' ? t.projected : t.score) || 0;
+            const s1 = eff(left), s2 = eff(right), tot = s1 + s2;
+            // Nel sito la barra NON è la winProb: è la quota di punti fatti.
+            const pct = tot > 0 ? Math.round((s1 / tot) * 100) : 50;
+            const side = (t, win) => ({
+                nameHTML: nameHTML(t.name), logo: t.logo, color: t.color,
+                scoreHTML: scoreHTML(t, state), winner: drafted && win, selected: !!t.selected,
+            });
+            // Live tiene sempre una squadra selezionata: senza, il contorno colorato
+            // sul nome non si vedrebbe mai e mancherebbe metà del componente.
+            const l = side(left, s1 >= s2), r = side(right, s2 >= s1);
+            if (!l.selected && !r.selected) l.selected = true;
+            return currentScoreBugHTML({
+                left: l, right: r,
+                mid: state === 'live' ? 'live' : 'vs',
+                probPct: c.prob === false ? null : pct,
+                selColor: (l.selected ? left : right).color,
+            });
+        }
+
         const VARIANTS = {
+            current: 'Attuale — il banner che il sito disegna oggi in Live',
             broadcast: 'Broadcast — scura, quella che sta col resto del sito',
             broadcast2: 'Broadcast 2 — ricalcata sul tabellone NFL/YouTube',
             marquee: 'Marquee — la forma principale',
             ticker: 'Ticker — una riga sola',
         };
-        const state = { variant: 'marquee', width: 1100, prob: true, color: 'dark' };
+        const state = { variant: 'current', width: 1100, prob: true, color: 'dark' };
 
         function render() {
             const vs = state.variant === 'all' ? Object.keys(VARIANTS) : [state.variant];
@@ -443,7 +514,9 @@
                 const m = { ...c.m, winProb: state.prob ? c.m.winProb : null };
                 const bugs = vs.map(v => `
                     ${vs.length > 1 ? `<div class="lab-ruler">${VARIANTS[v]}</div>` : ''}
-                    ${scoreBugHTML(m, { variant: v, theme: state.color })}`).join('');
+                    ${v === 'current'
+                        ? currentHTML({ ...m, prob: state.prob })
+                        : scoreBugHTML(m, { variant: v, theme: state.color })}`).join('');
                 return `
                 <section class="lab-case">
                     <h2>${c.title}</h2>
@@ -452,6 +525,10 @@
                 </section>`;
             }).join('');
             document.querySelectorAll('.lab-stage').forEach(el => { el.style.maxWidth = state.width + 'px'; });
+            // Nel sito ci pensa il router: qui va chiamato a mano, altrimenti a
+            // 390px i nomi restano interi e il banner attuale sembra rotto
+            // quando invece si sarebbe abbreviato da solo.
+            requestAnimationFrame(() => refitTeamNames(document.getElementById('stage')));
         }
 
         function group(id, key, cast = (v) => v) {

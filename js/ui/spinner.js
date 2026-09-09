@@ -56,13 +56,21 @@ const ART = `
       <g class="tl-run-forearm"><line x1="24.5" y1="20" x2="24.5" y2="25.5" /></g>
     </g>
   </g>
-  <!-- palla: entra da destra in parabola, poi resta agganciata al fianco -->
+  <!-- Palla: entra da destra in parabola col muso sempre sulla tangente, poi
+       resta agganciata al fianco. La spirale non è l'ovale che ruota (quello
+       sarebbe una palla che gira su se stessa a campanile): l'asse lungo sta
+       fermo sulla traiettoria e a girargli intorno sono le cuciture, che
+       salgono sulla faccia, si appiattiscono sul bordo e ricompaiono dal basso.
+       Per questo le cuciture stanno in un gruppo a parte: la loro animazione
+       vive nel sistema di riferimento della palla già orientata. -->
   <g class="tl-run-ball">
     <ellipse class="tl-run-ball-body" cx="0" cy="0" rx="4.2" ry="2.7" />
-    <line class="tl-run-lace" x1="-2" y1="0" x2="2" y2="0" />
-    <line class="tl-run-lace" x1="-1.1" y1="-0.6" x2="-1.1" y2="0.6" />
-    <line class="tl-run-lace" x1="0" y1="-0.6" x2="0" y2="0.6" />
-    <line class="tl-run-lace" x1="1.1" y1="-0.6" x2="1.1" y2="0.6" />
+    <g class="tl-run-laces">
+      <line class="tl-run-lace" x1="-2" y1="0" x2="2" y2="0" />
+      <line class="tl-run-lace" x1="-1.1" y1="-0.6" x2="-1.1" y2="0.6" />
+      <line class="tl-run-lace" x1="0" y1="-0.6" x2="0" y2="0.6" />
+      <line class="tl-run-lace" x1="1.1" y1="-0.6" x2="1.1" y2="0.6" />
+    </g>
   </g>
 </svg>`;
 

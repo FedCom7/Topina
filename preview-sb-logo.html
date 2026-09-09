@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Super Bowl logo lab — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        Banco di prova per i loghi del Super Bowl in numero romano
+        (js/ui/sb-logo-svg.js). Il punto non è disegnare UN logo: è avere il
+        sistema con cui l'edizione dell'anno si ritocca senza rifare il
+        disegno — come fa l'NFL, che da LI in poi tiene lo stesso lockup e
+        cambia solo la pelle del numero e le rifiniture.
+
+        Qui dentro si fa tre cose:
+          1. si gira una manopola alla volta sull'edizione scelta;
+          2. si guarda la SERIE (tutte le edizioni insieme): un'edizione può
+             essere bella da sola e stonare in fila con le altre, ed è in fila
+             che si vedranno sulla pagina squadra;
+          3. si copia lo scarto già pronto da incollare in SB_EDITIONS, che è
+             l'unico posto dove va scritto un anno.
+
+        Le prove piccole (24-56px) non sono un vezzo: lo sticker Super Bowl di
+        oggi vive nell'hero della pagina squadra a poche decine di pixel. Un
+        numero romano lungo che a 400px è magnifico e a 32px è una macchia non
+        è adottabile.
+
+        Niente Firebase e niente dati di lega: le edizioni sono aritmetica
+        (2019 = I), il resto sono manopole.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- I caratteri dei blocchi: uno ogni 7 edizioni. Se il logo entra nel
+         sito, questa riga va portata anche in index.html — il modulo li chiama
+         per nome e senza il file il browser ripiega sul carattere di sistema. -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800;900&family=Anton&family=Playfair+Display:wght@900&family=Bebas+Neue&family=Alfa+Slab+One&family=Oswald:wght@700&family=Bungee&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito: serve allo sticker ovale di oggi, nel confronto -->
+    <link rel="stylesheet" href="css/main.css?v=1057">
+    <style>
+        /* Cromatura del banco, non del sito. Nessuna di queste classi finisce
+           mai in produzione. */
+        :root {
+            --lab-bg: #0a0a0b;
+            --lab-border: rgba(255, 255, 255, .14);
+            --lab-panel: rgba(255, 255, 255, .06);
+            --lab-muted: #8a8f98;
+        }
+
+        body {
+            margin: 0;
+            background: var(--lab-bg);
+            color: #f2efe4;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .lab-head {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--lab-border);
+            background: #141416;
+        }
+
+        .lab-title {
+            margin: 0 0 4px;
+            font-family: 'Inter Tight', sans-serif;
+            font-size: 1rem;
+            font-weight: 900;
+        }
+
+        .lab-title b {
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: #f59e0b;
+            color: #17171a;
+            font-size: .62rem;
+            letter-spacing: .12em;
+        }
+
+        .labnav {
+            margin: 0 0 10px;
+            font-size: .68rem;
+            color: var(--lab-muted);
+        }
+
+        .labnav a {
+            color: var(--lab-muted);
+        }
+
+        .labnav a:hover {
+            color: #fff;
+        }
+
+        .labnav .current {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .lab-sub {
+            max-width: 82ch;
+            margin: 0 0 12px;
+            font-size: .78rem;
+            line-height: 1.5;
+            color: var(--lab-muted);
+        }
+
+        .lab-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            align-items: center;
+        }
+
+        .lab-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .lab-group>span {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        .lab-btn {
+            padding: 5px 10px;
+            border: 1px solid var(--lab-border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--lab-muted);
+            font: inherit;
+            font-size: .7rem;
+            cursor: pointer;
+        }
+
+        .lab-btn.on {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, .16);
+            color: #fff;
+        }
+
+        select,
+        input[type=text] {
+            padding: 4px 8px;
+            border: 1px solid var(--lab-border);
+            border-radius: 6px;
+            background: #17171a;
+            color: #fff;
+            font: inherit;
+            font-size: .72rem;
+        }
+
+        input[type=color] {
+            width: 32px;
+            height: 26px;
+            padding: 0;
+            border: 1px solid var(--lab-border);
+            border-radius: 6px;
+            background: #17171a;
+            cursor: pointer;
+        }
+
+        .lab-body {
+            padding: 22px 20px 80px;
+            display: grid;
+            gap: 26px;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .lab-cap {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: .66rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        .lab-cap b {
+            color: #fff;
+            letter-spacing: .08em;
+        }
+
+        /* Due fondi, perché un logo si giudica su entrambi: la pagina squadra
+           è scura, un'esportazione finisce spesso su bianco. */
+        .grounds {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .ground {
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            border: 1px solid var(--lab-border);
+            border-radius: 12px;
+        }
+
+        .ground.dark {
+            background: #14161b;
+        }
+
+        .ground.light {
+            background: #edeae1;
+        }
+
+        .ground svg {
+            width: 340px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Scaletta di misure: la prova che conta davvero. */
+        .sizes {
+            display: flex;
+            align-items: flex-end;
+            gap: 22px;
+            flex-wrap: wrap;
+            padding: 16px 18px;
+            border: 1px solid var(--lab-border);
+            border-radius: 12px;
+            background: var(--lab-panel);
+        }
+
+        .sizes figure {
+            margin: 0;
+            display: grid;
+            justify-items: center;
+            gap: 6px;
+        }
+
+        .sizes figcaption {
+            font-size: .58rem;
+            letter-spacing: .1em;
+            color: var(--lab-muted);
+        }
+
+        /* La serie: tutte le edizioni con il tema del loro anno. */
+        .series {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+            gap: 10px;
+        }
+
+        .series button {
+            display: grid;
+            gap: 6px;
+            justify-items: center;
+            padding: 12px 8px 10px;
+            border: 1px solid var(--lab-border);
+            border-radius: 12px;
+            background: #14161b;
+            color: var(--lab-muted);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .series button.on {
+            border-color: #f59e0b;
+            color: #fff;
+        }
+
+        .series svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .series em {
+            font-size: .52rem;
+            font-style: normal;
+            letter-spacing: .08em;
+            color: #6b7078;
+        }
+
+        .series small {
+            font-size: .6rem;
+            letter-spacing: .1em;
+        }
+
+        /* Il confronto con i PNG fatti a mano. */
+        .today {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .today figure {
+            margin: 0;
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+            padding: 14px;
+            border: 1px solid var(--lab-border);
+            border-radius: 12px;
+            background: #edeae1;
+        }
+
+        .today img,
+        .today svg {
+            width: 240px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .today figcaption {
+            font-size: .62rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #4a4a4a;
+        }
+
+        .today figcaption b {
+            color: #111;
+        }
+
+        .code {
+            margin: 0;
+            padding: 14px 16px;
+            border: 1px solid var(--lab-border);
+            border-radius: 12px;
+            background: #0e0f12;
+            color: #cfe3c8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .72rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .lab-note {
+            max-width: 82ch;
+            font-size: .76rem;
+            line-height: 1.65;
+            color: var(--lab-muted);
+        }
+
+        .lab-note b {
+            color: #fff;
+        }
+
+        .lab-fixture {
+            color: #f59e0b;
+        }
+
+        @media (max-width: 760px) {
+            .grounds {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="lab-head">
+        <h1 class="lab-title">Super Bowl logo lab <b>DEV</b></h1>
+        <p class="labnav">
+            <a href="preview.html">Preview hub</a> ·
+            <a href="preview-scorebug.html">Score-bug lab</a> ·
+            <a href="preview-player-card.html">Player card lab</a> ·
+            <a href="preview-field.html">Field lab</a> ·
+            <span class="current">SB logo lab</span> ·
+            <a href="index.html">Real site</a>
+        </p>
+        <p class="lab-sub">
+            Il logo del Super Bowl in numero romano (<code>js/ui/sb-logo-svg.js</code>), ricalcato sui tre PNG
+            fatti a mano che abbiamo già (<code>Superbowl-logo/superbowl_{i,ii,vii}_logo.png</code>): numero
+            <b>spaccato attorno al Lombardi</b>, una <b>scena dentro le lettere</b>, la barra «SUPER BOWL» sotto.
+            Le manopole qui sotto sono le stesse chiavi di <code>SB_EDITIONS</code>: quando il risultato piace si
+            copia lo scarto stampato in fondo e si incolla nel registro. La lega parte nel 2019, quindi
+            2019 = <b>I</b>.
+            <span class="lab-fixture">Niente Firebase: le edizioni sono aritmetica, il resto sono manopole.</span>
+        </p>
+        <div class="lab-controls">
+            <div class="lab-group">
+                <span>Edizione</span><select id="ed"></select>
+            </div>
+            <div class="lab-group">
+                <span>Scena</span><select id="scene"></select>
+            </div>
+            <div class="lab-group">
+                <span>Motivo</span><select id="motif"></select>
+            </div>
+            <div class="lab-group">
+                <span>Carattere</span><select id="face"></select>
+            </div>
+            <div class="lab-group">
+                <span>Trofeo</span><select id="figure"></select>
+            </div>
+            <div class="lab-group">
+                <span>Bordo</span><select id="rim"></select>
+            </div>
+            <div class="lab-group">
+                <span>Alto</span><input type="color" id="accent">
+                <span>Basso</span><input type="color" id="accent2">
+                <span>Metallo</span><input type="color" id="metal">
+                <span>Trofeo</span><input type="color" id="statue">
+                <span>Scritta</span><input type="color" id="barInk">
+            </div>
+            <div class="lab-group">
+                <span>Barra</span><input type="text" id="wordmark" size="11">
+            </div>
+            <div class="lab-group" id="layers">
+                <span>Strati</span>
+                <button class="lab-btn on" data-layer="numeral">Numero</button>
+                <button class="lab-btn on" data-layer="trophy">Trofeo</button>
+                <button class="lab-btn on" data-layer="bar">Barra</button>
+            </div>
+            <div class="lab-group" id="flags">
+                <span>Extra</span>
+                <button class="lab-btn" data-flag="emblem">Emblema</button>
+                <button class="lab-btn" data-flag="relief">Rilievo (luce vera)</button>
+                <button class="lab-btn" data-flag="season">Riga stagione</button>
+            </div>
+            <div class="lab-group">
+                <button class="lab-btn" id="reset">Torna al registro</button>
+                <button class="lab-btn" id="dl">Scarica .svg</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="lab-body">
+        <section>
+            <div class="lab-cap"><b>L'edizione scelta</b><span id="capOne">…</span></div>
+            <div class="grounds">
+                <div class="ground dark" id="gDark"></div>
+                <div class="ground light" id="gLight"></div>
+            </div>
+        </section>
+
+        <section>
+            <div class="lab-cap"><b>Alla misura in cui si vedrà</b><span>hero della pagina squadra ≈ 56px</span></div>
+            <div class="sizes" id="sizes"></div>
+        </section>
+
+        <section>
+            <div class="lab-cap"><b>La serie</b><span id="capSeries">…</span></div>
+            <div class="series" id="series"></div>
+        </section>
+
+        <section>
+            <div class="lab-cap"><b>Contro il PNG fatto a mano</b><span id="capPng">…</span></div>
+            <div class="today" id="today"></div>
+        </section>
+
+        <section>
+            <div class="lab-cap"><b>Da incollare in SB_EDITIONS</b><span id="capCode">…</span></div>
+            <pre class="code" id="code"></pre>
+        </section>
+
+        <div class="lab-note">
+            <b>Cosa guardare.</b> Prima il confronto col PNG, che è l'unico giudice che abbiamo: il disegnato
+            deve stare in piedi accanto al fatto a mano, non somigliargli pixel per pixel. Le due cose che il PNG
+            fa e l'SVG no sono il <b>vetro</b> e la <b>fotografia</b> dentro le lettere (le montagne del II sono
+            uno scatto vero). Le due che l'SVG fa e il PNG no: pesa 4 KB invece di 900, e le edizioni
+            <b>III–VI non esistono come file</b> — infatti il tabellone playoff ne chiede quattro che rispondono
+            404, nascosti da un <code>onerror</code>.
+            <br><br>
+            <b>Poi la serie.</b> Sette loghi con sette scene diverse sembrano sette leghe diverse: la regola dei
+            loghi NFL è che a cambiare sia poco — colore dell'anno e riempimento del numero — mentre trofeo,
+            barra e proporzioni restano fermi.
+            <br><br>
+            <b>Poi il piccolo.</b> A 32px reggono solo la sagoma del trofeo e la massa delle lettere: i motivi
+            diventano sporco e la barra una riga grigia. Se due edizioni a 32px non si distinguono, i colori che
+            gli hai dato non sono abbastanza distanti.
+            <br><br>
+            <b>Il numero si spacca da solo.</b> VII diventa «V | II» come nel PNG, XVIII diventa «XV | III», e
+            l'edizione I non ha numero affatto — una I sola è il gambo del trofeo, ed è esattamente ciò che
+            succede nel PNG del 2019. Le edizioni future nel menu (fino alla XX) servono a vedere quando il
+            numero comincia a stringersi: il corpo lo decide una tabella di larghezze, non una misura nel DOM,
+            perché il logo si deve poter generare anche per un file da salvare.
+            <br><br>
+            <b>Quando piace</b>, l'unico posto da toccare è <code>SB_EDITIONS</code> in
+            <code>js/ui/sb-logo-svg.js</code>: la riga stampata qui sopra. Il disegno non si tocca per un anno —
+            se serve toccarlo, è nato un template nuovo e va deciso a parte.
+        </div>
+    </main>
+
+    <script type="module">
+        import {
+            superBowlLogoSVG, sbTheme, sbYear, toRoman, splitRoman, faceFor, blockFor,
+            SB_DEFAULT, SB_EDITIONS, SCENES, MOTIFS, FACE_LIST, FIGURES, RIMS, LAST_EDITION,
+        } from './js/ui/sb-logo-svg.js?v=7';
+
+        const $ = (s) => document.querySelector(s);
+
+        /* I tre loghi disegnati a mano. Sono il metro di paragone: le altre
+           quattro edizioni un file non ce l'hanno proprio, ed è metà del
+           motivo per cui esiste questo banco. */
+        const PNG = {
+            1: 'Superbowl-logo/superbowl_i_logo.png',
+            2: 'Superbowl-logo/superbowl_ii_logo.png',
+            7: 'Superbowl-logo/superbowl_vii_logo.png',
+        };
+
+        /* Fino alla XX: le prime sette sono le nostre, le altre servono a
+           provare i numeri romani lunghi prima che arrivino davvero. */
+        const LAST_REAL = LAST_EDITION;
+        const ALL = Array.from({ length: LAST_EDITION }, (_, i) => i + 1);
+
+        const state = {
+            ed: LAST_REAL,
+            over: {},                                        // manopole girate qui
+            show: { numeral: true, trophy: true, bar: true, season: true },
+        };
+
+        const theme = () => sbTheme(state.ed, state.over);
+
+        // ── Menu, costruiti dalle liste del modulo ────────────────────
+        const fill = (sel, list) => {
+            $(sel).innerHTML = list.map((v) => `<option value="${v}">${v}</option>`).join('');
+        };
+        fill('#scene', SCENES);
+        fill('#motif', MOTIFS);
+        fill('#face', FACE_LIST);
+        fill('#figure', FIGURES);
+        fill('#rim', RIMS);
+        $('#ed').innerHTML = ALL.map((e) => {
+            const c = SB_EDITIONS[e]?.city || '';
+            return `<option value="${e}">${toRoman(e)} — ${sbYear(e)} · ${c}${PNG[e] ? ' · PNG' : ''}</option>`;
+        }).join('');
+
+        function syncControls() {
+            const t = theme();
+            $('#ed').value = state.ed;
+            for (const k of ['scene', 'motif', 'face', 'figure', 'rim', 'accent', 'accent2', 'metal', 'statue', 'barInk', 'wordmark']) {
+                $(`#${k}`).value = t[k];
+            }
+            $('#layers').querySelectorAll('[data-layer]').forEach((b) => {
+                b.classList.toggle('on', !!state.show[b.dataset.layer]);
+            });
+            $('#flags').querySelectorAll('[data-flag]').forEach((b) => {
+                b.classList.toggle('on', !!t[b.dataset.flag]);
+            });
+        }
+
+        // ── Disegno ──────────────────────────────────────────────────
+        // Ogni copia a schermo vuole il suo prefisso di id: due gradienti
+        // omonimi nella stessa pagina si sovrascrivono, e il logo grande
+        // finirebbe tinto come quello da 24px.
+        const logo = (idPrefix) => superBowlLogoSVG({
+            edition: state.ed, theme: state.over, show: state.show, idPrefix,
+        });
+
+        function render() {
+            const roman = toRoman(state.ed), year = sbYear(state.ed);
+
+            $('#gDark').innerHTML = logo('big-dark');
+            $('#gLight').innerHTML = logo('big-light');
+
+            const bytes = new Blob([logo('x')]).size;
+            const [l, r] = splitRoman(roman);
+            const cut = l || r ? `${l || '—'} | ${r}` : 'nessun numero: solo il trofeo';
+            const t = theme();
+            $('#capOne').textContent = `${roman} · ${year} · ${t.city || '—'} · ${cut}`
+                + ` · blocco ${blockFor(state.ed)} (${t.face}) · ${(bytes / 1024).toFixed(1)} KB`;
+
+            $('#sizes').innerHTML = [200, 120, 72, 56, 32, 24].map((px, i) => `
+                <figure>
+                    <div style="width:${px}px">${logo(`sz${i}`)}</div>
+                    <figcaption>${px}px</figcaption>
+                </figure>`).join('');
+            $('#sizes').querySelectorAll('svg').forEach((el) => { el.style.width = '100%'; el.style.height = 'auto'; });
+
+            // La serie usa il tema DEL REGISTRO per tutte tranne quella scelta:
+            // serve a vedere l'edizione ritoccata in mezzo alle altre come stanno.
+            $('#series').innerHTML = ALL.map((e) => {
+                const svg = e === state.ed
+                    ? superBowlLogoSVG({ edition: e, theme: state.over, show: state.show, idPrefix: `se${e}` })
+                    : superBowlLogoSVG({ edition: e, idPrefix: `se${e}` });
+                const c = SB_EDITIONS[e]?.city || '';
+                return `<button data-ed="${e}" class="${e === state.ed ? 'on' : ''}">
+                    ${svg}<small>${toRoman(e)} · ${c}</small>
+                    <em>blocco ${blockFor(e)} · ${faceFor(e)}</em></button>`;
+            }).join('');
+            $('#capSeries').textContent = `${LAST_EDITION} edizioni · una località a testa · il carattere cambia ogni 7`;
+
+            renderCompare(roman, year);
+            renderCode();
+        }
+
+        /* Il confronto: a fianco il PNG dell'edizione se esiste, se no quello
+           del VII — che è il logo più definito dei tre e quindi il paragone
+           più severo — dicendo a schermo che è di un altro anno. */
+        function renderCompare(roman, year) {
+            const own = PNG[state.ed];
+            const ref = own || PNG[7];
+            const refEd = own ? state.ed : 7;
+            const kb = own ? '' : '';
+            $('#today').innerHTML = `
+                <figure>
+                    <img src="${ref}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'file mancante',style:'color:#8a2f2f;font-size:.7rem'}))">
+                    <figcaption>${own
+                        ? `<b>PNG fatto a mano</b> · ${toRoman(refEd)} · ${sbYear(refEd)}`
+                        : `<b>PNG</b> · per la ${toRoman(state.ed)} non esiste — qui c'è la ${toRoman(refEd)}`}</figcaption>
+                </figure>
+                <figure>
+                    ${logo('cmp')}
+                    <figcaption><b>SVG disegnato</b> · ${toRoman(state.ed)} · ${year}</figcaption>
+                </figure>`;
+            $('#capPng').textContent = own
+                ? 'stessa edizione, stessa misura'
+                : `per la ${toRoman(state.ed)} non c'è nessun PNG: è il caso normale, non l'eccezione`;
+        }
+
+        /* Lo scarto: solo le chiavi diverse dal default, che è esattamente
+           quello che deve finire nel registro. `year` resta sempre, perché è
+           l'unica chiave che non è una preferenza. */
+        function renderCode() {
+            const t = theme();
+            const diff = {};
+            for (const k of Object.keys(SB_DEFAULT)) {
+                if (t[k] !== SB_DEFAULT[k]) diff[k] = t[k];
+            }
+            const body = Object.entries({ year: sbYear(state.ed), ...diff })
+                .map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v}'` : v}`)
+                .join(', ');
+            $('#code').textContent = `${state.ed}: { ${body} },`;
+            const n = Object.keys(diff).length;
+            $('#capCode').textContent = n
+                ? `${n} scarto${n > 1 ? 'i' : ''} sul default`
+                : 'nessuno scarto: è il template nudo';
+        }
+
+        // ── Manopole ─────────────────────────────────────────────────
+        const set = (k, v) => { state.over[k] = v; render(); };
+
+        $('#ed').onchange = (e) => { state.ed = Number(e.target.value); state.over = {}; syncControls(); render(); };
+        for (const k of ['scene', 'motif', 'face', 'figure', 'rim']) $(`#${k}`).onchange = (e) => set(k, e.target.value);
+        for (const k of ['accent', 'accent2', 'metal', 'statue', 'barInk']) $(`#${k}`).oninput = (e) => set(k, e.target.value);
+        $('#wordmark').oninput = (e) => set('wordmark', e.target.value);
+        $('#layers').onclick = (e) => {
+            const b = e.target.closest('[data-layer]'); if (!b) return;
+            const k = b.dataset.layer;
+            state.show[k] = !state.show[k];
+            b.classList.toggle('on', state.show[k]);
+            render();
+        };
+        $('#flags').onclick = (e) => {
+            const b = e.target.closest('[data-flag]'); if (!b) return;
+            const k = b.dataset.flag;
+            set(k, !theme()[k]);
+            syncControls();
+        };
+        $('#series').onclick = (e) => {
+            const b = e.target.closest('[data-ed]'); if (!b) return;
+            state.ed = Number(b.dataset.ed); state.over = {}; syncControls(); render();
+        };
+        $('#reset').onclick = () => { state.over = {}; syncControls(); render(); };
+        $('#dl').onclick = () => {
+            // standalone: col xmlns, se no il file salvato non si apre da solo.
+            const svg = superBowlLogoSVG({
+                edition: state.ed, theme: state.over, show: state.show,
+                idPrefix: 'sb', standalone: true,
+            });
+            const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+            const a = document.createElement('a');
+            a.href = url; a.download = `superbowl-${toRoman(state.ed)}-${sbYear(state.ed)}.svg`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        syncControls();
+        render();
+    </script>
+</body>
+
+</html>

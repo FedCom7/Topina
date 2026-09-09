@@ -25,7 +25,7 @@ import { getBestAvailable } from '../data/nfl-team-extras.js?v=1001';
 import {
     buildSeasonModel, fmt, keyStatLine, headshotImg, posBadge, drillRow,
     hydrateImages, limitedRows, toggleExtraRows, sumWeeklyStats, playerSeasonDrill,
-} from './analysis.js?v=774';
+} from './analysis.js?v=775';
 import { getPlayerWeekly } from '../data/player-full.js?v=656';
 
 let initialized = false;

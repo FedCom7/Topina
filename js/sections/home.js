@@ -44,16 +44,17 @@ import { teamsCardsHTML } from './teams.js?v=684';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=42';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
+import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=35';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=27';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=28';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
 import { scoreBugHTML } from '../ui/score-bug.js?v=1';
 import { getSeasonProjections } from '../data/projections.js?v=595';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
-import { evaluateLeague } from '../data/team-eval.js?v=593';
-import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=61';
+import { evaluateLeague } from '../data/team-eval.js?v=594';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=62';
 // Il motore di voto (computeGrades/makeEvaluator) vive in draftgrades.js, non
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
@@ -242,13 +243,21 @@ const MOSAIC = {
     ],
     REGULAR_SEASON: (ctx) => [
         cardHero(ctx),
-        cardLiveMatchups(ctx),
-        cardLastWeek(ctx),
+        // Settimana aperta e ultima chiusa stanno nella STESSA striscia
+        // (cardScoreboard): erano due card con lo stesso CTA.
+        cardScoreboard(ctx),
+        // Con le due card fuse, la classifica resterebbe sola in riga prima
+        // del rail a tutta larghezza. I numeri salgono ad affiancarla, come
+        // già in PRESEASON: due liste di quattro righe, la stessa forma.
         cardStandings(ctx),
+        cardNumbers(ctx),
         railTopPerformances(ctx),
         cardTeams(ctx),
-        cardMvpRace(ctx),
-        cardNumbers(ctx),
+        // Il rail e non la card a meta': con una card in meno le tre a mezza
+        // larghezza non si appaiano più e una resterebbe sola in riga, con
+        // mezzo mosaico vuoto accanto. È la stessa scelta dei playoff, dove
+        // la corsa all'MVP è già un rail.
+        railMvpRace(ctx),
     ],
     // A regular season finita la domanda cambia: non più "chi è in testa" ma
     // "come ci siamo arrivati".
@@ -1133,8 +1142,8 @@ function cardAllProField({ bundle, season }) {
  * Solo sulla stagione in corso: interrogare l'API della lega per un anno
  * chiuso non avrebbe niente "in corso" da dire.
  */
-async function cardLiveMatchups({ season }) {
-    if (String(season.year) !== String(CURRENT_SEASON)) return '';
+async function liveWeekBugs(season) {
+    if (String(season.year) !== String(CURRENT_SEASON)) return null;
 
     let week, matchups, drafted;
     try {
@@ -1142,9 +1151,9 @@ async function cardLiveMatchups({ season }) {
             season.year, null, (wk) => getWeekSchedule(season.year, wk)));
     } catch (e) {
         console.warn('[home] ESPN non raggiungibile per le sfide della settimana:', e.message);
-        return '';
+        return null;
     }
-    if (!matchups.length) return '';
+    if (!matchups.length) return null;
 
     // Le rose segnaposto di ESPN prima del draft non si mostrano mai: si passa
     // alle scelte vere caricate su Firebase, come in Game Center e Live.
@@ -1153,7 +1162,7 @@ async function cardLiveMatchups({ season }) {
         const draft = await fetchDraftData(CURRENT_SEASON).catch(() => null);
         leagueDrafted = !!draft && applyDraftLineups(matchups, draft);
     }
-    if (!leagueDrafted) return '';
+    if (!leagueDrafted) return null;
 
     await fillMissingProjections(matchups, season.year, week).catch(() => { });
 
@@ -1178,33 +1187,46 @@ async function cardLiveMatchups({ season }) {
         }, { variant: 'broadcast2' });
     }).join('');
 
+    return { week, bugs };
+}
+
+/** La striscia con le sole sfide in corso: playoff e settimana di SB, dove
+ *  l'ultima giornata chiusa la racconta già il tabellone del bracket. */
+async function cardLiveMatchups({ season }) {
+    const live = await liveWeekBugs(season);
+    if (!live) return '';
     return card({
         span: 'wide', cls: 'mc-scorebug-card',
-        kicker: `Week ${week}`,
+        kicker: `Week ${live.week}`,
         title: "This week's matchups",
-        body: `<div class="mc-scorebug-list">${bugs}</div>`,
+        body: `<div class="mc-scorebug-list">${live.bugs}</div>`,
         cta: 'Game Center', href: '#game-center',
     });
 }
 
 /**
- * Gli ultimi risultati chiusi, con la variante marquee dello score-bug — la
- * forma principale del banco di prova (preview-scorebug.html), profilo con
- * la rientranza in alto e i nomi fuori dalla sagoma. Non broadcast2: quella
- * resta su "This week's matchups" (cardLiveMatchups), qui si voleva l'altra.
+ * Le sfide dell'ultima giornata chiusa, stessa variante broadcast2 di quelle
+ * in corso ma in ANTRACITE (`theme: 'dark'`, i token --sb-bc-* scuri di
+ * main.css) invece che sulla carta chiara.
  *
- * Card a mezza larghezza normale, non più il riquadro piccolo di prima:
- * si stira come ogni altra card della riga (default `align-items: stretch`
- * della griglia) fino ad essere alta quanto la sua vicina — oggi "The
- * playoff race" (cardStandings). Le due sfide impilate si centrano nello
- * spazio verticale che avanza (.mc-scorebug-list, main.css), invece di
- * restare appiccicate in alto con un vuoto sotto.
+ * Il tema è l'asse su cui si distinguono le due settimane dentro la stessa
+ * striscia, ed è un asse che il componente ha già: stessa forma, luce
+ * diversa — accesa = si gioca, spenta = archiviata. Prima erano due card
+ * separate con due varianti diverse (broadcast2 in corso, marquee chiuse):
+ * due disegni per dire la stessa cosa, e nessuno dei due diceva quale delle
+ * due settimane fosse quale.
+ *
+ * Le tacche (titolari che hanno finito) non si passano di proposito: a
+ * giornata chiusa hanno finito tutti, sarebbero una fila piena che non
+ * distingue niente. Senza il dato `ticksHTML` non le disegna, e la fascia
+ * vuota la nasconde il CSS — così la barra chiusa è anche un filo più
+ * bassa di quella viva, secondo segno gratis.
  *
  * Stato sempre 'final': vince chi ha di più, lo decide scoreBugHTML da sé
  * confrontando i punteggi, pareggio compreso — prima lo decideva `g.won`,
  * che su un pareggio accendeva comunque un lato a caso.
  */
-function cardLastWeek({ season, phase }) {
+function lastWeekBugs({ season, phase }) {
     const seen = new Set();
     const bugs = [];
     const side = (key, pts) => {
@@ -1218,15 +1240,54 @@ function cardLastWeek({ season, phase }) {
         seen.add(key); seen.add(g.opp);
         bugs.push(scoreBugHTML({
             left: side(key, g.pts), right: side(g.opp, g.oppPts),
-            state: 'final',
-        }, { variant: 'marquee' }));
+            state: 'final', mid: `Week ${phase.week}`,
+        }, { variant: 'broadcast2', theme: 'dark' }));
     });
-    if (!bugs.length) return '';
+    if (!bugs.length) return null;
+    return { week: phase.week, bugs: bugs.join('') };
+}
+
+/**
+ * Il tabellone della regular season: UNA striscia sola a tutta larghezza, la
+ * settimana aperta sopra e l'ultima chiusa sotto.
+ *
+ * Erano due card — "This week's matchups" e "Latest results" — ma puntavano
+ * allo stesso posto (Game Center) e raccontavano la stessa cosa a due
+ * distanze di tempo: erano già una card sola divisa in due. Unite, la
+ * broadcast2 si prende la larghezza per cui è disegnata (a mezza card
+ * finirebbe sotto il `@container sb (max-width: 560px)`, che le toglie
+ * pannello centrale e tacche — cioè proprio quello che la distingue dalla
+ * ticker), e le due settimane si separano col tema invece che con due
+ * varianti diverse.
+ *
+ * Regge anche da sola su ciascuna delle due metà: prima del draft, o con
+ * ESPN irraggiungibile, `liveWeekBugs` torna null e resta la sola giornata
+ * chiusa — con il titolo di prima, perché a quel punto la card È quella.
+ */
+async function cardScoreboard(ctx) {
+    const live = await liveWeekBugs(ctx.season);
+    const last = lastWeekBugs(ctx);
+    // Stessa settimana da tutt'e due le fonti (Firebase scrive la giornata
+    // chiusa il martedì, ESPN la mostra ancora): sono le stesse sfide, e
+    // mostrarle due volte non aggiunge niente. Vince quella viva.
+    const closed = last && (!live || last.week !== live.week) ? last : null;
+    if (!live && !closed) return '';
+
+    // Il righello separa DUE gruppi: senza la settimana viva sopra (prima del
+    // draft, o con ESPN muto) sarebbe un'etichetta appesa al niente, e per di
+    // più ripeterebbe il titolo della card.
+    const body = [
+        live?.bugs,
+        live && closed ? '<div class="mc-sb-sep"><span>Last week</span></div>' : '',
+        closed?.bugs,
+    ].filter(Boolean).join('');
+
     return card({
-        cls: 'mc-scorebug-card',
-        kicker: `Week ${phase.week}`,
-        title: 'Latest results',
-        body: `<div class="mc-scorebug-list">${bugs.join('')}</div>`,
+        span: 'wide', cls: 'mc-scorebug-card',
+        kicker: `Week ${(live || closed).week}`,
+        title: live && closed ? 'Scoreboard'
+            : live ? "This week's matchups" : 'Latest results',
+        body: `<div class="mc-scorebug-list">${body}</div>`,
         cta: 'Game Center', href: '#game-center',
     });
 }
@@ -1292,35 +1353,6 @@ function cardStandings(ctx) {
         title: live ? 'The playoff race' : 'How it ended',
         body: `<div class="mc-rows mc-rows--teams">${rows}</div>`,
         cta: 'Full standings', href: '#standings',
-    });
-}
-
-function cardMvpRace({ bundle, season }) {
-    if (!bundle) return '';
-    const race = Object.values(bundle.players)
-        .filter(p => p.pos !== 'DEF')
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 3);
-    if (!race.length) return '';
-    // La riga porta alla pagina del giocatore: è il posto dove uno vuole
-    // andare dopo aver letto un nome in classifica MVP.
-    const rows = race.map((p, i) => {
-        const href = playerHref(p.name, p.pos, season.year);
-        const inner = `
-            <span class="mc-rank">${i + 1}</span>
-            ${playerAvatar(p.name, p.nfl, p.pos, season.year, i === 0 ? 'mc-avatar--gold' : '')}
-            <span class="mc-row-name">${esc(p.name)} <small>${esc(p.pos)}</small></span>
-            <span class="mc-row-value">${fmtPts(p.total)} pt</span>`;
-        const style = `--team-color:${TEAMS[p.teamKey]?.color || 'var(--accent-red)'}`;
-        return href
-            ? `<a class="mc-row mc-row--tinted mc-row--link" href="${href}" style="${style}">${inner}</a>`
-            : `<div class="mc-row mc-row--tinted" style="${style}">${inner}</div>`;
-    }).join('');
-    return card({
-        kicker: `Topina Honors ${season.year}`,
-        title: 'The MVP race',
-        body: `<div class="mc-rows">${rows}</div>`,
-        cta: 'All the awards', href: '#honors',
     });
 }
 
@@ -1549,12 +1581,130 @@ function railHonors({ bundle, season }) {
     });
 }
 
+/**
+ * La festa del campione quando la card dell'ultimo vincitore entra in vista:
+ * coriandoli che scoppiano sulla card e fuochi d'artificio che salgono dai due
+ * lati. Le primitive sono quelle del Live (`coriandoliAttorno`,
+ * `razziDaiLati`), con le misure del touchdown (FESTA_PIENA) — non una seconda
+ * festa scritta a parte.
+ *
+ * NON si usa `festaAttorno` intera: quella spara i razzi tutti da sotto il
+ * centro e aggiunge un anello di scoppi ATTORNO al soggetto. Va bene per un
+ * giocatore dentro il campo, ma qui il soggetto è una card larga quanto la
+ * pagina: l'anello le scoppia addosso e i razzi in colonna si leggono come uno
+ * sbuffo solo. Ai lati invece i colpi salgono ai suoi fianchi e scoppiano
+ * sopra, dove non c'è niente da coprire.
+ *
+ * Il livello NON sta dentro la card. La card ha `overflow: hidden` e ci
+ * terrebbe dentro tutto: sarebbero coriandoli in una scatola, mentre quello
+ * che si vuole è che sparino nella pagina. Sta quindi dentro `.mosaic` (che è
+ * `position: relative`, quindi è l'offsetParent della card) e la sborda: sopra
+ * ci vanno i fuochi, sotto lo spazio da cui salgono i razzi, e i coriandoli
+ * ricadono sulle card vicine.
+ *
+ * Il riquadro si misura invece di prendersi tutta la home perché le primitive
+ * leggono le proporzioni del livello: i razzi partono dal suo bordo inferiore
+ * e le bande laterali sono frazioni della sua larghezza. Su un livello alto
+ * quanto la pagina i razzi sarebbero partiti tremila pixel più giù.
+ *
+ * In ORIZZONTALE invece il livello È il mosaico, esattamente: `.mosaic` ha
+ * `overflow-x: clip` e taglia al proprio bordo, quindi si prende quella misura
+ * e nemmeno un pixel di più. Un margine laterale a occhio faceva partire i
+ * razzi oltre il taglio e i loro scoppi arrivavano dimezzati — misurato: della
+ * banda sinistra sopravviveva un quinto. E la misura si LEGGE (`clientWidth`),
+ * non si scrive: il padding del mosaico è 24 sul desktop ma 16 sul telefono, e
+ * col numero fisso sbordava di dieci pixel per lato proprio dove lo schermo è
+ * più stretto. In verticale il taglio non c'è (`overflow-y` resta `visible`),
+ * ed è infatti di là che la festa esce dalla card.
+ *
+ * Un colpo solo: `revealOnScroll` smette di osservare la card dopo il primo
+ * scatto, e il flag sull'elemento regge anche se un domani la si riaggancia.
+ * Con `prefers-reduced-motion` non parte niente — lo decide `festaAttorno`,
+ * che torna false e a quel punto il livello si smonta subito.
+ *
+ * Perché non basta il reveal: in offseason la card del campione è la SECONDA
+ * del mosaico e l'hero sopra è basso, quindi a pagina caricata è già tutta a
+ * schermo (misurata: 100% visibile a 1440×900, a 1728×1000 e a 390×844). Il
+ * reveal scatta lì, cioè al caricamento, e la festa diventa un'animazione di
+ * ingresso che parte da sola — non «scorro e la trovo». Quando la card nasce
+ * già in vista si aspetta quindi il primo scorrimento vero; se quello
+ * scorrimento se la porta via, si riarma e si riprova. In preseason la stessa
+ * card sta più in basso e il reveal arriva già a scorrimento fatto: lì il
+ * ramo d'attesa non si usa nemmeno.
+ */
+const FESTA_SU = 170;     // aria sopra la card, dove scoppiano i fuochi
+const FESTA_GIU = 320;    // la rampa dei razzi, sotto
+
+/** In vista per davvero: mezza card dentro la finestra, non un bordo. */
+function inVista(el) {
+    const r = el.getBoundingClientRect();
+    const dentro = Math.min(innerHeight, r.bottom) - Math.max(0, r.top);
+    return dentro > r.height * 0.5;
+}
+
+function festaCampione(cardEl) {
+    if (cardEl.dataset.festa) return;
+    // `scrollY < 40`: la pagina è ancora ferma in cima, nessuno ha scorso.
+    if (scrollY < 40 || !inVista(cardEl)) {
+        addEventListener('scroll', () => festaCampione(cardEl), { once: true, passive: true });
+        return;
+    }
+    cardEl.dataset.festa = '1';
+    const host = cardEl.offsetParent;
+    if (!host) return;
+
+    const layer = document.createElement('div');
+    layer.className = 'live-fx mc-fx';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.style.left = '0px';
+    layer.style.top = `${cardEl.offsetTop - FESTA_SU}px`;
+    layer.style.width = `${host.clientWidth}px`;
+    layer.style.height = `${cardEl.offsetHeight + FESTA_SU + FESTA_GIU}px`;
+    host.appendChild(layer);
+
+    // I fuochi sono nei colori del campione e basta — è il suo momento. Ma il
+    // colore squadra puro non può essere l'unico: due dei quattro sono scuri
+    // (Oscurus #800020, Sommo #1c4750) e su fondo nero uno scoppio in quel
+    // colore non si vede. Si schiarisce verso il bianco senza uscire dalla
+    // famiglia, la stessa ricetta con cui lo score-bug tratta i colori scuri.
+    const team = cardEl.style.getPropertyValue('--team-color').trim() || 'var(--accent-red)';
+    const fuochi = [
+        team,
+        `color-mix(in srgb, ${team} 72%, #fff)`,
+        `color-mix(in srgb, ${team} 42%, #fff)`,
+    ];
+    // I coriandoli tengono anche oro e bianco: sono quelli di una premiazione,
+    // e il nastro dorato è il trofeo, non la squadra.
+    const coriandoli = [team, '#d4af37', '#ffffff', '#ffe9a8'];
+
+    // Dopo il fade della card (0.7s), non insieme: sparare mentre sta ancora
+    // comparendo fa sembrare i coriandoli parte del suo ingresso.
+    setTimeout(() => {
+        if (!layer.isConnected) return;
+        const ok = coriandoliAttorno(layer, cardEl, coriandoli, FESTA_PIENA);
+        // `tetto`: i colpi scoppiano nella fascia sopra la card, non davanti al
+        // nome del campione. È la stessa aria che il livello si prende in alto.
+        razziDaiLati(layer, fuochi, { dura: FESTA_PIENA.dura, tetto: FESTA_SU });
+        if (!ok) { layer.remove(); return; }
+        // Le ultime particelle partono a fine festa e volano ancora qualche
+        // secondo: il livello se ne va quando è vuoto davvero.
+        setTimeout(() => layer.remove(), FESTA_PIENA.dura + 5000);
+    }, 320);
+}
+
 // ─── Movimento: reveal, contatori, parallax, luce ────────────────
 
 function mountMotion(wrap) {
     // I contatori partono quando la loro card si vede davvero: contare in un
-    // pezzo di pagina fuori schermo è animazione buttata.
-    revealOnScroll(wrap, { onReveal: countUpWithin });
+    // pezzo di pagina fuori schermo è animazione buttata. Stesso aggancio per
+    // la festa del campione: si scopre scorrendo, e chi non ci arriva non se
+    // la merita.
+    revealOnScroll(wrap, {
+        onReveal: (el) => {
+            countUpWithin(el);
+            if (el.classList.contains('mc-champion-card')) festaCampione(el);
+        },
+    });
 
     const home = document.getElementById('home');
     parallax(wrap, { isActive: () => !home || home.classList.contains('active') });

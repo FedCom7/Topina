@@ -24,7 +24,7 @@ import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGi
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=48';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=49';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=20';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
@@ -32,7 +32,7 @@ import { slotPairs } from '../data/matchup-analysis.js?v=555';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
 
 const POLL_MS = 30000;
 

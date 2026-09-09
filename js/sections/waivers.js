@@ -23,8 +23,8 @@
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
 import { TEAMS } from './team.js?v=709';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=145';
-import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=774';
+import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=146';
+import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=775';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
