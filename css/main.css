@@ -1433,14 +1433,17 @@ img {
         font-size: 0.62rem;
     }
 
-    /* Il banner ha cinque colonne in fila: nome, punteggio, centro, punteggio,
-       nome. I punteggi non si comprimono, quindi tutto lo stretto tocca ai due
-       nomi: a 390px restavano 28px contro i 31-33 che serve la sigla di tre
-       lettere, e "LASERS" si leggeva "L...". Il gap piu' corto restituisce i
-       16px che mancavano. */
+    /* I nomi delle squadre escono dal banner, come nello scorebug della pagina
+       partita: su cinque colonne in fila erano quelli a pagare tutto lo stretto
+       (a 390px ne restavano 28, contro i 31-33 che serve una sigla di tre
+       lettere: "LASERS" si leggeva "L..."). Chi gioca lo dicono i due stemmi in
+       filigrana dietro al banner, che restano. */
     .gc-banner-inner {
         gap: 6px;
+        justify-content: center;
     }
+
+    .gc-banner-side { display: none; }
 
 
     .matchup-card {
@@ -9886,12 +9889,19 @@ div.gb-out-player:last-of-type .gb-out-meta {
    sola — a destra e a sinistra diceva la stessa cosa, e in mezzo separa i due
    punteggi meglio di quanto facesse ai bordi. */
 @media (max-width: 900px) {
+    /* Colonne FISSE tranne i due nomi, che sono elastici e simmetrici: cosi'
+       il ruolo in mezzo cade allo stesso punto su ogni riga. Con i punteggi a
+       larghezza automatica ("8.90" contro "45.60") il centro ballava di riga in
+       riga e la colonna dei ruoli non era una colonna. */
     .gb-out-row {
-        grid-template-columns: auto minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) 52px 34px 52px minmax(0, 1fr) auto;
         grid-template-rows: auto auto;
         gap: 3px 5px;
         padding: 8px 2px;
     }
+
+    .gb-out-row .allpro-pos { width: 34px; }
+    .gb-out-pts { text-align: center; }
 
     .gb-out-row > :nth-child(1) { display: none; }             /* ruolo di sinistra */
     .gb-out-row > :nth-child(2) { grid-area: 1 / 1; }          /* foto sinistra */
@@ -9904,15 +9914,23 @@ div.gb-out-player:last-of-type .gb-out-meta {
     .gb-out-row > :nth-child(8) { grid-area: 1 / 6; }          /* nome destra */
     .gb-out-row > :nth-child(9) { grid-area: 1 / 7; }          /* foto destra */
 
-    /* Le stat hanno una riga loro: tre colonne elastiche invece delle
-       larghezze fisse del desktop, ma sempre tre e quindi incolonnate. */
+    /* Le stat hanno una riga loro, e stanno attaccate al BORDO: quelle di
+       sinistra sotto la foto di sinistra, quelle di destra sotto la sua. Al
+       centro non ci va niente — li' c'e' il ruolo, e i numeri accostati a lui
+       sembravano appartenere all'altro giocatore. */
     .gb-out-stat {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px;
+        display: flex;
+        gap: 10px;
+        padding: 0;
     }
 
+    .gb-out-stat--l { justify-content: flex-start; padding-right: 0; }
+    .gb-out-stat--r { justify-content: flex-end; padding-left: 0; }
     .gb-out-stat--r .gb-out-mini { text-align: right; }
+
+    /* La targhetta infortunio vive ora nel gruppo delle statistiche: si
+       allinea a loro invece di stare appesa in mezzo. */
+    .gb-out-stat .gb-out-inj { align-self: center; }
 }
 
 @media (max-width: 640px) {
@@ -9933,6 +9951,22 @@ div.gb-out-player:last-of-type .gb-out-meta {
     .gb-outcome {
         padding-left: 12px;
         padding-right: 12px;
+    }
+
+    /* Nello scorebug il nome delle squadre esce: sul telefono era la riga che
+       stringeva tutto il resto, e chi gioca lo dicono gia' i due stemmi in
+       filigrana dietro al tabellone. Restano i punteggi e il centro, su una
+       riga sola invece di due. */
+    .gb-bug-inner {
+        grid-template-rows: auto;
+    }
+
+    .gb-bug-inner > .gb-bug-side { display: none; }
+    .gb-bug-inner > .gb-bug-score { grid-row: 1; }
+    .gb-bug-inner > .gb-bug-mid { grid-row: 1; }
+
+    .gb-out-row {
+        grid-template-columns: auto minmax(0, 1fr) 46px 26px 46px minmax(0, 1fr) auto;
     }
 
     .gb-out-row .gb-headshot-xs {

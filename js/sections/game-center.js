@@ -412,13 +412,16 @@ function escAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
-/** "Marvin Guiu" → "M. Guiu". Le DEF restano col nome squadra intero. */
+/** "Marvin Guiu" → "Guiu": sul campo c'e' spazio per una parola sola, e
+ *  l'iniziale puntata se ne prendeva tre caratteri togliendoli al cognome, che
+ *  e' l'unica parte che serve a riconoscerlo. Le DEF restano col nome squadra
+ *  intero. */
 function shortName(p) {
     const role = (p.position_in_team || p.position || '').toUpperCase();
     if (role === 'DEF') return p.name;
     const parts = String(p.name).trim().split(/\s+/);
     if (parts.length < 2) return p.name;
-    return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+    return parts.slice(1).join(' ');
 }
 
 function slotContent(p) {

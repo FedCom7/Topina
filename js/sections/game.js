@@ -151,10 +151,19 @@ function scoreBugHTML(m, weekLabel, year, isLive = false, daGiocare = false) {
     const s1 = P({ fantasy_points: m.team1.score });
     const s2 = P({ fantasy_points: m.team2.score });
     const t1 = teamOf(m.team1.name), t2 = teamOf(m.team2.name);
-    const side = (t, raw) => `
+    /* "Capi dei Pianeti" a caratteri da scorebug e' lungo quanto mezzo
+       tabellone e arriva a filo del bordo. L'auto-abbreviazione del sito
+       (`.tname[data-abbr]`) non scatta: interviene quando il nome TRABOCCA, e
+       qui il contenitore e' elastico, quindi si allarga invece di stringerlo.
+       Qui la sigla e' quella dello stemma, coi punti. */
+    const NOME_BUG = { 'Capi dei Pianeti': 'C.D.P.' };
+    const side = (t, raw) => {
+        const dn = t?.name || displayName(raw.name);
+        return `
         <div class="gb-bug-side">
-            <span class="gb-bug-name">${teamNameHTML(t?.name || displayName(raw.name))}</span>
+            <span class="gb-bug-name">${NOME_BUG[dn] ? `<span class="tname">${NOME_BUG[dn]}</span>` : teamNameHTML(dn)}</span>
         </div>`;
+    };
     return `
     <div class="gb-scorebug" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}">
         ${isLive ? '<span class="gb-live-badge"><i class="gb-live-dot"></i>LIVE</span>' : ''}
@@ -292,12 +301,15 @@ function articleHTML(article, weekLabel) {
 
 function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
     const pairs = slotPairs(m);
-    // "Marvin Guiu" → "M. Guiu" (mobile); le DEF restano col nome squadra intero
+    // "Marvin Guiu" → "Guiu" (mobile): il solo cognome. L'iniziale puntata
+    // costava tre caratteri in una colonna che ne ha una decina, e a pagarla
+    // era il cognome, che e' l'unica parte che serve a riconoscerlo. Le DEF
+    // restano col nome squadra intero.
     const shortName = (p) => {
         const role = (p.position_in_team || p.position || '').toUpperCase();
         if (role === 'DEF') return p.name;
         const parts = String(p.name).trim().split(/\s+/);
-        return parts.length < 2 ? p.name : `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+        return parts.length < 2 ? p.name : parts.slice(1).join(' ');
     };
     // Foto tonda del giocatore, come nel confronto del Live. Il `src` parte dal
     // segnaposto e lo sostituisce loadHeadshots(), che gira già su .gb-headshot.
@@ -310,25 +322,25 @@ function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
     // `side` decide da che parte sta la targhetta infortunio. La riga di destra
     // è allineata a destra e tronca con l'ellissi: una targhetta in coda alla
     // stringa sarebbe la prima cosa a sparire, quindi lì va davanti al ruolo.
-    const cell = (p, side) => {
-        if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
-        const stato = injuryMap?.get(p.name);
-        // Due forme, non una: `data-short` e' quella che il CSS mostra quando la
-        // colonna si stringe (su telefono il meta sta in una quarantina di
-        // pixel), l'altra e' l'etichetta normale — accorciata anche lei, perche'
-        // "Questionable" per intero e' piu' larga del nome che accompagna.
+    /* La targhetta dell'infortunio. Sta con le STATISTICHE, non sotto al nome:
+       li' rubava spazio a squadra e avversario, che sono le uniche due cose che
+       quella riga non dice da nessun'altra parte. Due forme — `data-short` e'
+       quella che il CSS mostra quando la colonna si stringe. */
+    const tagInfortunio = (p) => {
+        const stato = p && injuryMap?.get(p.name);
+        if (!stato) return '';
         const BREVE = { questionable: 'Q', doubtful: 'D', out: 'OUT', ir: 'IR' };
         const ETICHETTA = { questionable: 'Quest', doubtful: 'Doub' };
-        const k = String(stato || '').toLowerCase();
-        const tag = stato
-            ? `<span class="gb-out-inj gb-out-inj--${k}" data-short="${BREVE[k] || stato.slice(0, 3)}" title="${stato}">${ETICHETTA[k] || stato}</span>`
-            : '';
+        const k = String(stato).toLowerCase();
+        return `<span class="gb-out-inj gb-out-inj--${k}" data-short="${BREVE[k] || stato.slice(0, 3)}" title="${stato}">${ETICHETTA[k] || stato}</span>`;
+    };
+    const cell = (p) => {
+        if (!p) return '<div class="gb-out-player"><span class="gb-out-name">—</span></div>';
         const testo = `${(p.position_in_team || p.position || '')} - ${p.nfl_team || ''}${p.opponent ? ` | vs ${p.opponent.replace('@', '')}` : ''}`;
-        const txt = `<span class="gb-out-metatxt">${testo}</span>`;
         return `
         <div class="gb-out-player">
             <span class="gb-out-name">${liveNow(p) ? '<i class="gb-live-dot"></i>' : ''}<span class="gb-out-name-full">${p.name}</span><span class="gb-out-name-short">${shortName(p)}</span></span>
-            <span class="gb-out-meta">${side === 'r' ? `${tag}${txt}` : `${txt}${tag}`}</span>
+            <span class="gb-out-meta"><span class="gb-out-metatxt">${testo}</span></span>
         </div>`;
     };
     // Mini-stat a valori (2-3 per ruolo): numero sopra, etichetta micro sotto.
@@ -350,8 +362,13 @@ function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
     };
     const stat = (p, sideCls) => {
         const tiles = p ? miniStats(p) : [];
-        return `<span class="gb-out-stat ${sideCls}">${tiles.map(([v, l]) => `
-            <span class="gb-out-mini"><b>${v}</b><i>${l}</i></span>`).join('')}</span>`;
+        const minis = tiles.map(([v, l]) => `
+            <span class="gb-out-mini"><b>${v}</b><i>${l}</i></span>`).join('');
+        // La targhetta va dal lato INTERNO del gruppo (verso il centro): i
+        // numeri restano cosi' aggrappati al bordo, sotto la foto.
+        const tag = tagInfortunio(p);
+        const dentro = sideCls.endsWith('--r');
+        return `<span class="gb-out-stat ${sideCls}">${dentro ? tag + minis : minis + tag}</span>`;
     };
     const rowFor = (slot, a, b, extraCls = '') => {
         const pa = P(a), pb = P(b);
@@ -360,12 +377,12 @@ function outcomeHTML(m, liveNow = () => false, injuryMap = null) {
         <div class="gb-out-row${extraCls}">
             ${posBadge}
             ${foto(a)}
-            ${cell(a, 'l')}
+            ${cell(a)}
             ${stat(a, 'gb-out-stat--l')}
             <span class="gb-out-pts${pa > pb ? ' win' : ''}">${pa.toFixed(2)}</span>
             <span class="gb-out-pts${pb > pa ? ' win' : ''}">${pb.toFixed(2)}</span>
             ${stat(b, 'gb-out-stat--r')}
-            ${cell(b, 'r')}
+            ${cell(b)}
             ${foto(b)}
             ${posBadge}
         </div>`;
