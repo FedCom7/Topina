@@ -32,7 +32,7 @@ import { slotPairs } from '../data/matchup-analysis.js?v=555';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=4';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
 
 const POLL_MS = 30000;
 

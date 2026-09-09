@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/main.css?v=1090">
 </head>
@@ -96,6 +96,7 @@
             <div class="nav-dp-sep"></div>
             <a href="#draftgrades" class="nav-dp-item" data-section="draftgrades">Draft Grades</a>
             <a href="#projections" class="nav-dp-item" data-section="projections">Projections</a>
+            <a href="#managerdna" class="nav-dp-item" data-section="managerdna">Manager DNA</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="history">
             <a href="#history" class="nav-dp-item nav-dp-header" data-section="history">League History</a>
@@ -239,6 +240,24 @@
                 <div class="loading-state"><div class="spinner"></div><p>Loading projections...</p></div>
             </div>
         </div>
+    </section>
+
+    <!-- ====== MANAGER DNA (come drafta e come si muove ognuno) ====== -->
+    <section class="page-section" id="managerdna">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Manager DNA</h1>
+                <p class="section-subtitle">How each manager drafts and trades, and what holds up</p>
+            </div>
+            <div id="dna-content">
+                <div class="loading-state"><div class="spinner"></div><p>Reading the DNA...</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== MANAGER DNA TEAM (#managerdna/{teamKey}) ====== -->
+    <section class="page-section" id="managerdna-team">
+        <!-- Contenuto iniettato da js/sections/managerdna-team.js -->
     </section>
 
     <!-- ====== DRAFT GRADES (pagelle del draft) ====== -->

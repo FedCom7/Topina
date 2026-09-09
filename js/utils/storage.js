@@ -145,7 +145,26 @@ function evictFor(chars, keep) {
  * Pulizia all'avvio: butta le versioni ritirate e assicura la riserva.
  * Va eseguita PRIMA che l'SDK Firebase apra il websocket — vedi firebase-config.js.
  */
+/* ── La cache degli asset, che non c'è più ───────────────────────────
+   Fino al 2026-09-08 il Game Center teneva i dodici wallpaper (fino a 44 MB)
+   in una Cache Storage chiamata `topina-assets-v<n>`. Ora il campo è disegnato
+   e quella cache non serve più — ma nei browser di chi ha già visitato il sito
+   resta scritta, e nessuno la cancellerebbe mai: il codice che la gestiva è
+   stato tolto insieme al resto. Questa spazzata la libera una volta e poi non
+   trova più niente da fare.
+   Si può rimuovere quando saremo ragionevolmente sicuri che nessuno abbia più
+   quella cache addosso — diciamo dopo una stagione. */
+async function sweepAssetCaches() {
+    if (typeof caches === 'undefined') return;
+    try {
+        for (const k of await caches.keys()) {
+            if (k.startsWith('topina-assets-v')) await caches.delete(k);
+        }
+    } catch { /* Safari privato, contesti non sicuri: pazienza */ }
+}
+
 export function sweepStorage() {
+    sweepAssetCaches();
     let dropped = 0;
     try {
         for (const e of ourEntries()) {

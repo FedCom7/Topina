@@ -52,8 +52,8 @@ import { scoreBugHTML } from '../ui/score-bug.js?v=1';
 import { getSeasonProjections } from '../data/projections.js?v=595';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
-import { evaluateLeague } from '../data/team-eval.js?v=593';
-import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=61';
+import { evaluateLeague } from '../data/team-eval.js?v=594';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=62';
 // Il motore di voto (computeGrades/makeEvaluator) vive in draftgrades.js, non
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una

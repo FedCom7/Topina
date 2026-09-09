@@ -23,6 +23,7 @@ import { TEAMS } from './team.js?v=709';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=595';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { decorateTerms } from '../ui/glossary.js?v=4';
 import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=47';
 import { multiLine, dumbbell } from '../ui/charts.js?v=7';
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=64';
@@ -292,6 +293,8 @@ function renderList() {
             ? ` Real points are ${currentYear} season totals in this league's scoring${currentPos === 'DEF' ? ', defenses on standard scoring' : ''}.`
             : ''} Click a row for the player's card${seasonDone && WHY_POSITIONS.has(currentPos) ? `, or "Why" for the stat-by-stat breakdown of the gap` : ''}.</p>
     </section>`;
+
+    decorateTerms(host);   // i termini si marcano sul testo disegnato
 
     document.getElementById('db-sort')?.addEventListener('click', (e) => {
         const btn = e.target.closest('.db-sort-btn');
@@ -740,6 +743,8 @@ function renderStrategy() {
         <p class="db-foot">Top ${strategy.leaderboard.length} players above replacement across QB/RB/WR/TE. K and DEF
             are left out — see the note on the Board tab. Click a row for the player's card.</p>
     </section>`;
+
+    decorateTerms(host);   // anche qui: si marca il testo disegnato
 
     bindSlotPills(strategy);
 }

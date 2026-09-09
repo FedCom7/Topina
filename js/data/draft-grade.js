@@ -49,7 +49,7 @@
  * restano in italiano.
  */
 
-import { replacementLevels, pickStarters } from './team-eval.js?v=83';
+import { replacementLevels, pickStarters } from './team-eval.js?v=594';
 import { matchProjection, normName } from './projections.js?v=594';
 import { ROSTER_SLOTS } from './league-rules.js?v=528';
 
@@ -841,7 +841,13 @@ export function computeDraftGrade(grades, proj, opts = {}) {
 
         // efficienza: media dei PickValue pesata per draft-capital
         let num = 0, den = 0;
-        for (const r of results) { const w = capitalAt(r.pick) + 1; num += w * r.score; den += w; }
+        for (const r of results) {
+            // il peso finisce anche SULLA pick: è l'unico modo perché la pagina
+            // squadra possa mostrare quanto ciascuna ha spostato la media
+            // invece di limitarsi a dire che è pesata
+            r.capital = Math.round(capitalAt(r.pick));
+            const w = r.capital + 1; num += w * r.score; den += w;
+        }
         const efficiency = den ? num / den : NEUTRAL;
 
         // talento: quota di VOR titolari sul totale di lega (0.25 = media)
