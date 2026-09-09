@@ -907,7 +907,55 @@ export function sbMetrics(edition, override = {}) {
     return { fs: m.fs, stretch: r1(m.stretch), capH: Math.round(m.capH), top: Math.round(m.top), dx: m.dx };
 }
 
-/* ── Lo scudetto della lega ──────────────────────────────────────────
+/* ── I marchi che stanno su un FILE ──────────────────────────────────
+   Lo scudetto della lega e il logo dei playoff non li disegniamo: sono marchi
+   NFL e li mettiamo come immagine. `markSVG` li incastona come fa `photoArt`
+   col trofeo — stesso meccanismo, stesso motivo: una fotografia o un logo
+   ufficiale non si riproducono con dei gradienti.
+
+   Se il file non c'e' ancora, `leagueShieldSVG()` qui sotto resta come
+   ripiego disegnato: il campo non rimane mai vuoto per un file mancante. */
+export const LEAGUE_MARK = 'Logos/nfl-shield.png';
+export const PLAYOFF_MARK = 'Logos/nfl-playoffs.png';
+
+/**
+ * Un marchio da file, incastonato in un riquadro.
+ *
+ * `fallback` e' quello che si vede se il file NON c'e'. Serve davvero: i due
+ * marchi NFL arrivano come file esterni, e fra il momento in cui il codice li
+ * chiede e quello in cui qualcuno li copia nel repo passa del tempo. Senza
+ * ripiego, in mezzo, il campo mostrerebbe l'icona di un'immagine rotta.
+ *
+ * Il meccanismo e' `onerror`: il ripiego sta gia' nel disegno, nascosto, e
+ * l'immagine lo scopre solo fallendo. Cosi' il giorno che il file arriva non
+ * c'e' niente da cambiare — smette semplicemente di fallire.
+ *
+ * @param {Object} o
+ * @param {string} o.href        - il file
+ * @param {{x,y,w,h}} [o.embed]  - il riquadro; senza, esce a dimensione naturale
+ * @param {string} [o.fallback]  - markup SVG da mostrare se il file manca
+ * @param {string} [o.className]
+ */
+export function markSVG(o = {}) {
+    const e = o.embed;
+    const box = e ? ` x="${r1(e.x)}" y="${r1(e.y)}" width="${r1(e.w)}" height="${r1(e.h)}"` : '';
+    const cls = o.className ? ` class="${esc(o.className)}"` : '';
+    /* preserveAspectRatio: il riquadro sul campo e' quadrato ma il marchio no.
+       `meet` lo fa entrare intero e centrato invece di stirarlo. */
+    if (!o.fallback) {
+        return `<image${cls}${box} href="${esc(o.href)}" preserveAspectRatio="xMidYMid meet"/>`;
+    }
+    /* Il ripiego si trova per POSIZIONE, non per id: `getElementById` cerca nel
+       documento, e qui i due campi della stessa giornata avrebbero id uguali —
+       oltre a fallire del tutto se la card e' gia' stata sostituita quando
+       l'errore arriva. Il fratello precedente invece c'e' sempre, anche a
+       pezzo staccato dal documento. */
+    return `<g><g style="display:none">${o.fallback}</g>`
+        + `<image${cls}${box} href="${esc(o.href)}" preserveAspectRatio="xMidYMid meet"`
+        + ` onerror="var f=this.previousElementSibling;if(f)f.style.display='';this.remove()"/></g>`;
+}
+
+/* ── Lo scudetto della lega, disegnato (ripiego) ─────────────────────
    Sul campo del Super Bowl, a centrocampo, non c'è il logo dell'evento: c'è lo
    SCUDETTO della lega, e i due loghi grandi stanno sulle linee delle 25.
    Questo è il nostro: la forma è quella classica di uno scudetto sportivo —

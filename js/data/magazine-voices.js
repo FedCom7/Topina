@@ -680,3 +680,90 @@ export const TEAMMATE_PRAISE = [
     (c) => `Con ${c.name} in questa forma possiamo battere chiunque, e gli avversari fanno bene a preoccuparsi.`,
     (c) => `${c.name} in settimana era di un tranquillo sospetto. Ora sappiamo perché: aveva già deciso come sarebbe andata a finire.`,
 ];
+
+/* ───────────────────────────────────────────────────────────────
+   EDIZIONE POST-DRAFT — la prima pagina del giorno dopo il draft.
+   Il voto non lo scrivono queste frasi: arriva dal motore
+   (js/data/draft-grade.js) e viene passato dentro il ctx. Qui c'è
+   solo la voce del giornale, che lo racconta.
+   ─────────────────────────────────────────────────────────────── */
+
+/** Attacchi del pezzo principale dell'edizione draft */
+export const DRAFT_LEDE_OPENERS = [
+    'Il tabellone si è svuotato, i nomi sono finiti sulle rose:',
+    'Ci sono voluti sedici giri di orologio, ma il quadro è completo:',
+    'Fine delle chiacchiere, dentro le firme:',
+    'Il draft è andato in archivio con il solito carico di sospiri e sorrisi:',
+    'Board ripulito, telefoni spenti, verdetti in prima pagina:',
+    'La notte più lunga della preseason ha finito di sputare nomi:',
+    'Adesso che l\'ultimo cartellino è stato depositato si può dire:',
+    'Nessuno ammetterà mai di aver sbagliato, ma i numeri sono qui:',
+];
+
+/** c: { team, letter, grade, best, rival } — il GM della pagella migliore */
+export const DRAFT_GM_QUOTES = [
+    (c) => `Ci abbiamo messo mesi a preparare questo board e si è visto. ${c.best} l'avevamo cerchiato in rosso da luglio: se ${c.rival} se n'è accorto solo quando l'abbiamo chiamato, non è un problema nostro.`,
+    (c) => `Un ${c.letter}? Prendiamolo con umiltà, ci mancherebbe. Poi però uno guarda le rose degli altri e capisce che l'umiltà è un lusso che ci possiamo permettere.`,
+    (c) => `Non draftiamo per i complimenti di settembre, draftiamo per gennaio. Detto questo, i complimenti ce li teniamo volentieri.`,
+    (c) => `Mi dicono che qualcuno ha riso di una nostra chiamata. Bene: le risate di agosto sono la mia benzina preferita.`,
+    (c) => `${c.grade} su 100. Il resto della lega ha avuto le stesse informazioni che avevamo noi, gli stessi turni, lo stesso tabellone. Che si guardino allo specchio.`,
+    (c) => `Il segreto? Nessun segreto. Abbiamo preso i giocatori più forti disponibili e resistito alla tentazione di innamorarci dei nomi.`,
+    (c) => `${c.rival} ha draftato con la pancia, noi con il quaderno. A fine stagione ci risentiamo e vediamo chi aveva ragione.`,
+    (c) => `Quando ho visto che ${c.best} era ancora lì al nostro turno ho chiesto conferma tre volte. Poi ho chiamato prima che a qualcuno venisse in mente di svegliarsi.`,
+    (c) => `Ci hanno dato ${c.letter}. Fossi negli altri quattro sarei più preoccupato del mio voto che del nostro.`,
+    (c) => `Abbiamo fatto la nostra parte. Adesso tocca al campo, ed è l'unica cosa che mi toglie il sonno: le pagelle no, quelle dormono benissimo.`,
+    (c) => `Se dovessi rifare questo draft, rifarei tutto uguale. Compresa la scelta che a voi giornalisti non è piaciuta: fra sei mesi mi ringrazierete.`,
+    (c) => `Il draft si vince stando zitti e chiamando i nomi giusti. Gli annunci roboanti li lascio a chi ha finito la stagione a guardare i playoff in TV.`,
+];
+
+/** c: { team, letter, grade, rival } — il GM dell'ultima pagella si difende */
+export const DRAFT_GM_DEFENSE_QUOTES = [
+    (c) => `Le pagelle di agosto le ho viste anche io. Le ho lette, ho sorriso, e sono tornato a lavorare: si gioca a novembre, non su un foglio Excel.`,
+    (c) => `${c.grade} su 100? Molto bene. Segnatevelo, così a fine stagione avrete qualcosa da rileggere in imbarazzo.`,
+    (c) => `Abbiamo preso i giocatori che volevamo. Che l'algoritmo non li ami è un suo problema, non nostro.`,
+    (c) => `Ogni anno la stessa storia: chi vince il draft a settembre e chi vince la lega a gennaio non sono mai la stessa squadra. Statistica, non scuse.`,
+    (c) => `Non mi interessa la lettera. Mi interessa che i miei giocatori arrivino sani alla week 1: quello sì che è un voto che conta.`,
+    (c) => `Ci danno per morti. Perfetto. Da morti si gioca molto più leggeri.`,
+    (c) => `Rispetto il lavoro di chi fa i conti, ma il fantasy non è un foglio di calcolo. Se lo fosse, avremmo già dato i trofei a luglio.`,
+    (c) => `${c.rival} adesso festeggia. Faccia pure: le settimane sono lunghe e la mia rosa non ha ancora giocato un minuto.`,
+];
+
+/** c: { player, pos, pick, round, next, pct, team } — il colpo del draft */
+export const DRAFT_STEAL_LINES = [
+    (c) => `Il colpo grosso della serata è ${c.player}: chiamato al numero ${c.pick}, con appena il ${c.pct}% di probabilità di essere ancora lì al turno successivo di ${c.team}. Tradotto: un attimo di esitazione e lo prendeva qualcun altro.`,
+    (c) => `Se c'è una chiamata che il resto della lega si rimangerà è quella di ${c.player} al numero ${c.pick}: ${c.team} l'ha portato a casa quando il mercato lo dava per sparito (${c.pct}% di sopravvivenza fino al turno dopo).`,
+    (c) => `${c.player} al numero ${c.pick} è il tipo di scelta che si giudica in due secondi: ${c.team} ha visto il buco e ci si è infilato, lasciando gli altri a discutere di chi doveva chiamarlo prima.`,
+    (c) => `Alla chiamata numero ${c.pick} ${c.team} ha messo le mani su ${c.player}, e da lì in poi il giro ${c.round} è diventato una rincorsa: al turno dopo sarebbe rimasto sul tabellone solo nel ${c.pct}% degli scenari.`,
+    (c) => `C'è un momento in cui un draft cambia faccia, e stavolta è stato il numero ${c.pick}: ${c.player} a ${c.team}, con la fila dietro che guardava senza poter fare nulla.`,
+];
+
+/** c: { player, pos, pick, alt, altPos, team } — la scelta che si poteva rimandare */
+export const DRAFT_REACH_LINES = [
+    (c) => `Il rimpianto porta il numero ${c.pick}: ${c.team} ha chiamato ${c.player} mentre ${c.alt} (${c.altPos}) era ancora lì, in bella vista, a proiettare di più.`,
+    (c) => `Non tutto è filato liscio: alla ${c.pick}ª chiamata ${c.team} ha preferito ${c.player} a ${c.alt}, e il tabellone di quel momento dice che c'era di meglio.`,
+    (c) => `La chiamata che farà discutere è ${c.player} al numero ${c.pick}: ${c.alt} (${c.altPos}) è rimasto sul board ancora per un pezzo, e a ${c.team} quella scelta potrebbe tornare indietro.`,
+    (c) => `Il neo della serata di ${c.team} è il numero ${c.pick}: ${c.player} preso con ${c.alt} ancora disponibile, in un turno in cui c'era spazio per aspettare.`,
+    (c) => `Ogni draft ha la sua scelta prematura, e questa volta è ${c.player} al numero ${c.pick}: ${c.team} ha bruciato il turno mentre ${c.alt} restava lì per chiunque lo volesse.`,
+];
+
+/** Attacchi dei trafiletti squadra per squadra (edizione draft) */
+export const DRAFT_NOTE_LEADS = [
+    'Il quaderno degli appunti su',
+    'La pagella in breve —',
+    'Che cosa dice il tabellone su',
+    'Riassunto della nottata di',
+    'Il verdetto su',
+    'Numeri alla mano per',
+    'La sintesi di',
+    'Il giudizio su',
+];
+
+/** Chiusure del pezzo principale dell'edizione draft */
+export const DRAFT_CLOSERS = [
+    'Il resto lo dirà il campo, che è l\'unico giudice che nessuno può contestare.',
+    'Adesso i fogli si chiudono e si comincia a fare sul serio: appuntamento alla week 1.',
+    'Le pagelle sono di agosto, i trofei di gennaio: chi ha preso il voto più alto è avvisato.',
+    'Da domani nessuno guarderà più il board: conteranno solo i punti veri, come sempre.',
+    'Per ora sono numeri su carta. Bella carta, però.',
+    'Che le rose siano giuste o sbagliate lo scopriremo domenica dopo domenica, con calma.',
+];

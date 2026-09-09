@@ -1,11 +1,12 @@
 /**
  * Il campo del Game Center, disegnato invece che fotografato.
  *
- * IN USO nel Game Center dal 2026-09-08: ha sostituito i dodici wallpaper PNG
- * (`img.field-bg`). I file restano nel repo — li usa ancora `magazine.js` per
- * la foto di apertura degli articoli — ma il Game Center non li scarica più, e
- * con loro se n'è andata la cache degli asset che serviva a reggerli.
- * Si continua a provarlo da preview-field.html.
+ * IN USO nel Game Center dal 2026-09-08 e nel Magazine dal 2026-09-09 (la
+ * foto di apertura degli articoli, `.mg-field`): ha sostituito i dodici
+ * wallpaper PNG (`img.field-bg`). I file restano nel repo, ma nessuna sezione
+ * li scarica più — l'unico che li apre ancora è preview-field.html, per il
+ * confronto a fianco — e con loro se n'è andata la cache degli asset che
+ * serviva a reggerli. Si continua a provarlo da preview-field.html.
  *
  * NON è js/ui/field-svg.js, che esiste già e disegna il campo del LIVE: quello
  * è verticale (end zone in cima, yard line orizzontali, viewBox 1000×640),

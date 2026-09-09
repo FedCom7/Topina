@@ -300,6 +300,17 @@
             <div class="lab-group">
                 <span>Edizione</span><select id="sbEd"></select>
             </div>
+            <div class="lab-group" id="fase">
+                <span>Fase</span>
+                <button class="lab-btn" data-fase="">Normale</button>
+                <button class="lab-btn" data-fase="playoff">Playoff</button>
+                <button class="lab-btn on" data-fase="sb">Super Bowl</button>
+            </div>
+            <div class="lab-group" id="marchio">
+                <span>Centrocampo</span>
+                <button class="lab-btn on" data-marchio="file">Logo NFL (file)</button>
+                <button class="lab-btn" data-marchio="disegnato">Scudetto disegnato</button>
+            </div>
             <div class="lab-group" id="sbSize">
                 <span>Misura</span>
                 <button class="lab-btn" data-yd="12">12 yd</button>
@@ -350,8 +361,8 @@
     </main>
 
     <script type="module">
-        import { gameCenterFieldSVG, gcLogoRects, gcMidRect } from './js/ui/field-gc-svg.js?v=15';
-        import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, toRoman, sbYear, SB_EDITIONS, LAST_EDITION } from './js/ui/sb-logo-svg.js?v=10';
+        import { gameCenterFieldSVG, gcLogoRects, gcMidRect } from './js/ui/field-gc-svg.js?v=16';
+        import { superBowlLogoSVG, leagueShieldSVG, markSVG, LEAGUE_MARK, PLAYOFF_MARK, SB_LOGO_INK, toRoman, sbYear, SB_EDITIONS, LAST_EDITION } from './js/ui/sb-logo-svg.js?v=12';
 
         /* Le quattro squadre VERE. Copiate qui e non importate: js/sections/team.js
            tira dentro data.js, che ha un await su Firebase in cima al modulo, e un
@@ -412,11 +423,15 @@
             const paint = (p, inner) => `<div class="sb-paint" style="left:${p.left}%;top:${p.top}%;width:${p.width}%">${inner}</div>`;
             let out = '';
             if (state.layers.logo) {
-                out += gcLogoRects(state.yards, SB_LOGO_INK.ratio).map((r, i) => paint(r.pct,
-                    superBowlLogoSVG({ edition: state.sbEd, crop: true, className: 'sb-paint-svg', idPrefix: `sb-png${i}-${state.sbEd}` }))).join('');
+                const rapp = state.fase === 'playoff' ? 1 : SB_LOGO_INK.ratio;
+                out += gcLogoRects(state.yards, rapp).map((r, i) => paint(r.pct, state.fase === 'playoff'
+                    ? `<img class="sb-paint-svg" src="${PLAYOFF_MARK}" alt="">`
+                    : superBowlLogoSVG({ edition: state.sbEd, crop: true, className: 'sb-paint-svg', idPrefix: `sb-png${i}-${state.sbEd}` }))).join('');
             }
             if (state.layers.mid) {
-                out += paint(gcMidRect().pct, leagueShieldSVG({ className: 'sb-paint-svg', idPrefix: 'mid-png' }));
+                out += paint(gcMidRect().pct, state.marchio === 'file'
+                    ? `<img class="sb-paint-svg" src="${LEAGUE_MARK}" alt="">`
+                    : leagueShieldSVG({ className: 'sb-paint-svg', idPrefix: 'mid-png' }));
             }
             return out;
         }
@@ -443,15 +458,26 @@
             L: 'capi', R: 'lasers', ez: 'team', players: true, dim: true,
             layers: { erba: true, righe: true, numeri: true, nomi: true, pali: true, cornice: true, logo: true, mid: true },
             sbEd: 7, yards: 16,   // dalla 17 alla 33, centrato sulla 25
+            fase: 'sb', marchio: 'file',
         };
 
         /* Il logo dell'edizione, dipinto a centrocampo come fa la NFL al Super
            Bowl. Ogni copia a schermo vuole il suo prefisso di id: il campo SVG
            e il PNG mostrano lo stesso logo due volte nella stessa pagina, e due
            gradienti omonimi si sovrascrivono a vicenda. */
-        const sbLogo = (rect, who, i) => superBowlLogoSVG({
-            edition: state.sbEd, embed: rect, crop: true, idPrefix: `sb-${who}${i}-${state.sbEd}`,
-        });
+        /* Cosa si dipinge sulle 25: il logo dell'edizione al Super Bowl, il
+           logo playoff nella settimana dei playoff. Sono due cose diverse —
+           uno e' generato, l'altro e' un file — quindi il riquadro cambia
+           rapporto: il primo lo ritaglia sull'inchiostro, il secondo entra
+           centrato con preserveAspectRatio. */
+        const sbLogo = (rect, who, i) => (state.fase === 'playoff'
+            ? markSVG({ href: PLAYOFF_MARK, embed: rect })
+            : superBowlLogoSVG({
+                edition: state.sbEd, embed: rect, crop: true, idPrefix: `sb-${who}${i}-${state.sbEd}`,
+            }));
+        const midLogo = (rect, who) => (state.marchio === 'file'
+            ? markSVG({ href: LEAGUE_MARK, embed: rect })
+            : leagueShieldSVG({ embed: rect, idPrefix: `tl-${who}` }));
 
         const $ = (s) => document.querySelector(s);
         const kb = (n) => n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(2)} MB`;
@@ -474,8 +500,9 @@
                 left: { name: L.name, color: L.color }, right: { name: R.name, color: R.color },
                 endzone: state.ez, show: state.layers,
                 logo: (rect, i) => sbLogo(rect, 'svg', i),
-                logoYards: state.yards, logoRatio: SB_LOGO_INK.ratio,
-                mid: (rect) => leagueShieldSVG({ embed: rect, idPrefix: 'mid-svg' }),
+                logoYards: state.yards,
+                logoRatio: state.fase === 'playoff' ? 1 : SB_LOGO_INK.ratio,
+                mid: (rect) => midLogo(rect, 'svg'),
             });
             const t0 = performance.now();
             $('#stageSvg').innerHTML = campo(markup, L, R, state.players);
@@ -540,6 +567,23 @@
         }).join('');
         $('#sbEd').value = state.sbEd;
         $('#sbEd').onchange = (e) => { state.sbEd = Number(e.target.value); render(); };
+        $('#fase').onclick = (e) => {
+            const b = e.target.closest('[data-fase]'); if (!b) return;
+            state.fase = b.dataset.fase;
+            // niente vernice fuori da playoff e finale: e' la regola del sito
+            state.layers.logo = state.layers.mid = !!state.fase;
+            $('#fase').querySelectorAll('.lab-btn').forEach(x => x.classList.toggle('on', x === b));
+            $('#layers').querySelectorAll('[data-layer="logo"],[data-layer="mid"]')
+                .forEach(x => x.classList.toggle('on', !!state.fase));
+            render();
+        };
+        $('#marchio').onclick = (e) => {
+            const b = e.target.closest('[data-marchio]'); if (!b) return;
+            state.marchio = b.dataset.marchio;
+            $('#marchio').querySelectorAll('.lab-btn').forEach(x => x.classList.toggle('on', x === b));
+            render();
+        };
+
         $('#sbSize').onclick = (e) => {
             const b = e.target.closest('[data-yd]'); if (!b) return;
             state.yards = Number(b.dataset.yd);
