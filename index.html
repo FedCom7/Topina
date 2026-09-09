@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1090">
+    <link rel="stylesheet" href="css/main.css?v=1118">
 </head>
 
 <body>
@@ -39,7 +39,9 @@
                 <li class="nav-item has-dropdown" data-dropdown="teams">
                     <a href="#teams" class="nav-link" data-section="teams">Teams</a>
                 </li>
-                <li class="nav-item"><a href="#analysis" class="nav-link" data-section="analysis">Analysis</a></li>
+                <li class="nav-item has-dropdown" data-dropdown="analysis">
+                    <a href="#analysis" class="nav-link" data-section="analysis">Season</a>
+                </li>
                 <li class="nav-item has-dropdown" data-dropdown="draft">
                     <a href="#draft" class="nav-link" data-section="draft">Draft</a>
                 </li>
@@ -90,6 +92,12 @@
             <a href="#standings" class="nav-dp-item nav-dp-header" data-section="standings">Regular Season</a>
             <div class="nav-dp-sep"></div>
             <a href="#playoffs" class="nav-dp-item" data-section="playoffs">Playoff Picture</a>
+        </div>
+        <div class="nav-dropdown-panel" data-panel="analysis">
+            <a href="#analysis" class="nav-dp-item nav-dp-header" data-section="analysis">Analysis</a>
+            <div class="nav-dp-sep"></div>
+            <a href="#leaders" class="nav-dp-item" data-section="leaders">Players</a>
+            <a href="#waivers" class="nav-dp-item" data-section="waivers">Waivers</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="draft">
             <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
@@ -380,6 +388,40 @@
         </div>
     </section>
 
+    <!-- ====== PLAYERS (sotto Season) — classifica punti + best available ====== -->
+    <section class="page-section" id="leaders">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Players</h1>
+                <p class="section-subtitle">Who is scoring this season, and who is still out there</p>
+            </div>
+            <div class="pick-row" id="ld-pick-row"></div>
+            <div id="leaders-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading players...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== WAIVERS (sotto Season) ====== -->
+    <section class="page-section" id="waivers">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Waivers</h1>
+                <p class="section-subtitle">Every move made during the season</p>
+            </div>
+            <div class="pick-row" id="wv-pick-row"></div>
+            <div id="waivers-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading moves...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== TEAM ====== -->
     <section class="page-section" id="team">
         <!-- Contenuto iniettato da js/sections/team.js -->
@@ -391,7 +433,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1185"></script>
+    <script type="module" src="js/app.js?v=1203"></script>
 </body>
 
 </html>

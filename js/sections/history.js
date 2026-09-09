@@ -58,11 +58,13 @@ export async function initHistory() {
 
 /* Una scelta per STAGIONE, non una per la pagina: si va in History per
    guardare un anno alla volta, e volendo confrontare il 2019 col 2025 servono
-   due modalita' aperte insieme. Chi non tocca niente vede la regular season. */
+   due modalita' aperte insieme. Chi non tocca niente vede come e' FINITA:
+   questa e' la pagina della storia, e la storia di una stagione e' chi ha
+   alzato la coppa, non chi comandava a dicembre. */
 const modi = new Map();
 let stagioni = [];
 
-const modoDi = (year) => modi.get(String(year)) || 'regular';
+const modoDi = (year) => modi.get(String(year)) || 'finale';
 
 function modoSwitchHTML(year) {
     const attuale = modoDi(year);
@@ -412,13 +414,18 @@ function standingsHTML({ year, standings, finali, sbMatchup }) {
             ${lista.map((t, i) => {
         const nome = displayName(t.name);
         const logo = TEAM_LOGOS[nome] || 'images/nfl_logo.png';
+        // In regular season i punti fatti e subiti vengono PRIMA del record:
+        // sono la misura di quanto forte e' andata una squadra, il record e'
+        // gia' il risultato di quella misura contro il calendario.
         const destra = playoff
             ? `<span class="standing-record">${t.w}-${t.l}</span>
                <span class="standing-pct">${(t.pf || 0).toFixed(1)}</span>`
-            : `<span class="standing-record">${t.w}-${t.l}</span>
+            : `<span class="standing-pts">${(t.pf || 0).toFixed(1)}</span>
+               <span class="standing-pts standing-pts--against">${(t.pa || 0).toFixed(1)}</span>
+               <span class="standing-record">${t.w}-${t.l}</span>
                <span class="standing-pct">${((t.w / (t.w + t.l)) * 100).toFixed(0)}%</span>`;
         return `
-                <div class="history-standing-row${t.name === champion ? ' champion' : ''}" data-rank="${i + 1}">
+                <div class="history-standing-row${playoff ? '' : ' history-standing-row--reg'}${t.name === champion ? ' champion' : ''}" data-rank="${i + 1}">
                     <span class="standing-rank rank-${i + 1}">${i + 1}</span>
                     <img src="${logo}" alt="${nome}" class="standing-logo">
                     <span class="standing-team">${nome}</span>

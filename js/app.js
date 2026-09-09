@@ -1,27 +1,29 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=795';
-import { initGameCenter } from './sections/game-center.js?v=736';
+import { initHome } from './sections/home.js?v=812';
+import { initGameCenter } from './sections/game-center.js?v=753';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=719';
-import { initDraft } from './sections/draft.js?v=729';
+import { initDraft } from './sections/draft.js?v=746';
 import { initDraftGrades } from './sections/draftgrades.js?v=755';
 import { initProjections } from './sections/projections.js?v=116';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=762';
 import { initPlayerPage } from './sections/player-page.js?v=984';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=1038';
 import { initPlayersSearch } from './sections/players-search.js?v=978';
-import { initStats } from './sections/stats.js?v=794';
-import { initHistory } from './sections/history.js?v=704';
+import { initStats } from './sections/stats.js?v=811';
+import { initHistory } from './sections/history.js?v=706';
 import { initHonors } from './sections/honors.js?v=691';
 import { initAllPro } from './sections/allpro.js?v=698';
 import { initHallOfFame } from './sections/halloffame.js?v=714';
 import { initTeam } from './sections/team.js?v=709';
 import { initTeams } from './sections/teams.js?v=684';
 import { initGame } from './sections/game.js?v=766';
-import { initAnalysis } from './sections/analysis.js?v=755';
+import { initAnalysis } from './sections/analysis.js?v=773';
+import { initLeaders } from './sections/leaders.js?v=10';
+import { initWaivers } from './sections/waivers.js?v=10';
 import { initMagazine } from './sections/magazine.js?v=736';
-import { initLive } from './sections/live.js?v=991';
+import { initLive } from './sections/live.js?v=1008';
 import { initNavbar } from './ui/navbar.js?v=632';
 import { startAutoAbbr } from './utils/team-abbr.js?v=501';
 import { startLoadingArt } from './ui/spinner.js?v=5';
@@ -33,6 +35,8 @@ const SECTIONS = {
     'playoffs': initPlayoffs,
     'teams': initTeams,
     'analysis': initAnalysis,
+    'leaders': initLeaders,
+    'waivers': initWaivers,
     'draft': initDraft,
     'draftgrades': initDraftGrades,
     'projections': initProjections,
@@ -55,6 +59,8 @@ const NAV_PARENT = {
     'projections': 'draft',
     'playoffs': 'standings',
     'magazine': 'game-center',
+    'leaders': 'analysis',
+    'waivers': 'analysis',
 };
 
 const TEAM_KEYS_NAV = new Set(['team-capi', 'team-lasers', 'team-oscurus', 'team-sommo']);

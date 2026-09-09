@@ -34,7 +34,9 @@ const modelCache = {};
 
 const TABS = [
     { id: 'trend', label: 'Trends' },
-    { id: 'season', label: 'Season' },
+    // 'Roster' e non 'Season': dal nav la sezione intera ora si chiama Season,
+    // e la stessa parola a due livelli diversi non diceva piu' niente.
+    { id: 'season', label: 'Roster' },
     { id: 'draft', label: 'Draft' },
     { id: 'market', label: 'Market' },
     { id: 'lineup', label: 'Lineup' },
@@ -288,50 +290,81 @@ function optimalWeekPoints(model, teamKey, wk) {
     return total;
 }
 
+/**
+ * I quattro numeri in cima alla vista squadra.
+ *
+ * Contano la SOLA REGULAR SEASON, come la classifica e come il record qui
+ * sotto: prima i punti includevano playoff e Super Bowl, e la stessa pagina
+ * mostrava 2282 punti sopra un record 6-9 che quelle giornate non le contava.
+ * I punti di post-season non spariscono — escono a parte in `po`, e a schermo
+ * stanno accanto al numero col colore dei playoff.
+ */
 export function pointsComparison(model, teamKey) {
-    let real = 0, optimal = 0;
+    const cfg = getSeasonConfig(model.year);
+    const vuoto = () => ({ real: 0, optimal: 0, drafted: 0 });
+    const reg = vuoto(), po = vuoto();
     let worstMiss = null; // miglior prestazione lasciata in panchina
 
     for (const wkStr of Object.keys(model.teamWeeks[teamKey] || {})) {
         const wk = Number(wkStr);
+        const dove = wk > cfg.regularSeasonWeeks ? po : reg;
         const tw = model.teamWeeks[teamKey][wk];
         let realWk = 0;
         for (const name of tw.starters) realWk += model.players.get(name)?.weeks[wk]?.pts || 0;
-        real += realWk;
+        dove.real += realWk;
 
         const opt = optimalWeekPoints(model, teamKey, wk);
-        optimal += opt !== null ? opt : realWk;
+        dove.optimal += opt !== null ? opt : realWk;
 
-        for (const name of tw.bench) {
-            const rec = model.players.get(name);
-            const w = rec?.weeks[wk];
-            if (w && (!worstMiss || w.pts > worstMiss.pts)) {
-                // il ruolo serve ad abbreviare il nome: senza, una difesa
-                // diventerebbe "S. Seahawks" invece di "Seahawks"
-                worstMiss = { name, wk, pts: w.pts, position: rec.position };
+        // Il "worst miss" sta sotto ai quattro numeri e deve parlare della
+        // stessa stagione: una panchina sbagliata al Super Bowl non appartiene
+        // a un conto che i playoff non li conta.
+        if (dove === reg) {
+            for (const name of tw.bench) {
+                const rec = model.players.get(name);
+                const w = rec?.weeks[wk];
+                if (w && (!worstMiss || w.pts > worstMiss.pts)) {
+                    // il ruolo serve ad abbreviare il nome: senza, una difesa
+                    // diventerebbe "S. Seahawks" invece di "Seahawks"
+                    worstMiss = { name, wk, pts: w.pts, position: rec.position };
+                }
             }
         }
     }
 
-    let drafted = 0;
     const raw = rawFromTeamKey(model.draft?.teams, teamKey);
     if (raw) {
         for (const p of model.draft.teams[raw] || []) {
             const rec = model.players.get(p.name);
-            if (rec) for (const w of Object.values(rec.weeks)) drafted += w.pts;
+            if (!rec) continue;
+            for (const [wkStr, w] of Object.entries(rec.weeks)) {
+                (Number(wkStr) > cfg.regularSeasonWeeks ? po : reg).drafted += w.pts;
+            }
         }
     }
 
-    return { real, drafted: raw ? drafted : null, optimal, benchLost: optimal - real, worstMiss };
+    return {
+        real: reg.real,
+        drafted: raw ? reg.drafted : null,
+        optimal: reg.optimal,
+        benchLost: reg.optimal - reg.real,
+        worstMiss,
+        po: {
+            real: po.real,
+            drafted: raw ? po.drafted : null,
+            optimal: po.optimal,
+            benchLost: po.optimal - po.real,
+        },
+    };
 }
 
 /* ============================================================
    FORMAT HELPERS
    ============================================================ */
 
-const fmt = (n, dec = 0) => Number(n || 0).toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+export const fmt = (n, dec = 0) => Number(n || 0).toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
-function keyStatLine(position, s) {
+export function keyStatLine(position, s) {
     if (!s) return '';
     switch (position) {
         case 'QB': {
@@ -364,12 +397,12 @@ function keyStatLine(position, s) {
     }
 }
 
-function headshotImg(rec, cls = 'an-headshot') {
+export function headshotImg(rec, cls = 'an-headshot') {
     return `<img src="images/fallback-player.svg" class="${cls} an-img" loading="lazy"
         data-player-name="${rec.name}" data-team="${rec.nflTeam || ''}" data-pos="${rec.position || ''}" alt="${rec.name}">`;
 }
 
-function posBadge(position) {
+export function posBadge(position) {
     const posClass = `pos-${(position || '').toLowerCase().replace('/', '')}`;
     return `<span class="player-pos ${posClass}">${position || '—'}</span>`;
 }
@@ -504,7 +537,8 @@ async function render(model) {
         // L'Injury Report sta solo nella vista squadra: qui erano quattro
         // tabelloni uno dietro l'altro, e per leggerne uno andavano scorsi
         // tutti. Vedi `loadTeamInjuryReport`.
-        loadBestAvailable(wrap, model); // async
+        // Il Best Available e' emigrato in #leaders (sezione Players): la
+        // stessa lista stava in fondo a una pagina che parla d'altro.
         return;
     }
 
@@ -583,28 +617,31 @@ async function getPreviousModel(year) {
     }
 }
 
+/**
+ * I quattro numeri di stagione. Sopra a destra di ognuno, in oro come la
+ * graffa dei playoff qui sotto, quanto ci aggiunge la post-season: il numero
+ * grande resta quello confrontabile con la classifica, e chi vuole il totale
+ * lo somma con l'occhio.
+ */
 function renderKpi(kpi) {
     const missHtml = kpi.worstMiss
         ? `<div class="an-kpi-note">Worst miss: <b>${kpi.worstMiss.name}</b> — ${fmt(kpi.worstMiss.pts, 2)} pt left on the bench (W${kpi.worstMiss.wk})</div>`
         : '';
+    // Zero non si scrive: una squadra fuori dai playoff avrebbe portato
+    // quattro "+0" che non dicono niente.
+    const extra = (v) => (v ? `<span class="an-kpi-po" title="Playoffs and Super Bowl, not counted in the number">+${fmt(Math.abs(v))}</span>` : '');
+    const stat = (valore, etichetta, piu, cls = '') => `
+        <div class="summary-stat${cls}">
+            ${extra(piu)}
+            <div class="summary-stat-value">${valore}</div>
+            <div class="summary-stat-label">${etichetta}</div>
+        </div>`;
     return `
     <div class="stats-summary an-kpi">
-        <div class="summary-stat">
-            <div class="summary-stat-value">${fmt(kpi.real)}</div>
-            <div class="summary-stat-label">Real Points</div>
-        </div>
-        <div class="summary-stat">
-            <div class="summary-stat-value">${kpi.drafted !== null ? fmt(kpi.drafted) : '—'}</div>
-            <div class="summary-stat-label">Drafted Team Points</div>
-        </div>
-        <div class="summary-stat">
-            <div class="summary-stat-value">${fmt(kpi.optimal)}</div>
-            <div class="summary-stat-label">Optimal Lineup Points</div>
-        </div>
-        <div class="summary-stat summary-stat--accent">
-            <div class="summary-stat-value">−${fmt(kpi.benchLost)}</div>
-            <div class="summary-stat-label">Points Left on the Bench</div>
-        </div>
+        ${stat(fmt(kpi.real), 'Real Points', kpi.po?.real)}
+        ${stat(kpi.drafted !== null ? fmt(kpi.drafted) : '—', 'Drafted Team Points', kpi.po?.drafted)}
+        ${stat(fmt(kpi.optimal), 'Optimal Lineup Points', kpi.po?.optimal)}
+        ${stat(`−${fmt(kpi.benchLost)}`, 'Points Left on the Bench', kpi.po?.benchLost, ' summary-stat--accent')}
     </div>
     ${missHtml}`;
 }
@@ -1065,7 +1102,7 @@ async function loadPlayerInjuryBadges(container, model) {
  * `showTeamCol` (tab Confronto, anno precedente) mostra sempre la squadra in
  * una colonna a sé, perché lì non c'è "questa squadra" con cui confrontare.
  */
-function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, injuryInfo = null } = {}) {
+export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, injuryInfo = null } = {}) {
     const teamCell = showTeamCol ? `<span class="an-drill-team">${w ? (TEAMS[w.teamKey]?.name || '') : ''}</span>` : '';
     // dnp === true: sappiamo per certo che non ha giocato, anche se il referto
     // (fermo al venerdì) diceva solo "Questionable" — vale la pena dirlo.
@@ -1116,6 +1153,38 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
         righe.push(drillRow(rec, wk, w, { teamKey, showTeamCol, injuryInfo: infortuni.get(wk) }));
     }
     return righe.join('');
+}
+
+/**
+ * Il drill di stagione di UN giocatore qualunque, per chi sta fuori da questa
+ * pagina (la lista di Players lo apre in un popup).
+ *
+ * Differenza con `weekDrillHtml`: li' il giocatore e' per forza uno dei nostri,
+ * qui puo' non essere mai passato da nessuna rosa. In quel caso il record non
+ * esiste nel modello e si costruisce vuoto: tutte le giornate vengono da
+ * `getUnrosteredScores`, spente e con l'asterisco, che e' esattamente cosa
+ * sono — punti ricostruiti da statistiche NFL vere, mai un dato di lega.
+ */
+export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null } = {}) {
+    const m = model || modelCache[year] || null;
+    const rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
+    const [infortuni, unros] = await Promise.all([
+        playerWeekInjuries(rec.name, rec.position, year, m?.lastWeek ?? Infinity).catch(() => new Map()),
+        getUnrosteredScores(rec.name, year).catch(() => new Map()),
+    ]);
+    // `unrostered_scores_<anno>.json` copre una manciata di giocatori (quelli
+    // che servono al Best Available), non tutta la lega: chi chiama puo'
+    // passare le giornate prese altrove, e quelle riempiono i buchi rimasti.
+    // Il file di lega ha comunque la precedenza — e' calcolato con le nostre
+    // regole a partire da nflverse.
+    const calcScores = new Map(extraScores || []);
+    for (const [w, v] of unros) calcScores.set(w, v);
+
+    // Senza modello (stagione non ancora su Firebase) l'ultima giornata la
+    // dicono i punteggi calcolati: e' l'unica cosa che sappiamo.
+    const ultima = m?.lastWeek || (calcScores.size ? Math.max(...calcScores.keys()) : 0);
+    if (!ultima) return '';
+    return fullSeasonDrillRows({ lastWeek: ultima }, rec, teamKey, infortuni, calcScores);
 }
 
 async function weekDrillHtml(playerName) {
@@ -1177,13 +1246,18 @@ async function compareWeekDrillHtml(playerName) {
  * punto la passata iniziale è già finita da un pezzo, quindi le loro
  * immagini non verrebbero mai idratate.
  */
-function hydrateImages(root = null) {
+export function hydrateImages(root = null) {
     const scope = root || document.getElementById('analysis-content');
     if (!scope) return;
     const images = scope.querySelectorAll('.an-img');
     images.forEach(async (img) => {
         const name = img.dataset.playerName;
         if (!name) return;
+        // Quelle dentro a un blocco chiuso ("Show N more") si idratano quando
+        // il blocco si apre: la classifica di Players ha centinaia di righe, e
+        // risolvere subito la foto di tutte voleva dire centinaia di richieste
+        // per una manciata di facce a schermo.
+        if (img.closest('[hidden]')) return;
 
         img.onerror = () => {
             if (!img.src.endsWith('images/fallback-player.svg')) {
@@ -1891,6 +1965,22 @@ function teamLuckHTML(model, teamKey) {
     const playoff = log.filter(g => g.playoff);
     const daPo = log.findIndex(g => g.playoff);
 
+    // I due record di post-season, che quelli veri non contano: stanno accanto
+    // ai loro, in oro come la graffa, cosi' si leggono senza confondersi.
+    // L'all-play si somma allo stesso modo della regular season — quante delle
+    // altre squadre quel punteggio avrebbe battuto, giornata per giornata.
+    const poRec = playoff.reduce((a, g) => {
+        if (g.esito === 'W') a.w++; else if (g.esito === 'L') a.l++; else if (g.esito === 'T') a.t++;
+        a.apW += g.battuti;
+        a.apL += g.avversari - g.battuti;
+        return a;
+    }, { w: 0, l: 0, t: 0, apW: 0, apL: 0 });
+    const poTag = (testo) => `<i class="an-luck-po-rec" title="Playoffs and Super Bowl, not counted in the number">${testo} PO</i>`;
+    const poHtml = playoff.length
+        ? poTag(`${poRec.w}–${poRec.l}${poRec.t ? `–${poRec.t}` : ''}`) : '';
+    const poApHtml = playoff.length
+        ? poTag(`${fmtAp(poRec.apW)}–${fmtAp(poRec.apL)}`) : '';
+
     // Graffa oro sopra le sole giornate di playoff: la griglia le allinea in
     // colonna, quindi basta dire da quale colonna parte.
     const graffa = playoff.length ? `
@@ -1905,8 +1995,8 @@ function teamLuckHTML(model, teamKey) {
     return `
     <h3 class="an-sub-title">Record: earned or scheduled?</h3>
     <div class="an-luck-kpi">
-        <div><b>${t.w}–${t.l}${t.t ? `–${t.t}` : ''}</b><span>Real record</span></div>
-        <div><b>${fmtAp(t.apW)}–${fmtAp(t.apL)}</b><span>All-play record</span></div>
+        <div><b>${t.w}–${t.l}${t.t ? `–${t.t}` : ''}${poHtml}</b><span>Real record</span></div>
+        <div><b>${fmtAp(t.apW)}–${fmtAp(t.apL)}${poApHtml}</b><span>All-play record</span></div>
         <div class="${t.luck > 0 ? 'an-luck-good' : t.luck < 0 ? 'an-luck-bad' : ''}">
             <b>${segno(t.luck)}</b><span>Luck</span>
         </div>
@@ -2139,24 +2229,30 @@ function upgradesHTML(sugg, model) {
 
     return `
     <h3 class="an-sub-title">Where to look for an upgrade</h3>
-    <p class="an-footnote">Only the positions where this team is <b>below</b> the league average above. For each
-       one: its weakest regular starter (someone with at least ${UPGRADE_MIN_START} starts, so not a one-week
-       fill-in), and the free agents who averaged more — nobody had them in week ${model.lastWeek}. Per game,
-       not per week, because one free agent replaces one starter, not the whole position. Free agents with
-       fewer than half a season played are left out: a two-week hot streak is noise, not an upgrade. Kickers
-       and defenses aren't covered by this source.<br>
-       Both sides<sup>*</sup> are the same measure: points per game actually played across the whole NFL
-       season, recalculated from real NFL stats with the league's scoring. The starter is <b>not</b> judged on
-       his average in the weeks this team started him — on three or four starts, picking the lowest of those
-       averages finds the unluckiest small sample rather than the weakest player, and it overstated the gain.<br>
-       <b>Projected</b> is the second measure: the same preseason projection that feeds the draft grades and the
-       Projections page, divided by the games it expects. It answers a different question — not what happened,
-       but what was expected before a snap was played. The small number under each gain is the same gap on
-       projections. <b>Expected too</b> means the board saw it coming and the edge is not a hot streak;
-       <b>beating his board</b> means the whole gap was built this season, so it can give it back;
-       <b>starter underperforming</b> means the starter is running more than 20% below his own projection, so a
-       bounce-back may be cheaper than a pickup. Players with no preseason projection show —: the ranking never
-       depends on it, it only annotates.</p>
+    <p class="an-footnote">Only the positions where this team is <b>below</b> the league average above: its
+       weakest regular starter (at least ${UPGRADE_MIN_START} starts) against the free agents who averaged
+       more — per game, over the whole NFL season, recalculated from real stats with the league's scoring.
+       Kickers and defenses aren't covered by this source.</p>
+    <details class="an-legend-box">
+        <summary>How the gain is measured</summary>
+        <div class="an-legend-list">
+            <p>Nobody had these free agents in week ${model.lastWeek}, and those with fewer than half a season
+               played are left out: a two-week hot streak is noise, not an upgrade. Per game and not per week,
+               because one free agent replaces one starter, not the whole position.</p>
+            <p>Both sides<sup>*</sup> are the same measure. The starter is <b>not</b> judged on his average in
+               the weeks this team started him: on three or four starts, picking the lowest of those averages
+               finds the unluckiest small sample rather than the weakest player, and it overstated the gain.</p>
+            <p><b>Projected</b> is the second measure — the same preseason projection that feeds the draft
+               grades and the Projections page, divided by the games it expects. It answers a different
+               question: not what happened, but what was expected before a snap was played. The small number
+               under each gain is the same gap on projections.</p>
+            <p><b>Expected too</b> means the board saw it coming and the edge is not a hot streak;
+               <b>beating his board</b> means the whole gap was built this season, so it can give it back;
+               <b>starter underperforming</b> means the starter is running more than 20% below his own
+               projection, so a bounce-back may be cheaper than a pickup. Players with no preseason projection
+               show —: the ranking never depends on it, it only annotates.</p>
+        </div>
+    </details>
     <div class="an-upg-grid">${blocchi}</div>`;
 }
 
@@ -2500,7 +2596,9 @@ function renderLeagueView(model) {
         ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${nomeCorto({ name: r.topPickup.rec.name, pos: r.topPickup.rec.position })} · ${fmt(r.topPickup.agg.pts, 0)} pt` : null, 'win')}
         ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst: ${nomeCorto({ name: r.worstMiss.name, pos: r.worstMiss.position })} · ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
-    <p class="an-footnote">Total points from that year's draft picks, from in-season waiver pickups, and left unplayed on the bench — each ranked highest first.</p>
+    <p class="an-footnote">Points from that year's draft picks, from in-season waiver pickups, and left unplayed
+       on the bench — each ranked highest first. Draft and bench count the <b>regular season</b> only, like the
+       standings; pickups count every week they were on the roster.</p>
 
     <h3 class="an-sub-title">Scoring Consistency</h3>
     ${buildDistributionChart(scoreDistribution(model))}
@@ -2533,9 +2631,7 @@ function renderLeagueView(model) {
 
     <h3 class="an-sub-title">Pickups Comparison</h3>
     ${buildPickupsCompareTable(model)}
-    <p class="an-footnote">In-season pickups sorted by points scored (best first), not by position.</p>
-
-    <div id="an-bestavail-wrap" class="an-rule"></div>`;
+    <p class="an-footnote">In-season pickups sorted by points scored (best first), not by position.</p>`;
 }
 
 /* ============================================================
@@ -2744,8 +2840,6 @@ function bindInjuryReport(box) {
    lega, perché nessuno ha mai schierato questi giocatori.
    ============================================================ */
 
-const BESTAVAIL_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
-const BESTAVAIL_VISIBLE = 5;
 const INJURY_VISIBLE = 4;
 
 /**
@@ -2754,7 +2848,7 @@ const INJURY_VISIBLE = 4;
  * HTML già intere — nel Best Available ogni voce contiene sia la riga sia il
  * suo drill-down, quindi tagliare qui non spezza mai una coppia.
  */
-function limitedRows(righe, limite, tipo) {
+export function limitedRows(righe, limite, tipo) {
     if (righe.length <= limite) return righe.join('');
     const n = righe.length - limite;
     return `
@@ -2764,7 +2858,7 @@ function limitedRows(righe, limite, tipo) {
                 data-open="0" data-show-label="Show ${n} more">Show ${n} more</button>`;
 }
 
-function toggleExtraRows(btn) {
+export function toggleExtraRows(btn) {
     const box = btn.previousElementSibling;
     if (!box?.classList.contains('an-more-box')) return;
     const aperto = btn.dataset.open === '1';
@@ -2773,124 +2867,15 @@ function toggleExtraRows(btn) {
     btn.textContent = aperto ? btn.dataset.showLabel : 'Show less';
 }
 
-function sumWeeklyStats(weeks) {
+export function sumWeeklyStats(weeks) {
     const out = {};
     for (const w of weeks) for (const [k, v] of Object.entries(w.stats || {})) out[k] = (out[k] || 0) + (Number(v) || 0);
     return out;
 }
 
-function bestAvailRowHTML(p, pos, uid, exSquadra) {
-    const rec = { name: p.name, position: pos, nflTeam: p.team };
-    const avg = p.weeks.length ? p.totPts / p.weeks.length : 0;
-    // Ora la lista include chi è stato svincolato a stagione in corso: dirlo,
-    // altrimenti "libero" sembrerebbe "mai preso da nessuno".
-    const badge = exSquadra
-        ? ` <span class="an-badge an-badge-drop">Dropped by ${exSquadra}</span>` : '';
-    return `
-    <div class="an-player-row" data-bestavail="${uid}">
-        ${headshotImg(rec)}
-        <span class="an-player-name">${p.name} ${posBadge(pos)}${badge}</span>
-        <span class="an-cell">${p.weeks.length}</span>
-        <span class="an-cell an-pts">${fmt(p.totPts, 2)}<sup>*</sup></span>
-        <span class="an-cell">${fmt(avg, 1)}</span>
-        <span class="an-keystats">${keyStatLine(pos, sumWeeklyStats(p.weeks))}</span>
-        <span class="an-chevron">›</span>
-    </div>
-    <div class="an-week-drill" data-bestavail-drill="${uid}" hidden></div>`;
-}
 
-/**
- * Riusa drillRow. Le giornate in cui una delle 4 squadre lo aveva davvero si
- * leggono dal modello di stagione, così escono con "On {squadra}" invece che
- * tutte "Unrostered": adesso in lista ci sono anche gli svincolati, e dire
- * che non li aveva mai nessuno sarebbe falso.
- */
-function bestAvailDrillHTML(model, p, pos) {
-    const rec = model.players.get(p.name) || { position: pos };
-    return p.weeks.map(w => {
-        const vero = rec.weeks?.[w.week];
-        const riga = vero
-            ? { ...vero, opponent: vero.opponent || w.opponent }
-            : { pts: w.pts, stats: w.stats, opponent: w.opponent, teamKey: null, started: null, calculated: true };
-        // showTeamCol: qui il giocatore non appartiene a nessuna squadra in
-        // particolare, quindi le giornate in cui qualcuno lo aveva devono dire
-        // CHI lo aveva — altrimenti si legge "Starter" senza sapere di chi.
-        return drillRow(rec, w.week, riga, { showTeamCol: true, teamKey: null });
-    }).join('');
-}
 
-function bindBestAvailable(box, byPosition, model) {
-    box.addEventListener('click', (e) => {
-        const more = e.target.closest('[data-bestavail-more]');
-        if (more) { toggleExtraRows(more); return; }
 
-        const row = e.target.closest('.an-player-row[data-bestavail]');
-        if (!row) return;
-        const uid = row.dataset.bestavail;
-        const drill = box.querySelector(`.an-week-drill[data-bestavail-drill="${uid}"]`);
-        if (!drill) return;
-        const expanded = row.classList.toggle('expanded');
-        drill.hidden = !expanded;
-        if (expanded && !drill.dataset.loaded) {
-            drill.dataset.loaded = '1';
-            const [pos, idx] = uid.split(':');
-            const p = byPosition[pos]?.[+idx];
-            if (p) drill.innerHTML = bestAvailDrillHTML(model, p, pos);
-        }
-    });
-}
-
-/** Carica e disegna la sezione Best Available: async, dopo il resto della pagina. */
-async function loadBestAvailable(wrap, model) {
-    const box = wrap.querySelector('#an-bestavail-wrap');
-    if (!box) return;
-    box.innerHTML = `<h3 class="an-sub-title">Best Available</h3><p class="an-footnote">Loading…</p>`;
-
-    const byPosition = await getBestAvailable(model.year);
-    if (!wrap.isConnected || wrap.querySelector('#an-bestavail-wrap') !== box) return;
-
-    if (!byPosition) {
-        box.innerHTML = `
-        <h3 class="an-sub-title">Best Available</h3>
-        <p class="an-footnote">Data not available for ${model.year} yet.</p>`;
-        return;
-    }
-
-    // Chi lo aveva per ultimo, se è uno svincolato in corsa: serve alla riga.
-    const ultimaSquadra = (nome) => {
-        const rec = model.players.get(nome);
-        if (!rec) return null;
-        let ultima = null, wk = -1;
-        for (const [w, dati] of Object.entries(rec.weeks)) {
-            if (dati.teamKey && Number(w) > wk) { wk = Number(w); ultima = dati.teamKey; }
-        }
-        return ultima ? (TEAMS[ultima]?.name || null) : null;
-    };
-
-    const groups = BESTAVAIL_POSITIONS.map(pos => {
-        const list = byPosition[pos] || [];
-        if (!list.length) return '';
-        const rows = list.map((p, i) => bestAvailRowHTML(p, pos, `${pos}:${i}`, ultimaSquadra(p.name)));
-        return `
-        <div class="an-bestavail-group">
-            <span class="an-bestavail-pos">${pos}</span>
-            <div class="an-list-head">
-                <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
-            </div>
-            ${limitedRows(rows, BESTAVAIL_VISIBLE, 'bestavail')}
-        </div>`;
-    }).join('');
-
-    box.innerHTML = `
-    <h3 class="an-sub-title">Best Available</h3>
-    <p class="an-footnote">Top QB/RB/WR/TE by total points among the players <b>no team had in week
-       ${model.lastWeek}</b> — who you could pick up right now, dropped mid-season included. Points<sup>*</sup>
-       are calculated from real NFL stats using the league's own scoring rules, not an official league number.
-       Kickers and defenses aren't covered.</p>
-    <div class="an-bestavail-grid">${groups}</div>`;
-    bindBestAvailable(box, byPosition, model);
-    hydrateImages(box); // il giro iniziale è già passato: senza, restano le sagome
-}
 
 /** Infortuni della squadra scelta, nella tab Trends della vista squadra. */
 async function loadTeamInjuryReport(wrap, model, teamKey) {

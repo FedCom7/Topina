@@ -1693,46 +1693,19 @@ img {
 }
 
 
-/* Position colors */
-.pos-qb {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-}
-
-.pos-rb {
-    background: rgba(79, 140, 255, 0.15);
-    color: #93bbff;
-}
-
-.pos-wr {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
-}
-
-.pos-te {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-}
-
-.pos-k {
-    background: rgba(168, 85, 247, 0.15);
-    color: #c084fc;
-}
-
-.pos-def {
-    background: rgba(100, 116, 139, 0.15);
-    color: #94a3b8;
-}
-
-.pos-flex {
-    background: rgba(236, 72, 153, 0.15);
-    color: #f472b6;
-}
-
-.pos-bn {
-    background: rgba(100, 116, 139, 0.1);
-    color: #64748b;
-}
+/* Position colors — SOLO il colore del testo, nessun velo dietro.
+   La pastiglia colorata c'era ovunque comparisse un ruolo: accanto a un nome,
+   dentro una riga di tabella, sul titolo di una scheda. Erano macchie che
+   rubavano l'occhio a cio' che stavano etichettando, e il ruolo si legge
+   benissimo dal colore del testo, che resta quello di sempre. */
+.pos-qb { color: #f87171; }
+.pos-rb { color: #93bbff; }
+.pos-wr { color: #4ade80; }
+.pos-te { color: #fbbf24; }
+.pos-k { color: #c084fc; }
+.pos-def { color: #94a3b8; }
+.pos-flex { color: #f472b6; }
+.pos-bn { color: #64748b; }
 
 /* ================================
    STANDINGS TABLE
@@ -7118,17 +7091,6 @@ img {
 .mc-row--tinted {
     border-left: 2px solid color-mix(in srgb, var(--team-color, var(--accent-red)) 60%, transparent);
     padding-left: 10px;
-}
-
-.mc-row .allpro-pos {
-    background: none;
-}
-
-/* Il ruolo accanto al nome nel titolo della scheda giocatore: niente velo
-   colorato dietro. A 34px la pastiglia diventava una macchia larga quanto una
-   parola del nome; il colore del ruolo resta sul testo, che basta a leggerlo. */
-.mc-title .allpro-pos {
-    background: none;
 }
 
 /* Score row con gradienti nei colori delle due squadre */
@@ -21940,4 +21902,326 @@ a.sb:hover {
 .fst-recap-row.is-turn {
     box-shadow: inset 3px 0 0 var(--accent-red, #d3383a);
     padding-left: 9px;
+}
+
+
+/* ================================
+   PLAYERS (#leaders) e WAIVERS (#waivers) — le due sotto-pagine di Season
+   ================================ */
+
+/* La classifica riusa la riga di Analysis e ci aggiunge una colonna sola, il
+   numero di posizione: senza, per sapere a che punto si e' si contavano le
+   righe. Il resto della griglia resta identico, cosi' le due liste della
+   pagina (leaders e best available) si leggono come una cosa sola. */
+.ld-head,
+.an-player-row.ld-row {
+    grid-template-columns: 34px 40px minmax(180px, 1.4fr) 40px 80px 60px minmax(140px, 1fr) 20px;
+}
+
+.ld-rank {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.ld-nfl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.ld-controls {
+    flex-wrap: wrap;
+    gap: 10px 22px;
+}
+
+/* Le pastiglie dei ruoli sono a scelta multipla: quelle accese hanno gia'
+   .active da .an-avg-pill, qui serve solo che vadano a capo sul telefono. */
+.ld-pos {
+    flex-wrap: wrap;
+}
+
+/* ── Waivers ───────────────────────────────────────────────── */
+
+.wv-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 4px 0 18px;
+}
+
+/* Niente riquadro attorno ai contatori: tre numeri con la loro didascalia
+   sotto, ognuno centrato nella sua colonna. Il bordo li faceva sembrare tre
+   pulsanti da premere, e la scatola pesava piu' del numero che conteneva
+   (`align-items` resta quello di .pm-tile, cioe' centrato). */
+.wv-kpis .pm-tile {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    gap: 3px;
+    text-align: center;
+}
+
+.wv-kpis .pm-tile b {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.wv-kpis .pm-tile span {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.wv-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.wv-row {
+    display: grid;
+    grid-template-columns: 64px minmax(120px, 0.9fr) 74px 40px minmax(160px, 1.4fr) minmax(90px, 0.6fr);
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.wv-when {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.wv-when i {
+    font-style: normal;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.wv-team {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 0;
+}
+
+/* Entrata e uscita si leggono dal colore prima che dalla parola: scorrendo la
+   lista si cerca "chi e' arrivato", non si legge riga per riga. */
+.wv-dir {
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    padding: 3px 0;
+    border-radius: 4px;
+}
+
+.wv-in {
+    color: var(--accent-green, #4ade80);
+    background: color-mix(in srgb, var(--accent-green, #22c55e) 14%, transparent);
+}
+
+.wv-out {
+    color: var(--accent-red);
+    background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+}
+
+.wv-kind {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    /* Sul telefono restano posizione, faccia, nome e punti: partite, media e
+       statistiche non ci stavano e finivano schiacciate a larghezza zero,
+       cioe' presenti nel markup e invisibili a schermo. */
+    .ld-head,
+    .an-player-row.ld-row {
+        grid-template-columns: 24px 34px minmax(0, 1fr) 72px 14px;
+        gap: 8px;
+    }
+
+    .ld-head .an-head-stats,
+    .an-player-row.ld-row .an-keystats,
+    .ld-head > :nth-child(4),
+    .ld-head > :nth-child(6),
+    .an-player-row.ld-row > .an-cell:not(.an-pts) { display: none; }
+
+    /* Sul telefono la riga si stringe su cosa e' successo e a chi: la squadra
+       resta (senza di lei la mossa non ha un soggetto), il tipo esce. */
+    .wv-row {
+        grid-template-columns: 44px 1fr 62px 30px minmax(0, 1.6fr);
+        gap: 8px;
+    }
+
+    .wv-kind { display: none; }
+    .wv-team { font-size: 0.72rem; }
+    .wv-kpis { gap: 6px; }
+}
+
+
+/* ── Drill di stagione in linea (#leaders) ─────────────────
+   Si apre sotto la riga, come nel Best Available: stessa interazione, stesso
+   contenitore `.an-week-drill`. Qui il rientro va allineato al nome, che nella
+   classifica arriva dopo la colonna della posizione. */
+
+.ld-drill {
+    padding-left: 86px;
+}
+
+.ld-drill-foot {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.ld-drill-foot a {
+    flex: none;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ld-drill-foot a:hover { color: var(--text-primary); }
+
+/* La riga della classifica apre il dettaglio: si comporta come una riga
+   cliccabile, non come un link. */
+.an-player-row.ld-row { cursor: pointer; }
+
+.an-player-row.ld-row:hover {
+    background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+}
+
+@media (max-width: 768px) {
+    /* Il drill a sei colonne non ci sta: esce la riga di statistiche, che e'
+       la piu' lunga. Il badge titolare/panchina invece RESTA — su Analysis il
+       telefono lo nasconde, ma qui e' meta' del motivo per cui il dettaglio si
+       apre, quindi la regola generale va riaffermata. */
+    .ld-drill {
+        padding-left: 10px;
+    }
+
+    .ld-drill .an-drill-row {
+        grid-template-columns: 28px 42px 54px minmax(0, 1fr) auto;
+        gap: 6px;
+        font-size: 0.68rem;
+    }
+
+    .ld-drill .an-drill-stats { display: none; }
+
+    /* `justify-self`: la casella dell'infortunio e' quella elastica, e senza
+       questo il badge si allargava per tutta la colonna invece di stare
+       attaccato a quello dello stato. */
+    .ld-drill .an-drill-row .an-badge {
+        display: inline;
+        justify-self: end;
+    }
+
+    .ld-drill-foot {
+        flex-direction: column;
+        gap: 6px;
+    }
+}
+
+
+/* ── I playoff accanto ai numeri di stagione (Analysis, vista squadra) ──
+   I quattro KPI e il record contano la sola regular season, come la classifica.
+   Quello che la post-season ci aggiunge non sparisce: sta di fianco, in oro
+   come la graffa "Playoffs" della striscia qui sotto, cosi' si vede che e'
+   un'altra cosa senza doverlo spiegare. */
+
+.an-kpi .summary-stat {
+    position: relative;
+}
+
+.an-kpi-po {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent-amber);
+    font-variant-numeric: tabular-nums;
+    cursor: default;
+}
+
+.an-luck-po-rec {
+    margin-left: 8px;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 800;
+    color: var(--accent-amber);
+    font-variant-numeric: tabular-nums;
+    cursor: default;
+}
+
+@media (max-width: 768px) {
+    /* Sul telefono i numeri grandi si stringono: il di piu' dei playoff
+       scende sotto l'angolo, ma resta agganciato al suo numero. */
+    .an-kpi-po { font-size: 0.78rem; }
+}
+
+
+/* ── History, classifica di regular season: punti fatti e subiti ──────
+   Due colonne in piu' rispetto alla vista Final, e stanno PRIMA del record:
+   il record e' gia' il risultato di quei punti contro il calendario, e
+   leggerlo dopo la misura che lo produce e' l'ordine giusto. */
+
+.history-standing-row--reg {
+    grid-template-columns: 24px 28px 1fr 60px 60px 56px 44px;
+    gap: 10px;
+}
+
+.standing-pts {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* I punti SUBITI sono il rovescio della medaglia: piu' spenti, cosi' la
+   coppia si legge come "fatti contro subiti" e non come due numeri pari. */
+.standing-pts--against {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    /* Sul telefono la percentuale esce: e' l'unica delle quattro che si
+       ricava a mente dal record che ha accanto. */
+    .history-standing-row--reg {
+        grid-template-columns: 20px 24px 1fr 52px 52px 46px;
+        gap: 7px;
+        font-size: 0.78rem;
+    }
+
+    .history-standing-row--reg .standing-pct { display: none; }
+    .history-standing-row--reg .standing-pts { font-size: 0.7rem; }
 }

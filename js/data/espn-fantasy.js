@@ -106,6 +106,9 @@ export function teamAbbrFromName(nome) {
 /** teamId della lega → nome squadra come lo mostra il sito. */
 const TEAM_ID_TO_NAME = { 1: 'Oscurus', 2: 'Lasers', 3: 'Sommo', 4: 'Capi dei Pianeti' };
 
+/** Lo stesso, per chi disegna le mosse di mercato: la' arriva solo il teamId. */
+export const fantasyTeamName = (id) => TEAM_ID_TO_NAME[Number(id)] || null;
+
 // ─── Utilità ─────────────────────────────────────────────────────
 
 const money = (v) => (Number.parseFloat(v) || 0).toFixed(2);
@@ -299,6 +302,79 @@ function draftDate(data) {
 export async function fetchDraftStatus(year) {
     const data = await readLeague(year, null);
     return { drafted: draftIsDone(data), date: draftDate(data) };
+}
+
+/**
+ * Le mosse di mercato della lega: waiver, free agent, trade, tagli.
+ *
+ * La lega e' pubblica, quindi la chiamata non vuole cookie — la stessa che
+ * legge il draft. Attenzione a cosa NON si puo' usare: il feed attivita'
+ * (`/communication/?view=kona_league_communication`, quello che sul sito ESPN
+ * mostra "X ha aggiunto Y dai waiver") risponde **401** senza il login, quindi
+ * e' fuori portata dal browser. Resta `mTransactions2`, che e' sul nodo lega
+ * come tutte le altre viste.
+ *
+ * ESPN **omette del tutto** la chiave `transactions` quando non c'e' nessuna
+ * mossa, non manda un array vuoto: qui torna `[]`, e a distinguere "nessuna
+ * mossa" da "non risponde" ci pensa l'eccezione.
+ *
+ * Ogni voce ha `items[]` con `type` (ADD/DROP/LINEUP), `playerId`, la squadra
+ * che prende e quella che cede. I nomi dei giocatori NON ci sono: c'e' solo
+ * l'id, e chi disegna la pagina lo risolve col listone.
+ */
+export async function fetchTransactions(year) {
+    const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
+    url.searchParams.append('view', 'mTransactions2');
+
+    const filtro = { transactions: { limit: 500,
+        sortDate: { sortPriority: 1, sortAsc: false } } };
+
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), 12000);
+    let data;
+    try {
+        const res = await fetch(url, { signal: stop.signal,
+            headers: { 'x-fantasy-filter': JSON.stringify(filtro) } });
+        if (!res.ok) throw new Error(`ESPN ${res.status}`);
+        data = await res.json();
+    } finally { clearTimeout(timer); }
+
+    return Array.isArray(data?.transactions) ? data.transactions : [];
+}
+
+/**
+ * Il listone dei giocatori della lega, per risolvere gli id delle transazioni
+ * in nomi e ruoli. Una chiamata sola, 1500 giocatori: e' la stessa sorgente di
+ * `fetchProjections`, chiesta senza le proiezioni.
+ */
+export async function fetchPlayerNames(year) {
+    const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
+    url.searchParams.append('view', 'kona_player_info');
+
+    const filtro = { players: { limit: 2000,
+        sortDraftRanks: { sortPriority: 1, sortAsc: true, value: 'STANDARD' } } };
+
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), 12000);
+    let data;
+    try {
+        const res = await fetch(url, { signal: stop.signal,
+            headers: { 'x-fantasy-filter': JSON.stringify(filtro) } });
+        if (!res.ok) throw new Error(`ESPN ${res.status}`);
+        data = await res.json();
+    } finally { clearTimeout(timer); }
+
+    const out = new Map();
+    for (const voce of data.players || []) {
+        const p = voce.player || {};
+        if (p.id == null) continue;
+        out.set(String(p.id), {
+            name: p.fullName || '',
+            pos: POSITION_ID_TO_LABEL[p.defaultPositionId] || '',
+            nfl: PRO_TEAM_ABBREV[p.proTeamId] || '',
+        });
+    }
+    return out;
 }
 
 /**
