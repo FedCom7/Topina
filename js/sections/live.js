@@ -1213,14 +1213,27 @@ function playersByName() {
 function ptsHTML(p) {
     const val = fmt(effPts(p));
     if (pIsProjected(p)) return `<span class="pts-val proj-pts">${val}</span>`;
-    // Non ha ancora giocato: uno zero direbbe "ha giocato e non ha fatto
-    // niente", che è un'altra cosa. Trattino finché la sua partita non parte.
-    //
-    // Blu come le proiezioni, perché dice la stessa cosa: questo non è un
-    // punteggio vero. Nel sito il blu vuol dire "previsto, non ancora
-    // successo" — e un trattino è il caso limite, dove nemmeno la previsione
-    // c'è. In nero si confondeva con un punteggio a zero.
-    if (!daGiocare(p)) return `<span class="pts-val proj-pts">–</span>`;
+    /*
+     * La sua partita non è ancora cominciata — gioca domenica, e intanto ne
+     * sono partite altre. Resta la PROIEZIONE, in blu.
+     *
+     * Uno zero direbbe "ha giocato e non ha fatto niente", che è un'altra cosa.
+     * Prima qui c'era un trattino, che almeno non mentiva ma buttava via
+     * l'unica informazione disponibile: quanto ci si aspetta da lui. Il blu la
+     * qualifica — nel sito vuol dire "previsto, non ancora successo" — e il
+     * trattino resta per il caso limite in cui nemmeno la previsione c'è.
+     *
+     * NOTA: questo cambia solo cosa si LEGGE. Il totale di squadra continua a
+     * sommare i punti veri (vedi `effPts`), quindi i numeri blu a schermo non
+     * entrano in quel totale: la previsione della squadra sta nel numero
+     * piccolo accanto al punteggio.
+     */
+    if (!daGiocare(p)) {
+        const prev = p?.projected_points;
+        return prev == null
+            ? `<span class="pts-val proj-pts">–</span>`
+            : `<span class="pts-val proj-pts">${fmt(P(prev))}</span>`;
+    }
     const previsto = p?.projected_points == null ? ''
         : `<small class="pts-proj" title="projected">${fmt(P(p.projected_points))}</small>`;
     return `<span class="pts-val">${val}</span>${previsto}`;

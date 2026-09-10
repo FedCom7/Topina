@@ -43,7 +43,31 @@ export const SCORING = {
     two_pt: 2, // conversione da 2 punti: passaggio, corsa o ricezione
     ret_td: 6, // TD su ritorno kickoff/punt
     fum_td: 6, // fumble recuperato e portato in touchdown
-    // kicker (nota: FG 40-49 vale 3, non 4 come lo standard Yahoo)
+    /*
+     * Kicker. FG 40-49 vale 3, non 4 come lo standard Yahoo.
+     *
+     * ATTENZIONE ai calci da 50+ se qualcuno mette mano al punteggio su ESPN
+     * (verificato il 10/09/2026, primo anno della lega sulla piattaforma).
+     * Nelle regole della lega convivono TRE voci per i calci lunghi:
+     *
+     *   statId  74  "50+"      5 punti   <- questa PAGA, ma il pannello di
+     *                                      ESPN non la disegna: la sua pagina
+     *                                      del punteggio ha un elenco fisso di
+     *                                      categorie e quella non ci sta piu'.
+     *                                      Nei dati e' una voce come le altre,
+     *                                      senza nessun flag che la distingua.
+     *   statId 198  "50-59"    5 punti
+     *   statId 201  "60+"      5 punti
+     *
+     * Con tutte e tre attive lo stesso calcio ne fa scattare DUE e vale il
+     * doppio: misurato su un 50 yard, 11 punti invece di 6 (5+5 piu' l'extra
+     * point). Le due visibili sono state azzerate — ESPN a quel punto le
+     * cancella — e paga la sola 74, che e' esattamente la regola di qui sotto.
+     *
+     * Conseguenza: sul pannello di ESPN le righe 50-59 e 60+ ora non ci sono, e
+     * sembrano da riempire. NON vanno riempite: rimettendole a 5 il raddoppio
+     * torna, in silenzio.
+     */
     fg_0_19: 3,
     fg_20_29: 3,
     fg_30_39: 3,

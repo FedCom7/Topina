@@ -136,7 +136,10 @@ async function loadYear(year) {
         return;
     }
 
-    const maxWeek = getWeekCount(currentData);
+    // Non tutte le settimane che stanno su Firebase sono da mostrare: lo
+    // scraper carica anche la PROSSIMA, con le sole proiezioni, e a giornata in
+    // corso quella e' una partita che non e' ancora stata giocata da nessuno.
+    const maxWeek = ultimaSettimanaVisibile(getWeekCount(currentData));
     currentWeek = lastPlayedWeek(maxWeek);
     renderPickRow(maxWeek);
     await showMatchups();
@@ -186,6 +189,36 @@ async function refreshOpenWeek() {
     } catch (e) {
         console.warn('[game-center] API ESPN non raggiungibile, resta Firebase:', e.message);
     }
+}
+
+/**
+ * Una giornata e' finita?
+ *
+ * Due ere, due segnali. I dati che arrivano da ESPN (2026 in poi) portano
+ * `winner`, che resta `UNDECIDED` finche' la giornata e' aperta. Quelli
+ * storici (2019-2025) quel campo non ce l'hanno affatto: li' a dirlo sono i
+ * punti, che a giornata chiusa ci sono per tutte e due le squadre.
+ *
+ * Serve il punteggio di ENTRAMBE: a meta' settimana una squadra puo' avere gia'
+ * giocato e l'altra no, e bastarne una avrebbe chiuso la giornata al giovedi'.
+ */
+function settimanaChiusa(w) {
+    const ms = currentData?.weeks?.[String(w)]?.matchups || [];
+    if (!ms.length) return false;
+    return ms.every(m => (m.winner && m.winner !== 'UNDECIDED')
+        || ((parseFloat(m.team1?.score) || 0) > 0 && (parseFloat(m.team2?.score) || 0) > 0));
+}
+
+/**
+ * Fin dove arriva il selettore: la prima giornata NON chiusa e' quella in
+ * corso, e oltre quella non si mostra niente. Sulle stagioni finite sono
+ * chiuse tutte e si arriva in fondo, quindi lo storico non cambia.
+ */
+function ultimaSettimanaVisibile(maxDati) {
+    for (let w = 1; w <= maxDati; w++) {
+        if (!settimanaChiusa(w)) return w;
+    }
+    return maxDati;
 }
 
 /** Ultima week con punti giocati (default all'apertura); 1 se la stagione non è iniziata. */
