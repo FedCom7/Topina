@@ -67,7 +67,7 @@ function campoSVG(m, fase) {
             : markSVG({ href: PLAYOFF_MARK, embed: rect, idPrefix: `po${currentYear}-${i}`,
                 // finche' il file non c'e': il logo dell'edizione, che c'e' gia'
                 fallback: superBowlLogoSVG({ edition: ed, embed: rect, crop: true, idPrefix: `pofb${currentYear}-${i}` }) })),
-        logoYards: 16, logoRatio: fase === 'sb' ? SB_LOGO_INK.ratio : 1,
+        logoYards: 16, logoRatio: fase === 'sb' ? SB_LOGO_INK.ratio : 1 / 3,
         mid: (rect) => markSVG({ href: LEAGUE_MARK, embed: rect, idPrefix: `lg${currentYear}`,
             // finche' il file non c'e': lo scudetto disegnato
             fallback: leagueShieldSVG({ embed: rect, idPrefix: `lgfb${currentYear}` }) }),
