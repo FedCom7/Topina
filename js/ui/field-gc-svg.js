@@ -377,12 +377,15 @@ export function gcLogoRects(yards = 34, ratio = 1) {
    è l'ALTEZZA, e il logo veniva fuori più stretto delle iarde chieste —
    quanto più stretto dipendeva dalla forma del file, cioè non lo sapevamo.
 
+   Il rapporto del FILE non si tocca mai: `meet` scala e basta, non deforma —
+   l'altezza esce da sola dalla forma dell'immagine.
+
    Con un riquadro alto tre volte la sua larghezza, il lato che vince è sempre
    quello orizzontale (a meno di un logo più alto che largo di tre volte, che
    non è un logo). Quindi «10 iarde» sono dieci iarde di inchiostro, misurabili
    sul campo, qualunque file ci metta dentro. Il riquadro resta invisibile: si
    disegna solo il marchio, centrato sulla linea delle 50. */
-export function gcMidRect(yards = 10, ratio = 1 / 3) {
+export function gcMidRect(yards = 12, ratio = 1 / 3) {
     return rectAt((GOAL_L + GOAL_R) / 2, yards, ratio);
 }
 

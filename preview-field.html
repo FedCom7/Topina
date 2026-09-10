@@ -311,6 +311,12 @@
                 <button class="lab-btn on" data-marchio="file">Logo NFL (file)</button>
                 <button class="lab-btn" data-marchio="disegnato">Scudetto disegnato</button>
             </div>
+            <div class="lab-group" id="midSize">
+                <span>Scudetto</span>
+                <button class="lab-btn" data-mid="10">10 yd</button>
+                <button class="lab-btn on" data-mid="12">12 yd</button>
+                <button class="lab-btn" data-mid="14">14 yd</button>
+            </div>
             <div class="lab-group" id="sbSize">
                 <span>Misura</span>
                 <button class="lab-btn" data-yd="12">12 yd</button>
@@ -429,7 +435,7 @@
                     : superBowlLogoSVG({ edition: state.sbEd, crop: true, className: 'sb-paint-svg', idPrefix: `sb-png${i}-${state.sbEd}` }))).join('');
             }
             if (state.layers.mid) {
-                out += paint(gcMidRect().pct, state.marchio === 'file'
+                out += paint(gcMidRect(state.midYd).pct, state.marchio === 'file'
                     ? `<img class="sb-paint-svg" src="${LEAGUE_MARK}" alt="">`
                     : leagueShieldSVG({ className: 'sb-paint-svg', idPrefix: 'mid-png' }));
             }
@@ -458,7 +464,7 @@
             L: 'capi', R: 'lasers', ez: 'team', players: true, dim: true,
             layers: { erba: true, righe: true, numeri: true, nomi: true, pali: true, cornice: true, logo: true, mid: true },
             sbEd: 7, yards: 16,   // dalla 17 alla 33, centrato sulla 25
-            fase: 'sb', marchio: 'file',
+            fase: 'sb', marchio: 'file', midYd: 12,
         };
 
         /* Il logo dell'edizione, dipinto a centrocampo come fa la NFL al Super
@@ -502,7 +508,7 @@
                 logo: (rect, i) => sbLogo(rect, 'svg', i),
                 logoYards: state.yards,
                 logoRatio: state.fase === 'playoff' ? 1 / 3 : SB_LOGO_INK.ratio,
-                mid: (rect) => midLogo(rect, 'svg'),
+                mid: (rect) => midLogo(rect, 'svg'), midYards: state.midYd,
             });
             const t0 = performance.now();
             $('#stageSvg').innerHTML = campo(markup, L, R, state.players);
@@ -575,6 +581,12 @@
             $('#fase').querySelectorAll('.lab-btn').forEach(x => x.classList.toggle('on', x === b));
             $('#layers').querySelectorAll('[data-layer="logo"],[data-layer="mid"]')
                 .forEach(x => x.classList.toggle('on', !!state.fase));
+            render();
+        };
+        $('#midSize').onclick = (e) => {
+            const b = e.target.closest('[data-mid]'); if (!b) return;
+            state.midYd = Number(b.dataset.mid);
+            $('#midSize').querySelectorAll('.lab-btn').forEach(x => x.classList.toggle('on', x === b));
             render();
         };
         $('#marchio').onclick = (e) => {
