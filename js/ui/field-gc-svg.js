@@ -385,7 +385,7 @@ export function gcLogoRects(yards = 34, ratio = 1) {
    non è un logo). Quindi «10 iarde» sono dieci iarde di inchiostro, misurabili
    sul campo, qualunque file ci metta dentro. Il riquadro resta invisibile: si
    disegna solo il marchio, centrato sulla linea delle 50. */
-export function gcMidRect(yards = 12, ratio = 1 / 3) {
+export function gcMidRect(yards = 14, ratio = 1 / 3) {
     return rectAt((GOAL_L + GOAL_R) / 2, yards, ratio);
 }
 
