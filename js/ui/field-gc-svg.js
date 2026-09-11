@@ -368,7 +368,24 @@ export function gcLogoRects(yards = 34, ratio = 1) {
 }
 
 /** Il riquadro del marchio di lega, a cavallo della linea delle 50. */
-export function gcMidRect(yards = 10, ratio = 200 / 240) {
+/* ⚠️ `yards` sono le iarde del LOGO, non del riquadro, ed è per questo che il
+   riquadro di default è alto il triplo di quanto è largo.
+
+   Il marchio entra con `preserveAspectRatio="meet"`, che lo fa stare INTERO
+   dentro il riquadro: vince il lato che si esaurisce per primo. Con un
+   riquadro quadrato e uno scudetto (più alto che largo) a esaurirsi per prima
+   è l'ALTEZZA, e il logo veniva fuori più stretto delle iarde chieste —
+   quanto più stretto dipendeva dalla forma del file, cioè non lo sapevamo.
+
+   Il rapporto del FILE non si tocca mai: `meet` scala e basta, non deforma —
+   l'altezza esce da sola dalla forma dell'immagine.
+
+   Con un riquadro alto tre volte la sua larghezza, il lato che vince è sempre
+   quello orizzontale (a meno di un logo più alto che largo di tre volte, che
+   non è un logo). Quindi «10 iarde» sono dieci iarde di inchiostro, misurabili
+   sul campo, qualunque file ci metta dentro. Il riquadro resta invisibile: si
+   disegna solo il marchio, centrato sulla linea delle 50. */
+export function gcMidRect(yards = 14, ratio = 1 / 3) {
     return rectAt((GOAL_L + GOAL_R) / 2, yards, ratio);
 }
 
