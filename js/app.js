@@ -88,14 +88,27 @@ function getSection() {
  * Live come altrove. Su desktop non cambia niente — lo zoom del browser (ctrl
  * e rotella) non passa di qui.
  *
- * Tre pezzi, perche' nessun browser li guarda tutti: il `meta viewport` in
- * `index.html` ferma il pizzico su Android, `gesturestart` lo ferma su iOS (che
- * quel meta lo ignora dal 2016), e `touch-action` in CSS si prende il doppio
- * tocco. Il listener sta su `document` una volta sola e non si stacca mai: e'
- * passivo per definizione, non fa nulla finche' non arrivano due dita.
+ * Quattro pezzi, perche' nessun browser li guarda tutti:
+ *
+ *  - il `meta viewport` in `index.html` — ferma il pizzico su Android e su
+ *    qualunque cosa non sia WebKit;
+ *  - `touch-action` in CSS (su `body`) — si prende il doppio tocco;
+ *  - `gesturestart` — l'appiglio di Safari, che il meta lo ignora dal 2016;
+ *  - il secondo dito su `touchstart` — rete di sicurezza per i casi in cui
+ *    `gesturestart` non arriva affatto: WebView, "richiedi sito desktop", e
+ *    ogni browser non-Safari su iPhone. E' un evento proprietario di WebKit,
+ *    dove non c'e' non lo sostituisce nessuno.
+ *
+ * Il guardiano su `touchstart` lascia passare tutto quello che ha UN dito solo,
+ * cioe' ogni scorrimento e ogni swipe del Live: interviene solo quando le dita
+ * diventano due, che a quel punto e' un pizzico e nient'altro.
  */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
     document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+
+document.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
 
 function navigate() {
     const active = getSection();
