@@ -2758,7 +2758,32 @@ function puntiDaTabellino(nome, difesa = false) {
  */
 function usoStats(voci) {
     return voci.map(([v, etichetta]) => `
-        <span class="live-uso-stat${v ? '' : ' is-zero'}"><b>${v || 0}</b> ${etichetta}</span>`).join('');
+        <span class="live-uso-stat${v ? '' : ' is-zero'}"><b>${v || 0}</b> <i>${etichetta}</i></span>`).join('');
+}
+
+/**
+ * Intestazione di colonna del blocco.
+ *
+ * Da telefono la riga non ci stava: nome, barra, quattro voci con l'etichetta
+ * accanto al numero e i punti totali sforavano lo schermo, e a finire fuori a
+ * destra erano proprio i punti. Li' la barra e le etichette spariscono (CSS) e
+ * le etichette si ritrovano qui, scritte una volta sola in cima al blocco
+ * invece che su ogni riga. Su schermo largo questa riga non si vede: ogni
+ * numero porta gia' la sua etichetta e sarebbe un doppione.
+ *
+ * Le colonne le passa il chiamante perche' cambiano da blocco a blocco —
+ * ricezioni, corse e passaggi non hanno le stesse voci — e devono combaciare
+ * con l'ordine di `usoStats`.
+ */
+function usoHeadHTML(colonne, cls = 'live-uso-row') {
+    return `
+    <div class="${cls} live-uso-head" aria-hidden="true">
+        <span class="live-uso-nome"></span>
+        ${cls === 'live-uso-row' ? '<span class="live-uso-bar"></span>' : ''}
+        <span class="live-uso-val">${colonne.map(c =>
+            `<span class="live-uso-stat">${c}</span>`).join('')}</span>
+        <span class="live-uso-pts">pts</span>
+    </div>`;
 }
 
 /** Una riga del grafico: barra proporzionale al massimo della squadra. */
@@ -2781,9 +2806,9 @@ function usoRow(nome, valore, massimo, dettaglio, mio, secondario = 0) {
     </div>`;
 }
 
-function usoBloccoHTML(titolo, righe) {
+function usoBloccoHTML(titolo, righe, colonne) {
     if (!righe) return '';
-    return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${righe}</div>`;
+    return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${usoHeadHTML(colonne)}${righe}</div>`;
 }
 
 /**
@@ -3222,13 +3247,15 @@ function deepGameHTML({ sigla, miei, quadro }) {
         ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
             p.name, p.targets || 0, maxTgt,
             usoStats([[p.targets, 'tgt'], [p.rec, 'rec'], [p.rec_yds, 'yd'], [p.rec_td, 'TD']]),
-            mio(p), p.rec || 0)).join('') + fermiDi('WR', 'TE', 'RB/WR', 'W/R', 'FLEX'))}
+            mio(p), p.rec || 0)).join('') + fermiDi('WR', 'TE', 'RB/WR', 'W/R', 'FLEX'),
+            ['tgt', 'rec', 'yd', 'TD'])}
         ${usoBloccoHTML('Carries', corridori.map(p => usoRow(
             p.name, p.rush_att || 0, maxCar,
             usoStats([[p.rush_att, 'car'], [p.rush_yds, 'yd'], [p.rush_td, 'TD']]),
-            mio(p))).join('') + fermiDi('RB'))}
+            mio(p))).join('') + fermiDi('RB'), ['car', 'yd', 'TD'])}
         ${passatori.length || fermiDi('QB') ? `<div class="live-uso-blocco">
             <span class="live-uso-titolo">Passing</span>
+            ${usoHeadHTML(['yd', 'TD'], 'live-uso-qb')}
             ${passatori.map(p => `<div class="live-uso-qb${mio(p) ? ' live-uso-row--mio' : ''}">
                 <span class="live-uso-nome">${escAttr(shortName({ name: p.name }))}</span>
                 <span class="live-uso-val">${usoStats([[p.pass_yds, 'yd'], [p.pass_td, 'TD']])}</span>

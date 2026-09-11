@@ -25,7 +25,7 @@ import { initAnalysis } from './sections/analysis.js?v=774';
 import { initLeaders } from './sections/leaders.js?v=11';
 import { initWaivers } from './sections/waivers.js?v=15';
 import { initMagazine } from './sections/magazine.js?v=738';
-import { initLive } from './sections/live.js?v=1020';
+import { initLive } from './sections/live.js?v=1022';
 import { initNavbar } from './ui/navbar.js?v=633';
 import { startAutoAbbr } from './utils/team-abbr.js?v=501';
 import { startLoadingArt } from './ui/spinner.js?v=6';
@@ -80,6 +80,36 @@ function getSection() {
     return SECTIONS[hash] ? hash : 'home';
 }
 
+/*
+ * Zoom spento SOLO sul Live.
+ *
+ * Li' il campo si sfoglia con uno swipe orizzontale e ogni card si tocca: il
+ * pizzico parte da solo mentre si scorre, e il doppio tocco su un giocatore
+ * ingrandisce invece di aprirlo. Sul resto del sito lo zoom RESTA — storico,
+ * tabelle e pagelle sono fitti, e toglierlo a tutti per un problema di una
+ * sezione sarebbe un cattivo affare.
+ *
+ * Ci vogliono due pezzi perche' nessun browser li guarda entrambi: il `meta`
+ * ferma il pizzico su Android e sul desktop; iOS quel meta lo ignora dal 2016
+ * e va fermato sull'evento `gesturestart`. Il terzo pezzo e' in CSS
+ * (`touch-action` su `#live`) e si prende il doppio tocco.
+ */
+const metaViewport = document.querySelector('meta[name="viewport"]');
+const VIEWPORT_NORMALE = metaViewport?.getAttribute('content') || 'width=device-width, initial-scale=1.0';
+const VIEWPORT_FERMO = `${VIEWPORT_NORMALE}, maximum-scale=1, user-scalable=no`;
+const GESTI = ['gesturestart', 'gesturechange', 'gestureend'];
+const fermaGesto = (e) => e.preventDefault();
+let zoomFermo = false;
+
+function bloccaZoom(attivo) {
+    if (attivo === zoomFermo) return;
+    zoomFermo = attivo;
+    metaViewport?.setAttribute('content', attivo ? VIEWPORT_FERMO : VIEWPORT_NORMALE);
+    GESTI.forEach(ev => attivo
+        ? document.addEventListener(ev, fermaGesto, { passive: false })
+        : document.removeEventListener(ev, fermaGesto));
+}
+
 function navigate() {
     const active = getSection();
     const isTeam = TEAM_KEYS_NAV.has(active);
@@ -120,6 +150,8 @@ function navigate() {
     } else {
         SECTIONS[active]?.();
     }
+
+    bloccaZoom(active === 'live');
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });

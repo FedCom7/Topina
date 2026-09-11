@@ -16380,6 +16380,16 @@ td.ps-div-seed {
 }
 
 /*
+ * Sul Live il pizzico e il doppio tocco non zoomano: il campo si sfoglia con
+ * uno swipe e ogni card si tocca, e lo zoom partiva per sbaglio in mezzo al
+ * gesto. `pan-x pan-y` lascia passare lo scorrimento e ferma il resto, per i
+ * tocchi che nascono qui dentro; il resto del sito si zooma come prima.
+ */
+#live {
+    touch-action: pan-x pan-y;
+}
+
+/*
  * Lo stemma della squadra che si sta guardando si ACCENDE: sul banner i due
  * loghi in filigrana stanno alla stessa intensita' (14%), e a dire quale campo
  * hai davanti restava il solo contorno del nome — poco, soprattutto sul
@@ -17936,6 +17946,22 @@ td.ps-div-seed {
     font-weight: 700;
 }
 
+/* L'intestazione di colonna esiste solo per il telefono: su schermo largo
+   ogni numero porta gia' la sua etichetta accanto, e questa riga sarebbe un
+   doppione. */
+.live-uso-head {
+    display: none;
+}
+
+.live-uso-head .live-uso-stat,
+.live-uso-head .live-uso-pts {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 /* voce a zero: spenta, così le altre risaltano */
 .live-uso-stat.is-zero,
 .live-uso-stat.is-zero b {
@@ -17987,11 +18013,41 @@ td.ps-div-seed {
     background: var(--tc-sel, var(--accent-red));
 }
 
+/*
+ * Da telefono la riga non ci stava. Nome (4,4rem) + barra + quattro voci da
+ * 3,7rem l'una con l'etichetta accanto al numero + i punti fanno oltre 420px
+ * su uno schermo da 390: a uscire fuori a destra erano proprio i punti totali,
+ * cioe' il numero per cui si guarda la riga.
+ *
+ * Qui sparisce la barra — e' un di piu', il numero dei bersagli e' scritto
+ * accanto — e le etichette salgono nell'intestazione del blocco. Restano i
+ * soli numeri, incolonnati e stretti, e i punti rientrano.
+ */
 @media (max-width: 560px) {
+    /* Lo spazio lasciato libero dalla barra va al NOME: le colonne dei numeri
+       sono fisse, e prima il nome si fermava a 4,4rem con i puntini anche
+       quando mezza riga era vuota. */
     .live-uso-row,
     .live-uso-qb {
-        grid-template-columns: 4.4rem 1fr auto 2.3rem;
+        grid-template-columns: 1fr auto 2.3rem;
         font-size: 0.72rem;
+        gap: 6px;
+    }
+
+    .live-uso-head {
+        display: grid;
+    }
+
+    .live-uso-bar {
+        display: none;
+    }
+
+    .live-uso-stat {
+        width: 2.3rem;
+    }
+
+    .live-uso-stat i {
+        display: none;
     }
 }
 
