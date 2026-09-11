@@ -22,8 +22,30 @@ export function initNavbar() {
         navbar.classList.toggle('scrolled', window.scrollY > 50);
     });
 
+    numeraVoci(navbar);
     initDropdowns(navbar);
     initSearch(navbar);
+}
+
+/**
+ * Numera le voci del menu per la cascata mobile.
+ *
+ * I ritardi stavano scritti a mano in CSS, una regola `nth-child` per voce e
+ * una per il verso opposto alla chiusura. Si fermavano a nove: aggiungendo
+ * "Season" le voci sono diventate dieci, e History — l'unica senza regola —
+ * compariva di colpo insieme alla prima invece che per ultima. Un bug che si
+ * ripresenta a ogni voce nuova, e che non da' nessun segnale a chi la aggiunge.
+ *
+ * Qui l'indice lo mette il DOM: `--i` conta dall'alto, `--i-giu` dal basso, e
+ * il CSS li moltiplica per il passo. Aggiungere o togliere una voce non
+ * richiede piu' di toccare niente.
+ */
+function numeraVoci(navbar) {
+    const voci = navbar.querySelectorAll('.nav-links > .nav-item');
+    voci.forEach((li, i) => {
+        li.style.setProperty('--i', i + 1);
+        li.style.setProperty('--i-giu', voci.length - i);
+    });
 }
 
 /**

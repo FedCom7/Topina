@@ -84,9 +84,22 @@ export async function initHome() {
         // week 1 con rose vuote e 0.00–0.00, e quelle righe facevano credere
         // alla home di essere a stagione iniziata — record 0–0–1, "Week 1",
         // tutti i numeri a zero.
-        const season = (preview?.year && league.seasons.find(s => s.year === preview.year))
-            || [...league.seasons].reverse().find(seasonStarted)
+        const archivio = [...league.seasons].reverse().find(seasonStarted)
             || league.seasons[league.seasons.length - 1];
+
+        // La stagione in corso su Firebase arriva solo il martedi', a giornata
+        // chiusa: durante la week 1 l'archivio e' ancora fermo all'anno prima,
+        // e la home diceva "Offseason" mentre il Live segnava punti veri.
+        //
+        // Il segnale e' lo stesso che usa il Live per smettere di mostrare le
+        // proiezioni: un titolare che ha gia' cominciato la sua partita NFL.
+        // Non una data, non il calendario: la lega e' viva quando si gioca.
+        const corrente = league.seasons.find(s => String(s.year) === String(CURRENT_SEASON));
+        const viva = (!preview && corrente && !seasonStarted(corrente))
+            ? await liveWeekBugs(corrente) : null;
+
+        const season = (preview?.year && league.seasons.find(s => s.year === preview.year))
+            || (viva?.viva ? corrente : archivio);
         const bundle = await getHonorsBundle(season.year);
         // Solo quando conta davvero: a stagione chiusa (preseason/offseason) o
         // in preview di una di quelle due fasi. Nel resto dell'anno il
@@ -94,7 +107,7 @@ export async function initHome() {
         // richiesta di troppo a ogni apertura della home.
         const previewNeedsDays = preview && ['PRESEASON', 'OFFSEASON'].includes(preview.type) && preview.days == null;
         const kickoffDays = (season.complete || previewNeedsDays) ? await daysToKickoff(season.year) : null;
-        const phase = detectPhase(season, bundle, preview, kickoffDays);
+        const phase = detectPhase(season, bundle, preview, kickoffDays, viva);
         const ctx = { league, season, bundle, phase };
 
         const builder = MOSAIC[phase.type] || MOSAIC.OFFSEASON;
@@ -122,7 +135,7 @@ export async function initHome() {
 
 // ─── Fase della lega (dai dati, non dal calendario) ──────────────
 
-function detectPhase(season, bundle, preview, kickoffDays) {
+function detectPhase(season, bundle, preview, kickoffDays, viva) {
     if (preview) {
         return {
             type: preview.type,
@@ -130,6 +143,9 @@ function detectPhase(season, bundle, preview, kickoffDays) {
             days: preview.days ?? Math.max(kickoffDays ?? 1, 1),
         };
     }
+    // Si gioca adesso, ma Firebase non ha ancora scritto niente: la settimana
+    // la dice ESPN, perche' `lastPlayedWeek` leggerebbe l'archivio e darebbe 0.
+    if (viva?.viva) return { type: 'REGULAR_SEASON', week: viva.week };
     if (season.complete) {
         // A stagione chiusa la storia resta quella appena finita, ma nelle
         // settimane prima del via il countdown diventa la card principale.
@@ -1142,9 +1158,24 @@ function cardAllProField({ bundle, season }) {
  * Solo sulla stagione in corso: interrogare l'API della lega per un anno
  * chiuso non avrebbe niente "in corso" da dire.
  */
-async function liveWeekBugs(season) {
-    if (String(season.year) !== String(CURRENT_SEASON)) return null;
+let cacheSettimanaViva = null;   // { anno, promessa }
 
+/**
+ * Una richiesta sola, due lettori: la chiamano sia `cardScoreboard` (per
+ * disegnare le sfide) sia `initHome` (per sapere se la stagione e' partita).
+ * Senza memoria sarebbero due letture identiche della lega a ogni apertura.
+ * In cache va la PROMESSA, cosi' anche due chiamate partite insieme si
+ * agganciano alla prima.
+ */
+function liveWeekBugs(season) {
+    if (String(season.year) !== String(CURRENT_SEASON)) return Promise.resolve(null);
+    if (cacheSettimanaViva?.anno !== String(season.year)) {
+        cacheSettimanaViva = { anno: String(season.year), promessa: leggiSettimanaViva(season) };
+    }
+    return cacheSettimanaViva.promessa;
+}
+
+async function leggiSettimanaViva(season) {
     let week, matchups, drafted;
     try {
         ({ week, matchups, drafted } = await fetchLeagueWeek(
@@ -1187,7 +1218,22 @@ async function liveWeekBugs(season) {
         }, { variant: 'broadcast2' });
     }).join('');
 
-    return { week, bugs };
+    // `viva` e' la stessa domanda che si fa il Live: qualcuno dei nostri ha
+    // gia' cominciato a giocare? Da qui la home capisce che la stagione e'
+    // partita anche se Firebase non lo sa ancora.
+    //
+    // La seconda mezza riga copre il buco fra la fine del Monday Night e la
+    // scrittura su Firebase del martedi': li' ESPN e' gia' passata alla
+    // settimana dopo, dove non ha ancora giocato nessuno, e senza questa la
+    // home tornerebbe "Offseason" per qualche ora. Se la settimana corrente
+    // non e' la prima, la lega ha giocato: prima del via ESPN resta sulla 1.
+    const viva = week > 1
+        || matchups.some(m => [...(m.team1.starters || []), ...(m.team2.starters || [])]
+            .some(p => p.started));
+
+    // `matchups` esce di qui perche' se lo rilegge anche la card delle
+    // prestazioni: e' la stessa giornata, tanto vale scaricarla una volta.
+    return { week, bugs, viva, matchups };
 }
 
 /** La striscia con le sole sfide in corso: playoff e settimana di SB, dove
@@ -1494,15 +1540,13 @@ function cardChampions({ league }) {
     });
 }
 
-async function railTopPerformances({ season, phase }) {
-    const data = await fetchFantasyData(season.year);
-    const week = data?.weeks?.[String(phase.week)];
-    if (!week?.matchups) return '';
-    const perf = [];
-    week.matchups.forEach(m => [m.team1, m.team2].forEach(team => {
+/** I titolari di una giornata, con i punti, appiattiti in una lista sola. */
+function titolariConPunti(matchups) {
+    const out = [];
+    (matchups || []).forEach(m => [m.team1, m.team2].forEach(team => {
         if (!team) return;
         const key = keyOf(team.name);
-        (team.starters || []).forEach(p => perf.push({
+        (team.starters || []).forEach(p => out.push({
             name: p.name,
             pos: (p.position_in_team || p.position || '').toUpperCase(),
             pts: parseFloat(p.fantasy_points) || 0,
@@ -1510,6 +1554,37 @@ async function railTopPerformances({ season, phase }) {
             key,
         }));
     }));
+    return out;
+}
+
+/**
+ * Le prestazioni della giornata, da due fonti in ordine di preferenza.
+ *
+ * L'archivio per primo, che a giornata chiusa e' la verita' definitiva. Ma
+ * Firebase la scrive solo il martedi': durante la settimana il nodo della week
+ * ESISTE gia' — le rose le mette ESPN in anticipo — con tutti i punti a zero, e
+ * la card si riempiva di "migliori" a 0,0 proprio mentre il tabellone sopra
+ * segnava 39,20. Allora si passa alle stesse formazioni che alimentano il
+ * tabellone live: sono gia' scaricate e in cache, non costano una richiesta.
+ *
+ * Dal vivo restano solo quelli che hanno gia' fatto punti: a meta' domenica
+ * meta' dei titolari non e' ancora scesa in campo, e un "top performer" a 0,0
+ * e' solo uno che deve ancora giocare. `live` lo dice a chi guarda, perche'
+ * questi numeri si muovono ancora.
+ */
+async function prestazioniSettimana(season, week) {
+    const data = await fetchFantasyData(season.year).catch(() => null);
+    const archivio = titolariConPunti(data?.weeks?.[String(week)]?.matchups);
+    if (archivio.some(p => p.pts > 0)) return { perf: archivio, live: false };
+
+    const viva = await liveWeekBugs(season);
+    const perf = titolariConPunti(viva?.matchups).filter(p => p.pts > 0);
+    return { perf, live: perf.length > 0 };
+}
+
+async function railTopPerformances({ season, phase }) {
+    const { perf, live } = await prestazioniSettimana(season, phase.week);
+    if (!perf.length) return '';
     const cards = perf.sort((a, b) => b.pts - a.pts).slice(0, 8).map(p => railCard({
         glow: TEAMS[p.key]?.color,
         href: playerHref(p.name, p.pos, season.year),
@@ -1520,7 +1595,7 @@ async function railTopPerformances({ season, phase }) {
         sub: 'fantasy points',
     }));
     return rail({
-        kicker: `Week ${phase.week}`,
+        kicker: `Week ${phase.week}${live ? ' · live' : ''}`,
         title: 'Top performances',
         cards,
         cta: 'Game Center', href: '#game-center',
@@ -1529,6 +1604,10 @@ async function railTopPerformances({ season, phase }) {
 
 function railMvpRace({ bundle, season }) {
     if (!bundle) return '';
+    // Stessa ragione di railTopPerformances: prima che una giornata sia chiusa
+    // i totali di stagione sono tutti zero, e una corsa all'MVP con otto
+    // giocatori a 0,0 e' peggio che non averla.
+    if (!Object.values(bundle.players).some(p => p.total > 0)) return '';
     const cards = Object.values(bundle.players)
         .filter(p => p.pos !== 'DEF')
         .sort((a, b) => b.total - a.total)

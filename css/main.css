@@ -2573,27 +2573,24 @@ img {
         transform: none;
     }
 
-    /* Apertura: cascata dall'alto verso il basso */
-    .nav-links.open .nav-item:nth-child(1) { transition-delay: 0.04s; }
-    .nav-links.open .nav-item:nth-child(2) { transition-delay: 0.08s; }
-    .nav-links.open .nav-item:nth-child(3) { transition-delay: 0.12s; }
-    .nav-links.open .nav-item:nth-child(4) { transition-delay: 0.16s; }
-    .nav-links.open .nav-item:nth-child(5) { transition-delay: 0.20s; }
-    .nav-links.open .nav-item:nth-child(6) { transition-delay: 0.24s; }
-    .nav-links.open .nav-item:nth-child(7) { transition-delay: 0.28s; }
-    .nav-links.open .nav-item:nth-child(8) { transition-delay: 0.32s; }
-    .nav-links.open .nav-item:nth-child(9) { transition-delay: 0.36s; }
+    /* Cascata: dall'alto in apertura, dal basso in chiusura.
 
-    /* Chiusura: cascata inversa (dal basso verso l'alto) — ritardi speculari */
-    .nav-links .nav-item:nth-child(1) { transition-delay: 0.36s; }
-    .nav-links .nav-item:nth-child(2) { transition-delay: 0.32s; }
-    .nav-links .nav-item:nth-child(3) { transition-delay: 0.28s; }
-    .nav-links .nav-item:nth-child(4) { transition-delay: 0.24s; }
-    .nav-links .nav-item:nth-child(5) { transition-delay: 0.20s; }
-    .nav-links .nav-item:nth-child(6) { transition-delay: 0.16s; }
-    .nav-links .nav-item:nth-child(7) { transition-delay: 0.12s; }
-    .nav-links .nav-item:nth-child(8) { transition-delay: 0.08s; }
-    .nav-links .nav-item:nth-child(9) { transition-delay: 0.04s; }
+       I ritardi erano diciotto regole `nth-child` scritte a mano e si
+       fermavano a nove voci: con l'arrivo di "Season" le voci sono diventate
+       dieci e History, l'unica rimasta senza regola, compariva di colpo
+       insieme alla prima invece che per ultima. Ora l'indice lo mette il DOM
+       (`numeraVoci` in `ui/navbar.js`): `--i` conta dall'alto, `--i-giu` dal
+       basso. Una voce in piu' o in meno non rompe piu' niente.
+
+       Il valore di ripiego serve solo se il JS non e' ancora passato: meglio
+       tutte insieme che tutte bloccate. */
+    .nav-links.open .nav-item {
+        transition-delay: calc(var(--i, 0) * 0.04s);
+    }
+
+    .nav-links .nav-item {
+        transition-delay: calc(var(--i-giu, 0) * 0.04s);
+    }
 
     /* Menu e lente sono posizionati SOTTO la barra (top: --nav-height). Con
        overflow:hidden verrebbero ritagliati; su mobile lo teniamo sempre
