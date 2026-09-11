@@ -1585,14 +1585,18 @@ async function prestazioniSettimana(season, week) {
 async function railTopPerformances({ season, phase }) {
     const { perf, live } = await prestazioniSettimana(season, phase.week);
     if (!perf.length) return '';
+    // Foto in cima, poi il numero, poi "nome + ruolo" e sotto la squadra.
+    // Prima l'occhiello sopra la foto diceva "WR · OSCURUS" e la riga sotto
+    // "fantasy points": la stessa cosa scritta due volte (il numero grande e'
+    // gia' evidentemente dei punti), e chi l'ha fatto finiva sopra la foto
+    // invece che accanto al nome, dove lo si cerca.
     const cards = perf.sort((a, b) => b.pts - a.pts).slice(0, 8).map(p => railCard({
         glow: TEAMS[p.key]?.color,
         href: playerHref(p.name, p.pos, season.year),
-        top: `${p.pos}${TEAMS[p.key] ? ` · ${TEAMS[p.key].name}` : ''}`,
         media: playerAvatar(p.name, p.nfl, p.pos, season.year, 'mc-avatar--rail')
             + `<span class="mc-rail-big mc-rail-big--sm">${fmtPts(p.pts)}</span>`,
-        title: esc(p.name),
-        sub: 'fantasy points',
+        title: `${esc(p.name)}${p.pos ? ` <i class="mc-rail-pos pos-${p.pos.toLowerCase()}">${esc(p.pos)}</i>` : ''}`,
+        sub: TEAMS[p.key] ? teamNameHTML(TEAMS[p.key].name) : '',
     }));
     return rail({
         kicker: `Week ${phase.week}${live ? ' · live' : ''}`,

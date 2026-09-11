@@ -7074,6 +7074,45 @@ img {
     color: var(--text-muted);
 }
 
+/* Il ruolo accanto al nome. Solo colore, niente riquadro: e' la stessa regola
+   che vale per i ruoli in tutto il sito (vedi `.pos-*`), e qui un fondino
+   accanto a un nome in grassetto sarebbe una macchia in piu' su una card che
+   ha gia' foto, numero e squadra. */
+/* Un nome lungo manda il ruolo a capo, e allora la squadra scivola una riga
+   piu' in basso di quella della card accanto: in fila si vedono le scritte
+   sfalsate. Le card di una riga sono gia' tutte alte uguale, quindi basta
+   mandare l'ultima riga sul fondo — cosi' le squadre si allineano fra loro
+   comunque vada il nome. Solo dove c'e' il ruolo: e' l'unico posto dove il
+   titolo puo' occupare due righe. */
+.mc-rail-card:has(.mc-rail-pos) .mc-rail-sub {
+    margin-top: auto;
+}
+
+/* Il nome nel colore della squadra fantasy del giocatore — `--card-glow`, che
+   la card si porta gia' dietro per l'alone.
+
+   Schiarito, non puro: due dei quattro colori sono scuri (Oscurus #800020,
+   Sommo #1c4750) e su una card quasi nera, come testo, sarebbero illeggibili.
+
+   Le due quote sommano a 100 di proposito. La ricetta dell'occhiello di prima
+   (60% + 32%) lasciava il bordeaux a 3,8:1 sul nero — sotto la soglia — perche'
+   sommando a 92 il colore esce anche con alpha 0,92, che lo spegne ancora un
+   po'. Con 56 + 44 il piu' scuro dei quattro sta a 5,7:1 e nessuno scende sotto
+   il 5, tenendosi la tinta della squadra. */
+.mc-rail-card:has(.mc-rail-pos) .mc-rail-title {
+    color: color-mix(in srgb, var(--card-glow) 56%, white 44%);
+}
+
+.mc-rail-pos {
+    margin-left: 0.4em;
+    font-family: var(--font-display);
+    font-size: 0.7em;
+    font-style: normal;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    vertical-align: 0.08em;
+}
+
 /* ── Reskin visual: watermark, sfondi, avatar, seed ── */
 
 /* Logo team gigante in filigrana dentro la card (stile .teams-card-watermark) */
