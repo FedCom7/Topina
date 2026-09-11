@@ -1,10 +1,10 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=816';
-import { initGameCenter } from './sections/game-center.js?v=759';
+import { initHome } from './sections/home.js?v=817';
+import { initGameCenter } from './sections/game-center.js?v=760';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=719';
-import { initDraft } from './sections/draft.js?v=750';
+import { initDraft } from './sections/draft.js?v=751';
 import { initDraftGrades } from './sections/draftgrades.js?v=755';
 import { initProjections } from './sections/projections.js?v=116';
 import { initManagerDna } from './sections/managerdna.js?v=3';
@@ -23,9 +23,9 @@ import { initTeams } from './sections/teams.js?v=684';
 import { initGame } from './sections/game.js?v=772';
 import { initAnalysis } from './sections/analysis.js?v=774';
 import { initLeaders } from './sections/leaders.js?v=11';
-import { initWaivers } from './sections/waivers.js?v=14';
+import { initWaivers } from './sections/waivers.js?v=15';
 import { initMagazine } from './sections/magazine.js?v=738';
-import { initLive } from './sections/live.js?v=1017';
+import { initLive } from './sections/live.js?v=1018';
 import { initNavbar } from './ui/navbar.js?v=633';
 import { startAutoAbbr } from './utils/team-abbr.js?v=501';
 import { startLoadingArt } from './ui/spinner.js?v=6';
