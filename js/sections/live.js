@@ -1298,7 +1298,7 @@ function refreshInPlace(events = []) {
         const squadra = m[`team${i + 1}`];
         const proj = teamIsProjected(squadra);
         const from = P(numEl(el).textContent);
-        el.innerHTML = bannerScoreHTML(squadra, s[i], proj);
+        el.innerHTML = bannerScoreHTML(squadra, s[i], proj, i === 0 ? 'l' : 'r');
         el.classList.toggle('winner', s[i] >= s[1 - i]);
         if (!proj && from !== s[i]) countUp(el, from, s[i]);
     });
@@ -1693,13 +1693,24 @@ function teamSwitcherHTML(entries) {
     </div>`;
 }
 
-/** Totale di squadra nel banner, con la proiezione in piccolo a giornata iniziata. */
-function bannerScoreHTML(t, score, proiettato) {
+/**
+ * Totale di squadra nel banner, con la proiezione in piccolo a giornata
+ * iniziata.
+ *
+ * La proiezione sta sempre dal lato ESTERNO, il numero vero verso il centro.
+ * Prima seguiva l'ordine di scrittura e finiva a destra di entrambi: a
+ * sinistra si incastrava fra i due totali, e per confrontare i punteggi veri
+ * — l'unica cosa che si guarda in un tabellone — bisognava scavalcare un
+ * numero piccolo in mezzo. Ora i due grandi si leggono accanto alla scritta
+ * LIVE, uno di qua e uno di la', e le previsioni stanno ai bordi.
+ */
+function bannerScoreHTML(t, score, proiettato, lato) {
     if (!leagueDrafted) return '–';
     if (proiettato) return `<span class="pts-val proj-pts">${fmt(score)}</span>`;
     const previsto = t?.projected_score == null ? ''
         : `<small class="pts-proj" title="projected">${fmt(P(t.projected_score))}</small>`;
-    return `<span class="pts-val">${fmt(score)}</span>${previsto}`;
+    const vero = `<span class="pts-val">${fmt(score)}</span>`;
+    return lato === 'l' ? `${previsto}${vero}` : `${vero}${previsto}`;
 }
 
 /**
@@ -1727,11 +1738,11 @@ function matchupCardHTML(entry) {
                 <div class="gc-banner-side">
                     <span class="gc-banner-name${selLeft ? ' live-name-selected' : ''}">${teamNameHTML(t1?.name || left.name)}</span>
                 </div>
-                <span class="gc-banner-score${leagueDrafted && s1 >= s2 ? ' winner' : ''}">${bannerScoreHTML(left, s1, proj1)}</span>
+                <span class="gc-banner-score${leagueDrafted && s1 >= s2 ? ' winner' : ''}">${bannerScoreHTML(left, s1, proj1, 'l')}</span>
                 <div class="gc-banner-mid">
                     <span class="gc-banner-vs">${isLiveSource ? 'live' : 'vs'}</span>
                 </div>
-                <span class="gc-banner-score${leagueDrafted && s2 >= s1 ? ' winner' : ''}">${bannerScoreHTML(right, s2, proj2)}</span>
+                <span class="gc-banner-score${leagueDrafted && s2 >= s1 ? ' winner' : ''}">${bannerScoreHTML(right, s2, proj2, 'r')}</span>
                 <div class="gc-banner-side gc-banner-side-r">
                     <span class="gc-banner-name${selLeft ? '' : ' live-name-selected'}">${teamNameHTML(t2?.name || right.name)}</span>
                 </div>

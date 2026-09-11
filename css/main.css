@@ -965,6 +965,14 @@ img {
     margin-left: 0.5em;
 }
 
+/* A sinistra la proiezione precede il numero vero (sta fuori, verso il bordo):
+   il margine va specchiato, altrimenti si appiccica al totale invece che
+   staccarsene. */
+.gc-banner-score .pts-proj:first-child {
+    margin-left: 0;
+    margin-right: 0.5em;
+}
+
 .gc-banner-mid {
     display: flex;
     flex-direction: column;
