@@ -81,34 +81,21 @@ function getSection() {
 }
 
 /*
- * Zoom spento SOLO sul Live.
+ * Zoom spento su tutto il sito da telefono.
  *
- * Li' il campo si sfoglia con uno swipe orizzontale e ogni card si tocca: il
- * pizzico parte da solo mentre si scorre, e il doppio tocco su un giocatore
- * ingrandisce invece di aprirlo. Sul resto del sito lo zoom RESTA — storico,
- * tabelle e pagelle sono fitti, e toglierlo a tutti per un problema di una
- * sezione sarebbe un cattivo affare.
+ * Le pagine sono gia' disegnate per lo schermo stretto: il pizzico non serviva
+ * a leggere niente e partiva per sbaglio in mezzo a uno swipe o a un tocco, sul
+ * Live come altrove. Su desktop non cambia niente — lo zoom del browser (ctrl
+ * e rotella) non passa di qui.
  *
- * Ci vogliono due pezzi perche' nessun browser li guarda entrambi: il `meta`
- * ferma il pizzico su Android e sul desktop; iOS quel meta lo ignora dal 2016
- * e va fermato sull'evento `gesturestart`. Il terzo pezzo e' in CSS
- * (`touch-action` su `#live`) e si prende il doppio tocco.
+ * Tre pezzi, perche' nessun browser li guarda tutti: il `meta viewport` in
+ * `index.html` ferma il pizzico su Android, `gesturestart` lo ferma su iOS (che
+ * quel meta lo ignora dal 2016), e `touch-action` in CSS si prende il doppio
+ * tocco. Il listener sta su `document` una volta sola e non si stacca mai: e'
+ * passivo per definizione, non fa nulla finche' non arrivano due dita.
  */
-const metaViewport = document.querySelector('meta[name="viewport"]');
-const VIEWPORT_NORMALE = metaViewport?.getAttribute('content') || 'width=device-width, initial-scale=1.0';
-const VIEWPORT_FERMO = `${VIEWPORT_NORMALE}, maximum-scale=1, user-scalable=no`;
-const GESTI = ['gesturestart', 'gesturechange', 'gestureend'];
-const fermaGesto = (e) => e.preventDefault();
-let zoomFermo = false;
-
-function bloccaZoom(attivo) {
-    if (attivo === zoomFermo) return;
-    zoomFermo = attivo;
-    metaViewport?.setAttribute('content', attivo ? VIEWPORT_FERMO : VIEWPORT_NORMALE);
-    GESTI.forEach(ev => attivo
-        ? document.addEventListener(ev, fermaGesto, { passive: false })
-        : document.removeEventListener(ev, fermaGesto));
-}
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+    document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
 
 function navigate() {
     const active = getSection();
@@ -150,8 +137,6 @@ function navigate() {
     } else {
         SECTIONS[active]?.();
     }
-
-    bloccaZoom(active === 'live');
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });

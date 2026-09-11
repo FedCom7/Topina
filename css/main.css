@@ -16380,13 +16380,19 @@ td.ps-div-seed {
 }
 
 /*
- * Sul Live il pizzico e il doppio tocco non zoomano: il campo si sfoglia con
- * uno swipe e ogni card si tocca, e lo zoom partiva per sbaglio in mezzo al
- * gesto. `pan-x pan-y` lascia passare lo scorrimento e ferma il resto, per i
- * tocchi che nascono qui dentro; il resto del sito si zooma come prima.
+ * Niente pizzico e niente doppio tocco, su tutto il sito.
+ *
+ * `pan-x pan-y` lascia passare lo scorrimento in tutt'e due le direzioni — le
+ * tabelle larghe continuano a scorrere di lato — e ferma solo lo zoom. Vale
+ * per i gesti che nascono dentro `body`, cioe' ovunque.
+ *
+ * Sotto `pointer: coarse` per non toglierlo a un portatile con lo schermo
+ * touch, dove il pizzico e' un modo legittimo di zoomare una pagina larga.
  */
-#live {
-    touch-action: pan-x pan-y;
+@media (pointer: coarse) {
+    body {
+        touch-action: pan-x pan-y;
+    }
 }
 
 /*

@@ -3,7 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Niente zoom da telefono: il sito e' gia' disegnato per lo schermo
+         stretto, e il pizzico partiva per sbaglio in mezzo agli swipe e ai
+         tocchi. Su desktop non cambia nulla: lo zoom del browser (ctrl e
+         rotella) non guarda questo attributo. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <meta name="description" content="Topina League — Fantasy NFL Statistics, Standings, Draft History and More">
     <title>Topina League</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,7 +15,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1140">
+    <link rel="stylesheet" href="css/main.css?v=1141">
 </head>
 
 <body>
@@ -452,7 +456,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1217"></script>
+    <script type="module" src="js/app.js?v=1218"></script>
 </body>
 
 </html>
