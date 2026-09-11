@@ -262,12 +262,15 @@ const MOSAIC = {
         // Settimana aperta e ultima chiusa stanno nella STESSA striscia
         // (cardScoreboard): erano due card con lo stesso CTA.
         cardScoreboard(ctx),
-        // Con le due card fuse, la classifica resterebbe sola in riga prima
-        // del rail a tutta larghezza. I numeri salgono ad affiancarla, come
+        // Le prestazioni subito sotto il tabellone: sono la stessa giornata
+        // vista da vicino — chi ha fatto quei punti — e a giornata in corso si
+        // muovono insieme. La classifica e' la domanda dopo.
+        railTopPerformances(ctx),
+        // Con le due card fuse, la classifica resterebbe sola in riga fra due
+        // elementi a tutta larghezza. I numeri salgono ad affiancarla, come
         // già in PRESEASON: due liste di quattro righe, la stessa forma.
         cardStandings(ctx),
         cardNumbers(ctx),
-        railTopPerformances(ctx),
         cardTeams(ctx),
         // Il rail e non la card a meta': con una card in meno le tre a mezza
         // larghezza non si appaiano più e una resterebbe sola in riga, con

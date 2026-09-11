@@ -20410,10 +20410,10 @@ td.ps-div-seed {
        punti diversi l'una dall'altra. */
     .mc-row--btn {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
         grid-template-areas:
-            "seed team toggle"
-            "form form rec";
+            "seed team rec  toggle"
+            "form form form form";
         align-items: center;
         row-gap: 8px;
     }
@@ -20431,9 +20431,17 @@ td.ps-div-seed {
         margin-left: 0;
     }
 
+    /* Senza i pallini della forma — le prime giornate di una stagione — la
+       seconda riga della griglia non ha inquilini: resta alta zero, ma il
+       `row-gap` la spaziatura la metterebbe lo stesso. */
+    .mc-row--btn:not(:has(.mc-form)) {
+        row-gap: 0;
+    }
+
     .mc-row--btn .mc-row-value {
         grid-area: rec;
         margin-left: 0;
+        margin-right: 10px;
         justify-self: end;
     }
 
