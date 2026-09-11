@@ -16371,6 +16371,26 @@ td.ps-div-seed {
     opacity: 0.5;
 }
 
+/*
+ * Lo stemma della squadra che si sta guardando si ACCENDE: sul banner i due
+ * loghi in filigrana stanno alla stessa intensita' (14%), e a dire quale campo
+ * hai davanti restava il solo contorno del nome — poco, soprattutto sul
+ * telefono dove il nome e' piccolo. Qui il logo scelto sale di opacita' e si
+ * prende un alone nel colore della sua squadra; l'altro resta com'era, e la
+ * differenza fra i due si legge da lontano.
+ *
+ * Il colore e' `--tc-sel`, che segue la SQUADRA selezionata e non il lato del
+ * banner: scambiando campo l'alone si sposta insieme allo stemma.
+ */
+.live-scorebar .gc-banner-wm {
+    transition: opacity var(--dur-med, 0.3s) var(--ease), filter var(--dur-med, 0.3s) var(--ease);
+}
+
+.live-scorebar .gc-banner-wm.live-wm-selected {
+    opacity: 0.42;
+    filter: drop-shadow(0 0 26px var(--tc-sel)) drop-shadow(0 0 60px var(--tc-sel));
+}
+
 /* Il contorno segue la squadra selezionata (--tc-sel), non il lato del banner. */
 .live-scorebar .gc-banner-name.live-name-selected {
     opacity: 1;

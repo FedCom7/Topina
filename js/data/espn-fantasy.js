@@ -231,9 +231,29 @@ function normalizeTeam(side, week, games, scoring) {
     const eff = (p) => Number.parseFloat(
         !p.started && p.projected_points != null ? p.projected_points : p.fantasy_points) || 0;
 
+    /*
+     * Il punteggio di squadra.
+     *
+     * ESPN riempie `totalPoints` solo a giornata CHIUSA: durante la settimana
+     * resta a ZERO e non esiste nessun `totalPointsLive` da leggere al suo
+     * posto. Misurato l'11/09/2026 a giornata in corso — tutte e quattro le
+     * squadre avevano punti veri (39,20 · 22,42 · 16,80 · 12,40) e tutte e
+     * quattro `totalPoints: 0.0`. Il tabellone segnava 0 a 0 mentre sotto i
+     * giocatori accumulavano.
+     *
+     * Quindi finche' quel campo non arriva il totale si somma dai TITOLARI,
+     * che e' esattamente cio' che il tabellone mostra riga per riga: chi ha
+     * finito porta il suo definitivo, chi sta giocando quello che ha adesso,
+     * chi deve ancora scendere in campo porta zero. Quando ESPN chiude la
+     * giornata il suo numero torna a comandare — e' quello ufficiale.
+     */
+    const daiTitolari = starters.reduce(
+        (s, p) => s + (Number.parseFloat(p.fantasy_points) || 0), 0);
+    const ufficiale = Number.parseFloat(side?.totalPoints) || 0;
+
     return {
         name: TEAM_ID_TO_NAME[side?.teamId] || `Team ${side?.teamId}`,
-        score: money(side?.totalPoints),
+        score: money(ufficiale || daiTitolari),
         starters,
         bench,
         projected_score: money(starters.reduce((s, p) => s + eff(p), 0)),

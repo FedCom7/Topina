@@ -46,7 +46,7 @@ import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-stor
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=35';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=28';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=32';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
 import { scoreBugHTML } from '../ui/score-bug.js?v=1';

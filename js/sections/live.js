@@ -24,7 +24,7 @@ import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGi
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=49';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=53';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=20';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
@@ -1563,14 +1563,18 @@ function showOpponent() {
 
 /** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
 /**
- * Swipe per passare all'avversario. Deve essere un gesto voluto, non un dito
- * che scorre la pagina: serve mezzo schermo di corsa orizzontale, il movimento
- * dev'essere chiaramente più largo che alto, e abbastanza svelto da non essere
- * uno scroll incerto.
+ * Swipe per passare all'avversario. Deve restare un gesto VOLUTO — non un dito
+ * che scorre la pagina — ma chiedeva troppo: mezzo schermo di corsa (175px su
+ * un telefono da 390) e il gesto andava rifatto due volte su tre.
+ *
+ * Ora serve poco piu' di un quarto di schermo, il movimento deve essere largo
+ * almeno una volta e mezza l'altezza, e c'e' un secondo per farlo. Il controllo
+ * che protegge davvero dallo scroll e' il secondo: uno scorrimento verticale ha
+ * dy molto maggiore di dx e non passa comunque.
  */
 function bindSwipe(el) {
     if (!el) return;
-    const MIN_DX = () => Math.max(90, Math.min(220, window.innerWidth * 0.45));
+    const MIN_DX = () => Math.max(60, Math.min(150, window.innerWidth * 0.28));
     let x0 = null, y0 = null, t0 = 0;
     el.addEventListener('touchstart', (e) => {
         if (e.touches.length > 1) { x0 = null; return; }
@@ -1585,8 +1589,8 @@ function bindSwipe(el) {
         const dt = performance.now() - t0;
         x0 = null;
         if (Math.abs(dx) < MIN_DX()) return;          // corsa troppo corta
-        if (Math.abs(dx) < Math.abs(dy) * 2.2) return; // era uno scroll verticale
-        if (dt > 800) return;                          // troppo lento: non è uno swipe
+        if (Math.abs(dx) < Math.abs(dy) * 1.6) return; // era uno scroll verticale
+        if (dt > 1000) return;                         // troppo lento: non è uno swipe
         showOpponent();
     }, { passive: true });
 }
@@ -1717,8 +1721,8 @@ function matchupCardHTML(entry) {
     return `
     <div class="live-scorebar" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'};--tc-sel:${(selLeft ? t1 : t2)?.color || 'var(--accent-red)'}">
         <div class="gc-banner">
-            ${t1?.logo ? `<img class="gc-banner-wm gc-banner-wm-l" src="${t1.logo}" alt="" aria-hidden="true">` : ''}
-            ${t2?.logo ? `<img class="gc-banner-wm gc-banner-wm-r" src="${t2.logo}" alt="" aria-hidden="true">` : ''}
+            ${t1?.logo ? `<img class="gc-banner-wm gc-banner-wm-l${selLeft ? ' live-wm-selected' : ''}" src="${t1.logo}" alt="" aria-hidden="true">` : ''}
+            ${t2?.logo ? `<img class="gc-banner-wm gc-banner-wm-r${selLeft ? '' : ' live-wm-selected'}" src="${t2.logo}" alt="" aria-hidden="true">` : ''}
             <div class="gc-banner-inner">
                 <div class="gc-banner-side">
                     <span class="gc-banner-name${selLeft ? ' live-name-selected' : ''}">${teamNameHTML(t1?.name || left.name)}</span>
