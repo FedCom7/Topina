@@ -13,7 +13,7 @@
 
 import { getManagerDNA, CONFIDENCE_LABEL, CONFIDENCE_NOTE } from '../data/manager-dna.js?v=2';
 import { dumbbell, multiLine, waterfall, inkFor } from '../ui/charts.js?v=7';
-import { TEAMS } from './team.js?v=666';
+import { TEAMS } from './team.js?v=670';
 import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=1';
 
 const KEYS = ['capi', 'lasers', 'oscurus', 'sommo'];

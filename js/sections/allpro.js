@@ -6,8 +6,8 @@
 
 import { CURRENT_SEASON } from '../data.js?v=580';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=631';
-import { TEAMS } from './team.js?v=709';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=713';
+import { TEAMS } from './team.js?v=713';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=718';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 

@@ -1,31 +1,30 @@
 /**
  * Players — chi sta facendo punti quest'anno, e chi di loro è ancora libero.
  *
- * Due liste, una sopra l'altra, perché rispondono a due domande diverse:
+ * UNA lista: tutti i giocatori NFL ordinati per punti secondo il punteggio
+ * della lega, con un filtro "Available" che tiene solo chi in questo momento
+ * non sta in nessuna delle quattro rose.
  *
- *  1. **Season leaders** — tutti i giocatori NFL, ordinati per punti secondo il
- *     punteggio della lega. È la classifica assoluta: dice quanto vale davvero
- *     una prestazione, che il giocatore sia in una nostra rosa o no.
- *  2. **Best Available** — di quella classifica, chi in questo momento non ha
- *     nessuna delle quattro rose. Viveva in fondo ad Analysis, una pagina che
- *     parla d'altro; qui sta accanto alla lista da cui si legge.
+ * Erano due liste una sopra l'altra — Season leaders e, sotto, Best Available
+ * per ruolo — e dicevano due numeri diversi per lo stesso giocatore: la prima
+ * i punti di Sleeper, la seconda quelli ricalcolati da un file a parte. Con il
+ * filtro il liberato si legge nella stessa classifica, con lo stesso numero,
+ * e si vede a che posto sta rispetto a chi e' gia' in rosa.
  *
- * La prima viene da Sleeper (`getSeasonStats`: stagione intera, tutti i
- * giocatori, punti già calcolati col punteggio della lega). La seconda dal file
- * `data/nfl/best_available_<anno>.json`. Il modello di stagione di Firebase
- * serve solo a dire CHI aveva chi: senza, "libero" e "in rosa" si
- * confonderebbero.
+ * I punti vengono da Sleeper (`getSeasonStats`: stagione intera, tutti i
+ * giocatori, punteggio della lega). Il modello di stagione di Firebase dice
+ * CHI aveva chi: "libero" vuol dire nessuna squadra nell'ultima giornata
+ * archiviata — la stessa regola che usava il Best Available.
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=709';
+import { TEAMS } from './team.js?v=713';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getSeasonStats } from '../data/projections.js?v=595';
-import { getBestAvailable } from '../data/nfl-team-extras.js?v=1001';
+import { getSeasonStats } from '../data/projections.js?v=601';
 import {
-    buildSeasonModel, fmt, keyStatLine, headshotImg, posBadge, drillRow,
-    hydrateImages, limitedRows, toggleExtraRows, sumWeeklyStats, playerSeasonDrill,
-} from './analysis.js?v=775';
+    buildSeasonModel, fmt, headshotImg, posBadge,
+    hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
+} from './analysis.js?v=780';
 import { getPlayerWeekly } from '../data/player-full.js?v=656';
 
 let initialized = false;
@@ -34,6 +33,7 @@ let currentYear = CURRENT_SEASON;
 // ruolo solo, e con un radio si sarebbe dovuto scegliere.
 let attivi = new Set(['QB', 'RB', 'WR', 'TE']);
 let ordine = 'total';      // 'total' | 'perGame'
+let soloLiberi = false;    // filtro "Available": solo chi non e' in nessuna rosa
 
 // DEF resta fuori: Sleeper non pubblica le fasce di punti/yard subiti che il
 // nostro punteggio usa per le difese, quindi il loro totale sarebbe un numero
@@ -164,6 +164,11 @@ function pillsRuolo() {
             ${RUOLI.map(p => `<button class="an-avg-pill${attivi.has(p) ? ' active' : ''}" data-ld-pos="${p}">${p}</button>`).join('')}
         </div>
         <div class="an-avg-toggle">
+            <span class="an-avg-label">Show:</span>
+            <button class="an-avg-pill${soloLiberi ? '' : ' active'}" data-ld-show="all">All</button>
+            <button class="an-avg-pill${soloLiberi ? ' active' : ''}" data-ld-show="available">Available</button>
+        </div>
+        <div class="an-avg-toggle">
             <span class="an-avg-label">Sort:</span>
             <button class="an-avg-pill${ordine === 'total' ? ' active' : ''}" data-ld-sort="total">Total</button>
             <button class="an-avg-pill${ordine === 'perGame' ? ' active' : ''}" data-ld-sort="perGame">Per Game</button>
@@ -176,15 +181,35 @@ function pillsRuolo() {
 const MASSIMO = 100;
 
 /** Ordina e taglia: la lista intera sono migliaia di righe, e nessuno le legge. */
+/**
+ * Quante partite servono per entrare nella classifica "Per Game".
+ *
+ * Era un 4 fisso, pensato a stagione avviata: sotto le quattro presenze una
+ * media dice solo che uno ha giocato poco. Ma alla week 1 nessuno ne ha piu' di
+ * una, e il filtro svuotava la lista intera — "No player matches", a qualunque
+ * ruolo. La soglia ora segue la stagione: meta' delle giornate giocate finora,
+ * mai sotto 1 e mai sopra 4. Alla week 1-2 basta una partita, alla 4 ne servono
+ * due, dall'ottava in poi torna la regola di sempre.
+ */
+function minPartite(stats) {
+    let max = 0;
+    for (const e of stats.values()) if ((e.gp || 0) > max) max = e.gp;
+    return Math.min(4, Math.max(1, Math.ceil(max / 2)));
+}
+
 function classifica(stats, roseIdx) {
+    const soglia = minPartite(stats);
     const fuori = [];
     for (const e of stats.values()) {
         if (!attivi.has(e.pos)) continue;
         if (e.ptsLeague == null) continue;
+        // Libero = nessuna squadra lo ha nell'ultima giornata archiviata. Chi
+        // e' stato tagliato resta dentro, con la targhetta "Dropped by".
+        if (soloLiberi && roseIdx.get(chiave(e.name))?.finale) continue;
         const gp = e.gp || 0;
         // Per-partita su chi ha giocato una gara sola non è una media, è un
         // caso: sotto le quattro presenze il numero dice solo che ha giocato poco.
-        if (ordine === 'perGame' && gp < 4) continue;
+        if (ordine === 'perGame' && gp < soglia) continue;
         fuori.push({ e, chiave: ordine === 'perGame' ? (gp ? e.ptsLeague / gp : 0) : e.ptsLeague });
     }
     fuori.sort((a, b) => b.chiave - a.chiave);
@@ -193,7 +218,9 @@ function classifica(stats, roseIdx) {
 
 function listaHTML(lista, roseIdx) {
     if (!lista.length) {
-        return `<p class="an-footnote">No player matches the selected positions.</p>`;
+        return `<p class="an-footnote">${soloLiberi
+            ? 'Every player matching these filters is already on a roster.'
+            : 'No player matches the selected positions.'}</p>`;
     }
     const righe = lista.map((e, i) => rigaLeader(e, i, roseIdx.get(chiave(e.name))));
     return `
@@ -204,96 +231,10 @@ function listaHTML(lista, roseIdx) {
 }
 
 /* ============================================================
-   BEST AVAILABLE — arrivato qui da Analysis, invariato nella sostanza.
-   ============================================================ */
-
-const BESTAVAIL_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
-const BESTAVAIL_VISIBLE = 5;
-
-function bestAvailRowHTML(p, pos, uid, exSquadra) {
-    const rec = { name: p.name, position: pos, nflTeam: p.team };
-    const avg = p.weeks.length ? p.totPts / p.weeks.length : 0;
-    // Ora la lista include chi è stato svincolato a stagione in corso: dirlo,
-    // altrimenti "libero" sembrerebbe "mai preso da nessuno".
-    const badge = exSquadra
-        ? ` <span class="an-badge an-badge-drop">Dropped by ${exSquadra}</span>` : '';
-    return `
-    <div class="an-player-row" data-bestavail="${uid}">
-        ${headshotImg(rec)}
-        <span class="an-player-name">${p.name} ${posBadge(pos)}${badge}</span>
-        <span class="an-cell">${p.weeks.length}</span>
-        <span class="an-cell an-pts">${fmt(p.totPts, 2)}<sup>*</sup></span>
-        <span class="an-cell">${fmt(avg, 1)}</span>
-        <span class="an-keystats">${keyStatLine(pos, sumWeeklyStats(p.weeks))}</span>
-        <span class="an-chevron">›</span>
-    </div>
-    <div class="an-week-drill" data-bestavail-drill="${uid}" hidden></div>`;
-}
-
-/**
- * Riusa drillRow. Le giornate in cui una delle 4 squadre lo aveva davvero si
- * leggono dal modello di stagione, così escono con "On {squadra}" invece che
- * tutte "Unrostered": adesso in lista ci sono anche gli svincolati, e dire
- * che non li aveva mai nessuno sarebbe falso.
- */
-function bestAvailDrillHTML(model, p, pos) {
-    const rec = model.players.get(p.name) || { position: pos };
-    return p.weeks.map(w => {
-        const vero = rec.weeks?.[w.week];
-        const riga = vero
-            ? { ...vero, opponent: vero.opponent || w.opponent }
-            : { pts: w.pts, stats: w.stats, opponent: w.opponent, teamKey: null, started: null, calculated: true };
-        // showTeamCol: qui il giocatore non appartiene a nessuna squadra in
-        // particolare, quindi le giornate in cui qualcuno lo aveva devono dire
-        // CHI lo aveva — altrimenti si legge "Starter" senza sapere di chi.
-        return drillRow(rec, w.week, riga, { showTeamCol: true, teamKey: null });
-    }).join('');
-}
-
-function bestAvailHTML(byPosition, model) {
-    if (!byPosition) {
-        return `<h3 class="an-sub-title an-rule">Best Available</h3>
-            <p class="an-footnote">Data not available for ${currentYear} yet.</p>`;
-    }
-    // Chi lo aveva per ultimo, se è uno svincolato in corsa: serve alla riga.
-    const ultimaSquadra = (nome) => {
-        const rec = model?.players.get(nome);
-        if (!rec) return null;
-        let ultima = null, wk = -1;
-        for (const [w, dati] of Object.entries(rec.weeks)) {
-            if (dati.teamKey && Number(w) > wk) { wk = Number(w); ultima = dati.teamKey; }
-        }
-        return ultima ? (TEAMS[ultima]?.name || null) : null;
-    };
-
-    const groups = BESTAVAIL_POSITIONS.map(pos => {
-        const list = byPosition[pos] || [];
-        if (!list.length) return '';
-        const rows = list.map((p, i) => bestAvailRowHTML(p, pos, `${pos}:${i}`, ultimaSquadra(p.name)));
-        return `
-        <div class="an-bestavail-group">
-            <span class="an-bestavail-pos">${pos}</span>
-            <div class="an-list-head">
-                <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
-            </div>
-            ${limitedRows(rows, BESTAVAIL_VISIBLE, 'bestavail')}
-        </div>`;
-    }).join('');
-
-    return `
-    <h3 class="an-sub-title an-rule">Best Available</h3>
-    <p class="an-footnote">Top QB/RB/WR/TE by total points among the players <b>no team had in week
-       ${model?.lastWeek ?? '—'}</b> — who you could pick up right now, dropped mid-season included.
-       Points<sup>*</sup> are calculated from real NFL stats using the league's own scoring rules, not an
-       official league number. Kickers and defenses aren't covered.</p>
-    <div class="an-bestavail-grid">${groups}</div>`;
-}
-
-/* ============================================================
    PAGINA
    ============================================================ */
 
-let stato = null;   // { stats, model, byPosition, roseIdx }
+let stato = null;   // { stats, model, roseIdx, lista }
 
 async function load() {
     const wrap = document.getElementById('leaders-content');
@@ -301,12 +242,11 @@ async function load() {
     wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading players...</p></div>`;
     const anno = currentYear;
 
-    // Le tre fonti sono indipendenti: se una manca la pagina esce lo stesso
-    // con quello che c'è, invece di restare su uno spinner per sempre.
-    const [stats, model, byPosition] = await Promise.all([
+    // Le due fonti sono indipendenti: se il modello manca la lista esce lo
+    // stesso, solo senza targhette di rosa.
+    const [stats, model] = await Promise.all([
         getSeasonStats(anno).catch(() => null),
         buildSeasonModel(anno).catch(() => null),
-        getBestAvailable(anno).catch(() => null),
     ]);
     if (String(currentYear) !== String(anno)) return;   // l'utente ha già cambiato anno
 
@@ -314,7 +254,7 @@ async function load() {
         wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No player stats for ${anno}</p></div>`;
         return;
     }
-    stato = { stats, model, byPosition, roseIdx: indiceRose(model) };
+    stato = { stats, model, roseIdx: indiceRose(model) };
     render();
 }
 
@@ -324,20 +264,22 @@ function render() {
     const lista = classifica(stato.stats, stato.roseIdx);
     stato.lista = lista;   // il data-ld-open della riga e' l'indice qui dentro
     wrap.innerHTML = `
-    <h3 class="an-sub-title">Season leaders</h3>
+    <h3 class="an-sub-title">${soloLiberi ? 'Best available' : 'Season leaders'}</h3>
     ${pillsRuolo()}
     <div id="ld-list">${listaHTML(lista, stato.roseIdx)}</div>
     <p class="an-footnote">Every NFL player, scored with the league's own rules — ${lista.length} shown for the
        selected positions. The badge on the right says whether one of the four teams has him now, or had him.
-       "Per Game" only ranks players with at least 4 games: below that an average says nothing.
-       Defenses are missing: the source doesn't publish the points/yards-allowed brackets our scoring needs.</p>
-    ${bestAvailHTML(stato.byPosition, stato.model)}`;
+       "Available" keeps only players no team had in week ${stato.model?.lastWeek ?? '—'}, the latest one on file:
+       dropped players included, pickups made since then not yet.
+       "Per Game" only ranks players with at least ${minPartite(stato.stats)} game${minPartite(stato.stats) === 1 ? '' : 's'}
+       — half the weeks played so far, up to 4: below that an average says nothing.
+       Defenses are missing: the source doesn't publish the points/yards-allowed brackets our scoring needs.</p>`;
     hydrateImages(wrap);
 }
 
 /** Un solo ascoltatore sul contenitore: la lista si riscrive tutta a ogni filtro. */
 /* ============================================================
-   DRILL DI STAGIONE — si apre sotto la riga, come nel Best Available
+   DRILL DI STAGIONE — si apre sotto la riga
    ============================================================ */
 
 /*
@@ -428,7 +370,7 @@ function bindContent() {
     const wrap = document.getElementById('leaders-content');
     if (!wrap) return;
     wrap.addEventListener('click', (e) => {
-        const more = e.target.closest('[data-leaders-more], [data-bestavail-more]');
+        const more = e.target.closest('[data-leaders-more]');
         if (more) {
             toggleExtraRows(more);
             // Le righe appena scoperte hanno ancora la sagoma: le foto si
@@ -450,23 +392,11 @@ function bindContent() {
         const sort = e.target.closest('[data-ld-sort]');
         if (sort) { ordine = sort.dataset.ldSort; render(); return; }
 
+        const show = e.target.closest('[data-ld-show]');
+        if (show) { soloLiberi = show.dataset.ldShow === 'available'; render(); return; }
+
         const apre = e.target.closest('[data-ld-open]');
         if (apre) { apriDrill(apre, Number(apre.dataset.ldOpen)); return; }
-
-        // Best Available: apertura del dettaglio settimana per settimana
-        const row = e.target.closest('.an-player-row[data-bestavail]');
-        if (!row || !stato) return;
-        const uid = row.dataset.bestavail;
-        const drill = wrap.querySelector(`.an-week-drill[data-bestavail-drill="${uid}"]`);
-        if (!drill) return;
-        const aperto = row.classList.toggle('expanded');
-        drill.hidden = !aperto;
-        if (aperto && !drill.dataset.loaded) {
-            drill.dataset.loaded = '1';
-            const [pos2, idx] = uid.split(':');
-            const p = stato.byPosition?.[pos2]?.[+idx];
-            if (p && stato.model) drill.innerHTML = bestAvailDrillHTML(stato.model, p, pos2);
-        }
     });
 }
 
