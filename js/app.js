@@ -63,8 +63,8 @@ const NAV_PARENT = {
     'managerdna': 'draft',
     'playoffs': 'standings',
     'magazine': 'game-center',
-    'leaders': 'analysis',
-    'waivers': 'analysis',
+    'waivers': 'leaders',
+    'stats': 'history',
 };
 
 const TEAM_KEYS_NAV = new Set(['team-capi', 'team-lasers', 'team-oscurus', 'team-sommo']);
