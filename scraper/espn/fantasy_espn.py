@@ -39,6 +39,7 @@ def build_season(season, weeks=None, cfg=None, verbose=True):
         "weeks": {},
     }
 
+    explicit = bool(weeks)
     for week in _weeks_to_scrape(season, cfg, weeks):
         if verbose:
             print(f"--- Week {week} ---")
@@ -59,4 +60,37 @@ def build_season(season, weeks=None, cfg=None, verbose=True):
                       f"vs {matchup['team2']['name']} {matchup['team2']['score']}")
         result["weeks"][str(week)] = {"matchups": matchups}
 
+    if not explicit:
+        _drop_early_placeholders(result["weeks"], verbose)
     return result
+
+
+def _is_closed(week_data):
+    """A week is closed when every matchup has a decided winner."""
+    matchups = week_data.get("matchups") or []
+    return bool(matchups) and all(
+        m.get("winner") and m.get("winner") != "UNDECIDED" for m in matchups)
+
+
+def _drop_early_placeholders(weeks, verbose=True):
+    """Keep the upcoming week only once the previous one is closed.
+
+    _weeks_to_scrape asks for the current week plus the next, so the next
+    week's matchups are on Firebase ahead of kickoff. But "current" comes from
+    ESPN's status, and before week 1 is over that already yields week 2: the
+    run of 2026-09-09 (draft done, week 1 not even kicked off) published an
+    empty week 2 next to an empty week 1, and the site showed a W2 while
+    week 1 was still being played.
+
+    The placeholder for week N+1 belongs to the run that closes week N — the
+    Tuesday after Monday Night. So every week past (last closed week + 1) is
+    dropped: before kickoff only week 1 stays, after week 1 closes weeks 1
+    and 2, and so on. Weeks are never dropped from the middle.
+    """
+    closed = [int(w) for w, d in weeks.items() if _is_closed(d)]
+    limit = (max(closed) if closed else 0) + 1
+    for w in sorted((int(k) for k in weeks), reverse=True):
+        if w > limit:
+            if verbose:
+                print(f"  (week {w} not published: week {w - 1} is not closed yet)")
+            del weeks[str(w)]

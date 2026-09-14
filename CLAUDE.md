@@ -46,7 +46,11 @@ Firebase RTDB → `data.js` fetch/process → `sections/*.js` render to DOM
 
 **Chi scrive su Firebase: solo l'Action `espn-live.yml`**, una volta a
 settimana (martedì 09:00 UTC, dopo il Monday Night Football). Esegue
-`scraper/run_espn.py` e carica il risultato CHIUSO della giornata. È l'unico
+`scraper/run_espn.py` e carica il risultato CHIUSO della giornata, più il
+segnaposto della settimana dopo. Il segnaposto della week N+1 esce solo se la
+week N è chiusa (`_drop_early_placeholders` in `scraper/espn/fantasy_espn.py`):
+l'esecuzione del 9/09/2026, a draft fatto e prima del kickoff, aveva pubblicato
+una week 2 vuota e il sito mostrava una W2 mentre si giocava la 1. È l'unico
 produttore: non aggiungerne altri, perché scrivono sugli stessi nodi e l'ultimo
 sovrascrive l'altro (successo il 2026-08-04). `deploy-data.yml` resta
 disattivato sull'automatico, solo avvio manuale per ricaricare gli storici.
