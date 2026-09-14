@@ -10,12 +10,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <meta name="description" content="Topina League — Fantasy NFL Statistics, Standings, Draft History and More">
     <title>Topina League</title>
+    <!-- Tema: si decide PRIMA che arrivi il CSS, altrimenti chi ha scelto il
+         chiaro vedrebbe un lampo nero a ogni apertura. La scelta sta in
+         localStorage sotto `topina-theme` (fuori dalle famiglie di cache di
+         utils/storage.js, quindi nessuno sfratto la tocca); il bottone che la
+         cambia e' in ui/navbar.js. -->
+    <script>
+        try { if (localStorage.getItem('topina-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) { }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1167">
+    <link rel="stylesheet" href="css/main.css?v=1189">
 </head>
 
 <body>
@@ -60,6 +68,17 @@
                 </li>
             </ul>
             <div class="nav-actions">
+                <button class="nav-theme-btn" id="nav-theme-btn" type="button" aria-label="Switch to light theme" aria-pressed="false">
+                    <!-- sole: si vede sul tema scuro, porta al chiaro -->
+                    <svg class="nav-theme-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+                    </svg>
+                    <!-- luna: si vede sul tema chiaro, riporta allo scuro -->
+                    <svg class="nav-theme-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
                 <button class="nav-search-btn" id="nav-search-btn" aria-label="Search" aria-expanded="false">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -283,7 +302,7 @@
                 <h1 class="section-title">Draft Grades</h1>
                 <p class="section-subtitle">War-room report cards, team by team</p>
             </div>
-            <div class="year-selector" id="dg-year-selector"></div>
+            <div class="pick-row" id="dg-year-selector"></div>
             <div id="draftgrades-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
@@ -460,7 +479,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1248"></script>
+    <script type="module" src="js/app.js?v=1269"></script>
 </body>
 
 </html>

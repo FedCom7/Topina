@@ -1,32 +1,32 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=844';
-import { initGameCenter } from './sections/game-center.js?v=772';
-import { initStandings, initPlayoffs } from './sections/standings.js?v=729';
-import { initDraft } from './sections/draft.js?v=763';
-import { initDraftGrades } from './sections/draftgrades.js?v=768';
-import { initProjections } from './sections/projections.js?v=129';
-import { initManagerDna } from './sections/managerdna.js?v=13';
-import { initManagerDnaTeam } from './sections/managerdna-team.js?v=13';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=775';
-import { initPlayerPage } from './sections/player-page.js?v=998';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1050';
+import { initHome } from './sections/home.js?v=860';
+import { initGameCenter } from './sections/game-center.js?v=789';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=744';
+import { initDraft } from './sections/draft.js?v=779';
+import { initDraftGrades } from './sections/draftgrades.js?v=784';
+import { initProjections } from './sections/projections.js?v=145';
+import { initManagerDna } from './sections/managerdna.js?v=28';
+import { initManagerDnaTeam } from './sections/managerdna-team.js?v=28';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=791';
+import { initPlayerPage } from './sections/player-page.js?v=1014';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1065';
 import { initPlayersSearch } from './sections/players-search.js?v=983';
-import { initStats } from './sections/stats.js?v=825';
-import { initHistory } from './sections/history.js?v=717';
-import { initHonors } from './sections/honors.js?v=701';
-import { initAllPro } from './sections/allpro.js?v=710';
-import { initHallOfFame } from './sections/halloffame.js?v=727';
-import { initTeam } from './sections/team.js?v=721';
-import { initTeams } from './sections/teams.js?v=694';
-import { initGame } from './sections/game.js?v=782';
-import { initAnalysis } from './sections/analysis.js?v=789';
-import { initLeaders } from './sections/leaders.js?v=28';
-import { initWaivers } from './sections/waivers.js?v=28';
-import { initMagazine } from './sections/magazine.js?v=750';
-import { initLive } from './sections/live.js?v=1034';
-import { initNavbar } from './ui/navbar.js?v=639';
+import { initStats } from './sections/stats.js?v=840';
+import { initHistory } from './sections/history.js?v=732';
+import { initHonors } from './sections/honors.js?v=716';
+import { initAllPro } from './sections/allpro.js?v=726';
+import { initHallOfFame } from './sections/halloffame.js?v=743';
+import { initTeam } from './sections/team.js?v=737';
+import { initTeams } from './sections/teams.js?v=709';
+import { initGame } from './sections/game.js?v=797';
+import { initAnalysis } from './sections/analysis.js?v=804';
+import { initLeaders } from './sections/leaders.js?v=43';
+import { initWaivers } from './sections/waivers.js?v=44';
+import { initMagazine } from './sections/magazine.js?v=765';
+import { initLive } from './sections/live.js?v=1051';
+import { initNavbar } from './ui/navbar.js?v=661';
 import { startAutoAbbr } from './utils/team-abbr.js?v=501';
 import { startLoadingArt } from './ui/spinner.js?v=6';
 

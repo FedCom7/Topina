@@ -61,6 +61,17 @@
     --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
     --shadow-glow: 0 0 40px rgba(79, 140, 255, 0.1);
 
+    /* Barra e pannelli sopra la pagina (menu, lente): semitrasparenti. */
+    --nav-bg: rgba(6, 8, 15, 0.8);
+    --nav-overlay-bg: rgba(6, 8, 15, 0.97);
+
+    /* Contorno delle scritte "vuote" (titoli verticali di sezione, TOPINA,
+       WEEK sul campo): chiaro su fondo scuro, inchiostro su fondo chiaro. */
+    --outline-stroke: rgba(245, 240, 232, 0.55);
+
+    /* Capsule delle tendine che non sono l'anno. */
+    --pill-surface: #000000;
+
     /* Motion — durate condivise di transizioni/animazioni */
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
     --dur-fast: 0.15s;
@@ -85,9 +96,57 @@ html {
     -webkit-font-smoothing: antialiased;
 }
 
+/* ============================================================
+   TEMA CHIARO — `data-theme="light"` sulla radice (bottone in alto a destra).
+
+   Qui si ridefiniscono SOLO le variabili: tutto cio' che le usa (il 71% delle
+   dichiarazioni di colore del file) cambia da se'. Cio' che resta scritto a
+   mano va portato sulle variabili un pezzo alla volta — non si duplicano
+   regole "versione chiara" sparse per il file.
+
+   I colori d'accento sono scuriti rispetto allo scuro: su bianco il verde
+   #22c55e o l'ambra #f59e0b come testo non arrivano a 3:1.
+   ============================================================ */
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --bg-primary: #ffffff;
+    --bg-secondary: #f7f7f5;
+    --bg-tertiary: #efefeb;
+    --bg-card: rgba(255, 255, 255, 0.96);
+    --bg-card-hover: #f3f3ef;
+    --bg-glass: rgba(20, 18, 14, 0.04);
+    --bg-glass-border: rgba(20, 18, 14, 0.12);
+
+    --text-primary: #16140f;
+    --text-secondary: #3f3b35;
+    --text-muted: #6b665e;
+
+    --accent-blue: #2563eb;
+    --accent-purple: #9333ea;
+    --accent-green: #15803d;
+    --accent-red: #B8433A;
+    --accent-amber: #b45309;
+
+    --border-subtle: rgba(20, 18, 14, 0.08);
+    --border-card: rgba(20, 18, 14, 0.12);
+
+    --surface-card: #ffffff;
+    --glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    --shadow-card: 0 4px 24px rgba(20, 18, 14, 0.08);
+    --shadow-glow: 0 0 40px rgba(37, 99, 235, 0.08);
+
+    --nav-bg: rgba(255, 255, 255, 0.82);
+    /* pieno: al 97% dietro il menu si leggevano i titoli della pagina */
+    --nav-overlay-bg: #ffffff;
+
+    --outline-stroke: rgba(22, 20, 15, 0.38);
+    --pill-surface: #ffffff;
+}
+
 body {
     font-family: var(--font-body);
-    background: #000000;
+    background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
@@ -143,7 +202,7 @@ img {
     right: 0;
     z-index: 1000;
     height: var(--nav-height);
-    background: rgba(6, 8, 15, 0.8);
+    background: var(--nav-bg);
     backdrop-filter: blur(var(--blur-lg));
     -webkit-backdrop-filter: blur(var(--blur-lg));
     border-bottom: 1px solid var(--border-subtle);
@@ -324,6 +383,50 @@ img {
     gap: 2px;
 }
 
+/* Bottone del tema. Su telefono sta fra le azioni della barra, accanto alla
+   lente; su schermo largo le azioni sono nascoste (le voci stanno al centro),
+   quindi il bottone si stacca e va da solo in alto a destra. Mostra l'icona
+   del tema in cui PORTA: sole sullo scuro, luna sul chiaro. */
+.nav-theme-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--dur-med) var(--ease), opacity var(--dur-med) var(--ease);
+}
+
+.nav-theme-btn:hover {
+    color: var(--text-primary);
+}
+
+.nav-theme-btn:focus-visible {
+    outline: 2px solid var(--accent-red);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+.nav-theme-moon { display: none; }
+:root[data-theme="light"] .nav-theme-sun { display: none; }
+:root[data-theme="light"] .nav-theme-moon { display: block; }
+
+@media (min-width: 769px) {
+    .nav-actions {
+        display: flex;
+        position: absolute;
+        top: 0;
+        right: 20px;
+        height: var(--nav-height);
+    }
+
+    .nav-actions > :not(.nav-theme-btn) {
+        display: none;
+    }
+}
+
 .nav-search-btn {
     display: flex;
     align-items: center;
@@ -349,7 +452,7 @@ img {
     left: 0;
     right: 0;
     flex-direction: column;
-    background: rgba(6, 8, 15, 0.97);
+    background: var(--nav-overlay-bg);
     backdrop-filter: blur(var(--blur-lg));
     -webkit-backdrop-filter: blur(var(--blur-lg));
     border-bottom: 1px solid var(--border-subtle);
@@ -454,7 +557,7 @@ img {
     background: none;
     color: transparent;
     -webkit-text-fill-color: transparent;
-    -webkit-text-stroke: 1.2px rgba(245, 240, 232, 0.55);
+    -webkit-text-stroke: 1.2px var(--outline-stroke);
 }
 
 .section-header .section-subtitle {
@@ -700,7 +803,7 @@ img {
 }
 
 .pick-dd:not([data-pick-id="year"]) .pick-dd-btn {
-    background: #000000;
+    background: var(--pill-surface);
     border-color: var(--border-card);
     color: var(--text-secondary);
 }
@@ -789,13 +892,13 @@ img {
 }
 
 .pick-dd-item:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--bg-glass);
     color: var(--text-primary);
 }
 
 .pick-dd-item.is-on {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-subtle);
 }
 
 /* ================================
@@ -2622,7 +2725,7 @@ img {
         left: 0;
         right: 0;
         height: calc(100vh - var(--nav-height));
-        background: rgba(6, 8, 15, 0.97);
+        background: var(--nav-overlay-bg);
         backdrop-filter: blur(var(--blur-lg));
         -webkit-backdrop-filter: blur(var(--blur-lg));
         border-bottom: 1px solid var(--border-subtle);
@@ -2647,7 +2750,8 @@ img {
     }
 
     .navbar:has(.nav-links.open) .nav-logo,
-    .navbar:has(.nav-links.open) .nav-search-btn {
+    .navbar:has(.nav-links.open) .nav-search-btn,
+    .navbar:has(.nav-links.open) .nav-theme-btn {
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
@@ -2794,7 +2898,7 @@ img {
     .nav-l2-link:hover,
     .nav-l2-link:focus-visible {
         color: var(--text-primary);
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--bg-glass);
     }
 
     .hero-title {
@@ -2981,6 +3085,12 @@ img {
     font-size: 0.85rem;
     color: color-mix(in srgb, var(--team-color) 65%, white 30%);
     min-width: 0;
+}
+
+/* Sul chiaro il nome della squadra si scurisce invece di schiarirsi: l'oro
+   dei Lasers schiarito su fondo bianco non si leggeva. */
+:root[data-theme="light"] .draft-fig-team {
+    color: color-mix(in srgb, var(--team-color) 70%, black 30%);
 }
 
 .draft-fig-team img {
@@ -5100,6 +5210,7 @@ img {
     color: transparent;
     -webkit-text-fill-color: transparent;
     /* 1px come i titoli su desktop: e' lo stesso tratto, non uno piu' spesso. */
+    /* Fisso chiaro, non --outline-stroke: il campo resta scuro in tutti e due i temi. */
     -webkit-text-stroke: 1px rgba(245, 240, 232, 0.55);
 }
 
@@ -5325,7 +5436,7 @@ img {
 }
 
 .team-alltime-panel {
-    background: #000000;
+    background: var(--surface-card);
     border: 1px solid var(--border-card);
     border-radius: var(--card-radius);
     padding: 28px;
@@ -6363,7 +6474,7 @@ img {
 
 .mc-word--outline {
     color: transparent;
-    -webkit-text-stroke: 2px rgba(245, 240, 232, 0.5);
+    -webkit-text-stroke: 2px var(--outline-stroke);
 }
 
 .mc-word--fill {
@@ -7557,6 +7668,11 @@ img {
 
 .ld-team-badge--drop {
     background: transparent;
+}
+
+:root[data-theme="light"] .ld-team-badge,
+:root[data-theme="light"] .mc-rail-card:has(.mc-rail-pos) .mc-rail-title {
+    color: color-mix(in srgb, var(--team-color, var(--card-glow, var(--text-muted))) 70%, black 30%);
 }
 
 /* In Players il dettaglio resta tutto acceso: e' una pagina su TUTTI i
@@ -11939,6 +12055,25 @@ body.pm-open { overflow: hidden; }
    loro misure sono fisse in px e non si riducono con la carta. Le regole
    @container sotto tolgono informazione via via che lo spazio cala, invece
    di lasciarla sovrapporsi. */
+/* La figurina e' nera in tutti e due i temi — e' una carta da collezione, non
+   una superficie della pagina — quindi dentro tiene la palette dello scuro.
+   Senza, col tema chiaro nome, ruolo e scritte prendevano l'inchiostro scuro
+   pensato per il fondo bianco, e sulla carta nera sparivano. Ridefinire qui i
+   token vale per tutto cio' che la carta contiene, senza toccare regola per
+   regola. */
+.pm-panini {
+    --text-primary: #f5f0e8;
+    --text-secondary: #cccccc;
+    --text-muted: #888888;
+    --accent-blue: #4f8cff;
+    --accent-green: #22c55e;
+    --accent-amber: #f59e0b;
+    --bg-glass: rgba(255, 255, 255, 0.06);
+    --bg-glass-border: rgba(255, 255, 255, 0.12);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-card: rgba(255, 255, 255, 0.12);
+}
+
 .pm-panini {
     position: relative;
     width: 100%;
@@ -12610,7 +12745,31 @@ body.pm-open { overflow: hidden; }
    aspettava da quel numero rimasto fermo. */
 .pm-game-cell--zero .pm-game-cell-val,
 .pm-game-cell--zero .pm-game-cell-lbl {
-    color: rgba(255, 255, 255, 0.24);
+    /* Spento ma leggibile in tutti e due i temi: era bianco al 24%, che sulla
+       scheda chiara spariva del tutto. Il grigio del testo secondario a meta'
+       intensita' da' lo stesso tono di prima sullo scuro e un grigio chiaro
+       sul bianco. */
+    color: color-mix(in srgb, var(--text-muted) 45%, transparent);
+}
+
+/* Risultato della partita accanto all'avversario; in rosso con il pallino
+   mentre si gioca. */
+.pm-game-score {
+    margin-left: 4px;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.pm-game-score--live {
+    color: var(--accent-red);
+}
+
+.pm-game-score--live::before {
+    content: '●';
+    margin-right: 4px;
+    font-size: 0.7em;
+    vertical-align: 0.1em;
 }
 
 .pm-game-cell--zero .pm-game-cell-val {
@@ -15609,6 +15768,12 @@ td.ps-div-seed {
    leggero. Riusa gb-live-dot/mosaic-card dove possibile invece di duplicare.
    ================================ */
 
+:root[data-theme="light"] .live-page-inner {
+    --live-bg: #f7f7f5;
+    --live-card: #ffffff;
+    --live-border: rgba(20, 18, 14, 0.12);
+}
+
 .live-page-inner {
     --live-bg: #080808;
     --live-card: #000000;
@@ -16649,6 +16814,31 @@ td.ps-div-seed {
 
 .live-slot-stats.live-slot-stats--ring .live-ring-sep {
     color: rgba(255, 255, 255, 0.35);
+}
+
+/* Tema chiaro, PANCHINA: la card e' bianca, e scritte bianche con l'alone
+   scuro (pensate per stare sull'erba) diventavano illeggibili — i nomi
+   sparivano del tutto. Sul campo non si tocca niente: resta scuro in tutti e
+   due i temi. */
+:root[data-theme="light"] .live-bench .live-slot-stats--ring .live-ring-ch {
+    text-shadow: none;
+}
+
+:root[data-theme="light"] .live-bench .live-slot-stats--ring .live-ring-num {
+    color: #16140f;
+}
+
+:root[data-theme="light"] .live-bench .live-slot-stats--ring .live-ring-lbl {
+    color: rgba(22, 20, 15, 0.62);
+}
+
+:root[data-theme="light"] .live-bench .live-slot-stats--ring .live-ring-sep {
+    color: rgba(22, 20, 15, 0.3);
+}
+
+:root[data-theme="light"] .live-bench .slot-name {
+    color: var(--text-primary);
+    text-shadow: none;
 }
 
 /* Statistiche in un riquadro sotto la foto (panchina e resto del sito) */
@@ -18247,7 +18437,19 @@ td.ps-div-seed {
    dire che la sua giornata è chiusa ci pensa la foto in bianco e nero. E' il
    contrario di chi deve ancora giocare, che invece si spegne del tutto:
    quello non ha ancora niente da mostrare, questo ha finito di mostrarlo. */
-.live-cmp-row--done {
+/* Si spegne il LATO di chi ha finito, non la riga intera. Prima la riga si
+   spegneva solo se avevano finito tutti e due: con un avversario ancora da
+   giocare (Jefferson contro Rashee Rice, che gioca il lunedi') la riga restava
+   accesa e sembrava l'unica diversa. Ora Jefferson si spegne comunque, e il
+   verde dei suoi punti continua a dire che e' in vantaggio.
+
+   I figli della riga sono sempre nove e sempre in quest'ordine — foto, nome,
+   statistiche, punti | ruolo | punti, statistiche, nome, foto — quindi i due
+   lati si prendono per posizione. Il ruolo al centro si spegne solo quando
+   hanno finito entrambi. */
+.live-cmp-row--done-l > :nth-child(-n+4),
+.live-cmp-row--done-r > :nth-child(n+6),
+.live-cmp-row--done-l.live-cmp-row--done-r > .live-cmp-slot {
     opacity: 0.55;
 }
 
@@ -23309,4 +23511,195 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 
     .history-standing-row--reg .standing-pct { display: none; }
     .history-standing-row--reg .standing-pts { font-size: 0.7rem; }
+}
+
+/* ============================================================
+   TEMA CHIARO — superfici che nascevano nere
+   (Game Center, pagina squadra, NFL Hub, scheda giocatore, Live)
+
+   Stanno in fondo al file, tutte insieme, perche' sovrascrivono regole sparse
+   in punti diversi: tenerle vicine alle originali avrebbe voluto dire
+   duplicare selettori lunghi in cinque posti. Vale solo con
+   data-theme="light": lo scuro resta quello di sempre.
+   ============================================================ */
+
+/* Campi (Game Center e Live): un VELO bianco sopra il campo disegnato, sotto
+   i giocatori — il filtro bianco, al posto del velo scuro che il Live aveva
+   gia'. Non un filtro di luminosita': moltiplica i colori, quindi il campo
+   quasi nero del Live restava scuro, e l'arancio della end zone di Capi dei
+   Pianeti diventava giallo. Il bianco invece schiarisce tenendo la tinta. */
+:root[data-theme="light"] .live-field-solo {
+    background: #e7ede6;
+}
+
+:root[data-theme="light"] .live-field-solo .field-svg {
+    filter: none;
+}
+
+:root[data-theme="light"] .live-field-solo::after {
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.58) 45%,
+        rgba(255, 255, 255, 0.66) 100%);
+}
+
+:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.42);
+    pointer-events: none;
+    z-index: 0;
+}
+
+:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo) .field-overlay {
+    z-index: 1;
+}
+
+/* Punti sul campo: il verde acceso con l'ombra nera era per l'erba scura. */
+:root[data-theme="light"] .matchup-field-horizontal .slot-pts {
+    color: #15803d;
+}
+
+:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-name,
+:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-pts {
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.8);
+}
+
+/* Sul campo schiarito i nomi bianchi non reggono piu': inchiostro, senza
+   l'alone scuro che serviva sull'erba scura. */
+:root[data-theme="light"] .matchup-field-horizontal .slot-name {
+    color: #16140f;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 6px rgba(255, 255, 255, 0.7);
+}
+
+:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-ch {
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-num {
+    color: #16140f;
+}
+
+:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-lbl {
+    color: rgba(22, 20, 15, 0.66);
+}
+
+:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-sep {
+    color: rgba(22, 20, 15, 0.32);
+}
+
+/* Game Center: panchina sotto il campo */
+:root[data-theme="light"] .field-bottom-row {
+    background: var(--bg-secondary);
+}
+
+:root[data-theme="light"] .formation-slot.bench-slot {
+    background: var(--surface-card);
+    border: 1px solid var(--border-card);
+}
+
+:root[data-theme="light"] .formation-slot.bench-slot .slot-name {
+    color: var(--text-primary);
+    text-shadow: none;
+}
+
+/* Pagina squadra: i quattro riquadri sotto il nome e il riquadro che si apre
+   sopra un badge */
+:root[data-theme="light"] .th-chip {
+    background: rgba(255, 255, 255, 0.82);
+}
+
+:root[data-theme="light"] .badge-pop {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 16px 40px rgba(20, 18, 14, 0.16);
+}
+
+/* NFL Hub (pagina squadra) e scheda giocatore: la barra dei menu */
+:root[data-theme="light"] .nfl-secnav,
+:root[data-theme="light"] .pp-tabsbar {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme="light"] .nfl-secnav button:hover,
+:root[data-theme="light"] .pp-tab:hover {
+    background: var(--bg-glass);
+}
+
+:root[data-theme="light"] .nfl-secnav button.is-active,
+:root[data-theme="light"] .pp-tab.is-active {
+    background: var(--border-subtle);
+}
+
+/* "Schedule & matches": la partita aperta non ha piu' il fondo scuro */
+:root[data-theme="light"] .nfl-cal-clickable tbody tr.pp-game-detail-row > td {
+    background: transparent;
+}
+
+/* Live: i bordi del campo che portano all'altra squadra (sfumatura + freccia)
+   erano un'ombra quasi nera sul lato, pensata per il campo scuro. */
+:root[data-theme="light"] .live-swap-edge--right {
+    background: linear-gradient(270deg, rgba(255, 255, 255, 0.86) 0%,
+        rgba(255, 255, 255, 0.5) 45%, rgba(255, 255, 255, 0) 100%);
+}
+
+:root[data-theme="light"] .live-swap-edge--left {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.86) 0%,
+        rgba(255, 255, 255, 0.5) 45%, rgba(255, 255, 255, 0) 100%);
+}
+
+:root[data-theme="light"] .live-swap-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
+    border-color: var(--border-card);
+}
+
+:root[data-theme="light"] .live-swap-btn:hover {
+    background: #ffffff;
+}
+
+/* Live: il bottone COMPARE sopra il campo. Era una capsula quasi nera con
+   testo grigio: sul campo schiarito spariva. Bianca, testo inchiostro e
+   un'ombra leggera per staccarla dall'erba. Acceso (confronto aperto) resta
+   verde, ma col testo scuro: il bianco su verde chiaro non si leggeva. */
+:root[data-theme="light"] .live-compare-btn {
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--text-primary);
+    border-color: var(--border-card);
+    box-shadow: 0 2px 8px rgba(20, 18, 14, 0.12);
+}
+
+/* non sul bottone acceso: col mouse sopra dopo il clic tornava bianco */
+:root[data-theme="light"] .live-compare-btn:not(.live-compare-btn--on):hover {
+    background: #ffffff;
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .live-compare-btn--on {
+    color: var(--accent-green);
+    background: color-mix(in srgb, var(--accent-green) 14%, #ffffff);
+}
+
+/* Live, campo: i punti dei giocatori portavano un'ombra nera al 90%, che
+   sull'erba scura li staccava e sul campo schiarito diventava una macchia
+   scura sotto ogni numero. Sul chiaro l'alone e' bianco. */
+:root[data-theme="light"] .live-field-solo .slot-pts,
+:root[data-theme="light"] .live-field-solo .slot-pts * {
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.8);
+}
+
+/* Live, campo: al passaggio del mouse sui lati compariva una sfumatura (una
+   barra bianca col tema chiaro) che segnala il passaggio all'altra squadra.
+   Col tema chiaro via la sfumatura: resta la freccia. */
+:root[data-theme="light"] .live-swap-edge--right,
+:root[data-theme="light"] .live-swap-edge--left {
+    background: none;
+}
+
+/* Analysis, Roster Comparison: "steal" e "in" su verde e blu. Col tema chiaro
+   i due accenti sono scuri, e il testo quasi nero pensato per il verde e il
+   blu accesi dello scuro non si leggeva piu': bianco. */
+:root[data-theme="light"] .an-ptbl-steal,
+:root[data-theme="light"] .an-ptbl-in-season {
+    color: #ffffff;
 }

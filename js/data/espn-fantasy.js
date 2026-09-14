@@ -206,6 +206,16 @@ function normalizePlayer(entry, week, games, scoring) {
         nfl_team: nflTeam,
         opponent: game.opponent || '',
         status: game.status || '',
+        // L'istante vero del kickoff, per scriverlo in ora italiana: `status`
+        // prima della partita e' "9/14 - 8:15 PM EDT". Solo nel browser — lo
+        // scraper Python non lo scrive su Firebase, e non serve all'archivio.
+        kickoff: game.start ? new Date(game.start).toISOString() : '',
+        // La partita NFL vera: stato ('pre' | 'in' | 'post') e punteggio dal
+        // punto di vista della squadra del giocatore. Anche questi solo nel
+        // browser, per la scheda — il risultato live accanto all'avversario.
+        game_state: game.state || '',
+        game_score: Number.isFinite(game.score) ? game.score : null,
+        game_opp_score: Number.isFinite(game.oppScore) ? game.oppScore : null,
         fantasy_points: money(ppe.appliedStatTotal),
         stats: buildStats(real?.stats, type),
         injury_status: entry.injuryStatus || (player.injured ? 'INJURED' : 'NORMAL'),

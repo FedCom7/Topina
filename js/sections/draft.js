@@ -4,11 +4,11 @@
  */
 import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=721';
+import { TEAMS } from './team.js?v=737';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=727';
+import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=744';
 import { db } from '../firebase-config.js?v=3';
-import { fetchDraftStatus } from '../data/espn-fantasy.js?v=56';
+import { fetchDraftStatus } from '../data/espn-fantasy.js?v=73';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loaded = false;

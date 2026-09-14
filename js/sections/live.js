@@ -17,19 +17,20 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=580';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=721';
+import { TEAMS } from './team.js?v=737';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=129';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
+import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=56';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=73';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=20';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=727';
+import { initPlayerModal } from '../components/player-modal.js?v=744';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
@@ -169,15 +170,24 @@ function teamOf(rawName) {
  * prima del kickoff, reali da lì in poi). La squadra NFL vera è già nel
  * `data-nfl` con cui si apre la scheda — qui non si ripete.
  */
+/** In panchina in una delle sfide della giornata? Per nome: i nodi si ridisegnano. */
+const inPanchina = (p) => matchups.some(m => ['team1', 'team2']
+    .some(lato => (m[lato]?.bench || []).some(x => x?.name === p?.name)));
+
 function gameAttr(p) {
     const payload = {
         pts: effPts(p),
         projected: pIsProjected(p),
         opponent: p.opponent || '',
         status: p.status || '',
+        kickoff: p.kickoff || '',
+        gameState: p.game_state || '',
+        score: p.game_score ?? null,
+        oppScore: p.game_opp_score ?? null,
         week: currentWeekNum,
         year: CURRENT_SEASON,
-        started: true,
+        // era sempre `true`: la scheda di un panchinaro diceva "Starter"
+        started: !inPanchina(p),
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
         // sempre anche la previsione, che la scheda mostra in piccolo accanto
         // a ogni numero reale — a giornata iniziata è l'unico modo per capire
@@ -191,25 +201,7 @@ function gameAttr(p) {
 const P = (m) => parseFloat(m) || 0;
 const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-/*
- * L'orario di una partita che deve ancora cominciare, in ora ITALIANA.
- *
- * ESPN manda gia' pronta la stringa `shortDetail` — "8/28 - 6:00 PM EDT" — ma
- * e' l'ora della costa est americana, con l'orologio a dodici ore e il mese
- * prima del giorno. Chi guarda da qui deve fare due conti a mente per sapere
- * se la partita e' stanotte o domani mattina. Qui si riparte dall'istante
- * vero (`start`, che e' la data ISO della risposta) e lo si scrive come lo
- * scriviamo noi: giorno prima del mese, orologio a ventiquattro ore, fuso di
- * Roma — che il passaggio dall'ora legale lo gestisce il browser.
- */
-const oraItaliana = (d) => {
-    const q = d instanceof Date ? d : new Date(d);
-    if (!q || Number.isNaN(q.getTime())) return '';
-    const f = (opz) => new Intl.DateTimeFormat('en-GB',
-        { timeZone: 'Europe/Rome', ...opz }).format(q);
-    return `${f({ weekday: 'short' })} ${f({ day: '2-digit', month: '2-digit' })}` +
-        ` · ${f({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
-};
+// L'orario in ora italiana vive in utils/ora-italiana.js (serve anche alla scheda giocatore).
 
 // Projections: before kickoff (started === false) show the projected value.
 // Older/real data without `started`/`projected_*` falls back to real points.
@@ -2158,7 +2150,7 @@ function compareHTML(team, opp) {
         const aWin = !!a && pa >= pb;
         const bWin = !!b && pb >= pa;
         return `
-        <div class="live-cmp-row${gameOver(a) && gameOver(b) ? ' live-cmp-row--done' : ''}">
+        <div class="live-cmp-row${gameOver(a) ? ' live-cmp-row--done-l' : ''}${gameOver(b) ? ' live-cmp-row--done-r' : ''}">
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}

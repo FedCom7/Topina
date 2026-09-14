@@ -25,6 +25,43 @@ export function initNavbar() {
     numeraVoci(navbar);
     initDropdowns(navbar);
     initSearch(navbar);
+    initTheme();
+}
+
+/**
+ * Tema chiaro / scuro.
+ *
+ * Lo stato vive in un posto solo: `data-theme="light"` sulla radice. Il CSS
+ * ridefinisce le variabili di colore sotto quel selettore, e tutto cio' che
+ * passa dalle variabili cambia da se'. Lo scuro resta il tema di partenza.
+ *
+ * La prima applicazione non avviene qui ma in uno script in testa a
+ * index.html, prima del CSS: aspettare questo modulo farebbe comparire il
+ * nero per un attimo a chi ha scelto il chiaro. Qui si aggancia solo il
+ * bottone, e si salva la scelta.
+ */
+function initTheme() {
+    const btn = document.getElementById('nav-theme-btn');
+    if (!btn) return;
+    const root = document.documentElement;
+
+    const sync = () => {
+        const chiaro = root.dataset.theme === 'light';
+        btn.setAttribute('aria-pressed', String(chiaro));
+        btn.setAttribute('aria-label', chiaro ? 'Switch to dark theme' : 'Switch to light theme');
+    };
+
+    btn.addEventListener('click', () => {
+        const chiaro = root.dataset.theme !== 'light';
+        if (chiaro) root.dataset.theme = 'light';
+        else delete root.dataset.theme;
+        // Una preferenza di pochi byte, non una cache: niente cacheSet.
+        try { localStorage.setItem('topina-theme', chiaro ? 'light' : 'dark'); } catch { /* storage bloccato: vale per la visita */ }
+        sync();
+        // Chi disegna colori da JS (grafici, campo) puo' ridisegnarsi.
+        window.dispatchEvent(new CustomEvent('topina:theme', { detail: { theme: chiaro ? 'light' : 'dark' } }));
+    });
+    sync();
 }
 
 /**

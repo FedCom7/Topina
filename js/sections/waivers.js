@@ -21,10 +21,10 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=721';
+import { TEAMS } from './team.js?v=737';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=153';
-import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=790';
+import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=170';
+import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=805';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

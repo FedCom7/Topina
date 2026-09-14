@@ -1,10 +1,10 @@
 import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=580';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=56';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=73';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=721';
-import { initPlayerModal } from '../components/player-modal.js?v=727';
+import { TEAMS } from './team.js?v=737';
+import { initPlayerModal } from '../components/player-modal.js?v=744';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
@@ -450,6 +450,10 @@ function modalAttrs(p, isBench = false) {
         pts: pEffPts(p),
         opponent: p.opponent || '',
         status: p.status || '',
+        kickoff: p.kickoff || '',
+        gameState: p.game_state || '',
+        score: p.game_score ?? null,
+        oppScore: p.game_opp_score ?? null,
         week: currentWeek,
         year: currentYear,
         started: !isBench,
