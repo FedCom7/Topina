@@ -21,10 +21,10 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=713';
+import { TEAMS } from './team.js?v=721';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=151';
-import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=780';
+import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=153';
+import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=790';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -82,6 +82,9 @@ const chiaveDaNome = (nome) =>
 function righeDaEspn(tx, nomi) {
     const tipo = TIPI[tx.type] || null;
     if (!tipo || tipo === 'Draft') return [];
+    // Le richieste di waiver perse restano nello storico con lo stato del
+    // fallimento: non sono mosse avvenute.
+    if (tx.status && tx.status !== 'EXECUTED') return [];
     const quando = tx.proposedDate || tx.processDate || null;
     return (tx.items || [])
         .filter(it => it.type === 'ADD' || it.type === 'DROP')
@@ -169,6 +172,21 @@ function dataBreve(iso) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/**
+ * Il nome porta alla scheda del giocatore, dove si vedono i punti che ha
+ * fatto giornata per giornata: e' la domanda che viene subito dopo "chi ha
+ * preso chi" — ne valeva la pena?
+ *
+ * Serve il ruolo per la rotta (`#player/anno/ruolo/nome`). Un giocatore che
+ * ESPN non ha saputo risolvere arriva come "#12345" senza ruolo: quello resta
+ * testo, un link lo porterebbe a una scheda vuota.
+ */
+function nomeLink(m) {
+    if (!m.pos || String(m.nome).startsWith('#')) return m.nome;
+    const href = `#player/${currentYear}/${encodeURIComponent(m.pos)}/${encodeURIComponent(m.nome)}`;
+    return `<a class="wv-player-link" href="${href}">${m.nome}</a>`;
+}
+
 function riga(m) {
     const logo = logoSquadra(m.squadra);
     const dentro = m.verso === 'in';
@@ -178,7 +196,7 @@ function riga(m) {
         <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>
         <span class="wv-dir ${dentro ? 'wv-in' : 'wv-out'}">${dentro ? 'Added' : 'Dropped'}</span>
         ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
-        <span class="an-player-name">${m.nome} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>
+        <span class="an-player-name">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>
         <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
     </div>`;
 }

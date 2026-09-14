@@ -7,7 +7,7 @@
  */
 
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=713';
+import { TEAMS } from './team.js?v=721';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
@@ -113,6 +113,10 @@ export async function buildSeasonModel(year) {
     const players = new Map(); // name -> { name, position, nflTeam, weeks: {wk: {...}} }
     const teamWeeks = {};      // teamKey -> { wk: { starters: [names], bench: [names], score } }
     let lastWeek = 0;
+    // Le giornate con almeno un punto: cioe' quelle che Firebase ha davvero
+    // archiviato. `lastWeek` no — ESPN scrive le rose della settimana dopo in
+    // anticipo, a punti zero, e durante la week 1 il nodo della 2 c'e' gia'.
+    const playedWeeks = new Set();
 
     for (const [wkStr, wkData] of Object.entries(fantasy.weeks)) {
         const wk = Number(wkStr);
@@ -138,6 +142,7 @@ export async function buildSeasonModel(year) {
                         if (!rec) players.set(p.name, rec = { name: p.name, position: p.position_in_team || p.position, nflTeam: p.nfl_team, weeks: {} });
                         if (p.position_in_team) rec.position = p.position_in_team;
                         if (p.nfl_team) rec.nflTeam = p.nfl_team;
+                        if (parseFloat(p.fantasy_points || 0) !== 0) playedWeeks.add(wk);
                         rec.weeks[wk] = {
                             pts: parseFloat(p.fantasy_points || 0),
                             stats: p.stats || {},
@@ -155,7 +160,8 @@ export async function buildSeasonModel(year) {
 
     const config = getSeasonConfig(year);
     const model = {
-        year, players, teamWeeks, draft, lastWeek,
+        year, players, teamWeeks, draft, lastWeek, playedWeeks,
+        lastPlayedWeek: playedWeeks.size ? Math.max(...playedWeeks) : 0,
         seasonOver: lastWeek >= config.superBowlWeek,
     };
     modelCache[year] = model;
@@ -1125,11 +1131,11 @@ export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, inju
     // ricostruiti da statistiche NFL vere, non un dato di lega) restano
     // spente e portano un asterisco — mai spacciate per un numero ufficiale.
     return `
-        <div class="an-drill-row${showTeamCol ? ' an-drill-row--team' : ''}${w?.calculated ? ' an-drill-row--calc' : ''}">
+        <div class="an-drill-row${showTeamCol ? ' an-drill-row--team' : ''}${w?.calculated ? ' an-drill-row--calc' : ''}${w?.live ? ' an-drill-row--live' : ''}">
             <span class="an-drill-week">W${wk}</span>
             <span class="an-drill-opp">${w?.opponent || '—'}</span>
             ${teamCell}
-            <span class="an-drill-pts">${w ? fmt(w.pts, 2) : '—'}${w?.calculated ? '<sup>*</sup>' : ''}</span>
+            <span class="an-drill-pts">${w ? fmt(w.pts, 2) : '—'}${w?.calculated ? '<sup>*</sup>' : ''}${w?.live ? '<sup class="an-live-mark" title="Live — not final yet">●</sup>' : ''}</span>
             <span class="an-drill-stats">${w ? keyStatLine(rec.position, w.stats) : ''}</span>
             ${injuryBadge}
             ${statusBadge}
@@ -1149,6 +1155,19 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
         if (!w && calcScores.has(wk)) {
             const c = calcScores.get(wk);
             w = { pts: c.pts, stats: c.stats, opponent: c.opponent, teamKey: null, started: null, calculated: true };
+        } else if (w && model.playedWeeks && !model.playedWeeks.has(wk) && calcScores.has(wk)) {
+            // In rosa, ma la giornata su Firebase non c'e' ancora: il nodo
+            // esiste con i punti a zero finche' non arriva l'archivio del
+            // martedi'. Nel frattempo il punteggio e' quello calcolato dalle
+            // statistiche vere, con l'asterisco come per chi e' libero; squadra
+            // e titolare/panchina restano quelli della lega. Appena Firebase
+            // scrive la giornata, `playedWeeks` la contiene e questo ramo non
+            // scatta piu': comanda il numero ufficiale.
+            // `live`, non `calculated`: l'asterisco resta a chi non era di
+            // nessuno. Questo e' un giocatore della lega con un punteggio che
+            // si muove ancora, e ha il suo segno.
+            const c = calcScores.get(wk);
+            w = { ...w, pts: c.pts, stats: c.stats, opponent: w.opponent || c.opponent, live: true };
         }
         righe.push(drillRow(rec, wk, w, { teamKey, showTeamCol, injuryInfo: infortuni.get(wk) }));
     }
@@ -1165,7 +1184,7 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
  * `getUnrosteredScores`, spente e con l'asterisco, che e' esattamente cosa
  * sono — punti ricostruiti da statistiche NFL vere, mai un dato di lega.
  */
-export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null } = {}) {
+export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null } = {}) {
     const m = model || modelCache[year] || null;
     const rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
     const [infortuni, unros] = await Promise.all([
@@ -1182,9 +1201,13 @@ export async function playerSeasonDrill(year, { name, position, nflTeam }, { mod
 
     // Senza modello (stagione non ancora su Firebase) l'ultima giornata la
     // dicono i punteggi calcolati: e' l'unica cosa che sappiamo.
-    const ultima = m?.lastWeek || (calcScores.size ? Math.max(...calcScores.keys()) : 0);
+    //
+    // Chi chiama puo' dire fin dove arrivare (`lastWeek`): il modello da solo
+    // arriva alla settimana che ESPN ha gia' scritto in anticipo, e durante la
+    // week 1 il drill mostrava una W2 vuota.
+    const ultima = lastWeek || m?.lastWeek || (calcScores.size ? Math.max(...calcScores.keys()) : 0);
     if (!ultima) return '';
-    return fullSeasonDrillRows({ lastWeek: ultima }, rec, teamKey, infortuni, calcScores);
+    return fullSeasonDrillRows({ lastWeek: ultima, playedWeeks: m?.playedWeeks }, rec, teamKey, infortuni, calcScores);
 }
 
 async function weekDrillHtml(playerName) {

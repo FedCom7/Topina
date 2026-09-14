@@ -38,15 +38,15 @@ import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, 
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=713';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=718';
-import { teamsCardsHTML } from './teams.js?v=687';
+import { TEAMS } from './team.js?v=721';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=727';
+import { teamsCardsHTML } from './teams.js?v=694';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=42';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=35';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=33';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=35';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
 import { scoreBugHTML } from '../ui/score-bug.js?v=1';
@@ -59,7 +59,7 @@ import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=756';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=764';
 
 let initialized = false;
 

@@ -7534,6 +7534,38 @@ img {
     font-size: 0.85em;
 }
 
+/* Punti di una giornata non ancora archiviata: un pallino piccolo quanto
+   l'asterisco, nel rosso del "LIVE" del resto del sito. */
+.an-live-mark {
+    margin-left: 1px;
+    font-size: 0.55em;
+    vertical-align: 0.5em;
+    color: var(--accent-red);
+}
+
+/* Etichetta della squadra fantasy in Players, nel colore della squadra.
+   Il testo e' schiarito con la stessa miscela dei nomi in Top performances
+   (56% colore + 44% bianco, opaco): Oscurus #800020 e Sommo #1c4750 puri su
+   fondo scuro non si leggerebbero. Il fondo e' una velatura dello stesso
+   colore. "Dropped by" ha solo il bordo: la squadra e' quella, ma non lo ha
+   piu'. */
+.ld-team-badge {
+    color: color-mix(in srgb, var(--team-color, var(--text-muted)) 56%, white 44%);
+    background: color-mix(in srgb, var(--team-color, var(--text-muted)) 22%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--team-color, var(--text-muted)) 45%, transparent);
+}
+
+.ld-team-badge--drop {
+    background: transparent;
+}
+
+/* In Players il dettaglio resta tutto acceso: e' una pagina su TUTTI i
+   giocatori, e le settimane da liberi sono la maggioranza — spegnerle faceva
+   sembrare disattivato mezzo dettaglio. A distinguerle basta l'asterisco. */
+.ld-drill .an-drill-row--calc {
+    opacity: 1;
+}
+
 .an-drill-team {
     color: var(--text-secondary);
     font-size: 0.7rem;
@@ -22963,15 +22995,25 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     letter-spacing: 0.04em;
 }
 
+/* Tre tendine sulla stessa riga, una accanto all'altra, allineate a destra. */
 .ld-controls {
+    justify-content: flex-end;
     flex-wrap: wrap;
-    gap: 10px 22px;
+    gap: 8px;
 }
 
-/* Le pastiglie dei ruoli sono a scelta multipla: quelle accese hanno gia'
-   .active da .an-avg-pill, qui serve solo che vadano a capo sul telefono. */
-.ld-pos {
-    flex-wrap: wrap;
+/* Da telefono le tre capsule, con l'imbottitura di sempre (20px per lato),
+   facevano circa 410px su uno schermo che ne lascia 358: la terza andava a
+   capo. Stringendo imbottitura e corpo del testo stanno su una riga. */
+@media (max-width: 480px) {
+    .ld-controls {
+        gap: 6px;
+    }
+
+    .ld-controls .pick-dd-btn {
+        padding: 7px 11px;
+        font-size: 0.78rem;
+    }
 }
 
 /* ── Waivers ───────────────────────────────────────────────── */
@@ -23012,6 +23054,19 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 .wv-list {
     display: flex;
     flex-direction: column;
+}
+
+/* Il nome del giocatore apre la sua scheda: resta del colore del nome, e si
+   rivela link al passaggio, senza sottolineature fisse su ogni riga. */
+.wv-player-link {
+    color: inherit;
+    text-decoration: none;
+    text-underline-offset: 3px;
+}
+
+.wv-player-link:hover,
+.wv-player-link:focus-visible {
+    text-decoration: underline;
 }
 
 .wv-row {
@@ -23119,7 +23174,7 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 .ld-drill-foot {
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 16px;
     margin-top: 8px;
     font-size: 0.72rem;

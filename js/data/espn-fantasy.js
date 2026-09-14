@@ -346,8 +346,15 @@ export async function fetchTransactions(year) {
     const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
     url.searchParams.append('view', 'mTransactions2');
 
-    const filtro = { transactions: { limit: 500,
-        sortDate: { sortPriority: 1, sortAsc: false } } };
+    // Solo le mosse di mercato. NIENTE `limit`: ESPN lo accetta solo insieme a
+    // un ordinamento che riconosce, e `sortDate` non lo e' — la richiesta
+    // tornava 400 ("Limit request must be accompanied by a sort"), la pagina
+    // Waivers ripiegava sulle rose di Firebase e non mostrava nessuna mossa.
+    // Scoperto nella week 1 del 2026, con LaPorta gia' preso da Capi dei
+    // Pianeti. Senza limite ESPN restituisce la stagione intera; il filtro sul
+    // tipo lascia fuori il draft (60 righe) e i cambi di formazione.
+    const filtro = { transactions: {
+        filterType: { value: ['FREEAGENT', 'WAIVER', 'TRADE_ACCEPT'] } } };
 
     const stop = new AbortController();
     const timer = setTimeout(() => stop.abort(), 12000);

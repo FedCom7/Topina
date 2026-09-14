@@ -12,11 +12,11 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=656';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=666';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
 import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=588';
 import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=637';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=718';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=727';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=601';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';

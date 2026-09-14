@@ -99,7 +99,11 @@ export async function getPlayerInfo(playerId) {
 }
 
 function weeklyTtl(season) {
-    return +season < +CURRENT_SEASON ? 180 * DAY_MS : 6 * 60 * 60 * 1000;
+    // Stagione in corso: un'ora, come la classifica di Players
+    // (projections.js). Con sei ore il dettaglio di un giocatore aperto a meta'
+    // domenica restava ai punti di allora fino a sera, e non combaciava piu'
+    // col totale della riga sopra, che si aggiorna ogni ora.
+    return +season < +CURRENT_SEASON ? 180 * DAY_MS : 60 * 60 * 1000;
 }
 
 /**
