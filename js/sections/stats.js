@@ -3,7 +3,6 @@ import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=741';
 import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=809';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=630';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loaded = false;
 
@@ -1032,17 +1031,21 @@ function renderTeamPanels(stats) {
         </div>`;
     }).join('');
 
-    const modi = [{ value: 'all', label: 'All players' }, { value: 'starters', label: 'Starters only' }];
+    // Stesse pastiglie a sinistra di "Player Trends" piu' sotto, nella stessa
+    // pagina: due scelte sole, e una tendina qui era l'unica diversa.
     el.innerHTML = `
         <h2 class="records-title">All-Time Teams</h2>
-        <div class="pick-row st-teams-pick">${pickDropdownHTML('prod', modi, teamProdMode === 'starters' ? 1 : 0)}</div>
+        <div class="an-avg-toggle st-player-mode-toggle">
+            <button class="an-avg-pill${teamProdMode === 'all' ? ' active' : ''}" data-teams-prod="all">All</button>
+            <button class="an-avg-pill${teamProdMode === 'starters' ? ' active' : ''}" data-teams-prod="starters">Starters Only</button>
+        </div>
         <div class="team-alltime-grid">${panels}</div>
     `;
-    bindPickDropdown(el, (id, value) => {
-        if (id !== 'prod' || value === teamProdMode) return;
-        teamProdMode = value;
+    el.querySelectorAll('[data-teams-prod]').forEach(b => b.addEventListener('click', () => {
+        if (b.dataset.teamsProd === teamProdMode) return;
+        teamProdMode = b.dataset.teamsProd;
         renderTeamPanels(_statsPerPannelli);
-    });
+    }));
     // Il distintivo del Coach of the Year arriva dopo: va letto dagli honors
     // di tutte le stagioni, e non deve far aspettare le card.
     riempiCoty(el);
