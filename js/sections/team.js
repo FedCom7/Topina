@@ -5,12 +5,12 @@
  * identità, franchise players, rivalità, divisa.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=580';
+import { CURRENT_SEASON } from '../data.js?v=585';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
 import { computeTeamBadges } from '../data/badges.js?v=557';
 import { stickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=519';
 import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=744';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=747';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)

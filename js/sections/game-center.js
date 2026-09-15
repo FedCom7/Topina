@@ -1,10 +1,10 @@
-import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=580';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=73';
+import { fetchFantasyData, fetchDraftData, getWeekCount, weeksWithPending, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=585';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=737';
-import { initPlayerModal } from '../components/player-modal.js?v=744';
+import { TEAMS } from './team.js?v=741';
+import { initPlayerModal } from '../components/player-modal.js?v=747';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
@@ -129,7 +129,12 @@ async function loadYear(year) {
     const grid = document.getElementById('gc-matchup-grid');
     grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year}...</p></div>`;
 
-    currentData = await fetchFantasyData(year);
+    // Copia con le settimane segnaposto rimesse dentro: Game Center e' l'unico
+    // che deve mostrare la giornata a venire (e riempirla dal vivo). Una copia,
+    // cosi' quello che si scrive qui sotto non finisce nei dati condivisi
+    // letti dal resto del sito.
+    const letti = await fetchFantasyData(year);
+    currentData = letti?.weeks ? { ...letti, weeks: weeksWithPending(letti) } : letti;
     if (!currentData?.weeks) {
         grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
         renderPickRow();

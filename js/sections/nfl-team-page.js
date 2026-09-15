@@ -31,11 +31,11 @@ import {
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=1007';
+} from './player-page.js?v=1011';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1059';
+} from './nfl-team-home.js?v=1062';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

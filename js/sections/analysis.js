@@ -6,8 +6,8 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=737';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
+import { TEAMS } from './team.js?v=741';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
@@ -114,9 +114,30 @@ export async function buildSeasonModel(year) {
     const teamWeeks = {};      // teamKey -> { wk: { starters: [names], bench: [names], score } }
     let lastWeek = 0;
     // Le giornate con almeno un punto: cioe' quelle che Firebase ha davvero
-    // archiviato. `lastWeek` no — ESPN scrive le rose della settimana dopo in
-    // anticipo, a punti zero, e durante la week 1 il nodo della 2 c'e' gia'.
+    // archiviato.
     const playedWeeks = new Set();
+
+    // La settimana a venire (segnaposto, punti a zero) NON entra in `weeks`:
+    // contata li' dimezzava la media per partita. fetchFantasyData la tiene in
+    // `pendingWeeks`; qui le sue rose finiscono in `rec.pending`, che serve al
+    // dettaglio di Players per il punteggio live di chi e' in rosa.
+    for (const [wkStr, wkData] of Object.entries(fantasy.pendingWeeks || {})) {
+        const wk = Number(wkStr);
+        for (const m of wkData.matchups || []) {
+            for (const side of [m.team1, m.team2]) {
+                if (!side?.name) continue;
+                const teamKey = teamKeyFromRaw(side.name);
+                for (const [list, started] of [[side.starters, true], [side.bench, false]]) {
+                    for (const p of list || []) {
+                        if (!p?.name) continue;
+                        let rec = players.get(p.name);
+                        if (!rec) players.set(p.name, rec = { name: p.name, position: p.position_in_team || p.position, nflTeam: p.nfl_team, weeks: {} });
+                        (rec.pending ||= {})[wk] = { pts: 0, stats: {}, started, teamKey, opponent: p.opponent || '' };
+                    }
+                }
+            }
+        }
+    }
 
     for (const [wkStr, wkData] of Object.entries(fantasy.weeks)) {
         const wk = Number(wkStr);
@@ -1151,7 +1172,9 @@ export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, inju
 function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Map(), showTeamCol = false) {
     const righe = [];
     for (let wk = 1; wk <= model.lastWeek; wk++) {
-        let w = rec.weeks[wk];
+        // la settimana a venire sta in `pending`: niente punti d'archivio, ma
+        // squadra e titolare/panchina per il punteggio live
+        let w = rec.weeks[wk] || rec.pending?.[wk];
         if (!w && calcScores.has(wk)) {
             const c = calcScores.get(wk);
             w = { pts: c.pts, stats: c.stats, opponent: c.opponent, teamKey: null, started: null, calculated: true };

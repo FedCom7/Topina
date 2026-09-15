@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=637';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=601';
-import { TEAMS } from '../sections/team.js?v=737';
+import { TEAMS } from '../sections/team.js?v=741';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { getPlayerInfo } from '../data/player-full.js?v=666';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';

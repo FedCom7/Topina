@@ -17,10 +17,10 @@
  * Come draft.js: `loaded` per non re-inizializzare, stato del ruolo in modulo.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
+import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
 import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=737';
-import { initPlayerModal } from '../components/player-modal.js?v=744';
+import { TEAMS } from './team.js?v=741';
+import { initPlayerModal } from '../components/player-modal.js?v=747';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=601';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { decorateTerms } from '../ui/glossary.js?v=4';
@@ -28,7 +28,7 @@ import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName,
 import { multiLine, dumbbell } from '../ui/charts.js?v=7';
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=64';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
-import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=963';
+import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=967';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1001';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];

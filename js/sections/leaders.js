@@ -17,14 +17,14 @@
  * archiviata — la stessa regola che usava il Best Available.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=737';
+import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
+import { TEAMS } from './team.js?v=741';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats } from '../data/projections.js?v=601';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=805';
+} from './analysis.js?v=810';
 import { getPlayerWeekly } from '../data/player-full.js?v=666';
 
 let initialized = false;
@@ -81,7 +81,12 @@ function indiceRose(model) {
         for (const [w, dati] of Object.entries(rec.weeks)) {
             if (dati.teamKey && Number(w) > wk) { wk = Number(w); ultimo = dati.teamKey; }
         }
-        const finale = rec.weeks[model.lastWeek]?.teamKey || null;
+        // La rosa piu' recente: quella della settimana a venire se c'e' (le
+        // prese dopo l'ultima giornata chiusa stanno solo li'), altrimenti
+        // quella dell'ultima giocata.
+        const pendenti = Object.keys(rec.pending || {}).map(Number);
+        const finale = (pendenti.length ? rec.pending[Math.max(...pendenti)]?.teamKey : null)
+            ?? rec.weeks[model.lastWeek]?.teamKey ?? null;
         idx.set(chiave(rec.name), { ultimo, finale, settimane: Object.keys(rec.weeks).length });
     }
     return idx;

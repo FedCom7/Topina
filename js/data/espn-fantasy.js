@@ -353,30 +353,49 @@ export async function fetchDraftStatus(year) {
  * l'id, e chi disegna la pagina lo risolve col listone.
  */
 export async function fetchTransactions(year) {
-    const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
-    url.searchParams.append('view', 'mTransactions2');
-
     // Solo le mosse di mercato. NIENTE `limit`: ESPN lo accetta solo insieme a
     // un ordinamento che riconosce, e `sortDate` non lo e' — la richiesta
     // tornava 400 ("Limit request must be accompanied by a sort"), la pagina
     // Waivers ripiegava sulle rose di Firebase e non mostrava nessuna mossa.
-    // Scoperto nella week 1 del 2026, con LaPorta gia' preso da Capi dei
-    // Pianeti. Senza limite ESPN restituisce la stagione intera; il filtro sul
-    // tipo lascia fuori il draft (60 righe) e i cambi di formazione.
+    // Il filtro sul tipo lascia fuori il draft (60 righe) e i cambi di
+    // formazione.
     const filtro = { transactions: {
         filterType: { value: ['FREEAGENT', 'WAIVER', 'TRADE_ACCEPT'] } } };
 
-    const stop = new AbortController();
-    const timer = setTimeout(() => stop.abort(), 12000);
-    let data;
-    try {
-        const res = await fetch(url, { signal: stop.signal,
-            headers: { 'x-fantasy-filter': JSON.stringify(filtro) } });
-        if (!res.ok) throw new Error(`ESPN ${res.status}`);
-        data = await res.json();
-    } finally { clearTimeout(timer); }
+    const leggi = async (periodo) => {
+        const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
+        url.searchParams.append('view', 'mTransactions2');
+        if (periodo != null) url.searchParams.append('scoringPeriodId', String(periodo));
+        const stop = new AbortController();
+        const timer = setTimeout(() => stop.abort(), 12000);
+        try {
+            const res = await fetch(url, { signal: stop.signal,
+                headers: { 'x-fantasy-filter': JSON.stringify(filtro) } });
+            if (!res.ok) throw new Error(`ESPN ${res.status}`);
+            return await res.json();
+        } finally { clearTimeout(timer); }
+    };
 
-    return Array.isArray(data?.transactions) ? data.transactions : [];
+    /*
+     * Una settimana per volta. Senza `scoringPeriodId` ESPN restituisce solo le
+     * transazioni della settimana IN CORSO: il 14/09/2026 la lista aveva la
+     * presa di LaPorta, il 15 — con ESPN gia' passata alla week 2 — era vuota,
+     * e la pagina Waivers diceva "No moves". La prima risposta dice anche qual
+     * e' la settimana corrente; da li' si chiedono tutte, dalla 1, in parallelo,
+     * e si tolgono i doppioni per id (la settimana corrente arriva due volte).
+     */
+    const prima = await leggi(null);
+    const corrente = Number(prima?.scoringPeriodId) || 1;
+    const altre = await Promise.all(
+        Array.from({ length: corrente }, (_, i) => leggi(i + 1).catch(() => null)));
+
+    const perId = new Map();
+    for (const d of [prima, ...altre]) {
+        for (const t of (Array.isArray(d?.transactions) ? d.transactions : [])) {
+            perId.set(t.id ?? `${t.type}-${t.proposedDate}-${t.teamId}`, t);
+        }
+    }
+    return [...perId.values()];
 }
 
 /**

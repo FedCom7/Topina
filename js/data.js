@@ -147,6 +147,47 @@ function letturaCachata(chiave, season, carica) {
     return promessa.then(copia);
 }
 
+/**
+ * Una giornata e' stata giocata se c'e' almeno un punto: di squadra o di un
+ * titolare. Le settimane segnaposto hanno tutto a zero.
+ */
+function giornataGiocata(wk) {
+    return (wk?.matchups || []).some(m => [m.team1, m.team2].some(t =>
+        (parseFloat(t?.score) || 0) > 0
+        || (t?.starters || []).some(p => (parseFloat(p?.fantasy_points) || 0) !== 0)));
+}
+
+/**
+ * Toglie da `weeks` le settimane SEGNAPOSTO e le mette in `pendingWeeks`.
+ *
+ * Lo scraper pubblica anche la settimana dopo l'ultima chiusa, con le rose e
+ * i punti a zero: serve a Game Center per mostrarla e riempirla dal vivo. Ma
+ * tutto il resto del sito scorre `weeks` e contava quella settimana come una
+ * partita giocata — nel 2026, dopo la week 1, la media per partita di
+ * Analysis era dimezzata, e lo stesso valeva per le partite da titolare delle
+ * carriere, per le settimane in rosa di Honors e per le serie di Draft Grades.
+ * Tagliarla qui, alla fonte, sistema tutti i lettori insieme.
+ *
+ * Segnaposto = dopo l'ultima giornata con punti. Se non se n'e' giocata
+ * nessuna resta la week 1, come prima: e' la settimana che il sito mostra
+ * prima del kickoff. Chi le vuole (Game Center, il dettaglio di Players) le
+ * riprende da `pendingWeeks`.
+ */
+function separaSegnaposto(data) {
+    if (!data?.weeks) return data;
+    const numeri = Object.keys(data.weeks).map(Number).filter(Number.isFinite);
+    const giocate = numeri.filter(w => giornataGiocata(data.weeks[String(w)]));
+    const limite = giocate.length ? Math.max(...giocate) : Math.min(...numeri, 1);
+    const weeks = {}, pendingWeeks = {};
+    for (const w of numeri) (w > limite ? pendingWeeks : weeks)[String(w)] = data.weeks[String(w)];
+    return { ...data, weeks, pendingWeeks };
+}
+
+/** `weeks` e `pendingWeeks` insieme, per chi deve vedere anche la settimana a venire. */
+export function weeksWithPending(data) {
+    return { ...(data?.weeks || {}), ...(data?.pendingWeeks || {}) };
+}
+
 export function fetchFantasyData(season) {
     return letturaCachata(`fantasy:${season}`, season, async () => {
         try {
@@ -154,7 +195,7 @@ export function fetchFantasyData(season) {
             const dbRef = ref(db);
             const fetchPromise = get(child(dbRef, `fantasy/fantasy_data_${season}`));
             const snap = await Promise.race([fetchPromise, timeout]);
-            return snap.exists() ? snap.val() : null;
+            return snap.exists() ? separaSegnaposto(snap.val()) : null;
         } catch (e) {
             console.error(`fetchFantasyData error for ${season}:`, e);
             return null;
