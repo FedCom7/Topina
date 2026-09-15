@@ -3,6 +3,7 @@ import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=741';
 import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=809';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=630';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loaded = false;
 
@@ -359,31 +360,39 @@ function calculateStats(allSeasons) {
                                 }
                             });
 
-                            // All-time team TD + yardage totals (regular season only, matches PF/PA scope)
+                            // All-time team TD + yardage totals (regular season only, matches PF/PA scope).
+                            // Due conti in parallelo: tutta la rosa (i campi diretti, come
+                            // sempre) e i soli titolari (`starters`), che sono quelli che
+                            // hanno fatto punti per la squadra. La tendina di All-Time Teams
+                            // sceglie quale mostrare.
                             const rec = teamRecords[teamName];
-                            rec.rushTD = (rec.rushTD || 0) + (Number(p.stats.rush_td) || 0);
-                            rec.passTD = (rec.passTD || 0) + (Number(p.stats.pass_td) || 0);
-                            rec.recTD = (rec.recTD || 0) + (Number(p.stats.rec_td) || 0);
-                            rec.defTD = (rec.defTD || 0) + (Number(p.stats.def_td) || 0);
-                            rec.rushYds = (rec.rushYds || 0) + (Number(p.stats.rush_yds) || 0);
-                            rec.passYds = (rec.passYds || 0) + (Number(p.stats.pass_yds) || 0);
-                            rec.recYds = (rec.recYds || 0) + (Number(p.stats.rec_yds) || 0);
-                            /*
-                             * Calci: field goal piu' trasformazioni. `fg_made`
-                             * arriva gia' pronto nei dati recenti; nello schema
-                             * vecchio esistono solo le fasce, e vanno sommate.
-                             */
+                            if (!rec.starters) rec.starters = {};
+                            const titolare = (side.starters || []).includes(p);
                             const fg = p.stats.fg_made != null
                                 ? (Number(p.stats.fg_made) || 0)
                                 : ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_0_39', 'fg_40_49', 'fg_50_plus']
                                     .reduce((t, f) => t + (Number(p.stats[f]) || 0), 0);
-                            rec.fgXp = (rec.fgXp || 0) + fg + (Number(p.stats.pat_made) || 0);
-
-                            // Receiving-TD breakdown by position
-                            if (!rec.recTDByPos) rec.recTDByPos = { WR: 0, RB: 0, TE: 0 };
+                            const voce = {
+                                rushTD: Number(p.stats.rush_td) || 0,
+                                passTD: Number(p.stats.pass_td) || 0,
+                                recTD: Number(p.stats.rec_td) || 0,
+                                defTD: Number(p.stats.def_td) || 0,
+                                rushYds: Number(p.stats.rush_yds) || 0,
+                                passYds: Number(p.stats.pass_yds) || 0,
+                                recYds: Number(p.stats.rec_yds) || 0,
+                                // Calci: field goal piu' trasformazioni. `fg_made` arriva
+                                // gia' pronto nei dati recenti; nello schema vecchio
+                                // esistono solo le fasce, e vanno sommate.
+                                fgXp: fg + (Number(p.stats.pat_made) || 0),
+                            };
                             const posKey = p.position_in_team || p.position;
-                            if (posKey === 'WR' || posKey === 'RB' || posKey === 'TE') {
-                                rec.recTDByPos[posKey] += Number(p.stats.rec_td) || 0;
+                            for (const dest of titolare ? [rec, rec.starters] : [rec]) {
+                                for (const [k, v] of Object.entries(voce)) dest[k] = (dest[k] || 0) + v;
+                                // Receiving-TD breakdown by position
+                                if (!dest.recTDByPos) dest.recTDByPos = { WR: 0, RB: 0, TE: 0 };
+                                if (posKey === 'WR' || posKey === 'RB' || posKey === 'TE') {
+                                    dest.recTDByPos[posKey] += voce.recTD;
+                                }
                             }
 
                         });
@@ -931,9 +940,17 @@ function bindRecordModeToggle() {
     });
 }
 
+// Produzione di squadra in All-Time Teams: tutta la rosa o i soli titolari.
+let teamProdMode = 'all';   // 'all' | 'starters'
+let _statsPerPannelli = null;
+
 function renderTeamPanels(stats) {
     const el = document.getElementById('teams-alltime-block');
     if (!el) return;
+    _statsPerPannelli = stats;
+    // TD, yard, FG+XP e ricezioni per ruolo: dalla rosa intera o dai soli
+    // titolari. Record, punti, playoff e titoli sono di squadra e non cambiano.
+    const prod = (r) => (teamProdMode === 'starters' ? (r.starters || {}) : r);
 
     const entries = Object.entries(stats.teamRecords)
         .sort(([, a], [, b]) => b.sbWins - a.sbWins || b.w - a.w);
@@ -949,14 +966,14 @@ function renderTeamPanels(stats) {
         sbWins: Math.max(...entries.map(([, r]) => r.sbWins || 0)),
         pct: Math.max(...entries.map(([, r]) => r.w / (r.w + r.l || 1))),
         apW: Math.max(...entries.map(([, r]) => r.apW || 0)),
-        rushTD: Math.max(...entries.map(([, r]) => r.rushTD || 0)),
-        passTD: Math.max(...entries.map(([, r]) => r.passTD || 0)),
-        recTD: Math.max(...entries.map(([, r]) => r.recTD || 0)),
-        defTD: Math.max(...entries.map(([, r]) => r.defTD || 0)),
-        fgXp: Math.max(...entries.map(([, r]) => r.fgXp || 0)),
-        rushYds: Math.max(...entries.map(([, r]) => r.rushYds || 0)),
-        passYds: Math.max(...entries.map(([, r]) => r.passYds || 0)),
-        recYds: Math.max(...entries.map(([, r]) => r.recYds || 0))
+        rushTD: Math.max(...entries.map(([, r]) => prod(r).rushTD || 0)),
+        passTD: Math.max(...entries.map(([, r]) => prod(r).passTD || 0)),
+        recTD: Math.max(...entries.map(([, r]) => prod(r).recTD || 0)),
+        defTD: Math.max(...entries.map(([, r]) => prod(r).defTD || 0)),
+        fgXp: Math.max(...entries.map(([, r]) => prod(r).fgXp || 0)),
+        rushYds: Math.max(...entries.map(([, r]) => prod(r).rushYds || 0)),
+        passYds: Math.max(...entries.map(([, r]) => prod(r).passYds || 0)),
+        recYds: Math.max(...entries.map(([, r]) => prod(r).recYds || 0))
     };
 
     const panels = entries.map(([name, r], i) => {
@@ -999,26 +1016,33 @@ function renderTeamPanels(stats) {
                 ${ministat(r.sbWins || 0, 'Titles', (r.sbWins || 0) === best.sbWins && best.sbWins > 0)}
             </div>
             <div class="team-alltime-ministats team-alltime-ministats--td">
-                ${ministat(r.rushTD || 0, 'Rush TDs', (r.rushTD || 0) === best.rushTD && best.rushTD > 0)}
-                ${ministat(r.passTD || 0, 'Pass TDs', (r.passTD || 0) === best.passTD && best.passTD > 0)}
-                ${ministat(r.recTD || 0, 'Rec TDs', (r.recTD || 0) === best.recTD && best.recTD > 0)}
-                ${ministat(r.defTD || 0, 'Def TDs', (r.defTD || 0) === best.defTD && best.defTD > 0)}
+                ${ministat(prod(r).rushTD || 0, 'Rush TDs', (prod(r).rushTD || 0) === best.rushTD && best.rushTD > 0)}
+                ${ministat(prod(r).passTD || 0, 'Pass TDs', (prod(r).passTD || 0) === best.passTD && best.passTD > 0)}
+                ${ministat(prod(r).recTD || 0, 'Rec TDs', (prod(r).recTD || 0) === best.recTD && best.recTD > 0)}
+                ${ministat(prod(r).defTD || 0, 'Def TDs', (prod(r).defTD || 0) === best.defTD && best.defTD > 0)}
             </div>
             <div class="team-alltime-ministats team-alltime-ministats--td">
-                ${ministat((r.rushYds || 0).toLocaleString('en-US'), 'Rush Yds', (r.rushYds || 0) === best.rushYds && best.rushYds > 0)}
-                ${ministat((r.passYds || 0).toLocaleString('en-US'), 'Pass Yds', (r.passYds || 0) === best.passYds && best.passYds > 0)}
-                ${ministat((r.recYds || 0).toLocaleString('en-US'), 'Rec Yds', (r.recYds || 0) === best.recYds && best.recYds > 0)}
-                ${ministat((r.fgXp || 0).toLocaleString('en-US'), 'FG + XP', (r.fgXp || 0) === best.fgXp && best.fgXp > 0)}
+                ${ministat((prod(r).rushYds || 0).toLocaleString('en-US'), 'Rush Yds', (prod(r).rushYds || 0) === best.rushYds && best.rushYds > 0)}
+                ${ministat((prod(r).passYds || 0).toLocaleString('en-US'), 'Pass Yds', (prod(r).passYds || 0) === best.passYds && best.passYds > 0)}
+                ${ministat((prod(r).recYds || 0).toLocaleString('en-US'), 'Rec Yds', (prod(r).recYds || 0) === best.recYds && best.recYds > 0)}
+                ${ministat((prod(r).fgXp || 0).toLocaleString('en-US'), 'FG + XP', (prod(r).fgXp || 0) === best.fgXp && best.fgXp > 0)}
             </div>
-            ${recTdSplit(r.recTDByPos)}
+            ${recTdSplit(prod(r).recTDByPos)}
             <div class="team-h2h-row">${pills}</div>
         </div>`;
     }).join('');
 
+    const modi = [{ value: 'all', label: 'All players' }, { value: 'starters', label: 'Starters only' }];
     el.innerHTML = `
         <h2 class="records-title">All-Time Teams</h2>
+        <div class="pick-row st-teams-pick">${pickDropdownHTML('prod', modi, teamProdMode === 'starters' ? 1 : 0)}</div>
         <div class="team-alltime-grid">${panels}</div>
     `;
+    bindPickDropdown(el, (id, value) => {
+        if (id !== 'prod' || value === teamProdMode) return;
+        teamProdMode = value;
+        renderTeamPanels(_statsPerPannelli);
+    });
     // Il distintivo del Coach of the Year arriva dopo: va letto dagli honors
     // di tutte le stagioni, e non deve far aspettare le card.
     riempiCoty(el);
