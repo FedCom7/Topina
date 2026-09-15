@@ -23417,7 +23417,17 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
         font-size: 0.68rem;
     }
 
-    .ld-drill .an-drill-stats { display: none; }
+    /* Le statistiche della singola partita vanno su una seconda riga, sotto
+       settimana, avversario e punti: sulla riga del totale da telefono non ci
+       stanno, e la partita e' dove servono. */
+    .ld-drill .an-drill-stats {
+        grid-column: 2 / -1;
+        grid-row: 2;
+        margin-top: -2px;
+        font-size: 0.64rem;
+        line-height: 1.3;
+        white-space: normal;
+    }
 
     /* `justify-self`: la casella dell'infortunio e' quella elastica, e senza
        questo il badge si allargava per tutta la colonna invece di stare
@@ -23523,71 +23533,9 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
    data-theme="light": lo scuro resta quello di sempre.
    ============================================================ */
 
-/* Campi (Game Center e Live): un VELO bianco sopra il campo disegnato, sotto
-   i giocatori — il filtro bianco, al posto del velo scuro che il Live aveva
-   gia'. Non un filtro di luminosita': moltiplica i colori, quindi il campo
-   quasi nero del Live restava scuro, e l'arancio della end zone di Capi dei
-   Pianeti diventava giallo. Il bianco invece schiarisce tenendo la tinta. */
-:root[data-theme="light"] .live-field-solo {
-    background: #e7ede6;
-}
-
-:root[data-theme="light"] .live-field-solo .field-svg {
-    filter: none;
-}
-
-:root[data-theme="light"] .live-field-solo::after {
-    background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.5) 0%,
-        rgba(255, 255, 255, 0.58) 45%,
-        rgba(255, 255, 255, 0.66) 100%);
-}
-
-:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo)::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.42);
-    pointer-events: none;
-    z-index: 0;
-}
-
-:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo) .field-overlay {
-    z-index: 1;
-}
-
-/* Punti sul campo: il verde acceso con l'ombra nera era per l'erba scura. */
-:root[data-theme="light"] .matchup-field-horizontal .slot-pts {
-    color: #15803d;
-}
-
-:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-name,
-:root[data-theme="light"] .matchup-field-horizontal:not(.live-field-solo) .formation-slot:not(.bench-slot):not(.oline-x) .slot-pts {
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.8);
-}
-
-/* Sul campo schiarito i nomi bianchi non reggono piu': inchiostro, senza
-   l'alone scuro che serviva sull'erba scura. */
-:root[data-theme="light"] .matchup-field-horizontal .slot-name {
-    color: #16140f;
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 6px rgba(255, 255, 255, 0.7);
-}
-
-:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-ch {
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 6px rgba(255, 255, 255, 0.8);
-}
-
-:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-num {
-    color: #16140f;
-}
-
-:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-lbl {
-    color: rgba(22, 20, 15, 0.66);
-}
-
-:root[data-theme="light"] .matchup-field-horizontal .live-slot-stats--ring .live-ring-sep {
-    color: rgba(22, 20, 15, 0.32);
-}
+/* Campi di Game Center e Live: restano quelli del tema scuro anche col tema
+   chiaro — erba scura, nomi chiari. Un velo bianco era stato provato e tolto:
+   il campo e' un campo, non una superficie della pagina. */
 
 /* Game Center: panchina sotto il campo */
 :root[data-theme="light"] .field-bottom-row {
@@ -23680,13 +23628,6 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     background: color-mix(in srgb, var(--accent-green) 14%, #ffffff);
 }
 
-/* Live, campo: i punti dei giocatori portavano un'ombra nera al 90%, che
-   sull'erba scura li staccava e sul campo schiarito diventava una macchia
-   scura sotto ogni numero. Sul chiaro l'alone e' bianco. */
-:root[data-theme="light"] .live-field-solo .slot-pts,
-:root[data-theme="light"] .live-field-solo .slot-pts * {
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.8);
-}
 
 /* Live, campo: al passaggio del mouse sui lati compariva una sfumatura (una
    barra bianca col tema chiaro) che segnala il passaggio all'altra squadra.
@@ -23712,4 +23653,46 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 
 .an-luck-week--empty .an-luck-wk {
     opacity: 0.45;
+}
+
+/* Nome sul campo (Live e Game Center): versione intera su schermo largo,
+   corta su telefono — cognome, o nome della squadra per le difese. */
+.slot-nm-m {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .slot-nm-full {
+        display: none;
+    }
+
+    .slot-nm-m {
+        display: inline;
+    }
+}
+
+/* Tema chiaro: niente ombra sotto le card, in nessuna pagina. Erano ombre
+   nere pensate per staccare le card dal fondo nero; sul bianco diventavano un
+   alone grigio sotto ogni blocco. Restano solo a chi galleggia sopra la
+   pagina — menu a tendina, suggerimenti dei grafici, popup, finestre — che
+   senza ombra si confonderebbe col contenuto sotto. */
+:root[data-theme="light"] .mosaic-card,
+:root[data-theme="light"] .mosaic-card.mc-in:hover,
+:root[data-theme="light"] #draftgrade-team .mosaic-card,
+:root[data-theme="light"] #draftgrades-content .mosaic-card,
+:root[data-theme="light"] .mc-rail-card:hover,
+:root[data-theme="light"] .pp-block,
+:root[data-theme="light"] #player-page .pp-block,
+:root[data-theme="light"] #nfl-team-page .pp-block,
+:root[data-theme="light"] #players .pp-block,
+:root[data-theme="light"] .teams-card:hover,
+:root[data-theme="light"] .gc-banner:hover,
+:root[data-theme="light"] .st-rank-card:hover,
+:root[data-theme="light"] .playoff-card:hover,
+:root[data-theme="light"] .hof-card-face,
+:root[data-theme="light"] .hof-card:hover .hof-card-face,
+:root[data-theme="light"] .pm-panini,
+:root[data-theme="light"] .pm-panini--gold,
+:root[data-theme="light"] .live-matchup-card {
+    box-shadow: none;
 }

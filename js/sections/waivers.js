@@ -24,7 +24,7 @@ import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
 import { TEAMS } from './team.js?v=741';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=172';
-import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=813';
+import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=816';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

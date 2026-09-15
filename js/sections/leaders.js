@@ -24,7 +24,7 @@ import { getSeasonStats } from '../data/projections.js?v=601';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=813';
+} from './analysis.js?v=816';
 import { getPlayerWeekly } from '../data/player-full.js?v=666';
 
 let initialized = false;
@@ -126,25 +126,28 @@ function targhettaRosa(info) {
 function statLine(e) {
     const r = e.raw || {};
     const n = (v) => fmt(v || 0);
+    // Volume oltre ai risultati: bersagli e ricezioni per chi riceve, portate
+    // per chi corre, completi su tentati per i quarterback. Senza, 90 yard da
+    // 5 bersagli e 90 yard da 14 si leggevano uguali.
     switch (e.pos) {
         case 'QB': {
-            const p = [`${n(e.passYd)} pass yds`, `${n(e.passTd)} TD`, `${n(r.pass_int)} INT`];
-            if (e.rushYd) p.push(`${n(e.rushYd)} rush yds`);
+            const p = [`${n(r.pass_cmp)}/${n(e.passAtt)} comp`, `${n(e.passYd)} pass yds`, `${n(e.passTd)} TD`, `${n(r.pass_int)} INT`];
+            if (e.rushYd) p.push(`${n(e.rushAtt)} att, ${n(e.rushYd)} rush yds`);
             return p.join(' · ');
         }
         case 'RB': {
-            const p = [`${n(e.rushYd)} rush yds`, `${n(e.rushTd)} TD`];
-            if (e.rec) p.push(`${n(e.rec)} rec, ${n(e.recYd)} yds`);
+            const p = [`${n(e.rushAtt)} att`, `${n(e.rushYd)} rush yds`, `${n(e.rushTd)} TD`];
+            if (e.tgt || e.rec) p.push(`${n(e.tgt)} tgt, ${n(e.rec)} rec, ${n(e.recYd)} yds`);
             return p.join(' · ');
         }
         case 'WR':
         case 'TE': {
-            const p = [`${n(e.rec)} rec`, `${n(e.recYd)} yds`, `${n(e.recTd)} TD`];
-            if (e.rushYd) p.push(`${n(e.rushYd)} rush yds`);
+            const p = [`${n(e.tgt)} tgt`, `${n(e.rec)} rec`, `${n(e.recYd)} yds`, `${n(e.recTd)} TD`];
+            if (e.rushAtt) p.push(`${n(e.rushAtt)} att, ${n(e.rushYd)} rush yds`);
             return p.join(' · ');
         }
         case 'K': {
-            const p = [`${n(e.fgm)} FG`, `${n(e.xpm)} PAT`];
+            const p = [`${n(e.fgm)}/${n(r.fga)} FG`, `${n(e.xpm)} PAT`];
             if (r.fgm_50p) p.push(`${n(r.fgm_50p)} from 50+`);
             return p.join(' · ');
         }
@@ -323,8 +326,9 @@ function render() {
  */
 const STAT_SLEEPER_A_LEGA = {
     pass_yd: 'pass_yds', pass_td: 'pass_td', pass_int: 'pass_int',
-    rush_yd: 'rush_yds', rush_td: 'rush_td',
-    rec: 'rec', rec_yd: 'rec_yds', rec_td: 'rec_td',
+    pass_att: 'pass_att', pass_cmp: 'pass_comp',
+    rush_yd: 'rush_yds', rush_td: 'rush_td', rush_att: 'rush_att',
+    rec: 'rec', rec_yd: 'rec_yds', rec_td: 'rec_td', rec_tgt: 'targets',
     fgm_0_19: 'fg_0_19', fgm_20_29: 'fg_20_29', fgm_30_39: 'fg_30_39',
     fgm_40_49: 'fg_40_49', fgm_50p: 'fg_50_plus', xpm: 'pat_made',
     sack: 'sack', int: 'def_int', fum_rec: 'fum_rec', def_td: 'def_td',

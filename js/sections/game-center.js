@@ -489,12 +489,28 @@ function shortName(p) {
     return parts.slice(1).join(' ');
 }
 
+/**
+ * Il nome sul campo in due versioni, e il CSS sceglie: su schermo largo come
+ * sempre, su telefono la forma corta — il cognome per i giocatori, il solo
+ * nome della squadra per le difese ("Seahawks", non "Seattle Seahawks"). Sul
+ * telefono lo slot e' stretto e il resto finiva tagliato coi puntini.
+ */
+function nomeCampoHTML(p, lungo) {
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    const parti = String(p.name).trim().split(/\s+/);
+    const corto = role === 'DEF' || role === 'D/ST'
+        // ultima parola, tranne il vecchio "Washington Football Team"
+        ? (/football team$/i.test(p.name) ? 'Football Team' : parti[parti.length - 1])
+        : (parti.length < 2 ? p.name : parti.slice(1).join(' '));
+    return `<span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span>`;
+}
+
 function slotContent(p) {
     const role = (p.position_in_team || p.position || '').toUpperCase();
     return `<span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
                 data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}"
                 data-pos="${role}" data-year="${currentYear}"></span>
-            <span class="slot-name">${shortName(p)}</span>
+            <span class="slot-name">${nomeCampoHTML(p, shortName(p))}</span>
             <span class="slot-pts">${pPtsHTML(p)}</span>`;
 }
 

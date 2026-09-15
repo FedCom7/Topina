@@ -414,21 +414,32 @@ export const fmt = (n, dec = 0) => Number(n || 0).toLocaleString('it-IT', { mini
 
 export function keyStatLine(position, s) {
     if (!s) return '';
+    // Il volume (completi/tentati, portate, bersagli) solo quando il dato c'e':
+    // lo scraper ESPN lo scrive dal 2026, lo storico 2019-2025 non l'ha, e
+    // "0/0 comp" su una partita vecchia sarebbe un numero inventato.
+    const c = (v) => v != null;
     switch (position) {
         case 'QB': {
             const parts = [`${fmt(s.pass_yds)} pass yds`, `${fmt(s.pass_td)} TD`, `${fmt(s.pass_int)} INT`];
-            if (s.rush_yds) parts.push(`${fmt(s.rush_yds)} rush yds`);
+            if (c(s.pass_att)) parts.unshift(`${fmt(s.pass_comp || 0)}/${fmt(s.pass_att)} comp`);
+            if (s.rush_yds) parts.push(c(s.rush_att) ? `${fmt(s.rush_att)} att, ${fmt(s.rush_yds)} rush yds` : `${fmt(s.rush_yds)} rush yds`);
             return parts.join(' · ');
         }
         case 'RB': {
             const parts = [`${fmt(s.rush_yds)} rush yds`, `${fmt(s.rush_td)} TD`];
-            if (s.rec) parts.push(`${fmt(s.rec)} rec, ${fmt(s.rec_yds)} yds`);
+            if (c(s.rush_att)) parts.unshift(`${fmt(s.rush_att)} att`);
+            if (s.rec || s.targets) {
+                parts.push(c(s.targets)
+                    ? `${fmt(s.targets)} tgt, ${fmt(s.rec || 0)} rec, ${fmt(s.rec_yds || 0)} yds`
+                    : `${fmt(s.rec)} rec, ${fmt(s.rec_yds)} yds`);
+            }
             return parts.join(' · ');
         }
         case 'WR':
         case 'TE': {
             const parts = [`${fmt(s.rec)} rec`, `${fmt(s.rec_yds)} yds`, `${fmt(s.rec_td)} TD`];
-            if (s.rush_yds) parts.push(`${fmt(s.rush_yds)} rush yds`);
+            if (c(s.targets)) parts.unshift(`${fmt(s.targets)} tgt`);
+            if (s.rush_yds) parts.push(c(s.rush_att) ? `${fmt(s.rush_att)} att, ${fmt(s.rush_yds)} rush yds` : `${fmt(s.rush_yds)} rush yds`);
             return parts.join(' · ');
         }
         case 'K': {
@@ -1196,6 +1207,10 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
         // la settimana a venire sta in `pending`: niente punti d'archivio, ma
         // squadra e titolare/panchina per il punteggio live
         let w = rec.weeks[wk] || rec.pending?.[wk];
+        // Avversario mancante nei dati della lega (nel 2026 lo scraper l'ha
+        // pubblicato vuoto): si prende dalla partita per partita scaricata
+        // per quel giocatore, se c'e'.
+        if (w && !w.opponent && calcScores.get(wk)?.opponent) w = { ...w, opponent: calcScores.get(wk).opponent };
         if (!w && calcScores.has(wk)) {
             const c = calcScores.get(wk);
             w = { pts: c.pts, stats: c.stats, opponent: c.opponent, teamKey: null, started: null, calculated: true };
