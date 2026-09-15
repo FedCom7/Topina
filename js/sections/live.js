@@ -1459,7 +1459,7 @@ function render() {
     root.innerHTML = `
     ${headerHTML()}
     ${matchupCardHTML(entry)}
-    ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
+    ${compareMode ? compareHTML(entry.m.team1, entry.m.team2) : fieldHTML(team)}
     <div class="live-widgets">
         ${playFeedHTML()}
         ${nflGamesHTML(team)}
@@ -2136,6 +2136,12 @@ function compareStatsBlock(p, win, side) {
  * Confronto titolari: foto tonde ai lati, ruolo al centro, statistiche e punti
  * di ciascuno. I numeri di chi ha fatto meglio nella riga restano accesi,
  * quelli dell'altro sono "spenti".
+ *
+ * I lati seguono l'ordine della SFIDA (team1 a sinistra), come il tabellone
+ * sopra: il chiamante passa `m.team1, m.team2`, non "la squadra scelta e
+ * l'avversario". Prima la squadra scelta finiva sempre a sinistra, e scegliendo
+ * quella di destra nel tabellone i suoi giocatori comparivano sotto il nome
+ * dell'altra.
  */
 function compareHTML(team, opp) {
     const pairs = slotPairs({ team1: team, team2: opp });
