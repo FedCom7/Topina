@@ -44,8 +44,13 @@ All Firebase RTDB reads go through this module. Key exports:
 ### Data Flow
 Firebase RTDB → `data.js` fetch/process → `sections/*.js` render to DOM
 
-**Chi scrive su Firebase: solo l'Action `espn-live.yml`**, una volta a
-settimana (martedì 09:00 UTC, dopo il Monday Night Football). Esegue
+**Chi scrive su Firebase: solo l'Action `espn-live.yml`**, il martedì dopo
+il Monday Night Football, due giri: alle 06:00 e alle 08:30 ora ITALIANA. Il
+cron di GitHub è in UTC e l'Italia cambia ora, quindi nel file ci sono gli
+orari di entrambe le stagioni e un primo passo lascia passare solo quelli
+giusti per l'offset di Roma di quel giorno. Il secondo giro è la rete del
+primo (GitHub parte in ritardo, e la giornata può non essere ancora chiusa):
+ogni giro ricostruisce tutto, due giri riscrivono gli stessi dati. Esegue
 `scraper/run_espn.py` e carica il risultato CHIUSO della giornata, più il
 segnaposto della settimana dopo. Il segnaposto della week N+1 esce solo se la
 week N è chiusa (`_drop_early_placeholders` in `scraper/espn/fantasy_espn.py`):
