@@ -23,7 +23,7 @@ import { getManagerDNA, CONFIDENCE_LABEL, CONFIDENCE_NOTE } from '../data/manage
 import { stripPlot } from '../ui/strip-plot.js?v=1';
 import { dumbbell, scatter, multiLine, inkFor } from '../ui/charts.js?v=7';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { TEAMS } from './team.js?v=698';
+import { TEAMS } from './team.js?v=701';
 import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=1';
 
 const KEYS = ['capi', 'lasers', 'oscurus', 'sommo'];

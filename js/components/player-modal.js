@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=637';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=601';
-import { TEAMS } from '../sections/team.js?v=741';
+import { TEAMS } from '../sections/team.js?v=744';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { getPlayerInfo } from '../data/player-full.js?v=666';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
@@ -305,8 +305,12 @@ function gameBlockHtml(game, pos, nfl) {
  */
 function appendFullStatsLink(content, { name, pos, year }) {
     const y = year || new Date().getFullYear();
+    // Un ruolo con la barra e' lo slot della formazione ("W/R", "RB/WR"), non
+    // il ruolo del giocatore: nel link spezzerebbe la rotta #player/anno/ruolo/nome
+    // e il nome diventerebbe "R/Omarion Hampton". Meglio nessun ruolo.
+    const ruolo = /\//.test(pos || '') ? '' : encodeURIComponent(pos || '');
     content.insertAdjacentHTML('beforeend',
-        `<a class="pm-fullstats" href="#player/${y}/${pos || ''}/${encodeURIComponent(name)}">Open full stats →</a>`);
+        `<a class="pm-fullstats" href="#player/${y}/${ruolo}/${encodeURIComponent(name)}">Open full stats →</a>`);
 }
 
 function hydrateHeadshot(content, name, nfl, pos, year) {

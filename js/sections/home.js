@@ -38,9 +38,9 @@ import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, 
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=741';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=747';
-import { teamsCardsHTML } from './teams.js?v=713';
+import { TEAMS } from './team.js?v=744';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=751';
+import { teamsCardsHTML } from './teams.js?v=715';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=43';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
@@ -59,7 +59,7 @@ import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=784';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=787';
 
 let initialized = false;
 

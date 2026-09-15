@@ -3,8 +3,8 @@ import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=741';
-import { initPlayerModal } from '../components/player-modal.js?v=747';
+import { TEAMS } from './team.js?v=744';
+import { initPlayerModal } from '../components/player-modal.js?v=751';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
@@ -467,7 +467,7 @@ function modalAttrs(p, isBench = false) {
     const payload = encodeURIComponent(JSON.stringify(game));
     return `data-player-modal
              data-player-name="${escAttr(p.name)}"
-             data-pos="${escAttr((p.position || '').toUpperCase())}"
+             data-pos="${escAttr((p.position_in_team || p.position || '').toUpperCase())}"
              data-nfl="${escAttr(p.nfl_team || '')}"
              data-year="${currentYear}"
              data-game="${payload}"`;
