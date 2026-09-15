@@ -87,12 +87,22 @@ function indiceRose(model) {
         const pendenti = Object.keys(rec.pending || {}).map(Number);
         const finale = (pendenti.length ? rec.pending[Math.max(...pendenti)]?.teamKey : null)
             ?? rec.weeks[model.lastWeek]?.teamKey ?? null;
-        idx.set(chiave(rec.name), { ultimo, finale, settimane: Object.keys(rec.weeks).length });
+        // `nome` e' come lo scrive la lega: serve al dettaglio, che nel modello
+        // cerca il giocatore per nome esatto.
+        idx.set(chiave(rec.name), { nome: rec.name, ultimo, finale, settimane: Object.keys(rec.weeks).length });
     }
     return idx;
 }
 
-const chiave = (nome) => String(nome || '').toLowerCase().replace(/[.,']/g, '').replace(/\s+/g, ' ').trim();
+/*
+ * Chiave di confronto fra i nomi di Sleeper e quelli della lega. Oltre a
+ * punteggiatura e spazi toglie i SUFFISSI in coda (Jr, Sr, II, III, IV, V):
+ * Sleeper scrive "Kenneth Walker", la lega "Kenneth Walker III", e senza
+ * questo il giocatore di Sommo risultava senza squadra — niente targhetta,
+ * "libero" nel filtro Available e "Unrostered" nel dettaglio.
+ */
+const chiave = (nome) => String(nome || '').toLowerCase().replace(/[.,']/g, '')
+    .replace(/\s+(jr|sr|ii|iii|iv|v)\s*$/, '').replace(/\s+/g, ' ').trim();
 
 /** La targhetta della squadra Topina, o niente se non l'ha mai avuto nessuno. */
 function targhettaRosa(info) {
@@ -380,7 +390,10 @@ async function apriDrill(row, idx) {
     let righe = '';
     try {
         const extraScores = await giornateDaSleeper(e);
-        righe = await playerSeasonDrill(anno, { name: e.name, position: e.pos, nflTeam: e.team },
+        // Il nome della lega se il giocatore e' passato da una rosa: il modello
+        // lo conosce cosi' ("Kenneth Walker III"), non come lo scrive Sleeper.
+        const nomeLega = stato.roseIdx.get(chiave(e.name))?.nome || e.name;
+        righe = await playerSeasonDrill(anno, { name: nomeLega, position: e.pos, nflTeam: e.team },
             { model: stato.model, extraScores, lastWeek: ultimaGiornata() });
     } catch { righe = ''; }
     // Nel frattempo si puo' aver cambiato anno o filtro: il contenitore di
