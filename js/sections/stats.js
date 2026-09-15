@@ -1,7 +1,7 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=585';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
 import { TEAMS } from './team.js?v=741';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=809';
+import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=812';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=630';
 
 let loaded = false;
@@ -1325,7 +1325,11 @@ async function renderAdvancedCharts(markers) {
     })).filter(s => s.values.length > 0);
 
     // 1) Punti squadra draftata
-    const draftedSeries = buildTeamMetric((m, k) => pointsComparison(m, k).drafted);
+    // Playoff compresi, come le classifiche di Analysis da cui vengono.
+    const draftedSeries = buildTeamMetric((m, k) => {
+        const c = pointsComparison(m, k);
+        return c.drafted === null ? null : c.drafted + (c.po?.drafted || 0);
+    });
 
     // 2) Punti dagli innesti (somma punti "qui" degli acquisti in-season)
     const pickupSeries = buildTeamMetric((m, k) => {
@@ -1334,7 +1338,10 @@ async function renderAdvancedCharts(markers) {
     });
 
     // 3) Punti lasciati in panchina (ottimale − reale)
-    const benchSeries = buildTeamMetric((m, k) => pointsComparison(m, k).benchLost);
+    const benchSeries = buildTeamMetric((m, k) => {
+        const c = pointsComparison(m, k);
+        return c.benchLost + (c.po?.benchLost || 0);
+    });
 
     // 4) Costanza dei punteggi su tutte le stagioni (range min–mediana–max per team)
     const distRows = teamKeys.map(key => {
@@ -1415,7 +1422,7 @@ async function renderAdvancedCharts(markers) {
             <h3 class="an-sub-title">Drafted Team Points by Season</h3>
             ${legendOf(draftedSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(draftedSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
-            <p class="an-footnote">Total points scored by the players picked at the draft that season, whether they stayed on the roster or not.</p>
+            <p class="an-footnote">The best lineup each team could have fielded every week with its draft picks alone, counting their points wherever they played in the league. Playoffs included.</p>
 
             <h3 class="an-sub-title">In-Season Pickup Points by Season</h3>
             ${legendOf(pickupSeries)}
@@ -1425,7 +1432,7 @@ async function renderAdvancedCharts(markers) {
             <h3 class="an-sub-title">Points Left on the Bench by Season</h3>
             ${legendOf(benchSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
-            <p class="an-footnote">Optimal lineup points minus what was actually started, added up across the season.</p>
+            <p class="an-footnote">Optimal lineup points minus what was actually started, added up across the season, playoffs included.</p>
 
             <h3 class="an-sub-title">Margin: Wins vs Losses</h3>
             <div class="an-chart">${buildMarginDotPlot(teamMarginStats)}</div>

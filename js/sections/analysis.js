@@ -24,7 +24,8 @@ let avgMode = 'total'; // 'total' | 'starter' | 'nfl' — base di partite, punti
 // nessuna rosa: Firebase quelle non le ha proprio.
 const nflTotals = {};
 let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
-let roleDistMode = 'all'; // 'all' | 'starters' — base di Weekly scores by position
+let roleDistMode = 'starters'; // 'all' | 'starters' — base di Weekly scores by position.
+// Parte dai titolari come "Points by position (starters)" accanto.
 // Quale squadra guardare nel grafico "Weekly scores by position" della vista
 // Totale: 'all' le mette tutte insieme, altrimenti solo quella scelta.
 let roleDistTeam = 'all';
@@ -299,11 +300,21 @@ function lineupView(model, teamKey) {
 function optimalWeekPoints(model, teamKey, wk) {
     const tw = model.teamWeeks[teamKey]?.[wk];
     if (!tw) return null;
-    const roster = [...tw.starters, ...tw.bench]
+    return bestLineupPoints(model, [...tw.starters, ...tw.bench], wk);
+}
+
+/**
+ * I punti della miglior formazione possibile, in una giornata, scegliendo fra
+ * i giocatori indicati: il migliore disponibile per ogni slot, in ordine.
+ * Conta i punti di quella giornata OVUNQUE il giocatore fosse in rosa nella
+ * lega; nelle settimane da svincolato il modello non ha punti, e vale zero.
+ */
+function bestLineupPoints(model, names, wk) {
+    const roster = names
         .map(name => {
             const rec = model.players.get(name);
             const w = rec?.weeks[wk];
-            return w ? { name, position: rec.position, pts: w.pts, started: w.started } : null;
+            return w ? { name, position: rec.position, pts: w.pts } : null;
         })
         .filter(Boolean)
         .sort((a, b) => b.pts - a.pts);
@@ -359,14 +370,24 @@ export function pointsComparison(model, teamKey) {
         }
     }
 
+    /*
+     * "Drafted team": quanti punti avrebbe fatto la squadra schierando, ogni
+     * giornata che ha giocato, la MIGLIOR formazione possibile coi soli
+     * giocatori che aveva draftato — e con i loro punti di quella giornata
+     * ovunque fossero, anche in un'altra squadra della lega dopo un taglio o
+     * uno scambio. E' la stessa misura di "Optimal", costruita sul draft
+     * invece che sulla rosa vera, quindi i due numeri si confrontano.
+     *
+     * Prima era la somma di tutti i punti dei draftati — titolari, panchina e
+     * settimane altrove — e si confrontava con "Real points", che contano i
+     * soli titolari: due basi diverse accanto.
+     */
     const raw = rawFromTeamKey(model.draft?.teams, teamKey);
     if (raw) {
-        for (const p of model.draft.teams[raw] || []) {
-            const rec = model.players.get(p.name);
-            if (!rec) continue;
-            for (const [wkStr, w] of Object.entries(rec.weeks)) {
-                (Number(wkStr) > cfg.regularSeasonWeeks ? po : reg).drafted += w.pts;
-            }
+        const draftati = (model.draft.teams[raw] || []).map(p => p.name);
+        for (const wkStr of Object.keys(model.teamWeeks[teamKey] || {})) {
+            const wk = Number(wkStr);
+            (wk > cfg.regularSeasonWeeks ? po : reg).drafted += bestLineupPoints(model, draftati, wk);
         }
     }
 
@@ -807,11 +828,11 @@ function renderMarketTab(model) {
         <h3 class="an-sub-title">Final roster (W${model.lastWeek})</h3>
         <div class="an-final-roster">
             ${finalRoster.map(({ rec, agg, drafted }) => `
-            <span class="an-roster-chip${drafted ? '' : ' an-roster-chip--add'}" title="${fmt(agg.pts, 2)} pt">
-                ${rec.name} <b>${fmt(agg.pts, 0)}</b>
+            <span class="an-roster-chip${drafted ? '' : ' an-roster-chip--add'}" title="${fmt(ptsOf(agg), 2)} pt">
+                ${rec.name} <b>${fmt(ptsOf(agg), 0)}</b>
             </span>`).join('')}
         </div>
-        <p class="an-footnote">In <span class="an-split-here">red</span> the pickups added during the season, the number is the total points for the team.</p>
+        <p class="an-footnote">In <span class="an-split-here">red</span> the pickups added during the season, the number is the points for the team${avgMode === 'starter' ? ' <b>as a starter</b>' : ''}.</p>
     ` : '';
 
     return additionsHtml + finalHtml;
@@ -1625,9 +1646,15 @@ function leagueRankings(model) {
         const topDraft = draftPicks.length
             ? draftPicks.reduce((best, p) => p.agg.pts > best.agg.pts ? p : best)
             : null;
+        // Playoff compresi, come Pickups e il grafico del draft: prima Draft e
+        // Bench contavano la sola regular season e le tre classifiche
+        // affiancate misuravano periodi diversi.
         return {
             key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
-            drafted: kpi.drafted, pickupPts, topPickup, topDraft, benchLost: kpi.benchLost, worstMiss: kpi.worstMiss,
+            drafted: kpi.drafted === null ? null : kpi.drafted + (kpi.po?.drafted || 0),
+            pickupPts, topPickup, topDraft,
+            benchLost: kpi.benchLost + (kpi.po?.benchLost || 0),
+            worstMiss: kpi.worstMiss,
         };
     });
     return {
@@ -1996,6 +2023,14 @@ function teamLuckHTML(model, teamKey) {
     const cfg = getSeasonConfig(model.year);
 
     const colonna = (g) => {
+        if (g.vuota) {
+            const etichetta = g.sb ? 'SB' : g.playoff ? 'PO' : g.wk;
+            return `
+        <div class="an-luck-week an-luck-week--empty${g.playoff ? ' an-luck-week--po' : ''}" title="W${g.wk}${g.playoff ? ' · playoff' : ''}: not played">
+            <span class="an-luck-bar"><span style="height:0"></span></span>
+            <span class="an-luck-wk">${etichetta}</span>
+        </div>`;
+        }
         const cls = g.esito === 'W' ? 'win' : g.esito === 'L' ? 'loss' : 'tie';
         const verdetto = g.playoff ? 'playoff'
             : g.verdetto > 0 ? 'stolen' : g.verdetto < 0 ? 'robbed' : 'earned';
@@ -2009,7 +2044,18 @@ function teamLuckHTML(model, teamKey) {
     };
 
     const playoff = log.filter(g => g.playoff);
-    const daPo = log.findIndex(g => g.playoff);
+    // La striscia mostra SEMPRE tutta la stagione, playoff e Super Bowl
+    // compresi: le giornate non ancora giocate (o i playoff di chi e' fuori)
+    // restano colonne grigie e si colorano man mano. Prima c'erano solo le
+    // giornate giocate, e nella week 1 la striscia era una colonna sola.
+    const perSettimana = new Map(log.map(g => [g.wk, g]));
+    const stagione = Array.from({ length: cfg.superBowlWeek }, (_, i) => {
+        const wk = i + 1;
+        return perSettimana.get(wk) || {
+            wk, vuota: true, playoff: wk > cfg.regularSeasonWeeks, sb: wk === cfg.superBowlWeek,
+        };
+    });
+    const daPo = cfg.regularSeasonWeeks;
 
     // I due record di post-season, che quelli veri non contano: stanno accanto
     // ai loro, in oro come la graffa, cosi' si leggono senza confondersi.
@@ -2029,14 +2075,14 @@ function teamLuckHTML(model, teamKey) {
 
     // Graffa oro sopra le sole giornate di playoff: la griglia le allinea in
     // colonna, quindi basta dire da quale colonna parte.
-    const graffa = playoff.length ? `
+    const graffa = `
         <svg class="an-luck-brace" viewBox="0 0 100 12" preserveAspectRatio="none"
              style="grid-column:${daPo + 1} / -1" aria-hidden="true">
             <path d="M0,12 Q0,7 5,7 L45,7 Q50,7 50,0 Q50,7 55,7 L95,7 Q100,7 100,12"
                   fill="none" stroke="var(--accent-amber)" stroke-width="1.6"
                   vector-effect="non-scaling-stroke"/>
         </svg>
-        <span class="an-luck-po-label" style="grid-column:${daPo + 1} / -1">Playoffs</span>` : '';
+        <span class="an-luck-po-label" style="grid-column:${daPo + 1} / -1">Playoffs</span>`;
 
     return `
     <h3 class="an-sub-title">Record: earned or scheduled?</h3>
@@ -2052,9 +2098,9 @@ function teamLuckHTML(model, teamKey) {
        <b>${t.sfortunate}</b> robbed, <b>${t.fortunate}</b> stolen${girate.length
             ? ` (${girate.map(g => `W${g.wk}`).join(', ')})` : ''}.
        Playoffs are shown but never counted: the pairings are different.</p>
-    <div class="an-luck-strip" style="--cols:${log.length}">
+    <div class="an-luck-strip" style="--cols:${stagione.length}">
         ${graffa}
-        ${log.map(colonna).join('')}
+        ${stagione.map(colonna).join('')}
     </div>`;
 }
 
@@ -2643,8 +2689,8 @@ function renderLeagueView(model) {
         ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst: ${nomeCorto({ name: r.worstMiss.name, pos: r.worstMiss.position })} · ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
     <p class="an-footnote">Points from that year's draft picks, from in-season waiver pickups, and left unplayed
-       on the bench — each ranked highest first. Draft and bench count the <b>regular season</b> only, like the
-       standings; pickups count every week they were on the roster.</p>
+       on the bench — each ranked highest first, <b>playoffs included</b>. Draft is the best lineup that could
+       be fielded each week with that year's picks alone, counting their points wherever they played in the league.</p>
 
     <h3 class="an-sub-title">Scoring Consistency</h3>
     ${buildDistributionChart(scoreDistribution(model))}

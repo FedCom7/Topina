@@ -23703,3 +23703,13 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 :root[data-theme="light"] .an-ptbl-in-season {
     color: #ffffff;
 }
+
+/* "Record: earned or scheduled?": giornata non ancora giocata (o playoff di
+   chi e' fuori). La colonna c'e' e resta grigia, senza barra. */
+.an-luck-week--empty .an-luck-bar {
+    background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+}
+
+.an-luck-week--empty .an-luck-wk {
+    opacity: 0.45;
+}

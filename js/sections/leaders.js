@@ -24,7 +24,7 @@ import { getSeasonStats } from '../data/projections.js?v=601';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=810';
+} from './analysis.js?v=813';
 import { getPlayerWeekly } from '../data/player-full.js?v=666';
 
 let initialized = false;
