@@ -33,8 +33,15 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // ---- fetch proiezioni Sleeper (baseline), con cache su disco ----
 async function sleeperProjections(year) {
-    const cacheFile = path.join(ROOT, '.nflverse-cache', 'sleeper', `proj_${year}.json`);
-    try { return JSON.parse(await readFile(cacheFile, 'utf8')); } catch { /* miss */ }
+    // Cache TUTTA SUA: build-perf-causes.mjs scrive sulle stesse chiavi una
+    // mappa {name, pos, projPts, gp} — senza `adp`. Col file condiviso, a
+    // seconda di chi gira prima, uno dei due leggeva la forma dell'altro: qui
+    // il danno sarebbe un ADP undefined su tutti, che il modello non segnala.
+    const cacheFile = path.join(ROOT, '.nflverse-cache', 'sleeper', `proj_model_${year}.json`);
+    try {
+        const cached = JSON.parse(await readFile(cacheFile, 'utf8'));
+        if (Object.values(cached).some(v => v && 'adp' in v)) return cached;
+    } catch { /* miss */ }
     const pos = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'].map(p => `position%5B%5D=${p}`).join('&');
     // ADP full PPR: la lega è full PPR (rec=1, vedi league-rules.js)
     const url = `https://api.sleeper.com/projections/nfl/${year}?season_type=regular&${pos}&order_by=adp_ppr`;

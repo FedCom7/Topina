@@ -48,10 +48,19 @@ const normName = (n) => (n || '').toLowerCase().replace(/[.,']/g, '').replace(/\
 
 // ---- proiezioni Sleeper (baseline dei pool), con cache su disco ----
 async function sleeperProjections(year) {
-    const cacheFile = path.join(ROOT, '.nflverse-cache', 'sleeper', `proj_${year}.json`);
+    // Cache TUTTA SUA: build-draft-model.mjs scrive una mappa con le stesse
+    // chiavi ma forma diversa ({projPts, adp}, senza nome). Condividevano il
+    // file `proj_{Y}.json` e in CI il modello draft gira per primo: qui ne
+    // uscivano `pr.name`/`pr.pos` undefined, JSON.stringify li scartava e ogni
+    // record finiva nel sito senza nome. Lato client la chiave della mappa
+    // diventava `"|"` per tutti (perf-explain.js), nessun giocatore matchava
+    // più e sparivano il sunburst delle quote e le cause a parole.
+    const cacheFile = path.join(ROOT, '.nflverse-cache', 'sleeper', `proj_causes_${year}.json`);
     try {
         const cached = JSON.parse(await readFile(cacheFile, 'utf8'));
-        if (Object.values(cached).some(v => v && 'projPts' in v)) return cached;
+        // la guardia chiede il NOME, non solo i punti: una cache della forma
+        // sbagliata va rifatta, non accettata in silenzio
+        if (Object.values(cached).some(v => v && v.name && 'projPts' in v)) return cached;
     } catch { /* miss */ }
     const pos = ['QB', 'RB', 'WR', 'TE'].map(p => `position%5B%5D=${p}`).join('&');
     // ADP full PPR: la lega è full PPR (rec=1, vedi league-rules.js)
@@ -252,6 +261,12 @@ async function buildYear(Y) {
         const prevTeam = rMapPrev[k]?.team || team;
         const causes = buildCauses({ k, pos: pr.pos, team, prevTeam, pool, poolsCur, poolsPrev, tsCur, tsPrev, a, aPrev: prevIdx[k] });
         if (causes) players.push({ name: pr.name, pos: pr.pos, gsis: a.gsis, team, causes });
+    }
+    // Rete di sicurezza: senza nome il client non puo' agganciare nessuno
+    // (la mappa va per `normName(name)|pos`), e il file sarebbe muto pur
+    // sembrando pieno. Meglio fermarsi che committare dati inservibili.
+    if (players.length && !players.some(p => p.name && p.pos)) {
+        throw new Error(`perf_causes ${Y}: record senza nome/ruolo — cache proiezioni della forma sbagliata`);
     }
     return { season: Y, generatedAt: new Date().toISOString(), players };
 }
