@@ -18,14 +18,14 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=709';
+import { TEAMS } from './team.js?v=717';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats } from '../data/projections.js?v=595';
 import { getBestAvailable } from '../data/nfl-team-extras.js?v=1001';
 import {
     buildSeasonModel, fmt, keyStatLine, headshotImg, posBadge, drillRow,
     hydrateImages, limitedRows, toggleExtraRows, sumWeeklyStats, playerSeasonDrill,
-} from './analysis.js?v=775';
+} from './analysis.js?v=776';
 import { getPlayerWeekly } from '../data/player-full.js?v=656';
 
 let initialized = false;

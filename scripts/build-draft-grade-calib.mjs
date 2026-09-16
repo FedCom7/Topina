@@ -69,6 +69,11 @@ const PICK_BANDS = [['F', 0.02], ['D', 0.05], ['C-', 0.08], ['C', 0.12], ['C+', 
 // Le SQUADRE non prendono F: la fascia più bassa è D e parte dal minimo storico,
 // così nessun draft cade sotto tutte le soglie. Una singola pick sprecata è una
 // F sensata, un intero draft di 15 pick praticamente mai.
+//
+// ATTENZIONE: da quando il talento è assoluto (quota del raggiungibile, vedi
+// CLAUDE.md 4-bis) il sito NON usa più queste soglie di squadra — usa il
+// righello fisso a fasce uguali di draft-grade.js. Restano qui come termine di
+// paragone: se un domani il voto tornasse relativo, sono già pronte.
 const TEAM_BANDS = [['D', 0.06], ['C-', 0.08], ['C', 0.11], ['C+', 0.14], ['B-', 0.16], ['B', 0.14], ['B+', 0.13], ['A-', 0.10], ['A', 0.05], ['A+', 0.03]];
 
 const quantile = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))))];

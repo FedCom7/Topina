@@ -12,9 +12,9 @@
  */
 
 import { getManagerDNA, CONFIDENCE_LABEL, CONFIDENCE_NOTE } from '../data/manager-dna.js?v=2';
-import { dumbbell, multiLine, waterfall, inkFor } from '../ui/charts.js?v=7';
+import { dumbbell, multiLine, waterfall, inkFor } from '../ui/charts.js?v=8';
 import { TEAMS } from './team.js?v=666';
-import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=1';
+import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=534';
 
 const KEYS = ['capi', 'lasers', 'oscurus', 'sommo'];
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');

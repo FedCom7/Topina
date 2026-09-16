@@ -3849,6 +3849,18 @@ img {
 .cell-uniform { grid-column: span 3; }
 .cell-players { grid-column: span 12; }
 
+/* Una riga sola, tre colonne: il mercato a sinistra, il campo in piedi al
+   centro (vedi apHalfFieldSvg) e la panchina a destra. Il campo si stringe di
+   conseguenza — quello che perde in dimensione lo guadagna in contesto, con
+   le due liste che lo affiancano invece di stargli sotto. */
+/* Non tre colonne uguali: il mercato ha quattro campi per riga (giornata,
+   verso, nome, ruolo) e la panchina tre, quindi al campo ne resta una in più
+   senza stringere nessuna delle due liste. */
+.cell-waivers { grid-column: span 4; }
+.cell-roster  { grid-column: span 5; }
+.cell-bench   { grid-column: span 3; }
+.cell-colors  { grid-column: span 12; }
+
 .bento-cell-head {
     display: flex;
     align-items: baseline;
@@ -3916,8 +3928,14 @@ img {
     z-index: 5;
 }
 
-/* ── SVG sticker: colori derivati dal team ── */
+/* ── SVG sticker: colori derivati dal team ──────────────────────────
+   Due tinte e basta: `paint` è il fondo dell'adesivo, `ink` è l'inchiostro.
+   Sono variabili perché dentro un marchio i dettagli si ricavano per
+   SOTTRAZIONE — buchi color fondo dentro la sagoma piena — e quei buchi devono
+   sapere qual è il fondo. Vedi js/ui/badge-svg.js. */
 .stk-svg {
+    --stk-paint: color-mix(in srgb, var(--team-color) 70%, white 22%);
+    --stk-ink: color-mix(in srgb, var(--team-color) 32%, black);
     display: block;
     filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
     overflow: visible;
@@ -3925,38 +3943,46 @@ img {
 
 /* Piatto, senza bordo: come gli sticker Michigan reali */
 .stk-oval {
-    fill: color-mix(in srgb, var(--team-color) 70%, white 22%);
+    fill: var(--stk-paint);
 }
 
 .stk-glyph {
-    fill: color-mix(in srgb, var(--team-color) 32%, black);
+    fill: var(--stk-ink);
 }
 
 .stk-line {
     fill: none;
-    stroke: color-mix(in srgb, var(--team-color) 32%, black);
+    stroke: var(--stk-ink);
     stroke-width: 3;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
+/* Il "vuoto" dentro un marchio: l'occhio della topina, la stella sulla coppa,
+   i lacci del pallone. Va in tinta col FONDO, non col bianco. */
 .stk-lace {
     fill: none;
-    stroke: color-mix(in srgb, var(--team-color) 70%, white 22%);
+    stroke: var(--stk-paint);
     stroke-width: 2.4;
     stroke-linecap: round;
 }
 
-.stk-num {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 21px;
-    fill: color-mix(in srgb, var(--team-color) 32%, black);
+/* Archivo Black è la faccia dei numeri di questa casa (vedi field-gc-svg.js e
+   sb-logo-svg.js): pesante, terminali piatti, è quella che somiglia ai numeri
+   stampati sugli helmet sticker veri. Il corpo lo decide il codice — dipende da
+   quanto è lunga la parola — quindi qui non si fissa. */
+.stk-txt {
+    font-family: 'Archivo Black', var(--font-display), system-ui, sans-serif;
+    font-weight: 400;
+    fill: var(--stk-ink);
 }
 
-.stk-num--long {
-    font-size: 13px;
-    letter-spacing: 0.02em;
+/* Le righe piccole: etichette e annate. Inter Tight è più leggibile di Archivo
+   sotto i 10px, dove i terminali pieni si impastano. */
+.stk-txt--sm,
+.stk-txt--arc {
+    font-family: var(--font-display);
+    font-weight: 800;
 }
 
 /* Sticker Super Bowl (numero romano) */
@@ -3965,14 +3991,14 @@ img {
     font-weight: 800;
     font-size: 7px;
     letter-spacing: 0.18em;
-    fill: color-mix(in srgb, var(--team-color) 32%, black);
+    fill: var(--stk-ink);
 }
 
 .stk-sb-roman {
-    font-family: var(--font-display);
-    font-weight: 800;
+    font-family: 'Archivo Black', var(--font-display), system-ui, sans-serif;
+    font-weight: 400;
     font-size: 26px;
-    fill: color-mix(in srgb, var(--team-color) 32%, black);
+    fill: var(--stk-ink);
 }
 
 .stk-sb-year {
@@ -3980,7 +4006,220 @@ img {
     font-weight: 700;
     font-size: 9px;
     letter-spacing: 0.08em;
-    fill: color-mix(in srgb, var(--team-color) 32%, black);
+    fill: var(--stk-ink);
+}
+
+/* ── La rosa schierata (cell-roster) ── */
+.cell-roster .nfl-fd2 {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Il campo in piedi non ha bisogno dello scorrimento orizzontale che serve a
+   quello disteso: è già stretto. */
+.cell-roster .mc-apfield-scroll {
+    overflow: visible;
+}
+
+/* Centrato nella sua colonna. Il tetto serve sugli schermi larghi: un campo in
+   piedi che cresce senza limite diventa alto quanto lo schermo, e i giocatori
+   non si leggono meglio, sono solo più grandi. */
+.cell-roster .nfl-fd2--half {
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+/* ── La panchina (cell-bench) ── */
+.tb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Nome sopra e ruolo sotto: in una colonna da tre dodicesimi «Tetairoa
+   McMillan · WR · CAR» su una riga sola si troncava. */
+.tb-row {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+}
+
+.tb-row .tb-photo {
+    grid-row: span 2;
+}
+
+.tb-row:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tb-photo {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.tb-name {
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.tb-pos {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* La panchina sta FUORI dal campo, sulla fascia oltre la linea laterale: è
+   terreno, non prato, quindi non ha né righe né bande. Un filo più chiara del
+   fondo della card, o contro il nero non si legge come una superficie ma come
+   un buco. */
+.nfl-fd2-bench-area {
+    fill: rgba(255, 255, 255, 0.045);
+}
+
+.nfl-fd2-bench-line {
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 3;
+}
+
+.nfl-fd2-bench-lbl {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.18em;
+    fill: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Il mercato della squadra (cell-waivers) ── */
+.tw-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tw-row {
+    display: grid;
+    grid-template-columns: 42px 44px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+}
+
+.tw-row:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tw-week {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+/* Dentro e fuori si distinguono dal COLORE prima che dalla parola: una lista
+   di movimenti si scorre, non si legge riga per riga. */
+.tw-dir {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: 3px 0;
+    border-radius: 100px;
+}
+
+.tw-in {
+    color: var(--accent-green, #4ade80);
+    background: rgba(74, 222, 128, 0.12);
+}
+
+.tw-out {
+    color: var(--accent-red);
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.tw-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tw-pos {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tw-more {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--team-color);
+}
+
+/* ── I tre colori (cell-colors) ── */
+/* Affiancati: sono tre ruoli dello stesso colore, e uno sotto l'altro si
+   leggevano come tre voci scollegate invece che come una tavolozza. */
+.team-colors {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 22px;
+}
+
+.tc-swatch {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 14px;
+    align-items: center;
+}
+
+.tc-chip {
+    height: 52px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.tc-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.82rem;
+    margin-right: 8px;
+}
+
+/* Il codice si mostra perché è quello che si copia per cambiarlo. */
+.tc-hex {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.tc-why {
+    margin: 3px 0 0;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.tc-note {
+    margin: 14px 0 0;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.team-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.84rem;
 }
 
 /* Sticker campione in carica: die-cut del logo SB-Champ */
@@ -4354,7 +4593,30 @@ img {
     .cell-uniform {
         grid-column: span 5;
     }
+
+    .cell-waivers,
+    .cell-bench {
+        grid-column: span 6;
+    }
+
+    .cell-roster,
+    .cell-colors {
+        grid-column: span 12;
+    }
+
+    .cell-roster .nfl-fd2--half {
+        max-width: 480px;
+    }
 }
+
+@media (max-width: 767px) {
+    .cell-waivers,
+    .cell-bench {
+        grid-column: span 12;
+    }
+}
+
+
 
 @media (max-width: 767px) {
     .team-hero {
@@ -10873,10 +11135,6 @@ div.gb-out-player:last-of-type .gb-out-meta {
     stroke-linejoin: round;
 }
 
-.dgt-gap-area {
-    fill: color-mix(in srgb, var(--accent-red, #ff453a) 10%, transparent);
-    stroke: none;
-}
 
 .dgt-bar-proj { fill: color-mix(in srgb, var(--text-muted) 55%, transparent); }
 
@@ -10900,10 +11158,23 @@ div.gb-out-player:last-of-type .gb-out-meta {
 .dgt-legend-up { color: var(--accent-green, #30d158); }
 .dgt-legend-down { color: var(--accent-red, #ff453a); }
 
-/* Curva del draft: etichette dirette a fine linea + callout sul gap maggiore */
+/* Curva del draft, a nuvola di punti: un punto per pick (colore squadra), una
+   lineetta per il miglior giocatore dello stesso ruolo rimasto sul tavolo, e il
+   tratto che le unisce. La lineetta resta SEMPRE dello stesso grigio: è una
+   serie sola, il board — a portare il segno è il collegamento. Il punto ha
+   l'anello di fondo perché sul tratto colorato non si stacchi. */
+.dgt-dc-dot { stroke: var(--bg-primary, #000); stroke-width: 2; transition: r .12s ease; }
+.dgt-dc-tick { stroke: var(--text-muted); stroke-width: 2.5; stroke-linecap: round; }
+.dgt-dc-link { stroke-width: 2; opacity: .5; transition: opacity .12s ease; }
+.dgt-dc--left .dgt-dc-link { stroke: var(--accent-red, #ff453a); }
+.dgt-dc--steal .dgt-dc-link { stroke: var(--accent-green, #30d158); }
+.dgt-dc.is-on .dgt-dc-dot { r: 7; }
+.dgt-dc.is-on .dgt-dc-link { opacity: 1; }
+.dgt-dc.is-on .dgt-dc-tick { stroke: var(--text-secondary); }
+
+/* Etichette dirette sull'ultima pick + callout sul gap maggiore */
 .dgt-curve-endlabel { font-size: 12px; font-weight: 700; font-family: var(--font-body); }
 .dgt-curve-endlabel--alt { fill: var(--text-muted); font-weight: 600; }
-.dgt-curve-gapmark { stroke: var(--accent-red, #ff453a); stroke-width: 1.4; }
 .dgt-curve-callout { fill: var(--text-primary); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
 
 /* Draft board a quadrati (stile calendario NYT): round per round, colore per
@@ -11705,6 +11976,146 @@ div.gb-out-player:last-of-type .gb-out-meta {
 }
 .dgt-eos-num small { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 .dgt-eos-arrow { font-size: 1.6rem; color: var(--text-muted); }
+/* ── TSI: una riga per componente, e sotto il FATTO che l'ha prodotta ──
+   La barra è divergente dal 50 (roster medio) invece che piena da sinistra:
+   con il riempimento classico un 52 e un 92 si somigliavano, e il colore
+   neutro era il colore-squadra, che su due squadre su quattro è lo stesso
+   rosso/verde della semantica. Qui il colore lo porta solo lo scarto. */
+.dgt-comps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 28px;
+    margin-top: 16px;
+}
+
+.dgt-comp {
+    display: grid;
+    grid-template-columns: 10.5rem 1fr 2.2rem 2.6rem;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+}
+
+.dgt-comp-label { color: var(--text-secondary); }
+.dgt-comp-label em {
+    font-style: normal;
+    opacity: 0.55;
+    font-size: 0.88em;
+    margin-left: 5px;
+}
+
+.dgt-comp-track {
+    position: relative;
+    height: 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-muted, #8a93a0) 18%, transparent);
+}
+
+.dgt-comp-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--text-muted);
+}
+
+.dgt-comp-fill.up { background: var(--accent-green, #30d158); }
+.dgt-comp-fill.down { background: var(--accent-red, #ff453a); }
+
+/* la tacca del 50: senza, "sopra o sotto la media" resta una cosa da calcolare */
+.dgt-comp-mid {
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    width: 1px;
+    height: 14px;
+    background: color-mix(in srgb, var(--text-muted, #8a93a0) 55%, transparent);
+}
+
+.dgt-comp-score {
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.dgt-comp-contrib {
+    text-align: right;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.dgt-comp.up .dgt-comp-contrib { color: var(--accent-green, #30d158); }
+.dgt-comp.down .dgt-comp-contrib { color: var(--accent-red, #ff453a); }
+
+.dgt-comp-why {
+    grid-column: 1 / -1;
+    margin-top: -2px;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.dgt-comp-why b { color: var(--text-secondary); font-weight: 600; }
+
+/* Striscia slot per slot del vantaggio posizionale: nove caselle, il numero
+   è la posizione fra le quattro squadre. È il "perché" di quella componente
+   in forma di figura — la riga di testo sotto nomina solo i due estremi. */
+.dgt-slots { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 3px; }
+
+.dgt-slot {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--text-muted, #8a93a0) 14%, transparent);
+    font-size: 0.68rem;
+    line-height: 1.2;
+}
+
+.dgt-slot i { font-style: normal; color: var(--text-muted); }
+/* separatore fra slot e posizione: senza, "RB1 3" a 0.68rem si legge "RB13" */
+.dgt-slot b {
+    font-variant-numeric: tabular-nums;
+    padding-left: 4px;
+    border-left: 1px solid color-mix(in srgb, var(--text-muted, #8a93a0) 40%, transparent);
+}
+.dgt-slot--r1 { background: color-mix(in srgb, var(--accent-green, #30d158) 22%, transparent); }
+.dgt-slot--r1 b { color: var(--accent-green, #30d158); }
+.dgt-slot--r2 { background: color-mix(in srgb, var(--accent-green, #30d158) 10%, transparent); }
+.dgt-slot--r4 { background: color-mix(in srgb, var(--accent-red, #ff453a) 20%, transparent); }
+.dgt-slot--r4 b { color: var(--accent-red, #ff453a); }
+
+.dgt-why-line { display: block; }
+
+.dgt-tsi-eq {
+    margin-top: 12px;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.dgt-tsi-eq .up { color: var(--accent-green, #30d158); font-weight: 700; }
+.dgt-tsi-eq .down { color: var(--accent-red, #ff453a); font-weight: 700; }
+
+@media (max-width: 900px) {
+    .dgt-comps { grid-template-columns: 1fr; }
+}
+
+/* Sotto i 640px l'etichetta e i due numeri lasciavano alla barra sessanta
+   pixel, cioè trenta per lato del 50: lo scarto non si vedeva più. Su schermo
+   stretto la barra va a capo, a tutta larghezza. */
+@media (max-width: 640px) {
+    .dgt-comp { grid-template-columns: 1fr 2.2rem 2.6rem; row-gap: 6px; }
+    .dgt-comp-label { grid-area: 1 / 1; }
+    .dgt-comp-score { grid-area: 1 / 2; }
+    .dgt-comp-contrib { grid-area: 1 / 3; }
+    .dgt-comp-track { grid-area: 2 / 1 / auto / -1; }
+    .dgt-comp-why { grid-area: 3 / 1 / auto / -1; margin-top: 0; }
+}
+
 .dgt-sos-bar .dgt-sos-label em {
     font-style: normal;
     opacity: 0.6;
@@ -13120,6 +13531,9 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .nfl-rib-w { border-top-color: #22c55e; }
 .nfl-rib-l { border-top-color: var(--accent-red); }
 .nfl-rib-t { border-top-color: var(--text-muted); }
+/* Gara in corso: ha il punteggio ma non ancora l'esito — ambra, non verde/rosso. */
+.nfl-rib-live { border-top-color: var(--accent-amber); }
+.nfl-rib-live .nfl-rib-score { color: var(--accent-amber); }
 .nfl-rib-wk { font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: .02em; }
 .nfl-rib-opp { display: flex; align-items: center; gap: 3px; }
 .nfl-rib-opp i { font-style: normal; font-size: 10px; color: var(--text-muted); }
@@ -13905,19 +14319,93 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
    riabbassa (prefisso `#players` per battere in specificità la regola
    generica, che altrimenti vince a parità di classi essendo dichiarata dopo). */
 @media (min-width: 768px) {
-    #players .ps-year-header { top: 320px; }
+    /* L'anno ora vive dentro `.ps-search-wrap` (su mobile è la capsula accanto
+       al campo di ricerca), quindi le regole agganciate a
+       `.section-inner > .section-header` non lo raggiungono più: qui si
+       riscrive per intero il suo aspetto da desktop, che non deve cambiare —
+       testo verticale rosso, fisso nel margine sinistro. Essendo `fixed` non
+       gli importa dove sta nel DOM. */
+    #players .ps-search-wrap > .ps-year-header {
+        position: fixed;
+        top: 320px;
+        left: calc(max((100vw - 1200px) / 2, 0px) + 26px);
+        margin: 0;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        z-index: 2;
+        white-space: nowrap;
+    }
+    #players .ps-search-wrap > .ps-year-header .nfl-year-title {
+        font-size: clamp(2rem, 2.8vw, 2.7rem);
+        letter-spacing: 0.04em;
+        line-height: 1;
+        -webkit-text-stroke-width: 1px;
+    }
 }
 /* Su mobile la pill generica è `fixed` in alto a destra: sulla pagina squadra
    NFL galleggia sopra la hero bar, qui invece si sovrapporrebbe al sottotitolo
    "Search a player...". Resta nel flusso normale, sotto al titolo, mantenendo
    solo l'aspetto a pillola. */
 @media (max-width: 767px) {
-    #players .ps-year-header {
+    /* Il campo di ricerca si accorcia per fare posto all'anno alla sua destra:
+       una riga sola invece di due blocchi impilati. */
+    .ps-search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .ps-search-wrap .ps-search-input {
+        flex: 1 1 auto;
+        min-width: 0;   /* senza, il campo non si stringe e la capsula esce */
+    }
+    #players .ps-search-wrap > .ps-year-header {
         position: static;
-        margin: 0 0 16px;
+        /* `.section-header` è una colonna: senza `row` il figlio si stira a
+           tutta larghezza e la capsula diventa una barra. */
+        display: flex;
+        flex-direction: row;
+        flex: none;
+        margin: 0;
         z-index: auto;
     }
+    /* Stessa capsula del pick-row delle altre pagine (Projections, Leaders,
+       All-Pro): gradiente accento, corpo del testo, freccetta. Il selettore
+       anno si deve leggere come lo stesso oggetto ovunque — qui prima era un
+       numero rosso grande allineato a sinistra, unico nel sito. La pagina
+       squadra NFL tiene la sua pill flottante: là galleggia sopra la hero bar
+       e non sta in un pick-row. */
+    #players .ps-year-header .nfl-year-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1.2;
+        text-transform: none;
+        padding: 8px 20px;
+        border-radius: var(--pill-radius);
+        color: #fff;
+        -webkit-text-fill-color: #fff;
+        -webkit-text-stroke: 0;
+        background: var(--accent-gradient);
+        border: 1px solid transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        box-shadow: 0 2px 12px rgba(79, 140, 255, 0.3);
+    }
+    #players .ps-year-caret {
+        display: inline-block;
+        font-size: 0.6em;
+        opacity: 0.75;
+        transition: transform var(--dur-fast) var(--ease);
+    }
+    #players .nfl-year-title.is-open .ps-year-caret { transform: rotate(180deg); }
 }
+/* Su desktop l'anno è testo verticale sul bordo: una freccetta ruotata di 90°
+   non vorrebbe dire niente. */
+.ps-year-caret { display: none; }
 
 .ps-search-wrap { margin: 0 0 20px; }
 .ps-search-input {
@@ -14122,6 +14610,41 @@ a.ps-sb-game:hover { border-color: var(--accent-blue, #4f9dff); transform: trans
     .ps-sb-grid { grid-auto-columns: 150px; }
     .ps-sb-pills { gap: 4px; }
     .ps-sb-pills .week-pill { width: 30px; height: 28px; }
+}
+
+/* Mobile: le 22 giornate su UNA riga che scorre, non 4 righe a capo (erano
+   128px di altezza, ora ~34). La pill scelta si porta al centro da sé
+   (`sbSyncStrip` in players-search.js) — senza, cambiando settimana con le
+   frecce finirebbe fuori dalla vista. Le sfumature ai bordi sono l'unico
+   segnale che di là c'è dell'altro, visto che la barra di scorrimento è
+   nascosta: per questo si spengono a fondo corsa, dove non c'è più niente da
+   suggerire e una "1" mangiata a metà si leggerebbe come un difetto. */
+@media (max-width: 767px) {
+    .ps-sb-pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+    }
+    .ps-sb-pills::-webkit-scrollbar { display: none; }
+    .ps-sb-pills.at-start {
+        -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+        mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+    }
+    .ps-sb-pills.at-end {
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 100%);
+        mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 100%);
+    }
+    .ps-sb-pills.at-start.at-end {
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+    /* In riga unica un flex item si stringe: le pill devono tenere la misura. */
+    .ps-sb-pills .week-pill,
+    .ps-sb-sep { flex: none; }
 }
 
 .ps-results { display: flex; flex-direction: column; gap: 20px; }
@@ -14909,6 +15432,7 @@ td.ps-div-seed {
 }
 @media (max-width: 720px) { .ts-charts { grid-template-columns: 1fr; } }
 .ts-charts-2 { grid-template-columns: 1fr 1fr; }
+.ts-charts-1 { grid-template-columns: 1fr; }
 @media (max-width: 720px) { .ts-charts-2 { grid-template-columns: 1fr; } }
 .ts-card {
     background: var(--bg-glass);
@@ -14923,6 +15447,57 @@ td.ps-div-seed {
 .ts-axl { font-size: 11px; font-weight: 600; fill: var(--text-secondary); }
 .ts-dotlbl { font-size: 10px; font-weight: 600; fill: var(--text-secondary); }
 .ts-guide { stroke: var(--accent-red); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.55; }
+
+/* Tornado corse/target (_tsTouchSplit) e scatter tocchi per snap.
+   Le due tinte dicono il TIPO di pallone, non il ruolo: ambra = terra,
+   azzurro = aria, come gli anelli della quota di squadra in Projections. */
+.ts-tsp-bar--car { fill: #f5a524; fill-opacity: 0.88; }
+.ts-tsp-bar--tgt { fill: #4f8cff; fill-opacity: 0.88; }
+.ts-tsp-bar:hover { fill-opacity: 1; }
+.ts-tsp-grid { stroke: var(--border-subtle); stroke-width: 1; opacity: 0.55; }
+.ts-tsp-axis { stroke: var(--border-subtle); stroke-width: 1; }
+.ts-tsp-name { font-size: 11px; font-weight: 700; fill: var(--text-primary); }
+.ts-tsp-pos { font-size: 9px; font-weight: 800; letter-spacing: 0.03em; }
+.ts-tsp-val { font-size: 10px; font-weight: 700; fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.ts-tsp-head { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; fill: var(--text-muted); }
+.ts-tsp-head--mid { letter-spacing: 0.1em; }
+.ts-tsp-snap-bg { fill: var(--border-subtle); }
+.ts-tsp-snap { fill: var(--text-muted); }
+.ts-tsp-snaplbl { font-size: 9px; font-weight: 700; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Anello delle quote (_tsShareRing): stessa forma del sunburst in Projections,
+   ma la corona esterna è divisa fra tutti i giocatori invece che fra uno e il
+   resto. Le fette prendono fill/fill-opacity inline (sfumatura per ordine),
+   qui sta solo quello che non cambia da fetta a fetta. */
+.ts-ring-band--tgt { fill: #4f8cff; fill-opacity: 0.30; }
+.ts-ring-band--car { fill: #f5a524; fill-opacity: 0.30; }
+.ts-ring-sl { stroke: var(--bg-primary, #000); stroke-width: 1.5; }
+.ts-ring-sl:hover { stroke: #fff; stroke-width: 2; }
+.ts-ring-band-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.08em; fill: var(--text-secondary); }
+.ts-ring-band-val { font-size: 11px; font-weight: 700; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ts-ring-lbl { font-size: 10px; font-weight: 700; fill: var(--text-secondary); }
+.ts-ring-lbl-val { font-size: 11px; font-weight: 800; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ts-ring-num { font-size: 26px; font-weight: 800; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ts-ring-lbl2 { font-size: 10px; font-weight: 600; fill: var(--text-muted); }
+.ts-ring-dot { font-size: 11px; }
+.ts-ring-legend { margin-top: 10px; row-gap: 4px; }
+.ts-ring-legend b { margin-left: 4px; }   /* in flex lo spazio fra testo e <b> collassa */
+/* l'anello resta a misura anche in una card larga: un cerchio da 620 px steso
+   su 1000 diventa alto 650 e la sezione si sfonda */
+.ts-ring-wrap { max-width: 740px; margin: 0 auto; }
+/* su riga intera un SVG al 100% si stira: questi due restano a misura d'uomo */
+.ts-wide-wrap { max-width: 860px; margin: 0 auto; }
+.ts-wide-wrap--sc { max-width: 760px; }
+/* terza corona: barra radiale in red zone + numero TD sulla punta */
+.ts-ring-rz { stroke: var(--bg-primary, #000); stroke-width: 1; }
+.ts-ring-rz:hover { stroke: #fff; stroke-width: 1.5; }
+.ts-ring-td { font-size: 10px; font-weight: 800; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ts-ring-key { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; margin-top: 8px; }
+.ts-ring-key-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--text-muted); font-weight: 600; }
+.ts-ring-key-rz { width: 5px; height: 14px; border-radius: 2px; background: linear-gradient(#4f8cff, #f5a524); }
+.ts-ring-key-td { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%;
+    border: 1px solid var(--border-subtle); font-size: 9px; font-weight: 800; color: var(--text-primary); font-style: normal; }
+.ts-leg-sep { flex-basis: 100%; height: 0; }
 .ts-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 6px; }
 .ts-leg { display: inline-flex; align-items: center; font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
 .ts-leg i { width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
@@ -22441,77 +23016,7 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     max-width: 78ch;
 }
 
-/* Il conto del voto: quattro passaggi numerati, uno sotto l'altro. */
-.dgt-derive {
-    margin-top: 10px;
-}
-
-.dgt-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 10px 0 0;
-    padding: 14px 16px;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md, 12px);
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.dgt-step {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-}
-
-.dgt-step-n {
-    flex: none;
-    width: 22px;
-    height: 22px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--team-color, var(--accent-red));
-    color: #fff;
-    font-size: 0.68rem;
-    font-weight: 800;
-}
-
-.dgt-step-label {
-    display: block;
-    color: var(--text-primary);
-    font-size: 0.82rem;
-    font-weight: 700;
-}
-
-.dgt-step-label b {
-    color: var(--team-color, var(--accent-red));
-    margin-left: 4px;
-}
-
-.dgt-step-note {
-    display: block;
-    margin-top: 2px;
-    font-size: 0.76rem;
-    line-height: 1.5;
-    color: var(--text-secondary);
-    max-width: 74ch;
-}
-
-/* Le pick che hanno spostato l'efficienza */
-.dgt-moved {
-    margin-top: 12px;
-}
-
-.dgt-moved-h {
-    display: block;
-    margin: 10px 0 6px;
-    font-size: 0.64rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
+/* Le pick che hanno spostato l'efficienza (chip dentro la riga del voto) */
 .dgt-moved-row {
     display: flex;
     flex-wrap: wrap;
@@ -22546,6 +23051,122 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     color: var(--accent-red);
 }
 
+
+/* ── La scala del voto (draftgrade-team: scoreLadder) ──────────────────
+   Una figura sola al posto di tre tessere più una derivazione nascosta: la
+   barra è il voto che si costruisce (segmento = punteggio × peso), le fasce
+   sopra sono le soglie-lettera vere, le tacche sotto le altre tre squadre. */
+.dgt-ladder { margin: 6px 0 16px; }
+/* su schermo stretto la scala scorre invece di rimpicciolirsi: a 390px un
+   testo da 11px del viewBox diventerebbe 5px */
+.dgt-ladder .dgt-chart-wrap { padding-bottom: 2px; }
+.dgt-lad-svg { width: 100%; min-width: 620px; height: auto; overflow: visible; }
+
+.dgt-lad-band { fill: color-mix(in srgb, var(--text-muted, #8a93a0) 10%, transparent); }
+.dgt-lad-band.alt { fill: color-mix(in srgb, var(--text-muted, #8a93a0) 17%, transparent); }
+.dgt-lad-band.is-mine { fill: color-mix(in srgb, var(--team-color, #4f9dff) 26%, transparent); }
+/* la fascia più bassa è aperta verso il basso ("D e sotto"): più spenta, se no
+   la sua area — che dipende da dove comincia il disegno — pesa come un dato */
+.dgt-lad-band.open { fill: color-mix(in srgb, var(--text-muted, #8a93a0) 6%, transparent); }
+
+.dgt-lad-bandlab {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-body, 'Inter', sans-serif);
+}
+
+.dgt-lad-bandlab.is-mine { fill: var(--text-primary); }
+
+.dgt-lad-track { fill: color-mix(in srgb, var(--text-muted, #8a93a0) 12%, transparent); }
+.dgt-lad-talent { fill: var(--team-color, #4f9dff); }
+/* le fette alternate: stessa tinta appena spenta, così la suddivisione si
+   vede senza diventare una seconda serie di colori */
+.dgt-lad-talent.alt { fill: color-mix(in srgb, var(--team-color, #4f9dff) 82%, #000); }
+.dgt-lad-eff.alt { fill: color-mix(in srgb, var(--team-color, #4f9dff) 37%, var(--bg-primary, #000)); }
+/* secondo segmento: stessa famiglia del primo ma spento, così si legge come
+   "un altro pezzo dello stesso voto" e non come una seconda serie */
+.dgt-lad-eff { fill: color-mix(in srgb, var(--team-color, #4f9dff) 45%, var(--bg-primary, #000)); }
+
+.dgt-lad-seglab {
+    fill: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    pointer-events: none;
+}
+
+/* Fette sotto il dito: quella scelta resta piena, le altre si spengono. */
+.dgt-lad-slice { cursor: default; transition: opacity .12s ease; }
+.dgt-lad-svg.has-hover .dgt-lad-slice { opacity: 0.4; }
+.dgt-lad-svg.has-hover .dgt-lad-slice.is-on { opacity: 1; }
+
+.dgt-lad-mark { stroke: var(--text-primary); stroke-width: 2; }
+
+/* la classe dg-letter--* colora con `color`: su <text> serve il fill, se no
+   il voto resta nero su nero */
+.dgt-lad-grade {
+    fill: currentColor;
+    font-family: var(--font-display, 'Inter Tight', sans-serif);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.dgt-lad-rival { stroke: var(--text-muted); stroke-width: 1.4; }
+.dgt-lad-rivallab { fill: var(--text-muted); font-size: 10px; font-family: var(--font-body); }
+.dgt-lad-rivalgr { fill: var(--text-secondary); font-size: 11px; font-weight: 700; font-family: var(--font-body); }
+.dgt-lad-rivallab .dgt-lad-rivalgr { font-size: 10.5px; }
+
+/* Chi compone i due blocchi: una riga per blocco, i primi tre con la quota */
+.dgt-lad-who {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.dgt-lad-who-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.dgt-lad-who-row b {
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    min-width: 4.8rem;
+}
+
+.dgt-lad-who-row > span { color: var(--text-primary); }
+.dgt-lad-who-row em { font-style: normal; font-weight: 700; color: var(--text-muted); }
+.dgt-lad-who-row small { color: var(--text-muted); }
+
+.dgt-lad-sw {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex: none;
+}
+
+/* lo swatch usa lo stesso fill delle fette: sono <i>, non <rect>, quindi la
+   regola SVG non li tocca e serve il background */
+.dgt-lad-sw.dgt-lad-talent { background: var(--team-color, #4f9dff); }
+.dgt-lad-sw.dgt-lad-eff { background: color-mix(in srgb, var(--team-color, #4f9dff) 45%, var(--bg-primary, #000)); }
+
+.dgt-lad-note {
+    margin: 8px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.dgt-lad-note b { color: var(--text-secondary); }
 
 /* ===== TERMINI TECNICI CLICCABILI (js/ui/glossary.js) ===== */
 /* Il termine resta testo: stesso corpo, stesso colore, stessa riga. Cambia
@@ -22620,27 +23241,10 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 }
 
 
-/* ===== DRAFT GRADE — testata della card e metriche apribili ===== */
-/* Il «come si arriva a questo voto» sta in alto a destra: è una spiegazione
-   del titolo, non un pezzo del contenuto, e in mezzo alle metriche
-   interromperebbe la lettura dei numeri. */
-.dgt-card-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.dgt-card-head .dgt-derive {
-    margin: 4px 0 0;
-    text-align: right;
-}
-
-/* La riga delle tre metriche. Da chiusa: tre colonne uguali. Con una aperta:
-   quella cresce e le altre si stringono — restano leggibili (numero e
-   etichetta) ma cedono lo spazio. Su schermo stretto la griglia va a una
-   colonna da sola e l'apertura è solo il pannello che compare. */
+/* ===== DRAFT GRADE — metriche apribili ===== */
+/* Con una aperta, quella cresce e le altre si stringono — restano leggibili
+   (numero ed etichetta) ma cedono lo spazio. Nella pagina squadra le tre
+   diventano righe impilate (.dgt-metrics--stack, più sotto). */
 .dgt-metric {
     padding: 0;
     overflow: hidden;
@@ -22706,6 +23310,56 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
         flex-grow: 3;
     }
 }
+
+/* Gli ingredienti: righe, non tre colonne uguali — due fanno il voto, la
+   terza è contesto e non deve pesare come loro. */
+.dgt-metrics--stack { display: flex; flex-direction: column; gap: 10px; }
+
+@media (min-width: 861px) {
+    .dgt-metrics--stack { display: flex; flex-direction: column; }
+    .dgt-metrics--stack > .dgt-metric,
+    .dgt-metrics--stack.has-open > .dgt-metric,
+    .dgt-metrics--stack.has-open > .dgt-metric.open { flex: none; }
+}
+
+.dgt-ing .dgt-metric-head {
+    display: grid;
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: 16px;
+    row-gap: 4px;
+}
+
+.dgt-ing .dgt-metric-label { grid-area: 1 / 1; }
+.dgt-ing .dgt-metric-val { grid-area: 2 / 1; font-size: 2rem; }
+.dgt-ing .dgt-metric-note { grid-area: 1 / 2 / span 2 / auto; align-self: center; }
+.dgt-ing .dgt-metric-head::after { grid-area: 3 / 1 / auto / -1; }
+
+.dgt-ing .dgt-metric-label em {
+    display: block;
+    margin-top: 2px;
+    font-style: normal;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    opacity: 0.75;
+}
+
+.dgt-ing .dgt-moved-row { margin-top: 8px; }
+
+/* la riga di contesto non ha un punteggio: niente numero grande, e il testo
+   parte da sinistra come le altre note */
+.dgt-ing--ctx .dgt-metric-head { grid-template-columns: 12.5rem minmax(0, 1fr); }
+.dgt-ing--ctx { opacity: 0.92; }
+
+@media (max-width: 700px) {
+    .dgt-ing .dgt-metric-head { grid-template-columns: 1fr; }
+    .dgt-ing .dgt-metric-label,
+    .dgt-ing .dgt-metric-val,
+    .dgt-ing .dgt-metric-note,
+    .dgt-ing .dgt-metric-head::after { grid-area: auto; }
+}
+
 
 /* Il dettaglio */
 .dgt-metric-detail {

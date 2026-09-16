@@ -5,13 +5,17 @@
  * identità, franchise players, rivalità, divisa.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=580';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
-import { computeTeamBadges } from '../data/badges.js?v=557';
-import { stickerSVG, champStickerSVG } from '../ui/badge-svg.js?v=519';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=585';
+import { computeTeamBadges } from '../data/badges.js?v=558';
+import { stickerSVG, champStickerSVG, fitStickerTexts } from '../ui/badge-svg.js?v=520';
 import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
 import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
+import { apHalfFieldSvg, sbLineup } from '../ui/field-allpro.js?v=7';
+import { hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
+import { CURRENT_SEASON, fetchFantasyData, SEASONS_DESC, displayName } from '../data.js?v=580';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=1';
+import { TEAM_PALETTE, TEAM_KEYS } from '../data/team-config.js?v=534';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {
@@ -31,11 +35,14 @@ function _sbRoman(year) {
 // wallpaper del Game Center hanno FIELD_IMG_VERSION).
 const UNIFORM_IMG_VERSION = 2;
 
+/* `color` è il ruolo `identity` della palette in js/data/team-config.js, non
+   un valore scritto qui: le tre tinte di una squadra stanno in un posto solo,
+   e cambiarle là le cambia ovunque. */
 export const TEAMS = {
     capi: {
         key: 'capi',
         name: 'Capi dei Pianeti',
-        color: '#FF6600',
+        color: TEAM_PALETTE.capi.identity,
         logo: 'Team%20Logo/team_capi_transparent.png',
         uniform: `Team%20Uniform/CDP_Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `Founded in 2019 with the vision of those who look far ahead, Capi dei Pianeti have always operated on a different scale. Their orange burns like the sun of a distant solar system: impossible to ignore, impossible not to recognize. Every draft has been a planned invasion, every season a conquest. They don't play in a league — they rule a universe.`,
@@ -43,7 +50,7 @@ export const TEAMS = {
     lasers: {
         key: 'lasers',
         name: 'Lasers',
-        color: '#D4AF37',
+        color: TEAM_PALETTE.lasers.identity,
         logo: 'Team%20Logo/team_lasers_transparent.png',
         uniform: `Team%20Uniform/LASERS_Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `The Lasers don't shout. They cut. Since 2019, this franchise has built its identity on absolute precision: every draft pick a calculated move, every lineup a perfect formula. The gold in their emblem isn't decoration — it's the signature of those who don't make mistakes. When the Lasers fire the beam, the game is already decided.`,
@@ -51,7 +58,7 @@ export const TEAMS = {
     oscurus: {
         key: 'oscurus',
         name: 'Oscurus',
-        color: '#800020',
+        color: TEAM_PALETTE.oscurus.identity,
         logo: 'Team%20Logo/team_oscurus_transparent.png',
         uniform: `Team%20Uniform/OBSCURUS__Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `From darkness rise the dominators. Oscurus has existed since 2019 as a silent force that grows in the shadows until it's too late to stop it. Their dark maroon crest speaks of blood spilled every week, of broken defenses and victories built with iron. They don't seek the crowd's love — they seek the ring. And when they find it, no one is surprised.`,
@@ -59,7 +66,7 @@ export const TEAMS = {
     sommo: {
         key: 'sommo',
         name: 'Sommo',
-        color: '#1c4750',
+        color: TEAM_PALETTE.sommo.identity,
         logo: 'Team%20Logo/team_sommo_transparent.png',
         uniform: `Team%20Uniform/SOMMO__Uniform.jpg?v=${UNIFORM_IMG_VERSION}`,
         bio: `The name doesn't lie. Sommo has been, since 2019, the franchise that chose the path of strategy where others chose instinct. Their deep green is that of unexplored oceans, of long-term plans, of decisions that only make sense in hindsight. There's no need to shout when you're already the strongest in the room.`,
@@ -126,10 +133,38 @@ export function initTeam() {
                 <img src="${team.uniform}" alt="${team.name} Uniform" class="team-uniform-img"
                      onerror="this.style.display='none'">
             </div>
-            <div class="bento-cell cell-players" style="--cell-i:5">
+            <div class="bento-cell cell-waivers" style="--cell-i:5">
+                <div class="bento-cell-head">
+                    <h2 class="bento-cell-title">Waiver Wire</h2>
+                    <span class="bento-cell-sub" id="team-waivers-sub">In and out</span>
+                </div>
+                <div id="team-waivers">${spinner}</div>
+            </div>
+            <div class="bento-cell cell-roster" style="--cell-i:6">
+                <div class="bento-cell-head">
+                    <h2 class="bento-cell-title">The Roster</h2>
+                    <span class="bento-cell-sub" id="team-roster-sub">Last completed week</span>
+                </div>
+                <div id="team-roster">${spinner}</div>
+            </div>
+            <div class="bento-cell cell-bench" style="--cell-i:7">
+                <div class="bento-cell-head">
+                    <h2 class="bento-cell-title">Bench</h2>
+                    <span class="bento-cell-sub" id="team-bench-sub">Reserves</span>
+                </div>
+                <div id="team-bench">${spinner}</div>
+            </div>
+            <div class="bento-cell cell-colors" style="--cell-i:8">
+                <div class="bento-cell-head">
+                    <h2 class="bento-cell-title">Colors</h2>
+                    <span class="bento-cell-sub">The three team tints</span>
+                </div>
+                <div id="team-colors"></div>
+            </div>
+            <div class="bento-cell cell-players" style="--cell-i:9">
                 <div class="bento-cell-head">
                     <h2 class="bento-cell-title">Franchise Players</h2>
-                    <span class="bento-cell-sub">Drafted in 2+ seasons</span>
+                    <span class="bento-cell-sub">Drafted in 3+ seasons</span>
                 </div>
                 <div class="team-flags" id="team-flags">${spinner}</div>
             </div>
@@ -149,6 +184,9 @@ export function initTeam() {
         renderHistory(league, team.key);
         renderH2H(at, team.key);
         renderFlags(league.franchisePlayers[team.key] || []);
+        renderColors(team);
+        renderRoster(team, league);
+        renderWaivers(team);
         bindStickerPop(section);
     }).catch(e => {
         console.error('Team page load error:', e);
@@ -248,9 +286,15 @@ function _renderStickers(badges, isReigningChamp, champYear) {
         b.instances.forEach((inst, k) => {
             const tileId = `${b.id}-${k}`;
             _badgesByTile[tileId] = { badge: b, instance: inst };
-            // Dentro l'ovale: il milestone per wins-club, l'anno per il resto
-            const text = b.id === 'wins-club' ? inst.iconText : (inst.season || null);
-            items.push({ id: tileId, name: b.name, svg: stickerSVG({ icon: b.icon, text }), champ: false });
+            /* Dentro l'ovale: il numero che il badge si è portato dietro
+               (punti, striscia, margine, milestone) e in mancanza l'anno.
+               `comp` decide la forma di ciò che ci sta dentro — vedi
+               COMPOSITIONS in ui/badge-svg.js. */
+            const text = inst.iconText || inst.season || null;
+            items.push({
+                id: tileId, name: b.name, champ: false,
+                svg: stickerSVG({ comp: b.comp, icon: b.icon, label: b.label || b.name, word: b.word, text }),
+            });
         });
     });
     if (isReigningChamp) {
@@ -379,6 +423,11 @@ function _renderStickers(badges, isReigningChamp, champYear) {
             ${nd.it.svg}
         </button>`;
     }).join('');
+
+    /* Le scritte dentro gli sticker si misurano solo una volta che sono nel
+       documento: la stima a monte non sa quanto è larga davvero una parola, e
+       Archivo Black si scarica quando serve, non all'apertura della pagina. */
+    fitStickerTexts(field);
 
     if (!_resizeBound) {
         _resizeBound = true;
@@ -538,6 +587,163 @@ function renderH2H(at, teamKey) {
         </div>`;
     }).join('');
     el.innerHTML = rows;
+}
+
+/* ─── I tre colori della squadra ──────────────────────────────────
+   Non è decorazione: è la legenda della palette. Le tinte arrivano da
+   TEAM_PALETTE in js/data/team-config.js, che è la fonte unica — cambiare un
+   valore là cambia hero, sticker, grafici e questo blocco insieme. Il codice
+   esadecimale si mostra apposta, così si può copiare per correggerlo. */
+const COLOR_ROLES = [
+    ['identity', 'Identity', 'The franchise itself — hero, stickers, borders, anywhere the page has to say “this is the team”.'],
+    ['bright', 'On black', 'The same colour made readable on a dark background: chart lines and dots. For Capi and Lasers it is the identity colour.'],
+    ['ink', 'Ink', 'The deep version, for large fills and backdrops.'],
+];
+
+function renderColors(team) {
+    const box = document.getElementById('team-colors');
+    const pal = TEAM_PALETTE[team.key];
+    if (!box || !pal) return;
+    box.innerHTML = `<div class="team-colors">${COLOR_ROLES.map(([role, label, why]) => `
+        <div class="tc-swatch">
+            <span class="tc-chip" style="background:${pal[role]}"></span>
+            <div class="tc-meta">
+                <span class="tc-name">${label}</span>
+                <code class="tc-hex">${pal[role].toUpperCase()}</code>
+                <p class="tc-why">${why}</p>
+            </div>
+        </div>`).join('')}</div>
+    <p class="tc-note">Single source: <code>TEAM_PALETTE</code> in <code>js/data/team-config.js</code>.</p>`;
+}
+
+/* ─── La rosa, schierata ──────────────────────────────────────────
+   Lo stesso campo della finale in home (`ui/field-allpro.js`), ma con una
+   squadra sola: i nove titolari sulla propria metà e — sulla metà che là è
+   dell’avversaria e qui resterebbe prato vuoto — i sei di panchina.
+
+   La giornata è l’ULTIMA CHIUSA: la settimana in corso ha punteggi a zero fino
+   alla domenica, e una rosa con nove zeri non dice niente. */
+function lastClosedWeek(data) {
+    if (!data?.weeks) return null;
+    const weeks = Object.keys(data.weeks).map(Number).filter(Number.isFinite).sort((a, b) => b - a);
+    for (const w of weeks) {
+        const ms = data.weeks[String(w)]?.matchups || [];
+        // "chiusa" = qualcuno ha segnato: prima del kickoff sono tutti a 0.00
+        if (ms.some(m => parseFloat(m.team1?.score) > 0 || parseFloat(m.team2?.score) > 0)) return w;
+    }
+    return null;
+}
+
+/** La squadra dentro una giornata, qualunque lato del matchup occupi. */
+function sideInWeek(week, teamKey) {
+    for (const m of (week?.matchups || [])) {
+        for (const side of [m.team1, m.team2]) {
+            if (TEAM_KEYS[displayName(side?.name)] === teamKey) return side;
+        }
+    }
+    return null;
+}
+
+async function renderRoster(team, league) {
+    const box = document.getElementById('team-roster');
+    const sub = document.getElementById('team-roster-sub');
+    if (!box) return;
+    try {
+        // Si parte dalla stagione in corso e si scende: a inizio anno, prima
+        // del primo kickoff, la rosa più recente è quella dell’anno prima.
+        let data = null, week = null, year = null;
+        for (const y of SEASONS_DESC) {
+            data = await fetchFantasyData(y).catch(() => null);
+            week = lastClosedWeek(data);
+            if (week != null) { year = y; break; }
+        }
+        const side = week != null ? sideInWeek(data.weeks[String(week)], team.key) : null;
+        if (!side) { box.innerHTML = '<p class="team-empty">No roster on record yet.</p>'; return; }
+
+        const bench = (side.bench || []).map(p => ({
+            slot: (p.position_in_team || p.position || 'BN').toUpperCase() === 'BN'
+                ? (p.position || 'BN').toUpperCase() : (p.position_in_team || '').toUpperCase(),
+            player: { name: p.name, nfl: p.nfl_team, pos: (p.position || '').toUpperCase() },
+        }));
+        if (sub) sub.textContent = `Season ${year} · Week ${week}`;
+        /* Mezzo campo in piedi: con una squadra sola il campo disteso è per
+           metà prato vuoto, e i giocatori vengono la metà di quanto potrebbero.
+           Stessa geometria, presa a metà e girata — vedi apHalfFieldSvg. */
+        box.innerHTML = apHalfFieldSvg({
+            team: { lineup: sbLineup(side), name: team.name, color: team.color, logo: team.logo },
+            year, clipId: `tm-fd-${team.key}`, cls: 'mc-duel--night',
+            label: `${team.name} starting lineup, week ${week} of season ${year}`,
+        });
+        hydrateFieldPhotos(box, playerImageService);
+        // La panchina non è più la fascia sotto il campo: è la colonna accanto.
+        renderBench(bench, year);
+    } catch (e) {
+        console.error('Team roster error:', e);
+        box.innerHTML = '<p class="team-empty">Roster unavailable.</p>';
+    }
+}
+
+/* ─── La panchina ────────────────────────────────────────────────
+   Stava sulla fascia di fuoricampo sotto il campo. Da colonna accanto al campo
+   ci sta meglio: i riservisti sono sei o sette e in orizzontale diventavano
+   dischi piccoli in fila, qui hanno nome e ruolo per esteso. */
+function renderBench(list, year) {
+    const box = document.getElementById('team-bench');
+    const sub = document.getElementById('team-bench-sub');
+    if (!box) return;
+    if (!list?.length) { box.innerHTML = '<p class="team-empty">Empty bench.</p>'; return; }
+    if (sub) sub.textContent = `${list.length} reserve${list.length > 1 ? 's' : ''}`;
+    box.innerHTML = `<div class="tb-list">${list.map(({ slot, player }) => `
+        <div class="tb-row">
+            <img class="pm-headshot tb-photo" src="images/fallback-player.svg" alt=""
+                 data-player-name="${player.name}" data-team="${player.nfl || ''}" data-pos="${player.pos || ''}">
+            <span class="tb-name">${player.name}</span>
+            <span class="tb-pos">${slot}${player.nfl ? ` · ${player.nfl}` : ''}</span>
+        </div>`).join('')}</div>`;
+    hydrateFlagImages(box);
+}
+
+/* ─── Il mercato della squadra ────────────────────────────────────
+   Le stesse mosse della sezione Waivers (`data/waiver-moves.js`), filtrate su
+   questa squadra e ridotte alle più recenti: qui è un assaggio, la lista
+   intera sta là. */
+const WV_PREVIEW = 12;
+
+async function renderWaivers(team) {
+    const box = document.getElementById('team-waivers');
+    const sub = document.getElementById('team-waivers-sub');
+    if (!box) return;
+    try {
+        /* Solo la stagione in corso: il mercato è una cosa di ADESSO, e
+           ripescare l'ultimo anno con delle mosse faceva comparire il 2025
+           sotto il titolo di una pagina che parla del 2026. A inizio stagione
+           il blocco è vuoto, ed è giusto così. */
+        const year = CURRENT_SEASON;
+        const { mosse: tutte, fonte } = await getWaiverMoves(year)
+            .catch(() => ({ mosse: [], fonte: 'rose' }));
+        const mosse = tutte.filter(m => m.squadra === team.key);
+        if (!mosse.length) {
+            if (sub) sub.textContent = `Season ${year}`;
+            box.innerHTML = '<p class="team-empty">No moves yet this season.</p>';
+            return;
+        }
+        const dentro = mosse.filter(m => m.verso === 'in').length;
+        if (sub) {
+            sub.textContent = `Season ${year} · ${dentro} in, ${mosse.length - dentro} out`
+                + (fonte === 'rose' ? ' · reconstructed' : '');
+        }
+        box.innerHTML = `<div class="tw-list">${mosse.slice(0, WV_PREVIEW).map(m => `
+            <div class="tw-row">
+                <span class="tw-week">${m.settimana != null ? `W${m.settimana}` : '—'}</span>
+                <span class="tw-dir ${m.verso === 'in' ? 'tw-in' : 'tw-out'}">${m.verso === 'in' ? 'IN' : 'OUT'}</span>
+                <span class="tw-name">${m.nome}</span>
+                <span class="tw-pos">${m.pos || ''}${m.nfl ? ` · ${m.nfl}` : ''}</span>
+            </div>`).join('')}</div>
+        <a class="tw-more" href="#waivers">All moves in the Waiver Wire &rarr;</a>`;
+    } catch (e) {
+        console.error('Team waivers error:', e);
+        box.innerHTML = '<p class="team-empty">Moves unavailable.</p>';
+    }
 }
 
 function renderFlags(players) {

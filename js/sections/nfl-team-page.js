@@ -17,6 +17,8 @@ import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAd
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1001';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=588';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';
+import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=8';
+import { getSeasonStats, normName } from '../data/projections.js?v=595';
 import {
     campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
     yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
@@ -66,13 +68,17 @@ export async function initNflTeamPage() {
         if (location.hash !== myHash) return;
         const season = seasonData.ctx?.season || year;
 
-        const [trades, ats, history, draftHistory, live, usage] = await Promise.all([
+        const [trades, ats, history, draftHistory, live, usage, seasonStats] = await Promise.all([
             getTeamTrades(abbr).catch(() => []),
             getTeamATS(abbr, season).catch(() => null),
             getFranchiseHistory(abbr).catch(() => null),
             getTeamDraftHistory(abbr).catch(() => []),
             fetchTeamLive(abbr, season),
             getTeamUsage(abbr, season).catch(() => []), // uso avanzato per l'analisi target share (cache condivisa con la rosa)
+            // TD, red zone e primi down per i tooltip dell'anello: nflverse non
+            // li ha. Cache condivisa con Projections/Draft Grades, e se la
+            // richiesta cade l'anello resta (solo con meno dettaglio).
+            getSeasonStats(season).catch(() => null),
         ]);
         // Dati di lega per i confronti (cache adv/team_stats già calde): percentili
         // ricevitori, advanced offensivo 32 squadre, stat reali 32 squadre, fantasy per squadra/ruolo.
@@ -82,12 +88,13 @@ export async function initNflTeamPage() {
             getTeamStats(season).catch(() => null),
             getLeagueTeamFantasy(season).catch(() => ({})),
         ]);
+        fillResultsFromLive(seasonData.ctx, live);   // risultati veri sul calendario statico
         const statTrend = await fetchStatTrend(abbr, teamHistory).catch(() => []); // stat per stagione (dati storici, cache)
         if (location.hash !== myHash) return;
 
         render(section, {
             abbr, identity, year: season, openEventId,
-            ...seasonData, teamHistory, statTrend, live, usage,
+            ...seasonData, teamHistory, statTrend, live, usage, seasonStats,
             leaguePool, leagueAdv, leagueStats, leagueFantasy,
             teamExtras: { trades, ats, history, draftHistory },
         });
@@ -186,6 +193,38 @@ const _eventForWeek = (wk) => wk == null ? null
     : (_teamSchedule.find(g => g.completed && g.eventId && _weekNum(g.week) === wk) || null);
 
 /**
+ * Risultati veri dentro al calendario statico.
+ * `data/nfl/team_stats_{Y}.json` per la stagione in corso nasce PRIMA che si
+ * giochi (`scheduleOnly`): ha le partite ma pf/pa/result a null finché nflverse
+ * non pubblica i dati, e il ribbon mostrava un trattino anche su gare già
+ * finite. I punteggi ci sono già nel calendario ESPN caricato per la tabella
+ * sotto, quindi si riversano qui: nessuna richiesta in più. Il dato storico
+ * vince sempre — si riempiono solo le settimane ancora vuote.
+ */
+function fillResultsFromLive(ctx, live) {
+    if (!ctx?.opponents?.length) return;
+    const byWeek = new Map();
+    for (const g of (live?.fullSchedule || [])) {
+        if (g.seasonType !== 2 || g.weekNum == null) continue;
+        if (g.score == null || g.oppScore == null) continue;
+        if (!g.completed && g.state !== 'in') continue;   // gara futura: niente punteggio
+        byWeek.set(g.weekNum, g);
+    }
+    if (!byWeek.size) return;
+    for (const o of ctx.opponents) {
+        if (o.result != null || o.pf != null) continue;
+        const g = byWeek.get(o.week);
+        if (!g) continue;
+        const pf = +g.score, pa = +g.oppScore;
+        if (!Number.isFinite(pf) || !Number.isFinite(pa)) continue;
+        o.pf = pf; o.pa = pa;
+        // Partita in corso: punteggio sì, esito no (non c'è ancora).
+        o.result = g.completed ? (pf > pa ? 'W' : pf < pa ? 'L' : 'T') : null;
+        o.inProgress = !g.completed;
+    }
+}
+
+/**
  * Season ribbon: sintesi visiva del calendario, una cella per settimana con
  * logo avversario, casa/trasferta, risultato colorato (verde vinta, rosso persa)
  * e punteggio; le settimane di bye sono evidenziate. Sopra la tabella matchup
@@ -200,12 +239,15 @@ function seasonRibbonBlock({ ctx, abbr }) {
     for (let w = minW; w <= maxW; w++) {
         const g = byWeek.get(w);
         if (!g) { cells.push(`<div class="nfl-rib-cell nfl-rib-bye"><span class="nfl-rib-wk">W${w}</span><span class="nfl-rib-byelbl">BYE</span></div>`); continue; }
-        const resCls = g.result === 'W' ? ' nfl-rib-w' : g.result === 'L' ? ' nfl-rib-l' : g.result ? ' nfl-rib-t' : '';
+        const resCls = g.result === 'W' ? ' nfl-rib-w' : g.result === 'L' ? ' nfl-rib-l' : g.result ? ' nfl-rib-t'
+            : g.inProgress ? ' nfl-rib-live' : '';
         const ha = g.home ? 'vs' : '@';
-        const score = g.result ? `${g.pf}-${g.pa}` : '—';
+        // Il punteggio segue pf/pa, non l'esito: una gara IN CORSO ha i punti
+        // ma non ancora W/L, e con la vecchia condizione restava un trattino.
+        const score = (g.pf != null && g.pa != null) ? `${g.pf}-${g.pa}` : '—';
         const games = g.record ? g.record.w + g.record.l + (g.record.t || 0) : 0;
         const oppWp = games ? (g.record.w + (g.record.t || 0) * 0.5) / games : null;
-        const tip = `W${g.week} ${ha} ${g.opp}${g.record ? ` (${g.record.w}-${g.record.l})` : ''}${g.result ? ` · ${score} ${g.result}` : ''}${oppWp != null ? ` · avversario ${(oppWp * 100).toFixed(0)}% W` : ''}`;
+        const tip = `W${g.week} ${ha} ${g.opp}${g.record ? ` (${g.record.w}-${g.record.l})` : ''}${g.pf != null ? ` · ${score}${g.result ? ` ${g.result}` : ' (live)'}` : ''}${oppWp != null ? ` · avversario ${(oppWp * 100).toFixed(0)}% W` : ''}`;
         const diffBar = oppWp != null ? `<span class="nfl-rib-diff"><i style="width:${Math.round(oppWp * 100)}%"></i></span>` : '';
         cells.push(`<div class="nfl-rib-cell${resCls}" title="${esc(tip)}">
             <span class="nfl-rib-wk">W${g.week}</span>
@@ -517,7 +559,7 @@ function render(section, ctx) {
             <div id="nfl-live-b">${seasonStatsBlock(live)}</div>
             <div id="nfl-ctx-stats">${teamContextBlock(wrap)}${defStatsBlock(wrap)}</div>
             <div id="nfl-stattrend">${statTrendBlock(ctx.statTrend, abbr)}</div>
-            <div id="nfl-tgtshare">${targetShareBlock(ctx.usage, ctx.teamRoster, ctx.leaguePool, abbr, year)}</div>
+            <div id="nfl-tgtshare">${targetShareBlock(ctx.usage, ctx.teamRoster, ctx.leaguePool, abbr, year, ctx.seasonStats)}</div>
             <div id="nfl-off-analysis">${offenseAnalysisBlock(ctx)}</div>
             <div id="nfl-def-analysis">${defenseAnalysisBlock(ctx)}</div>
         </div>
@@ -764,8 +806,10 @@ function bindYearRepaint(section, ctx0) {
             getTeamStats(year).catch(() => null),
             getLeagueTeamFantasy(year).catch(() => ({})),
         ]);
+        const seasonStats = await getSeasonStats(year).catch(() => null);
         if (location.hash !== myHash) return;
         _teamSchedule = live.schedule || [];
+        fillResultsFromLive(seasonData.ctx, live);
         const wrap = { ...seasonData, abbr, pos: 'TEAM' };
         const bctx = { ...seasonData, usage, leagueAdv, leagueStats, leagueFantasy, abbr, year };
         const yearSide = section.querySelector('#nfl-year-side');
@@ -773,7 +817,7 @@ function bindYearRepaint(section, ctx0) {
 
         set('#nfl-hero-chips', heroChipsHtml(live.profile, year, seasonData.ctx?.team?.record));
         set('#nfl-dna', teamDnaBlockOrNote(bctx, year));
-        set('#nfl-tgtshare', targetShareBlock(usage, seasonData.teamRoster, leaguePool, abbr, year));
+        set('#nfl-tgtshare', targetShareBlock(usage, seasonData.teamRoster, leaguePool, abbr, year, seasonStats));
         set('#nfl-off-analysis', offenseAnalysisBlock(bctx));
         set('#nfl-def-analysis', defenseAnalysisBlock(bctx));
         set('#nfl-live-a', fpiBlock(live) + futuresBlock(live) + teamLeadersBlock(live));
@@ -876,7 +920,7 @@ const TS_METRICS = [
     { key: 'fpgLeague', label: 'League pts/game', short: 'PtL/g', fmt: fmt1, hi: true },
     { key: 'epaPerGame', label: 'EPA/game', short: 'EPA/g', fmt: fmt2, hi: true },
 ];
-const TS_POS_COLOR = { WR: '#4f8cff', TE: '#f0b429', RB: '#3fb950' };
+const TS_POS_COLOR = { WR: '#4f8cff', TE: '#f0b429', RB: '#3fb950', QB: '#e5679b' };
 
 // Fabbrica di funzioni percentile sul pool NFL (ricerca binaria su array ordinati)
 function _tsPercentiles(pool) {
@@ -937,7 +981,7 @@ function _tsScatter(recs, median) {
         return `<circle cx="${X(p.wopr).toFixed(1)}" cy="${Y(p.epaPerGame).toFixed(1)}" r="${rad(p.tgtPerGame).toFixed(1)}" fill="${c}" fill-opacity="0.72" stroke="#000" stroke-width="1.5"><title>${esc(p.name)} (${esc(p.pos)}) — WOPR ${fmt2(p.wopr)} · EPA/game ${fmt2(p.epaPerGame)} · ${fmt1(p.tgtPerGame)} tgt/game · target share ${_tsPct(p.targetShare)}</title></circle>`;
     }).join('');
     const labels = [...pts].sort((a, b) => (b.targetShare || 0) - (a.targetShare || 0)).slice(0, 5).map(p =>
-        `<text x="${(X(p.wopr) + rad(p.tgtPerGame) + 3).toFixed(1)}" y="${(Y(p.epaPerGame) + 3).toFixed(1)}" class="ts-dotlbl">${esc(p.name.split(' ').slice(-1)[0])}</text>`).join('');
+        `<text x="${(X(p.wopr) + rad(p.tgtPerGame) + 3).toFixed(1)}" y="${(Y(p.epaPerGame) + 3).toFixed(1)}" class="ts-dotlbl">${esc(_tsLast(p.name))}</text>`).join('');
 
     return `<div class="ts-chart"><svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Opportunity efficiency scatter">
         ${yGrid}${xGrid}${guides}${dots}${labels}
@@ -985,6 +1029,417 @@ function _tsHeatmap(recs, pctl) {
     return `<div class="pm-table-wrap pp-scroll"><table class="pm-table pp-table ts-heat"><thead><tr><th>Player</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+/* ── Chi tocca il pallone: corse a sinistra, target a destra ──────────
+ *
+ * Le due quote stanno sulla STESSA scala e su un asse specchiato, non su due
+ * grafici affiancati: "chi corre" e "chi riceve" sono due direzioni dello
+ * stesso attacco, e un RB che prende 6 palloni per aria si vede subito che ne
+ * porta anche 17 per terra. Con due classifiche separate quel legame sparisce.
+ *
+ * PER GARA, non in totale: chi ha saltato mezza stagione avrebbe la barra
+ * corta per assenza, non perché la squadra lo cerchi di meno. Le quote in %
+ * (tooltip) restano quelle nflverse, calcolate sulle sue sole gare.
+ *
+ * Sotto ogni nome la quota di snap: distingue il titolare servito poco dalla
+ * riserva che tocca il pallone quasi a ogni presenza in campo.
+ */
+const TS_TOUCH_ROWS = 12;   // oltre, la coda è rumore: chi resta fuori lo dice la nota
+
+/** Righe pronte per i due grafici dei tocchi: chi ha almeno mezzo pallone a gara. */
+function _tsTouchRows(usage) {
+    return (usage || [])
+        .filter(p => (p.gp || 0) >= 1)
+        .map(p => ({
+            name: p.name || '', pos: p.pos || '', gp: p.gp || 0,
+            tgt: +(p.tgtPerGame || 0), car: +(p.carriesPerGame || 0),
+            tgtShare: p.targetShare, rushShare: p.rushShare,
+            snap: p.snapPct, fpg: p.fpgLeague,
+        }))
+        .map(r => ({ ...r, tot: r.tgt + r.car }))
+        .filter(r => r.tot >= 0.5)
+        .sort((a, b) => b.tot - a.tot);
+}
+
+const _TS_SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+const _tsLast = (n) => {
+    const w = (n || '').trim().split(/\s+/);
+    let i = w.length - 1;
+    while (i > 0 && _TS_SUFFIX.test(w[i])) i--;   // "Michael Penix Jr." → Penix, non Jr.
+    return w[i] || '';
+};
+const _tsN1 = (v) => (Math.round(v * 10) / 10).toFixed(1);
+
+/** Tornado: corse (sinistra) e target (destra) per gara, una riga per giocatore. */
+function _tsTouchSplit(rows) {
+    if (rows.length < 3) return '';
+    const list = rows.slice(0, TS_TOUCH_ROWS);
+
+    const W = 680, COL = 152, PAD = 16, HEAD = 34, ROW = 33, FOOT = 26;
+    const midL = (W - COL) / 2, midR = midL + COL;
+    const plotW = midL - PAD;
+    const H = HEAD + list.length * ROW + FOOT;
+    const max = Math.max(...list.map(r => Math.max(r.tgt, r.car)), 1);
+    const ticks = _tsTicks(0, max);
+    // la scala è il MASSIMO VERO, non l'ultimo tick: _tsTicks si ferma sotto il
+    // massimo quando questo non cade tondo, e la barra più lunga usciva dal
+    // riquadro (KC 2026). I tick restano dove sono, come griglia.
+    const xMax = Math.max(max, ticks[ticks.length - 1] || 0) || 1;
+    const lenOf = (v) => (v / xMax) * plotW;
+
+    // griglia specchiata: stesso passo a destra e a sinistra, così le due metà
+    // si misurano a occhio l'una contro l'altra
+    const grid = ticks.filter(v => v > 0).map(v => {
+        const d = lenOf(v);
+        return `<line x1="${(midL - d).toFixed(1)}" y1="${HEAD - 8}" x2="${(midL - d).toFixed(1)}" y2="${H - FOOT}" class="ts-tsp-grid"/>
+            <line x1="${(midR + d).toFixed(1)}" y1="${HEAD - 8}" x2="${(midR + d).toFixed(1)}" y2="${H - FOOT}" class="ts-tsp-grid"/>
+            <text x="${(midL - d).toFixed(1)}" y="${H - 8}" class="ts-tick" text-anchor="middle">${_tsN1(v)}</text>
+            <text x="${(midR + d).toFixed(1)}" y="${H - 8}" class="ts-tick" text-anchor="middle">${_tsN1(v)}</text>`;
+    }).join('');
+
+    const body = list.map((r, i) => {
+        const yc = HEAD + i * ROW + ROW / 2;
+        const yb = yc - 13;                       // barra alta 11, un filo sopra il nome
+        const carLen = lenOf(r.car), tgtLen = lenOf(r.tgt);
+        const pos = TS_POS_COLOR[r.pos] || 'var(--text-muted)';
+        const tipCar = `${esc(r.name)} — ${_tsN1(r.car)} carries/game${r.rushShare != null ? ` · ${_tsPct(r.rushShare)} of the team's carries` : ''} · ${Math.round(r.car * r.gp)} in ${r.gp} games`;
+        const tipTgt = `${esc(r.name)} — ${_tsN1(r.tgt)} targets/game${r.tgtShare != null ? ` · ${_tsPct(r.tgtShare)} of the team's targets` : ''} · ${Math.round(r.tgt * r.gp)} in ${r.gp} games`;
+        const snap = r.snap != null ? `
+            <rect x="${(midL + COL / 2 - 26).toFixed(1)}" y="${(yc + 6).toFixed(1)}" width="52" height="4" rx="2" class="ts-tsp-snap-bg"/>
+            <rect x="${(midL + COL / 2 - 26).toFixed(1)}" y="${(yc + 6).toFixed(1)}" width="${(52 * Math.min(1, r.snap)).toFixed(1)}" height="4" rx="2" class="ts-tsp-snap"/>
+            <text x="${(midL + COL / 2 + 30).toFixed(1)}" y="${(yc + 10).toFixed(1)}" class="ts-tsp-snaplbl">${Math.round(r.snap * 100)}%</text>` : '';
+        return `<g>
+            ${r.car > 0 ? `<rect x="${(midL - carLen).toFixed(1)}" y="${yb}" width="${carLen.toFixed(1)}" height="11" rx="2" class="ts-tsp-bar ts-tsp-bar--car"><title>${tipCar}</title></rect>
+                <text x="${(midL - carLen - 5).toFixed(1)}" y="${(yb + 9).toFixed(1)}" class="ts-tsp-val" text-anchor="end">${_tsN1(r.car)}</text>` : ''}
+            ${r.tgt > 0 ? `<rect x="${midR}" y="${yb}" width="${tgtLen.toFixed(1)}" height="11" rx="2" class="ts-tsp-bar ts-tsp-bar--tgt"><title>${tipTgt}</title></rect>
+                <text x="${(midR + tgtLen + 5).toFixed(1)}" y="${(yb + 9).toFixed(1)}" class="ts-tsp-val" text-anchor="start">${_tsN1(r.tgt)}</text>` : ''}
+            <text x="${(midL + COL / 2).toFixed(1)}" y="${(yc + 1).toFixed(1)}" class="ts-tsp-name" text-anchor="middle" dy="-3"><tspan class="ts-tsp-pos" fill="${pos}">${esc(r.pos)}</tspan> ${esc(_tsLast(r.name))}<title>${esc(r.name)} (${esc(r.pos)}) — ${_tsN1(r.tot)} touches/game${r.snap != null ? ` · ${Math.round(r.snap * 100)}% of snaps` : ''}</title></text>
+            ${snap}
+        </g>`;
+    }).join('');
+
+    return `<div class="ts-chart ts-wide-wrap"><svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Carries and targets per game by player">
+        ${grid}
+        <text x="${(midL - 4).toFixed(1)}" y="16" class="ts-tsp-head" text-anchor="end">← CARRIES / GAME</text>
+        <text x="${(midR + 4).toFixed(1)}" y="16" class="ts-tsp-head" text-anchor="start">TARGETS / GAME →</text>
+        <text x="${(midL + COL / 2).toFixed(1)}" y="16" class="ts-tsp-head ts-tsp-head--mid" text-anchor="middle">SNAPS</text>
+        <line x1="${midL}" y1="${HEAD - 8}" x2="${midL}" y2="${H - FOOT}" class="ts-tsp-axis"/>
+        <line x1="${midR}" y1="${HEAD - 8}" x2="${midR}" y2="${H - FOOT}" class="ts-tsp-axis"/>
+        ${body}
+    </svg></div>`;
+}
+
+/* ── La vista del Live, sulla stagione ───────────────────────────────
+ *
+ * Copia dichiarata del "dentro la partita" di live.js (`usoRow`/`usoBloccoHTML`):
+ * stesse classi `live-uso-*`, stesso impaginato — barra proporzionale al
+ * migliore della squadra, porzione chiara = quanto ha concretizzato, voci
+ * numeriche incolonnate a destra. Là i numeri sono quelli di UNA partita in
+ * corso, qui i totali di una stagione: la forma è la stessa apposta, così chi
+ * la conosce dal Live non deve reimpararla.
+ *
+ * È una copia, non uno spostamento: il Live resta dov'è e non importa nulla da
+ * qui. Se un giorno le due viste devono restare identite per forza, il posto
+ * dove unificarle è js/ui/, non l'una dentro l'altra (le fonti dati sono
+ * diverse: tabellino ESPN là, adv_players nflverse qui).
+ */
+const _tsShort = (n) => {
+    const w = (n || '').trim().split(/\s+/);
+    return w.length > 1 ? `${w[0][0]}. ${_tsLast(n)}` : (n || '');
+};
+const _usoStat = (v, etichetta) => `<span class="live-uso-stat${v ? '' : ' is-zero'}"><b>${v || 0}</b> ${etichetta}</span>`;
+
+/** Una riga: barra proporzionale al massimo di squadra, come nel Live. */
+function _tsUsoRow(nome, valore, massimo, voci, punti, pieno = 0) {
+    const pct = massimo > 0 ? Math.round((valore / massimo) * 100) : 0;
+    const dentro = valore > 0 ? Math.round((pieno / valore) * 100) : 0;
+    return `
+    <div class="live-uso-row">
+        <span class="live-uso-nome">${esc(_tsShort(nome))}</span>
+        <span class="live-uso-bar" style="--w:${pct}%">
+            <span class="live-uso-fill" style="width:${pct}%">
+                ${pieno ? `<i class="live-uso-done" style="width:${dentro}%"></i>` : ''}
+            </span>
+        </span>
+        <span class="live-uso-val">${voci.map(([v, l]) => _usoStat(v, l)).join('')}</span>
+        <span class="live-uso-pts">${punti == null ? '–' : punti}</span>
+    </div>`;
+}
+
+const _tsUsoBlocco = (titolo, righe) => righe ? `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${righe}</div>` : '';
+
+/** Blocchi uso stagionali: bersagli e prese, portate, passaggi. */
+function _tsUsoBlocks(usage) {
+    const tot = (p, k) => Math.round(+(p[k] || 0) * (p.gp || 0));
+    const pti = (p) => p.fpgLeague != null ? (+p.fpgLeague).toFixed(1) : null;
+    const all = (usage || []).filter(p => (p.gp || 0) >= 1);
+
+    const ric = all.filter(p => tot(p, 'tgtPerGame') >= 3)
+        .sort((a, b) => tot(b, 'tgtPerGame') - tot(a, 'tgtPerGame')).slice(0, 8);
+    const maxT = ric.length ? tot(ric[0], 'tgtPerGame') : 0;
+    const righeRic = ric.map(p => {
+        const t = tot(p, 'tgtPerGame');
+        const rec = p.catchRate != null ? Math.round(t * p.catchRate) : 0;
+        const yd = p.ydsPerTgt != null ? Math.round(t * p.ydsPerTgt) : 0;
+        return _tsUsoRow(p.name, t, maxT, [[t, 'tgt'], [rec, 'rec'], [yd, 'yd']], pti(p), rec);
+    }).join('');
+
+    const cor = all.filter(p => tot(p, 'carriesPerGame') >= 3)
+        .sort((a, b) => tot(b, 'carriesPerGame') - tot(a, 'carriesPerGame')).slice(0, 6);
+    const maxC = cor.length ? tot(cor[0], 'carriesPerGame') : 0;
+    const righeCor = cor.map(p => {
+        const c = tot(p, 'carriesPerGame');
+        const yd = p.ydsPerCarry != null ? Math.round(c * p.ydsPerCarry) : 0;
+        return _tsUsoRow(p.name, c, maxC, [[c, 'car'], [yd, 'yd']], pti(p));
+    }).join('');
+
+    const qb = all.filter(p => (p.passYd || 0) > 0).sort((a, b) => (b.passYd || 0) - (a.passYd || 0)).slice(0, 2);
+    const maxY = qb.length ? (qb[0].passYd || 0) : 0;
+    const righeQb = qb.map(p => _tsUsoRow(p.name, p.passYd || 0, maxY,
+        [[Math.round(p.passYd || 0), 'yd'], [p.passTd || 0, 'TD']], pti(p))).join('');
+
+    if (!righeRic && !righeCor) return '';
+    return `${_tsUsoBlocco('Targets and catches', righeRic)}${_tsUsoBlocco('Carries', righeCor)}${_tsUsoBlocco('Passing', righeQb)}`;
+}
+
+/* ── L'anello delle quote: la stessa forma del "Why" in Projections ───
+ *
+ * Là dentro l'anello confronta UN giocatore col resto dell'attacco; qui la
+ * corona esterna è divisa fra TUTTI, che è la domanda di questa pagina: chi
+ * prende i palloni, in che ordine e con quanto stacco. Anello interno = aria
+ * contro terra, esterno = una fetta a testa dentro il suo reparto.
+ *
+ * LE FETTE SONO TOTALI DI STAGIONE (target/gara × gare), non le quote nflverse.
+ * `targetShare` è calcolata sulle sole gare del giocatore: quattro quote così
+ * non stanno dentro al 100% e l'anello non chiuderebbe. Col totale la torta
+ * torna per costruzione e risponde a "di tutti i palloni dell'anno, quanti ne
+ * ha visti lui" — che è come si legge un anello. La differenza si vede solo su
+ * chi ha saltato partite, ed è quella giusta: chi c'era di meno ha una fetta
+ * più piccola.
+ */
+/** "1 targets" no: singolare quando il numero è uno. */
+const _TS_SING = { targets: 'target', carries: 'carry', 'first downs': 'first down', drops: 'drop' };
+const _tsU = (n, unit) => `${fmt0(n)} ${n === 1 ? (_TS_SING[unit] || unit) : unit}`;
+
+/** Tooltip di una fetta: quota, resa e red zone su righe separate — in una
+ *  riga sola erano quindici numeri di fila e non si leggeva niente. */
+function _tsSliceTip(sl, b, share) {
+    const x = sl.x;
+    const chi = sl.rest ? esc(sl.name) : `${esc(sl.name)}${sl.pos ? ` (${esc(sl.pos)})` : ''}${sl.gp ? ` · ${sl.gp} game${sl.gp === 1 ? '' : 's'}` : ''}`;
+    const righe = [chi, `${_tsU(sl.v, b.unit)} — ${(share * 100).toFixed(1)}% of the team's ${b.unit}`];
+    if (x) {
+        if (b.key === 'tgt') {
+            righe.push([`${fmt0(x.rec)} caught`, `${fmt0(x.recYd)} yd`, `${fmt0(x.recTd)} TD`,
+                x.recFd ? _tsU(x.recFd, 'first downs') : '', x.drops ? _tsU(x.drops, 'drops') : ''].filter(Boolean).join(' · '));
+            if (x.rzTgt) righe.push(`Red zone: ${_tsU(x.rzTgt, 'targets')}${b.teamX?.rzTgt ? ` (${Math.round(x.rzTgt / b.teamX.rzTgt * 100)}% of the team's)` : ''}`);
+        } else {
+            righe.push([`${fmt0(x.rushYd)} yd`, `${fmt0(x.rushTd)} TD`,
+                sl.v ? `${(x.rushYd / sl.v).toFixed(1)} yd/carry` : '', x.rushFd ? _tsU(x.rushFd, 'first downs') : ''].filter(Boolean).join(' · '));
+            if (x.rzAtt) righe.push(`Red zone: ${_tsU(x.rzAtt, 'carries')}${b.teamX?.rzAtt ? ` (${Math.round(x.rzAtt / b.teamX.rzAtt * 100)}% of the team's)` : ''}`);
+        }
+    }
+    return righe.join('\n');
+}
+
+const TS_RING_SLICES = 7;   // per reparto; il resto finisce in "Others"
+
+function _tsShareRing(usage, abbr, stats) {
+    const tot = (p, k) => +(p[k] || 0) * (p.gp || 0);
+    const all = (usage || []).filter(p => (p.gp || 0) >= 1);
+    // Il dettaglio del tooltip viene da Sleeper (TD, red zone, primi down):
+    // nflverse dà uso ed efficienza ma non i TD né la red zone. Se il nome non
+    // aggancia, la fetta resta e il tooltip dice solo quota e volume.
+    const extraOf = (p) => {
+        const pos = (p.pos || '').toUpperCase();
+        const n = normName(p.name || '');
+        const senzaSuffisso = n.replace(/\s+(jr|sr|ii|iii|iv|v)\.?$/i, '');
+        const st = stats?.get?.(`${n}|${pos}`) || (senzaSuffisso !== n ? stats?.get?.(`${senzaSuffisso}|${pos}`) : null);
+        if (!st) return null;
+        return {
+            rec: st.rec ?? 0, recYd: st.recYd ?? 0, recTd: st.recTd ?? 0, rzTgt: st.rzTgt ?? 0,
+            recFd: st.raw?.rec_fd ?? 0, drops: st.drops ?? 0,
+            rushYd: st.rushYd ?? 0, rushTd: st.rushTd ?? 0, rzAtt: st.raw?.rush_rz_att ?? 0,
+            rushFd: st.raw?.rush_fd ?? 0,
+        };
+    };
+    const riga = (p, k) => ({ name: p.name, pos: p.pos, gp: p.gp || 0, v: tot(p, k), x: extraOf(p) });
+    const branches = [
+        { key: 'tgt', label: 'Through the air', unit: 'targets', base: '#4f8cff',
+          list: all.filter(p => tot(p, 'tgtPerGame') >= 1).map(p => riga(p, 'tgtPerGame')) },
+        { key: 'car', label: 'On the ground', unit: 'carries', base: '#f5a524',
+          list: all.filter(p => tot(p, 'carriesPerGame') >= 1).map(p => riga(p, 'carriesPerGame')) },
+    ].map(b => {
+        const list = b.list.sort((x, y) => y.v - x.v);
+        const team = list.reduce((t, x) => t + x.v, 0);
+        const head = list.slice(0, TS_RING_SLICES).filter(x => x.v >= 3);
+        const restV = list.slice(head.length).reduce((t, x) => t + x.v, 0);
+        const somma = (rows) => rows.reduce((a, r) => {
+            if (!r.x) return a;
+            for (const k of ['rec', 'recYd', 'recTd', 'rzTgt', 'recFd', 'drops', 'rushYd', 'rushTd', 'rzAtt', 'rushFd']) a[k] += r.x[k] || 0;
+            return a;
+        }, { rec: 0, recYd: 0, recTd: 0, rzTgt: 0, recFd: 0, drops: 0, rushYd: 0, rushTd: 0, rzAtt: 0, rushFd: 0 });
+        const teamX = somma(list);
+        const coda = list.slice(head.length);
+        const slices = (restV / (team || 1)) >= 0.01
+            ? [...head, { name: `Others (${coda.length})`, pos: '', v: restV, rest: true, x: somma(coda) }] : head;
+        return { ...b, list, team, teamX, slices };
+    }).filter(b => b.team > 0);
+    if (branches.length < 1) return '';
+
+    const grand = branches.reduce((t, b) => t + b.team, 0);
+    const W = 700, H = 440, cx = 350, cy = 218;
+    const rings = branches.length > 1 ? { in: [54, 80], out: [84, 116] } : { in: null, out: [58, 116] };
+
+    /* ── Terza corona: il lavoro vicino alla linea di meta ──────────────
+     * L'angolo è già preso dal volume, quindi il dato nuovo va sul RAGGIO:
+     * sopra ogni fetta cresce una barra radiale alta quanto i palloni presi in
+     * red zone, e sulla punta il numero di TD. Così il confronto è dentro lo
+     * stesso spicchio — chi ha una fetta grande e una barra corta muove palloni
+     * lontano dalla end zone, chi ha il contrario è l'uomo da goal line.
+     *
+     * La scala della barra è UNA SOLA per tutto l'anello (il massimo fra aria e
+     * terra): i palloni in red zone sono palloni, e due scale separate avrebbero
+     * fatto sembrare il terzo ricevitore pari al portatore titolare.
+     */
+    const RZ_BASE = 121, RZ_MAX = 34;
+    const rzOf = (sl, key) => sl.x ? (key === 'tgt' ? sl.x.rzTgt : sl.x.rzAtt) || 0 : 0;
+    const tdOf = (sl, key) => sl.x ? (key === 'tgt' ? sl.x.recTd : sl.x.rushTd) || 0 : 0;
+    const rzMax = Math.max(...branches.flatMap(b => b.slices.map(sl => rzOf(sl, b.key))), 0);
+
+    const parts = [], labels = [];
+    let angle = 0;
+    for (const b of branches) {
+        const sweep = b.team / grand * 360;
+        if (rings.in) {
+            const tx = b.teamX;
+            const bandTip = [`${b.label}: ${fmt0(b.team)} ${b.unit} (${Math.round(b.team / grand * 100)}% of the touches)`,
+                b.key === 'tgt'
+                    ? `${fmt0(tx.rec)} catches · ${fmt0(tx.recYd)} yd · ${fmt0(tx.recTd)} TD${tx.rzTgt ? ` · ${fmt0(tx.rzTgt)} red zone targets` : ''}`
+                    : `${fmt0(tx.rushYd)} yd · ${fmt0(tx.rushTd)} TD${tx.rzAtt ? ` · ${fmt0(tx.rzAtt)} red zone carries` : ''}`,
+            ].join('\n');
+            parts.push(donutSeg(cx, cy, rings.in[0], rings.in[1], angle, angle + sweep, `ts-ring-band ts-ring-band--${b.key}`, bandTip));
+            // etichetta dentro la fascia, come nell'anello di Projections
+            const pIn = donutPoint(cx, cy, (rings.in[0] + rings.in[1]) / 2, angle + sweep / 2);
+            labels.push(`<text x="${pIn.x.toFixed(1)}" y="${(pIn.y - 2).toFixed(1)}" class="ts-ring-band-lbl" text-anchor="middle">${b.key === 'tgt' ? 'AIR' : 'GROUND'}</text>
+                <text x="${pIn.x.toFixed(1)}" y="${(pIn.y + 11).toFixed(1)}" class="ts-ring-band-val" text-anchor="middle">${fmt0(b.team)}</text>`);
+        }
+        let a = angle;
+        b.slices.forEach((sl, i) => {
+            const sw = sl.v / grand * 360;
+            const share = sl.v / b.team;
+            // la fetta più grossa è la più piena: l'ordine si legge dal colore
+            // anche quando due spicchi sono quasi uguali
+            const op = sl.rest ? 0.22 : (0.95 - i * 0.09);
+            parts.push(donutSeg(cx, cy, rings.out[0], rings.out[1], a, a + sw, 'ts-ring-sl', _tsSliceTip(sl, b, share))
+                .replace('<path ', `<path fill="${b.base}" fill-opacity="${op.toFixed(2)}" `));
+            const rz = rzOf(sl, b.key), td = tdOf(sl, b.key);
+            if (rzMax > 0 && rz > 0) {
+                const h = Math.max(3, (rz / rzMax) * RZ_MAX);
+                // un filo di margine fra una barra e l'altra, così due spicchi
+                // contigui non si leggono come un blocco unico
+                const gap = Math.min(0.6, sw * 0.08);
+                parts.push(donutSeg(cx, cy, RZ_BASE, RZ_BASE + h, a + gap, a + sw - gap, 'ts-ring-rz',
+                    `${esc(sl.rest ? sl.name : _tsLast(sl.name))} — ${_tsU(rz, b.key === 'tgt' ? 'targets' : 'carries')} in the red zone${b.teamX ? ` (${Math.round(rz / ((b.key === 'tgt' ? b.teamX.rzTgt : b.teamX.rzAtt) || rz) * 100)}% of the team's)` : ''}${td ? ` · ${td} TD` : ''}`)
+                    .replace('<path ', `<path fill="${b.base}" fill-opacity="0.95" `));
+            }
+            if (td > 0 && sw >= 9) {
+                const pTd = donutPoint(cx, cy, RZ_BASE + (rzMax > 0 && rz > 0 ? Math.max(3, (rz / rzMax) * RZ_MAX) : 0) + 9, a + sw / 2);
+                labels.push(`<text x="${pTd.x.toFixed(1)}" y="${(pTd.y + 3.5).toFixed(1)}" class="ts-ring-td" text-anchor="middle">${td}<title>${esc(sl.rest ? sl.name : _tsLast(sl.name))} — ${td} ${b.key === 'tgt' ? 'receiving' : 'rushing'} TD</title></text>`);
+            }
+            if (sw >= 15) {
+                labels.push(donutLabel(cx, cy, RZ_BASE + RZ_MAX + 28, a + sw / 2,
+                    esc(sl.rest ? 'Others' : _tsLast(sl.name)), `${Math.round(share * 100)}%`, 'ts-ring-lbl', 'ts-ring-lbl-val'));
+            }
+            a += sw;
+        });
+        angle += sweep;
+    }
+
+    // al centro la divisione aria/terra: è la stessa domanda dell'anello
+    // interno, scritta in chiaro per chi non vuole stimare un angolo
+    const ROW = 38;
+    const top = cy - ((branches.length - 1) * ROW) / 2;
+    const centre = branches.map((b, i) => {
+        const y = top + i * ROW;
+        return `<text x="${cx}" y="${y.toFixed(1)}" class="ts-ring-num" text-anchor="middle">${Math.round(b.team / grand * 100)}%<title>${fmt0(b.team)} ${b.unit} out of ${fmt0(grand)} touches</title></text>
+            <text x="${cx}" y="${(y + 13).toFixed(1)}" class="ts-ring-lbl2" text-anchor="middle"><tspan class="ts-ring-dot" fill="${b.base}">●</tspan> ${b.unit}</text>`;
+    }).join('');
+
+    const legend = branches.map(b => b.slices.map((sl, i) => {
+        const op = sl.rest ? 0.22 : (0.95 - i * 0.09);
+        return `<span class="ts-leg"><i style="background:${b.base};opacity:${op.toFixed(2)}"></i>${esc(sl.rest ? sl.name : _tsLast(sl.name))} <b>${Math.round(sl.v / b.team * 100)}%</b></span>`;
+    }).join('')).join('<span class="ts-leg-sep"></span>');
+
+    return `<div class="ts-chart ts-ring-wrap">
+        <svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Share of the team's targets and carries by player">
+            ${parts.join('')}${labels.join('')}${centre}
+        </svg>
+        <div class="ts-ring-key">
+            <span class="ts-ring-key-item"><i class="ts-ring-key-rz"></i>outer bar = touches in the red zone${rzMax > 0 ? ` (tallest = ${fmt0(rzMax)})` : ''}</span>
+            <span class="ts-ring-key-item"><i class="ts-ring-key-td">7</i>number on the tip = touchdowns</span>
+        </div>
+        <div class="ts-legend ts-ring-legend">${legend}</div>
+    </div>`;
+}
+
+/* ── Palloni per snap ────────────────────────────────────────────────
+ *
+ * La domanda che il tornado da solo non risponde: quei palloni li prende
+ * perché è sempre in campo, o perché quando c'è lo cercano? X = quota di
+ * snap, Y = tocchi a gara. La retta è il ritmo MEDIO DELLA SQUADRA (tocchi
+ * totali / snap totali): sopra la retta chi rende più del suo minutaggio,
+ * sotto chi sta in campo senza vedere il pallone.
+ */
+function _tsSnapScatter(rows) {
+    const pts = rows.filter(r => r.snap != null && r.snap > 0.02);
+    if (pts.length < 4) return '';
+
+    const W = 640, H = 360, m = { l: 46, r: 16, t: 26, b: 36 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const xMaxRaw = Math.max(...pts.map(p => p.snap));
+    const xTicks = _tsTicks(0, Math.min(1, xMaxRaw * 1.1));
+    const xMax = Math.max(xTicks[xTicks.length - 1] || 0, xMaxRaw, 0.1);   // vedi _tsTouchSplit
+    const yMaxRaw = Math.max(...pts.map(p => p.tot));
+    const yTicks = _tsTicks(0, yMaxRaw * 1.12);
+    const yMax = Math.max(yTicks[yTicks.length - 1] || 0, yMaxRaw) || 1;
+    const X = v => m.l + (v / xMax) * pw;
+    const Y = v => m.t + (1 - v / yMax) * ph;
+    const rad = v => Math.max(4, Math.min(14, 3.5 + (v || 0) * 0.55));
+
+    const grid = yTicks.map(v => `
+        <line x1="${m.l}" y1="${Y(v).toFixed(1)}" x2="${m.l + pw}" y2="${Y(v).toFixed(1)}" stroke="var(--border-subtle)" stroke-width="1"/>
+        <text x="${m.l - 6}" y="${(Y(v) + 3).toFixed(1)}" class="ts-tick" text-anchor="end">${_tsN1(v)}</text>`).join('')
+        + xTicks.map(v => `<text x="${X(v).toFixed(1)}" y="${H - 14}" class="ts-tick" text-anchor="middle">${Math.round(v * 100)}%</text>`).join('');
+
+    // ritmo medio: pesato sui totali, non media delle medie — un giocatore da
+    // due presenze non deve contare quanto un titolare di sedici
+    const snapSum = pts.reduce((t, p) => t + p.snap, 0);
+    const totSum = pts.reduce((t, p) => t + p.tot, 0);
+    const slope = snapSum > 0 ? totSum / snapSum : 0;
+    const yAtMax = slope * xMax;
+    const xEnd = yAtMax > yMax ? (yMax / slope) : xMax;
+    const ray = slope > 0
+        ? `<line x1="${X(0)}" y1="${Y(0).toFixed(1)}" x2="${X(xEnd).toFixed(1)}" y2="${Y(Math.min(yAtMax, yMax)).toFixed(1)}" class="ts-guide"/>` : '';
+
+    const dots = pts.map(p => {
+        const c = TS_POS_COLOR[p.pos] || 'var(--text-muted)';
+        const perSnap = p.snap > 0 ? p.tot / p.snap : null;
+        const tip = `${esc(p.name)} (${esc(p.pos)}) — ${Math.round(p.snap * 100)}% of snaps · ${_tsN1(p.tot)} touches/game (${_tsN1(p.tgt)} tgt + ${_tsN1(p.car)} car)${perSnap != null ? ` · ${_tsN1(perSnap)} per full game of snaps` : ''}`;
+        return `<circle cx="${X(p.snap).toFixed(1)}" cy="${Y(p.tot).toFixed(1)}" r="${rad(p.fpg).toFixed(1)}" fill="${c}" fill-opacity="0.72" stroke="#000" stroke-width="1.5"><title>${tip}</title></circle>`;
+    }).join('');
+    // vicino al bordo destro l'etichetta passa a sinistra del pallino: i
+    // titolari stanno quasi sempre oltre l'85% di snap, cioè proprio lì
+    const labels = pts.slice(0, 5).map(p => {
+        const x = X(p.snap), r = rad(p.fpg), fuori = x > m.l + pw * 0.82;
+        return `<text x="${(fuori ? x - r - 4 : x + r + 3).toFixed(1)}" y="${(Y(p.tot) + 3).toFixed(1)}" class="ts-dotlbl" text-anchor="${fuori ? 'end' : 'start'}">${esc(_tsLast(p.name))}</text>`;
+    }).join('');
+
+    return `<div class="ts-chart ts-wide-wrap ts-wide-wrap--sc"><svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Touches per game against snap share">
+        ${grid}${ray}${dots}${labels}
+        <text x="${m.l + pw}" y="${m.t + ph + 30}" class="ts-axl" text-anchor="end">Snap share →</text>
+        <text x="${m.l - 38}" y="12" class="ts-axl" text-anchor="start">Touches/game ↑</text>
+    </svg></div>`;
+}
+
 /**
  * ANALISI · Target share dell'attacco. Da nflverse (adv_players): per ogni
  * ricevitore (WR/TE/RB) opportunità (target/air yards share, WOPR, tgt/gara),
@@ -992,7 +1447,7 @@ function _tsHeatmap(recs, pctl) {
  * a lettura automatica e tile, tre viste: scatter opportunità×efficienza, radar
  * dei top 3 e heatmap a percentili NFL (tutti i ricevitori × tutte le metriche).
  */
-function targetShareBlock(usage, teamRoster, leaguePool, abbr, year) {
+function targetShareBlock(usage, teamRoster, leaguePool, abbr, year, seasonStats) {
     const recs = (usage || [])
         .filter(p => ['WR', 'TE', 'RB'].includes(p.pos) && p.targetShare != null && p.targetShare > 0.01 && (p.gp || 0) >= 1)
         .sort((a, b) => (b.targetShare || 0) - (a.targetShare || 0));
@@ -1017,11 +1472,23 @@ function targetShareBlock(usage, teamRoster, leaguePool, abbr, year) {
         rbShare > 0.001 ? tile(_tsPct(rbShare), 'Targets to RBs') : '',
     ].filter(Boolean).join('');
 
-    const insight = `<b>${esc(alpha.name)}</b> is the primary target with <b>${_tsPct(alpha.targetShare)}</b> of the team's targets${alpha.tgtPerGame != null ? ` (${fmt1(alpha.tgtPerGame)}/game)` : ''}. The top three receivers absorb <b>${_tsPct(top3)}</b> of the targets: offense <b>${concentrated ? 'concentrated' : 'distributed'}</b>.${deep && deep !== alpha ? ` The deepest threat is <b>${esc(deep.name)}</b> (${_tsPct(deep.airYardsShare)} of the team's air yards).` : ''}${rbShare >= 0.15 ? ` Strong RB involvement in the passing game (<b>${_tsPct(rbShare)}</b> of the targets).` : ''}`;
+    // I due grafici dei tocchi partono da TUTTO l'uso della squadra, non da
+    // `recs`: là dentro ci vogliono target (filtro `targetShare > 0.01`), e un
+    // RB da sole corse o un QB che tiene palla resterebbero fuori proprio dal
+    // grafico che deve dire chi corre.
+    const touchRows = _tsTouchRows(usage);
+    const touchSplit = _tsTouchSplit(touchRows);
+    const snapScatter = _tsSnapScatter(touchRows);
+    const shareRing = _tsShareRing(usage, abbr, seasonStats);
+    const usoBlocks = _tsUsoBlocks(usage);
+    const runner = [...touchRows].sort((a, b) => b.car - a.car)[0];
+
+    const insight = `<b>${esc(alpha.name)}</b> is the primary target with <b>${_tsPct(alpha.targetShare)}</b> of the team's targets${alpha.tgtPerGame != null ? ` (${fmt1(alpha.tgtPerGame)}/game)` : ''}. The top three receivers absorb <b>${_tsPct(top3)}</b> of the targets: offense <b>${concentrated ? 'concentrated' : 'distributed'}</b>.${deep && deep !== alpha ? ` The deepest threat is <b>${esc(deep.name)}</b> (${_tsPct(deep.airYardsShare)} of the team's air yards).` : ''}${rbShare >= 0.15 ? ` Strong RB involvement in the passing game (<b>${_tsPct(rbShare)}</b> of the targets).` : ''}${runner && runner.car > 0 ? ` On the ground the ball goes to <b>${esc(runner.name)}</b>: ${fmt1(runner.car)} carries per game${runner.rushShare != null ? `, <b>${_tsPct(runner.rushShare)}</b> of the team's carries` : ''}${runner.snap != null ? `, on the field for ${Math.round(runner.snap * 100)}% of the snaps` : ''}.` : ''}`;
 
     const scatter = _tsScatter(recs, median);
     const radar = _tsRadar(recs.slice(0, 3), pctl);
     const heatmap = _tsHeatmap(recs, pctl);
+
 
     return `
     <section class="pm-block pp-block">
@@ -1040,6 +1507,34 @@ function targetShareBlock(usage, teamRoster, leaguePool, abbr, year) {
                 <p class="pm-note">Multi-metric comparison of the three most-targeted receivers: each axis is the NFL percentile (farther from center = better).</p>
             </div>` : ''}
         </div>
+        ${touchSplit ? `<div class="ts-charts ts-charts-1">
+            <div class="ts-card">
+                <h3 class="pp-cat-title">Who gets the ball — carries vs targets</h3>
+                ${touchSplit}
+                <p class="pm-note">One row per player, sorted by total touches per game. Left = carries, right = targets, <b>same scale on both sides</b>: bar length is comparable across the axis. The bar under each name is his share of the team's offensive snaps. Hover for the season totals and the share of the team's carries/targets${touchRows.length > TS_TOUCH_ROWS ? `. Showing the top ${TS_TOUCH_ROWS} of ${touchRows.length} players with at least 0.5 touches per game` : ''}.</p>
+            </div>
+        </div>` : ''}
+        ${snapScatter ? `<div class="ts-charts ts-charts-1">
+            <div class="ts-card">
+                <h3 class="pp-cat-title">Touches per snap played</h3>
+                ${snapScatter}
+                <p class="pm-note">X = share of offensive snaps, Y = touches per game (targets + carries), size = league points/game, color = position (<span style="color:${TS_POS_COLOR.WR}">WR</span>/<span style="color:${TS_POS_COLOR.TE}">TE</span>/<span style="color:${TS_POS_COLOR.RB}">RB</span>/<span style="color:${TS_POS_COLOR.QB}">QB</span>). The dashed line is the team's own rate — touches per unit of snap share. Above it: fed more than his playing time suggests. Below it: on the field without seeing the ball.</p>
+            </div>
+        </div>` : ''}
+        ${shareRing ? `<div class="ts-charts ts-charts-1">
+            <div class="ts-card">
+                <h3 class="pp-cat-title">Share of the ball — one slice per player</h3>
+                ${shareRing}
+                <p class="pm-note">Inner ring: how the offense splits between air and ground. Outer ring: one slice per player inside his own half — slice size is his share of the team's targets (or carries), darkest = most. Slices are <b>season totals</b>, so a player who missed games gets a smaller slice; the target share % elsewhere on this page is computed over his games only. Top ${TS_RING_SLICES} per side, the rest grouped as "Others". Outside them a third ring: over each slice a radial bar as tall as his touches inside the red zone (one shared scale for air and ground), with his touchdowns on the tip &mdash; a big slice with a short bar moves the ball far from the end zone, the opposite is the goal-line man. <b>Hover</b> for yards, first downs and the full red-zone share, with his share of the team&rsquo;s red-zone targets or carries &mdash; those come from Sleeper season stats, which nflverse does not carry.</p>
+            </div>
+        </div>` : ''}
+        ${usoBlocks ? `<div class="ts-charts ts-charts-1">
+            <div class="ts-card">
+                <h3 class="pp-cat-title">Inside the offense — the Live view, over the season</h3>
+                <div class="ts-uso">${usoBlocks}</div>
+                <p class="pm-note">Same layout as the in-game view in Live, with season totals instead of one game's. The bar is proportional to the team leader; on the targets rows the brighter part is what he actually caught (receptions over targets). The number on the right is league points per game. Players with fewer than 3 targets (or carries) in the season are left out.</p>
+            </div>
+        </div>` : ''}
         <details class="pp-recap-ids" style="margin-top:14px">
             <summary>Percentile heatmap — all receivers × metrics (${recs.length})</summary>
             <div style="margin-top:10px">

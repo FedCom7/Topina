@@ -22,6 +22,41 @@
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const num = (v) => Number.parseFloat(v) || 0;
 
+/* ── Ciambella / sunburst ─────────────────────────────────────────────
+ * Geometria pura: le classi arrivano da fuori, così la stessa primitiva serve
+ * l'anello delle quote in Projections e quello della pagina squadra NFL senza
+ * che i due divergano. Stavano dentro projections.js come funzioni locali.
+ */
+
+/** Punto sul cerchio: 0° = ore 12, in senso orario. */
+export function donutPoint(cx, cy, r, deg) {
+    const rad = (deg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+/** Settore di corona circolare (donut segment) da startDeg a endDeg. */
+export function donutSeg(cx, cy, rIn, rOut, startDeg, endDeg, cls, title) {
+    if (endDeg - startDeg <= 0.05) return '';
+    // 359.99 e non 360: un arco che torna al punto di partenza non viene reso
+    const end = Math.min(endDeg, startDeg + 359.99);
+    const large = end - startDeg > 180 ? 1 : 0;
+    const a = donutPoint(cx, cy, rOut, startDeg), b = donutPoint(cx, cy, rOut, end);
+    const c = donutPoint(cx, cy, rIn, end), d = donutPoint(cx, cy, rIn, startDeg);
+    const p = (v) => v.toFixed(2);
+    return `<path class="${cls}" d="M ${p(a.x)} ${p(a.y)} A ${rOut} ${rOut} 0 ${large} 1 ${p(b.x)} ${p(b.y)} L ${p(c.x)} ${p(c.y)} A ${rIn} ${rIn} 0 ${large} 0 ${p(d.x)} ${p(d.y)} Z"><title>${title}</title></path>`;
+}
+
+/** Etichetta diretta fuori dall'anello: nome sopra, valore in grassetto sotto. */
+export function donutLabel(cx, cy, r, deg, name, value, cls = '', valCls = '') {
+    const p = donutPoint(cx, cy, r, deg);
+    const right = p.x >= cx;
+    const anchor = right ? 'start' : 'end';
+    const x = (p.x + (right ? 4 : -4)).toFixed(1);
+    return `
+    <text x="${x}" y="${(p.y - 3).toFixed(1)}" class="${cls}" text-anchor="${anchor}">${name}</text>
+    <text x="${x}" y="${(p.y + 9).toFixed(1)}" class="${valCls}" text-anchor="${anchor}">${value}</text>`;
+}
+
 /** Tick "belli" (1, 2, 5 × 10^n) che coprono l'intervallo. */
 export function niceTicks(min, max, count = 4) {
     const span = max - min || 1;

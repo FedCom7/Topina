@@ -3,8 +3,8 @@
  * Year selector + Round filter → draft pick cards
  */
 import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
+import { TEAM_KEYS } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=713';
 import { db } from '../firebase-config.js?v=3';

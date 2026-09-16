@@ -1141,7 +1141,7 @@ function niceTicks(min, max, count = 4) {
  * Linea singola su asse x categoriale (una label per punto: anni o settimane).
  * points: [{ x, y, gp?, projected? }]. Il tratto verso un punto `projected`
  * è tratteggiato — stesso linguaggio delle proiezioni già usato altrove nel
- * sito (dgt-alt-line in draftgrade-team.js).
+ * sito (dgt-alt-line, css/main.css, usata dalla curva di mercato in charts.js).
  */
 export function buildTrendChart(points, color, chartId, unit = 'pt/gara') {
     const vals = points.map(p => p.y).filter(v => v != null);

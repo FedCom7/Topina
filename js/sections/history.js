@@ -7,8 +7,8 @@
  *  - Dynamic season recap narratives
  */
 import { fetchFantasyData, processStandings, processPlayoffStandings, getSuperBowlMatchup, getSeasonConfig, displayName, SEASONS } from '../data.js?v=580';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
 
 let loaded = false;
 

@@ -9,7 +9,7 @@ import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
 } from '../data.js?v=547';
-import { TEAM_KEYS } from './team-config.js?v=533';
+import { TEAM_KEYS } from './team-config.js?v=534';
 import { FLEX_ELIGIBLE } from './league-rules.js?v=528';
 
 // nome raw Firebase → chiave team ('capi' | 'lasers' | 'oscurus' | 'sommo')

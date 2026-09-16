@@ -12,8 +12,9 @@
  *     è stato preso da Sommo fra le due. È una ricostruzione, e la pagina lo
  *     dice: la settimana c'è, il giorno no.
  *
- * Si usa ESPN quando risponde con qualcosa, altrimenti la ricostruzione. Mai
- * le due insieme: sarebbero le stesse mosse contate due volte.
+ * Le due fonti (transazioni ESPN dal 2026, ricostruzione dalle rose Firebase
+ * per prima) e la scelta fra loro stanno in `js/data/waiver-moves.js`: da lì
+ * le legge anche la pagina squadra. Qui resta il disegno.
  *
  * Cosa NON si può usare: il feed attività di ESPN
  * (`/communication/?view=kona_league_communication`), quello che sul sito
@@ -23,8 +24,9 @@
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
 import { TEAMS } from './team.js?v=709';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from '../data/espn-fantasy.js?v=146';
-import { buildSeasonModel, posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=775';
+import { fantasyTeamName } from '../data/espn-fantasy.js?v=146';
+import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=1';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=776';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -78,82 +80,9 @@ const TIPI = {
 const chiaveDaNome = (nome) =>
     Object.values(TEAMS).find(t => t.name === nome)?.key || nome || null;
 
-/** Da una transazione ESPN alle righe da mostrare: una per giocatore mosso. */
-function righeDaEspn(tx, nomi) {
-    const tipo = TIPI[tx.type] || null;
-    if (!tipo || tipo === 'Draft') return [];
-    const quando = tx.proposedDate || tx.processDate || null;
-    return (tx.items || [])
-        .filter(it => it.type === 'ADD' || it.type === 'DROP')
-        .map(it => {
-            const p = nomi.get(String(it.playerId)) || {};
-            const squadraId = it.type === 'ADD' ? (it.toTeamId ?? tx.teamId) : (it.fromTeamId ?? tx.teamId);
-            return {
-                settimana: tx.scoringPeriodId ?? null,
-                data: quando,
-                verso: it.type === 'ADD' ? 'in' : 'out',
-                tipo,
-                // ESPN da' il suo teamId: qui dentro le squadre viaggiano
-                // sempre con la CHIAVE Topina, o logo e filtro non
-                // funzionerebbero sulle righe che arrivano da li'.
-                squadra: chiaveDaNome(fantasyTeamName(squadraId)),
-                nome: p.name || `#${it.playerId}`,
-                pos: p.pos || '',
-                nfl: p.nfl || '',
-                bid: tx.bidAmount || null,
-            };
-        });
-}
-
 /* ============================================================
    FONTE 2 — ricostruzione dalle rose settimanali
    ============================================================ */
-
-/**
- * Chi è entrato e chi è uscito, settimana per settimana.
- *
- * Il criterio è il cambio di proprietà fra due settimane consecutive in cui il
- * giocatore compare. La prima settimana della stagione non conta come mossa:
- * quella è la rosa del draft, e chiamarla "acquisto" avrebbe messo in lista
- * tutti i 60 giocatori draftati.
- */
-function righeDaRose(model) {
-    if (!model) return [];
-    const prima = Math.min(...Object.values(model.teamWeeks)
-        .flatMap(w => Object.keys(w).map(Number)).filter(Number.isFinite));
-    const fuori = [];
-
-    for (const rec of model.players.values()) {
-        const settimane = Object.keys(rec.weeks).map(Number).sort((a, b) => a - b);
-        let precedente = null, ultimaVista = null;
-        for (const w of settimane) {
-            const squadra = rec.weeks[w].teamKey;
-            const base = { nome: rec.name, pos: rec.position, nfl: rec.nflTeam, data: null, bid: null };
-            // Sparito per una o più giornate e ricomparso altrove: in mezzo è
-            // stato tagliato, e il taglio va segnato dove è successo.
-            if (precedente && ultimaVista != null && w > ultimaVista + 1) {
-                fuori.push({ ...base, settimana: ultimaVista + 1, verso: 'out', tipo: 'Drop', squadra: precedente });
-                precedente = null;
-            }
-            if (squadra !== precedente) {
-                if (precedente) {
-                    fuori.push({ ...base, settimana: w, verso: 'out', tipo: 'Move', squadra: precedente });
-                }
-                if (!(precedente === null && w === prima)) {
-                    fuori.push({ ...base, settimana: w, verso: 'in', tipo: precedente ? 'Move' : 'Pickup', squadra });
-                }
-                precedente = squadra;
-            }
-            ultimaVista = w;
-        }
-        // Uscito e mai più rientrato prima della fine: è un taglio anche questo.
-        if (precedente && ultimaVista != null && ultimaVista < model.lastWeek) {
-            fuori.push({ nome: rec.name, pos: rec.position, nfl: rec.nflTeam, data: null, bid: null,
-                settimana: ultimaVista + 1, verso: 'out', tipo: 'Drop', squadra: precedente });
-        }
-    }
-    return fuori;
-}
 
 /* ============================================================
    DISEGNO
@@ -183,17 +112,6 @@ function riga(m) {
     </div>`;
 }
 
-/** Più recente in alto: la settimana scende, e a parità l'ingresso prima dell'uscita. */
-function ordina(lista) {
-    return [...lista].sort((a, b) => {
-        if (a.data && b.data && a.data !== b.data) return (Number(b.data) || 0) - (Number(a.data) || 0);
-        const sa = a.settimana ?? -1, sb = b.settimana ?? -1;
-        if (sa !== sb) return sb - sa;
-        if (a.verso !== b.verso) return a.verso === 'in' ? -1 : 1;
-        return String(a.nome).localeCompare(String(b.nome));
-    });
-}
-
 let stato = null;   // { mosse, fonte }
 
 async function load() {
@@ -202,22 +120,9 @@ async function load() {
     wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading moves...</p></div>`;
     const anno = currentYear;
 
-    // ESPN prima: se ha le transazioni vere sono meglio di qualunque
-    // ricostruzione, perché portano il giorno e il tipo dichiarato.
-    let mosse = [], fonte = 'rose';
-    try {
-        const tx = await fetchTransactions(anno);
-        if (tx.length) {
-            const nomi = await fetchPlayerNames(anno).catch(() => new Map());
-            mosse = tx.flatMap(t => righeDaEspn(t, nomi));
-            if (mosse.length) fonte = 'espn';
-        }
-    } catch { /* stagione non su ESPN, o ESPN muta: si ripiega sulle rose */ }
-
-    if (fonte !== 'espn') {
-        const model = await buildSeasonModel(anno).catch(() => null);
-        mosse = righeDaRose(model);
-    }
+    // La scelta della fonte e la ricostruzione stanno in data/waiver-moves.js:
+    // le usa anche la pagina squadra.
+    const { mosse, fonte } = await getWaiverMoves(anno);
     if (String(currentYear) !== String(anno)) return;   // anno cambiato nel frattempo
 
     stato = { mosse, fonte };

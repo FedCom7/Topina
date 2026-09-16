@@ -28,9 +28,9 @@ import {
     displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
-import { getLeagueData } from '../data/league-data.js?v=584';
+import { TEAM_KEYS } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
+import { getLeagueData } from '../data/league-data.js?v=585';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { weekPosRanks, recapArticle, diffMakers, statLine, playerComment, seasonAvg, teamStatTotals } from '../data/matchup-analysis.js?v=555';
@@ -59,8 +59,8 @@ import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, sbEdition, faceFor, ens
 import { getSeasonProjections } from '../data/projections.js?v=595';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
-import { evaluateLeague } from '../data/team-eval.js?v=594';
-import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=62';
+import { evaluateLeague } from '../data/team-eval.js?v=595';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=64';
 import { computeGrades, makeEvaluator } from './draftgrades.js?v=751';
 
 let initialized = false;

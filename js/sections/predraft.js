@@ -25,7 +25,7 @@
 
 import { buildPreDraft, buildRoundPlan, hydrateContext } from '../data/predraft.js?v=62';
 import { POSITION_COLORS, TAIL_COLORS, lastName, ordinal, ROUND_MAX } from '../data/draft-strategy.js?v=47';
-import { scatter, dumbbell } from '../ui/charts.js?v=7';
+import { scatter, dumbbell } from '../ui/charts.js?v=8';
 
 const POS_COLOR = { ...POSITION_COLORS, ...TAIL_COLORS };
 const OFF = ['QB', 'RB', 'WR', 'TE'];

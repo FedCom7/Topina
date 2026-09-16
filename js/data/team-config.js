@@ -33,6 +33,40 @@ export const TEAM_KEYS = {
     'Sommo': 'sommo'
 };
 
+/**
+ * I TRE COLORI DI OGNI SQUADRA — fonte unica.
+ *
+ * Prima ce n'era uno solo (`TEAMS[].color` in sections/team.js) più un secondo
+ * set schiarito COPIATO in due file (`CHART_COLORS` in analysis.js e
+ * `CHART_COLORS_BY_KEY` in stats.js), con gli stessi valori scritti due volte.
+ * I tre ruoli adesso sono dichiarati:
+ *
+ *  - `identity` — il colore della franchigia. È quello che finisce in
+ *    `--team-color` e tinge hero, sticker, card e bordi.
+ *  - `bright`   — lo stesso colore reso leggibile SU FONDO NERO. Per Capi e
+ *    Lasers coincide con l'identità; per Oscurus e Sommo no, ed è il motivo per
+ *    cui il secondo set esisteva: un bordeaux #800020 e un petrolio #1c4750 su
+ *    un grafico nero spariscono. Va usato per linee, punti e testo su scuro.
+ *  - `ink`      — la versione cupa, per i pieni grandi e i fondali: una
+ *    campitura larga del colore d'identità copre troppo.
+ *
+ * Cambiando un valore qui cambia ovunque. Le altre tinte (i colori dei
+ * grafici) NON vanno reintrodotte altrove: si legge da qui.
+ */
+export const TEAM_PALETTE = {
+    capi: { identity: '#FF6600', bright: '#FF6600', ink: '#7a3000' },
+    lasers: { identity: '#D4AF37', bright: '#D4AF37', ink: '#6b5416' },
+    oscurus: { identity: '#800020', bright: '#d4506a', ink: '#4d0013' },
+    sommo: { identity: '#1c4750', bright: '#4fa3b8', ink: '#0e2429' },
+};
+
+/** Le tre tinte come variabili CSS, da appendere a un contenitore. */
+export function teamPaletteVars(key) {
+    const p = TEAM_PALETTE[key];
+    if (!p) return '';
+    return `--team-color:${p.identity};--team-bright:${p.bright};--team-ink:${p.ink}`;
+}
+
 // Team logo paths
 export const TEAM_LOGOS = {
     'Capi dei Pianeti': 'Team Logo/team_capi_transparent.png',

@@ -1,0 +1,133 @@
+/**
+ * Le mosse di mercato di una stagione — chi è entrato e chi è uscito.
+ *
+ * Due fonti, e non sono intercambiabili:
+ *
+ *  1. **ESPN** (`fetchTransactions`) — le transazioni vere della lega: data e
+ *     ora esatta, tipo dichiarato (waiver, free agent, trade), chi prende e chi
+ *     cede. Esiste solo da quando la lega vive su ESPN, cioè dal 2026.
+ *  2. **Le rose di Firebase** — per tutte le stagioni precedenti le transazioni
+ *     non le ha registrate nessuno, ma il loro EFFETTO sì: un giocatore che
+ *     nella settimana 5 non era in nessuna rosa e nella 6 è in quella di Sommo
+ *     è stato preso da Sommo fra le due. È una ricostruzione, e chi la mostra
+ *     lo dice: la settimana c'è, il giorno no.
+ *
+ * Si usa ESPN quando risponde con qualcosa, altrimenti la ricostruzione. Mai
+ * le due insieme: sarebbero le stesse mosse contate due volte.
+ *
+ * Cosa NON si può usare: il feed attività di ESPN
+ * (`/communication/?view=kona_league_communication`), quello che sul sito
+ * mostra la cronologia in chiaro, risponde 401 senza i cookie di login.
+ *
+ * Il calcolo stava dentro `sections/waivers.js`. Vive qui da quando lo usa
+ * anche la pagina squadra: una sezione non può importarne un'altra senza
+ * rischiare un anello (waivers.js legge TEAMS da team.js, cioè dalla pagina
+ * squadra), e soprattutto la stessa ricostruzione fatta in due posti diverge.
+ */
+
+import { fetchTransactions, fetchPlayerNames } from './espn-fantasy.js?v=146';
+import { buildSeasonModel } from '../sections/analysis.js?v=776';
+
+/** Da una transazione ESPN alle righe da mostrare: una per giocatore mosso. */
+export function righeDaEspn(tx, nomi) {
+    const tipo = TIPI[tx.type] || null;
+    if (!tipo || tipo === 'Draft') return [];
+    const quando = tx.proposedDate || tx.processDate || null;
+    return (tx.items || [])
+        .filter(it => it.type === 'ADD' || it.type === 'DROP')
+        .map(it => {
+            const p = nomi.get(String(it.playerId)) || {};
+            const squadraId = it.type === 'ADD' ? (it.toTeamId ?? tx.teamId) : (it.fromTeamId ?? tx.teamId);
+            return {
+                settimana: tx.scoringPeriodId ?? null,
+                data: quando,
+                verso: it.type === 'ADD' ? 'in' : 'out',
+                tipo,
+                // ESPN da' il suo teamId: qui dentro le squadre viaggiano
+                // sempre con la CHIAVE Topina, o logo e filtro non
+                // funzionerebbero sulle righe che arrivano da li'.
+                squadra: chiaveDaNome(fantasyTeamName(squadraId)),
+                nome: p.name || `#${it.playerId}`,
+                pos: p.pos || '',
+                nfl: p.nfl || '',
+                bid: tx.bidAmount || null,
+            };
+        });
+}
+
+/**
+ * Chi è entrato e chi è uscito, settimana per settimana.
+ *
+ * Il criterio è il cambio di proprietà fra due settimane consecutive in cui il
+ * giocatore compare. La prima settimana della stagione non conta come mossa:
+ * quella è la rosa del draft, e chiamarla "acquisto" avrebbe messo in lista
+ * tutti i 60 giocatori draftati.
+ */
+export function righeDaRose(model) {
+    if (!model) return [];
+    const prima = Math.min(...Object.values(model.teamWeeks)
+        .flatMap(w => Object.keys(w).map(Number)).filter(Number.isFinite));
+    const fuori = [];
+
+    for (const rec of model.players.values()) {
+        const settimane = Object.keys(rec.weeks).map(Number).sort((a, b) => a - b);
+        let precedente = null, ultimaVista = null;
+        for (const w of settimane) {
+            const squadra = rec.weeks[w].teamKey;
+            const base = { nome: rec.name, pos: rec.position, nfl: rec.nflTeam, data: null, bid: null };
+            // Sparito per una o più giornate e ricomparso altrove: in mezzo è
+            // stato tagliato, e il taglio va segnato dove è successo.
+            if (precedente && ultimaVista != null && w > ultimaVista + 1) {
+                fuori.push({ ...base, settimana: ultimaVista + 1, verso: 'out', tipo: 'Drop', squadra: precedente });
+                precedente = null;
+            }
+            if (squadra !== precedente) {
+                if (precedente) {
+                    fuori.push({ ...base, settimana: w, verso: 'out', tipo: 'Move', squadra: precedente });
+                }
+                if (!(precedente === null && w === prima)) {
+                    fuori.push({ ...base, settimana: w, verso: 'in', tipo: precedente ? 'Move' : 'Pickup', squadra });
+                }
+                precedente = squadra;
+            }
+            ultimaVista = w;
+        }
+        // Uscito e mai più rientrato prima della fine: è un taglio anche questo.
+        if (precedente && ultimaVista != null && ultimaVista < model.lastWeek) {
+            fuori.push({ nome: rec.name, pos: rec.position, nfl: rec.nflTeam, data: null, bid: null,
+                settimana: ultimaVista + 1, verso: 'out', tipo: 'Drop', squadra: precedente });
+        }
+    }
+    return fuori;
+}
+
+/** Più recente in alto: la settimana scende, e a parità l'ingresso prima dell'uscita. */
+export function ordina(lista) {
+    return [...lista].sort((a, b) => {
+        if (a.data && b.data && a.data !== b.data) return (Number(b.data) || 0) - (Number(a.data) || 0);
+        const sa = a.settimana ?? -1, sb = b.settimana ?? -1;
+        if (sa !== sb) return sb - sa;
+        if (a.verso !== b.verso) return a.verso === 'in' ? -1 : 1;
+        return String(a.nome).localeCompare(String(b.nome));
+    });
+}
+
+/**
+ * Tutte le mosse di una stagione, già ordinate (più recente in alto).
+ * @returns {Promise<{mosse: Array, fonte: 'espn'|'rose'}>}
+ */
+export async function getWaiverMoves(year) {
+    // ESPN prima: se ha le transazioni vere sono meglio di qualunque
+    // ricostruzione, perché portano il giorno e il tipo dichiarato.
+    try {
+        const tx = await fetchTransactions(year);
+        if (tx.length) {
+            const nomi = await fetchPlayerNames(year).catch(() => new Map());
+            const mosse = tx.flatMap(t => righeDaEspn(t, nomi));
+            if (mosse.length) return { mosse: ordina(mosse), fonte: 'espn' };
+        }
+    } catch { /* stagione non su ESPN, o ESPN muta: si ripiega sulle rose */ }
+
+    const model = await buildSeasonModel(year).catch(() => null);
+    return { mosse: ordina(righeDaRose(model)), fonte: 'rose' };
+}

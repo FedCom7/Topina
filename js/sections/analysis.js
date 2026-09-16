@@ -6,11 +6,12 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
+import { TEAM_PALETTE } from '../data/team-config.js?v=534';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=709';
+import { TEAMS } from './team.js?v=717';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { dotPlot, dumbbell } from '../ui/charts.js?v=7';
+import { dotPlot, dumbbell } from '../ui/charts.js?v=8';
 import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1001';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
 
@@ -1280,7 +1281,12 @@ export function hydrateImages(root = null) {
 
 // Colori serie per i grafici: stessa identità dei team ma step schiariti
 // per restare leggibili sulla superficie nera (oscurus/sommo sono troppo scuri).
-export const CHART_COLORS = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', sommo: '#4fa3b8' };
+/* I colori dei grafici NON sono più scritti qui: sono il ruolo `bright` della
+   palette in js/data/team-config.js, cioè la versione leggibile su fondo nero
+   (per Oscurus e Sommo diversa dal colore d'identità). Erano copiati identici
+   anche in stats.js. */
+export const CHART_COLORS = Object.fromEntries(
+    Object.entries(TEAM_PALETTE).map(([k, p]) => [k, p.bright]));
 const ROLES = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
 /* ============================================================

@@ -14,8 +14,8 @@
  */
 
 import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
+import { TEAM_KEYS } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
 import { decorateTerms } from '../ui/glossary.js?v=4';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=595';
@@ -27,9 +27,9 @@ import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,
 } from './draftgrades.js?v=751';
-import { getContextScore, getDraftModel } from '../data/context-score.js?v=683';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=594';
-import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=62';
+import { getContextScore, getDraftModel, FIXED_WEIGHTS } from '../data/context-score.js?v=683';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=595';
+import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=64';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -183,32 +183,76 @@ async function attachTeamContext(g, year) {
         catch { p.ctx = null; }
     }));
     const withCtx = g.list.filter(p => p.ctx?.contextScore != null);
-    const sosAvg = withCtx.length ? Math.round(withCtx.reduce((s, p) => s + p.ctx.contextScore, 0) / withCtx.length) : null;
-    const subAvg = {};
+    const subAvg = {}, dimWho = {};
     for (const d of SOS_DIMS) {
-        const vals = withCtx.map(p => p.ctx.subScores?.[d]).filter(v => v != null);
-        subAvg[d] = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+        const rows = withCtx
+            .map(p => ({ name: p.player, pos: p.pos, nfl: p.nfl, v: p.ctx.subScores?.[d] }))
+            .filter(r => r.v != null)
+            .sort((a, b) => b.v - a.v);
+        subAvg[d] = rows.length ? Math.round(rows.reduce((a, r) => a + r.v, 0) / rows.length) : null;
+        // il perché di una dimensione è sempre un giocatore: chi la tiene su e
+        // chi la tira giù, con quanti la compongono (i rookie non hanno volume
+        // né efficienza, e la media di 3 non è la media di 8)
+        dimWho[d] = rows.length ? { best: rows[0], worst: rows[rows.length - 1], n: rows.length } : null;
     }
-    return { model, sosAvg, subAvg };
+    /* Il numero grande è la somma pesata DELLE BARRE, non la media dei SOS+
+       dei singoli. Prima erano due conti diversi — 67 in cima e 68,7 sommando
+       le otto barre — perché nel punteggio del giocatore una dimensione
+       mancante vale 50, mentre nella media per dimensione quel giocatore è
+       escluso. Chi provava a rifare il conto non lo ritrovava. */
+    let num = 0, den = 0;
+    for (const [d, w] of Object.entries(FIXED_WEIGHTS)) {
+        if (subAvg[d] == null) continue;
+        num += w * subAvg[d]; den += w;
+    }
+    const sosAvg = den ? +(num / den).toFixed(1) : null;
+    const playerAvg = withCtx.length ? +(withCtx.reduce((s, p) => s + p.ctx.contextScore, 0) / withCtx.length).toFixed(1) : null;
+    return { model, sosAvg, playerAvg, subAvg, dimWho, n: withCtx.length };
 }
+
+/** Cosa significa una dimensione, e quale fatto la spiega. */
+const SOS_MEANS = {
+    teamOffense: 'how good the NFL offense around him is',
+    volume: 'how much of his offense goes through him',
+    efficiency: 'what he does with the touches he gets',
+    schedule: 'how hard the defenses he faces are, for his position',
+    playoff: 'the same, but only in the league’s playoff weeks',
+    trend: 'which way his production has been going',
+    ageCurve: 'where he sits on the age curve for his position',
+    durability: 'games played over the last three seasons',
+};
 
 /** Card SOS+: profilo del roster (media sub-score attacco) + rischi flop. */
 function sosCard(ctx) {
     const { sos, g } = ctx;
     if (!sos || sos.sosAvg == null) return '';
-    const bars = SOS_DIMS.map(k => {
-        const v = sos.subAvg[k];
-        if (v == null) return `
-        <div class="dgt-sos-bar dgt-sos-bar--na">
-            <span class="dgt-sos-label">${SOS_LABELS[k]}</span>
-            <span class="dgt-sos-track"></span><span class="dgt-sos-val">n/d</span>
-        </div>`;
-        const cls = v >= 66 ? ' up' : v <= 40 ? ' down' : '';
+
+    const live = SOS_DIMS.filter(d => sos.subAvg[d] != null);
+    const den = live.reduce((s, d) => s + FIXED_WEIGHTS[d], 0) || 1;
+    const rows = live.map(d => ({
+        d, v: sos.subAvg[d], w: FIXED_WEIGHTS[d] / den,
+        contrib: (FIXED_WEIGHTS[d] / den) * (sos.subAvg[d] - 50),
+    })).sort((a, b) => b.contrib - a.contrib);
+
+    // stessa griglia del TSI: barra divergente dal 50, contributo, e sotto il
+    // giocatore che quella dimensione la porta e quello che la affossa
+    const bars = rows.map(({ d, v, contrib }) => {
+        const cls = contrib >= 0.5 ? ' up' : contrib <= -0.5 ? ' down' : '';
+        const who = sos.dimWho?.[d];
+        const why = who
+            ? `${SOS_MEANS[d]} · best <b>${who.best.name}</b> (${who.best.v})${who.worst && who.worst.name !== who.best.name ? ` · worst <b>${who.worst.name}</b> (${who.worst.v})` : ''}${who.n < sos.n ? ` · ${who.n} of ${sos.n} players have this` : ''}`
+            : SOS_MEANS[d];
+        const half = Math.min(Math.abs(v - 50), 50);
         return `
-        <div class="dgt-sos-bar${cls}">
-            <span class="dgt-sos-label">${SOS_LABELS[k]}</span>
-            <span class="dgt-sos-track"><span style="width:${v}%"></span></span>
-            <span class="dgt-sos-val">${v}</span>
+        <div class="dgt-comp${cls}">
+            <span class="dgt-comp-label">${SOS_LABELS[d]}<em>${Math.round(FIXED_WEIGHTS[d] * 100)}%</em></span>
+            <span class="dgt-comp-track">
+                <i class="dgt-comp-fill ${v >= 50 ? 'up' : 'down'}" style="${v >= 50 ? 'left:50%' : 'right:50%'};width:${half.toFixed(1)}%"></i>
+                <u class="dgt-comp-mid"></u>
+            </span>
+            <span class="dgt-comp-score">${v}</span>
+            <span class="dgt-comp-contrib">${contrib > 0 ? '+' : contrib < 0 ? '−' : ''}${Math.abs(contrib).toFixed(1)}</span>
+            <div class="dgt-comp-why">${why}</div>
         </div>`;
     }).join('');
 
@@ -222,67 +266,175 @@ function sosCard(ctx) {
             ${flopRisk.map(p => `<span class="dgt-chip dgt-chip--down">Flop risk: ${p.player} · ${Math.round(p.ctx.bustProb * 100)}%</span>`).join('')}
         </div>`;
 
+    const delta = sos.sosAvg - 50;
+    const best = rows[0], worst = rows[rows.length - 1];
+
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">Context beyond the projections · advanced NFL data (nflverse)</span>
-        <h2 class="mc-title">Player Context Score <small class="dgt-sos-big">avg SOS+ ${sos.sosAvg}</small></h2>
+        <h2 class="mc-title">Player Context Score <small class="dgt-sos-big">roster profile ${sos.sosAvg}</small></h2>
         ${explain(`Everything around the player that a point projection doesn't see, on a 0-100 scale built from the
             previous season's percentiles: the quality of his NFL offense, expected volume, efficiency, how hard his
             schedule is <i>for his position</i>, the playoff weeks, trend, age curve and durability. It doesn't touch
             the grade — it explains it, and it produces the flop probability.`)}
-        <p class="dgt-card-sub">Average offense profile across 8 dimensions (0-100, previous year's percentiles): players' NFL offense quality, expected volume, efficiency, schedule difficulty by position, playoff-week schedule, trend, age curve and durability. Fixed reference weights; the model confirms the value projections and adds flop probability.</p>
-        <div class="dgt-sos-bars">${bars}</div>
+        <p class="dgt-tsi-eq">The average offensive player scores <b>50</b> on each dimension. This roster's profile is
+            <b>${sos.sosAvg}</b>: <span class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}</span>,
+            the weighted sum of the ${rows.length} dimensions below over ${sos.n} offensive player${sos.n === 1 ? '' : 's'}.
+            ${best && worst && best !== worst ? `<b>${SOS_LABELS[best.d]}</b> carries it, <b>${SOS_LABELS[worst.d]}</b> ${worst.contrib < 0 ? 'drags it down' : 'adds the least'}.` : ''}
+            ${sos.playerAvg != null ? `Averaging the players' own SOS+ instead gives ${sos.playerAvg} — the two differ when a rookie has no history on some dimension.` : ''}</p>
+        <div class="dgt-comps">${bars}</div>
         ${notes}
+        <p class="dgt-card-sub">Percentiles against every NFL player at the same position in the previous season, so 50 is that league-wide median, not this fantasy league's. Reference weights are fixed; the model confirms the value projections and adds the flop probability. It never touches the grade.</p>
     </div>`;
 }
 
 // ─── Team Strength Index (valutazione della rosa) ────────────────
 
+const ofFour = (rank) => `<b>${ordinal(rank)}</b> of 4`;
+
+/**
+ * Il PERCHÉ di una componente del TSI, in una riga.
+ *
+ * È il pezzo che mancava: un sotto-punteggio è verificabile solo se accanto
+ * c'è il fatto che lo produce. "Positional advantage 42" non dice niente;
+ * "RB2 e TE ultimi di quattro" dice tutto, e chiunque può controllarlo
+ * guardando le altre tre squadre. I fatti arrivano già pronti da
+ * team-eval.js (g.tsiWhy): qui si scrivono solo le frasi.
+ */
+function tsiDriver(k, why, sub) {
+    const w = why?.[k];
+    if (!w) return '';
+    switch (k) {
+        case 'projection':
+            return `${fmt0(w.total)} projected pt across the whole roster · ${ofFour(w.rank)}${w.rank > 1 ? `, ${fmt0(w.leagueBest - w.total)} behind the best` : ' in the league'}`;
+        case 'starter':
+            return `${fmt0(w.total)} pt in the best starting nine · ${ofFour(w.rank)}${w.rank > 1 ? `, ${fmt0(w.leagueBest - w.total)} behind the best` : ' in the league'}`;
+        case 'posAdv': {
+            // qui il perché è slot per slot: la striscia dice dove sei forte e
+            // dove perdi, e i due slot peggiori si nominano per esteso
+            const strip = w.slots.map(s => `
+                <span class="dgt-slot dgt-slot--r${s.rank}" title="${s.player ? `${s.player} · ` : ''}${fmt0(s.value)} pt · ${ordinal(s.rank)} of 4">
+                    <i>${s.slot}</i><b>${s.rank}</b></span>`).join('');
+            const bad = w.slots.filter(s => s.rank >= 3).sort((a, b) => b.gapToBest - a.gapToBest).slice(0, 2);
+            const good = w.slots.filter(s => s.rank === 1);
+            const parts = [];
+            if (bad.length) parts.push(`losing at ${bad.map(s => `<b>${s.slot}</b> (${ordinal(s.rank)}, −${fmt0(s.gapToBest)} pt vs the best)`).join(' and ')}`);
+            if (good.length) parts.push(`best in the league at ${good.map(s => `<b>${s.slot}</b>`).join(', ')}`);
+            return `<span class="dgt-slots">${strip}</span>${parts.length ? `<span class="dgt-why-line">${parts.join(' · ')}</span>` : ''}`;
+        }
+        case 'vor':
+            return `${fmt0(w.total)} pt above the league replacement line · ${ofFour(w.rank)}`;
+        case 'bench':
+            return w.top.length
+                ? `best bench piece ${w.top.map(t => `<b>${t.name}</b> (${t.pos}, ${fmt0(t.value)} pt)`).join(', ')} · ${w.count} on the bench, each one counted 45% less than the one before`
+                : `nothing on the bench`;
+        case 'risk':
+            return `average bust risk of the starters <b>${w.teamRisk}/100</b>${w.worst?.length ? ` · riskiest ${w.worst.map(x => `<b>${x.name}</b> (${x.risk}${x.bust != null ? `, ${Math.round(x.bust * 100)}% flop` : ''})`).join(', ')}` : ''}`;
+        case 'balance': {
+            const POS_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+            const counts = POS_ORDER.filter(pos => w.counts[pos])
+                .map(pos => `${w.counts[pos]} ${pos}`).join(' · ');
+            const issues = w.issues.map(i => `<b>−${i.cost.toFixed(1)}</b> ${i.kind === 'short' ? `only ${i.n} ${i.pos} against a target of ${i.target}` : `${i.n} ${i.pos}, ${i.n - i.target} more than needed`}`);
+            if (w.sameTeam) issues.push(`<b>−${w.sameTeam.cost.toFixed(1)}</b> ${w.sameTeam.n} players from ${w.sameTeam.abbr}`);
+            return `${counts}${issues.length ? ` · ${issues.join(' · ')}` : ' · every position on target, no penalty'}`;
+        }
+        case 'context':
+            return w.best
+                ? `best NFL offense around him: <b>${w.best.name}</b> (${w.best.nfl || w.best.pos} ${w.best.score})${w.worst ? ` · worst: <b>${w.worst.name}</b> (${w.worst.nfl || w.worst.pos} ${w.worst.score})` : ''}`
+                : `no NFL context data for these starters`;
+        case 'bye':
+            if (!w.known) return `the NFL schedule for this season isn't available`;
+            return w.clashes.length
+                ? w.clashes.map(c => `<b>week ${c.week}</b>: ${c.names.join(' and ')} both out (<b>−${fmt0(c.cost)}</b>)`).join(' · ')
+                : `no two starters at the same position share a bye week`;
+        case 'stack':
+            return w.pairs.length
+                ? w.pairs.map(p => `<b>${p.qb}</b> throwing to ${p.mates.join(' and ')} (${p.nfl})`).join(' · ')
+                : `${w.qbs.length ? `<b>${w.qbs.map(q => q.name).join(', ')}</b> has no receiver of his own on the roster` : 'no starting QB'} — no stack, the neutral 50`;
+        case 'consistency':
+            return w.best
+                ? `steadiest <b>${w.best.name}</b> (${w.best.score})${w.worst ? ` · shakiest <b>${w.worst.name}</b> (${w.worst.score})` : ''} — games played and week-to-week swing`
+                : `no game logs for these starters`;
+        case 'ceiling':
+            return `${fmt0(w.total)} pt of ceiling for the same nine starters that project ${fmt0(w.starterValue)} · ${ofFour(w.rank)}`;
+        default:
+            return '';
+    }
+}
+
 /**
  * Card Team Strength: il TSI (0-100) e le sue componenti. Valuta la ROSA
  * (titolari, profondità, bilanciamento, scarsità, rischio, bye, stack,
  * contesto), non la somma delle pick. Indice di lettura, pesi di design.
+ *
+ * Tre scelte di lettura, tutte contro lo stesso difetto — «da dove esce
+ * questo numero?»:
+ *  1. la barra è DIVERGENTE dal 50 (roster medio), non piena da sinistra:
+ *     così "52" si vede che è nulla e "92" si vede che è tanto;
+ *  2. accanto c'è il CONTRIBUTO (peso × scarto dal 50), e la somma dei
+ *     dodici contributi è esattamente TSI − 50: il conto si chiude a schermo;
+ *  3. sotto ogni riga c'è il FATTO che l'ha prodotta (tsiDriver).
+ * L'ordine è per contributo: in cima cosa ti tiene su, in fondo cosa ti tira giù.
  */
 function teamStrengthCard(ctx) {
     const { g } = ctx;
     if (g.tsi == null) return '';
-    const order = Object.keys(TSI_WEIGHTS).sort((a, b) => TSI_WEIGHTS[b] - TSI_WEIGHTS[a]);
-    const bars = order.map(k => {
-        const v = g.tsiSub?.[k];
-        if (v == null) return `
-        <div class="dgt-sos-bar dgt-sos-bar--na">
-            <span class="dgt-sos-label">${TSI_LABELS[k]} <em>${Math.round(TSI_WEIGHTS[k] * 100)}%</em></span>
-            <span class="dgt-sos-track"></span><span class="dgt-sos-val">n/d</span>
-        </div>`;
-        const cls = v >= 60 ? ' up' : v <= 40 ? ' down' : '';
+
+    // peso effettivo: le componenti mancanti (es. bye senza calendario) sono
+    // escluse e i pesi rimanenti rinormalizzati — come fa il motore, se no i
+    // contributi non sommerebbero a TSI − 50
+    const live = Object.keys(TSI_WEIGHTS).filter(k => g.tsiSub?.[k] != null);
+    const den = live.reduce((s, k) => s + TSI_WEIGHTS[k], 0) || 1;
+    const rows = live.map(k => {
+        const v = g.tsiSub[k];
+        // il contributo si calcola sul valore NON arrotondato (tsiSubRaw), se
+        // no dodici arrotondamenti a intero spostano la somma di mezzo punto
+        const raw = g.tsiSubRaw?.[k] ?? v;
+        return { k, v, w: TSI_WEIGHTS[k] / den, contrib: (TSI_WEIGHTS[k] / den) * (raw - 50) };
+    }).sort((a, b) => b.contrib - a.contrib);
+
+    const missing = Object.keys(TSI_WEIGHTS).filter(k => g.tsiSub?.[k] == null);
+    const delta = g.tsi - 50;
+
+    const bar = (v) => {
+        // divergente: metà track a sinistra del 50, metà a destra
+        const half = Math.min(Math.abs(v - 50), 50) / 100 * 100;
+        return `<span class="dgt-comp-track">
+            <i class="dgt-comp-fill ${v >= 50 ? 'up' : 'down'}" style="${v >= 50 ? 'left:50%' : `right:50%`};width:${half.toFixed(1)}%"></i>
+            <u class="dgt-comp-mid"></u>
+        </span>`;
+    };
+
+    const comps = rows.map(({ k, v, contrib }) => {
+        const cls = contrib >= 0.4 ? ' up' : contrib <= -0.4 ? ' down' : '';
+        const why = tsiDriver(k, g.tsiWhy, v);
         return `
-        <div class="dgt-sos-bar${cls}">
-            <span class="dgt-sos-label">${TSI_LABELS[k]} <em>${Math.round(TSI_WEIGHTS[k] * 100)}%</em></span>
-            <span class="dgt-sos-track"><span style="width:${v}%"></span></span>
-            <span class="dgt-sos-val">${v}</span>
+        <div class="dgt-comp${cls}">
+            <span class="dgt-comp-label">${TSI_LABELS[k]}<em>${Math.round(TSI_WEIGHTS[k] * 100)}%</em></span>
+            ${bar(v)}
+            <span class="dgt-comp-score">${v}</span>
+            <span class="dgt-comp-contrib">${contrib > 0 ? '+' : contrib < 0 ? '−' : ''}${Math.abs(contrib).toFixed(1)}</span>
+            ${why ? `<div class="dgt-comp-why">${why}</div>` : ''}
         </div>`;
     }).join('');
 
-    const riskLevel = g.tsiRisk >= 60 ? 'high' : g.tsiRisk >= 40 ? 'medium' : 'low';
-    const notes = `
-        <div class="dgt-sos-notes">
-            <span class="dgt-chip">Starters: ${fmt0(g.starterValue)} projected pt</span>
-            <span class="dgt-chip dgt-chip--${g.tsiRisk >= 55 ? 'down' : 'up'}">Roster risk: ${riskLevel} (${g.tsiRisk}/100)</span>
-            ${g.tsiSub?.balance != null && g.tsiSub.balance <= 45 ? `<span class="dgt-chip dgt-chip--down">Unbalanced construction</span>` : ''}
-            ${g.tsiSub?.stack != null && g.tsiSub.stack >= 70 ? `<span class="dgt-chip dgt-chip--up">QB-receiver stack</span>` : ''}
-            ${g.byesKnown === false ? `<span class="dgt-chip">Bye weeks not available</span>` : ''}
-        </div>`;
+    const top = rows[0], bottom = rows[rows.length - 1];
 
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in">
         <span class="mc-kicker">How strong is the roster · roster evaluation</span>
-        <h2 class="mc-title">Team Strength Index <small class="dgt-sos-big dgt-tsi-big">TSI ${g.tsi}${g.tsiRank ? ` · ${g.tsiRank}${g.tsiRank === 1 ? 'st' : g.tsiRank === 2 ? 'nd' : g.tsiRank === 3 ? 'rd' : 'th'} in league` : ''}</small></h2>
-        ${explain(`A 0-100 read of the <b>roster</b>, not of the picks: 50 is the league average. It answers a
-            different question from the grade — not "did you draft well" but "how strong is what you now own" — and
-            for that reason it <b>never changes the grade</b>. Its weights are declared design choices.`)}
-        <p class="dgt-card-sub">A 0-100 index that evaluates the <b>roster</b>, not the sum of picks: starter strength, slot-by-slot positional advantage, scarcity (value above the 4-team league replacement level), bench depth, risk, balance, bye optimization, stacking and NFL offensive context. It's a read-only index (design weights, 50 ≈ league average) shown alongside the official grade, which <b>does not</b> change.</p>
-        <div class="dgt-sos-bars">${bars}</div>
-        ${notes}
+        <h2 class="mc-title">Team Strength Index <small class="dgt-sos-big dgt-tsi-big">TSI ${g.tsi}${g.tsiRank ? ` · ${ordinal(g.tsiRank)} in league` : ''}</small></h2>
+        ${explain(`A 0-100 read of the <b>roster</b>, not of the picks: 50 is an average roster in this league. It
+            answers a different question from the grade — not "did you draft well" but "how strong is what you now
+            own" — and for that reason it <b>never changes the grade</b>. Its weights are declared design choices.`)}
+        <p class="dgt-tsi-eq">An average roster scores <b>50</b>. This one is <b>${g.tsi}</b>:
+            <span class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}</span>,
+            and the ${rows.length} numbers below are where that comes from — each is its weight times its distance
+            from 50, and, rounding aside, they add up to that ${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}.
+            ${top && bottom && top !== bottom ? `<b>${TSI_LABELS[top.k]}</b> lifts it most, <b>${TSI_LABELS[bottom.k]}</b> ${bottom.contrib < 0 ? 'costs it most' : 'adds the least'}.` : ''}</p>
+        <div class="dgt-comps">${comps}</div>
+        ${missing.length ? `<p class="dgt-card-sub">Not measurable this season, and left out of the weighting: ${missing.map(k => TSI_LABELS[k]).join(', ')}.</p>` : ''}
+        <p class="dgt-card-sub">Scores are 0-100 with 50 = average: the relative ones (projection, starters, scarcity, bench, upside, positional advantage) compare the four teams of this league, the others (risk, construction, bye, stack, consistency, NFL context) are absolute. The index is read-only — design weights, and the official grade <b>does not</b> change.</p>
     </div>`;
 }
 
@@ -353,6 +505,8 @@ function render(section, ctx) {
 
     // i termini si marcano DOPO il disegno: lavorano sul testo, non sulle stringhe
     bindMetrics(section);
+    bindLadder(section);
+    bindSlices(section);
     decorateTerms(section);
     bindCurve(section.querySelector('#dgt-curve'));
     bindDraftScatterCard(section.querySelector('#dgt-scatter'), ctx);
@@ -366,54 +520,288 @@ function render(section, ctx) {
  * accanto: mai lettere, altrimenti tornerebbero a leggersi come una seconda
  * pagella in concorrenza col voto (il difetto che ha fatto ritirare v1 e v2).
  */
+/* ─── La scala del voto ──────────────────────────────────────────────
+   Il voto è una somma pesata di due cose, e finora quella somma era una
+   frase dentro un <details> chiuso. Qui è una figura sempre a schermo:
+
+     · la barra piena è il voto mentre si costruisce — primo segmento
+       talento × 0,6, secondo efficienza × 0,4, quindi la LUNGHEZZA di ogni
+       segmento È la moltiplicazione;
+     · sopra, le fasce delle lettere alle loro soglie vere (quantili di tutti
+       i draft dal 2019): dove finisce la barra si legge la lettera, e si vede
+       quanto manca a quella dopo — "perché B+ e non A−" smette di essere una
+       cosa da prendere per buona;
+     · sotto, le altre tre squadre: il "2° in lega" diventa una distanza.
+
+   Nessun numero da sommare a mente e nessun punteggio interno stampato: il
+   solo numero grande resta il voto (.grade), come da regola. */
+const LAD = { w: 860, h: 146, l: 14, r: 14 };
+
+/** Scudo per i `<title>` SVG: i nomi contengono apostrofi (Ja'Marr) e "&". */
+const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+/** I nove titolari con il loro VOR sopra il replacement, dal più pesante. */
+function starterRows(ctx) {
+    const { g, grades } = ctx;
+    if (!g.starters?.length) return [];
+    const repl = teamReplacement(grades);
+    return g.starters
+        .map(p => ({ p, vor: Math.max(0, (p.value || 0) - (repl[p.pos] || 0)) }))
+        .sort((a, b) => b.vor - a.vor);
+}
+
+function scoreLadder(ctx) {
+    const { dg, dgAll, team, teamKey } = ctx;
+    const thr = dgAll?.thresholds?.team;
+    if (!thr?.length) return '';
+    const c = dg.components;
+    const w = dgAll.weights || { talent: 0.6, efficiency: 0.4 };
+
+    /* Il dominio parte SEMPRE da zero, e non si discute: i due blocchi sono
+       lunghi «punteggio × peso», quindi la loro lunghezza ha senso solo se
+       l'origine è lo zero. Tagliando il fondo (com'era prima) un talento
+       basso finiva sotto il bordo sinistro e spariva — Capi dei Pianeti 2026,
+       talento 24/100 = 14.4 unità contro un dominio che partiva da 23:
+       blocco largo zero, e l'efficienza sembrava partire da sola.
+       A destra invece si taglia, che lì non c'è niente da misurare. */
+    const edges = thr.map(t => t[0]);
+    const others = Object.entries(dgAll.byKey || {}).filter(([k]) => k !== teamKey);
+    const allScores = [dg.score, ...others.map(([, t]) => t.score)];
+    const lo = 0;
+    const hi = Math.min(100, Math.max(...edges, ...allScores) + 8);
+    const plotW = LAD.w - LAD.l - LAD.r;
+    const X = (v) => LAD.l + ((v - lo) / (hi - lo)) * plotW;
+
+    // fasce: dal basso verso l'alto, ognuna dal suo bordo a quello successivo
+    const asc = [...thr].sort((a, b) => a[0] - b[0]);   // [[29.3,'D'], … [70.9,'A+']]
+    const bands = asc.map(([edge, letter], i) => {
+        const next = i + 1 < asc.length ? asc[i + 1][0] : hi;
+        return { letter, from: i === 0 ? lo : edge, to: Math.min(next, hi), mine: letter === dg.letter };
+    }).filter(b => b.to > lo);
+
+    const bandsSvg = bands.map((b, i) => {
+        const x0 = X(Math.max(b.from, lo)), x1 = X(b.to);
+        const wide = x1 - x0 >= 26;
+        return `
+        <rect x="${x0.toFixed(1)}" y="28" width="${Math.max(0, x1 - x0).toFixed(1)}" height="15"
+              class="dgt-lad-band${b.mine ? ' is-mine' : i === 0 ? ' open' : i % 2 ? ' alt' : ''}"/>
+        ${wide || b.mine ? `<text x="${(i === 0 ? x1 - 6 : (x0 + x1) / 2).toFixed(1)}" y="39"
+              class="dgt-lad-bandlab${b.mine ? ' is-mine' : ''}" text-anchor="${i === 0 ? 'end' : 'middle'}">${b.letter}</text>` : ''}`;
+    }).join('');
+
+    // la barra: due segmenti, e la lunghezza di ognuno è peso × punteggio
+    const tEnd = w.talent * c.talent, eEnd = tEnd + w.efficiency * c.efficiency;
+    const x0 = X(lo), xT = X(Math.max(tEnd, lo)), xE = X(Math.max(eEnd, lo));
+
+    /* Dentro ogni blocco, una fetta per giocatore.
+       L'efficienza è una media pesata di termini non negativi, quindi le fette
+       sono ESATTE: ognuna è (capitale × voto della pick) sul totale, e insieme
+       fanno il blocco. Il talento è una quota di lega, e la sua formula ha una
+       costante che non appartiene a nessun giocatore: lì le fette dividono il
+       blocco in proporzione al VOR di ciascun titolare — la composizione della
+       grandezza, non dei punti di voto. La didascalia lo dice. */
+    const slicesOf = (items, xa, xb) => {
+        const tot = items.reduce((t, i) => t + i.v, 0) || 1;
+        const width = Math.max(0, xb - xa);
+        let cur = xa;
+        return items.map((it, i) => {
+            const wpx = (it.v / tot) * width;
+            const x = cur; cur += wpx;
+            const gap = i === items.length - 1 ? 0 : wpx > 7 ? 2 : 0.6;  // stacco fra le fette, ridotto su quelle sottili
+            return `<rect x="${x.toFixed(1)}" y="52" width="${Math.max(0, wpx - gap).toFixed(1)}" height="26"
+                class="${it.cls} dgt-lad-slice" data-who="${esc(it.who)}" data-sub="${esc(it.sub)}"/>`;
+        }).join('');
+    };
+
+    const sRows = starterRows(ctx);
+    const sTot = sRows.reduce((t, r) => t + r.vor, 0) || 1;
+    const talentSlices = sRows.filter(r => r.vor > 0).map((r, i) => ({
+        v: r.vor, cls: `dgt-lad-talent${i % 2 ? ' alt' : ''}`,
+        who: r.p.player,
+        sub: `${r.p.pos} · ${fmt0(r.vor)} pt above replacement · ${Math.round(r.vor / sTot * 100)}% of the talent block`,
+    }));
+
+    const effPicks = (dg.picks || []).filter(r => r.capital != null);
+    const effDen = effPicks.reduce((t, r) => t + (r.capital + 1) * r.score, 0) || 1;
+    const effSlices = effPicks
+        .map((r, i) => ({
+            v: (r.capital + 1) * r.score, cls: `dgt-lad-eff${i % 2 ? ' alt' : ''}`, r,
+            who: r.player,
+            sub: `round ${r.round}, graded ${r.letter} · ${((r.capital + 1) * r.score / effDen * 100).toFixed(1)}% of the efficiency block`,
+        }))
+        .filter(x => x.v > 0);
+
+    const seg = (xa, xb, cls, label, slices) => {
+        const width = Math.max(0, xb - xa);
+        return `
+        <rect x="${xa.toFixed(1)}" y="52" width="${width.toFixed(1)}" height="26" class="${cls}"/>
+        ${slices?.length ? slicesOf(slices, xa, xb) : ''}
+        ${width >= 62 ? `<text x="${(xa + width / 2).toFixed(1)}" y="69" class="dgt-lad-seglab" text-anchor="middle">${label}</text>` : ''}`;
+    };
+
+    const clipId = `lad-clip-${ctx.year || ''}-${teamKey || ''}`;
+    const gradeCls = `dg-letter--${gradeBand(dg.letter)}`;
+    const anchor = xE > LAD.l + plotW * 0.72 ? 'end' : xE < LAD.l + plotW * 0.12 ? 'start' : 'middle';
+    const marker = `
+        <line x1="${xE.toFixed(1)}" y1="24" x2="${xE.toFixed(1)}" y2="90" class="dgt-lad-mark"/>
+        <text x="${xE.toFixed(1)}" y="15" class="dgt-lad-grade ${gradeCls}"
+              text-anchor="${anchor}">${team.name} · ${dg.letter} · ${dg.grade}/100</text>`;
+
+    // le altre tre squadre: il rank diventa una distanza
+    /* Due squadre con lo stesso voto finivano una sopra l'altra. Chi sta a
+       meno di 40px si raggruppa: una tacca sola, e i nomi incolonnati sotto —
+       che è anche la lettura giusta, "questi due hanno fatto lo stesso draft". */
+    const sorted = others.map(([k, t]) => ({ k, t, x: X(t.score) })).sort((a, b) => a.x - b.x);
+    const clusters = [];
+    for (const r of sorted) {
+        const last = clusters[clusters.length - 1];
+        // 84 unità di viewBox ≈ la larghezza di "Capi dei Pianeti" a 10px: con
+        // la soglia vecchia (40) due nomi vicini si toccavano lo stesso
+        if (last && r.x - last.x < 84) { last.items.push(r); last.x = (last.x + r.x) / 2; }
+        else clusters.push({ x: r.x, items: [r] });
+    }
+    const maxStack = Math.max(1, ...clusters.map(c => c.items.length));
+    const rivals = clusters.map(c => `
+        <line x1="${c.x.toFixed(1)}" y1="82" x2="${c.x.toFixed(1)}" y2="94" class="dgt-lad-rival"/>
+        ${c.items.map((r, i) => `
+        <text x="${c.x.toFixed(1)}" y="${110 + i * 17}" class="dgt-lad-rivallab" text-anchor="middle">${TEAMS[r.k]?.name || r.k}
+            <tspan class="dgt-lad-rivalgr">${r.t.letter}</tspan></text>`).join('')}`).join('');
+    const ladH = LAD.h + (maxStack - 1) * 17;
+
+    /* Chi compone i due blocchi, a parole: le fette nella barra si vedono ma
+       non si leggono, e passare il dito su ognuna per scoprire i nomi non è
+       «a colpo d'occhio». Qui i primi tre di ciascun blocco con la loro quota. */
+    const topOf = (items, label, cls, name) => {
+        const tot = items.reduce((t, i) => t + i.v, 0) || 1;
+        const top = [...items].sort((a, b) => b.v - a.v).slice(0, 3);
+        if (!top.length) return '';
+        const rest = items.length - top.length;
+        return `
+        <span class="dgt-lad-who-row">
+            <i class="dgt-lad-sw ${cls}"></i><b>${label}</b>
+            ${top.map(t => `<span>${name(t)} <em>${Math.round(t.v / tot * 100)}%</em></span>`).join('')}
+            ${rest > 0 ? `<small>+${rest} more</small>` : ''}
+        </span>`;
+    };
+    const who = `
+    <div class="dgt-lad-who">
+        ${topOf(talentSlices.map((x, i) => ({ ...x, row: sRows.filter(r => r.vor > 0)[i] })), 'Talent', 'dgt-lad-talent',
+        (t) => t.row.p.player)}
+        ${topOf(effSlices, 'Efficiency', 'dgt-lad-eff', (t) => `${t.r.player} <small>R${t.r.round}</small>`)}
+    </div>`;
+
+    // quanto manca alla lettera sopra (e quanto si è sopra quella sotto)
+    const up = asc.find(([e]) => e > dg.score);
+    const down = [...asc].reverse().find(([e]) => e <= dg.score);
+    const art = (l) => (/^[AEF]/.test(l) ? 'an' : 'a');
+    const gapUp = up ? `<b>${(up[0] - dg.score).toFixed(1)}</b> more would have made it ${art(up[1])} ${up[1]}`
+        : `there is nothing above ${art(dg.letter)} ${dg.letter}`;
+    const margin = down ? dg.score - down[0] : null;
+    const gapDown = margin == null ? ''
+        : margin < 0.05 ? `It sits right on the ${down[1]} line`
+            : `It cleared the ${down[1]} line by <b>${margin.toFixed(1)}</b>`;
+
+    return `
+    <div class="dgt-ladder">
+        <div class="dgt-chart-wrap">
+        <svg viewBox="0 0 ${LAD.w} ${ladH}" class="an-svg dgt-lad-svg" role="img"
+             aria-label="How the grade is built: talent times its weight, plus efficiency times its weight, landing in the ${dg.letter} band">
+            ${bandsSvg}
+            <defs><clipPath id="${clipId}"><rect x="${x0.toFixed(1)}" y="52" width="${(LAD.w - LAD.r - x0).toFixed(1)}" height="26" rx="4"/></clipPath></defs>
+            <rect x="${x0.toFixed(1)}" y="52" width="${(LAD.w - LAD.r - x0).toFixed(1)}" height="26" rx="4" class="dgt-lad-track"/>
+            <g clip-path="url(#${clipId})">
+                ${seg(x0, xT, 'dgt-lad-talent', `Talent × ${Math.round(w.talent * 100)}%`, talentSlices)}
+                ${seg(xT, xE, 'dgt-lad-eff', `Efficiency × ${Math.round(w.efficiency * 100)}%`, effSlices)}
+            </g>
+            ${marker}${rivals}
+        </svg>
+        </div>
+        ${who}
+        <p class="dgt-lad-note">The bar is the grade being built: the first block is <b>talent</b> counted at
+            ${Math.round(w.talent * 100)}%, the second is <b>efficiency</b> at ${Math.round(w.efficiency * 100)}% — each block is
+            exactly that long because that's its score times its weight. <b>Inside each block, one slice per
+            player</b>, and both are exact: in talent, each starter's value above replacement over what was
+            reachable; in efficiency, a pick's grade times what the pick cost. Hover a slice for the name. Where the bar ends is the letter: the
+            bands above are <b>fixed and all the same width</b>, five points each, because the scale is absolute:
+            0 would be a starting nine off the waiver wire with every pick wasted, 100 the best nine the board
+            allowed with every turn played to the hilt. Real drafts live between 40 and 78.
+            ${gapDown}${gapDown && gapUp ? ', and ' : ''}${gapUp}.</p>
+    </div>`;
+}
+
+/* ─── La card del voto ───────────────────────────────────────────────
+   Prima erano tre tessere identiche, ma solo due fanno il voto: la terza
+   (quanto valore finisce in formazione) è contesto e sembrava un terzo
+   ingrediente. Ora le due che contano stanno sotto la scala che le somma,
+   con accanto il fatto che le produce; il contesto è una riga a parte, detta
+   per quello che è. */
 function gradeBreakdownCard(ctx) {
-    const { dg, dgAll } = ctx;
+    const { dg, dgAll, team, grades, teamKey } = ctx;
     if (!dg) return '';
     const c = dg.components;
     const w = dgAll?.weights || { talent: 0.6, efficiency: 0.4 };
 
-    /* Le tre metriche sono BOTTONI: cliccandone una si apre il dettaglio di
-       questa squadra e le altre due si stringono. Non un accordion sotto la
-       riga — il numero e il suo perché devono restare nello stesso posto,
-       se no per confrontarli si scorre avanti e indietro. */
-    const metric = (id, label, val, unit, rank, note, detail) => `
-        <div class="dgt-metric" data-m="${id}">
+    // quota di lega del talento: è la definizione stessa del punteggio
+    // la quota di lega non fa più il voto (il talento è assoluto): resta come
+    // contesto in coda alla nota, che è l'unica cosa per cui serve ancora
+    const leagueVOR = Object.values(dgAll?.byKey || {}).reduce((s, t) => s + (t.components?.starterVOR || 0), 0);
+    const share = leagueVOR ? c.starterVOR / leagueVOR : 0;
+    const weeks = 17;
+
+    const picks = (dg.picks || []).filter(r => r.capital != null);
+    // il peso grezzo (capital+1) è in punti di VOR: da solo non dice niente,
+    // il rapporto fra la prima e l'ultima pick sì
+    const firstW = picks.length ? picks[0].capital + 1 : null;
+    const lastW = picks.length ? picks[picks.length - 1].capital + 1 : null;
+    const ratio = firstW && lastW ? firstW / lastW : null;
+
+    const ing = (id, label, weight, score, note, detail) => `
+        <div class="dgt-metric dgt-ing" data-m="${id}">
             <button class="dgt-metric-head" type="button" aria-expanded="false" aria-controls="dgm-${id}">
-                <span class="dgt-metric-label">${label}</span>
-                <span class="dgt-metric-val">${val}${unit ? `<small>${unit}</small>` : ''}</span>
-                <span class="dgt-metric-note">${rank ? `${ordinal(rank)} in league · ` : ''}${note}</span>
+                <span class="dgt-metric-label">${label} <em>${Math.round(weight * 100)}% of the grade</em></span>
+                <span class="dgt-metric-val">${Math.round(score)}<small>/100</small></span>
+                <span class="dgt-metric-note">${note}</span>
             </button>
             <div class="dgt-metric-detail" id="dgm-${id}" hidden>${detail}</div>
         </div>`;
 
+    const talentNote = `<b>${fmt0(c.starterVOR)} pt</b> above replacement in the best starting nine — about
+        <b>${(c.starterVOR / weeks).toFixed(1)} pt a week</b> more than a lineup of last-in-league starters.
+        ${c.ceilingVOR ? `That is <b>${Math.round(c.capture * 100)}%</b> of the <b>${fmt0(c.ceilingVOR)} pt</b> that were within reach from these 15 turns —
+        the best nine the board would have let this team build. ` : ''}${ordinal(c.talentRank)} of 4${leagueVOR ? `, with ${(share * 100).toFixed(0)}% of all the value the four teams drafted` : ''}.`;
+
+    const bestP = dg.bestPick, worstP = dg.worstPick;
+    const effNote = `the ${picks.length} pick grades averaged, each weighted by what its slot cost${ratio
+        ? ` — the first-round pick weighs <b>${ratio.toFixed(1)}×</b> the last one, which is what makes an early miss expensive` : ''}.
+        ${bestP ? `Best: <b>${bestP.player}</b> (${bestP.letter}, R${bestP.round})` : ''}${worstP && worstP !== bestP ? ` · worst: <b>${worstP.player}</b> (${worstP.letter}, R${worstP.round})` : ''}. ${ordinal(c.efficiencyRank)} of 4.`;
+
     return `
     <div class="mosaic-card mc-wide dgt-card mc-in" id="dgt-grade-card">
-        <div class="dgt-card-head">
-            <div>
-                <span class="mc-kicker">Why this grade</span>
-                <h2 class="mc-title">Draft Grade
-                    <small class="dgt-sos-big dgt-grade-big dg-letter--${gradeBand(dg.letter)}">${dg.letter} · ${dg.grade}/100 · ${ordinal(dg.rank)} in league</small>
-                </h2>
-            </div>
-            ${gradeDerivation(ctx)}
-        </div>
-        ${explain(`The grade weighs two things: <b>talent</b> — how far the best starting nine this draft could
-            field sits above a replacement-level lineup — and <b>efficiency</b>, how well the board was played to get
-            it. Replacement level here is the last starter in the league. The letter's thresholds are empirical
-            quantiles of every draft since 2019, and the number beside it is that band remapped onto report-card
-            anchors: a monotone remap, so a higher number is always a better draft.`)}
+        <span class="mc-kicker">Why this grade</span>
+        <h2 class="mc-title">Draft Grade
+            <small class="dgt-sos-big dgt-grade-big dg-letter--${gradeBand(dg.letter)}">${dg.letter} · ${dg.grade}/100 · ${ordinal(dg.rank)} in league</small>
+        </h2>
+        ${explain(`The grade weighs two things: <b>talent</b> — what share of the value that was <i>within reach
+            from your own turns</i> the best starting nine actually captured — and <b>efficiency</b>, how well the
+            board was played pick by pick. Replacement level here is the last starter in the league. The scale is
+            absolute: it does not depend on how the other three drafted, so the same draft gets the same grade in a
+            strong year and in a weak one. The letter bands are fixed and equally wide; the number beside the letter
+            is that band remapped onto report-card anchors, a monotone remap, so higher is always better.`)}
         <p class="dgt-why">${dg.why}</p>
-        <div class="dgt-metrics" id="dgt-metrics">
-            ${metric('talent', 'Talent collected', fmt0(c.starterVOR), ' VOR', c.talentRank,
-        `how far the best lineup this draft could field sits above a replacement-level starting nine, against a league best of ${fmt0(c.leagueBestVOR)}`,
-        talentDetail(ctx))}
-            ${metric('eff', 'Draft efficiency', c.efficiencyGrade, '/100', c.efficiencyRank,
-        'draft-capital-weighted average of the pick grades below', efficiencyDetail(ctx))}
-            ${metric('starters', 'Value in the starters', Math.round(c.starterShare * 100), '%', null,
-        `${fmt0(c.starterVOR)} of ${fmt0(c.totalVOR)} total value ends up in the starting lineup`,
-        startersDetail(ctx))}
+        ${scoreLadder(ctx)}
+        <div class="dgt-metrics dgt-metrics--stack" id="dgt-metrics">
+            ${ing('talent', 'Talent collected', w.talent, c.talent, talentNote, talentDetail(ctx))}
+            ${ing('eff', 'Draft efficiency', w.efficiency, c.efficiency, effNote + efficiencyMovers(dg), efficiencyDetail(ctx))}
+            <div class="dgt-metric dgt-ing dgt-ing--ctx" data-m="starters">
+                <button class="dgt-metric-head" type="button" aria-expanded="false" aria-controls="dgm-starters">
+                    <span class="dgt-metric-label">Not part of the grade <em>context</em></span>
+                    <span class="dgt-metric-note"><b>${Math.round(c.starterShare * 100)}%</b> of the value this draft collected
+                        (${fmt0(c.starterVOR)} of ${fmt0(c.totalVOR)} pt) ends up in the starting nine rather than on the bench.
+                        It says nothing about the grade — the grade already counts only the nine.</span>
+                </button>
+                <div class="dgt-metric-detail" id="dgm-starters" hidden>${startersDetail(ctx)}</div>
+            </div>
         </div>
-        <p class="dgt-card-sub">The grade weighs talent ${Math.round(w.talent * 100)}% and efficiency ${Math.round(w.efficiency * 100)}%. Talent is what you walked away with; efficiency is how well you played the board to get it. A team can reach the same letter from either side — the two numbers above say which.</p>
     </div>`;
 }
 
@@ -432,13 +820,9 @@ function teamReplacement(grades) {
 }
 
 function talentDetail(ctx) {
-    const { g, grades, dg, team } = ctx;
+    const { g, dg, team } = ctx;
     if (!g.starters?.length) return '';
-    const repl = teamReplacement(grades);
-    const rows = g.starters.map(p => {
-        const vor = Math.max(0, (p.value || 0) - (repl[p.pos] || 0));
-        return { p, vor };
-    }).sort((a, b) => b.vor - a.vor);
+    const rows = starterRows(ctx);
     const tot = rows.reduce((s, r) => s + r.vor, 0);
     const max = rows[0]?.vor || 1;
     return `
@@ -512,6 +896,80 @@ function startersDetail(ctx) {
             <b>${fmt0(c.totalVOR)}</b> total · ${Math.round(c.starterShare * 100)}% where it scores.</p>`;
 }
 
+/* Hover sulle fette della barra: chi è quel pezzo di voto.
+   Il tooltip è figlio di <body> e position:fixed per la stessa ragione della
+   curva del draft — la card ha overflow-x:auto e antenati con transform, che
+   ritaglierebbero o sposterebbero un popup interno. La fetta sotto il dito si
+   accende e le altre si spengono: con quindici fette, evidenziare è l'unico
+   modo per sapere QUALE stai leggendo. */
+function bindSlices(root) {
+    const svg = root?.querySelector('.dgt-lad-svg');
+    if (!svg) return;
+    const slices = [...svg.querySelectorAll('.dgt-lad-slice')];
+    if (!slices.length) return;
+
+    document.getElementById('dgt-lad-tooltip')?.remove();
+    const tip = document.createElement('div');
+    tip.className = 'an-chart-tooltip';
+    tip.id = 'dgt-lad-tooltip';
+    tip.style.position = 'fixed';
+    tip.hidden = true;
+    document.body.appendChild(tip);
+
+    const place = (e) => {
+        let x = e.clientX + 14;
+        const w = tip.offsetWidth || 180;
+        if (x + w > window.innerWidth - 4) x = e.clientX - w - 14;
+        let y = e.clientY - 12;
+        const h = tip.offsetHeight || 50;
+        if (y + h > window.innerHeight - 4) y = e.clientY - h - 12;
+        tip.style.left = `${x}px`;
+        tip.style.top = `${Math.max(4, y)}px`;
+    };
+
+    const show = (el, e) => {
+        svg.classList.add('has-hover');
+        slices.forEach(s => s.classList.toggle('is-on', s === el));
+        tip.replaceChildren();
+        const t = document.createElement('div');
+        t.className = 'an-tt-title';
+        t.textContent = el.dataset.who;
+        const sub = document.createElement('div');
+        sub.className = 'an-tt-row';
+        sub.textContent = el.dataset.sub;
+        tip.append(t, sub);
+        tip.hidden = false;
+        place(e);
+    };
+    const hide = () => {
+        svg.classList.remove('has-hover');
+        slices.forEach(s => s.classList.remove('is-on'));
+        tip.hidden = true;
+    };
+
+    for (const el of slices) {
+        el.addEventListener('pointerenter', (e) => show(el, e));
+        el.addEventListener('pointermove', place);
+    }
+    svg.addEventListener('pointerleave', hide);
+}
+
+/* Su schermo stretto la scala scorre, e la parte che conta — dove finisce la
+   barra, cioè il voto — sta a destra: senza questo, al primo sguardo si vede
+   solo la partenza. Si porta il marcatore al centro della finestrella. */
+function bindLadder(root) {
+    const wrap = root?.querySelector('.dgt-ladder .dgt-chart-wrap');
+    const svg = wrap?.querySelector('svg');
+    const mark = svg?.querySelector('.dgt-lad-mark');
+    if (!wrap || !mark) return;
+    requestAnimationFrame(() => {
+        if (wrap.scrollWidth <= wrap.clientWidth + 4) return;
+        const vbW = svg.viewBox?.baseVal?.width || 860;
+        const px = (+mark.getAttribute('x1') / vbW) * svg.getBoundingClientRect().width;
+        wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
+    });
+}
+
 /** Apre una metrica e stringe le altre. Una alla volta: due dettagli aperti
  *  insieme rimettono la riga a tre colonne strette, che è il problema che
  *  l'apertura doveva risolvere. */
@@ -550,36 +1008,17 @@ function explain(html) {
     return `<details class="dgt-explain"><summary>What this means</summary><p>${html}</p></details>`;
 }
 
-/* ─── Come si arriva a questo voto ───────────────────────────────────
-   Non la definizione: il CONTO di questa squadra, con i suoi numeri. Il voto
-   nasce da una catena di quattro passaggi e ognuno è verificabile —
-
-     1. talento     VOR dei titolari, come quota del totale di lega
-     2. efficienza  media dei voti-pick pesata per draft capital
-     3. punteggio   0.6 × talento + 0.4 × efficienza (percentile interno)
-     4. lettera     in che fascia cade quel percentile, e il numero a schermo
-
-   Il quarto passaggio è quello che di solito sorprende: il numero grande NON è
-   il punteggio interno, è la sua rimappatura sugli ancoraggi di una pagella.
-   Mostrarli entrambi nella stessa riga è l'unico modo per non far sembrare
-   quel 65 una sufficienza risicata.
-
-   I pesi delle pick vengono da `r.capital`, che il motore mette su ogni pick
-   apposta per questa tabella: così le spinte mostrate sono quelle vere, non
-   una ricostruzione a occhio. */
-function gradeDerivation(ctx) {
-    const { dg, dgAll, team } = ctx;
-    if (!dg || !dgAll) return '';
+/* ─── Chi ha spinto e chi ha frenato l'efficienza ────────────────────
+   Il pezzo superstite della vecchia derivazione: l'efficienza è una media
+   pesata, e la cosa utile non è la media ma CHI la muove. Ogni numero è
+   quanto quella singola pick ha spostato il punteggio — il suo scarto dalla
+   media per il draft capital che è costata. Su tutte le pick sommano a zero
+   per costruzione: quel pareggio È l'efficienza. Si mostrano i tre estremi
+   per lato, il resto sta nel dettaglio. */
+function efficiencyMovers(dg) {
     const c = dg.components;
-    const w = dgAll.weights || { talent: 0.6, efficiency: 0.4 };
-
-    // il totale di lega: la somma dei VOR titolari delle quattro squadre
-    const all = Object.values(dgAll.byKey || {});
-    const leagueVOR = all.reduce((s, t) => s + (t.components?.starterVOR || 0), 0);
-    const share = leagueVOR ? c.starterVOR / leagueVOR : 0;
-
-    // quanto ogni pick ha spostato l'efficienza: peso × scarto dalla media
     const picks = (dg.picks || []).filter(r => r.capital != null);
+    if (!picks.length) return '';
     const den = picks.reduce((s, r) => s + r.capital + 1, 0) || 1;
     const moved = picks.map(r => ({ r, d: (r.capital + 1) * (r.score - c.efficiency) / den }))
         .sort((a, b) => b.d - a.d);
@@ -588,50 +1027,9 @@ function gradeDerivation(ctx) {
         <i>${x.d > 0 ? '+' : ''}${x.d.toFixed(1)}</i></span>`;
     const su = moved.filter(x => x.d > 0).slice(0, 3).map(x => chip(x, true)).join('');
     const giu = moved.filter(x => x.d < 0).slice(-3).reverse().map(x => chip(x, false)).join('');
-
-    const step = (n, label, val, note) => `
-        <div class="dgt-step">
-            <span class="dgt-step-n">${n}</span>
-            <div>
-                <span class="dgt-step-label">${label} <b>${val}</b></span>
-                <span class="dgt-step-note">${note}</span>
-            </div>
-        </div>`;
-
+    if (!su && !giu) return '';
     return `
-    <details class="dgt-explain dgt-derive">
-        <summary>How this grade is reached</summary>
-        <div class="dgt-steps">
-            ${step(1, 'Talent', c.talent.toFixed(1) + '/100',
-        `the starting nine ${team.name} could field is worth <b>${c.starterVOR} VOR</b> above replacement,
-             out of <b>${leagueVOR}</b> across the four teams — a <b>${(share * 100).toFixed(1)}%</b> share.
-             An even split (25%) sits at 50, and every <b>percentage point</b> of share above or below that moves the number by 4.`)}
-            ${step(2, 'Efficiency', c.efficiency.toFixed(1) + '/100',
-        `the average of the ${picks.length} pick grades, each weighted by the draft capital it cost
-             (a first-round pick weighs ${picks[0] ? picks[0].capital + 1 : '—'}, the last one
-             ${picks.length ? picks[picks.length - 1].capital + 1 : '—'}). Shown on the card as
-             <b>${c.efficiencyGrade}/100</b>, the same remap the letter uses.`)}
-            ${step(3, 'Score', dg.score.toFixed(1) + '/100',
-        `${w.talent} × ${c.talent.toFixed(1)} + ${w.efficiency} × ${c.efficiency.toFixed(1)} =
-             <b>${dg.score.toFixed(1)}</b>. This is a percentile against every draft since 2019, where the
-             league average sits near 47 — not a score out of a hundred.`)}
-            ${step(4, 'Letter', dg.letter,
-        `${dg.score.toFixed(1)} falls in the <b>${dg.letter}</b> band. Band edges are empirical quantiles of
-             the real drafts, not round numbers. The <b>${dg.grade}/100</b> on the card is that band remapped
-             onto report-card anchors (A+ = 97 … D = 65): same order, readable scale.`)}
-        </div>
-        ${su || giu ? `
-        <div class="dgt-moved">
-            <span class="dgt-moved-h">What pushed the efficiency</span>
-            <div class="dgt-moved-row">${su || '<em>nothing above the average</em>'}</div>
-            <span class="dgt-moved-h">What pulled it down</span>
-            <div class="dgt-moved-row">${giu || '<em>nothing below the average</em>'}</div>
-            <p class="dgt-card-sub">Each number is how many points that single pick moved the efficiency:
-                its grade's distance from the average, times the draft capital it cost. Across all
-                ${picks.length} picks they sum to zero by construction — that balance <i>is</i> the
-                ${c.efficiency.toFixed(1)}. Only the three largest each way are shown.</p>
-        </div>` : ''}
-    </details>`;
+        <div class="dgt-moved-row">${su}${giu}</div>`;
 }
 
 // ─── Card: la storia del draft ───────────────────────────────────
@@ -1261,7 +1659,8 @@ function capitalFlowCard(ctx) {
 
 // ─── Card: la curva del draft ────────────────────────────────────
 
-const CV = { w: 860, h: 320, l: 52, r: 96, t: 34, b: 34 };
+const CV = { w: 860, h: 340, l: 52, r: 122, t: 42, b: 36 };
+const DC_TICK = 26;   // larghezza della lineetta "best available"
 
 function niceTicks(min, max, count = 4) {
     const span = max - min || 1;
@@ -1284,13 +1683,17 @@ function curveCard(g, team) {
     }));
     const leftOnBoard = g.list.reduce((s, p) => s + Math.max(0, (p.alt?.value ?? 0) - p.value), 0);
 
-    const allPts = rounds.flatMap(r => [r.taken.pts, r.alt?.pts ?? 0]);
-    const ticks = niceTicks(0, Math.max(...allPts, 1));
-    const yMax = ticks[ticks.length - 1];
+    const allPts = rounds.flatMap(r => r.alt ? [r.taken.pts, r.alt.pts] : [r.taken.pts]);
+    // Lo zero qui non è obbligatorio: sono punti, non barre da confrontare in
+    // area. Con tutte le pick sopra i 100 pt tenerlo schiacciava i marchi in un
+    // terzo del riquadro; torna da solo se qualche pick ci si avvicina davvero.
+    const lo = Math.min(...allPts), hi = Math.max(...allPts, 1);
+    const ticks = niceTicks(lo < hi * 0.3 ? 0 : lo - (hi - lo) * 0.12, hi);
+    const yMin = ticks[0], yMax = ticks[ticks.length - 1];
     const plotW = CV.w - CV.l - CV.r;
     const plotH = CV.h - CV.t - CV.b;
     const x = (i) => CV.l + (rounds.length > 1 ? (i / (rounds.length - 1)) * plotW : plotW / 2);
-    const y = (v) => CV.t + (1 - v / yMax) * plotH;
+    const y = (v) => CV.t + (1 - (v - yMin) / ((yMax - yMin) || 1)) * plotH;
 
     const grid = ticks.map(v => `
         <line x1="${CV.l}" y1="${y(v)}" x2="${CV.l + plotW}" y2="${y(v)}" class="an-gridline"/>
@@ -1298,38 +1701,51 @@ function curveCard(g, team) {
     const xTicks = rounds.map((r, i) =>
         `<text x="${x(i)}" y="${CV.h - 8}" class="an-tick" text-anchor="middle">R${r.round}</text>`).join('');
 
-    // area del valore lasciato sul tavolo (tra scelta e alternativa, dove alt > scelta)
-    const areaTop = rounds.map((r, i) => `${x(i).toFixed(1)},${y(Math.max(r.alt?.pts ?? 0, r.taken.pts)).toFixed(1)}`);
-    const areaBot = [...rounds].reverse().map((r, i) => `${x(rounds.length - 1 - i).toFixed(1)},${y(r.taken.pts).toFixed(1)}`);
-    const area = `<polygon points="${[...areaTop, ...areaBot].join(' ')}" class="dgt-gap-area"/>`;
-
-    const altLine = `<polyline points="${rounds.map((r, i) => `${x(i).toFixed(1)},${y(r.alt?.pts ?? 0).toFixed(1)}`).join(' ')}"
-        fill="none" class="dgt-alt-line"/>`;
-    const takenLine = `<polyline points="${rounds.map((r, i) => `${x(i).toFixed(1)},${y(r.taken.pts).toFixed(1)}`).join(' ')}"
-        fill="none" stroke="${team.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    const dots = rounds.map((r, i) => {
-        const steal = !r.alt || r.taken.pts >= r.alt.pts;
-        return `<circle cx="${x(i)}" cy="${y(r.taken.pts)}" r="4.5" fill="${team.color}"
-            stroke="${steal ? 'var(--accent-green, #30d158)' : '#000'}" stroke-width="2"/>`;
+    // Una pick = un punto (chi hai preso) + una lineetta (il miglior giocatore
+    // dello stesso ruolo ancora sul tavolo) + il tratto che le unisce. La
+    // lineetta è sempre dello stesso grigio: è il board, una serie sola. A
+    // portare il segno è il collegamento — rosso se sul tavolo è rimasto
+    // valore, verde se la pick ha battuto il board.
+    const marks = rounds.map((r, i) => {
+        const cx = x(i), yT = y(r.taken.pts);
+        if (!r.alt) return `<g class="dgt-dc" data-i="${i}"><circle class="dgt-dc-dot" cx="${cx.toFixed(1)}" cy="${yT.toFixed(1)}" r="5" fill="${team.color}"/></g>`;
+        const yA = y(r.alt.pts);
+        const gap = r.alt.pts - r.taken.pts;
+        return `
+        <g class="dgt-dc ${gap > 1 ? 'dgt-dc--left' : 'dgt-dc--steal'}" data-i="${i}">
+            <line class="dgt-dc-link" x1="${cx.toFixed(1)}" y1="${yT.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yA.toFixed(1)}"/>
+            <line class="dgt-dc-tick" x1="${(cx - DC_TICK / 2).toFixed(1)}" y1="${yA.toFixed(1)}" x2="${(cx + DC_TICK / 2).toFixed(1)}" y2="${yA.toFixed(1)}"/>
+            <circle class="dgt-dc-dot" cx="${cx.toFixed(1)}" cy="${yT.toFixed(1)}" r="5" fill="${team.color}"/>
+        </g>`;
     }).join('');
 
-    // NYT: etichette dirette a fine linea (niente legenda) + callout sul round
-    // dove si è lasciato più valore sul tavolo.
+    // NYT: etichette dirette sull'ultima pick (niente legenda), scostate in
+    // verticale se punto e lineetta sono troppo vicini per due righe di testo.
     const lastI = rounds.length - 1;
     const last = rounds[lastI];
+    const lx = x(lastI) + 11;
+    let yPick = y(last.taken.pts) + 3.5;
+    let yAlt = last.alt ? y(last.alt.pts) + 3.5 : 0;
+    if (last.alt && Math.abs(yPick - yAlt) < 14) {
+        const su = yPick <= yAlt ? -1 : 1;
+        yPick += su * 7; yAlt -= su * 7;
+    }
     const endLabels = `
-        <text x="${x(lastI) + 9}" y="${y(last.taken.pts) + 3.5}" class="dgt-curve-endlabel" fill="${team.color}">Picked</text>
-        ${last.alt ? `<text x="${x(lastI) + 9}" y="${y(last.alt.pts) + 3.5}" class="dgt-curve-endlabel dgt-curve-endlabel--alt">Best avail.</text>` : ''}`;
+        <text x="${lx.toFixed(1)}" y="${yPick.toFixed(1)}" class="dgt-curve-endlabel" fill="${team.color}">Picked</text>
+        ${last.alt ? `<text x="${lx.toFixed(1)}" y="${yAlt.toFixed(1)}" class="dgt-curve-endlabel dgt-curve-endlabel--alt">Best available</text>` : ''}`;
+
     let worstIdx = -1, worstGap = 0;
     rounds.forEach((r, i) => { const gp = Math.max(0, (r.alt?.pts ?? 0) - r.taken.pts); if (gp > worstGap) { worstGap = gp; worstIdx = i; } });
+    // Il callout va nella striscia libera SOPRA il riquadro, con la lineetta di
+    // richiamo: appoggiato al gap finiva addosso ai marchi dei round vicini.
     const callout = (worstIdx >= 0 && worstGap >= 8) ? (() => {
         const cx = x(worstIdx);
         const yTop = Math.min(y(rounds[worstIdx].taken.pts), y(rounds[worstIdx].alt.pts));
-        const yBot = Math.max(y(rounds[worstIdx].taken.pts), y(rounds[worstIdx].alt.pts));
-        const anchor = cx > CV.l + (CV.w - CV.l - CV.r) * 0.7 ? 'end' : cx < CV.l + (CV.w - CV.l - CV.r) * 0.3 ? 'start' : 'middle';
-        return `
-        <line x1="${cx}" y1="${yTop}" x2="${cx}" y2="${yBot}" class="dgt-curve-gapmark"/>
-        <text x="${cx}" y="${Math.max(CV.t - 14, yTop - 12)}" class="dgt-curve-callout" text-anchor="${anchor}">−${fmt0(worstGap)} pt left at R${rounds[worstIdx].round}</text>`;
+        const anchor = cx > CV.l + plotW * 0.7 ? 'end' : cx < CV.l + plotW * 0.3 ? 'start' : 'middle';
+        const leader = yTop - 7 > CV.t + 2
+            ? `<line class="an-leader" x1="${cx.toFixed(1)}" y1="${CV.t - 6}" x2="${cx.toFixed(1)}" y2="${(yTop - 7).toFixed(1)}"/>` : '';
+        return `${leader}
+        <text x="${cx.toFixed(1)}" y="${CV.t - 15}" class="dgt-curve-callout" text-anchor="${anchor}">−${fmt0(worstGap)} pt left at R${rounds[worstIdx].round}</text>`;
     })() : '';
 
     const dataAttr = JSON.stringify(rounds).replace(/'/g, '&#39;');
@@ -1338,13 +1754,13 @@ function curveCard(g, team) {
     <div class="mosaic-card mc-wide dgt-card mc-in" id="dgt-curve">
         <span class="mc-kicker">Round by round</span>
         <h2 class="mc-title">The draft curve</h2>
-        ${explain(`Value accumulated pick after pick. A curve that climbs early and then flattens says the capital
-            was spent at the top; one that keeps climbing says the late rounds paid. Neither shape is right by
-            itself — the grade already accounts for where the value came from.`)}
-        <p class="dgt-card-sub">The colored line is who was picked; the dashed one is the best player of the same position still on the board (later drafted by another team). The area is the value left on the table: <b>${fmt0(leftOnBoard)} projected pt</b>.</p>
+        ${explain(`Value pick after pick. Dots that fall away quickly say the capital was spent at the top; dots that
+            stay high late say the late rounds paid. Neither shape is right by itself — the grade already accounts
+            for where the value came from.`)}
+        <p class="dgt-card-sub">One dot per pick, at its projected value; the dash on the same round is the best player of the same position still on the board (later drafted by another team). The stroke between them is the distance: <b class="dgt-legend-down">red</b> when value was left on the table, <b class="dgt-legend-up">green</b> when the pick beat the board. Left on the table over the whole draft: <b>${fmt0(leftOnBoard)} projected pt</b>.</p>
         <div class="dgt-chart-wrap">
             <svg viewBox="0 0 ${CV.w} ${CV.h}" class="an-svg" data-rounds='${dataAttr}'>
-                ${grid}${xTicks}${area}${altLine}${takenLine}${dots}${endLabels}${callout}
+                ${grid}${xTicks}${marks}${endLabels}${callout}
                 <line class="an-crosshair" x1="0" y1="${CV.t}" x2="0" y2="${CV.t + plotH}" visibility="hidden"/>
                 <rect class="an-hit" x="${CV.l}" y="${CV.t}" width="${plotW}" height="${plotH}" fill="transparent"/>
             </svg>
@@ -1360,6 +1776,7 @@ function bindCurve(container) {
     const crosshair = svg.querySelector('.an-crosshair');
     const hit = svg.querySelector('.an-hit');
     const rounds = JSON.parse(svg.dataset.rounds);
+    const groups = [...svg.querySelectorAll('.dgt-dc')];
     const plotW = CV.w - CV.l - CV.r;
     const xFor = (i) => CV.l + (rounds.length > 1 ? (i / (rounds.length - 1)) * plotW : plotW / 2);
 
@@ -1387,6 +1804,10 @@ function bindCurve(container) {
         crosshair.setAttribute('x1', xFor(idx));
         crosshair.setAttribute('x2', xFor(idx));
         crosshair.setAttribute('visibility', 'visible');
+        // il crosshair dice DOVE sei, il gruppo acceso dice QUALE pick: con i
+        // punti sparsi la sola riga verticale non basta a capire quale coppia
+        // punto/lineetta stai leggendo
+        groups.forEach((gr, i) => gr.classList.toggle('is-on', i === idx));
 
         tooltip.replaceChildren();
         const title = document.createElement('div');
@@ -1423,6 +1844,7 @@ function bindCurve(container) {
     });
     hit.addEventListener('pointerleave', () => {
         crosshair.setAttribute('visibility', 'hidden');
+        groups.forEach(gr => gr.classList.remove('is-on'));
         tooltip.hidden = true;
     });
 }

@@ -7,7 +7,7 @@ import {
     fetchFantasyData, fetchDraftData, processStandings, getSuperBowlMatchup,
     getSeasonConfig, flattenDraft, displayName, SEASONS
 } from '../data.js?v=547';
-import { TEAM_KEYS } from './team-config.js?v=533';
+import { TEAM_KEYS } from './team-config.js?v=534';
 
 export const TEAM_KEY_LIST = ['capi', 'lasers', 'oscurus', 'sommo'];
 
@@ -217,6 +217,12 @@ function _buildAllTime(seasons) {
     return allTime;
 }
 
+/* Quante stagioni bisogna aver draftato lo stesso giocatore perché sia "di
+   casa". Era 2, cioè "ripreso una volta", che in una lega a redraft capita
+   anche per caso. A 3 resta solo chi un allenatore è andato a riprendersi due
+   volte di fila: quella è una scelta, non una coincidenza. */
+const FRANCHISE_MIN_SEASONS = 3;
+
 function _buildFranchisePlayers(seasons) {
     const result = {};
     TEAM_KEY_LIST.forEach(key => {
@@ -232,7 +238,7 @@ function _buildFranchisePlayers(seasons) {
             });
         });
         result[key] = Object.values(playerMap)
-            .filter(p => p.seasons.length >= 2)
+            .filter(p => p.seasons.length >= FRANCHISE_MIN_SEASONS)
             .sort((a, b) => b.seasons.length - a.seasons.length);
     });
     return result;

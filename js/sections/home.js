@@ -35,10 +35,10 @@
  */
 
 import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=580';
-import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=584';
+import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=585';
 import { getHonorsBundle } from '../data/honors.js?v=631';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=709';
+import { TEAMS } from './team.js?v=717';
 import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=713';
 import { teamsCardsHTML } from './teams.js?v=684';
 import { playerImageService } from '../services/player-image-service.js?v=522';
@@ -46,6 +46,7 @@ import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-stor
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=35';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
+import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=7';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=28';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
@@ -53,8 +54,8 @@ import { scoreBugHTML } from '../ui/score-bug.js?v=1';
 import { getSeasonProjections } from '../data/projections.js?v=595';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
-import { evaluateLeague } from '../data/team-eval.js?v=594';
-import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=62';
+import { evaluateLeague } from '../data/team-eval.js?v=595';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=64';
 // Il motore di voto (computeGrades/makeEvaluator) vive in draftgrades.js, non
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
@@ -777,334 +778,9 @@ function cardAllPro({ bundle, season }) {
     });
 }
 
-// Geometria del campo orizzontale: stesse unità (yard) e stessa larghezza
-// campo (53.3 yd) del campo formazione della pagina squadra NFL, solo
-// sdraiato — le yard corrono lungo l'asse X invece che lungo Y. `spanX`
-// sono due metà campo da 24 yard "di formazione" (lo stesso spanY di TDF
-// in nfl-team-home.js) appaiate, che si incontrano al centro sulla linea
-// delle 50. `losY` è la profondità della linea di scrimmage nella stessa
-// scala (13.3, come `TDF.losY`) — il punto in cui, in ciascuna metà campo,
-// finisce il proprio schieramento e comincia il campo dell'altro team.
-// `ez` è la profondità delle due end zone, ricavata dallo spazio che c'era
-// già: i giocatori più arretrati (K e DEF) stanno a ~6.7 unità dal proprio
-// bordo, quindi le prime 6 sono da sempre prato vuoto. Diventano end zone
-// senza spostare nessuno e senza allargare il disegno — che, allargato,
-// avrebbe rimpicciolito nomi e ruoli di un quinto.
-const AP_FD = { W: 53.3, spanX: 48, vbW: 1000, vbH: 560, losY: 13.3, ez: 6 };
-const apX = (fx) => (fx / AP_FD.spanX) * AP_FD.vbW;
-const apY = (fy) => (fy / AP_FD.W) * AP_FD.vbH;
-
-/**
- * Pro Set (split backs), personnel 21 — la formazione più semplice con due
- * running back: linea a 5 (LT-LG-C-RG-RT), TE agganciato, due WR larghi, QB
- * sotto centro e i due RB divisi ai lati dietro di lui. Stesse coordinate
- * (fx = larghezza campo, fy = profondità, `losY` = linea di scrimmage) di
- * `OFFENSE_SLOTS` in nfl-team-home.js: FISICAMENTE la stessa formazione,
- * solo letta in orizzontale invece che in verticale. fy cresce allontanandosi
- * dalla linea (14.8 = sulla linea, 17.8 = il QB appena dietro, 19.8 = i due
- * RB, più indietro di lui — QB davanti ai RB, come nel Pro Set vero).
- *
- * In lega non esistono 5 offensive lineman: lo slot FLEX (RB o WR secondo
- * FLEX_ELIGIBLE, league-rules.js) prende il posto del tackle sinistro, il
- * 5° lineman — è questione di schieramento, non di ruolo: sotto al disco
- * resta scritto "FLEX", non "LT". Gli altri 4 posti della linea non hanno
- * un giocatore reale dietro: restano dischi vuoti, la sagoma di una linea
- * offensiva al completo senza inventare quattro giocatori che non esistono.
- */
-// Larghezze (fx, yard dalla laterale) risolte per stare tutte sulla riga
-// della linea senza toccarsi — vedi il commento sopra: sulla riga a `fy:
-// 14.8` finiscono in fila WR-LT-LG-C-RG-RT-TE-WR, un giocatore vero (FLEX,
-// foto+nome+ruolo) al posto di LT e quattro dischi vuoti (19 unità di
-// raggio, un ingombro molto minore) negli altri quattro posti della linea.
-// Non sono gli stessi numeri di OFFENSE_SLOTS: quel campo è alto 660 unità
-// per un solo team, questo è alto 560 per DUE, in metà spazio — spaziatura
-// ricalcolata per il minimo che non fa toccare due dischi vicini, con lo
-// slack in eccesso redistribuito in parti uguali fra i sette varchi.
-//
-// Anche la profondità di QB e RB (`fy`) è il massimo avvicinamento alla
-// linea che non fa toccare niente, cercato allo stesso modo. A fermare i RB
-// non è la linea ma il QB: il suo cognome scende sotto il disco e arriva
-// nella fila del RB destro. Si guadagnerebbero altre 9 yard allargando i due
-// RB di ~40px, ma li vogliamo stretti.
-const AP_OL_FX = { LT: 13.7, LG: 20.9, C: 25.4, RG: 29.8, RT: 34.3 };
-const AP_WR_FX = { L: 5.8, R: 47.5 }; // non più i 5/48.6 "veri" di OFFENSE_SLOTS: qui a ridosso del bordo il nome del giocatore avrebbe sforato la card
-const AP_PRO_SET = {
-    // Ordine di ALLPRO_SLOTS in honors.js: QB, RB, RB, WR, WR, TE, FLEX, K, DEF.
-    slots: [
-        { fx: AP_OL_FX.C, fy: 16.2 },   // QB, sotto centro
-        { fx: 17, fy: 18.1 },           // RB sinistro, split — vicino al lato dove ora gioca il FLEX
-        { fx: 30, fy: 18.1 },           // RB destro, split — riavvicinato al centro (prima era simmetrico sul vecchio centro, più largo)
-        { fx: AP_WR_FX.L, fy: 14.2 },   // WR largo
-        { fx: AP_WR_FX.R, fy: 14.2 },   // WR largo
-        { fx: 39.6, fy: 14.8 },         // TE agganciato
-        { fx: AP_OL_FX.LT, fy: 14.8 },  // FLEX = tackle sinistro
-        { fx: AP_WR_FX.R, fy: 21 },     // K, dietro e ai bordi — fuori dallo schieramento vero, ma davanti alla goal line
-        { fx: AP_WR_FX.L, fy: 21 },     // DEF, idem sul lato opposto
-    ],
-    // I 4 posti della linea che restano senza giocatore (il quinto, LT, ce
-    // l'ha: è il FLEX): la sagoma di una linea offensiva al completo, non
-    // solo il tackle occupato.
-    emptyOL: [AP_OL_FX.C, AP_OL_FX.LG, AP_OL_FX.RG, AP_OL_FX.RT].map(fx => ({ fx, fy: 14.8 })),
-};
-// (24 − fy) / (24 − losY): converte la profondità "vera" fy di OFFENSE_SLOTS
-// nella frazione 0..1 di UNA metà campo usata da apX — 1 = sulla linea/al
-// centro dei due campi, 0 = il proprio fondo.
-const apDepthFrac = (fy) => (AP_FD.spanX / 2 - fy) / (AP_FD.spanX / 2 - AP_FD.losY);
-
-/** Un marker di formazione (giocatore o disco vuoto della linea), sul lato `side` (1 sinistra, 2 destra specchiata). */
-function apMarker({ fx, fy, label, player, side, abbr, year, clipId }) {
-    const half = AP_FD.spanX / 2;
-    const depth = apDepthFrac(fy) * half;
-    const absFx = side === 1 ? depth : AP_FD.spanX - depth;
-    return fieldMarker({
-        x: apX(absFx), y: apY(fx), label, player, side: side === 1 ? 'first' : 'second',
-        abbr, year, clipId,
-    });
-}
-
-// Larghezza stimata di una scritta in em, per il font display in maiuscolo.
-// In un SVG generato a stringa il testo non si può misurare: serve una stima
-// per dimensionare e centrare il blocco logo+nome. Lo spazio è molto più
-// stretto di una lettera, e va contato a parte o "CAPI DEI PIANETI" (due
-// spazi) risulta più largo del vero e la scritta esce piccola.
-const AP_EZ_TRACK = 0.06;   // letter-spacing, in em (vedi .mc-duel-ez-name)
-const apTextEm = (s) => [...s].reduce((w, c) => w + (c === ' ' ? 0.3 : 0.66) + AP_EZ_TRACK, 0);
-
-/**
- * Le misure dell'incastro logo+nome dentro l'end zone, tutte derivate dalla
- * profondità della fascia. Il logo NON dipende dalla lunghezza del nome: è
- * sempre grande uguale per tutte e quattro le squadre, perché un nome lungo
- * non è una buona ragione per avere un logo piccolo. A restringersi è solo
- * la scritta.
- */
-const apEzBox = () => {
-    const depth = apX(AP_FD.ez);
-    return {
-        depth,
-        logo: depth * 0.82,          // il logo, sempre questo
-        gap: depth * 0.82 * 0.24,    // lo stacco fra logo e scritta
-        along: AP_FD.vbH * 0.89,     // lunghezza utile: il resto è margine dal bordo campo
-        maxFs: depth * 0.66,         // oltre, la scritta sborda attraverso la fascia
-    };
-};
-
-/**
- * Le due end zone, una per lato: fascia tinta del colore della squadra, goal
- * line a chiuderla e dentro logo e nome della squadra. Il contenuto corre
- * LUNGO la fascia (ruotato di 90°), come la scritta dipinta di una end zone
- * vera vista dall'alto — non in orizzontale, che sarebbe un'etichetta
- * appoggiata sopra al campo invece che dipinta dentro.
- *
- * Il corpo della scritta si adatta al nome, ma NON si calcola qui: quello
- * che esce da questa funzione è solo un primo posizionamento, rifatto sulle
- * misure vere da `fitEndZones()` appena il DOM esiste. Vedi lì il perché.
- *
- * Solo il campo del Super Bowl le disegna — l'All-Pro non ha due squadre a
- * cui intestarle.
- */
-function apEndZones(left, right) {
-    const zone = (team, side) => {
-        if (!team?.color && !team?.logo) return '';
-        const x0 = side === 1 ? 0 : apX(AP_FD.spanX - AP_FD.ez);
-        const w = apX(AP_FD.ez);
-        const goalX = side === 1 ? w : x0;
-        const cx = x0 + w / 2, cy = AP_FD.vbH / 2;
-        // Ruotate verso l'esterno da lati opposti, così le due scritte si
-        // leggono entrambe girando la testa dallo stesso verso.
-        const rot = side === 1 ? -90 : 90;
-        const name = (team.name || '').toUpperCase();
-        const { logo: LOGO, gap: GAP, along, maxFs } = apEzBox();
-        const FS = Math.min(maxFs, (along - LOGO - GAP) / apTextEm(name));
-        const x = -(LOGO + GAP + apTextEm(name) * FS) / 2;
-        return `
-        <g class="mc-duel-ez" style="--team-color:${team.color || 'var(--accent-red)'}">
-            <rect x="${x0.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${AP_FD.vbH}" class="mc-duel-ez-fill"/>
-            <line x1="${goalX.toFixed(1)}" y1="0" x2="${goalX.toFixed(1)}" y2="${AP_FD.vbH}" class="mc-duel-ez-goal"/>
-            <g class="mc-duel-ez-mark" transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">
-                ${team.logo ? `<image href="${team.logo}" x="${x.toFixed(1)}" y="${(-LOGO / 2).toFixed(1)}"
-                    width="${LOGO.toFixed(1)}" height="${LOGO.toFixed(1)}" class="mc-duel-ez-logo" preserveAspectRatio="xMidYMid meet"/>` : ''}
-                <text x="${(x + LOGO + GAP).toFixed(1)}" y="0" dominant-baseline="central"
-                      class="mc-duel-ez-name" style="font-size:${FS.toFixed(1)}px">${esc(name)}</text>
-            </g>
-        </g>`;
-    };
-    return zone(left, 1) + zone(right, 2);
-}
-
-/**
- * Rimisura e ricentra logo+nome nelle end zone, sulle larghezze VERE.
- *
- * Serve perché in un SVG costruito come stringa il testo non si può
- * misurare: `apEndZones` deve indovinare quanto sarà largo un nome, e la
- * stima sbaglia in modo diverso da nome a nome. Misurato: la stima azzeccava
- * "LASERS" e sbagliava tutti gli altri, con il risultato che il blocco
- * usciva scentrato — "SOMMO" a 12px dal bordo campo da un lato e 75
- * dall'altro, e "OSCURUS" addirittura fuori di un pixel dal campo. Non era
- * un problema di gusto: era la stima.
- *
- * Qui il testo esiste davvero, quindi `getBBox()` dice la sua larghezza
- * esatta: si ricava il corpo che riempie la fascia e si ricentra il blocco.
- * Va chiamata dopo `document.fonts.ready`, o si misurerebbe il font di
- * ripiego e i conti cambierebbero appena arriva quello vero.
- *
- * Se la misura non è disponibile (elemento non ancora a layout) non fa
- * nulla: resta il posizionamento stimato, che è approssimativo ma valido.
- */
-function fitEndZones(root) {
-    const { logo: LOGO, gap: GAP, along, maxFs } = apEzBox();
-    root.querySelectorAll('.mc-duel-ez-mark').forEach((mark) => {
-        const img = mark.querySelector('.mc-duel-ez-logo');
-        const txt = mark.querySelector('.mc-duel-ez-name');
-        if (!txt) return;
-        // Larghezza per unità di corpo: si misura a un corpo noto e si scala.
-        const PROBE = 100;
-        txt.style.fontSize = `${PROBE}px`;
-        const perEm = txt.getBBox().width / PROBE;
-        if (!perEm) return;                                  // non a layout: si tiene la stima
-        const fs = Math.min(maxFs, (along - LOGO - GAP) / perEm);
-        txt.style.fontSize = `${fs.toFixed(1)}px`;
-
-        const x = -(LOGO + GAP + perEm * fs) / 2;
-        if (img) {
-            img.setAttribute('x', x.toFixed(1));
-            img.setAttribute('y', (-LOGO / 2).toFixed(1));
-            img.setAttribute('width', LOGO.toFixed(1));
-            img.setAttribute('height', LOGO.toFixed(1));
-        }
-        txt.setAttribute('x', (x + LOGO + GAP).toFixed(1));
-    });
-}
-
-// Il campo di gioco vero: 100 yard fra le due goal line, distese fra la fine
-// di una end zone e l'inizio dell'altra. Da qui in giù si ragiona in YARD
-// (0 = goal line di sinistra, 100 = quella di destra), non nelle unità di
-// schieramento usate dai giocatori.
-const apYd = (y) => apX(AP_FD.ez + y * (AP_FD.spanX - 2 * AP_FD.ez) / 100);
-
-/**
- * La segnaletica di un campo da football vero: erba a bande da 5 yard, le
- * yard line ogni 5 (grosse ogni 10), gli hash mark ogni singola yard su due
- * file interne e le tacche a bordo campo.
- *
- * Le due file di hash stanno a 70'9" da ciascuna linea laterale — cioè a
- * 23.58 e 29.72 yard su un campo largo 53.3, le stesse misure NFL usate dal
- * campo verticale della pagina squadra.
- */
-function apFieldMarkings() {
-    let s = '';
-    for (let y = 0; y < 100; y += 10) {                    // bande di prato, una ogni 5 yd alternata
-        s += `<rect x="${apYd(y + 5).toFixed(1)}" y="0" width="${(apYd(y + 10) - apYd(y + 5)).toFixed(1)}" height="${AP_FD.vbH}" class="nfl-fd2-band"/>`;
-    }
-    for (let y = 0; y <= 100; y += 5) {
-        const x = apYd(y).toFixed(1);
-        s += `<line x1="${x}" y1="0" x2="${x}" y2="${AP_FD.vbH}" class="nfl-fd2-yl"${y % 10 ? ' opacity="0.6"' : ''}/>`;
-    }
-    const tick = 9;
-    for (let y = 1; y < 100; y++) {
-        if (y % 5 === 0) continue;                          // dove c'è già la yard line intera
-        const x = apYd(y).toFixed(1);
-        for (const fy of [23.58, 29.72]) {                  // le due file interne
-            const yy = apY(fy);
-            s += `<line x1="${x}" y1="${(yy - tick / 2).toFixed(1)}" x2="${x}" y2="${(yy + tick / 2).toFixed(1)}" class="nfl-fd2-hash"/>`;
-        }
-        s += `<line x1="${x}" y1="0" x2="${x}" y2="${tick}" class="nfl-fd2-hash"/>`;
-        s += `<line x1="${x}" y1="${AP_FD.vbH - tick}" x2="${x}" y2="${AP_FD.vbH}" class="nfl-fd2-hash"/>`;
-    }
-    return s;
-}
-
-/**
- * I numeri dipinti sul campo: 10-20-30-40-50-40-30-20-10, ogni dieci yard,
- * su due file a 9 yard da ciascuna linea laterale (la misura del
- * regolamento, presa al bordo del numero).
- *
- * Due dettagli che li fanno sembrare veri invece che etichette:
- *
- * 1. Le due cifre stanno A CAVALLO della yard line, che passa in mezzo —
- *    non accanto ad essa.
- * 2. Ogni numero si legge dalla PROPRIA linea laterale, quindi la fila in
- *    alto è girata di 180° rispetto a quella in basso. Su un campo vero è
- *    così, ed è la stessa scelta già fatta dal campo verticale della pagina
- *    squadra NFL (`_yardNumber` in nfl-team-home.js), dove però a essere
- *    specchiati sono i due lati lunghi.
- *
- * La freccia accanto al numero punta alla end zone più vicina; il 50, che
- * non ha un lato più vicino, non ce l'ha.
- */
-function apYardNumbers() {
-    const FS = 30, gap = FS * 0.42;
-    let s = '';
-    for (let y = 10; y <= 90; y += 10) {
-        const num = String(y <= 50 ? y : 100 - y).padStart(2, '0');
-        const x = apYd(y);
-        for (const [fy, flip] of [[9, true], [AP_FD.W - 9, false]]) {
-            const cy = apY(fy);
-            // In basso si legge dritto; in alto il numero è capovolto, così
-            // sta in piedi per chi guarda da quella laterale.
-            const rot = flip ? 180 : 0;
-            const [d1, d2] = flip ? [num[1], num[0]] : [num[0], num[1]];
-            for (const [d, dx] of [[d1, -gap], [d2, gap]]) {
-                const px = x + dx;
-                s += `<text x="${px.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
-                    transform="rotate(${rot} ${px.toFixed(1)} ${cy.toFixed(1)})" class="nfl-fd2-num" style="font-size:${FS}px">${d}</text>`;
-            }
-            if (y !== 50) {
-                // Proporzioni da regolamento: lati lunghi il doppio della base.
-                const dir = y < 50 ? -1 : 1;                  // verso la end zone più vicina
-                const bx = x + dir * (gap + FS * 0.62), half = FS * 0.16, tip = bx + dir * FS * 0.3;
-                s += `<path d="M ${bx.toFixed(1)} ${(cy - half).toFixed(1)} L ${bx.toFixed(1)} ${(cy + half).toFixed(1)} L ${tip.toFixed(1)} ${cy.toFixed(1)} Z" class="nfl-fd2-arrow"/>`;
-            }
-        }
-    }
-    return s;
-}
-
-/**
- * Il campo orizzontale a due formazioni: due Pro Set specchiati sulla linea
- * delle 50, uno per lato. Lo usano la card All-Pro (First contro Second
- * Team, senza end zone) e quella del Super Bowl (le due finaliste, con le
- * end zone tinte e i loghi dentro) — stesso disegno, stessa formazione,
- * cambia solo chi ci sta sopra.
- *
- * `left`/`right`: `{ lineup: [{slot, player}], label, color, logo }`, dove
- * `lineup` è nell'ordine di ALLPRO_SLOTS/AP_PRO_SET e `player` può essere
- * null — quel posto resta un disco vuoto col nome del ruolo.
- *
- * `clipId` è per campo: due campi nello stesso DOM (le sezioni della SPA
- * restano montate) non possono condividere l'id del clip-path.
- */
-function apFieldSvg({ left, right, year, clipId, cls = '', label }) {
-    const formation = (team, side) => {
-        const players = (team.lineup || []).map(({ slot, player }, i) =>
-            apMarker({ ...AP_PRO_SET.slots[i], label: slot, player, side, abbr: player?.nfl, year, clipId }));
-        const ol = AP_PRO_SET.emptyOL.map(pos => apMarker({ ...pos, label: 'OL', player: null, side, clipId }));
-        return players.join('') + ol.join('');
-    };
-    const midX = apX(AP_FD.spanX / 2);
-    // Il campo è due volte più largo che alto: sotto agli ~700px lo SVG che si
-    // stringe schiaccerebbe le scritte a illeggibili (a differenza del campo
-    // verticale della pagina squadra, che sta già stretto di suo). Sotto
-    // quella soglia si scrolla ORIZZONTALMENTE dentro la card — non la
-    // pagina, che resta ferma — invece di rimpicciolire il testo a un punto.
-    return `
-    <div class="mc-apfield-scroll">
-        <div class="nfl-fd2 ${cls}">
-            <svg class="nfl-fd2-svg" viewBox="0 0 ${AP_FD.vbW} ${AP_FD.vbH}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(label)}">
-                <defs>${fieldClipDefs(clipId)}</defs>
-                <rect x="0" y="0" width="${AP_FD.vbW}" height="${AP_FD.vbH}" class="nfl-fd2-turf"/>
-                ${apFieldMarkings()}
-                ${apYardNumbers()}
-                ${apEndZones(left, right)}
-                <line x1="${midX.toFixed(1)}" y1="0" x2="${midX.toFixed(1)}" y2="${AP_FD.vbH}" class="nfl-fd2-los"/>
-                ${/* Solo dove non c'è l'end zone a dire di chi è la metà campo:
-                      sulla card Super Bowl il nome sta già dipinto lì dentro. */
-        left.label ? `<text x="10" y="16" class="nfl-fd2-side-lbl">${esc(left.label)}</text>
-                <text x="${AP_FD.vbW - 10}" y="16" text-anchor="end" class="nfl-fd2-side-lbl">${esc(right.label)}</text>` : ''}
-                ${formation(left, 1)}${formation(right, 2)}
-            </svg>
-        </div>
-    </div>`;
-}
+// Il campo orizzontale delle formazioni (geometria, end zone, segnaletica e
+// i nove slot) sta in js/ui/field-allpro.js: da quando lo disegna anche la
+// pagina squadra non può vivere dentro una sezione.
 
 /**
  * Versione SB week della card ideal lineup: non più tre righe testuali, ma
@@ -1394,29 +1070,7 @@ async function cardPlayoffs({ season }) {
  * da lì in poi. Si pesca per ruolo, e il posto che resta scoperto tiene il
  * suo disco vuoto invece di ereditare il giocatore di un altro slot.
  */
-const SB_LINEUP_SLOTS = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'K', 'DEF'];
 
-function sbLineup(team) {
-    const pool = [...(team?.starters || [])];
-    const posOf = (p) => (p.position_in_team || p.position || '').toUpperCase();
-    const take = (ok) => {
-        const i = pool.findIndex(p => ok(posOf(p)));
-        if (i < 0) return null;
-        const p = pool.splice(i, 1)[0];
-        return { name: p.name, nfl: p.nfl_team, pos: posOf(p) };
-    };
-    const matcher = (slot) => slot === 'DEF'
-        ? (x => ['DEF', 'D/ST', 'DST'].includes(x))
-        : (x => x === slot);
-    // I ruoli fissi per primi, il FLEX su ciò che avanza: assegnandolo nel
-    // suo turno si porterebbe via un RB o un WR che serve a uno degli slot
-    // dopo di lui, e la formazione uscirebbe con un buco al posto sbagliato.
-    const out = SB_LINEUP_SLOTS.map(slot =>
-        ({ slot, player: slot === 'FLEX' ? null : take(matcher(slot)) }));
-    const flex = out.find(e => e.slot === 'FLEX');
-    if (flex) flex.player = take(x => ['RB', 'WR', 'TE', 'RB/WR', 'W/R', 'FLEX'].includes(x));
-    return out;
-}
 
 /**
  * La finale, disegnata: il campo visto dall'alto con le due end zone tinte,

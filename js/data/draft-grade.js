@@ -49,7 +49,7 @@
  * restano in italiano.
  */
 
-import { replacementLevels, pickStarters } from './team-eval.js?v=594';
+import { replacementLevels, pickStarters } from './team-eval.js?v=595';
 import { matchProjection, normName } from './projections.js?v=594';
 import { ROSTER_SLOTS } from './league-rules.js?v=528';
 
@@ -93,7 +93,23 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /** Soglie di default: usate finché la calibrazione empirica non è disponibile. */
 const DEFAULT_PICK_THRESHOLDS = [[88, 'A+'], [78, 'A'], [70, 'A-'], [62, 'B+'], [55, 'B'], [48, 'B-'], [41, 'C+'], [34, 'C'], [26, 'C-'], [16, 'D']];
-const DEFAULT_TEAM_THRESHOLDS = [[78, 'A+'], [70, 'A'], [64, 'A-'], [57, 'B+'], [51, 'B'], [45, 'B-'], [39, 'C+'], [33, 'C'], [26, 'C-'], [18, 'D']];
+/**
+ * Righello di SQUADRA: fasce larghe uguali, cinque punti l'una, FISSE.
+ *
+ * Non sono quantili come quelle delle pick, e la differenza è voluta. Da quando
+ * il talento è «quota del raggiungibile catturata» (vedi captureOf) il
+ * punteggio ha due estremi con un significato: 0 = nove titolari da waiver e
+ * ogni pick buttata, 100 = i nove migliori che il board consentiva e ogni pick
+ * giocata al massimo. Su una scala così, tagliare per quantili rimetterebbe il
+ * voto in balìa di com'erano gli ALTRI tre quell'anno — che è esattamente ciò
+ * che si è tolto di mezzo.
+ *
+ * I bordi (36 → 76) coprono i 28 draft storici, misurati con
+ * scripts/analyze-absolute-scale.mjs: min 40.3, mediana 60.3, max 78.0, e nove
+ * lettere su dieci popolate. La D resta raggiungibile ma vuota nello storico:
+ * un draft intero da 15 pick sotto il 36% del raggiungibile non è mai successo.
+ */
+const DEFAULT_TEAM_THRESHOLDS = [[76, 'A+'], [71, 'A'], [66, 'A-'], [61, 'B+'], [56, 'B'], [51, 'B-'], [46, 'C+'], [41, 'C'], [36, 'C-'], [0, 'D']];
 export const TALENT_WEIGHT = 0.6;
 export const EFFICIENCY_WEIGHT = 0.4;
 
@@ -181,6 +197,65 @@ export function displayScore(score, thresholds = DEFAULT_PICK_THRESHOLDS) {
     // sotto la soglia più bassa (F): da 0 al valore di D
     const [lastT, lastL] = th[th.length - 1];
     return clamp(score / Math.max(1e-6, lastT) * LETTER_ANCHOR[lastL], 0, 100);
+}
+
+/* ── Il tetto: quanto valore era raggiungibile dai TUOI turni ─────
+   Serve al talento assoluto. Un giocatore è prendibile a un tuo turno se nel
+   draft vero è stato scelto a quel turno o dopo; quindi ogni giocatore è
+   prendibile in un PREFISSO dei tuoi turni, e un insieme è realizzabile se e
+   solo se, ordinando i prefissi in crescendo, l'i-esimo è lungo almeno i
+   (condizione di Hall, esatta perché i prefissi sono annidati).
+
+   Si parte sia da zero sia dalla rosa VERA e si tiene il meglio: così il tetto
+   non può risultare più basso di ciò che la squadra ha davvero fatto.
+   È un limite ottimista — dà per scontato che il board non reagisca se scegli
+   diversamente — quindi semmai sottostima la quota catturata, mai il contrario.
+   Validato su 28 draft da scripts/analyze-absolute-scale.mjs. */
+
+/** VOR della formazione titolare di un insieme di giocatori. */
+const lineupVOR = (list, repl) => pickStarters(list, 'value').starters
+    .reduce((s, p) => s + Math.max(0, (p.value || 0) - (repl[p.pos] || 0)), 0);
+
+function ceilingVOR(mySlots, allPicks, repl) {
+    const slots = [...mySlots].sort((a, b) => a - b);
+    if (!slots.length) return 0;
+    const prefixLen = (pl) => slots.filter(p => p <= pl.pick).length;
+    const feasible = (set) => set.map(prefixLen).sort((a, b) => a - b).every((l, i) => l >= i + 1);
+
+    const improve = (start) => {
+        let set = [...start];
+        let best = lineupVOR(set, repl);
+        for (let n = set.length; n < slots.length; n++) {      // aggiunte
+            let cand = null, candVal = best;
+            for (const x of allPicks) {
+                if (set.includes(x)) continue;
+                const next = [...set, x];
+                if (!feasible(next)) continue;
+                const v = lineupVOR(next, repl);
+                if (v > candVal + 1e-9) { candVal = v; cand = x; }
+            }
+            if (!cand) break;
+            set.push(cand); best = candVal;
+        }
+        for (let guard = 0; guard < 12; guard++) {             // scambi
+            let moved = false;
+            for (let i = 0; i < set.length && !moved; i++) {
+                const rest = set.filter((_, j) => j !== i);
+                for (const x of allPicks) {
+                    if (set.includes(x)) continue;
+                    const next = [...rest, x];
+                    if (!feasible(next)) continue;
+                    const v = lineupVOR(next, repl);
+                    if (v > best + 1e-9) { best = v; set = next; moved = true; break; }
+                }
+            }
+            if (!moved) break;
+        }
+        return best;
+    };
+
+    const mine = allPicks.filter(p => slots.includes(p.pick));
+    return Math.max(improve([]), improve(mine));
 }
 
 /* ── Board e valore marginale ──────────────────────────────────── */
@@ -739,7 +814,10 @@ export function computeDraftGrade(grades, proj, opts = {}) {
     const adpDisp = opts.adpDisp || null;
     const calib = opts.calib || null;
     const pickThr = calib?.pickThresholds || DEFAULT_PICK_THRESHOLDS;
-    const teamThr = calib?.teamThresholds || DEFAULT_TEAM_THRESHOLDS;
+    // le pick restano calibrate sui quantili (sono migliaia, e "questa scelta
+    // rispetto a tutte le scelte mai fatte" è una domanda relativa per natura);
+    // le SQUADRE no: il loro punteggio è assoluto, quindi righello fisso
+    const teamThr = DEFAULT_TEAM_THRESHOLDS;
 
     const allPicks = grades.flatMap(g => g.list).filter(p => p.value != null);
     if (!allPicks.length) return null;
@@ -824,12 +902,13 @@ export function computeDraftGrade(grades, proj, opts = {}) {
         rosters[key].push(p);
     }
 
-    // talento: VOR del lineup titolare, e quota sul totale di lega
-    const starterVORof = {};
+    // talento: VOR del lineup titolare, come QUOTA DEL RAGGIUNGIBILE
+    const starterVORof = {}, ceilingOf = {};
     for (const g of grades) {
         const list = g.list.filter(p => p.value != null);
         const { starters } = pickStarters(list, 'value');
-        starterVORof[g.key] = starters.reduce((s, p) => s + Math.max(0, (p.value || 0) - (repl[p.pos] || 0)), 0);
+        starterVORof[g.key] = lineupVOR(starters, repl);
+        ceilingOf[g.key] = ceilingVOR(list.map(p => p.pick), allPicks, repl);
     }
     const leagueVOR = Object.values(starterVORof).reduce((a, b) => a + b, 0) || 1;
     const leagueBestVOR = Math.max(...Object.values(starterVORof));
@@ -851,8 +930,18 @@ export function computeDraftGrade(grades, proj, opts = {}) {
         const efficiency = den ? num / den : NEUTRAL;
 
         // talento: quota di VOR titolari sul totale di lega (0.25 = media)
-        const share = starterVORof[g.key] / leagueVOR;
-        const talent = clamp(50 + (share - 1 / grades.length) * 400, 0, 100);
+        const share = starterVORof[g.key] / leagueVOR;   // solo contesto: non entra più nel voto
+        // Il talento è ASSOLUTO: quanto del raggiungibile hai catturato.
+        // Prima era la quota sul totale di lega — una grandezza a somma zero,
+        // dove le quattro squadre facevano sempre 100% e quindi «un draft da
+        // 10» non era nemmeno esprimibile: se draftavano bene tutti e quattro
+        // restavano tutti a 50. Con il tetto, il metro non dipende più da
+        // com'è andata agli altri, ed è confrontabile fra stagioni (le
+        // proiezioni si sono sgonfiate di due volte e mezzo dal 2019: il
+        // rapporto regge, i punti assoluti no).
+        const ceiling = ceilingOf[g.key] || 0;
+        const capture = ceiling > 0 ? starterVORof[g.key] / ceiling : 0;
+        const talent = clamp(capture * 100, 0, 100);
 
         const totalVOR = list.reduce((s, p) => s + Math.max(0, (p.value || 0) - (repl[p.pos] || 0)), 0);
         const starterShare = totalVOR ? starterVORof[g.key] / totalVOR : 0;
@@ -867,6 +956,8 @@ export function computeDraftGrade(grades, proj, opts = {}) {
             picks: results,
             components: {
                 talent: +talent.toFixed(1),
+                capture: +capture.toFixed(3),
+                ceilingVOR: Math.round(ceiling),
                 efficiency: +efficiency.toFixed(1),
                 efficiencyGrade: Math.round(displayScore(efficiency, pickThr)),
                 starterVOR: Math.round(starterVORof[g.key]),
@@ -911,6 +1002,9 @@ export function computeDraftGrade(grades, proj, opts = {}) {
     return {
         byKey, ranking, boardByPos,
         weights: { talent: TALENT_WEIGHT, efficiency: EFFICIENCY_WEIGHT },
+        // le soglie servono alla UI per DISEGNARE la scala delle lettere: senza,
+        // "perché B+ e non A−" resta una cosa da prendere per buona
+        thresholds: { team: teamThr, pick: pickThr },
         calibrated: !!calib,
     };
 }

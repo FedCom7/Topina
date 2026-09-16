@@ -1,6 +1,6 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=580';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
+import { TEAM_LOGOS, TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
 import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=774';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=630';
 
@@ -1103,7 +1103,10 @@ function recTdSplit(byPos) {
    ============================================================ */
 
 // Colori serie: identità team schiarite per il fondo nero (come in Analysis)
-const CHART_COLORS_BY_KEY = { capi: '#FF6600', lasers: '#D4AF37', oscurus: '#d4506a', sommo: '#4fa3b8' };
+/* Stessa cosa di analysis.js: il colore leggibile su nero lo dà la palette
+   (ruolo `bright`), non una copia locale. */
+const CHART_COLORS_BY_KEY = Object.fromEntries(
+    Object.entries(TEAM_PALETTE).map(([k, p]) => [k, p.bright]));
 // Colori ruolo (6 serie: direct labels + legenda obbligatorie)
 const ROLE_COLORS = { QB: '#f87171', RB: '#4f8cff', WR: '#22c55e', TE: '#f59e0b', K: '#a855f7', DEF: '#9ca3af' };
 

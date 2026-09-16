@@ -221,12 +221,33 @@ Regole da non violare aggiungendo roba a questa pagina:
    (team-eval) = ultimo titolare di lega, per il TALENTO. `waiverLevels`
    (draft-grade) = miglior non draftato, per il voto delle singole pick. In una
    lega a 4 squadre il primo è così alto che dal 7° giro azzera il VOR di tutti.
-4. **Le soglie-lettera sono quantili empirici**, generati da
-   `node scripts/build-draft-grade-calib.mjs` → `data/model/draft_grade_calib.json`.
-   Lo script deve valorizzare le pick **esattamente come il sito** (blend storico
-   K/DEF compreso): calibrare su una distribuzione diversa da quella votata
-   sbaglia le lettere ai bordi. Lo script stampa anche il backtest contro i punti
-   veri — se `meanGradeRho` va sotto zero, il motore è rotto, non i pesi.
+4. **Due righelli diversi, e la differenza è voluta.** Le **pick** hanno soglie
+   a quantili empirici, generate da `node scripts/build-draft-grade-calib.mjs`
+   → `data/model/draft_grade_calib.json`: "questa scelta rispetto a tutte le
+   scelte mai fatte" è una domanda relativa per natura. Lo script deve
+   valorizzare le pick **esattamente come il sito** (blend storico K/DEF
+   compreso): calibrare su una distribuzione diversa da quella votata sbaglia le
+   lettere ai bordi. Stampa anche il backtest contro i punti veri — se
+   `meanGradeRho` va sotto zero, il motore è rotto, non i pesi.
+   Le **squadre** no: `DEFAULT_TEAM_THRESHOLDS` è un righello **fisso a fasce
+   uguali** da 5 punti (D sotto 36 … A+ da 76), e `calib.teamThresholds` viene
+   ignorato di proposito — su una scala assoluta (punto 4-bis) tagliare per
+   quantili rimetterebbe il voto in balìa di com'erano gli altri tre quell'anno.
+4-bis. **Il talento è ASSOLUTO: quota del raggiungibile catturata.**
+   `starterVOR / ceilingVOR`, dove il tetto è la miglior formazione titolare
+   costruibile dai TUOI turni col board vero (`ceilingVOR` in `draft-grade.js`:
+   condizione di Hall sui prefissi, avidità + scambi, partendo sia da zero sia
+   dalla rosa vera così il tetto non può stare sotto il reale).
+   **Non tornare alla quota di lega** (`50 + (share − 25%) × 400`): era a somma
+   zero — le quattro quote fanno sempre 100%, quindi se draftavano bene tutti e
+   quattro restavano tutti a 50, e "un draft da 10" non era esprimibile.
+   Misurato su 28 draft con `scripts/analyze-absolute-scale.mjs`: capture si
+   spande fra 41.8% e 91.9%, è quasi scorrelata dal turno di prima scelta
+   (−0.14 contro −0.35 della vecchia quota, quindi più equa), e il backtest non
+   peggiora in modo distinguibile (0.343 contro 0.429, t = −1.4 su 7 stagioni).
+   I punti/settimana **non** possono essere la scala: il tetto medio di lega è
+   passato da 43.8 pt/sett nel 2019 a 17.8 nel 2025, solo il rapporto è
+   confrontabile fra stagioni.
 5. I pesi talento/efficienza (0.6/0.4) sono una **scelta di design dichiarata**,
    non una taratura: con 28 team-stagione non è tarabile, e la nota a fondo
    pagina lo dice.
@@ -262,6 +283,54 @@ Regole da non violare aggiungendo roba a questa pagina:
    **due piani su due turni**, mai VOR assoluti. Confrontare il giocatore preso
    col miglior altro-ruolo che spariva dava "troppo presto" su ogni singola
    pick, prima compresa: al primo giro sparisce sempre qualcuno di enorme.
+
+### I colori di una squadra stanno in UN posto
+
+`TEAM_PALETTE` in `js/data/team-config.js` dà tre ruoli per squadra:
+`identity` (la franchigia: hero, sticker, bordi), `bright` (lo stesso colore
+reso leggibile su fondo nero — per Oscurus e Sommo è diverso, perché un
+bordeaux #800020 e un petrolio #1c4750 su un grafico nero spariscono) e `ink`
+(la versione cupa, per le campiture larghe).
+
+Prima ce n'era uno solo in `TEAMS[].color` più un secondo set **copiato
+identico in due file** (`CHART_COLORS` in analysis.js e `CHART_COLORS_BY_KEY`
+in stats.js). Ora quei due derivano dalla palette e `TEAMS[].color` è
+`TEAM_PALETTE[key].identity`. **Non si reintroduce una tinta di squadra scritta
+a mano da nessuna parte**: si aggiunge un ruolo alla palette. La pagina squadra
+mostra i tre colori col loro codice esadecimale proprio per poterli correggere
+lì e vederli cambiare ovunque.
+
+### Sticker dell'hero squadra — due tinte, e l'impaginato dice il tipo
+
+Gli adesivi della pagina squadra (`js/ui/badge-svg.js`) sono ricalcati sugli
+helmet sticker dei Michigan Wolverines. Tre regole:
+
+1. **Due tinte e basta.** `--stk-paint` è il fondo, `--stk-ink` l'inchiostro:
+   niente sfumature, niente bordi, niente terza tinta. I dettagli dentro un
+   marchio si ricavano per SOTTRAZIONE — buchi color fondo dentro la sagoma
+   piena (classe `stk-lace`) — che è come si stampa un adesivo a due colori.
+   Per questo le due tinte sono variabili CSS e non valori: i buchi devono
+   sapere qual è il fondo.
+2. **L'impaginato dice già di che si tratta**, prima che si leggano le parole.
+   Sono nove (`COMPOSITIONS`) e ognuno ha il suo antenato sul casco: logo +
+   numero è il conta-vittorie, «(540)» è il prefisso telefonico, «RAMPAGE 2023»
+   è parola + anno, l'arco è «GUARDIANS OF VICTORY». Ogni badge dichiara il suo
+   in `js/data/badges.js` (campo `comp`), e il numero che ci finisce dentro
+   arriva da `iconText` sull'istanza — **non** dalla soglia del badge: sette
+   stagioni di Club 150 con la soglia davano sette «(150)» identici, col
+   punteggio vero danno sette adesivi diversi.
+3. **Il testo si misura a schermo, non si stima.** Una parola lunga esce
+   dall'ovale, e sul tracciato curvo viene TAGLIATA in silenzio dal `textPath`.
+   `fitStickerTexts(root)` va chiamata dopo aver messo gli sticker nel
+   documento, e riparte sempre dal corpo iniziale; aspetta anche il
+   caricamento di Archivo Black, che si scarica quando serve — misurare prima
+   significa misurare il ripiego, più stretto, e vedere il testo sforare appena
+   arriva il font vero.
+
+Il banco di prova è `preview-stickers.html`, che **importa il modulo vero**: non
+tiene una copia dei marchi, perché due copie divergono. Quello che vive solo là
+sono le proposte non adottate — le tre famiglie (a vita / stagionali che si
+azzerano / in palio che cambiano mano) e gli adesivi segnati ✦.
 
 ### localStorage: tutto passa da `js/utils/storage.js`
 

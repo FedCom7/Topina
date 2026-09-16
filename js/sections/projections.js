@@ -18,14 +18,14 @@
  */
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
+import { TEAM_KEYS } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=595';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { decorateTerms } from '../ui/glossary.js?v=4';
 import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=47';
-import { multiLine, dumbbell } from '../ui/charts.js?v=7';
+import { multiLine, dumbbell, donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=8';
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=64';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
 import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=933';
@@ -560,28 +560,28 @@ function shareSunburst(causes, playerName) {
         const mineSweep = sweep * (b.mine / b.team);
 
         if (two) {
-            parts.push(arcSeg(cx, cy, rings.in[0], rings.in[1], angle, angle + sweep,
+            parts.push(donutSeg(cx, cy, rings.in[0], rings.in[1], angle, angle + sweep,
                 `pp-sb-band pp-sb-band--${b.tone}`, `${b.label}: ${fmt0(b.team)} ${b.unit}`));
             // etichetta di categoria DENTRO la fascia, come nel modello
             const midIn = angle + sweep / 2;
-            const pIn = sbPoint(cx, cy, (rings.in[0] + rings.in[1]) / 2, midIn);
+            const pIn = donutPoint(cx, cy, (rings.in[0] + rings.in[1]) / 2, midIn);
             labels.push(`<text x="${pIn.x.toFixed(1)}" y="${(pIn.y - 2).toFixed(1)}" class="pp-sb-band-lbl" text-anchor="middle">${b.label.split(' ')[0] === 'Through' ? 'Air' : 'Ground'}</text>
                 <text x="${pIn.x.toFixed(1)}" y="${(pIn.y + 10).toFixed(1)}" class="pp-sb-band-val" text-anchor="middle">${fmt0(b.team)}</text>`);
         }
 
         // fetta del giocatore, poi il resto della squadra
-        parts.push(arcSeg(cx, cy, rings.out[0], rings.out[1], angle, angle + mineSweep,
+        parts.push(donutSeg(cx, cy, rings.out[0], rings.out[1], angle, angle + mineSweep,
             `pp-sb-mine pp-sb-mine--${b.tone}`, `${playerName}: ${fmt0(b.mine)} ${b.unit} (${b.d.pct}%)`));
-        parts.push(arcSeg(cx, cy, rings.out[0], rings.out[1], angle + mineSweep, angle + sweep,
+        parts.push(donutSeg(cx, cy, rings.out[0], rings.out[1], angle + mineSweep, angle + sweep,
             `pp-sb-rest pp-sb-rest--${b.tone}`, `Rest of the offense: ${fmt0(b.rest)} ${b.unit}`));
 
         // etichette dirette fuori dall'anello: nome sopra, valore in grassetto
         // sotto. La fetta del giocatore la etichetto solo se è visibile.
         if (mineSweep >= 12) {
-            labels.push(sbLabel(cx, cy, rings.out[1] + 8, angle + mineSweep / 2, lastName(playerName), `${fmt0(b.mine)} ${b.unit}`, 'pp-sb-lbl--mine'));
+            labels.push(donutLabel(cx, cy, rings.out[1] + 8, angle + mineSweep / 2, lastName(playerName), `${fmt0(b.mine)} ${b.unit}`, 'pp-sb-lbl pp-sb-lbl--mine', 'pp-sb-lbl-val pp-sb-lbl--mine'));
         }
         if (sweep - mineSweep >= 12) {
-            labels.push(sbLabel(cx, cy, rings.out[1] + 8, angle + mineSweep + (sweep - mineSweep) / 2, 'Rest of offense', `${fmt0(b.rest)} ${b.unit}`));
+            labels.push(donutLabel(cx, cy, rings.out[1] + 8, angle + mineSweep + (sweep - mineSweep) / 2, 'Rest of offense', `${fmt0(b.rest)} ${b.unit}`, 'pp-sb-lbl', 'pp-sb-lbl-val'));
         }
         angle += sweep;
     }
@@ -625,35 +625,6 @@ function shareSunburst(causes, playerName) {
         </svg>
         ${snapLine ? `<div class="pp-sb-foot">${snapLine}</div>` : ''}
     </figure>`;
-}
-
-/** Punto sul cerchio: 0° = ore 12, in senso orario. */
-function sbPoint(cx, cy, r, deg) {
-    const rad = (deg - 90) * Math.PI / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-/** Settore di corona circolare (donut segment) da startDeg a endDeg. */
-function arcSeg(cx, cy, rIn, rOut, startDeg, endDeg, cls, title) {
-    if (endDeg - startDeg <= 0.05) return '';
-    // 359.99 e non 360: un arco che torna al punto di partenza non viene reso
-    const end = Math.min(endDeg, startDeg + 359.99);
-    const large = end - startDeg > 180 ? 1 : 0;
-    const a = sbPoint(cx, cy, rOut, startDeg), b = sbPoint(cx, cy, rOut, end);
-    const c = sbPoint(cx, cy, rIn, end), d = sbPoint(cx, cy, rIn, startDeg);
-    const p = (v) => v.toFixed(2);
-    return `<path class="${cls}" d="M ${p(a.x)} ${p(a.y)} A ${rOut} ${rOut} 0 ${large} 1 ${p(b.x)} ${p(b.y)} L ${p(c.x)} ${p(c.y)} A ${rIn} ${rIn} 0 ${large} 0 ${p(d.x)} ${p(d.y)} Z"><title>${title}</title></path>`;
-}
-
-/** Etichetta diretta fuori dall'anello: nome sopra, valore in grassetto sotto. */
-function sbLabel(cx, cy, r, deg, name, value, extraCls = '') {
-    const p = sbPoint(cx, cy, r, deg);
-    const right = p.x >= cx;
-    const anchor = right ? 'start' : 'end';
-    const x = (p.x + (right ? 4 : -4)).toFixed(1);
-    return `
-    <text x="${x}" y="${(p.y - 3).toFixed(1)}" class="pp-sb-lbl ${extraCls}" text-anchor="${anchor}">${name}</text>
-    <text x="${x}" y="${(p.y + 9).toFixed(1)}" class="pp-sb-lbl-val ${extraCls}" text-anchor="${anchor}">${value}</text>`;
 }
 
 /* ═══════════════════════════ Draft Strategy ═══════════════════════════

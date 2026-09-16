@@ -62,6 +62,9 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const stdev = (a) => { const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
 
+/** Posizione (1 = migliore) di un valore dentro l'insieme delle 4 squadre. */
+const rankOf = (v, all) => all.filter(x => x > v).length + 1;
+
 /** Normalizza una grandezza "relativa alla lega" a 0-100 (50 = media lega). */
 function relScore(raw, allRaws) {
     const sd = stdev(allRaws) || 1;
@@ -146,58 +149,91 @@ export function playerRiskIndex(ctx) {
     return +(num / den).toFixed(0);
 }
 
-/** Bilanciamento roster: fabbisogno realistico su 15 pick + diversità NFL. */
-export function balanceScore(list) {
+/**
+ * Bilanciamento roster: fabbisogno realistico su 15 pick + diversità NFL.
+ * Ritorna anche le VOCI della penalità, non solo il totale: un 92 senza il
+ * "−4 perché hai un TE solo" è un numero che il lettore deve prendere per fede.
+ */
+export function balanceDetail(list) {
     const TARGET = { QB: 2, RB: 5, WR: 5, TE: 2, K: 1, DEF: 1 }; // rosa "sana"
     const CRIT = { RB: 1.4, WR: 1.4, QB: 1, TE: 0.9, K: 0.6, DEF: 0.6 };
     const cnt = {};
     for (const p of list) cnt[p.pos] = (cnt[p.pos] || 0) + 1;
     let penalty = 0;
+    const issues = [];
     for (const [pos, tgt] of Object.entries(TARGET)) {
         const n = cnt[pos] || 0;
         const w = CRIT[pos] || 1;
-        if (n < tgt) penalty += (tgt - n) * 6 * w;        // buchi (peggio nei ruoli chiave)
-        else if (n > tgt) penalty += (n - tgt) * 3 * w;   // spreco (es. 4 QB / 3 TE)
+        if (n < tgt) {
+            const cost = (tgt - n) * 6 * w;
+            penalty += cost;                              // buchi (peggio nei ruoli chiave)
+            issues.push({ pos, kind: 'short', n, target: tgt, cost: +cost.toFixed(1) });
+        } else if (n > tgt) {
+            const cost = (n - tgt) * 3 * w;
+            penalty += cost;                              // spreco (es. 4 QB / 3 TE)
+            issues.push({ pos, kind: 'excess', n, target: tgt, cost: +cost.toFixed(1) });
+        }
     }
     // diversità: troppi giocatori dalla stessa squadra NFL = rischio concentrazione
     const byNfl = {};
     for (const p of list) if (p.nfl && OFF.has(p.pos)) byNfl[p.nfl] = (byNfl[p.nfl] || 0) + 1;
-    const maxSame = Math.max(0, ...Object.values(byNfl));
-    if (maxSame > 3) penalty += (maxSame - 3) * 5;
-    return clamp(100 - penalty, 0, 100);
+    let maxSame = 0, maxAbbr = null;
+    for (const [abbr, n] of Object.entries(byNfl)) if (n > maxSame) { maxSame = n; maxAbbr = abbr; }
+    let sameTeam = null;
+    if (maxSame > 3) {
+        const cost = (maxSame - 3) * 5;
+        penalty += cost;
+        sameTeam = { abbr: maxAbbr, n: maxSame, cost };
+    }
+    issues.sort((a, b) => b.cost - a.cost);
+    return { score: clamp(100 - penalty, 0, 100), counts: cnt, issues, sameTeam };
 }
 
-/** Bye: penalizza titolari critici sovrapposti nella stessa settimana. */
-function byeScore(starters, byes) {
-    if (!byes) return null;
+export const balanceScore = (list) => balanceDetail(list).score;
+
+/**
+ * Bye: penalizza titolari critici sovrapposti nella stessa settimana. Ritorna
+ * anche QUALI settimane e con quali ruoli: è l'unica forma in cui il numero
+ * diventa azionabile ("week 12 senza i due RB").
+ */
+function byeDetail(starters, byes) {
+    if (!byes) return { score: null, clashes: [] };
     // raggruppa i titolari per bye e per ruolo di scarsità (RB/WR pesano di più)
-    const perWeek = {}; // week → { pos → count }
+    const perWeek = {}; // week → { pos → [nomi] }
     for (const p of starters) {
         const abbr = canonAbbr(p.nfl);
         const bye = abbr && byes[abbr];
         if (!bye) continue;
         (perWeek[bye] = perWeek[bye] || {});
-        perWeek[bye][p.pos] = (perWeek[bye][p.pos] || 0) + 1;
+        (perWeek[bye][p.pos] = perWeek[bye][p.pos] || []).push(p.player);
     }
     let penalty = 0;
+    const clashes = [];
     const POSW = { RB: 12, WR: 10, TE: 6, QB: 8, K: 2, DEF: 2 };
-    for (const posCnt of Object.values(perWeek)) {
-        for (const [pos, n] of Object.entries(posCnt)) {
-            if (n >= 2) penalty += (n - 1) * (POSW[pos] || 5); // 2 RB titolari stessa bye = grosso
+    for (const [week, posCnt] of Object.entries(perWeek)) {
+        for (const [pos, names] of Object.entries(posCnt)) {
+            if (names.length < 2) continue;
+            const cost = (names.length - 1) * (POSW[pos] || 5); // 2 RB titolari stessa bye = grosso
+            penalty += cost;
+            clashes.push({ week: +week, pos, names, cost });
         }
     }
-    return clamp(100 - penalty, 0, 100);
+    clashes.sort((a, b) => b.cost - a.cost);
+    return { score: clamp(100 - penalty, 0, 100), clashes };
 }
 
 /** Stack: QB titolare con un ricevitore titolare della stessa squadra NFL. */
-function stackScore(starters) {
+function stackDetail(starters) {
     const qbs = starters.filter(p => p.pos === 'QB' && p.nfl);
     let bonus = 0;
+    const pairs = [];
     for (const qb of qbs) {
         const mates = starters.filter(p => (p.pos === 'WR' || p.pos === 'TE') && p.nfl === qb.nfl);
-        if (mates.length) bonus += 25 + (mates.length - 1) * 12; // stack solido
+        if (!mates.length) continue;
+        bonus += 25 + (mates.length - 1) * 12; // stack solido
+        pairs.push({ qb: qb.player, nfl: qb.nfl, mates: mates.map(m => m.player) });
     }
-    return clamp(50 + bonus, 0, 100);
+    return { score: clamp(50 + bonus, 0, 100), pairs, qbs: qbs.map(q => ({ name: q.player, nfl: q.nfl })) };
 }
 
 /** Media pesata per valore di un campo ctx (0-100) sui titolari d'attacco. */
@@ -250,7 +286,7 @@ export async function evaluateLeague(grades, year, { mode = 'proj' } = {}) {
     // 1) grandezze grezze per squadra
     const raw = grades.map(g => {
         const list = g.list.filter(p => p[valueField] != null);
-        const { starters, slotValues, benchByValue } = pickStarters(list, valueField);
+        const { starters, slotValues, bySlot, benchByValue } = pickStarters(list, valueField);
 
         const projection = list.reduce((s, p) => s + (p[valueField] || 0), 0);
         const starterValue = starters.reduce((s, p) => s + (p[valueField] || 0), 0);
@@ -260,7 +296,7 @@ export async function evaluateLeague(grades, year, { mode = 'proj' } = {}) {
 
         // Risk Index per giocatore d'attacco (memorizzato sulla pick per la UI)
         for (const p of list) if (OFF.has(p.pos)) p.riskIndex = playerRiskIndex(p.ctx);
-        return { g, list, starters, slotValues, benchByValue, projection, starterValue, vor, bench, ceiling };
+        return { g, list, starters, slotValues, bySlot, benchByValue, projection, starterValue, vor, bench, ceiling };
     });
 
     // 2) medie lega per slot (per il vantaggio posizionale)
@@ -278,6 +314,7 @@ export async function evaluateLeague(grades, year, { mode = 'proj' } = {}) {
         const g = r.g;
         // vantaggio posizionale: percentile dello slot fra le 4 squadre, pesato
         let paNum = 0, paDen = 0;
+        const slotRows = [];
         for (const k of SLOT_KEYS) {
             const vals = leagueSlotVals[k];
             const mine = r.slotValues[k] || 0;
@@ -286,26 +323,52 @@ export async function evaluateLeague(grades, year, { mode = 'proj' } = {}) {
             const pct = ((better + (equal - 1) / 2) / NUM_TEAMS) * 100; // 0..100 fra i pari
             const w = SLOT_IMPORTANCE[k] || 1;
             paNum += clamp(pct, 0, 100) * w; paDen += w;
+            // il "perché" di questa componente è slot per slot: chi occupa la
+            // casella, quanto vale e in che posizione sta fra le quattro squadre
+            slotRows.push({
+                slot: k, rank: rankOf(mine, vals), value: Math.round(mine),
+                player: r.bySlot?.[k]?.player || null, weight: w,
+                gapToBest: Math.round(Math.max(...vals) - mine),
+            });
         }
         const posAdv = paDen ? paNum / paDen : 50;
 
         // risk: media pesata del Risk Index dei titolari d'attacco → 100 − rischio
         let rNum = 0, rDen = 0;
+        const riskRows = [];
         for (const p of r.starters) {
             if (!OFF.has(p.pos)) continue;
             const ri = p.riskIndex;
             const w = (p[valueField] || 0) || 1;
             rNum += (ri == null ? 45 : ri) * w; rDen += w;
+            if (ri != null) riskRows.push({ name: p.player, pos: p.pos, risk: ri, bust: p.ctx?.bustProb ?? null });
         }
         const teamRisk = rDen ? rNum / rDen : 45;
+        riskRows.sort((a, b) => b.risk - a.risk);
 
         const context = wavgCtx(r.starters, ctx => ctx?.subScores?.teamOffense, valueField, 50);
+        const ctxRows = r.starters
+            .filter(p => OFF.has(p.pos) && p.ctx?.subScores?.teamOffense != null)
+            .map(p => ({ name: p.player, pos: p.pos, nfl: p.nfl, score: p.ctx.subScores.teamOffense }))
+            .sort((a, b) => b.score - a.score);
         const consistency = wavgCtx(r.starters, ctx => {
             if (!ctx) return null;
             const dur = ctx.subScores?.durability ?? 60;
             const vol = ctx.cv != null ? clamp((ctx.cv - 0.15) / (1.2 - 0.15) * 100, 0, 100) : 40;
             return 0.5 * dur + 0.5 * (100 - vol);
         }, valueField, 55);
+        const consRows = r.starters
+            .filter(p => OFF.has(p.pos) && p.ctx)
+            .map(p => {
+                const dur = p.ctx.subScores?.durability ?? 60;
+                const vol = p.ctx.cv != null ? clamp((p.ctx.cv - 0.15) / (1.2 - 0.15) * 100, 0, 100) : 40;
+                return { name: p.player, pos: p.pos, score: Math.round(0.5 * dur + 0.5 * (100 - vol)) };
+            })
+            .sort((a, b) => b.score - a.score);
+
+        const bal = balanceDetail(r.list);
+        const byeD = byeDetail(r.starters, byes);
+        const stackD = stackDetail(r.starters);
 
         const sub = {
             projection: relScore(r.projection, projAll),
@@ -314,10 +377,10 @@ export async function evaluateLeague(grades, year, { mode = 'proj' } = {}) {
             vor: relScore(r.vor, vorAll),
             bench: relScore(r.bench, benchAll),
             risk: clamp(100 - teamRisk, 0, 100),
-            balance: balanceScore(r.list),
+            balance: bal.score,
             context,
-            bye: byeScore(r.starters, byes),
-            stack: stackScore(r.starters),
+            bye: byeD.score,
+            stack: stackD.score,
             consistency,
             ceiling: relScore(r.ceiling, ceilAll),
         };
@@ -331,6 +394,35 @@ export async function evaluateLeague(grades, year, { mode = 'proj' } = {}) {
         }
         g.tsi = den ? +(num / den).toFixed(1) : null;
         g.tsiSub = Object.fromEntries(Object.entries(sub).map(([k, v]) => [k, v == null ? null : +v.toFixed(0)]));
+        // versione non arrotondata: la UI scompone il TSI in contributi
+        // (peso × scarto dal 50) e con i sotto-punteggi già arrotondati a
+        // intero la somma dei contributi non tornava al TSI mostrato
+        g.tsiSubRaw = { ...sub };
+
+        /* Il PERCHÉ di ogni componente, in fatti grezzi.
+           Un sotto-punteggio da solo non è verificabile: "Positional advantage
+           42" non dice che il problema sono RB2 e TE ultimi di quattro. Qui
+           esce ciò che il motore ha già in mano mentre calcola — nessun conto
+           in più, solo quello che finora buttava via. Le frasi le compone la
+           UI: questi restano fatti. */
+        g.tsiWhy = {
+            projection: { total: Math.round(r.projection), rank: rankOf(r.projection, projAll), leagueBest: Math.round(Math.max(...projAll)) },
+            starter: { total: Math.round(r.starterValue), rank: rankOf(r.starterValue, starterAll), leagueBest: Math.round(Math.max(...starterAll)) },
+            posAdv: { slots: slotRows },
+            vor: { total: Math.round(r.vor), rank: rankOf(r.vor, vorAll), leagueBest: Math.round(Math.max(...vorAll)) },
+            bench: {
+                rank: rankOf(r.bench, benchAll),
+                top: r.benchByValue.slice(0, 2).map(p => ({ name: p.player, pos: p.pos, value: Math.round(p[valueField] || 0) })),
+                count: r.benchByValue.length,
+            },
+            risk: { teamRisk: +teamRisk.toFixed(0), worst: riskRows.slice(0, 2), safest: riskRows.length ? riskRows[riskRows.length - 1] : null },
+            balance: { counts: bal.counts, issues: bal.issues, sameTeam: bal.sameTeam },
+            context: { best: ctxRows[0] || null, worst: ctxRows.length > 1 ? ctxRows[ctxRows.length - 1] : null },
+            bye: { clashes: byeD.clashes, known: !!byes },
+            stack: { pairs: stackD.pairs, qbs: stackD.qbs },
+            consistency: { best: consRows[0] || null, worst: consRows.length > 1 ? consRows[consRows.length - 1] : null },
+            ceiling: { total: Math.round(r.ceiling), rank: rankOf(r.ceiling, ceilAll), starterValue: Math.round(r.starterValue) },
+        };
         g.tsiRisk = +teamRisk.toFixed(0);
         g.starterValue = +r.starterValue.toFixed(0);
         g.replacement = repl;

@@ -935,12 +935,15 @@ function render(section, year) {
             <h1 class="section-title">NFL Hub</h1>
             <p class="section-subtitle">Search a player (full Topina history) or an NFL team</p>
         </div>
-        <div class="section-header nfl-year-header ps-year-header">
-            <button type="button" class="section-title nfl-year-title" id="ps-year-btn" aria-haspopup="listbox" aria-expanded="false" title="Change season">${year}</button>
-        </div>
         <div class="nfl-year-menu" id="ps-year-menu" role="listbox" aria-label="Season" hidden></div>
+        <!-- L'anno sta DENTRO la riga di ricerca: su mobile è la capsula a
+             destra del campo, su desktop torna verticale nel margine sinistro
+             (è position:fixed, quindi la posizione nel DOM non lo vincola). -->
         <div class="ps-search-wrap">
             <input type="search" id="ps-input" class="ps-search-input" placeholder="Search player or team..." autocomplete="off">
+            <div class="section-header nfl-year-header ps-year-header">
+                <button type="button" class="section-title nfl-year-title" id="ps-year-btn" aria-haspopup="listbox" aria-expanded="false" title="Change season"><span class="ps-year-val">${year}</span><span class="ps-year-caret" aria-hidden="true">▾</span></button>
+            </div>
         </div>
         <div id="ps-scoreboard" class="ps-sb-wrap"></div>
         <div id="ps-divisions" class="ps-div-block"></div>
@@ -986,11 +989,13 @@ function bindYearPicker(section, initialYear, onChange) {
         position();
         menu.hidden = false;
         btn.setAttribute('aria-expanded', 'true');
+        btn.classList.add('is-open');   // freccetta girata, come la capsula del pick-row
         menu.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
     };
     const close = () => {
         menu.hidden = true;
         btn.setAttribute('aria-expanded', 'false');
+        btn.classList.remove('is-open');
     };
     const toggle = () => (menu.hidden ? open() : close());
 
@@ -1002,7 +1007,7 @@ function bindYearPicker(section, initialYear, onChange) {
         const y = +opt.dataset.year;
         if (y === current) return;
         current = y;
-        btn.textContent = String(y);
+        (btn.querySelector('.ps-year-val') || btn).textContent = String(y);
         onChange(y);
     });
     document.addEventListener('click', (e) => {
@@ -1076,22 +1081,83 @@ function sbGameCard(g, year) {
         title="${esc(g.away.name)} at ${esc(g.home.name)} — open ${esc(g.home.name)} · Schedule">${body}</a>`;
 }
 
-function sbWeeksHtml(sel) {
+/* La strip si costruisce UNA volta sola e poi non si ritocca più l'HTML:
+   rigenerarla a ogni cambio settimana azzerava `scrollLeft`, e la centratura
+   partiva sempre dal bordo sinistro invece che dalla giornata precedente —
+   era quello a far sembrare l'animazione sbagliata. Chi è la giornata scelta
+   lo dice `sbSetWeek`, spostando la sola classe `.active`. */
+function sbWeeksHtml() {
     const regPills = Array.from({ length: NFL_WEEKS }, (_, i) => i + 1).map(w =>
-        `<button type="button" class="week-pill${sel.seasonType === 2 && w === sel.week ? ' active' : ''}" data-sb-week="${w}" data-sb-stype="2">${w}</button>`).join('');
+        `<button type="button" class="week-pill" data-sb-week="${w}" data-sb-stype="2">${w}</button>`).join('');
     // Stesso trattamento visivo (ambra/viola) dei pill "Playoffs"/"Super Bowl"
     // già usati per le settimane di playoff FANTASY (magazine.js) — qui però
     // sono i 4 turni veri della post-season NFL, non le settimane di lega.
     const postPills = POST_ROUNDS.map(r => {
         const cls = r.label === 'SB' ? 'sb-pill' : 'playoff-pill';
-        const active = sel.seasonType === 3 && r.week === sel.week;
-        return `<button type="button" class="week-pill ${cls}${active ? ' active' : ''}" data-sb-week="${r.week}" data-sb-stype="3" title="${esc(r.full)}">${r.label}</button>`;
+        return `<button type="button" class="week-pill ${cls}" data-sb-week="${r.week}" data-sb-stype="3" title="${esc(r.full)}">${r.label}</button>`;
     }).join('');
-    const idx = sbStepIdx(sel);
     return `
-        <button type="button" class="ps-sb-arrow" data-sb-step="-1" aria-label="Previous"${idx <= 0 ? ' disabled' : ''}>‹</button>
+        <button type="button" class="ps-sb-arrow" data-sb-step="-1" aria-label="Previous">‹</button>
         <div class="ps-sb-pills">${regPills}<span class="ps-sb-sep" aria-hidden="true"></span>${postPills}</div>
-        <button type="button" class="ps-sb-arrow" data-sb-step="1" aria-label="Next"${idx >= SB_STEPS.length - 1 ? ' disabled' : ''}>›</button>`;
+        <button type="button" class="ps-sb-arrow" data-sb-step="1" aria-label="Next">›</button>`;
+}
+
+/**
+ * Sfumature ai bordi: si accendono solo dal lato in cui si può ancora
+ * scorrere. Si aggancia una volta sola, alla nascita della strip.
+ */
+function sbBindStrip(weeks) {
+    const strip = weeks.querySelector('.ps-sb-pills');
+    if (!strip) return;
+    const edges = () => {
+        const max = strip.scrollWidth - strip.clientWidth;
+        strip.classList.toggle('at-start', strip.scrollLeft <= 1);
+        strip.classList.toggle('at-end', strip.scrollLeft >= max - 1);
+    };
+    strip.addEventListener('scroll', edges, { passive: true });
+    // ResizeObserver e non un listener su `window`: il tabellone si ricrea a
+    // ogni cambio stagione, e un listener globale resterebbe appeso a una
+    // strip ormai staccata dal documento. Così muore con lei.
+    new ResizeObserver(edges).observe(strip);
+    edges();
+}
+
+/**
+ * Sposta la giornata scelta e porta la strip su di lei.
+ * Su mobile la riga scorre (vedi css): la pill attiva va al CENTRO, ma senza
+ * forzare oltre i capi — verso l'inizio e la fine la strip resta appoggiata al
+ * bordo e a muoversi dentro la finestra è la giornata, non la lista. Con la
+ * strip che sopravvive al cambio, lo scroll morbido parte da dov'era e
+ * attraversa le giornate in mezzo: premere la freccia si vede.
+ * Su desktop le pill vanno a capo, non c'è niente da scorrere e non succede nulla.
+ */
+function sbSetWeek(weeks, sel, smooth) {
+    const strip = weeks.querySelector('.ps-sb-pills');
+    if (!strip) return;
+    const idx = sbStepIdx(sel);
+    const prev = weeks.querySelector('[data-sb-step="-1"]');
+    const next = weeks.querySelector('[data-sb-step="1"]');
+    if (prev) prev.disabled = idx <= 0;
+    if (next) next.disabled = idx >= SB_STEPS.length - 1;
+
+    let active = null;
+    strip.querySelectorAll('[data-sb-week]').forEach(pill => {
+        const on = +pill.dataset.sbStype === sel.seasonType && +pill.dataset.sbWeek === sel.week;
+        pill.classList.toggle('active', on);
+        if (on) { pill.setAttribute('aria-current', 'true'); active = pill; }
+        else pill.removeAttribute('aria-current');
+    });
+    if (!active) return;
+    // Distanza pill→strip misurata sui rettangoli, non con `offsetLeft`: quello
+    // è relativo al primo antenato POSIZIONATO, che qui non è la strip, e ci
+    // infilava dentro la freccia ‹ e il padding del blocco (56px di sbilancio
+    // verso sinistra). Con `scrollLeft` + delta il conto regge anche a
+    // scorrimento in corso, quando i rettangoli sono a metà volo.
+    const delta = active.getBoundingClientRect().left - strip.getBoundingClientRect().left;
+    const max = Math.max(strip.scrollWidth - strip.clientWidth, 0);
+    const want = strip.scrollLeft + delta - (strip.clientWidth - active.offsetWidth) / 2;
+    const left = Math.min(Math.max(want, 0), max);
+    strip.scrollTo({ left, behavior: smooth ? 'smooth' : 'instant' });
 }
 
 function sbBodyHtml(data, year) {
@@ -1115,7 +1181,7 @@ async function initWeekScoreboard(container, year, isCurrent = () => true) {
     container.innerHTML = `
     <section class="pm-block pp-block ps-sb">
         <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">${sbStepLabel(sel)} · ${year}</span></span>
-        <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml(sel)}</div>
+        <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml()}</div>
         <div class="ps-sb-body" id="ps-sb-body"><div class="loading-state"><div class="spinner"></div></div></div>
         <p class="pm-note">All ${year} games, regular season and playoffs, week by week (live from ESPN). Click a played or in-progress game to open the home team's page on that box score and play-by-play.</p>
     </section>`;
@@ -1123,14 +1189,16 @@ async function initWeekScoreboard(container, year, isCurrent = () => true) {
     const title = container.querySelector('#ps-sb-title');
     const weeks = container.querySelector('#ps-sb-weeks');
     const body = container.querySelector('#ps-sb-body');
-    let token = 0;
+    sbBindStrip(weeks);
+    let token = 0, painted = false;
 
     const paint = async (nextSel) => {
         const idx = Math.min(Math.max(sbStepIdx(nextSel), 0), SB_STEPS.length - 1);
         sel = SB_STEPS[idx];
         const mine = ++token;
         title.textContent = `${sbStepLabel(sel)} · ${year}`;
-        weeks.innerHTML = sbWeeksHtml(sel);
+        sbSetWeek(weeks, sel, painted);   // al primo giro senza animazione: la strip nasce già centrata
+        painted = true;
         body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
         const data = await getWeekGames(year, sel.week, sel.seasonType).catch(() => null);
         if (mine !== token || !isCurrent()) return;  // l'utente ha già cambiato settimana/stagione

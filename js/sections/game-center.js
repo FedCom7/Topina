@@ -2,8 +2,8 @@ import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHT
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=49';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=533';
-import { TEAMS } from './team.js?v=709';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=534';
+import { TEAMS } from './team.js?v=717';
 import { initPlayerModal } from '../components/player-modal.js?v=713';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';

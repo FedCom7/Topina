@@ -9,7 +9,7 @@
  *  - seasonal  : sbloccabile ogni stagione, si resetta l'anno dopo
  */
 import { SEASONS } from '../data.js?v=547';
-import { TEAM_KEYS } from './team-config.js?v=533';
+import { TEAM_KEYS } from './team-config.js?v=534';
 import { TEAM_KEY_LIST } from './league-data.js?v=546';
 
 // chiave team → nome display
@@ -46,7 +46,7 @@ function seasonExclusive(league, teamKey, metric) {
             }
         });
         if (best && best.key === teamKey) {
-            instances.push({ season: season.year, detail: best.m.detail });
+            instances.push({ season: season.year, iconText: best.m.iconText, detail: best.m.detail });
         }
     });
     return instances;
@@ -55,31 +55,36 @@ function seasonExclusive(league, teamKey, metric) {
 const fmt = (n) => (+n).toFixed(1).replace(/\.0$/, '');
 const ord = (n) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
 
+/* `comp` è l'impaginato dell'adesivo (vedi COMPOSITIONS in js/ui/badge-svg.js):
+   sul casco di Michigan la forma di quello che sta dentro l'ovale dice già che
+   tipo di conquista è, prima che si leggano le parole. `word` è la parola per
+   gli impaginati di solo testo; l'etichetta degli archi è il `name` del badge.
+   Chi non lo dichiara ricade su `glyphNum` — marchio più numero. */
 export const BADGE_DEFS = [
     // ── Evergreen ──────────────────────────────────────────────
     {
         id: 'fondazione', name: 'Founding', category: 'evergreen',
-        shape: 'circle', icon: 'laurel',
+        shape: 'circle', icon: 'shield', comp: 'glyphNum',
         description: 'Founding member of the Topina League, since 2019.',
-        compute: () => [{ season: null, detail: `EST. 2019 · ${ord(SEASONS.length)} season` }],
+        compute: () => [{ season: null, iconText: '2019', detail: `EST. 2019 · ${ord(SEASONS.length)} season` }],
     },
 
     // ── Carriera (permanenti, un tile per istanza) ─────────────
     {
         id: 'sb-title', name: 'World Champion', category: 'career',
-        shape: 'banner', icon: 'trophy', tilePerInstance: true,
+        shape: 'banner', icon: 'trophy', comp: 'arcGlyph', tilePerInstance: true,
         description: 'Won the Topina Super Bowl.',
         compute: (L, k) => L.allTime[k].sbWins.map(year => ({ season: year, detail: 'World champion' })),
     },
     {
         id: 'rs-title', name: 'Regular Season Champion', category: 'career',
-        shape: 'shield', icon: 'crown', tilePerInstance: true,
+        shape: 'shield', icon: 'crown', comp: 'glyphNum', tilePerInstance: true,
         description: 'First place at the end of the regular season.',
         compute: (L, k) => L.allTime[k].rsTitles.map(year => ({ season: year, detail: '1st in regular season' })),
     },
     {
         id: 'sb-appearance', name: 'Super Bowl Appearance', category: 'career',
-        shape: 'circle', icon: 'rings', tilePerInstance: true,
+        shape: 'circle', icon: 'helmet', comp: 'glyphNum', tilePerInstance: true,
         description: 'Played in the Topina Super Bowl.',
         compute: (L, k) => L.allTime[k].sbApps.map(year => ({
             season: year,
@@ -88,7 +93,7 @@ export const BADGE_DEFS = [
     },
     {
         id: 'wins-club', name: 'Career Wins Club', category: 'career',
-        shape: 'hex', icon: 'numeral', tilePerInstance: true,
+        shape: 'hex', icon: 'topina', comp: 'glyphNum', tilePerInstance: true,
         description: 'Career win milestones (regular season).',
         compute: (L, k) => {
             const instances = [];
@@ -114,50 +119,50 @@ export const BADGE_DEFS = [
     // ── Esclusivi annuali (uno solo per stagione) ──────────────
     {
         id: 'scoring-title', name: 'Scoring Title', category: 'exclusive',
-        shape: 'star', icon: 'bolt',
+        shape: 'star', icon: 'bolt', comp: 'textYear', word: 'SCORING',
         description: "Most points scored in the league in the regular season.",
         compute: (L, k) => seasonExclusive(L, k, t => ({ value: t.pf, detail: `${fmt(t.pf)} total pt` })),
     },
     {
         id: 'weekly-record', name: 'Weekly Record', category: 'exclusive',
-        shape: 'star', icon: 'flame',
+        shape: 'star', icon: 'flame', comp: 'labelNum', label: 'HIGH WEEK',
         description: 'Highest single-game score of the season.',
         compute: (L, k) => seasonExclusive(L, k, t => t.highGame
-            ? { value: t.highGame.pts, detail: `${fmt(t.highGame.pts)} pt — W${t.highGame.week}` }
+            ? { value: t.highGame.pts, iconText: String(Math.round(t.highGame.pts)), detail: `${fmt(t.highGame.pts)} pt — W${t.highGame.week}` }
             : null),
     },
     {
         id: 'streak-king', name: 'Streak King', category: 'exclusive',
-        shape: 'star', icon: 'streak',
+        shape: 'star', icon: 'streak', comp: 'glyphNum',
         description: "Longest winning streak of the season.",
         compute: (L, k) => seasonExclusive(L, k, t => t.bestStreak.len > 1
-            ? { value: t.bestStreak.len, tiebreak: t.bestStreak.endWeek, detail: `${t.bestStreak.len} wins in a row` }
+            ? { value: t.bestStreak.len, tiebreak: t.bestStreak.endWeek, iconText: String(t.bestStreak.len), detail: `${t.bestStreak.len} wins in a row` }
             : null),
     },
     {
         id: 'bench-king', name: 'Bench King', category: 'exclusive',
-        shape: 'hex', icon: 'couch',
+        shape: 'hex', icon: 'couch', comp: 'glyphNum',
         description: 'Most points left on the bench across the whole season.',
         compute: (L, k) => seasonExclusive(L, k, t => t.benchPts > 0
-            ? { value: t.benchPts, detail: `${fmt(t.benchPts)} pt on the bench` }
+            ? { value: t.benchPts, iconText: String(Math.round(t.benchPts)), detail: `${fmt(t.benchPts)} pt on the bench` }
             : null),
     },
     {
         id: 'hammer', name: 'The Hammer', category: 'exclusive',
-        shape: 'hex', icon: 'hammer',
+        shape: 'hex', icon: 'hammer', comp: 'glyphNum',
         description: 'Win by the widest margin of the season.',
         compute: (L, k) => seasonExclusive(L, k, t => {
             const wins = t.games.filter(g => g.won);
             if (!wins.length) return null;
             const big = wins.reduce((a, b) => (b.margin > a.margin ? b : a));
-            return { value: big.margin, detail: `+${fmt(big.margin)} vs ${keyToName(big.opp)} — W${big.week}` };
+            return { value: big.margin, iconText: `+${Math.round(big.margin)}`, detail: `+${fmt(big.margin)} vs ${keyToName(big.opp)} — W${big.week}` };
         }),
     },
 
     // ── Stagionali (si resettano ogni anno) ────────────────────
     {
         id: 'sb-run', name: 'Super Bowl Run', category: 'seasonal',
-        shape: 'shield', icon: 'football',
+        shape: 'shield', icon: 'football', comp: 'glyphOnly',
         description: 'Won the semifinal, reaching the Super Bowl.',
         compute: (L, k) => L.seasons
             .filter(s => s.complete && s.perTeam[k]?.sbAppearance)
@@ -165,19 +170,23 @@ export const BADGE_DEFS = [
     },
     {
         id: 'club-150', name: 'Club 150', category: 'seasonal',
-        shape: 'hex', icon: 'rocket',
+        shape: 'hex', icon: 'rocket', comp: 'numOnly',
         description: 'At least 150 points in a regular season game.',
         compute: (L, k) => L.seasons.filter(s => s.complete).flatMap(s => {
             const t = s.perTeam[k];
             const big = (t?.games || []).filter(g => g.pts >= 150);
             if (!big.length) return [];
             const best = big.reduce((a, b) => (b.pts > a.pts ? b : a));
-            return [{ season: s.year, detail: `${fmt(best.pts)} pt — W${best.week}${big.length > 1 ? ` (×${big.length})` : ''}` }];
+            /* Fra parentesi il punteggio VERO, non la soglia: con la soglia
+               sette stagioni danno sette adesivi identici, e un muro di «(150)»
+               non dice niente. È il prefisso telefonico del casco — targa, non
+               punteggio — ma con dentro il numero che te lo sei guadagnato. */
+            return [{ season: s.year, iconText: `(${Math.round(best.pts)})`, detail: `${fmt(best.pts)} pt — W${best.week}${big.length > 1 ? ` (×${big.length})` : ''}` }];
         }),
     },
     {
         id: 'sweep', name: 'Sweep', category: 'seasonal',
-        shape: 'circle', icon: 'broom',
+        shape: 'circle', icon: 'broom', comp: 'textOnly', word: 'SWEEP',
         description: 'Beat the same opponent in every matchup of the season.',
         compute: (L, k) => L.seasons.filter(s => s.complete).flatMap(s =>
             (s.perTeam[k]?.sweeps || []).map(opp => ({ season: s.year, detail: `vs ${keyToName(opp)}` }))
@@ -185,7 +194,7 @@ export const BADGE_DEFS = [
     },
     {
         id: 'clutch', name: 'Clutch Gene', category: 'seasonal',
-        shape: 'circle', icon: 'target',
+        shape: 'circle', icon: 'target', comp: 'textOnly', word: 'CLUTCH',
         description: 'Nail-biter win with less than 3 points of margin.',
         compute: (L, k) => L.seasons.filter(s => s.complete).flatMap(s => {
             const close = (s.perTeam[k]?.games || []).filter(g => g.won && g.margin < 3);
@@ -196,7 +205,7 @@ export const BADGE_DEFS = [
     },
     {
         id: 'hot-start', name: 'Hot Start', category: 'seasonal',
-        shape: 'hex', icon: 'sun',
+        shape: 'hex', icon: 'sun', comp: 'textYear', word: '3-0',
         description: "Won the season's first three games.",
         compute: (L, k) => L.seasons.filter(s => s.complete).flatMap(s => {
             const games = [...(s.perTeam[k]?.games || [])].sort((a, b) => a.week - b.week);
@@ -207,7 +216,7 @@ export const BADGE_DEFS = [
     },
     {
         id: 'century-club', name: 'Century Club', category: 'seasonal',
-        shape: 'shield', icon: 'castle',
+        shape: 'shield', icon: 'castle', comp: 'textYear', word: '100+',
         description: 'Never below 100 points across the entire regular season.',
         compute: (L, k) => L.seasons.filter(s => s.complete).flatMap(s => {
             const games = s.perTeam[k]?.games || [];

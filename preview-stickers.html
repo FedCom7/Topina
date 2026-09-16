@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Sticker preview — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        Gli adesivi della pagina squadra si vedono solo sull'hero, uno accanto
+        all'altro e già tinti del colore di quel team: per confrontare una
+        forma con un'altra bisognerebbe cambiare il codice e ricaricare quattro
+        pagine. Qui ci sono tutti i tagli insieme, sui quattro colori, dritti e
+        invertiti, singoli e ammucchiati come sul casco.
+
+        Come preview-scorebug.html: il CSS è quello VERO del sito (css/main.css)
+        e i glifi arrivano da js/ui/badge-svg.js, lo stesso modulo che disegna
+        gli adesivi in #team-*. La riga "in uso" è disegnata da quel modulo
+        senza nessuna variabile del banco sopra: è il metro di paragone.
+
+        ── Su cosa è vero e cosa no ──────────────────────────────────────
+        I colori delle squadre sono quelli veri. Le conquiste elencate sono
+        FINTE — un campionario che copre i casi difficili (etichette lunghe,
+        numeri a quattro cifre, "×3"), non le medaglie di nessuno. Non si legge
+        un albo d'oro da questa pagina: si guarda una forma.
+
+        Riferimento: gli helmet sticker dei Michigan Wolverines — due tinte
+        piatte, niente bordo, testo curvo sul bordo alto, die-cut per i pezzi
+        forti.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito: se una cosa si vede bene qui, si vede bene là -->
+    <link rel="stylesheet" href="css/main.css?v=1144">
+    <style>
+        /* Cromatura del banco di prova, non del sito — vedi preview-scorebug.html.
+           Nessuna di queste classi finisce mai in produzione. */
+        :root {
+            --lab-bg: #0a0a0b;
+            --lab-fg: var(--text-primary);
+            --lab-muted: var(--text-muted);
+            --lab-border: rgba(255, 255, 255, .14);
+            --lab-panel: rgba(255, 255, 255, .06);
+        }
+
+        body.lab-light {
+            --lab-bg: #eeece6;
+            --lab-fg: #17171a;
+            --lab-muted: #55555c;
+            --lab-border: rgba(0, 0, 0, .14);
+            --lab-panel: rgba(0, 0, 0, .05);
+        }
+
+        body {
+            margin: 0;
+            background: var(--lab-bg);
+            color: var(--lab-fg);
+            font-family: var(--font-body);
+            transition: background var(--dur-med) var(--ease), color var(--dur-med) var(--ease);
+        }
+
+        .lab-head {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            padding: 14px 22px;
+            background: var(--lab-bg);
+            border-bottom: 1px solid var(--lab-border);
+            transition: background var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease);
+        }
+
+        .lab-title {
+            margin: 0 0 3px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .lab-title b {
+            color: var(--accent-amber);
+            font-size: .62rem;
+            letter-spacing: .14em;
+            vertical-align: 3px;
+            margin-left: 8px;
+        }
+
+        .lab-sub {
+            margin: 0;
+            font-size: .74rem;
+            color: var(--lab-muted);
+            max-width: 92ch;
+            line-height: 1.5;
+        }
+
+        .lab-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin-top: 12px;
+            align-items: center;
+        }
+
+        .lab-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lab-group>span {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+            margin-right: 2px;
+        }
+
+        .lab-btn {
+            border: 1px solid var(--lab-border);
+            background: transparent;
+            color: var(--lab-fg);
+            border-radius: 100px;
+            padding: 5px 12px;
+            font-family: var(--font-body);
+            font-size: .72rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .lab-btn.on {
+            background: var(--lab-fg);
+            color: var(--lab-bg);
+            border-color: var(--lab-fg);
+        }
+
+        .lab-slider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        .lab-slider input {
+            width: 108px;
+            accent-color: var(--team-color);
+        }
+
+        .lab-slider b {
+            color: var(--lab-fg);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0;
+        }
+
+        .lab-body {
+            padding: 26px 22px 80px;
+        }
+
+        .lab-case {
+            margin-bottom: 30px;
+        }
+
+        .lab-case>h2 {
+            margin: 0 0 4px;
+            font-family: var(--font-display);
+            font-size: .76rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent-red);
+        }
+
+        .lab-case>p {
+            margin: 0 0 12px;
+            font-size: .74rem;
+            color: var(--lab-muted);
+            line-height: 1.5;
+            max-width: 92ch;
+        }
+
+        /* Il fondo dei riquadri è un alone del colore squadra: gli adesivi
+           dell'hero stanno su quello, non sul nero piatto del banco. */
+        .lab-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            padding: 18px;
+            border-radius: 14px;
+            background:
+                radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--team-color) 22%, transparent), transparent 70%),
+                var(--lab-panel);
+            border: 1px solid var(--lab-border);
+        }
+
+        .lab-row+.lab-row {
+            margin-top: 8px;
+        }
+
+        .lab-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lab-cell .cap {
+            font-size: .58rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        .lab-note {
+            margin: 30px 0 0;
+            padding: 14px 16px;
+            border: 1px solid rgba(245, 158, 11, .3);
+            border-radius: 12px;
+            background: rgba(245, 158, 11, .07);
+            font-size: .74rem;
+            line-height: 1.6;
+            color: var(--lab-fg);
+            max-width: 92ch;
+        }
+
+        .lab-out {
+            margin: 12px 0 0;
+            padding: 14px;
+            border: 1px solid var(--lab-border);
+            border-radius: 10px;
+            background: var(--lab-panel);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .72rem;
+            line-height: 1.55;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .labnav {
+            margin: 0 0 6px;
+            font-size: .68rem;
+            color: var(--lab-muted);
+        }
+
+        .labnav a {
+            color: var(--lab-muted);
+        }
+
+        .labnav a:hover {
+            color: var(--lab-fg);
+        }
+
+        .labnav .current {
+            color: var(--lab-fg);
+            font-weight: 700;
+        }
+
+        /* ── Gli adesivi del banco ─────────────────────────────────────
+           Gli sticker li disegna js/ui/badge-svg.js, quindi escono con le
+           classi di PRODUZIONE e si tingono già da soli con le regole di
+           css/main.css. Qui si fa solo due cose: si lasciano i cursori
+           scrivere sopra le due tinte, e si marcano le tre famiglie — che in
+           produzione non esistono ancora.
+
+           Tutto vive sotto #tune: la riga «in uso» sta fuori apposta, così
+           resta ai valori veri qualunque cosa facciano i cursori. */
+        #tune .stk-svg {
+            --stk-paint: color-mix(in srgb, var(--team-color), white var(--lighten, 22%));
+            --stk-ink: color-mix(in srgb, var(--team-color), black var(--darken, 68%));
+            width: var(--w, 96px);
+            height: auto;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, var(--shadow, 0.5)));
+        }
+
+        /* rx/ry sono proprietà CSS in SVG2: la schiacciata dell'ovale si regola
+           da qui, senza rigenerare l'SVG a ogni scatto del cursore. */
+        #tune .stk-oval {
+            ry: var(--ry, 26.5px);
+        }
+
+        #tune .stk-line {
+            stroke-width: var(--sw, 3);
+        }
+
+        /* Le tre famiglie si distinguono PRIMA di leggerle: fondo pieno per
+           quelli a vita, invertito per la stagione in corso, bordo per quelli
+           in prestito. Il pulsante «marca famiglie» le spegne tutte e tre. */
+        .lab-mark .lab-season {
+            --stk-paint: color-mix(in srgb, var(--team-color), black var(--darken, 68%));
+            --stk-ink: color-mix(in srgb, var(--team-color), white var(--lighten, 22%));
+        }
+
+        /* Il bordo non è uno stroke centrato sul contorno — così metà cade
+           fuori sagoma, si confonde con l'ombra e contro lo sfondo scuro
+           sparisce (provato). L'ovale RIENTRA di tre unità e lo stroke le
+           ricopre: il bordo è tutto dentro, e la silhouette esterna resta
+           identica a quella degli altri. */
+        .lab-mark .lab-held .stk-oval {
+            rx: 43.5px;
+            ry: calc(var(--ry, 26.5px) - 3px);
+            stroke: var(--stk-ink);
+            stroke-width: 6;
+        }
+
+        /* Il bordo mangia tre unità per lato, ma il contenuto era ancora
+           misurato sull'ovale intero: numeri e archi arrivavano fin sopra e
+           sembravano uscire dall'adesivo. Scalare ogni figlio attorno allo
+           stesso centro equivale a scalare il gruppo, e non richiede un gruppo
+           in più nel markup di produzione. */
+        .lab-mark .lab-held > :not(.stk-oval) {
+            transform: scale(.88);
+            transform-origin: 48px 28px;
+        }
+
+        /* ── Catalogo: una scheda per adesivo ── */
+        .lab-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(238px, 1fr));
+            gap: 10px;
+            padding: 18px;
+            border-radius: 14px;
+            background:
+                radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--team-color) 18%, transparent), transparent 70%),
+                var(--lab-panel);
+            border: 1px solid var(--lab-border);
+        }
+
+        .lab-card {
+            display: grid;
+            /* la colonna segue il cursore «larghezza»: a 150px un adesivo
+               dentro una colonna da 96 finiva sopra al testo */
+            grid-template-columns: var(--w, 96px) 1fr;
+            gap: 12px;
+            align-items: center;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(128, 128, 128, .06);
+        }
+
+        .lab-card h3 {
+            margin: 0 0 2px;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .01em;
+        }
+
+        .lab-card p {
+            margin: 0;
+            font-size: .62rem;
+            line-height: 1.45;
+            color: var(--lab-muted);
+        }
+
+        .lab-card code {
+            font-size: .58rem;
+            color: var(--accent-red);
+        }
+
+        .lab-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            margin: 0 0 12px;
+            font-size: .66rem;
+            color: var(--lab-muted);
+        }
+
+        .lab-legend b {
+            color: var(--lab-fg);
+        }
+
+        /* Il muro: come sull'hero, non come in una galleria. La distanza è un
+           MARGINE e non un `gap` perché sul casco gli adesivi si sovrappongono,
+           e `gap` non accetta valori negativi. */
+        .lab-wall {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 20px;
+            border-radius: 14px;
+            min-height: 240px;
+            background:
+                radial-gradient(130% 150% at 50% -10%, color-mix(in srgb, var(--team-color) 26%, transparent), transparent 65%),
+                var(--lab-panel);
+            border: 1px solid var(--lab-border);
+        }
+
+        .lab-wall .stk-svg {
+            margin: calc(var(--gap, 4px) / 2);
+            transform: rotate(var(--rot, 0deg));
+            transition: transform .18s var(--ease);
+        }
+
+        .lab-wall .stk-svg:hover {
+            transform: rotate(0deg) scale(1.16);
+            position: relative;
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="lab-head">
+        <h1 class="lab-title">Sticker <b>BANCO DI PROVA</b></h1>
+        <p class="labnav">
+            <a href="preview.html">Preview hub</a> ·
+            <a href="preview-scorebug.html">Score-bug lab</a> ·
+            <a href="preview-player-card.html">Player card lab</a> ·
+            <a href="preview-field.html">Field lab</a> ·
+            <a href="preview-sb-logo.html">SB logo lab</a> ·
+            <span class="current">Sticker lab</span> ·
+            <a href="index.html">Real site</a>
+        </p>
+        <p class="lab-sub">
+            Gli adesivi dell'hero squadra. La forma è e resta quella di oggi — l'ovale schiacciato di
+            <code>js/ui/badge-svg.js</code>: qui si ridisegna solo quello che ci sta DENTRO, con la
+            grammatica degli helmet sticker dei Wolverines. Catalogo completo della lega diviso in tre
+            famiglie, e il muro di una squadra come si vedrebbe davvero. Squadre reali, numeri inventati.
+            Niente di tutto questo è ancora collegato a <code>js/data/badges.js</code>.
+        </p>
+        <div class="lab-controls">
+            <div class="lab-group" id="lab-team">
+                <span>Team</span>
+                <button class="lab-btn on" data-team="capi">Capi</button>
+                <button class="lab-btn" data-team="lasers">Lasers</button>
+                <button class="lab-btn" data-team="oscurus">Oscurus</button>
+                <button class="lab-btn" data-team="sommo">Sommo</button>
+            </div>
+            <div class="lab-group" id="lab-mark">
+                <span>Marca famiglie</span>
+                <button class="lab-btn on" data-mark="1">Sì</button>
+                <button class="lab-btn" data-mark="0">No</button>
+            </div>
+            <div class="lab-group" id="lab-font">
+                <span>Font</span>
+                <button class="lab-btn on" data-font="'Archivo Black', sans-serif">Archivo</button>
+                <button class="lab-btn" data-font="var(--font-display)">Inter Tight</button>
+                <button class="lab-btn" data-font="'Bevan', serif">Bevan</button>
+            </div>
+            <div class="lab-group" id="lab-theme">
+                <span>Tema pagina</span>
+                <button class="lab-btn on" data-theme="dark">Dark</button>
+                <button class="lab-btn" data-theme="light">Light</button>
+            </div>
+        </div>
+        <div class="lab-controls">
+            <label class="lab-slider">Fondo <input type="range" id="lighten" min="0" max="70" value="22"><b
+                    data-for="lighten" data-unit="%"></b></label>
+            <label class="lab-slider">Inchiostro <input type="range" id="darken" min="20" max="90" value="68"><b
+                    data-for="darken" data-unit="%"></b></label>
+            <label class="lab-slider">Ovale <input type="range" id="ry" min="18" max="30" step="0.5" value="26.5"><b
+                    data-for="ry" data-unit="px"></b></label>
+            <label class="lab-slider">Larghezza <input type="range" id="size" min="56" max="150" value="96"><b
+                    data-for="size" data-unit="px"></b></label>
+            <label class="lab-slider">Tratto <input type="range" id="sw" min="1.5" max="5" step="0.1" value="3"><b
+                    data-for="sw"></b></label>
+            <label class="lab-slider">Distanza <input type="range" id="gap" min="-24" max="20" value="4"><b
+                    data-for="gap" data-unit="px"></b></label>
+            <label class="lab-slider">Ombra <input type="range" id="shadow" min="0" max="90" value="50"><b
+                    data-for="shadow" data-unit="%"></b></label>
+            <label class="lab-slider">Rotazione <input type="range" id="rot" min="0" max="16" step="0.5" value="7"><b
+                    data-for="rot" data-unit="°"></b></label>
+        </div>
+    </header>
+
+    <main class="lab-body" id="stage">
+        <section class="lab-case">
+            <h2>In uso — quello che si vede oggi sull'hero</h2>
+            <p>Disegnato da <code>js/ui/badge-svg.js</code> con le regole di <code>css/main.css</code>: i
+                cursori non lo toccano. Sedici adesivi, un solo impaginato — glifo a sinistra, anno a
+                destra — e per sapere cosa sia bisogna passarci sopra il mouse. È il problema che il
+                resto della pagina prova a risolvere: stessa forma, dentro diverso.</p>
+            <div class="lab-row" id="ref-row"></div>
+        </section>
+
+        <!-- Da qui in giù comandano i cursori. La riga qui sopra resta fuori
+             apposta: è il metro, e un metro che si sposta non serve. -->
+        <div id="tune">
+
+        <section class="lab-case">
+            <h2>Da dove viene — gli helmet sticker dei Wolverines</h2>
+            <p>Michigan mette adesivi sul casco dal 1938, ma il sistema attuale è del 2021: Harbaugh lo
+                riscrive perché il casco <b>racconti la carriera intera</b> di un giocatore, e a fine
+                percorso il casco gliela regala. Ovali di 1×1,5 pollici, stampati in casa dal grafico della
+                squadra, applicati dall'interno verso l'esterno tenendo bilanciati i due fianchi e lasciando
+                libere le ali gialle sulla cresta; il bordo esterno inclinato verso l'alto. Gli adesivi delle
+                vittorie salgono in file dalla base sinistra.</p>
+            <p>Le due cose che ho preso e le due che ho lasciato:</p>
+            <ul style="margin:0 0 12px;padding-left:1.1em;font-size:.74rem;color:var(--lab-muted);line-height:1.6;max-width:92ch">
+                <li><b>Preso — l'impaginato dice il tipo.</b> Vittoria = ghiottone + numero progressivo di
+                    vittoria nella storia del programma (il 1000° è del 2021). Rivalità = «THE GAME» + il
+                    conteggio. Otto vittorie di fila = «RAMPAGE 2023», solo parole. Capitano = una «C».
+                    Premio individuale = solo il marchio (maglione da All-American, coppa Joe Moore).
+                    Prefisso telefonico di casa = «(540)», solo numero. Primato = «RECORD».</li>
+                <li><b>Preso — i marchi hanno una silhouette.</b> Il ghiottone che ringhia verso sinistra, la
+                    brocca del Little Brown Jug, l'elmetto da operaio, la spada e il badile incrociati
+                    sull'elmo, il maglione. Non sono icone generiche: si riconoscono a un centimetro.</li>
+                <li><b>Lasciato — i loro marchi.</b> Sono registrati. Quelli qui sotto sono nostri, disegnati
+                    con la stessa regola: due tinte piatte, dettagli per sottrazione.</li>
+                <li><b>Lasciato — «tutto a vita».</b> A Michigan nulla si azzera, e il casco di un quinto anno
+                    è pieno. Le foglie di Ohio State fanno il contrario: ogni stagione si riparte. Noi
+                    prendiamo tutt'e due, ed è la ragione delle tre famiglie qui sotto.</li>
+            </ul>
+            <p style="font-size:.7rem">Fonti:
+                <a href="https://mvictors.com/michigan-helmet-stickers-breakdown-2021/" target="_blank" rel="noopener">MVictors — catalogo 2021-2025 di ogni singolo adesivo</a> ·
+                <a href="https://www.espn.com/espn/feature/story/_/id/34839671/how-helmet-decals-tell-story-michigan-ohio-state" target="_blank" rel="noopener">ESPN — misure, posa sul casco, Michigan contro Ohio State</a> ·
+                <a href="https://www.detroitnews.com/story/sports/college/university-michigan/2021/08/10/new-michigan-helmet-stickers-tell-story-players-career/5561313001/" target="_blank" rel="noopener">Detroit News — perché il sistema è cambiato nel 2021</a> ·
+                <a href="https://sports.yahoo.com/michigan-helmet-stickers-explained-why-101615143.html" target="_blank" rel="noopener">Yahoo Sports — cosa significa ciascuno</a>
+            </p>
+        </section>
+
+        <section class="lab-case">
+            <h2>Il vocabolario — nove impaginati, uno per tipo di conquista</h2>
+            <p>Ricalcati sugli helmet sticker dei Wolverines, che dentro lo stesso ovale mettono cose
+                diverse a seconda di cosa celebrano: il conteggio delle vittorie è logo + numero, il
+                prefisso telefonico è solo un numero fra parentesi, «RAMPAGE 2023» è parola + anno,
+                «GUARDIANS OF VICTORY» è testo curvo attorno a un simbolo, «MVP» e «RECORD» sono solo
+                parole, la «C» del capitano è una lettera sola. Non è varietà per bellezza: l'impaginato
+                dice già che tipo di cosa stai guardando.</p>
+            <div class="lab-grid" id="vocab"></div>
+        </section>
+
+        <section class="lab-case">
+            <h2>I marchi — i disegni, grandi e come si vedono davvero</h2>
+            <p>Sul casco vero i simboli non sono icone: sono marchi con una silhouette riconoscibile a un
+                centimetro di distanza. Quelli dei Wolverines sono registrati e non si ricopiano — questi
+                sono i nostri, con la stessa regola: due tinte piatte, nessuna sfumatura, e i dettagli
+                ricavati per <b>sottrazione</b> (buchi color fondo dentro la sagoma piena), che è come si
+                stampa davvero un adesivo a due colori. A sinistra il disegno grande, a destra dentro
+                l'ovale alla misura vera: è lì che si decide se un marchio funziona.</p>
+            <div class="lab-grid" id="marks"></div>
+        </section>
+
+        <div id="families"></div>
+
+        <section class="lab-case">
+            <h2>Il muro di una squadra</h2>
+            <p class="lab-legend">
+                <span><b>Pieno</b> = a vita</span>
+                <span><b>Invertito</b> = stagione in corso</span>
+                <span><b>Con bordo</b> = in palio, ce l'ha addosso finché non gliela portano via</span>
+                <span>Il pulsante «marca famiglie» toglie i tre segni, per vedere il muro senza.</span>
+            </p>
+            <p>Gli annuali della stagione in corso, tutto quello che si è guadagnato per sempre, e i
+                pezzi che sta tenendo adesso. Le annate vecchie degli stagionali NON ci sono: quelle si
+                azzerano, ed è la differenza con il muro di oggi, che cresce e basta.</p>
+            <div class="lab-wall" id="wall"></div>
+        </section>
+
+        <div class="lab-note" id="note"></div>
+        </div>
+    </main>
+
+    <script type="module">
+        /* Query diversa da quella del sito (?v=519) di proposito: `ICONS` è un
+           export aggiunto per questo banco, e con la stessa query il browser
+           servirebbe la copia già in cache — senza quell'export, e la pagina
+           non parte. */
+        /* Marchi e impaginati arrivano dal modulo VERO: dal 2026-09-15 i
+           disegni di questa pagina sono quelli che il sito disegna sull'hero.
+           Il banco non tiene più una copia sua — due copie divergono, e il
+           senso di un banco è che quello che si vede qui si veda anche là.
+           Quello che resta qui dentro è solo ciò che NON è ancora adottato:
+           le tre famiglie e gli adesivi col ✦. */
+        import { ICONS, COMPOSITIONS, stickerSVG, sbStickerSVG, champStickerSVG, fitStickerTexts }
+            from './js/ui/badge-svg.js?v=520';
+
+        /* I colori sono ricopiati da TEAMS in js/sections/team.js: importare
+           quel modulo tirerebbe dentro data.js e aprirebbe il websocket
+           Firebase, e qui non c'è nessun dato da chiedere (stesso motivo per
+           cui preview-player-card.html non importa team.js). Se un colore
+           cambia là, cambiarlo anche qui. */
+        const TEAMS = {
+            capi: { name: 'Capi dei Pianeti', short: 'CAPI', color: '#FF6600' },
+            lasers: { name: 'Lasers', short: 'LASERS', color: '#D4AF37' },
+            oscurus: { name: 'Oscurus', short: 'OSCURUS', color: '#800020' },
+            sommo: { name: 'Sommo', short: 'SOMMO', color: '#1c4750' },
+        };
+        const SEASON = 2026; // stagione "in corso" finta, per far vedere il reset
+
+        const COMP = COMPOSITIONS;
+        const glyph = (icon, x, y, s) =>
+            `<g transform="translate(${x} ${y}) scale(${s}) translate(-32 -32)">${ICONS[icon] || ICONS.laurel}</g>`;
+        const fitTexts = fitStickerTexts;
+
+        const VOCAB = [
+            { comp: 'glyphNum', d: { icon: 'topina', text: 100 }, name: 'Logo + numero', why: 'Il conta-vittorie del casco: il ghiottone e il numero progressivo. Da noi la topina. È l\'adesivo che si ripete di più.' },
+            { comp: 'numOnly', d: { word: '(150)' }, name: 'Solo numero', why: 'Il prefisso telefonico «(540)». Le parentesi lo fanno leggere come targa, non come punteggio.' },
+            { comp: 'textOnly', d: { word: 'SWEEP' }, name: 'Solo testo', why: '«MVP», «RECORD», «EUTM». Una parola che si legge da lontano.' },
+            { comp: 'textYear', d: { word: 'SCORING', text: '2026' }, name: 'Parola + anno', why: '«RAMPAGE 2023»: la conquista e la sua annata.' },
+            { comp: 'arcGlyph', d: { label: 'World Champion', icon: 'trophy', text: '2021' }, name: 'Arco + simbolo', why: '«GUARDIANS OF VICTORY». Il più ricco: si tiene per le cose che contano.' },
+            { comp: 'labelNum', d: { label: 'Career wins', text: '100' }, name: 'Etichetta + numerone', why: '«THE GAME / 1001»: il numero è il protagonista, la riga sopra dice di cosa.' },
+            { comp: 'glyphOnly', d: { icon: 'jersey' }, name: 'Solo simbolo', why: 'Il maglione da universitario, il pallone CFP. Nessun numero, nessuna parola: si riconosce o non si riconosce.' },
+            { comp: 'letter', d: { word: 'C' }, name: 'Una lettera', why: 'La «C» del capitano. Per i ruoli, non per i risultati.' },
+            { comp: 'labelGlyphNum', d: { label: 'vs Lasers', icon: 'jug', text: '×4' }, name: 'Etichetta + simbolo + numero', why: 'I trofei da scontro diretto: contro chi, quale trofeo, da quanto.' },
+        ];
+
+        /* ── Il catalogo della lega ────────────────────────────────────
+           Tre famiglie, e la famiglia decide le regole prima ancora del
+           disegno:
+             life   — a vita. Presa una volta, resta sul muro per sempre.
+             season — si azzera. Sul muro c'è solo quella della stagione in
+                      corso: l'anno dopo sparisce e va riconquistata.
+             held   — in palio. Ce l'ha UNA squadra alla volta e cambia mano.
+                      Tre modi: `belt` (primato di lega), `h2h` (trofeo di
+                      scontro diretto, uno per coppia) e `seat` (un posto che
+                      qualcuno occupa: campione, primo, ultimo).
+           I nomi con ✦ non esistono ancora in js/data/badges.js: sono proposte.
+           I numeri sono inventati. */
+        const CATALOG = [
+            // ── A vita ──────────────────────────────────────────────
+            { fam: 'life', name: 'World Champion', comp: 'arcGlyph', d: { label: 'World Champion', icon: 'trophy', text: '2021' }, why: 'Il pezzo più importante prende l\'impaginato più ricco. Uno per ogni titolo.' },
+            { fam: 'life', name: 'Regular Season Champion', comp: 'glyphNum', d: { icon: 'crown', text: '2023' }, why: 'Corona e annata: il conta-vittorie applicato ai titoli di stagione regolare.' },
+            { fam: 'life', name: 'Super Bowl Appearance', comp: 'glyphNum', d: { icon: 'helmet', text: '2022' }, why: 'Ci sei arrivato. Stesso impaginato del titolo ma senza arco: si vede subito che vale meno.' },
+            { fam: 'life', name: 'Career Wins Club', comp: 'glyphNum', d: { icon: 'topina', text: '100' }, why: 'È IL nostro adesivo: la mascotte più il numero, come il ghiottone più il conteggio di Michigan. Quote 25/50/75/100.' },
+            { fam: 'life', name: 'Founding Member', comp: 'glyphNum', d: { icon: 'shield', text: '2019' }, why: 'Lo scudetto della lega e l\'anno zero. Non si conquista e non si perde: si è.' },
+            { fam: 'life', name: 'Club 150', comp: 'numOnly', d: { word: '(150)' }, why: 'L\'omaggio al prefisso telefonico del casco. Una volta sola nella vita basta e avanza.' },
+            { fam: 'life', name: '✦ League Record', comp: 'textOnly', d: { word: 'RECORD' }, why: 'Il «RECORD» dei Wolverines: hai scritto un primato di lega. Vale anche se poi te lo portano via — quello che passa di mano è la cintura, non il fatto di averlo fatto.' },
+
+            // ── Stagionali (si azzerano) ────────────────────────────
+            { fam: 'season', name: 'Scoring Title', comp: 'textYear', d: { word: 'SCORING', text: String(SEASON) }, why: 'Più punti di tutti in stagione regolare. L\'anno è lì perché l\'anno prossimo non ci sarà più.' },
+            { fam: 'season', name: 'Weekly Record', comp: 'labelNum', d: { label: 'HIGH WEEK', text: '187' }, why: 'Il punteggio più alto della stagione. Il numero è la notizia.' },
+            { fam: 'season', name: 'Streak King', comp: 'glyphNum', d: { icon: 'streak', text: '6' }, why: 'Quante di fila. È il «RAMPAGE» della lega, ma contato.' },
+            { fam: 'season', name: 'Bench King', comp: 'glyphNum', d: { icon: 'couch', text: '214' }, why: 'Punti lasciati in panchina: un premio che nessuno vuole, e infatti il divano si riconosce da solo.' },
+            { fam: 'season', name: 'The Hammer', comp: 'glyphNum', d: { icon: 'hammer', text: '+58' }, why: 'Il margine più largo dell\'anno, col segno più davanti.' },
+            { fam: 'season', name: '✦ Grinder', comp: 'glyphOnly', d: { icon: 'hardhat' }, why: 'Chi ha vinto più partite sporche, sotto i dieci punti di margine. L\'elmetto da operaio di Michigan: il lavoro che non si vede.' },
+            { fam: 'season', name: '✦ Iron Man', comp: 'glyphOnly', d: { icon: 'jersey' }, why: 'Formazione completa ogni singola settimana, mai uno slot vuoto. È il maglione da universitario: non è un exploit, è esserci sempre.' },
+            { fam: 'season', name: 'Sweep', comp: 'textOnly', d: { word: 'SWEEP' }, why: 'Una parola sola, come «MVP». Non serve altro.' },
+            { fam: 'season', name: 'Clutch Gene', comp: 'textOnly', d: { word: 'CLUTCH' }, why: 'Vinta per meno di tre punti. Stessa regola: una parola.' },
+            { fam: 'season', name: 'Hot Start', comp: 'numOnly', d: { word: '3-0' }, why: 'Il record dopo tre giornate, e basta. Si capisce da solo.' },
+            { fam: 'season', name: 'Century Club', comp: 'numOnly', d: { word: '100+' }, why: 'Mai sotto quota cento in tutta la stagione regolare.' },
+            { fam: 'season', name: 'Super Bowl Run', comp: 'glyphOnly', d: { icon: 'football' }, why: 'Finale raggiunta. Solo il pallone: è il «CFP» del casco.' },
+
+            // ── In palio: cinture di lega ───────────────────────────
+            { fam: 'held', kind: 'belt', name: '✦ All-Time High', comp: 'labelNum', d: { label: 'ALL-TIME HIGH', text: '201' }, why: 'Il punteggio più alto MAI fatto. Passa di mano il giorno in cui qualcuno lo supera.' },
+            { fam: 'held', kind: 'belt', name: '✦ Longest Run', comp: 'labelNum', d: { label: 'LONGEST RUN', text: '9' }, why: 'La striscia più lunga di sempre. Stessa regola.' },
+            { fam: 'held', kind: 'belt', name: '✦ Best Season', comp: 'labelNum', d: { label: 'BEST SEASON', text: '1842' }, why: 'Il totale punti più alto di sempre in una stagione.' },
+
+            // ── In palio: posti occupati ────────────────────────────
+            { fam: 'held', kind: 'seat', name: 'Reigning Champion', comp: 'asis', d: {}, why: 'Resta QUELLO DI OGGI: il die-cut del logo d\'edizione (Logos/SB-Champ-sticker.png), non un ovale. È l\'unico pezzo che rompe la forma, ed è giusto che a romperla sia il campione in carica — uno solo in tutta la lega. I cursori non lo toccano.' },
+            { fam: 'held', kind: 'seat', name: '✦ First Place', comp: 'numOnly', d: { word: '#1' }, why: 'Primo in classifica in questo momento. Cambia di settimana in settimana.' },
+            { fam: 'held', kind: 'seat', name: '✦ Wooden Spoon', comp: 'arcGlyph', d: { label: 'WOODEN SPOON', icon: 'spoon' }, why: 'L\'ultimo posto. Ce l\'hai addosso finché non lo passi a qualcun altro — ed è l\'unico che si spera di perdere.' },
+        ];
+
+        /* I trofei da scontro diretto non stanno nel catalogo fisso: dipendono
+           da CHI stai guardando. In una lega a quattro sono sei coppie, tre per
+           squadra — come il Little Brown Jug, che esiste solo fra Michigan e
+           Minnesota. */
+        const h2hFor = (key) => Object.keys(TEAMS).filter(k => k !== key).map((opp, i) => ({
+            fam: 'held', kind: 'h2h', name: `✦ Trofeo vs ${TEAMS[opp].name}`,
+            comp: 'labelGlyphNum',
+            d: { label: `vs ${TEAMS[opp].name}`, icon: 'jug', text: `×${[4, 1, 2][i]}` },
+            why: 'Uno per coppia: lo tieni finché quell\'avversario non ti batte. Il numero è da quante sfide di fila.',
+        }));
+
+        const FAMILY = {
+            life: {
+                title: 'A vita — prese una volta, non si perdono più',
+                note: 'Restano sul muro per sempre, come gli adesivi sul casco che il giocatore si porta a casa a fine carriera. Sono la storia della franchigia: più ne accumuli, più il muro racconta. Nessun anno da azzerare, nessuno che te le può portare via.',
+                cls: '',
+            },
+            season: {
+                title: 'Stagionali — si azzerano ogni anno',
+                note: `Si riconquistano da capo ogni stagione. Sul muro c'è solo quella della stagione in corso: l'anno dopo sparisce. È la differenza col muro di oggi, dove ogni annata lascia il suo adesivo e la parete cresce e basta. Qui sono marcate a fondo scuro — «questa è la ${SEASON}».`,
+                cls: 'lab-season',
+            },
+            held: {
+                title: 'In palio — una squadra alla volta, e cambia mano',
+                note: 'Non si conquistano: si portano via a qualcuno. Tre modi diversi: la CINTURA è un primato di lega e passa a chi lo supera; il TROFEO esiste per ogni coppia di squadre e lo tieni finché quell\'avversaria non ti batte; il POSTO è un ruolo che qualcuno occupa adesso (campione in carica, primo, ultimo). Marcate col bordo: sono in prestito.',
+                cls: 'lab-held',
+            },
+        };
+
+        const KIND_LABEL = { belt: 'cintura', h2h: 'trofeo', seat: 'posto' };
+
+        const $ = (s) => document.querySelector(s);
+        const state = { team: 'capi', font: "'Archivo Black', sans-serif", mark: true };
+
+        /* `asis` non è un impaginato: è l'adesivo che RESTA com'è. Il campione
+           in carica è un die-cut su file, non un ovale disegnato, e i cursori
+           del banco non lo toccano — sta qui solo perché il catalogo dev'essere
+           completo. */
+        /* La famiglia non è una proprietà dell'adesivo: è del banco. Si
+           aggiunge alla classe che il modulo ha già scritto. */
+        const withFam = (svg, cls) => cls ? svg.replace('class="stk-svg', `class="stk-svg ${cls}`) : svg;
+
+        const draw = (item) => item.comp === 'asis'
+            ? `<div class="stk-asis">${champStickerSVG()}</div>`
+            : COMP[item.comp](item.d, item);
+
+        function card(item) {
+            const cls = FAMILY[item.fam]?.cls || '';
+            const kind = item.kind ? ` <code>${KIND_LABEL[item.kind]}</code>` : '';
+            return `<div class="lab-card">${withFam(draw(item), cls)}
+                <div><h3>${item.name}</h3><p><code>${item.comp}</code>${kind} — ${item.why}</p></div>
+            </div>`;
+        }
+
+        function renderRef() {
+            // Questa riga NON prende le variabili del banco: è il look di
+            // produzione, il metro di paragone. L'asset del campione ha un src
+            // relativo alla root, e la pagina STA nella root: niente da ritoccare.
+            const icons = ['trophy', 'crown', 'rings', 'numeral', 'bolt', 'flame', 'streak'];
+            $('#ref-row').innerHTML = icons.map(icon =>
+                `<div class="lab-cell"><div style="width:96px">${stickerSVG({ icon, text: '2021' })}</div>
+                 <span class="cap">${icon}</span></div>`).join('')
+                + `<div class="lab-cell"><div style="width:96px">${sbStickerSVG('III', '2021')}</div><span class="cap">super bowl</span></div>`
+                + `<div class="lab-cell"><div style="width:74px">${champStickerSVG()}</div><span class="cap">reigning champ</span></div>`;
+        }
+
+        /* I marchi vanno guardati in due misure insieme: grandi si giudica il
+           disegno, a 96px si scopre che metà dei dettagli sparisce. È la
+           differenza fra un'icona che «sta bene nel file» e una che regge sul
+           casco. */
+        const MARKS = [
+            ['topina', 'La topina', 'Il nostro ghiottone: muso di tre quarti, orecchio tondo, occhio e baffi in negativo. Va sull\'adesivo delle vittorie, quello che si ripete di più.'],
+            ['shield', 'Lo scudetto', 'Il block M della lega: la stessa forma di leagueShieldSVG(), una stella per squadra e il pallone sotto.'],
+            ['trophy', 'La coppa', 'Due anse, stelo e base — un trofeo, non un calice. La stella in negativo evita che sia una macchia scura.'],
+            ['helmet', 'Il casco', 'Profilo e griglia: la sagoma più riconoscibile del football. Regge fino a 18px.'],
+            ['jersey', 'Il maglione', 'Il varsity letterman di Michigan. Sul petto una stella e non lo scudetto: a 20px lo scudetto dentro la maglia diventa un rettangolo scuro.'],
+            ['jug', 'La brocca', 'Il Little Brown Jug: il trofeo di rivalità più vecchio del college football, e sta fra due squadre e basta. Il pannello chiaro è per scriverci chi la tiene.'],
+            ['belt', 'La cintura', 'Quello che tieni finché non te lo portano via: fascia, piastra e i buchi sul capo libero.'],
+            ['hardhat', 'L\'elmetto', 'Il lavoro sporco, quello che non si vede. Cupola, cresta e tesa larga.'],
+            ['spoon', 'Il cucchiaio', 'L\'ultimo posto. Inclinato, perché un cucchiaio dritto e piccolo si legge «fiammifero».'],
+            ['hammer', 'Il martello', 'Proposta di sostituzione: quello in ICONS oggi è un rettangolo su un\'asta e a 20px si legge «T».'],
+        ];
+
+        function renderMarks() {
+            $('#marks').innerHTML = MARKS.map(([icon, name, why]) => `
+                <div class="lab-card">
+                    <!-- il disegno grande va su un fondo color adesivo: l'inchiostro
+                         è scuro, e sul fondo scuro del banco sarebbe invisibile.
+                         Alcuni marchi escono dal riquadro 12..52 (i baffi, la tesa
+                         dell'elmetto), quindi la vista è il quadrato intero. -->
+                    <svg class="stk-svg" viewBox="0 0 64 64" aria-hidden="true">
+                        <rect x="0" y="0" width="64" height="64" rx="8" fill="var(--stk-paint)"/>
+                        ${glyph(icon, 32, 32, 1)}
+                    </svg>
+                    <div>
+                        <h3>${name} <code>${icon}</code></h3>
+                        <p>${why}</p>
+                        <div style="margin-top:8px;width:96px">${COMP.glyphOnly({ icon })}</div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function renderVocab() {
+            $('#vocab').innerHTML = VOCAB.map(v =>
+                `<div class="lab-card">${draw(v)}
+                 <div><h3>${v.name}</h3><p><code>${v.comp}</code> — ${v.why}</p></div></div>`).join('');
+            fitTexts($('#vocab'));
+        }
+
+        function catalogFor(key) {
+            // i trofei di scontro diretto si infilano fra le cinture e i posti
+            const out = [];
+            CATALOG.forEach(it => {
+                if (it.kind === 'seat' && !out.some(x => x.kind === 'h2h')) out.push(...h2hFor(key));
+                out.push(it);
+            });
+            return out;
+        }
+
+        function renderFamilies() {
+            const all = catalogFor(state.team);
+            $('#families').innerHTML = Object.entries(FAMILY).map(([fam, f]) => {
+                const items = all.filter(i => i.fam === fam);
+                return `<section class="lab-case">
+                    <h2>${f.title} · ${items.length}</h2>
+                    <p>${f.note}</p>
+                    <div class="lab-grid">${items.map(card).join('')}</div>
+                </section>`;
+            }).join('');
+            fitTexts($('#families'));
+        }
+
+        /* Un muro vero non ha tutto: in una stagione non vinci tutti i premi
+           annuali, e le cose in palio ce l'ha una squadra alla volta. La
+           selezione qui sotto è finta ma verosimile, e soprattutto FISSA — con
+           un campione a caso il muro ballerebbe a ogni tocco di un cursore. */
+        function wallFor(key) {
+            const all = catalogFor(key);
+            const seed = Object.keys(TEAMS).indexOf(key);
+            const season = all.filter(i => i.fam === 'season').filter((_, i) => (i + seed) % 2 === 0);
+            const held = all.filter(i => i.fam === 'held').filter((_, i) => (i + seed) % 3 !== 1);
+            return [...all.filter(i => i.fam === 'life'), ...season, ...held];
+        }
+
+        function renderWall() {
+            const amp = +$('#rot').value;
+            // rotazione deterministica: la stessa parete non deve ballare a
+            // ogni tocco di un cursore che non c'entra
+            const jit = (i) => Math.sin((i + 1) * 2.399) * amp;
+            $('#wall').innerHTML = wallFor(state.team).map((it, i) => {
+                if (it.comp === 'asis') return draw(it); // il die-cut sta dritto, come sull'hero
+                const cls = FAMILY[it.fam].cls;
+                return withFam(draw(it), cls)
+                    .replace('<svg ', `<svg style="--rot:${jit(i).toFixed(2)}deg" `);
+            }).join('');
+            fitTexts($('#wall'));
+        }
+
+        /* Il font cambia la larghezza di ogni parola, e i webfont arrivano
+           dopo il primo disegno: ogni volta che uno dei due si muove le misure
+           vanno rifatte, altrimenti restano quelle del font precedente. */
+        const refit = () => requestAnimationFrame(() => fitTexts($('#stage')));
+
+        function syncVars() {
+            const st = $('#tune');
+            const num = (id) => +$('#' + id).value;
+            st.style.setProperty('--lighten', num('lighten') + '%');
+            st.style.setProperty('--darken', num('darken') + '%');
+            st.style.setProperty('--ry', num('ry') + 'px');
+            st.style.setProperty('--w', num('size') + 'px');
+            st.style.setProperty('--sw', num('sw'));
+            st.style.setProperty('--gap', num('gap') + 'px');
+            st.style.setProperty('--shadow', num('shadow') / 100);
+            st.style.setProperty('--lab-font', state.font);
+            /* Un font si scarica quando serve, non quando la pagina apre:
+               Bevan al primo clic non c'è ancora, il testo viene misurato col
+               ripiego (più stretto) e appena arriva quello vero sfora. Si
+               aspetta CHE SIA CARICATO e poi si rimisura. */
+            const fam = state.font.match(/'([^']+)'/)?.[1];
+            if (fam && document.fonts?.load) document.fonts.load(`900 20px "${fam}"`).then(refit);
+            st.classList.toggle('lab-mark', state.mark);
+            document.querySelectorAll('.lab-slider b').forEach(el => {
+                const src = $('#' + el.dataset.for);
+                if (src) el.textContent = src.value + (el.dataset.unit || '');
+            });
+            refit();
+        }
+
+        function setTeam(key) {
+            document.documentElement.style.setProperty('--team-color', TEAMS[key].color);
+            renderFamilies();
+            renderWall();
+            syncVars();
+        }
+
+        $('#note').innerHTML = `
+            <b>Il disegno è adottato.</b> Dal 15 settembre 2026 i marchi e i nove impaginati vivono in
+            <code>js/ui/badge-svg.js</code> e li disegna la pagina squadra: questa pagina li IMPORTA, non
+            ne tiene una copia. Ogni badge dichiara il suo impaginato in <code>js/data/badges.js</code>
+            (campo <code>comp</code>), e i numeri che finiscono dentro l'ovale — punti della settimana
+            record, striscia, margine, punteggio del Club 150 — arrivano da <code>iconText</code>
+            sull'istanza. Se qui si cambia un marchio, cambia sull'hero.
+            <br><br>
+            <b>Quello che resta una proposta sono le TRE FAMIGLIE</b>, ed è tutto quello che vedi marcato
+            qui sopra. Oggi <code>badges.js</code> ha quattro categorie ma nessuna si azzera davvero: ogni
+            stagione aggiunge un'istanza e il muro cresce e basta. Servono due cose che il motore non ha:
+            <b>filtrare gli stagionali alla stagione in corso</b>, e <b>calcolare chi detiene cosa</b> — che
+            non è una proprietà della squadra ma della lega, quindi va calcolato una volta in
+            <code>league-data.js</code> e poi letto, non ricavato quattro volte.
+            <br><br>
+            <b>Gli adesivi col ✦ non esistono ancora</b>: il record di lega, le tre cinture, i tre posti, e i
+            sei trofei di scontro diretto — uno per coppia — che hanno bisogno di una cosa che oggi non
+            c'è, la memoria di chi ha vinto l'ultimo confronto fra due squadre. Le due proposte stagionali
+            (Grinder e Iron Man) invece hanno già una regola calcolabile con i dati che abbiamo.
+            <br><br>
+            <b>Da decidere ancora.</b> Con «marca famiglie» acceso metà muro è scuro: legge benissimo, ma si
+            allontana dal casco vero, dove gli invertiti sono una minoranza. L'alternativa è marcare col
+            bordo solo quelli in palio e lasciare che gli stagionali si riconoscano dall'anno stampato
+            sopra. Il pulsante serve a guardare le due strade una accanto all'altra.`;
+
+        function group(id, key, after, cast = (v) => v) {
+            document.getElementById(id).addEventListener('click', (e) => {
+                const b = e.target.closest('.lab-btn');
+                if (!b) return;
+                state[key] = cast(b.dataset[key]);
+                document.querySelectorAll(`#${id} .lab-btn`).forEach(x => x.classList.toggle('on', x === b));
+                after();
+            });
+        }
+
+        group('lab-team', 'team', () => setTeam(state.team));
+        group('lab-font', 'font', syncVars);
+        group('lab-mark', 'mark', syncVars, (v) => v === '1');
+
+        // Tema del banco: solo lo sfondo dietro agli adesivi. Non tocca gli
+        // adesivi — quelli si tingono col colore squadra, che è fisso.
+        document.getElementById('lab-theme').addEventListener('click', (e) => {
+            const b = e.target.closest('.lab-btn');
+            if (!b) return;
+            document.body.classList.toggle('lab-light', b.dataset.theme === 'light');
+            document.querySelectorAll('#lab-theme .lab-btn').forEach(x => x.classList.toggle('on', x === b));
+        });
+
+        document.querySelector('.lab-head').addEventListener('input', (e) => {
+            syncVars();
+            if (e.target.id === 'rot') renderWall();
+        });
+
+        renderRef();
+        renderMarks();
+        renderVocab();
+        setTeam('capi');
+        if (document.fonts?.ready) document.fonts.ready.then(refit);
+    </script>
+</body>
+
+</html>
