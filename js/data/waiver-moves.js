@@ -25,8 +25,26 @@
  * squadra), e soprattutto la stessa ricostruzione fatta in due posti diverge.
  */
 
-import { fetchTransactions, fetchPlayerNames } from './espn-fantasy.js?v=146';
+import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=172';
+import { TEAM_KEYS } from './team-config.js?v=535';
 import { buildSeasonModel } from '../sections/analysis.js?v=819';
+
+// I tipi che ESPN dichiara sulla transazione. Quelli che non muovono un
+// giocatore fra le rose (i cambi di formazione) non sono mosse di mercato e
+// restano fuori: riempirebbero la pagina di rumore settimanale.
+// Stavano in sections/waivers.js e il trasloco li aveva lasciati la': senza,
+// `righeDaEspn` lanciava a ogni transazione, il catch di getWaiverMoves
+// ingoiava l'errore e si ripiegava sulle rose — pagina vuota in week 1.
+const TIPI = {
+    WAIVER: 'Waiver',
+    FREEAGENT: 'Free agent',
+    TRADE_ACCEPT: 'Trade',
+    TRADE: 'Trade',
+    DRAFT: 'Draft',
+};
+
+/** Dal nome che mostra il sito alla chiave della squadra (da team-config: team.js sarebbe un anello). */
+const chiaveDaNome = (nome) => TEAM_KEYS[nome] || nome || null;
 
 /** Da una transazione ESPN alle righe da mostrare: una per giocatore mosso. */
 export function righeDaEspn(tx, nomi) {

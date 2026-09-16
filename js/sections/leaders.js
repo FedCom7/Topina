@@ -18,13 +18,13 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
-import { TEAMS } from './team.js?v=800';
+import { TEAMS } from './team.js?v=804';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats } from '../data/projections.js?v=602';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=819';
+} from './analysis.js?v=822';
 import { getPlayerWeekly } from '../data/player-full.js?v=666';
 
 let initialized = false;

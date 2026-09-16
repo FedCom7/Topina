@@ -5,7 +5,7 @@
  * teamsCardsHTML è riusata dalla home (mosaico) per card identiche.
  */
 
-import { TEAMS } from './team.js?v=800';
+import { TEAMS } from './team.js?v=804';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { teamNameHTML } from '../data.js?v=585';
 

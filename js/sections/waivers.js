@@ -22,11 +22,10 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
-import { TEAMS } from './team.js?v=800';
+import { TEAMS } from './team.js?v=804';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { fantasyTeamName } from '../data/espn-fantasy.js?v=172';
-import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=2';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=819';
+import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=7';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=822';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -65,20 +64,7 @@ function renderPickRow() {
    FONTE 1 — le transazioni vere di ESPN
    ============================================================ */
 
-// I tipi che ESPN dichiara sulla transazione. Quelli che non muovono un
-// giocatore fra le rose (i cambi di formazione) non sono mosse di mercato e
-// restano fuori: riempirebbero la pagina di rumore settimanale.
-const TIPI = {
-    WAIVER: 'Waiver',
-    FREEAGENT: 'Free agent',
-    TRADE_ACCEPT: 'Trade',
-    TRADE: 'Trade',
-    DRAFT: 'Draft',
-};
-
-/** Dal nome che mostra il sito alla chiave della squadra. */
-const chiaveDaNome = (nome) =>
-    Object.values(TEAMS).find(t => t.name === nome)?.key || nome || null;
+// Tipi di transazione e lettura delle fonti: in data/waiver-moves.js.
 
 /* ============================================================
    FONTE 2 — ricostruzione dalle rose settimanali

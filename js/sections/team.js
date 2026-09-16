@@ -9,12 +9,12 @@ import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { computeTeamBadges } from '../data/badges.js?v=559';
 import { stickerSVG, champStickerSVG, fitStickerTexts } from '../ui/badge-svg.js?v=521';
 import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=751';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=754';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { apHalfFieldSvg, sbLineup } from '../ui/field-allpro.js?v=8';
 import { hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
 import { CURRENT_SEASON, fetchFantasyData, SEASONS_DESC, displayName } from '../data.js?v=585';
-import { getWaiverMoves } from '../data/waiver-moves.js?v=2';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=7';
 import { TEAM_PALETTE, TEAM_KEYS } from '../data/team-config.js?v=535';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
