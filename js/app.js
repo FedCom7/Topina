@@ -1,32 +1,32 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=814';
-import { initGameCenter } from './sections/game-center.js?v=756';
-import { initStandings, initPlayoffs } from './sections/standings.js?v=719';
-import { initDraft } from './sections/draft.js?v=747';
-import { initDraftGrades } from './sections/draftgrades.js?v=755';
-import { initProjections } from './sections/projections.js?v=117';
-import { initManagerDna } from './sections/managerdna.js?v=3';
-import { initManagerDnaTeam } from './sections/managerdna-team.js?v=3';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=778';
-import { initPlayerPage } from './sections/player-page.js?v=984';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1053';
-import { initPlayersSearch } from './sections/players-search.js?v=984';
-import { initStats } from './sections/stats.js?v=813';
-import { initHistory } from './sections/history.js?v=707';
-import { initHonors } from './sections/honors.js?v=691';
-import { initAllPro } from './sections/allpro.js?v=698';
-import { initHallOfFame } from './sections/halloffame.js?v=714';
-import { initTeam } from './sections/team.js?v=717';
-import { initTeams } from './sections/teams.js?v=684';
-import { initGame } from './sections/game.js?v=772';
-import { initAnalysis } from './sections/analysis.js?v=774';
-import { initLeaders } from './sections/leaders.js?v=11';
-import { initWaivers } from './sections/waivers.js?v=12';
-import { initMagazine } from './sections/magazine.js?v=738';
-import { initLive } from './sections/live.js?v=1014';
-import { initNavbar } from './ui/navbar.js?v=633';
+import { initHome } from './sections/home.js?v=1065';
+import { initGameCenter } from './sections/game-center.js?v=804';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=750';
+import { initDraft } from './sections/draft.js?v=786';
+import { initDraftGrades } from './sections/draftgrades.js?v=792';
+import { initProjections } from './sections/projections.js?v=602';
+import { initManagerDna } from './sections/managerdna.js?v=34';
+import { initManagerDnaTeam } from './sections/managerdna-team.js?v=800';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=800';
+import { initPlayerPage } from './sections/player-page.js?v=1022';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1071';
+import { initPlayersSearch } from './sections/players-search.js?v=988';
+import { initStats } from './sections/stats.js?v=856';
+import { initHistory } from './sections/history.js?v=738';
+import { initHonors } from './sections/honors.js?v=723';
+import { initAllPro } from './sections/allpro.js?v=733';
+import { initHallOfFame } from './sections/halloffame.js?v=750';
+import { initTeam } from './sections/team.js?v=800';
+import { initTeams } from './sections/teams.js?v=715';
+import { initGame } from './sections/game.js?v=803';
+import { initAnalysis } from './sections/analysis.js?v=819';
+import { initLeaders } from './sections/leaders.js?v=64';
+import { initWaivers } from './sections/waivers.js?v=55';
+import { initMagazine } from './sections/magazine.js?v=771';
+import { initLive } from './sections/live.js?v=1066';
+import { initNavbar } from './ui/navbar.js?v=661';
 import { startAutoAbbr } from './utils/team-abbr.js?v=501';
 import { startLoadingArt } from './ui/spinner.js?v=6';
 
@@ -63,8 +63,8 @@ const NAV_PARENT = {
     'managerdna': 'draft',
     'playoffs': 'standings',
     'magazine': 'game-center',
-    'leaders': 'analysis',
-    'waivers': 'analysis',
+    'waivers': 'leaders',
+    'stats': 'history',
 };
 
 const TEAM_KEYS_NAV = new Set(['team-capi', 'team-lasers', 'team-oscurus', 'team-sommo']);
@@ -79,6 +79,36 @@ function getSection() {
     if (hash.startsWith('nfl-team/')) return hash; // #nfl-team/{abbr}/{anno?}
     return SECTIONS[hash] ? hash : 'home';
 }
+
+/*
+ * Zoom spento su tutto il sito da telefono.
+ *
+ * Le pagine sono gia' disegnate per lo schermo stretto: il pizzico non serviva
+ * a leggere niente e partiva per sbaglio in mezzo a uno swipe o a un tocco, sul
+ * Live come altrove. Su desktop non cambia niente — lo zoom del browser (ctrl
+ * e rotella) non passa di qui.
+ *
+ * Quattro pezzi, perche' nessun browser li guarda tutti:
+ *
+ *  - il `meta viewport` in `index.html` — ferma il pizzico su Android e su
+ *    qualunque cosa non sia WebKit;
+ *  - `touch-action` in CSS (su `body`) — si prende il doppio tocco;
+ *  - `gesturestart` — l'appiglio di Safari, che il meta lo ignora dal 2016;
+ *  - il secondo dito su `touchstart` — rete di sicurezza per i casi in cui
+ *    `gesturestart` non arriva affatto: WebView, "richiedi sito desktop", e
+ *    ogni browser non-Safari su iPhone. E' un evento proprietario di WebKit,
+ *    dove non c'e' non lo sostituisce nessuno.
+ *
+ * Il guardiano su `touchstart` lascia passare tutto quello che ha UN dito solo,
+ * cioe' ogni scorrimento e ogni swipe del Live: interviene solo quando le dita
+ * diventano due, che a quel punto e' un pizzico e nient'altro.
+ */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+    document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+
+document.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
 
 function navigate() {
     const active = getSection();

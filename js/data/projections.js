@@ -16,6 +16,27 @@ import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
 
 const TTL_MS = 24 * 60 * 60 * 1000; // le proiezioni cambiano di rado
 const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano
+/*
+ * ...ma quelle della stagione IN CORSO si': una settimana di cache voleva dire
+ * fotografare la classifica al primo accesso e tenerla ferma sette giorni.
+ * Successo nella week 1 del 2026: aperta la pagina Players dopo il Thursday
+ * Night, Smith-Njigba e' rimasto "il migliore" per tutta la domenica mentre
+ * Caleb Williams, Josh Allen e Derrick Henry lo superavano — nella lista non
+ * c'erano proprio, perche' al momento della foto non avevano ancora giocato.
+ *
+ * Un'ora e' il compromesso: i punti di Sleeper si aggiornano a fine partita,
+ * e la risposta e' pesante abbastanza da non volerla a ogni apertura.
+ * Il TTL si valuta alla LETTURA sulla data di scrittura, quindi una cache
+ * vecchia gia' salvata scade subito, senza bisogno di cambiare la chiave.
+ */
+const STATS_TTL_LIVE_MS = 60 * 60 * 1000;
+
+/** La stagione NFL in corso: da settembre a febbraio compreso. */
+function stagioneInCorso(year) {
+    const d = new Date();
+    const anno = d.getMonth() < 2 ? d.getFullYear() - 1 : d.getFullYear();
+    return Number(year) >= anno;
+}
 const _mem = {};
 const _memStats = {};
 
@@ -151,7 +172,7 @@ export async function getSeasonStats(year) {
     // va cambiata anche in FAMILIES.current dentro utils/storage.js, altrimenti
     // i blob v5 restano lì per sempre.
     const cacheKey = `topina_stats_v6_${year}`;
-    const hit = cacheGet(cacheKey, STATS_TTL_MS);
+    const hit = cacheGet(cacheKey, stagioneInCorso(year) ? STATS_TTL_LIVE_MS : STATS_TTL_MS);
     if (hit) return (_memStats[year] = new Map(hit));
 
     const res = await fetch(urlFor('stats', year));

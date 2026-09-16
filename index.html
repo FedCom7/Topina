@@ -3,15 +3,27 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Niente zoom da telefono: il sito e' gia' disegnato per lo schermo
+         stretto, e il pizzico partiva per sbaglio in mezzo agli swipe e ai
+         tocchi. Su desktop non cambia nulla: lo zoom del browser (ctrl e
+         rotella) non guarda questo attributo. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <meta name="description" content="Topina League — Fantasy NFL Statistics, Standings, Draft History and More">
     <title>Topina League</title>
+    <!-- Tema: si decide PRIMA che arrivi il CSS, altrimenti chi ha scelto il
+         chiaro vedrebbe un lampo nero a ogni apertura. La scelta sta in
+         localStorage sotto `topina-theme` (fuori dalle famiglie di cache di
+         utils/storage.js, quindi nessuno sfratto la tocca); il bottone che la
+         cambia e' in ui/navbar.js. -->
+    <script>
+        try { if (localStorage.getItem('topina-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) { }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1161">
+    <link rel="stylesheet" href="css/main.css?v=1203">
 </head>
 
 <body>
@@ -36,22 +48,37 @@
                 <li class="nav-item has-dropdown" data-dropdown="standings">
                     <a href="#standings" class="nav-link" data-section="standings">Standings</a>
                 </li>
+                <!-- Per argomento, non per periodo: niente piu' una voce "Season"
+                     che conteneva solo una parte della stagione. I giocatori
+                     (classifica + mosse di mercato) hanno la loro voce; la
+                     chiave e' `leaders` perche' `players` e' gia' NFL Hub. -->
+                <li class="nav-item has-dropdown" data-dropdown="leaders">
+                    <a href="#leaders" class="nav-link" data-section="leaders">Players</a>
+                </li>
+                <li class="nav-item"><a href="#analysis" class="nav-link" data-section="analysis">Analysis</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="teams">
                     <a href="#teams" class="nav-link" data-section="teams">Teams</a>
-                </li>
-                <li class="nav-item has-dropdown" data-dropdown="analysis">
-                    <a href="#analysis" class="nav-link" data-section="analysis">Season</a>
                 </li>
                 <li class="nav-item has-dropdown" data-dropdown="draft">
                     <a href="#draft" class="nav-link" data-section="draft">Draft</a>
                 </li>
                 <li class="nav-item"><a href="#players" class="nav-link" data-section="players">NFL Hub</a></li>
-                <li class="nav-item"><a href="#stats" class="nav-link" data-section="stats">Stats</a></li>
                 <li class="nav-item has-dropdown" data-dropdown="history">
                     <a href="#history" class="nav-link" data-section="history">History</a>
                 </li>
             </ul>
             <div class="nav-actions">
+                <button class="nav-theme-btn" id="nav-theme-btn" type="button" aria-label="Switch to light theme" aria-pressed="false">
+                    <!-- sole: si vede sul tema scuro, porta al chiaro -->
+                    <svg class="nav-theme-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+                    </svg>
+                    <!-- luna: si vede sul tema chiaro, riporta allo scuro -->
+                    <svg class="nav-theme-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
                 <button class="nav-search-btn" id="nav-search-btn" aria-label="Search" aria-expanded="false">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -93,10 +120,9 @@
             <div class="nav-dp-sep"></div>
             <a href="#playoffs" class="nav-dp-item" data-section="playoffs">Playoff Picture</a>
         </div>
-        <div class="nav-dropdown-panel" data-panel="analysis">
-            <a href="#analysis" class="nav-dp-item nav-dp-header" data-section="analysis">Analysis</a>
+        <div class="nav-dropdown-panel" data-panel="leaders">
+            <a href="#leaders" class="nav-dp-item nav-dp-header" data-section="leaders">Players</a>
             <div class="nav-dp-sep"></div>
-            <a href="#leaders" class="nav-dp-item" data-section="leaders">Players</a>
             <a href="#waivers" class="nav-dp-item" data-section="waivers">Waivers</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="draft">
@@ -112,6 +138,7 @@
             <a href="#honors" class="nav-dp-item" data-section="honors">Topina Honors</a>
             <a href="#allpro" class="nav-dp-item" data-section="allpro">All-Pro Team</a>
             <a href="#halloffame" class="nav-dp-item" data-section="halloffame">Hall of Fame</a>
+            <a href="#stats" class="nav-dp-item" data-section="stats">All-Time Stats</a>
         </div>
     </nav>
 
@@ -275,7 +302,7 @@
                 <h1 class="section-title">Draft Grades</h1>
                 <p class="section-subtitle">War-room report cards, team by team</p>
             </div>
-            <div class="year-selector" id="dg-year-selector"></div>
+            <div class="pick-row" id="dg-year-selector"></div>
             <div id="draftgrades-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
@@ -407,7 +434,7 @@
         </div>
     </section>
 
-    <!-- ====== PLAYERS (sotto Season) — classifica punti + best available ====== -->
+    <!-- ====== PLAYERS (voce Players del menu) — classifica punti, filtro Available ====== -->
     <section class="page-section" id="leaders">
         <div class="section-inner">
             <div class="section-header">
@@ -424,7 +451,7 @@
         </div>
     </section>
 
-    <!-- ====== WAIVERS (sotto Season) ====== -->
+    <!-- ====== WAIVERS (sotto Players) ====== -->
     <section class="page-section" id="waivers">
         <div class="section-inner">
             <div class="section-header">
@@ -452,7 +479,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1224"></script>
+    <script type="module" src="js/app.js?v=1292"></script>
 </body>
 
 </html>

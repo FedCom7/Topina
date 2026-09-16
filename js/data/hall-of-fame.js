@@ -10,8 +10,8 @@
  */
 
 import { SEASONS, CURRENT_SEASON } from '../data.js?v=547';
-import { getHonorsBundle } from './honors.js?v=598';
-import { buildCareers } from './careers.js?v=604';
+import { getHonorsBundle } from './honors.js?v=723';
+import { buildCareers } from './careers.js?v=643';
 
 /* La prima classe è il 2026: nel 2025 non si è eletto nessuno. */
 export const FIRST_CLASS_YEAR = 2026;

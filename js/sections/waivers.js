@@ -21,12 +21,12 @@
  * mostra la cronologia in chiaro, risponde 401 senza i cookie di login.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=709';
+import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
+import { TEAMS } from './team.js?v=800';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { fantasyTeamName } from '../data/espn-fantasy.js?v=146';
-import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=1';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=776';
+import { fantasyTeamName } from '../data/espn-fantasy.js?v=172';
+import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=2';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=819';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -98,6 +98,21 @@ function dataBreve(iso) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/**
+ * Il nome porta alla scheda del giocatore, dove si vedono i punti che ha
+ * fatto giornata per giornata: e' la domanda che viene subito dopo "chi ha
+ * preso chi" — ne valeva la pena?
+ *
+ * Serve il ruolo per la rotta (`#player/anno/ruolo/nome`). Un giocatore che
+ * ESPN non ha saputo risolvere arriva come "#12345" senza ruolo: quello resta
+ * testo, un link lo porterebbe a una scheda vuota.
+ */
+function nomeLink(m) {
+    if (!m.pos || String(m.nome).startsWith('#')) return m.nome;
+    const href = `#player/${currentYear}/${encodeURIComponent(m.pos)}/${encodeURIComponent(m.nome)}`;
+    return `<a class="wv-player-link" href="${href}">${m.nome}</a>`;
+}
+
 function riga(m) {
     const logo = logoSquadra(m.squadra);
     const dentro = m.verso === 'in';
@@ -107,7 +122,7 @@ function riga(m) {
         <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>
         <span class="wv-dir ${dentro ? 'wv-in' : 'wv-out'}">${dentro ? 'Added' : 'Dropped'}</span>
         ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
-        <span class="an-player-name">${m.nome} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>
+        <span class="an-player-name">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>
         <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
     </div>`;
 }

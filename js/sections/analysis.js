@@ -6,14 +6,14 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { TEAM_PALETTE } from '../data/team-config.js?v=534';
-import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=580';
-import { TEAMS } from './team.js?v=717';
+import { TEAM_PALETTE } from '../data/team-config.js?v=535';
+import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
+import { TEAMS } from './team.js?v=800';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { dotPlot, dumbbell } from '../ui/charts.js?v=8';
+import { dotPlot, dumbbell } from '../ui/charts.js?v=9';
 import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1001';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=594';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=602';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -25,7 +25,8 @@ let avgMode = 'total'; // 'total' | 'starter' | 'nfl' — base di partite, punti
 // nessuna rosa: Firebase quelle non le ha proprio.
 const nflTotals = {};
 let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
-let roleDistMode = 'all'; // 'all' | 'starters' — base di Weekly scores by position
+let roleDistMode = 'starters'; // 'all' | 'starters' — base di Weekly scores by position.
+// Parte dai titolari come "Points by position (starters)" accanto.
 // Quale squadra guardare nel grafico "Weekly scores by position" della vista
 // Totale: 'all' le mette tutte insieme, altrimenti solo quella scelta.
 let roleDistTeam = 'all';
@@ -114,6 +115,31 @@ export async function buildSeasonModel(year) {
     const players = new Map(); // name -> { name, position, nflTeam, weeks: {wk: {...}} }
     const teamWeeks = {};      // teamKey -> { wk: { starters: [names], bench: [names], score } }
     let lastWeek = 0;
+    // Le giornate con almeno un punto: cioe' quelle che Firebase ha davvero
+    // archiviato.
+    const playedWeeks = new Set();
+
+    // La settimana a venire (segnaposto, punti a zero) NON entra in `weeks`:
+    // contata li' dimezzava la media per partita. fetchFantasyData la tiene in
+    // `pendingWeeks`; qui le sue rose finiscono in `rec.pending`, che serve al
+    // dettaglio di Players per il punteggio live di chi e' in rosa.
+    for (const [wkStr, wkData] of Object.entries(fantasy.pendingWeeks || {})) {
+        const wk = Number(wkStr);
+        for (const m of wkData.matchups || []) {
+            for (const side of [m.team1, m.team2]) {
+                if (!side?.name) continue;
+                const teamKey = teamKeyFromRaw(side.name);
+                for (const [list, started] of [[side.starters, true], [side.bench, false]]) {
+                    for (const p of list || []) {
+                        if (!p?.name) continue;
+                        let rec = players.get(p.name);
+                        if (!rec) players.set(p.name, rec = { name: p.name, position: p.position_in_team || p.position, nflTeam: p.nfl_team, weeks: {} });
+                        (rec.pending ||= {})[wk] = { pts: 0, stats: {}, started, teamKey, opponent: p.opponent || '' };
+                    }
+                }
+            }
+        }
+    }
 
     for (const [wkStr, wkData] of Object.entries(fantasy.weeks)) {
         const wk = Number(wkStr);
@@ -139,6 +165,7 @@ export async function buildSeasonModel(year) {
                         if (!rec) players.set(p.name, rec = { name: p.name, position: p.position_in_team || p.position, nflTeam: p.nfl_team, weeks: {} });
                         if (p.position_in_team) rec.position = p.position_in_team;
                         if (p.nfl_team) rec.nflTeam = p.nfl_team;
+                        if (parseFloat(p.fantasy_points || 0) !== 0) playedWeeks.add(wk);
                         rec.weeks[wk] = {
                             pts: parseFloat(p.fantasy_points || 0),
                             stats: p.stats || {},
@@ -156,7 +183,8 @@ export async function buildSeasonModel(year) {
 
     const config = getSeasonConfig(year);
     const model = {
-        year, players, teamWeeks, draft, lastWeek,
+        year, players, teamWeeks, draft, lastWeek, playedWeeks,
+        lastPlayedWeek: playedWeeks.size ? Math.max(...playedWeeks) : 0,
         seasonOver: lastWeek >= config.superBowlWeek,
     };
     modelCache[year] = model;
@@ -273,11 +301,21 @@ function lineupView(model, teamKey) {
 function optimalWeekPoints(model, teamKey, wk) {
     const tw = model.teamWeeks[teamKey]?.[wk];
     if (!tw) return null;
-    const roster = [...tw.starters, ...tw.bench]
+    return bestLineupPoints(model, [...tw.starters, ...tw.bench], wk);
+}
+
+/**
+ * I punti della miglior formazione possibile, in una giornata, scegliendo fra
+ * i giocatori indicati: il migliore disponibile per ogni slot, in ordine.
+ * Conta i punti di quella giornata OVUNQUE il giocatore fosse in rosa nella
+ * lega; nelle settimane da svincolato il modello non ha punti, e vale zero.
+ */
+function bestLineupPoints(model, names, wk) {
+    const roster = names
         .map(name => {
             const rec = model.players.get(name);
             const w = rec?.weeks[wk];
-            return w ? { name, position: rec.position, pts: w.pts, started: w.started } : null;
+            return w ? { name, position: rec.position, pts: w.pts } : null;
         })
         .filter(Boolean)
         .sort((a, b) => b.pts - a.pts);
@@ -333,14 +371,24 @@ export function pointsComparison(model, teamKey) {
         }
     }
 
+    /*
+     * "Drafted team": quanti punti avrebbe fatto la squadra schierando, ogni
+     * giornata che ha giocato, la MIGLIOR formazione possibile coi soli
+     * giocatori che aveva draftato — e con i loro punti di quella giornata
+     * ovunque fossero, anche in un'altra squadra della lega dopo un taglio o
+     * uno scambio. E' la stessa misura di "Optimal", costruita sul draft
+     * invece che sulla rosa vera, quindi i due numeri si confrontano.
+     *
+     * Prima era la somma di tutti i punti dei draftati — titolari, panchina e
+     * settimane altrove — e si confrontava con "Real points", che contano i
+     * soli titolari: due basi diverse accanto.
+     */
     const raw = rawFromTeamKey(model.draft?.teams, teamKey);
     if (raw) {
-        for (const p of model.draft.teams[raw] || []) {
-            const rec = model.players.get(p.name);
-            if (!rec) continue;
-            for (const [wkStr, w] of Object.entries(rec.weeks)) {
-                (Number(wkStr) > cfg.regularSeasonWeeks ? po : reg).drafted += w.pts;
-            }
+        const draftati = (model.draft.teams[raw] || []).map(p => p.name);
+        for (const wkStr of Object.keys(model.teamWeeks[teamKey] || {})) {
+            const wk = Number(wkStr);
+            (wk > cfg.regularSeasonWeeks ? po : reg).drafted += bestLineupPoints(model, draftati, wk);
         }
     }
 
@@ -367,21 +415,32 @@ export const fmt = (n, dec = 0) => Number(n || 0).toLocaleString('it-IT', { mini
 
 export function keyStatLine(position, s) {
     if (!s) return '';
+    // Il volume (completi/tentati, portate, bersagli) solo quando il dato c'e':
+    // lo scraper ESPN lo scrive dal 2026, lo storico 2019-2025 non l'ha, e
+    // "0/0 comp" su una partita vecchia sarebbe un numero inventato.
+    const c = (v) => v != null;
     switch (position) {
         case 'QB': {
             const parts = [`${fmt(s.pass_yds)} pass yds`, `${fmt(s.pass_td)} TD`, `${fmt(s.pass_int)} INT`];
-            if (s.rush_yds) parts.push(`${fmt(s.rush_yds)} rush yds`);
+            if (c(s.pass_att)) parts.unshift(`${fmt(s.pass_comp || 0)}/${fmt(s.pass_att)} comp`);
+            if (s.rush_yds) parts.push(c(s.rush_att) ? `${fmt(s.rush_att)} att, ${fmt(s.rush_yds)} rush yds` : `${fmt(s.rush_yds)} rush yds`);
             return parts.join(' · ');
         }
         case 'RB': {
             const parts = [`${fmt(s.rush_yds)} rush yds`, `${fmt(s.rush_td)} TD`];
-            if (s.rec) parts.push(`${fmt(s.rec)} rec, ${fmt(s.rec_yds)} yds`);
+            if (c(s.rush_att)) parts.unshift(`${fmt(s.rush_att)} att`);
+            if (s.rec || s.targets) {
+                parts.push(c(s.targets)
+                    ? `${fmt(s.targets)} tgt, ${fmt(s.rec || 0)} rec, ${fmt(s.rec_yds || 0)} yds`
+                    : `${fmt(s.rec)} rec, ${fmt(s.rec_yds)} yds`);
+            }
             return parts.join(' · ');
         }
         case 'WR':
         case 'TE': {
             const parts = [`${fmt(s.rec)} rec`, `${fmt(s.rec_yds)} yds`, `${fmt(s.rec_td)} TD`];
-            if (s.rush_yds) parts.push(`${fmt(s.rush_yds)} rush yds`);
+            if (c(s.targets)) parts.unshift(`${fmt(s.targets)} tgt`);
+            if (s.rush_yds) parts.push(c(s.rush_att) ? `${fmt(s.rush_att)} att, ${fmt(s.rush_yds)} rush yds` : `${fmt(s.rush_yds)} rush yds`);
             return parts.join(' · ');
         }
         case 'K': {
@@ -781,11 +840,11 @@ function renderMarketTab(model) {
         <h3 class="an-sub-title">Final roster (W${model.lastWeek})</h3>
         <div class="an-final-roster">
             ${finalRoster.map(({ rec, agg, drafted }) => `
-            <span class="an-roster-chip${drafted ? '' : ' an-roster-chip--add'}" title="${fmt(agg.pts, 2)} pt">
-                ${rec.name} <b>${fmt(agg.pts, 0)}</b>
+            <span class="an-roster-chip${drafted ? '' : ' an-roster-chip--add'}" title="${fmt(ptsOf(agg), 2)} pt">
+                ${rec.name} <b>${fmt(ptsOf(agg), 0)}</b>
             </span>`).join('')}
         </div>
-        <p class="an-footnote">In <span class="an-split-here">red</span> the pickups added during the season, the number is the total points for the team.</p>
+        <p class="an-footnote">In <span class="an-split-here">red</span> the pickups added during the season, the number is the points for the team${avgMode === 'starter' ? ' <b>as a starter</b>' : ''}.</p>
     ` : '';
 
     return additionsHtml + finalHtml;
@@ -1126,11 +1185,11 @@ export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, inju
     // ricostruiti da statistiche NFL vere, non un dato di lega) restano
     // spente e portano un asterisco — mai spacciate per un numero ufficiale.
     return `
-        <div class="an-drill-row${showTeamCol ? ' an-drill-row--team' : ''}${w?.calculated ? ' an-drill-row--calc' : ''}">
+        <div class="an-drill-row${showTeamCol ? ' an-drill-row--team' : ''}${w?.calculated ? ' an-drill-row--calc' : ''}${w?.live ? ' an-drill-row--live' : ''}">
             <span class="an-drill-week">W${wk}</span>
             <span class="an-drill-opp">${w?.opponent || '—'}</span>
             ${teamCell}
-            <span class="an-drill-pts">${w ? fmt(w.pts, 2) : '—'}${w?.calculated ? '<sup>*</sup>' : ''}</span>
+            <span class="an-drill-pts">${w ? fmt(w.pts, 2) : '—'}${w?.calculated ? '<sup>*</sup>' : ''}${w?.live ? '<sup class="an-live-mark" title="Live — not final yet">●</sup>' : ''}</span>
             <span class="an-drill-stats">${w ? keyStatLine(rec.position, w.stats) : ''}</span>
             ${injuryBadge}
             ${statusBadge}
@@ -1146,10 +1205,29 @@ export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, inju
 function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Map(), showTeamCol = false) {
     const righe = [];
     for (let wk = 1; wk <= model.lastWeek; wk++) {
-        let w = rec.weeks[wk];
+        // la settimana a venire sta in `pending`: niente punti d'archivio, ma
+        // squadra e titolare/panchina per il punteggio live
+        let w = rec.weeks[wk] || rec.pending?.[wk];
+        // Avversario mancante nei dati della lega (nel 2026 lo scraper l'ha
+        // pubblicato vuoto): si prende dalla partita per partita scaricata
+        // per quel giocatore, se c'e'.
+        if (w && !w.opponent && calcScores.get(wk)?.opponent) w = { ...w, opponent: calcScores.get(wk).opponent };
         if (!w && calcScores.has(wk)) {
             const c = calcScores.get(wk);
             w = { pts: c.pts, stats: c.stats, opponent: c.opponent, teamKey: null, started: null, calculated: true };
+        } else if (w && model.playedWeeks && !model.playedWeeks.has(wk) && calcScores.has(wk)) {
+            // In rosa, ma la giornata su Firebase non c'e' ancora: il nodo
+            // esiste con i punti a zero finche' non arriva l'archivio del
+            // martedi'. Nel frattempo il punteggio e' quello calcolato dalle
+            // statistiche vere, con l'asterisco come per chi e' libero; squadra
+            // e titolare/panchina restano quelli della lega. Appena Firebase
+            // scrive la giornata, `playedWeeks` la contiene e questo ramo non
+            // scatta piu': comanda il numero ufficiale.
+            // `live`, non `calculated`: l'asterisco resta a chi non era di
+            // nessuno. Questo e' un giocatore della lega con un punteggio che
+            // si muove ancora, e ha il suo segno.
+            const c = calcScores.get(wk);
+            w = { ...w, pts: c.pts, stats: c.stats, opponent: w.opponent || c.opponent, live: true };
         }
         righe.push(drillRow(rec, wk, w, { teamKey, showTeamCol, injuryInfo: infortuni.get(wk) }));
     }
@@ -1166,7 +1244,7 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
  * `getUnrosteredScores`, spente e con l'asterisco, che e' esattamente cosa
  * sono — punti ricostruiti da statistiche NFL vere, mai un dato di lega.
  */
-export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null } = {}) {
+export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null } = {}) {
     const m = model || modelCache[year] || null;
     const rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
     const [infortuni, unros] = await Promise.all([
@@ -1183,9 +1261,13 @@ export async function playerSeasonDrill(year, { name, position, nflTeam }, { mod
 
     // Senza modello (stagione non ancora su Firebase) l'ultima giornata la
     // dicono i punteggi calcolati: e' l'unica cosa che sappiamo.
-    const ultima = m?.lastWeek || (calcScores.size ? Math.max(...calcScores.keys()) : 0);
+    //
+    // Chi chiama puo' dire fin dove arrivare (`lastWeek`): il modello da solo
+    // arriva alla settimana che ESPN ha gia' scritto in anticipo, e durante la
+    // week 1 il drill mostrava una W2 vuota.
+    const ultima = lastWeek || m?.lastWeek || (calcScores.size ? Math.max(...calcScores.keys()) : 0);
     if (!ultima) return '';
-    return fullSeasonDrillRows({ lastWeek: ultima }, rec, teamKey, infortuni, calcScores);
+    return fullSeasonDrillRows({ lastWeek: ultima, playedWeeks: m?.playedWeeks }, rec, teamKey, infortuni, calcScores);
 }
 
 async function weekDrillHtml(playerName) {
@@ -1585,9 +1667,15 @@ function leagueRankings(model) {
         const topDraft = draftPicks.length
             ? draftPicks.reduce((best, p) => p.agg.pts > best.agg.pts ? p : best)
             : null;
+        // Playoff compresi, come Pickups e il grafico del draft: prima Draft e
+        // Bench contavano la sola regular season e le tre classifiche
+        // affiancate misuravano periodi diversi.
         return {
             key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
-            drafted: kpi.drafted, pickupPts, topPickup, topDraft, benchLost: kpi.benchLost, worstMiss: kpi.worstMiss,
+            drafted: kpi.drafted === null ? null : kpi.drafted + (kpi.po?.drafted || 0),
+            pickupPts, topPickup, topDraft,
+            benchLost: kpi.benchLost + (kpi.po?.benchLost || 0),
+            worstMiss: kpi.worstMiss,
         };
     });
     return {
@@ -1956,6 +2044,14 @@ function teamLuckHTML(model, teamKey) {
     const cfg = getSeasonConfig(model.year);
 
     const colonna = (g) => {
+        if (g.vuota) {
+            const etichetta = g.sb ? 'SB' : g.playoff ? 'PO' : g.wk;
+            return `
+        <div class="an-luck-week an-luck-week--empty${g.playoff ? ' an-luck-week--po' : ''}" title="W${g.wk}${g.playoff ? ' · playoff' : ''}: not played">
+            <span class="an-luck-bar"><span style="height:0"></span></span>
+            <span class="an-luck-wk">${etichetta}</span>
+        </div>`;
+        }
         const cls = g.esito === 'W' ? 'win' : g.esito === 'L' ? 'loss' : 'tie';
         const verdetto = g.playoff ? 'playoff'
             : g.verdetto > 0 ? 'stolen' : g.verdetto < 0 ? 'robbed' : 'earned';
@@ -1969,7 +2065,18 @@ function teamLuckHTML(model, teamKey) {
     };
 
     const playoff = log.filter(g => g.playoff);
-    const daPo = log.findIndex(g => g.playoff);
+    // La striscia mostra SEMPRE tutta la stagione, playoff e Super Bowl
+    // compresi: le giornate non ancora giocate (o i playoff di chi e' fuori)
+    // restano colonne grigie e si colorano man mano. Prima c'erano solo le
+    // giornate giocate, e nella week 1 la striscia era una colonna sola.
+    const perSettimana = new Map(log.map(g => [g.wk, g]));
+    const stagione = Array.from({ length: cfg.superBowlWeek }, (_, i) => {
+        const wk = i + 1;
+        return perSettimana.get(wk) || {
+            wk, vuota: true, playoff: wk > cfg.regularSeasonWeeks, sb: wk === cfg.superBowlWeek,
+        };
+    });
+    const daPo = cfg.regularSeasonWeeks;
 
     // I due record di post-season, che quelli veri non contano: stanno accanto
     // ai loro, in oro come la graffa, cosi' si leggono senza confondersi.
@@ -1989,14 +2096,14 @@ function teamLuckHTML(model, teamKey) {
 
     // Graffa oro sopra le sole giornate di playoff: la griglia le allinea in
     // colonna, quindi basta dire da quale colonna parte.
-    const graffa = playoff.length ? `
+    const graffa = `
         <svg class="an-luck-brace" viewBox="0 0 100 12" preserveAspectRatio="none"
              style="grid-column:${daPo + 1} / -1" aria-hidden="true">
             <path d="M0,12 Q0,7 5,7 L45,7 Q50,7 50,0 Q50,7 55,7 L95,7 Q100,7 100,12"
                   fill="none" stroke="var(--accent-amber)" stroke-width="1.6"
                   vector-effect="non-scaling-stroke"/>
         </svg>
-        <span class="an-luck-po-label" style="grid-column:${daPo + 1} / -1">Playoffs</span>` : '';
+        <span class="an-luck-po-label" style="grid-column:${daPo + 1} / -1">Playoffs</span>`;
 
     return `
     <h3 class="an-sub-title">Record: earned or scheduled?</h3>
@@ -2012,9 +2119,9 @@ function teamLuckHTML(model, teamKey) {
        <b>${t.sfortunate}</b> robbed, <b>${t.fortunate}</b> stolen${girate.length
             ? ` (${girate.map(g => `W${g.wk}`).join(', ')})` : ''}.
        Playoffs are shown but never counted: the pairings are different.</p>
-    <div class="an-luck-strip" style="--cols:${log.length}">
+    <div class="an-luck-strip" style="--cols:${stagione.length}">
         ${graffa}
-        ${log.map(colonna).join('')}
+        ${stagione.map(colonna).join('')}
     </div>`;
 }
 
@@ -2603,8 +2710,8 @@ function renderLeagueView(model) {
         ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst: ${nomeCorto({ name: r.worstMiss.name, pos: r.worstMiss.position })} · ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
     <p class="an-footnote">Points from that year's draft picks, from in-season waiver pickups, and left unplayed
-       on the bench — each ranked highest first. Draft and bench count the <b>regular season</b> only, like the
-       standings; pickups count every week they were on the roster.</p>
+       on the bench — each ranked highest first, <b>playoffs included</b>. Draft is the best lineup that could
+       be fielded each week with that year's picks alone, counting their points wherever they played in the league.</p>
 
     <h3 class="an-sub-title">Scoring Consistency</h3>
     ${buildDistributionChart(scoreDistribution(model))}

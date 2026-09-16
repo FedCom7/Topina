@@ -43,10 +43,10 @@
  * dichiarata come dato dell'anno scorso.
  */
 
-import { getSeasonProjections, getSeasonStats, normName } from './projections.js?v=592';
-import { replacementLevels, demandByPos, NUM_TEAMS, getByeWeeks } from './team-eval.js?v=595';
-import { NEED_TARGET, marketSurvival, getAdpDispersion } from './draft-grade.js?v=64';
-import { computeStrategy, pickNumber, roundOf, ROUND_MAX, STRATEGY_POSITIONS } from './draft-strategy.js?v=47';
+import { getSeasonProjections, getSeasonStats, normName } from './projections.js?v=602';
+import { replacementLevels, demandByPos, NUM_TEAMS, getByeWeeks } from './team-eval.js?v=596';
+import { NEED_TARGET, marketSurvival, getAdpDispersion } from './draft-grade.js?v=65';
+import { computeStrategy, pickNumber, roundOf, ROUND_MAX, STRATEGY_POSITIONS } from './draft-strategy.js?v=48';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE, BENCH_SIZE, RESERVE_SIZE, SCORING } from './league-rules.js?v=528';
 import { getRosterChange } from './roster-change.js?v=29';
 import { computeSeasonMetrics } from './player-metrics.js?v=530';

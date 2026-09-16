@@ -1,10 +1,10 @@
-import { fetchFantasyData, fetchDraftData, getWeekCount, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=580';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=49';
+import { fetchFantasyData, fetchDraftData, getWeekCount, weeksWithPending, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=585';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
-import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=534';
-import { TEAMS } from './team.js?v=717';
-import { initPlayerModal } from '../components/player-modal.js?v=713';
+import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
+import { TEAMS } from './team.js?v=800';
+import { initPlayerModal } from '../components/player-modal.js?v=751';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
@@ -129,7 +129,12 @@ async function loadYear(year) {
     const grid = document.getElementById('gc-matchup-grid');
     grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${year}...</p></div>`;
 
-    currentData = await fetchFantasyData(year);
+    // Copia con le settimane segnaposto rimesse dentro: Game Center e' l'unico
+    // che deve mostrare la giornata a venire (e riempirla dal vivo). Una copia,
+    // cosi' quello che si scrive qui sotto non finisce nei dati condivisi
+    // letti dal resto del sito.
+    const letti = await fetchFantasyData(year);
+    currentData = letti?.weeks ? { ...letti, weeks: weeksWithPending(letti) } : letti;
     if (!currentData?.weeks) {
         grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
         renderPickRow();
@@ -450,6 +455,10 @@ function modalAttrs(p, isBench = false) {
         pts: pEffPts(p),
         opponent: p.opponent || '',
         status: p.status || '',
+        kickoff: p.kickoff || '',
+        gameState: p.game_state || '',
+        score: p.game_score ?? null,
+        oppScore: p.game_opp_score ?? null,
         week: currentWeek,
         year: currentYear,
         started: !isBench,
@@ -458,7 +467,7 @@ function modalAttrs(p, isBench = false) {
     const payload = encodeURIComponent(JSON.stringify(game));
     return `data-player-modal
              data-player-name="${escAttr(p.name)}"
-             data-pos="${escAttr((p.position || '').toUpperCase())}"
+             data-pos="${escAttr((p.position_in_team || p.position || '').toUpperCase())}"
              data-nfl="${escAttr(p.nfl_team || '')}"
              data-year="${currentYear}"
              data-game="${payload}"`;
@@ -480,12 +489,28 @@ function shortName(p) {
     return parts.slice(1).join(' ');
 }
 
+/**
+ * Il nome sul campo in due versioni, e il CSS sceglie: su schermo largo come
+ * sempre, su telefono la forma corta — il cognome per i giocatori, il solo
+ * nome della squadra per le difese ("Seahawks", non "Seattle Seahawks"). Sul
+ * telefono lo slot e' stretto e il resto finiva tagliato coi puntini.
+ */
+function nomeCampoHTML(p, lungo) {
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    const parti = String(p.name).trim().split(/\s+/);
+    const corto = role === 'DEF' || role === 'D/ST'
+        // ultima parola, tranne il vecchio "Washington Football Team"
+        ? (/football team$/i.test(p.name) ? 'Football Team' : parti[parti.length - 1])
+        : (parti.length < 2 ? p.name : parti.slice(1).join(' '));
+    return `<span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span>`;
+}
+
 function slotContent(p) {
     const role = (p.position_in_team || p.position || '').toUpperCase();
     return `<span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"
                 data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}"
                 data-pos="${role}" data-year="${currentYear}"></span>
-            <span class="slot-name">${shortName(p)}</span>
+            <span class="slot-name">${nomeCampoHTML(p, shortName(p))}</span>
             <span class="slot-pts">${pPtsHTML(p)}</span>`;
 }
 

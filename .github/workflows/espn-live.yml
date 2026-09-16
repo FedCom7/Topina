@@ -18,15 +18,29 @@ on:
         type: boolean
         default: false
   schedule:
-    # Once a week, Tuesday 09:00 UTC (11:00 Italian time) — well after Monday
-    # Night Football has ended. This writes the CLOSED result of the week.
+    # Twice on Tuesday, at 06:00 and 08:30 ITALIAN time, after Monday Night
+    # Football. Each run is a full rebuild, so the second one simply rewrites
+    # the same data when the first already got the closed week — it is the
+    # safety net for the first one being late or finding the week not closed.
+    #
+    # Why four lines for two runs: GitHub cron is UTC, Italy is not. Italian
+    # 06:00 is 04:00 UTC under summer time (CEST) and 05:00 UTC under winter
+    # time (CET, from late October — most of the season). Both UTC slots are
+    # scheduled, and the "fascia" step below lets through only the one that
+    # matches the offset Rome has right now. It checks WHICH cron fired
+    # (github.event.schedule), not the start time, because GitHub starts
+    # scheduled jobs late — past Tuesdays: 09:36, 13:22, 13:58 for a 09:00 cron.
+    # Off the top of the hour is not needed here: :00 and :30 are what was
+    # asked for.
     #
     # It used to run every 5 minutes during game windows, because the site read
     # live scores from Firebase. It no longer does: the league is public, so the
     # browser reads the ESPN API directly (js/data/espn-fantasy.js) and Firebase
-    # is back to being the archive. One run a week instead of ~300, no
-    # overlapping runs, and no reliance on GitHub's unreliable 5-minute cron.
-    - cron: '0 9 * * 2'
+    # is back to being the archive.
+    - cron: '0 4 * * 2'    # 06:00 Italy, summer time (CEST, UTC+2)
+    - cron: '0 5 * * 2'    # 06:00 Italy, winter time (CET, UTC+1)
+    - cron: '30 6 * * 2'   # 08:30 Italy, summer time
+    - cron: '30 7 * * 2'   # 08:30 Italy, winter time
 
 # Avoid overlapping runs stepping on each other's commit/push.
 concurrency:
@@ -39,15 +53,41 @@ jobs:
     permissions:
       contents: write   # needed for the git push of the refreshed JSON
     steps:
+      - name: Fascia oraria italiana
+        id: fascia
+        # Lascia passare solo il cron che corrisponde all'ora di Roma di oggi:
+        # +0200 (legale) le righe delle 04:00 e 06:30 UTC, +0100 (solare)
+        # quelle delle 05:00 e 07:30. L'avvio a mano passa sempre.
+        env:
+          CRON: ${{ github.event.schedule }}
+        run: |
+          offset=$(TZ=Europe/Rome date +%z)
+          run=true
+          # Se il fuso di Roma non si legge (offset diverso da +0100/+0200)
+          # si lascia passare: meglio un giro doppio, che riscrive gli stessi
+          # dati, che nessun giro.
+          if [ -n "$CRON" ] && { [ "$offset" = "+0100" ] || [ "$offset" = "+0200" ]; }; then
+            case "$offset:$CRON" in
+              "+0200:0 4 * * 2"|"+0200:30 6 * * 2") run=true ;;
+              "+0100:0 5 * * 2"|"+0100:30 7 * * 2") run=true ;;
+              *) run=false ;;
+            esac
+          fi
+          echo "Roma $offset, cron '${CRON:-manuale}' -> run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
+        if: steps.fascia.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Python
+        if: steps.fascia.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Sync ESPN -> data/ + Firebase RTDB
+        if: steps.fascia.outputs.run == 'true'
         # The league is public, so no ESPN cookies/secrets are needed. If it is
         # ever made private again, add ESPN_S2 / ESPN_SWID secrets and pass them
         # here as env vars.
@@ -57,6 +97,7 @@ jobs:
         run: python scraper/run_espn.py
 
       - name: Commit refreshed JSON
+        if: steps.fascia.outputs.run == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

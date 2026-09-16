@@ -17,7 +17,7 @@
  */
 
 import { getSeasonConfig } from '../data.js?v=547';
-import { getTeamStats } from './nfl-team-stats.js?v=588';
+import { getTeamStats } from './nfl-team-stats.js?v=856';
 import { canonAbbr } from './nfl-schedule.js?v=546';
 import { resolveDefAbbrSync } from './player-full.js?v=623';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';

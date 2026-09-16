@@ -10,8 +10,8 @@
  */
 
 import { displayName } from '../data.js?v=547';
-import { TEAM_KEYS } from './team-config.js?v=534';
-import { TEAM_KEY_LIST } from './league-data.js?v=546';
+import { TEAM_KEYS } from './team-config.js?v=535';
+import { TEAM_KEY_LIST } from './league-data.js?v=586';
 
 const toKey = (rawName) => TEAM_KEYS[displayName(rawName)] || null;
 
@@ -183,7 +183,11 @@ export function numberSets(ctx) {
         const top = seasonGames.reduce((a, g) => (g.pts > a.pts ? g : a));
         const bench = TEAM_KEY_LIST.reduce((s, k) => s + (season.perTeam[k]?.benchPts || 0), 0);
         return [
-            { value: seasonGames.length / 2, label: 'Games' },
+            // Giornate, non partite: con quattro squadre ogni giornata sono DUE
+            // sfide, e dopo la week 1 la card diceva "2 games", che si leggeva
+            // come due giornate giocate. Nella storia resta "Games", dove il
+            // numero e' grande e non si confonde.
+            { value: new Set(seasonGames.map(g => g.week)).size, label: 'Weeks played' },
             { value: seasonGames.reduce((s, g) => s + g.pts, 0), label: 'Points scored' },
             { value: top.pts, label: 'Best week', decimals: 1, note: `W${top.week}` },
             { value: bench, label: 'Left on the bench' },

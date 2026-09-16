@@ -206,6 +206,16 @@ function normalizePlayer(entry, week, games, scoring) {
         nfl_team: nflTeam,
         opponent: game.opponent || '',
         status: game.status || '',
+        // L'istante vero del kickoff, per scriverlo in ora italiana: `status`
+        // prima della partita e' "9/14 - 8:15 PM EDT". Solo nel browser — lo
+        // scraper Python non lo scrive su Firebase, e non serve all'archivio.
+        kickoff: game.start ? new Date(game.start).toISOString() : '',
+        // La partita NFL vera: stato ('pre' | 'in' | 'post') e punteggio dal
+        // punto di vista della squadra del giocatore. Anche questi solo nel
+        // browser, per la scheda — il risultato live accanto all'avversario.
+        game_state: game.state || '',
+        game_score: Number.isFinite(game.score) ? game.score : null,
+        game_opp_score: Number.isFinite(game.oppScore) ? game.oppScore : null,
         fantasy_points: money(ppe.appliedStatTotal),
         stats: buildStats(real?.stats, type),
         injury_status: entry.injuryStatus || (player.injured ? 'INJURED' : 'NORMAL'),
@@ -231,9 +241,29 @@ function normalizeTeam(side, week, games, scoring) {
     const eff = (p) => Number.parseFloat(
         !p.started && p.projected_points != null ? p.projected_points : p.fantasy_points) || 0;
 
+    /*
+     * Il punteggio di squadra.
+     *
+     * ESPN riempie `totalPoints` solo a giornata CHIUSA: durante la settimana
+     * resta a ZERO e non esiste nessun `totalPointsLive` da leggere al suo
+     * posto. Misurato l'11/09/2026 a giornata in corso — tutte e quattro le
+     * squadre avevano punti veri (39,20 · 22,42 · 16,80 · 12,40) e tutte e
+     * quattro `totalPoints: 0.0`. Il tabellone segnava 0 a 0 mentre sotto i
+     * giocatori accumulavano.
+     *
+     * Quindi finche' quel campo non arriva il totale si somma dai TITOLARI,
+     * che e' esattamente cio' che il tabellone mostra riga per riga: chi ha
+     * finito porta il suo definitivo, chi sta giocando quello che ha adesso,
+     * chi deve ancora scendere in campo porta zero. Quando ESPN chiude la
+     * giornata il suo numero torna a comandare — e' quello ufficiale.
+     */
+    const daiTitolari = starters.reduce(
+        (s, p) => s + (Number.parseFloat(p.fantasy_points) || 0), 0);
+    const ufficiale = Number.parseFloat(side?.totalPoints) || 0;
+
     return {
         name: TEAM_ID_TO_NAME[side?.teamId] || `Team ${side?.teamId}`,
-        score: money(side?.totalPoints),
+        score: money(ufficiale || daiTitolari),
         starters,
         bench,
         projected_score: money(starters.reduce((s, p) => s + eff(p), 0)),
@@ -323,23 +353,49 @@ export async function fetchDraftStatus(year) {
  * l'id, e chi disegna la pagina lo risolve col listone.
  */
 export async function fetchTransactions(year) {
-    const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
-    url.searchParams.append('view', 'mTransactions2');
+    // Solo le mosse di mercato. NIENTE `limit`: ESPN lo accetta solo insieme a
+    // un ordinamento che riconosce, e `sortDate` non lo e' — la richiesta
+    // tornava 400 ("Limit request must be accompanied by a sort"), la pagina
+    // Waivers ripiegava sulle rose di Firebase e non mostrava nessuna mossa.
+    // Il filtro sul tipo lascia fuori il draft (60 righe) e i cambi di
+    // formazione.
+    const filtro = { transactions: {
+        filterType: { value: ['FREEAGENT', 'WAIVER', 'TRADE_ACCEPT'] } } };
 
-    const filtro = { transactions: { limit: 500,
-        sortDate: { sortPriority: 1, sortAsc: false } } };
+    const leggi = async (periodo) => {
+        const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
+        url.searchParams.append('view', 'mTransactions2');
+        if (periodo != null) url.searchParams.append('scoringPeriodId', String(periodo));
+        const stop = new AbortController();
+        const timer = setTimeout(() => stop.abort(), 12000);
+        try {
+            const res = await fetch(url, { signal: stop.signal,
+                headers: { 'x-fantasy-filter': JSON.stringify(filtro) } });
+            if (!res.ok) throw new Error(`ESPN ${res.status}`);
+            return await res.json();
+        } finally { clearTimeout(timer); }
+    };
 
-    const stop = new AbortController();
-    const timer = setTimeout(() => stop.abort(), 12000);
-    let data;
-    try {
-        const res = await fetch(url, { signal: stop.signal,
-            headers: { 'x-fantasy-filter': JSON.stringify(filtro) } });
-        if (!res.ok) throw new Error(`ESPN ${res.status}`);
-        data = await res.json();
-    } finally { clearTimeout(timer); }
+    /*
+     * Una settimana per volta. Senza `scoringPeriodId` ESPN restituisce solo le
+     * transazioni della settimana IN CORSO: il 14/09/2026 la lista aveva la
+     * presa di LaPorta, il 15 — con ESPN gia' passata alla week 2 — era vuota,
+     * e la pagina Waivers diceva "No moves". La prima risposta dice anche qual
+     * e' la settimana corrente; da li' si chiedono tutte, dalla 1, in parallelo,
+     * e si tolgono i doppioni per id (la settimana corrente arriva due volte).
+     */
+    const prima = await leggi(null);
+    const corrente = Number(prima?.scoringPeriodId) || 1;
+    const altre = await Promise.all(
+        Array.from({ length: corrente }, (_, i) => leggi(i + 1).catch(() => null)));
 
-    return Array.isArray(data?.transactions) ? data.transactions : [];
+    const perId = new Map();
+    for (const d of [prima, ...altre]) {
+        for (const t of (Array.isArray(d?.transactions) ? d.transactions : [])) {
+            perId.set(t.id ?? `${t.type}-${t.proposedDate}-${t.teamId}`, t);
+        }
+    }
+    return [...perId.values()];
 }
 
 /**

@@ -49,8 +49,8 @@
  * restano in italiano.
  */
 
-import { replacementLevels, pickStarters } from './team-eval.js?v=595';
-import { matchProjection, normName } from './projections.js?v=594';
+import { replacementLevels, pickStarters } from './team-eval.js?v=596';
+import { matchProjection, normName } from './projections.js?v=602';
 import { ROSTER_SLOTS } from './league-rules.js?v=528';
 
 const OFF = new Set(['QB', 'RB', 'WR', 'TE']);

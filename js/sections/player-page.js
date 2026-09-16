@@ -12,15 +12,15 @@
  * re-parse dell'hash a ogni chiamata, guard anti-race dopo ogni await.
  */
 
-import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=656';
+import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=666';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=512';
-import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=588';
-import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=637';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=713';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=595';
+import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=856';
+import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=643';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=751';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=602';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';
-import { CURRENT_SEASON } from '../data.js?v=580';
+import { CURRENT_SEASON } from '../data.js?v=585';
 import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=683';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=1001';

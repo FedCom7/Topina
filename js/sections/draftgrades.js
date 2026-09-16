@@ -32,18 +32,19 @@
  * alimenta solo trend e segnali di rischio, non il numero.
  */
 
-import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=534';
-import { TEAMS } from './team.js?v=717';
-import { getHonorsBundle } from '../data/honors.js?v=631';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=595';
+import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=585';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { TEAM_KEYS } from '../data/team-config.js?v=535';
+import { TEAMS } from './team.js?v=800';
+import { getHonorsBundle } from '../data/honors.js?v=723';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=602';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
-import { initPlayerModal } from '../components/player-modal.js?v=713';
+import { initPlayerModal } from '../components/player-modal.js?v=751';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { getContextScore, getDraftModel } from '../data/context-score.js?v=683';
-import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=595';
-import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=64';
+import { evaluateLeague, replacementLevels } from '../data/team-eval.js?v=596';
+import { computeDraftGrade, gradeBand, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=65';
 import { decorateTerms } from '../ui/glossary.js?v=4';
 
 let initialized = false;
@@ -80,16 +81,21 @@ export async function initDraftGrades() {
     }
 
     currentYear = years[years.length - 1];
-    container.innerHTML = years.map(y =>
-        `<button class="year-pill${y === currentYear ? ' active' : ''}" data-year="${y}">${y}</button>`).join('');
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.year-pill');
-        if (!btn) return;
-        container.querySelectorAll('.year-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentYear = btn.dataset.year;
-        loadYear();
-    });
+    // Tendina come nelle altre sezioni (Draft Recap, Players, Waivers): erano
+    // ancora le pastiglie di un anno ciascuna, una fila che cresce ogni stagione.
+    // Il piu' recente in cima, come altrove.
+    const recenti = [...years].reverse();
+    const disegnaAnni = () => {
+        container.innerHTML = pickDropdownHTML('year',
+            recenti.map(y => ({ value: y, label: y })), recenti.indexOf(currentYear));
+        bindPickDropdown(container, (id, value) => {
+            if (id !== 'year' || value === currentYear) return;
+            currentYear = value;
+            disegnaAnni();
+            loadYear();
+        });
+    };
+    disegnaAnni();
 
     // click su una card → pagina di analisi della squadra
     // (i giocatori con [data-player-modal] aprono la scheda, non navigano)

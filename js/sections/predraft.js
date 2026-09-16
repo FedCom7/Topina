@@ -23,9 +23,9 @@
  * rende contestabili tutte le altre.
  */
 
-import { buildPreDraft, buildRoundPlan, hydrateContext } from '../data/predraft.js?v=62';
-import { POSITION_COLORS, TAIL_COLORS, lastName, ordinal, ROUND_MAX } from '../data/draft-strategy.js?v=47';
-import { scatter, dumbbell } from '../ui/charts.js?v=8';
+import { buildPreDraft, buildRoundPlan, hydrateContext } from '../data/predraft.js?v=66';
+import { POSITION_COLORS, TAIL_COLORS, lastName, ordinal, ROUND_MAX } from '../data/draft-strategy.js?v=48';
+import { scatter, dumbbell } from '../ui/charts.js?v=9';
 
 const POS_COLOR = { ...POSITION_COLORS, ...TAIL_COLORS };
 const OFF = ['QB', 'RB', 'WR', 'TE'];

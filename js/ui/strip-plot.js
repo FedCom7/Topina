@@ -21,7 +21,7 @@
  * tooltip `<title>` nativi, nessuna idratazione da ricordarsi dopo.
  */
 
-import { niceTicks, inkFor } from './charts.js?v=7';
+import { niceTicks, inkFor } from './charts.js?v=9';
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 

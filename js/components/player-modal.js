@@ -13,12 +13,13 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=637';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=595';
-import { TEAMS } from '../sections/team.js?v=717';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=602';
+import { TEAMS } from '../sections/team.js?v=800';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { getPlayerInfo } from '../data/player-full.js?v=656';
+import { getPlayerInfo } from '../data/player-full.js?v=666';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
+import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 
 const MAX_NFL_YEARS = 5;
 const FIRST_PROJ_YEAR = 2018; // Sleeper non ha proiezioni prima
@@ -238,18 +239,39 @@ function gameStatCells(pos, s = {}, proj = null) {
 }
 
 function gameBlockHtml(game, pos, nfl) {
-    const { pts = 0, opponent = '', status = '', week, year, started, stats,
-        projPts = null, projStats = null } = game;
+    const { pts = 0, opponent = '', status = '', kickoff = '', week, year, started, stats,
+        projPts = null, projStats = null, gameState = '', score = null, oppScore = null } = game;
     // accanto a ogni numero reale, in piccolo, quello che era previsto
     const cells = gameStatCells(pos, stats, projStats); // include già fum_lost se presente
 
-    const meta = [
-        nfl || '',                         // la squadra NFL vera per cui gioca
+    // Tre righe: chi contro chi (col risultato), quando, con che ruolo.
+    // Prima era una riga sola di cinque pezzi, e l'orario stava a parte nello
+    // stato ESPN ("9/14 - 8:15 PM EDT": costa est, mese prima del giorno).
+    //
+    // Il risultato arriva dal tabellone NFL insieme al giocatore; per le
+    // giornate d'archivio, dove quel dato non c'e', lo si legge dallo stato
+    // che ESPN scriveva a partita finita ("Win, 42-10").
+    let mio = Number.isFinite(score) ? score : null;
+    let loro = Number.isFinite(oppScore) ? oppScore : null;
+    const daStato = /(\d+)\s*-\s*(\d+)\s*$/.exec(status || '');
+    if (mio == null && daStato && /^(Win|Loss|Tie)\b/.test(status)) { mio = +daStato[1]; loro = +daStato[2]; }
+    const inCorso = gameState === 'in';
+    const finita = gameState === 'post' || (!gameState && daStato && /^(Win|Loss|Tie)\b/.test(status));
+    const risultato = (inCorso || finita) && mio != null && loro != null
+        ? ` <span class="pm-game-score${inCorso ? ' pm-game-score--live' : ''}">${mio}–${loro}</span>`
+        : '';
+    const avversario = String(opponent).replace(/^@/, '');   // ESPN scrive la trasferta "@DEN"
+    const chi = [nfl, avversario].filter(Boolean).join(' vs ') + risultato;
+    const quando = [
         week ? `Week ${week}` : '',
         year || '',
-        opponent ? `vs ${opponent}` : '',
-        started ? 'Starter' : 'Bench',
+        oraItaliana(kickoff),
     ].filter(Boolean).join(' · ');
+    const ruolo = started ? 'Starter' : 'Bench';
+    // Lo stato ESPN resta solo quando dice qualcosa che le tre righe non dicono:
+    // il momento della partita in corso ("Q3 5:21"). Prima del kickoff e'
+    // l'orario americano, a partita finita "Loss, 14-26" ripete il risultato.
+    const statoUtile = inCorso ? status : '';
 
     const grid = cells.length
         // Le voci rimaste a zero si spengono, così quelle che hanno prodotto
@@ -270,9 +292,9 @@ function gameBlockHtml(game, pos, nfl) {
         <div class="pm-game-head">
             <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small>${projPts != null
                 ? `<small class="pm-proj" title="projected">${Number(projPts).toFixed(1)}</small>` : ''}</span>
-            <span class="pm-game-meta">${meta}</span>
+            <span class="pm-game-meta">${chi}${quando ? `<br>${quando}` : ''}<br>${ruolo}</span>
         </div>
-        ${status ? `<p class="pm-game-status">${status}</p>` : ''}
+        ${statoUtile ? `<p class="pm-game-status">${statoUtile}</p>` : ''}
         ${grid}
     </section>`;
 }
@@ -283,8 +305,12 @@ function gameBlockHtml(game, pos, nfl) {
  */
 function appendFullStatsLink(content, { name, pos, year }) {
     const y = year || new Date().getFullYear();
+    // Un ruolo con la barra e' lo slot della formazione ("W/R", "RB/WR"), non
+    // il ruolo del giocatore: nel link spezzerebbe la rotta #player/anno/ruolo/nome
+    // e il nome diventerebbe "R/Omarion Hampton". Meglio nessun ruolo.
+    const ruolo = /\//.test(pos || '') ? '' : encodeURIComponent(pos || '');
     content.insertAdjacentHTML('beforeend',
-        `<a class="pm-fullstats" href="#player/${y}/${pos || ''}/${encodeURIComponent(name)}">Open full stats →</a>`);
+        `<a class="pm-fullstats" href="#player/${y}/${ruolo}/${encodeURIComponent(name)}">Open full stats →</a>`);
 }
 
 function hydrateHeadshot(content, name, nfl, pos, year) {

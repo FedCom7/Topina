@@ -26,12 +26,15 @@
  */
 
 import { fetchTransactions, fetchPlayerNames } from './espn-fantasy.js?v=146';
-import { buildSeasonModel } from '../sections/analysis.js?v=776';
+import { buildSeasonModel } from '../sections/analysis.js?v=819';
 
 /** Da una transazione ESPN alle righe da mostrare: una per giocatore mosso. */
 export function righeDaEspn(tx, nomi) {
     const tipo = TIPI[tx.type] || null;
     if (!tipo || tipo === 'Draft') return [];
+    // Le richieste di waiver perse restano nello storico con lo stato del
+    // fallimento: non sono mosse avvenute.
+    if (tx.status && tx.status !== 'EXECUTED') return [];
     const quando = tx.proposedDate || tx.processDate || null;
     return (tx.items || [])
         .filter(it => it.type === 'ADD' || it.type === 'DROP')

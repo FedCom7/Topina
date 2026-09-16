@@ -15,21 +15,22 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=534';
-import { TEAMS } from './team.js?v=717';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=585';
+import { TEAM_KEYS } from '../data/team-config.js?v=535';
+import { TEAMS } from './team.js?v=800';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=129';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
+import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=49';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=20';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
-import { slotPairs } from '../data/matchup-analysis.js?v=555';
-import { initPlayerModal } from '../components/player-modal.js?v=713';
+import { slotPairs } from '../data/matchup-analysis.js?v=819';
+import { initPlayerModal } from '../components/player-modal.js?v=751';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
@@ -169,15 +170,24 @@ function teamOf(rawName) {
  * prima del kickoff, reali da lì in poi). La squadra NFL vera è già nel
  * `data-nfl` con cui si apre la scheda — qui non si ripete.
  */
+/** In panchina in una delle sfide della giornata? Per nome: i nodi si ridisegnano. */
+const inPanchina = (p) => matchups.some(m => ['team1', 'team2']
+    .some(lato => (m[lato]?.bench || []).some(x => x?.name === p?.name)));
+
 function gameAttr(p) {
     const payload = {
         pts: effPts(p),
         projected: pIsProjected(p),
         opponent: p.opponent || '',
         status: p.status || '',
+        kickoff: p.kickoff || '',
+        gameState: p.game_state || '',
+        score: p.game_score ?? null,
+        oppScore: p.game_opp_score ?? null,
         week: currentWeekNum,
         year: CURRENT_SEASON,
-        started: true,
+        // era sempre `true`: la scheda di un panchinaro diceva "Starter"
+        started: !inPanchina(p),
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
         // sempre anche la previsione, che la scheda mostra in piccolo accanto
         // a ogni numero reale — a giornata iniziata è l'unico modo per capire
@@ -191,25 +201,7 @@ function gameAttr(p) {
 const P = (m) => parseFloat(m) || 0;
 const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-/*
- * L'orario di una partita che deve ancora cominciare, in ora ITALIANA.
- *
- * ESPN manda gia' pronta la stringa `shortDetail` — "8/28 - 6:00 PM EDT" — ma
- * e' l'ora della costa est americana, con l'orologio a dodici ore e il mese
- * prima del giorno. Chi guarda da qui deve fare due conti a mente per sapere
- * se la partita e' stanotte o domani mattina. Qui si riparte dall'istante
- * vero (`start`, che e' la data ISO della risposta) e lo si scrive come lo
- * scriviamo noi: giorno prima del mese, orologio a ventiquattro ore, fuso di
- * Roma — che il passaggio dall'ora legale lo gestisce il browser.
- */
-const oraItaliana = (d) => {
-    const q = d instanceof Date ? d : new Date(d);
-    if (!q || Number.isNaN(q.getTime())) return '';
-    const f = (opz) => new Intl.DateTimeFormat('en-GB',
-        { timeZone: 'Europe/Rome', ...opz }).format(q);
-    return `${f({ weekday: 'short' })} ${f({ day: '2-digit', month: '2-digit' })}` +
-        ` · ${f({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
-};
+// L'orario in ora italiana vive in utils/ora-italiana.js (serve anche alla scheda giocatore).
 
 // Projections: before kickoff (started === false) show the projected value.
 // Older/real data without `started`/`projected_*` falls back to real points.
@@ -1298,7 +1290,7 @@ function refreshInPlace(events = []) {
         const squadra = m[`team${i + 1}`];
         const proj = teamIsProjected(squadra);
         const from = P(numEl(el).textContent);
-        el.innerHTML = bannerScoreHTML(squadra, s[i], proj);
+        el.innerHTML = bannerScoreHTML(squadra, s[i], proj, i === 0 ? 'l' : 'r');
         el.classList.toggle('winner', s[i] >= s[1 - i]);
         if (!proj && from !== s[i]) countUp(el, from, s[i]);
     });
@@ -1467,7 +1459,7 @@ function render() {
     root.innerHTML = `
     ${headerHTML()}
     ${matchupCardHTML(entry)}
-    ${compareMode ? compareHTML(team, opp) : fieldHTML(team)}
+    ${compareMode ? compareHTML(entry.m.team1, entry.m.team2) : fieldHTML(team)}
     <div class="live-widgets">
         ${playFeedHTML()}
         ${nflGamesHTML(team)}
@@ -1563,14 +1555,18 @@ function showOpponent() {
 
 /** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
 /**
- * Swipe per passare all'avversario. Deve essere un gesto voluto, non un dito
- * che scorre la pagina: serve mezzo schermo di corsa orizzontale, il movimento
- * dev'essere chiaramente più largo che alto, e abbastanza svelto da non essere
- * uno scroll incerto.
+ * Swipe per passare all'avversario. Deve restare un gesto VOLUTO — non un dito
+ * che scorre la pagina — ma chiedeva troppo: mezzo schermo di corsa (175px su
+ * un telefono da 390) e il gesto andava rifatto due volte su tre.
+ *
+ * Ora serve poco piu' di un quarto di schermo, il movimento deve essere largo
+ * almeno una volta e mezza l'altezza, e c'e' un secondo per farlo. Il controllo
+ * che protegge davvero dallo scroll e' il secondo: uno scorrimento verticale ha
+ * dy molto maggiore di dx e non passa comunque.
  */
 function bindSwipe(el) {
     if (!el) return;
-    const MIN_DX = () => Math.max(90, Math.min(220, window.innerWidth * 0.45));
+    const MIN_DX = () => Math.max(60, Math.min(150, window.innerWidth * 0.28));
     let x0 = null, y0 = null, t0 = 0;
     el.addEventListener('touchstart', (e) => {
         if (e.touches.length > 1) { x0 = null; return; }
@@ -1585,8 +1581,8 @@ function bindSwipe(el) {
         const dt = performance.now() - t0;
         x0 = null;
         if (Math.abs(dx) < MIN_DX()) return;          // corsa troppo corta
-        if (Math.abs(dx) < Math.abs(dy) * 2.2) return; // era uno scroll verticale
-        if (dt > 800) return;                          // troppo lento: non è uno swipe
+        if (Math.abs(dx) < Math.abs(dy) * 1.6) return; // era uno scroll verticale
+        if (dt > 1000) return;                         // troppo lento: non è uno swipe
         showOpponent();
     }, { passive: true });
 }
@@ -1689,13 +1685,24 @@ function teamSwitcherHTML(entries) {
     </div>`;
 }
 
-/** Totale di squadra nel banner, con la proiezione in piccolo a giornata iniziata. */
-function bannerScoreHTML(t, score, proiettato) {
+/**
+ * Totale di squadra nel banner, con la proiezione in piccolo a giornata
+ * iniziata.
+ *
+ * La proiezione sta sempre dal lato ESTERNO, il numero vero verso il centro.
+ * Prima seguiva l'ordine di scrittura e finiva a destra di entrambi: a
+ * sinistra si incastrava fra i due totali, e per confrontare i punteggi veri
+ * — l'unica cosa che si guarda in un tabellone — bisognava scavalcare un
+ * numero piccolo in mezzo. Ora i due grandi si leggono accanto alla scritta
+ * LIVE, uno di qua e uno di la', e le previsioni stanno ai bordi.
+ */
+function bannerScoreHTML(t, score, proiettato, lato) {
     if (!leagueDrafted) return '–';
     if (proiettato) return `<span class="pts-val proj-pts">${fmt(score)}</span>`;
     const previsto = t?.projected_score == null ? ''
         : `<small class="pts-proj" title="projected">${fmt(P(t.projected_score))}</small>`;
-    return `<span class="pts-val">${fmt(score)}</span>${previsto}`;
+    const vero = `<span class="pts-val">${fmt(score)}</span>`;
+    return lato === 'l' ? `${previsto}${vero}` : `${vero}${previsto}`;
 }
 
 /**
@@ -1717,17 +1724,17 @@ function matchupCardHTML(entry) {
     return `
     <div class="live-scorebar" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'};--tc-sel:${(selLeft ? t1 : t2)?.color || 'var(--accent-red)'}">
         <div class="gc-banner">
-            ${t1?.logo ? `<img class="gc-banner-wm gc-banner-wm-l" src="${t1.logo}" alt="" aria-hidden="true">` : ''}
-            ${t2?.logo ? `<img class="gc-banner-wm gc-banner-wm-r" src="${t2.logo}" alt="" aria-hidden="true">` : ''}
+            ${t1?.logo ? `<img class="gc-banner-wm gc-banner-wm-l${selLeft ? ' live-wm-selected' : ''}" src="${t1.logo}" alt="" aria-hidden="true">` : ''}
+            ${t2?.logo ? `<img class="gc-banner-wm gc-banner-wm-r${selLeft ? '' : ' live-wm-selected'}" src="${t2.logo}" alt="" aria-hidden="true">` : ''}
             <div class="gc-banner-inner">
                 <div class="gc-banner-side">
                     <span class="gc-banner-name${selLeft ? ' live-name-selected' : ''}">${teamNameHTML(t1?.name || left.name)}</span>
                 </div>
-                <span class="gc-banner-score${leagueDrafted && s1 >= s2 ? ' winner' : ''}">${bannerScoreHTML(left, s1, proj1)}</span>
+                <span class="gc-banner-score${leagueDrafted && s1 >= s2 ? ' winner' : ''}">${bannerScoreHTML(left, s1, proj1, 'l')}</span>
                 <div class="gc-banner-mid">
                     <span class="gc-banner-vs">${isLiveSource ? 'live' : 'vs'}</span>
                 </div>
-                <span class="gc-banner-score${leagueDrafted && s2 >= s1 ? ' winner' : ''}">${bannerScoreHTML(right, s2, proj2)}</span>
+                <span class="gc-banner-score${leagueDrafted && s2 >= s1 ? ' winner' : ''}">${bannerScoreHTML(right, s2, proj2, 'r')}</span>
                 <div class="gc-banner-side gc-banner-side-r">
                     <span class="gc-banner-name${selLeft ? '' : ' live-name-selected'}">${teamNameHTML(t2?.name || right.name)}</span>
                 </div>
@@ -1766,6 +1773,22 @@ function shortName(p) {
     if (role === 'DEF' || role === 'D/ST') return p.name;
     const parts = String(p.name).trim().split(/\s+/);
     return parts.length < 2 ? p.name : `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+}
+
+/**
+ * Il nome sul campo in due versioni, e il CSS sceglie: su schermo largo come
+ * sempre, su telefono la forma corta — il cognome per i giocatori, il solo
+ * nome della squadra per le difese ("Seahawks", non "Seattle Seahawks"). Sul
+ * telefono lo slot e' stretto e il resto finiva tagliato coi puntini.
+ */
+function nomeCampoHTML(p, lungo) {
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    const parti = String(p.name).trim().split(/\s+/);
+    const corto = role === 'DEF' || role === 'D/ST'
+        // ultima parola, tranne il vecchio "Washington Football Team"
+        ? (/football team$/i.test(p.name) ? 'Football Team' : parti[parti.length - 1])
+        : (parti.length < 2 ? p.name : parti.slice(1).join(' '));
+    return `<span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span>`;
 }
 
 function escAttr(s) {
@@ -1880,7 +1903,7 @@ function fieldSlot(p, extraClass = '') {
          ${gameAttr(p)}>
         <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>
-        <span class="slot-name">${shortName(p)}</span>
+        <span class="slot-name">${nomeCampoHTML(p, shortName(p))}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
         ${injury ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}</span>` : ''}
@@ -2129,6 +2152,12 @@ function compareStatsBlock(p, win, side) {
  * Confronto titolari: foto tonde ai lati, ruolo al centro, statistiche e punti
  * di ciascuno. I numeri di chi ha fatto meglio nella riga restano accesi,
  * quelli dell'altro sono "spenti".
+ *
+ * I lati seguono l'ordine della SFIDA (team1 a sinistra), come il tabellone
+ * sopra: il chiamante passa `m.team1, m.team2`, non "la squadra scelta e
+ * l'avversario". Prima la squadra scelta finiva sempre a sinistra, e scegliendo
+ * quella di destra nel tabellone i suoi giocatori comparivano sotto il nome
+ * dell'altra.
  */
 function compareHTML(team, opp) {
     const pairs = slotPairs({ team1: team, team2: opp });
@@ -2143,7 +2172,7 @@ function compareHTML(team, opp) {
         const aWin = !!a && pa >= pb;
         const bWin = !!b && pb >= pa;
         return `
-        <div class="live-cmp-row${gameOver(a) && gameOver(b) ? ' live-cmp-row--done' : ''}">
+        <div class="live-cmp-row${gameOver(a) ? ' live-cmp-row--done-l' : ''}${gameOver(b) ? ' live-cmp-row--done-r' : ''}">
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}
@@ -2743,7 +2772,32 @@ function puntiDaTabellino(nome, difesa = false) {
  */
 function usoStats(voci) {
     return voci.map(([v, etichetta]) => `
-        <span class="live-uso-stat${v ? '' : ' is-zero'}"><b>${v || 0}</b> ${etichetta}</span>`).join('');
+        <span class="live-uso-stat${v ? '' : ' is-zero'}"><b>${v || 0}</b> <i>${etichetta}</i></span>`).join('');
+}
+
+/**
+ * Intestazione di colonna del blocco.
+ *
+ * Da telefono la riga non ci stava: nome, barra, quattro voci con l'etichetta
+ * accanto al numero e i punti totali sforavano lo schermo, e a finire fuori a
+ * destra erano proprio i punti. Li' la barra e le etichette spariscono (CSS) e
+ * le etichette si ritrovano qui, scritte una volta sola in cima al blocco
+ * invece che su ogni riga. Su schermo largo questa riga non si vede: ogni
+ * numero porta gia' la sua etichetta e sarebbe un doppione.
+ *
+ * Le colonne le passa il chiamante perche' cambiano da blocco a blocco —
+ * ricezioni, corse e passaggi non hanno le stesse voci — e devono combaciare
+ * con l'ordine di `usoStats`.
+ */
+function usoHeadHTML(colonne, cls = 'live-uso-row') {
+    return `
+    <div class="${cls} live-uso-head" aria-hidden="true">
+        <span class="live-uso-nome"></span>
+        ${cls === 'live-uso-row' ? '<span class="live-uso-bar"></span>' : ''}
+        <span class="live-uso-val">${colonne.map(c =>
+            `<span class="live-uso-stat">${c}</span>`).join('')}</span>
+        <span class="live-uso-pts">pts</span>
+    </div>`;
 }
 
 /** Una riga del grafico: barra proporzionale al massimo della squadra. */
@@ -2766,9 +2820,9 @@ function usoRow(nome, valore, massimo, dettaglio, mio, secondario = 0) {
     </div>`;
 }
 
-function usoBloccoHTML(titolo, righe) {
+function usoBloccoHTML(titolo, righe, colonne) {
     if (!righe) return '';
-    return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${righe}</div>`;
+    return `<div class="live-uso-blocco"><span class="live-uso-titolo">${titolo}</span>${usoHeadHTML(colonne)}${righe}</div>`;
 }
 
 /**
@@ -3207,13 +3261,15 @@ function deepGameHTML({ sigla, miei, quadro }) {
         ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
             p.name, p.targets || 0, maxTgt,
             usoStats([[p.targets, 'tgt'], [p.rec, 'rec'], [p.rec_yds, 'yd'], [p.rec_td, 'TD']]),
-            mio(p), p.rec || 0)).join('') + fermiDi('WR', 'TE', 'RB/WR', 'W/R', 'FLEX'))}
+            mio(p), p.rec || 0)).join('') + fermiDi('WR', 'TE', 'RB/WR', 'W/R', 'FLEX'),
+            ['tgt', 'rec', 'yd', 'TD'])}
         ${usoBloccoHTML('Carries', corridori.map(p => usoRow(
             p.name, p.rush_att || 0, maxCar,
             usoStats([[p.rush_att, 'car'], [p.rush_yds, 'yd'], [p.rush_td, 'TD']]),
-            mio(p))).join('') + fermiDi('RB'))}
+            mio(p))).join('') + fermiDi('RB'), ['car', 'yd', 'TD'])}
         ${passatori.length || fermiDi('QB') ? `<div class="live-uso-blocco">
             <span class="live-uso-titolo">Passing</span>
+            ${usoHeadHTML(['yd', 'TD'], 'live-uso-qb')}
             ${passatori.map(p => `<div class="live-uso-qb${mio(p) ? ' live-uso-row--mio' : ''}">
                 <span class="live-uso-nome">${escAttr(shortName({ name: p.name }))}</span>
                 <span class="live-uso-val">${usoStats([[p.pass_yds, 'yd'], [p.pass_td, 'TD']])}</span>

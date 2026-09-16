@@ -13,23 +13,23 @@
  * Come game.js: nessun guard `initialized`, si ri-parsa l'hash a ogni chiamata.
  */
 
-import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=580';
-import { TEAM_KEYS } from '../data/team-config.js?v=534';
-import { TEAMS } from './team.js?v=717';
+import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=585';
+import { TEAM_KEYS } from '../data/team-config.js?v=535';
+import { TEAMS } from './team.js?v=800';
 import { decorateTerms } from '../ui/glossary.js?v=4';
-import { getHonorsBundle } from '../data/honors.js?v=631';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=595';
+import { getHonorsBundle } from '../data/honors.js?v=723';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=602';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=595';
-import { initPlayerModal } from '../components/player-modal.js?v=713';
+import { initPlayerModal } from '../components/player-modal.js?v=751';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickSeeded } from '../data/magazine-voices.js?v=519';
 import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,
-} from './draftgrades.js?v=751';
+} from './draftgrades.js?v=792';
 import { getContextScore, getDraftModel, FIXED_WEIGHTS } from '../data/context-score.js?v=683';
-import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=595';
-import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=64';
+import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=596';
+import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=65';
 
 const fmt0 = (n) => Math.round(n).toLocaleString('it-IT');
 const fmt1 = (n) => (+n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

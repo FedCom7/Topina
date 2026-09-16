@@ -15,10 +15,10 @@ import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=534';
 import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=683';
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1001';
-import { getTeamStats } from '../data/nfl-team-stats.js?v=588';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';
-import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=8';
-import { getSeasonStats, normName } from '../data/projections.js?v=595';
+import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
+import { getSeasonStats, normName } from '../data/projections.js?v=602';
 import {
     campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
     yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
@@ -33,11 +33,11 @@ import {
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=977';
+} from './player-page.js?v=1022';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1032';
+} from './nfl-team-home.js?v=1065';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');

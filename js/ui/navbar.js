@@ -22,8 +22,67 @@ export function initNavbar() {
         navbar.classList.toggle('scrolled', window.scrollY > 50);
     });
 
+    numeraVoci(navbar);
     initDropdowns(navbar);
     initSearch(navbar);
+    initTheme();
+}
+
+/**
+ * Tema chiaro / scuro.
+ *
+ * Lo stato vive in un posto solo: `data-theme="light"` sulla radice. Il CSS
+ * ridefinisce le variabili di colore sotto quel selettore, e tutto cio' che
+ * passa dalle variabili cambia da se'. Lo scuro resta il tema di partenza.
+ *
+ * La prima applicazione non avviene qui ma in uno script in testa a
+ * index.html, prima del CSS: aspettare questo modulo farebbe comparire il
+ * nero per un attimo a chi ha scelto il chiaro. Qui si aggancia solo il
+ * bottone, e si salva la scelta.
+ */
+function initTheme() {
+    const btn = document.getElementById('nav-theme-btn');
+    if (!btn) return;
+    const root = document.documentElement;
+
+    const sync = () => {
+        const chiaro = root.dataset.theme === 'light';
+        btn.setAttribute('aria-pressed', String(chiaro));
+        btn.setAttribute('aria-label', chiaro ? 'Switch to dark theme' : 'Switch to light theme');
+    };
+
+    btn.addEventListener('click', () => {
+        const chiaro = root.dataset.theme !== 'light';
+        if (chiaro) root.dataset.theme = 'light';
+        else delete root.dataset.theme;
+        // Una preferenza di pochi byte, non una cache: niente cacheSet.
+        try { localStorage.setItem('topina-theme', chiaro ? 'light' : 'dark'); } catch { /* storage bloccato: vale per la visita */ }
+        sync();
+        // Chi disegna colori da JS (grafici, campo) puo' ridisegnarsi.
+        window.dispatchEvent(new CustomEvent('topina:theme', { detail: { theme: chiaro ? 'light' : 'dark' } }));
+    });
+    sync();
+}
+
+/**
+ * Numera le voci del menu per la cascata mobile.
+ *
+ * I ritardi stavano scritti a mano in CSS, una regola `nth-child` per voce e
+ * una per il verso opposto alla chiusura. Si fermavano a nove: aggiungendo
+ * "Season" le voci sono diventate dieci, e History — l'unica senza regola —
+ * compariva di colpo insieme alla prima invece che per ultima. Un bug che si
+ * ripresenta a ogni voce nuova, e che non da' nessun segnale a chi la aggiunge.
+ *
+ * Qui l'indice lo mette il DOM: `--i` conta dall'alto, `--i-giu` dal basso, e
+ * il CSS li moltiplica per il passo. Aggiungere o togliere una voce non
+ * richiede piu' di toccare niente.
+ */
+function numeraVoci(navbar) {
+    const voci = navbar.querySelectorAll('.nav-links > .nav-item');
+    voci.forEach((li, i) => {
+        li.style.setProperty('--i', i + 1);
+        li.style.setProperty('--i-giu', voci.length - i);
+    });
 }
 
 /**
