@@ -17092,7 +17092,9 @@ td.ps-div-seed {
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;
-    filter: brightness(0.78);
+    /* annulla il brightness(0.62) di .field-bg, che serve ai wallpaper del
+       Game Center e non al campo disegnato del Live */
+    filter: none;
 }
 
 .fsv-num {
@@ -17137,23 +17139,8 @@ td.ps-div-seed {
     }
 }
 
-/* Velo scuro sopra il campo: le figurine e i punteggi devono staccarsi dallo
-   sfondo, e il verde chiaro delle yard line se li mangiava. Più fitto sotto,
-   dove stanno le righe con le statistiche piccole. Sta SOTTO ai giocatori
-   (`.field-overlay` viene dopo nel DOM) e non intercetta i clic. */
-.live-field-solo::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-lg);
-    background: linear-gradient(180deg,
-        rgba(6, 10, 12, 0.12) 0%,
-        rgba(6, 10, 12, 0.22) 45%,
-        rgba(6, 10, 12, 0.4) 100%);
-    pointer-events: none;
-    z-index: 0;
-}
-
+/* Il campo del Live si vede com'e': niente velo scuro sopra e niente
+   brightness sull'SVG — insieme lo facevano quasi nero. */
 /* i giocatori restano sopra al velo */
 .live-field-solo .field-overlay {
     z-index: 1;
@@ -24192,7 +24179,7 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 
 /* Game Center: panchina sotto il campo */
 :root[data-theme="light"] .field-bottom-row {
-    background: var(--bg-secondary);
+    background: #fff;
 }
 
 :root[data-theme="light"] .formation-slot.bench-slot {

@@ -68,10 +68,12 @@ export function fieldSVG() {
     <svg class="field-bg field-svg" viewBox="0 0 ${VB_W} ${VB_H}"
          preserveAspectRatio="xMidYMin slice" aria-hidden="true" focusable="false">
         <defs>
+            <!-- prato verde scuro, non piu' quasi nero: con velo e brightness
+                 sopra (tolti) il campo del Live si leggeva come una lavagna -->
             <linearGradient id="fsv-turf" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#1b2422"/>
-                <stop offset="0.55" stop-color="#141c1b"/>
-                <stop offset="1" stop-color="#0d1413"/>
+                <stop offset="0" stop-color="#2f4a3c"/>
+                <stop offset="0.55" stop-color="#284033"/>
+                <stop offset="1" stop-color="#1f342a"/>
             </linearGradient>
             <linearGradient id="fsv-ez" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stop-color="var(--tc-sel, #b8433a)" stop-opacity="0.34"/>
