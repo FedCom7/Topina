@@ -15919,6 +15919,64 @@ td.ps-div-seed {
    ma la corona esterna è divisa fra tutti i giocatori invece che fra uno e il
    resto. Le fette prendono fill/fill-opacity inline (sfumatura per ordine),
    qui sta solo quello che non cambia da fetta a fetta. */
+/* Home: l'anello da solo, la legenda dietro alla "i" in alto a destra. */
+.nfl-home-ring { position: relative; margin-bottom: 16px; }
+
+/* a tutta larghezza della Home, con un tetto perche' oltre certi pixel
+   l'anello diventa una ruota panoramica e basta */
+.nfl-home-ring .ts-ring-wrap {
+    width: 100%;
+    max-width: 900px;
+}
+
+.nfl-ring-info {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    z-index: 3;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card, transparent);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 18px;
+    text-align: center;
+    cursor: help;
+}
+
+.nfl-ring-pop {
+    position: absolute;
+    top: 26px;
+    right: 0;
+    z-index: 4;
+    display: block;
+    width: min(360px, 78vw);
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-card);
+    background: var(--surface-card);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    font-style: normal;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur-fast) var(--ease);
+}
+
+.nfl-ring-info:hover .nfl-ring-pop,
+.nfl-ring-info:focus .nfl-ring-pop,
+.nfl-ring-info:focus-within .nfl-ring-pop {
+    opacity: 1;
+    visibility: visible;
+}
+
+.nfl-ring-pop .pm-note { display: block; margin-top: 8px; }
+
 .ts-ring-band--tgt { fill: #4f8cff; fill-opacity: 0.30; }
 .ts-ring-band--car { fill: #f5a524; fill-opacity: 0.30; }
 .ts-ring-sl { stroke: var(--bg-primary, #000); stroke-width: 1.5; }

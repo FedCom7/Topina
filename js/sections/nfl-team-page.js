@@ -631,13 +631,42 @@ function homeGridBlock(ctx) {
     const draft = draftBlock(teamExtras?.draftHistory);
     const stadium = stadiumCardHtml(live?.profile);
     const stand = divisionStandingsBlock(live?.standings, identity, abbr);
-    const left = cal, center = field + summary, right = coach + draft + stadium + stand;
+    const ring = homeShareRingBlock(ctx);
+    const left = cal, center = field + ring + summary, right = coach + draft + stadium + stand;
     if (!left && !center && !right) return '';
     return `<div class="nfl-home-grid">
         <div class="nfl-home-col nfl-home-col-l">${left}</div>
         <div class="nfl-home-col nfl-home-col-c">${center}</div>
         <div class="nfl-home-col nfl-home-col-r">${right}</div>
     </div>`;
+}
+
+/**
+ * L'anello "chi tocca la palla" anche sulla Home: e' il grafico che risponde
+ * alla prima domanda che ci si fa su una squadra, e stava solo dentro Target
+ * share. Qui va da solo — niente tessere, niente scatter — con un rimando alla
+ * tab che lo spiega per esteso. La Home non segue il selettore dell'anno
+ * (vedi bindYearRepaint), quindi mostra sempre la stagione con cui si e'
+ * aperta la pagina, ed e' per questo che l'anno sta scritto nel titolo.
+ */
+function homeShareRingBlock(ctx) {
+    const { usage, abbr, year, seasonStats } = ctx;
+    const ring = _tsShareRing(usage, abbr, seasonStats, { pezzi: true });
+    if (!ring) return '';
+    // Sulla Home resta il solo anello: chiave, legenda e nota stanno dietro
+    // alla "i" in alto a destra, e compaiono passandoci sopra (o col tab).
+    return `
+    <section class="pm-block pp-block nfl-home-ring">
+        <span class="mc-kicker">Share of the ball · ${esc(abbr)} ${year}</span>
+        <span class="nfl-ring-info" tabindex="0" role="button" aria-label="How to read this chart">i
+            <span class="nfl-ring-pop">
+                ${ring.key}
+                ${ring.legend}
+                <span class="pm-note">Inner ring: how the offense splits between air and ground. Outer ring: one slice per player, sized by his share of the team's targets (or carries); on the air side each slice is filled by his catch rate. Hover a slice for the detail, or open <b>Target share</b> for the full picture.</span>
+            </span>
+        </span>
+        ${ring.chart}
+    </section>`;
 }
 
 // Sottoinsieme compatto di SPARKS per il riassunto nella tab Home (il set completo resta in Stats).
@@ -1252,7 +1281,12 @@ const _tsCr = (rows) => {
 
 const TS_RING_SLICES = 7;   // per reparto; il resto finisce in "Others"
 
-function _tsShareRing(usage, abbr, stats) {
+/**
+ * @param {object} [opts] `pezzi: true` restituisce le tre parti separate
+ *   (grafico, chiave, legenda) invece del blocco unico: serve alla Home, che
+ *   tiene la legenda dentro una tendina e a schermo lascia il solo anello.
+ */
+function _tsShareRing(usage, abbr, stats, opts = {}) {
     const tot = (p, k) => +(p[k] || 0) * (p.gp || 0);
     const all = (usage || []).filter(p => (p.gp || 0) >= 1);
     // Il dettaglio del tooltip viene da Sleeper (TD, red zone, primi down):
@@ -1407,17 +1441,17 @@ function _tsShareRing(usage, abbr, stats) {
         return `<span class="ts-leg"><i style="background:${b.base};opacity:${op.toFixed(2)}"></i>${esc(sl.rest ? sl.name : _tsLast(sl.name))} <b>${Math.round(sl.v / b.team * 100)}%</b></span>`;
     }).join('')).join('<span class="ts-leg-sep"></span>');
 
-    return `<div class="ts-chart ts-ring-wrap">
-        <svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Share of the team's targets and carries by player">
+    const svg = `<svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Share of the team's targets and carries by player">
             ${parts.join('')}${labels.join('')}${centre}
-        </svg>
-        <div class="ts-ring-key">
+        </svg>`;
+    const key = `<div class="ts-ring-key">
             <span class="ts-ring-key-item"><i class="ts-ring-key-rz"></i>outer bar = touches in the red zone${rzMax > 0 ? ` (tallest = ${fmt0(rzMax)})` : ''}</span>
             <span class="ts-ring-key-item"><i class="ts-ring-key-td">7</i>number on the tip = touchdowns</span>
             <span class="ts-ring-key-item"><i class="ts-ring-key-catch"></i>how full an air slice is = share of his targets he caught</span>
-        </div>
-        <div class="ts-legend ts-ring-legend">${legend}</div>
-    </div>`;
+        </div>`;
+    const leg = `<div class="ts-legend ts-ring-legend">${legend}</div>`;
+    if (opts.pezzi) return { chart: `<div class="ts-chart ts-ring-wrap">${svg}</div>`, key, legend: leg };
+    return `<div class="ts-chart ts-ring-wrap">${svg}${key}${leg}</div>`;
 }
 
 /* ── Palloni per snap ────────────────────────────────────────────────
