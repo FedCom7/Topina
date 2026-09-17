@@ -15929,6 +15929,17 @@ td.ps-div-seed {
     max-width: 900px;
 }
 
+/* Nella Home l'anello e' piu' piccolo che in Target share, quindi il testo
+   scritto in unita' dell'SVG rimpicciolisce con lui: qui va piu' grande, o
+   nomi e percentuali diventano una didascalia. */
+.nfl-home-ring .ts-ring-lbl { font-size: 14px; }
+.nfl-home-ring .ts-ring-lbl-val { font-size: 15px; }
+.nfl-home-ring .ts-ring-td { font-size: 13px; }
+.nfl-home-ring .ts-ring-num { font-size: 28px; }
+.nfl-home-ring .ts-ring-lbl2 { font-size: 11px; }
+.nfl-home-ring .ts-ring-band-lbl { font-size: 10px; }
+.nfl-home-ring .ts-ring-band-val { font-size: 12px; }
+
 .nfl-ring-info {
     position: absolute;
     top: 12px;
