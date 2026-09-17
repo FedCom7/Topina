@@ -72,6 +72,16 @@
     /* Capsule delle tendine che non sono l'anno. */
     --pill-surface: #000000;
 
+    /* Le tre profondita' della barra d'uso (live-uso-*, riusata da NFL Hub):
+       fondo, porzione occupata, porzione concretizzata, piu' il grigio delle
+       voci a zero. Erano bianchi scritti a mano e col tema chiaro sparivano
+       dentro la card bianca. */
+    --uso-track: rgba(255, 255, 255, 0.07);
+    --uso-fill: rgba(255, 255, 255, 0.13);
+    --uso-done: rgba(255, 255, 255, 0.55);
+    --uso-zero: rgba(255, 255, 255, 0.22);
+    --uso-pts: #4ade80;
+
     /* Motion — durate condivise di transizioni/animazioni */
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
     --dur-fast: 0.15s;
@@ -142,6 +152,12 @@ html {
 
     --outline-stroke: rgba(22, 20, 15, 0.38);
     --pill-surface: #ffffff;
+
+    --uso-track: rgba(20, 18, 14, 0.07);
+    --uso-fill: rgba(20, 18, 14, 0.16);
+    --uso-done: rgba(20, 18, 14, 0.58);
+    --uso-zero: rgba(20, 18, 14, 0.26);
+    --uso-pts: var(--accent-green);
 }
 
 body {
@@ -1555,6 +1571,15 @@ img {
     }
 
     .gc-banner-side { display: none; }
+
+    /* ...ma non nel tabellone della home. Altrove chi gioca lo dice il
+       contesto — il selettore di squadra nel Live, la formazione sotto in Game
+       Center — e gli stemmi in filigrana bastano a confermarlo. Lì no: due
+       card di risultati sono SOLO quei banner, e "83.3 final 169.5" senza nomi
+       non è un risultato. Ci stanno perché qui la colonna di mezzo non porta
+       il CTA "Analysis" che nel Game Center si mangiava lo spazio; e se non ci
+       stessero, `refitTeamNames()` li abbrevia da sé. */
+    .mc-scorebug-list .gc-banner-side { display: flex; }
 
 
     .matchup-card {
@@ -6940,11 +6965,10 @@ img {
 }
 
 /* ── Card che ospitano uno score-bug (sfide in corso, ultimi risultati) ──
-   Il componente (js/ui/score-bug.js) ha già tutto il suo aspetto — barra,
-   stemmi, colori squadra pieni — la card qui intorno fa solo da cornice, con
-   le sfide impilate quando sono più di una. Sostituiva le vecchie righe
-   "solo stemmi" (mc-vs-row) di Latest results, che disegnavano a mano quello
-   che il componente condiviso fa già meglio.
+   Il componente (js/ui/score-bug-current.js — lo STESSO banner di #live) ha
+   già tutto il suo aspetto: stemmi in filigrana, totali grandi, quota al
+   bordo basso. La card qui intorno fa solo da cornice, con le sfide impilate
+   quando sono più di una.
 
    Nessun vincolo di taglia qui: la card si stira come tutte le altre
    (align-items: stretch di default sulla griglia) fino ad essere alta quanto
@@ -6965,30 +6989,183 @@ img {
     justify-content: center;
     gap: 16px;
     min-height: 0;
+    /* Il banner è disegnato per la larghezza piena del Live; qui sta in due
+       card da mezza pagina, che a 1024px scendono a 480px. A misura fissa i
+       due totali si prendevano tutto e ai nomi restavano una trentina di
+       pixel: sigle ovunque, e per giunta tagliate. Container query e non media
+       query perché la misura che conta è quella della CARD, non della
+       finestra: la stessa card è larga 568px a 1440, 480px a 1024 e tutta la
+       pagina sul telefono. */
+    container-type: inline-size;
 }
 
-/* Il confine fra la settimana aperta e quella chiusa dentro la stessa
-   striscia. Serve perché il salto dalla barra chiara a quella antracite, da
-   solo, si legge come un difetto di stampa invece che come «questa è
-   archiviata»: l'etichetta dice di cosa è il cambio di luce. */
-.mc-sb-sep {
+/* Le unità `cqi` si risolvono contro `.mc-scorebug-list` qui sopra — vanno
+   messe sui DISCENDENTI, mai sull'elemento che dichiara il container. I
+   `clamp` tengono i due estremi: sotto il minimo il punteggio non si legge,
+   sopra il massimo si torna alle misure del Live. */
+.mc-scorebug-list .gc-banner-inner {
+    gap: clamp(6px, 2cqi, 18px);
+    padding: clamp(10px, 2.4cqi, 16px) clamp(12px, 3cqi, 24px);
+}
+
+.mc-scorebug-list .gc-banner-name {
+    font-size: clamp(0.9rem, 3.4cqi, 1.35rem);
+}
+
+.mc-scorebug-list .gc-banner-score {
+    font-size: clamp(1.5rem, 6cqi, 2.4rem);
+}
+
+/* Nel Live il banner è uno solo e porta il suo margine sotto; qui sono
+   impilati e a distanziarli c'è già il gap della lista, che quel margine
+   raddoppierebbe. */
+.mc-scorebug-list .gc-banner {
+    margin-bottom: 0;
+}
+
+/* ── Waiver wire: il mercato in home ──
+   Una tessera per MOSSA, non per giocatore: ESPN registra ogni scambio come
+   un ADD e un DROP separati, e due righe staccate non dicono che sono la
+   stessa decisione. La tessera porta in testa chi l'ha fatta e quando, sotto
+   chi è entrato e chi è uscito.
+
+   La griglia si adatta da sé (`auto-fit`): tre tessere per riga sulla card
+   larga, due sui portatili stretti, una sul telefono — senza media query,
+   perché la misura che conta è quella della card. */
+.mc-wv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.mc-wv-move {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    /* Il colore della squadra entra come velo, non come bordo acceso: sei
+       tessere con sei contorni colorati sarebbero sei card dentro una card. */
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--team-color, #fff) 10%, transparent) 0%,
+        rgba(255, 255, 255, 0.02) 60%);
+}
+
+.mc-wv-head {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 2px 0;
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--text-muted);
+    gap: 7px;
+    min-width: 0;
 }
 
-.mc-sb-sep::before,
-.mc-sb-sep::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-subtle);
+.mc-wv-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.mc-wv-team {
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--team-color, #fff) 56%, white 44%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mc-wv-when {
+    margin-left: auto;
+    font-size: 0.64rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.mc-wv-players {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mc-wv-p {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 3px 0;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+a.mc-wv-p:hover .mc-wv-name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.mc-wv-p .mc-avatar--wv {
+    width: 26px;
+    height: 26px;
+}
+
+/* Chi esce è già uscito: resta leggibile ma spento, così scorrendo la card si
+   vedono per primi gli arrivi — la notizia è quella. */
+.mc-wv-p--out {
+    opacity: 0.55;
+}
+
+.mc-wv-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mc-wv-p .mc-rail-pos {
+    margin-left: 0;
+    flex-shrink: 0;
+}
+
+/* Dentro e fuori si leggono dal colore prima che dalla parola, come nella
+   sezione Waivers e nella pagina squadra. */
+.mc-wv-dir {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-family: var(--font-display);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 100px;
+}
+
+.mc-wv-p--in .mc-wv-dir {
+    color: var(--accent-green, #4ade80);
+    background: color-mix(in srgb, var(--accent-green, #22c55e) 14%, transparent);
+}
+
+.mc-wv-p--out .mc-wv-dir {
+    color: var(--accent-red);
+    background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+}
+
+.mc-wv-foot {
+    /* In fondo alla tessera, non sotto l'ultimo giocatore: le tessere di una
+       riga sono alte uguale e con l'etichetta a mezz'aria si vedrebbero tre
+       scritte sfalsate. */
+    margin-top: auto;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
 }
 
 /* ── Campione ── */
@@ -15731,6 +15908,10 @@ td.ps-div-seed {
 .ts-ring-key-rz { width: 5px; height: 14px; border-radius: 2px; background: linear-gradient(#4f8cff, #f5a524); }
 .ts-ring-key-td { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%;
     border: 1px solid var(--border-subtle); font-size: 9px; font-weight: 800; color: var(--text-primary); font-style: normal; }
+/* la chiave del catch rate mostra il gesto, non il colore: un riquadro pieno
+   fin dove è pieno lo spicchio, dal basso (= bordo interno dell'anello) */
+.ts-ring-key-catch { width: 13px; height: 14px; border-radius: 2px;
+    background: linear-gradient(to top, #4f8cff 0 62%, rgba(79, 140, 255, 0.28) 62% 100%); }
 .ts-leg-sep { flex-basis: 100%; height: 0; }
 .ts-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 6px; }
 .ts-leg { display: inline-flex; align-items: center; font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
@@ -16528,49 +16709,78 @@ td.ps-div-seed {
     font-size: 1.4rem;
 }
 
-/* Probabilità dentro il banner del punteggio, appoggiata al bordo basso:
-   prima era una barra a sé sotto la card, che sembrava un elemento slegato. */
-.live-mc-prob {
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+/* La quota del banner sono DUE cose, e prima erano una sola.
 
-.live-mc-probpct {
-    font-size: 0.62rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: color-mix(in srgb, var(--tc1) 60%, white 40%);
-}
+   Era una fascia — numero, nastro, numero — appoggiata dentro al banner a 14px
+   dai bordi: una riga che attraversava la card sotto ai punteggi, con due
+   numeri colorati che si prendevano l'attenzione del punteggio vero. In una
+   card di risultati archiviati, per giunta, quei due numeri sono la quota di
+   punti di una partita già finita: la cosa meno importante a schermo, disegnata
+   come la più importante.
 
-.live-mc-probpct--r {
-    color: color-mix(in srgb, var(--tc2) 60%, white 40%);
-}
-
-/* Un solo nastro che passa da un colore all'altro, senza il taglio netto di
-   prima: il punto di scambio e' `--p`, e attorno c'e' una fascia di sfumatura
-   larga il 14% per lato. Due blocchi affiancati mettevano una linea dura in
-   mezzo, che diceva "qui finisce uno e comincia l'altro" — ma questa e' una
-   quota che scorre, non un confine. */
+   Adesso: il NASTRO è a filo del bordo basso, senza margini e senza raggio
+   proprio — se lo dà il banner, che lo ritaglia agli angoli. È un elemento di
+   cornice, si legge con la coda dell'occhio e non interrompe niente. Il NUMERO
+   è uno solo, quello di chi è avanti, sotto la scritta di mezzo: sta nella
+   colonna che già ospita "live"/"final", cioè dove si guarda per sapere a che
+   punto siamo. */
 .live-mc-probbar {
-    position: relative;
-    flex: 1;
-    height: 4px;
-    border-radius: 999px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    /* Un solo nastro che passa da un colore all'altro, senza il taglio netto
+       di prima: il punto di scambio e' `--p`, e attorno c'e' una fascia di
+       sfumatura larga il 14% per lato. Due blocchi affiancati mettevano una
+       linea dura in mezzo, che diceva "qui finisce uno e comincia l'altro" —
+       ma questa e' una quota che scorre, non un confine. */
     background: linear-gradient(90deg,
         color-mix(in srgb, var(--tc1) 85%, white 15%) 0,
         color-mix(in srgb, var(--tc1) 85%, white 15%) max(0%, calc(var(--p, 50%) - 14%)),
         color-mix(in srgb, var(--tc2) 55%, rgba(255, 255, 255, 0.14)) min(100%, calc(var(--p, 50%) + 14%)),
         color-mix(in srgb, var(--tc2) 55%, rgba(255, 255, 255, 0.14)) 100%);
     transition: background var(--dur-med) var(--ease);
-    overflow: hidden;
+    pointer-events: none;
 }
 
+/* Il numero di chi è avanti. Colore della sua squadra (schiarito: il bordeaux
+   di Oscurus e il petrolio di Sommo su fondo nero sparirebbero) e una punta
+   che guarda verso il suo lato del banner — senza, un "53%" sotto "FINAL" non
+   direbbe di chi è. L'altra quota non c'è perché è 100 meno questa. */
+.live-mc-lead {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--tc1) 56%, white 44%);
+}
 
+.live-mc-lead--r {
+    color: color-mix(in srgb, var(--tc2) 56%, white 44%);
+}
+
+/* La punta sta solo dal lato giusto: un pseudo-elemento vuoto dall'altro
+   aggiungerebbe comunque il suo `gap`, e il numero risulterebbe scentrato. */
+.live-mc-lead--l::before,
+.live-mc-lead--r::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+}
+
+.live-mc-lead--l::before {
+    border-right: 4px solid currentColor;
+}
+
+.live-mc-lead--r::after {
+    border-left: 4px solid currentColor;
+}
 
 /* ── Campo (una sola squadra, stessa formazione a colonne di Game Center) ── */
 .live-field-head {
@@ -17171,6 +17381,15 @@ td.ps-div-seed {
 .live-scorebar .gc-banner-name {
     color: var(--text-muted);
     opacity: 0.5;
+}
+
+/* Banner senza squadra scelta — il tabellone della home. Spegnere un nome ha
+   senso solo se un altro è acceso: dove non si sceglie niente (nessun lato ha
+   `selected`, e il componente marca il banner `--plain`) quel grigio direbbe
+   soltanto «questa squadra conta meno delle altre». Tutt'e due i nomi pieni. */
+.live-scorebar--plain .gc-banner-name {
+    color: var(--text-primary);
+    opacity: 1;
 }
 
 /*
@@ -18714,7 +18933,7 @@ td.ps-div-seed {
     text-align: right;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    color: #4ade80;
+    color: var(--uso-pts);
 }
 
 .live-uso-nome {
@@ -18728,7 +18947,7 @@ td.ps-div-seed {
     position: relative;
     height: 9px;
     border-radius: 5px;
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--uso-track);
     overflow: hidden;
 }
 
@@ -18736,7 +18955,7 @@ td.ps-div-seed {
     display: block;
     height: 100%;
     border-radius: 5px;
-    background: rgba(255, 255, 255, 0.13);
+    background: var(--uso-fill);
     transition: width 0.4s ease;
 }
 
@@ -18746,7 +18965,7 @@ td.ps-div-seed {
     display: block;
     height: 100%;
     border-radius: 5px;
-    background: rgba(255, 255, 255, 0.55);
+    background: var(--uso-done);
 }
 
 .live-uso-val {
@@ -18790,7 +19009,7 @@ td.ps-div-seed {
 /* voce a zero: spenta, così le altre risaltano */
 .live-uso-stat.is-zero,
 .live-uso-stat.is-zero b {
-    color: rgba(255, 255, 255, 0.22);
+    color: var(--uso-zero);
     font-weight: 500;
 }
 
@@ -18814,7 +19033,7 @@ td.ps-div-seed {
 
 .live-uso-row--fermo .live-uso-bar {
     background: repeating-linear-gradient(90deg,
-        rgba(255, 255, 255, 0.09) 0 4px, transparent 4px 8px);
+        var(--uso-fill) 0 4px, transparent 4px 8px);
 }
 
 .live-uso-row--fermo .live-uso-val {

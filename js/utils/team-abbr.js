@@ -17,10 +17,16 @@ export function refitTeamNames(root) {
     const scope = root || document.body;
     if (!scope || !scope.querySelectorAll) return;
     scope.querySelectorAll('.tname[data-abbr]').forEach((el) => {
+        // Fuori dal layout (la sezione non attiva è `display:none`) non si
+        // tocca NIENTE. Il controllo stava sotto al ripristino, e il
+        // ripristino restava: passando a un'altra sezione i nomi tornavano
+        // interi, e al ritorno nessuna mutazione faceva ripartire la misura —
+        // la sigla non tornava più e il nome usciva tagliato dai puntini.
+        if (!el.clientWidth) return;
+
         const full = el.dataset.tnFull || (el.dataset.tnFull = (el.textContent || '').trim());
         // Ripristina il nome completo per misurare il trabocco reale.
         if (el.textContent !== full) el.textContent = full;
-        if (!el.clientWidth) return; // non ancora a layout (es. display:none)
 
         if (el.scrollWidth > el.clientWidth + 0.5) {
             el.textContent = el.dataset.abbr;
@@ -57,4 +63,12 @@ export function startAutoAbbr() {
         clearTimeout(_resizeT);
         _resizeT = setTimeout(() => refitTeamNames(document.body), 120);
     });
+
+    // I font veri (Inter / Inter Tight) si scaricano: il primo render misura
+    // il RIPIEGO di sistema, che è più stretto. "Sommo" nel ripiego entrava
+    // nei 52px del banner, col font vero ne chiede 63 — e senza questa
+    // rimisura restava il nome intero tagliato dai puntini ("SOM…") invece
+    // della sigla, che i tre caratteri ce li ha proprio per quel caso.
+    document.fonts?.ready?.then(_schedule);
+    document.fonts?.addEventListener?.('loadingdone', _schedule);
 }

@@ -34,6 +34,7 @@ import { initPlayerModal } from '../components/player-modal.js?v=754';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
+import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 
 const POLL_MS = 30000;
 
@@ -1709,6 +1710,11 @@ function bannerScoreHTML(t, score, proiettato, lato) {
  * Banner punteggio — stessa identità visiva del banner di Game Center.
  * La disposizione segue sempre l'ordine del matchup (team1 a sinistra):
  * cambiando squadra si sposta solo il contorno colorato sul nome selezionato.
+ *
+ * Il markup non sta più qui: è `js/ui/score-bug-current.js`, lo stesso pezzo
+ * che disegna il tabellone della home. Erano due copie dello stesso banner, e
+ * si erano già scostate (la barra della quota qui era passata a `--p`, là era
+ * rimasta un riempimento a `width` che il CSS non disegna più).
  */
 function matchupCardHTML(entry) {
     const { m, team: selected } = entry;
@@ -1718,34 +1724,25 @@ function matchupCardHTML(entry) {
     const s1 = teamEffScore(left), s2 = teamEffScore(right);
     const t1 = teamOf(left.name), t2 = teamOf(right.name);
     const total = s1 + s2;
-    const pct1 = total > 0 ? Math.round((s1 / total) * 100) : 50;
     const selLeft = selected === left;
 
-    return `
-    <div class="live-scorebar" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'};--tc-sel:${(selLeft ? t1 : t2)?.color || 'var(--accent-red)'}">
-        <div class="gc-banner">
-            ${t1?.logo ? `<img class="gc-banner-wm gc-banner-wm-l${selLeft ? ' live-wm-selected' : ''}" src="${t1.logo}" alt="" aria-hidden="true">` : ''}
-            ${t2?.logo ? `<img class="gc-banner-wm gc-banner-wm-r${selLeft ? '' : ' live-wm-selected'}" src="${t2.logo}" alt="" aria-hidden="true">` : ''}
-            <div class="gc-banner-inner">
-                <div class="gc-banner-side">
-                    <span class="gc-banner-name${selLeft ? ' live-name-selected' : ''}">${teamNameHTML(t1?.name || left.name)}</span>
-                </div>
-                <span class="gc-banner-score${leagueDrafted && s1 >= s2 ? ' winner' : ''}">${bannerScoreHTML(left, s1, proj1, 'l')}</span>
-                <div class="gc-banner-mid">
-                    <span class="gc-banner-vs">${isLiveSource ? 'live' : 'vs'}</span>
-                </div>
-                <span class="gc-banner-score${leagueDrafted && s2 >= s1 ? ' winner' : ''}">${bannerScoreHTML(right, s2, proj2, 'r')}</span>
-                <div class="gc-banner-side gc-banner-side-r">
-                    <span class="gc-banner-name${selLeft ? '' : ' live-name-selected'}">${teamNameHTML(t2?.name || right.name)}</span>
-                </div>
-            </div>
-            <div class="live-mc-prob">
-                <span class="live-mc-probpct">${pct1}%</span>
-                <span class="live-mc-probbar" style="--p:${pct1}%"></span>
-                <span class="live-mc-probpct live-mc-probpct--r">${100 - pct1}%</span>
-            </div>
-        </div>
-    </div>`;
+    return currentScoreBugHTML({
+        left: {
+            nameHTML: teamNameHTML(t1?.name || left.name),
+            logo: t1?.logo, color: t1?.color,
+            scoreHTML: bannerScoreHTML(left, s1, proj1, 'l'),
+            winner: leagueDrafted && s1 >= s2, selected: selLeft,
+        },
+        right: {
+            nameHTML: teamNameHTML(t2?.name || right.name),
+            logo: t2?.logo, color: t2?.color,
+            scoreHTML: bannerScoreHTML(right, s2, proj2, 'r'),
+            winner: leagueDrafted && s2 >= s1, selected: !selLeft,
+        },
+        mid: isLiveSource ? 'live' : 'vs',
+        probPct: total > 0 ? (s1 / total) * 100 : 50,
+        selColor: (selLeft ? t1 : t2)?.color,
+    });
 }
 
 function chip(p, side) {

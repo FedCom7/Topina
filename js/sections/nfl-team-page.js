@@ -1226,6 +1226,7 @@ function _tsSliceTip(sl, b, share) {
     const x = sl.x;
     const chi = sl.rest ? esc(sl.name) : `${esc(sl.name)}${sl.pos ? ` (${esc(sl.pos)})` : ''}${sl.gp ? ` · ${sl.gp} game${sl.gp === 1 ? '' : 's'}` : ''}`;
     const righe = [chi, `${_tsU(sl.v, b.unit)} — ${(share * 100).toFixed(1)}% of the team's ${b.unit}`];
+    if (sl.cr != null) righe.push(`Caught ${Math.round(sl.cr * 100)}% of them — the filled part of the slice`);
     if (x) {
         if (b.key === 'tgt') {
             righe.push([`${fmt0(x.rec)} caught`, `${fmt0(x.recYd)} yd`, `${fmt0(x.recTd)} TD`,
@@ -1239,6 +1240,15 @@ function _tsSliceTip(sl, b, share) {
     }
     return righe.join('\n');
 }
+
+/* Catch rate di un gruppo di righe: ricezioni su bersagli, dove la base sono i
+ * soli giocatori per cui nflverse dà il tasso — dividere per il totale del
+ * gruppo conterebbe come "non presi" i bersagli di chi non ha il dato. */
+const _tsCr = (rows) => {
+    const con = rows.filter(r => r.rec != null);
+    const base = con.reduce((t, r) => t + r.v, 0);
+    return base > 0 ? Math.min(1, con.reduce((t, r) => t + r.rec, 0) / base) : null;
+};
 
 const TS_RING_SLICES = 7;   // per reparto; il resto finisce in "Others"
 
@@ -1261,7 +1271,14 @@ function _tsShareRing(usage, abbr, stats) {
             rushFd: st.raw?.rush_fd ?? 0,
         };
     };
-    const riga = (p, k) => ({ name: p.name, pos: p.pos, gp: p.gp || 0, v: tot(p, k), x: extraOf(p) });
+    // `rec` esiste solo per l'aria: sono i bersagli presi, valorizzati col
+    // catch rate nflverse — la stessa fonte di `v`. Con le ricezioni di Sleeper
+    // (che stanno in `x`) il riempimento potrebbe superare il 100%: sono due
+    // conteggi diversi degli stessi bersagli.
+    const riga = (p, k) => ({
+        name: p.name, pos: p.pos, gp: p.gp || 0, v: tot(p, k), x: extraOf(p),
+        rec: k === 'tgtPerGame' && p.catchRate != null ? tot(p, k) * p.catchRate : null,
+    });
     const branches = [
         { key: 'tgt', label: 'Through the air', unit: 'targets', base: '#4f8cff',
           list: all.filter(p => tot(p, 'tgtPerGame') >= 1).map(p => riga(p, 'tgtPerGame')) },
@@ -1279,8 +1296,10 @@ function _tsShareRing(usage, abbr, stats) {
         }, { rec: 0, recYd: 0, recTd: 0, rzTgt: 0, recFd: 0, drops: 0, rushYd: 0, rushTd: 0, rzAtt: 0, rushFd: 0 });
         const teamX = somma(list);
         const coda = list.slice(head.length);
+        const conCr = (rows) => rows.map(r => ({ ...r, cr: _tsCr([r]) }));
         const slices = (restV / (team || 1)) >= 0.01
-            ? [...head, { name: `Others (${coda.length})`, pos: '', v: restV, rest: true, x: somma(coda) }] : head;
+            ? [...conCr(head), { name: `Others (${coda.length})`, pos: '', v: restV, rest: true, x: somma(coda), cr: _tsCr(coda) }]
+            : conCr(head);
         return { ...b, list, team, teamX, slices };
     }).filter(b => b.team > 0);
     if (branches.length < 1) return '';
@@ -1329,8 +1348,27 @@ function _tsShareRing(usage, abbr, stats) {
             // la fetta più grossa è la più piena: l'ordine si legge dal colore
             // anche quando due spicchi sono quasi uguali
             const op = sl.rest ? 0.22 : (0.95 - i * 0.09);
-            parts.push(donutSeg(cx, cy, rings.out[0], rings.out[1], a, a + sw, 'ts-ring-sl', _tsSliceTip(sl, b, share))
-                .replace('<path ', `<path fill="${b.base}" fill-opacity="${op.toFixed(2)}" `));
+            const tip = _tsSliceTip(sl, b, share);
+            const fetta = (rIn, rOut, o) => parts.push(
+                donutSeg(cx, cy, rIn, rOut, a, a + sw, 'ts-ring-sl', tip)
+                    .replace('<path ', `<path fill="${b.base}" fill-opacity="${o.toFixed(2)}" `));
+            /* Il catch rate è un RIEMPIMENTO, non un numero: la corona intera
+             * sono i bersagli, la parte piena — dal bordo interno verso fuori —
+             * è quanto ne ha preso. È il gesto della barra del Live
+             * (live-uso-fill / live-uso-done) piegato sul raggio, ed è l'unico
+             * posto rimasto: l'angolo lo tiene già il volume. Il gradino fra
+             * due spicchi vicini È il confronto fra due paia di mani.
+             * Le portate non hanno riempimento parziale e non è una mancanza:
+             * un pallone consegnato arriva sempre, quindi la metà a terra è
+             * piena per costruzione e le due metà si leggono con la stessa
+             * regola. */
+            const rFill = sl.cr != null ? rings.out[0] + sl.cr * (rings.out[1] - rings.out[0]) : null;
+            if (rFill != null) {
+                fetta(rings.out[0], rings.out[1], op * 0.3);
+                if (rFill - rings.out[0] > 0.6) fetta(rings.out[0], rFill, op);
+            } else {
+                fetta(rings.out[0], rings.out[1], op);
+            }
             const rz = rzOf(sl, b.key), td = tdOf(sl, b.key);
             if (rzMax > 0 && rz > 0) {
                 const h = Math.max(3, (rz / rzMax) * RZ_MAX);
@@ -1376,6 +1414,7 @@ function _tsShareRing(usage, abbr, stats) {
         <div class="ts-ring-key">
             <span class="ts-ring-key-item"><i class="ts-ring-key-rz"></i>outer bar = touches in the red zone${rzMax > 0 ? ` (tallest = ${fmt0(rzMax)})` : ''}</span>
             <span class="ts-ring-key-item"><i class="ts-ring-key-td">7</i>number on the tip = touchdowns</span>
+            <span class="ts-ring-key-item"><i class="ts-ring-key-catch"></i>how full an air slice is = share of his targets he caught</span>
         </div>
         <div class="ts-legend ts-ring-legend">${legend}</div>
     </div>`;
@@ -1525,7 +1564,7 @@ function targetShareBlock(usage, teamRoster, leaguePool, abbr, year, seasonStats
             <div class="ts-card">
                 <h3 class="pp-cat-title">Share of the ball — one slice per player</h3>
                 ${shareRing}
-                <p class="pm-note">Inner ring: how the offense splits between air and ground. Outer ring: one slice per player inside his own half — slice size is his share of the team's targets (or carries), darkest = most. Slices are <b>season totals</b>, so a player who missed games gets a smaller slice; the target share % elsewhere on this page is computed over his games only. Top ${TS_RING_SLICES} per side, the rest grouped as "Others". Outside them a third ring: over each slice a radial bar as tall as his touches inside the red zone (one shared scale for air and ground), with his touchdowns on the tip &mdash; a big slice with a short bar moves the ball far from the end zone, the opposite is the goal-line man. <b>Hover</b> for yards, first downs and the full red-zone share, with his share of the team&rsquo;s red-zone targets or carries &mdash; those come from Sleeper season stats, which nflverse does not carry.</p>
+                <p class="pm-note">Inner ring: how the offense splits between air and ground. Outer ring: one slice per player inside his own half — slice size is his share of the team's targets (or carries), darkest = most. On the air side every slice is <b>filled from the inside out by his catch rate</b>: a slice filled to the brim caught everything it was thrown, a half-empty one saw half of it hit the ground — the step between two neighbouring slices is the gap between their hands. Carries have no partial fill: a handoff always arrives. Slices are <b>season totals</b>, so a player who missed games gets a smaller slice; the target share % elsewhere on this page is computed over his games only. Top ${TS_RING_SLICES} per side, the rest grouped as "Others". Outside them a third ring: over each slice a radial bar as tall as his touches inside the red zone (one shared scale for air and ground), with his touchdowns on the tip &mdash; a big slice with a short bar moves the ball far from the end zone, the opposite is the goal-line man. <b>Hover</b> for yards, first downs and the full red-zone share, with his share of the team&rsquo;s red-zone targets or carries &mdash; those come from Sleeper season stats, which nflverse does not carry.</p>
             </div>
         </div>` : ''}
         ${usoBlocks ? `<div class="ts-charts ts-charts-1">

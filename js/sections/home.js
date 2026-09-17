@@ -6,7 +6,8 @@
  * Il CONTENUTO del mosaico dipende dal momento della lega, rilevato dai
  * dati Firebase — non da date hardcoded:
  *
- *   REGULAR_SEASON → sfide in corso, risultati week, classifica, rail top performance
+ *   REGULAR_SEASON → sfide in corso, risultati week, rail top performance,
+ *                    mercato (waiver wire), classifica
  *   PLAYOFFS       → sfide in corso, semifinali, honors sigillati, rail corsa MVP
  *   SB_WEEK        → sfide in corso, finale, rail premiati, all-pro
  *   OFFSEASON      → campione, premiati, all-pro
@@ -49,8 +50,9 @@ import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } f
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=54';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=3';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
-import { scoreBugHTML } from '../ui/score-bug.js?v=1';
+import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getSeasonProjections } from '../data/projections.js?v=602';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
@@ -260,13 +262,18 @@ const MOSAIC = {
     ],
     REGULAR_SEASON: (ctx) => [
         cardHero(ctx),
-        // Settimana aperta e ultima chiusa stanno nella STESSA striscia
-        // (cardScoreboard): erano due card con lo stesso CTA.
-        cardScoreboard(ctx),
+        // Il tabellone in DUE blocchi appaiati, mezza pagina l'uno: le sfide
+        // in corso e la giornata archiviata. Stesso banner del Live per
+        // entrambi; a distinguerli è il titolo, non una sfumatura di tema.
+        cardLiveMatchups(ctx, 'half'),
+        cardLastResults(ctx),
         // Le prestazioni subito sotto il tabellone: sono la stessa giornata
         // vista da vicino — chi ha fatto quei punti — e a giornata in corso si
         // muovono insieme. La classifica e' la domanda dopo.
         railTopPerformances(ctx),
+        // Il mercato subito dopo: è l'altra metà delle notizie della
+        // settimana — i punti fatti e le mosse per farne di più la prossima.
+        cardWaivers(ctx),
         // Con le due card fuse, la classifica resterebbe sola in riga fra due
         // elementi a tutta larghezza. I numeri salgono ad affiancarla, come
         // già in PRESEASON: due liste di quattro righe, la stessa forma.
@@ -826,13 +833,55 @@ function cardAllProField({ bundle, season }) {
     });
 }
 
+/* ── Il tabellone della home: lo STESSO banner che disegna il Live ──────
+ *
+ * `js/ui/score-bug-current.js` è il pezzo in produzione (il `.gc-banner` con
+ * gli stemmi in filigrana, i due totali grandi e la quota appoggiata al bordo
+ * basso). Qui si preparano solo i dati: nomi già in HTML per
+ * `refitTeamNames()`, punteggio già composto, colori e stemmi dalla palette.
+ *
+ * Prima era la variante `broadcast2` di `js/ui/score-bug.js` — che però è la
+ * PROPOSTA, non il tabellone in uso: la home mostrava un banner che in nessun
+ * altro punto del sito esiste.
+ */
+
+const P = (v) => parseFloat(v) || 0;
+
+/** Un punteggio come lo scrive il Live: un decimale, separatore inglese. */
+const fmtBug = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/**
+ * Il punteggio di un lato. La proiezione sta sempre dal lato ESTERNO e il
+ * numero vero verso il centro, come in `live.js:bannerScoreHTML`: i due totali
+ * che contano si leggono appaiati, le stime restano ai bordi.
+ *
+ * A giornata non cominciata la proiezione È il punteggio (`proiettato`), e si
+ * vede che lo è: `.proj-pts`, corsivo e blu.
+ */
+function bannerScoreHTML(score, projected, lato, proiettato) {
+    if (proiettato) return `<span class="pts-val proj-pts">${fmtBug(score)}</span>`;
+    const previsto = projected == null ? ''
+        : `<small class="pts-proj" title="projected">${fmtBug(P(projected))}</small>`;
+    const vero = `<span class="pts-val">${fmtBug(score)}</span>`;
+    return lato === 'l' ? `${previsto}${vero}` : `${vero}${previsto}`;
+}
+
+/** Un lato del banner: identità della squadra + il suo punteggio già in HTML. */
+function bannerSide(rawName, scoreHTML, winner) {
+    const team = TEAMS[keyOf(rawName)];
+    return {
+        nameHTML: teamNameHTML(team?.name || displayName(rawName)),
+        logo: team?.logo, color: team?.color, scoreHTML, winner,
+    };
+}
+
 /**
  * Le sfide della settimana aperta, dal vivo — non da Firebase, che sulla
  * stagione in corso lo scrive una volta a settimana e nel frattempo
  * mostrerebbe zeri (vedi CLAUDE.md, "Il sito non aspetta Firebase per il
  * live"). Stessa fonte e stessa logica di ripiego pre-draft di Game Center
- * (`fetchLeagueWeek` + `applyDraftLineups`), vestita con la variante
- * broadcast2 di js/ui/score-bug.js — il tabellone in stile TV.
+ * (`fetchLeagueWeek` + `applyDraftLineups`), vestita con lo stesso banner
+ * del Live (js/ui/score-bug-current.js).
  *
  * Solo sulla stagione in corso: interrogare l'API della lega per un anno
  * chiuso non avrebbe niente "in corso" da dire.
@@ -840,8 +889,9 @@ function cardAllProField({ bundle, season }) {
 let cacheSettimanaViva = null;   // { anno, promessa }
 
 /**
- * Una richiesta sola, due lettori: la chiamano sia `cardScoreboard` (per
- * disegnare le sfide) sia `initHome` (per sapere se la stagione e' partita).
+ * Una richiesta sola, tre lettori: la chiamano `cardLiveMatchups` (per
+ * disegnare le sfide), `cardLastResults` (per sapere se sta gia' mostrando
+ * quella settimana) e `initHome` (per sapere se la stagione e' partita).
  * Senza memoria sarebbero due letture identiche della lega a ogni apertura.
  * In cache va la PROMESSA, cosi' anche due chiamate partite insieme si
  * agganciano alla prima.
@@ -876,25 +926,28 @@ async function leggiSettimanaViva(season) {
 
     await fillMissingProjections(matchups, season.year, week).catch(() => { });
 
-    const side = (t) => {
-        const key = keyOf(t.name);
-        const team = key && TEAMS[key];
-        return {
-            name: team?.name || displayName(t.name),
-            color: team?.color, logo: team?.logo,
-            score: t.score, projected: t.projected_score,
-        };
-    };
     const bugs = matchups.map(m => {
         // Come giornataCominciata in Live: se un titolare di una delle due
         // squadre ha già iniziato la sua partita NFL, la settimana è "live"
         // anche se il punteggio non ha ancora segnato nulla.
         const started = [...(m.team1.starters || []), ...(m.team2.starters || [])]
             .some(p => p.started);
-        const state = (m.winner && m.winner !== 'UNDECIDED') ? 'final' : (started ? 'live' : 'projected');
-        return scoreBugHTML({
-            left: side(m.team1), right: side(m.team2), state, mid: `Week ${week}`,
-        }, { variant: 'broadcast2' });
+        const chiusa = !!(m.winner && m.winner !== 'UNDECIDED');
+        // Stesse due righe di Live (`teamIsProjected`/`teamEffScore`): finché
+        // nessuno ha giocato la proiezione È il punteggio; al primo snap
+        // valgono i punti veri per tutti, zeri compresi.
+        const proiettata = (t) => !started && P(t.score) === 0 && t.projected_score != null;
+        const punti = (t) => (proiettata(t) ? P(t.projected_score) : P(t.score));
+        const s1 = punti(m.team1), s2 = punti(m.team2);
+        const total = s1 + s2;
+        return currentScoreBugHTML({
+            left: bannerSide(m.team1.name,
+                bannerScoreHTML(s1, m.team1.projected_score, 'l', proiettata(m.team1)), s1 >= s2),
+            right: bannerSide(m.team2.name,
+                bannerScoreHTML(s2, m.team2.projected_score, 'r', proiettata(m.team2)), s2 >= s1),
+            mid: chiusa ? 'final' : (started ? 'live' : 'vs'),
+            probPct: total > 0 ? (s1 / total) * 100 : 50,
+        });
     }).join('');
 
     // `viva` e' la stessa domanda che si fa il Live: qualcuno dei nostri ha
@@ -915,13 +968,24 @@ async function leggiSettimanaViva(season) {
     return { week, bugs, viva, matchups };
 }
 
-/** La striscia con le sole sfide in corso: playoff e settimana di SB, dove
- *  l'ultima giornata chiusa la racconta già il tabellone del bracket. */
-async function cardLiveMatchups({ season }) {
+/**
+ * Primo blocco del tabellone: le sfide della settimana APERTA, dal vivo.
+ *
+ * In regular season sta ACCANTO a `cardLastResults` — due mezze card appaiate,
+ * "come sta andando" e "com'è finita" — e per questo lo `span` è un parametro:
+ * nei playoff e nella settimana di SB è sola (l'ultima giornata chiusa la
+ * racconta già il tabellone del bracket), e una mezza card senza compagna si
+ * porterebbe dietro mezza riga vuota.
+ *
+ * Se ESPN non risponde — o la lega non ha ancora draftato — torna stringa
+ * vuota e il mosaico si chiude su se stesso: resta il solo blocco dei
+ * risultati, che a quel punto È il tabellone.
+ */
+async function cardLiveMatchups({ season }, span = 'wide') {
     const live = await liveWeekBugs(season);
     if (!live) return '';
     return card({
-        span: 'wide', cls: 'mc-scorebug-card',
+        span, cls: 'mc-scorebug-card',
         kicker: `Week ${live.week}`,
         title: "This week's matchups",
         body: `<div class="mc-scorebug-list">${live.bugs}</div>`,
@@ -930,91 +994,150 @@ async function cardLiveMatchups({ season }) {
 }
 
 /**
- * Le sfide dell'ultima giornata chiusa, stessa variante broadcast2 di quelle
- * in corso ma in ANTRACITE (`theme: 'dark'`, i token --sb-bc-* scuri di
- * main.css) invece che sulla carta chiara.
+ * Le sfide dell'ultima giornata CHIUSA, lette da Firebase: stesso banner di
+ * quelle in corso, senza proiezioni e senza "live" — i punti sono definitivi.
  *
- * Il tema è l'asse su cui si distinguono le due settimane dentro la stessa
- * striscia, ed è un asse che il componente ha già: stessa forma, luce
- * diversa — accesa = si gioca, spenta = archiviata. Prima erano due card
- * separate con due varianti diverse (broadcast2 in corso, marquee chiuse):
- * due disegni per dire la stessa cosa, e nessuno dei due diceva quale delle
- * due settimane fosse quale.
+ * La barra in basso non è una previsione: è la quota di punti finita da una
+ * parte e dall'altra, cioè quanto larga è stata la vittoria. A giornata chiusa
+ * è l'unica cosa che il banner può ancora aggiungere ai due numeri.
  *
- * Le tacche (titolari che hanno finito) non si passano di proposito: a
- * giornata chiusa hanno finito tutti, sarebbero una fila piena che non
- * distingue niente. Senza il dato `ticksHTML` non le disegna, e la fascia
- * vuota la nasconde il CSS — così la barra chiusa è anche un filo più
- * bassa di quella viva, secondo segno gratis.
- *
- * Stato sempre 'final': vince chi ha di più, lo decide scoreBugHTML da sé
- * confrontando i punteggi, pareggio compreso — prima lo decideva `g.won`,
- * che su un pareggio accendeva comunque un lato a caso.
+ * Vince chi ha di più, pareggio compreso (`>=` da tutt'e due i lati): prima lo
+ * decideva `g.won`, che su un pareggio accendeva comunque un lato a caso.
  */
 function lastWeekBugs({ season, phase }) {
     const seen = new Set();
     const bugs = [];
-    const side = (key, pts) => {
-        const t = TEAMS[key];
-        return { name: t?.name || key, color: t?.color, logo: t?.logo, score: pts };
-    };
+    const side = (key, pts, lato, winner) => bannerSide(
+        TEAMS[key]?.name || key, bannerScoreHTML(P(pts), null, lato, false), winner);
     TEAM_KEY_LIST.forEach(key => {
         if (seen.has(key)) return;
         const g = season.perTeam[key]?.games.find(x => x.week === phase.week);
         if (!g || !g.opp) return;
         seen.add(key); seen.add(g.opp);
-        bugs.push(scoreBugHTML({
-            left: side(key, g.pts), right: side(g.opp, g.oppPts),
-            state: 'final', mid: `Week ${phase.week}`,
-        }, { variant: 'broadcast2', theme: 'dark' }));
+        const total = P(g.pts) + P(g.oppPts);
+        bugs.push(currentScoreBugHTML({
+            left: side(key, g.pts, 'l', P(g.pts) >= P(g.oppPts)),
+            right: side(g.opp, g.oppPts, 'r', P(g.oppPts) >= P(g.pts)),
+            mid: 'final',
+            probPct: total > 0 ? (P(g.pts) / total) * 100 : 50,
+        }));
     });
     if (!bugs.length) return null;
     return { week: phase.week, bugs: bugs.join('') };
 }
 
 /**
- * Il tabellone della regular season: UNA striscia sola a tutta larghezza, la
- * settimana aperta sopra e l'ultima chiusa sotto.
+ * Il secondo blocco del tabellone: l'ultima giornata archiviata.
  *
- * Erano due card — "This week's matchups" e "Latest results" — ma puntavano
- * allo stesso posto (Game Center) e raccontavano la stessa cosa a due
- * distanze di tempo: erano già una card sola divisa in due. Unite, la
- * broadcast2 si prende la larghezza per cui è disegnata (a mezza card
- * finirebbe sotto il `@container sb (max-width: 560px)`, che le toglie
- * pannello centrale e tacche — cioè proprio quello che la distingue dalla
- * ticker), e le due settimane si separano col tema invece che con due
- * varianti diverse.
+ * Sta in una card SUA, accanto a quella delle sfide in corso, invece che
+ * sotto un righello dentro la stessa striscia. Erano un blocco solo perché
+ * puntano allo stesso posto (Game Center), ma sono due domande diverse — "come
+ * sta andando" e "com'è finita" — e dentro una card sola si distinguevano
+ * soltanto per il tema del banner, un segnale che si legge come un difetto di
+ * stampa più che come "questa è archiviata". Due blocchi, due titoli.
  *
- * Regge anche da sola su ciascuna delle due metà: prima del draft, o con
- * ESPN irraggiungibile, `liveWeekBugs` torna null e resta la sola giornata
- * chiusa — con il titolo di prima, perché a quel punto la card È quella.
+ * Il controllo sulla settimana resta: Firebase scrive la giornata chiusa il
+ * martedì e per qualche ora ESPN mostra ancora la stessa: sono le stesse
+ * sfide, e in due card affiancate si vedrebbero due volte. Vince quella viva.
  */
-async function cardScoreboard(ctx) {
-    const live = await liveWeekBugs(ctx.season);
+async function cardLastResults(ctx) {
     const last = lastWeekBugs(ctx);
-    // Stessa settimana da tutt'e due le fonti (Firebase scrive la giornata
-    // chiusa il martedì, ESPN la mostra ancora): sono le stesse sfide, e
-    // mostrarle due volte non aggiunge niente. Vince quella viva.
-    const closed = last && (!live || last.week !== live.week) ? last : null;
-    if (!live && !closed) return '';
-
-    // Il righello separa DUE gruppi: senza la settimana viva sopra (prima del
-    // draft, o con ESPN muto) sarebbe un'etichetta appesa al niente, e per di
-    // più ripeterebbe il titolo della card.
-    const body = [
-        live?.bugs,
-        live && closed ? '<div class="mc-sb-sep"><span>Last week</span></div>' : '',
-        closed?.bugs,
-    ].filter(Boolean).join('');
+    if (!last) return '';
+    const live = await liveWeekBugs(ctx.season);
+    if (live && live.week === last.week) return '';
 
     return card({
-        span: 'wide', cls: 'mc-scorebug-card',
-        kicker: `Week ${(live || closed).week}`,
-        title: live && closed ? 'Scoreboard'
-            : live ? "This week's matchups" : 'Latest results',
-        body: `<div class="mc-scorebug-list">${body}</div>`,
+        span: 'half', cls: 'mc-scorebug-card',
+        kicker: `Week ${last.week}`,
+        title: 'Latest results',
+        body: `<div class="mc-scorebug-list">${last.bugs}</div>`,
         cta: 'Game Center', href: '#game-center',
     });
+}
+
+/* ─── Il mercato ──────────────────────────────────────────────────
+   Le stesse mosse della sezione Waivers (`data/waiver-moves.js`, che sceglie
+   da sé la fonte: transazioni ESPN quando ci sono, ricostruzione dalle rose
+   per le stagioni vecchie), ma RAGGRUPPATE. ESPN registra ogni transazione
+   come righe separate — un ADD e un DROP — e due righe staccate raccontano
+   uno scambio peggio di una riga sola: qui la domanda è «cosa ha fatto quella
+   squadra», non «quanti giocatori si sono mossi». La chiave del gruppo è
+   squadra + momento, e sulle stagioni ricostruite il momento è la settimana,
+   l'unica cosa che si sappia.
+
+   Card ASSENTE, non vuota, finché nessuno ha mosso niente: a inizio stagione
+   un riquadro "no moves" sarebbe un buco in mezzo al mosaico. */
+const WV_GROUPS = 6;
+
+async function cardWaivers({ season }) {
+    const { mosse } = await getWaiverMoves(season.year).catch(() => ({ mosse: [] }));
+    if (!mosse?.length) return '';
+
+    // `mosse` arriva già ordinata (più recente in alto): i gruppi ereditano
+    // quell'ordine così come si formano, senza riordinarli una seconda volta.
+    const gruppi = [];
+    const perChiave = new Map();
+    for (const m of mosse) {
+        const chiave = `${m.squadra}|${m.data || `w${m.settimana}`}`;
+        let g = perChiave.get(chiave);
+        if (!g) {
+            g = { squadra: m.squadra, data: m.data, settimana: m.settimana, tipo: m.tipo, bid: null, in: [], out: [] };
+            perChiave.set(chiave, g);
+            gruppi.push(g);
+        }
+        if (m.bid && !g.bid) g.bid = m.bid;
+        (m.verso === 'in' ? g.in : g.out).push(m);
+    }
+
+    const tiles = gruppi.slice(0, WV_GROUPS).map(g => wvMoveHTML(g, season.year)).join('');
+    return card({
+        span: 'wide', cls: 'mc-wv-card',
+        kicker: 'The market',
+        title: 'Waiver wire',
+        body: `<div class="mc-wv-grid">${tiles}</div>`,
+        cta: 'All moves', href: '#waivers',
+    });
+}
+
+/** Data breve della mossa. Senza (stagioni ricostruite) resta la settimana. */
+function wvWhen(g) {
+    const parti = [];
+    if (g.settimana != null) parti.push(`W${g.settimana}`);
+    if (g.data) {
+        const d = new Date(Number(g.data) || g.data);
+        if (!Number.isNaN(d.getTime())) parti.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+    return parti.join(' · ');
+}
+
+function wvMoveHTML(g, year) {
+    const t = TEAMS[g.squadra];
+    // Un giocatore che ESPN non ha saputo risolvere arriva come "#12345":
+    // resta testo, un link lo porterebbe a una scheda vuota.
+    const riga = (m, verso) => {
+        const href = String(m.nome).startsWith('#') ? null : playerHref(m.nome, m.pos, year);
+        const tag = href ? 'a' : 'span';
+        return `
+        <${tag} class="mc-wv-p mc-wv-p--${verso}"${href ? ` href="${href}"` : ''}>
+            ${playerAvatar(m.nome, m.nfl, m.pos, year, 'mc-avatar--wv')}
+            <span class="mc-wv-name">${esc(m.nome)}</span>
+            ${m.pos ? `<i class="mc-rail-pos pos-${esc(m.pos).toLowerCase()}">${esc(m.pos)}</i>` : ''}
+            <span class="mc-wv-dir">${verso === 'in' ? 'IN' : 'OUT'}</span>
+        </${tag}>`;
+    };
+    return `
+    <article class="mc-wv-move"${t ? ` style="--team-color:${t.color}"` : ''}>
+        <header class="mc-wv-head">
+            ${t ? `<img class="mc-wv-logo" src="${t.logo}" alt="" onerror="this.remove()">` : ''}
+            <span class="mc-wv-team">${t ? teamNameHTML(t.name) : esc(g.squadra || '')}</span>
+            <span class="mc-wv-when">${esc(wvWhen(g))}</span>
+        </header>
+        <div class="mc-wv-players">
+            ${g.in.map(m => riga(m, 'in')).join('')}
+            ${g.out.map(m => riga(m, 'out')).join('')}
+        </div>
+        <footer class="mc-wv-foot">${esc(g.tipo || '')}${g.bid ? ` · $${esc(g.bid)}` : ''}</footer>
+    </article>`;
 }
 
 /** Pallini della forma: le ultime cinque, dalla più vecchia. */
