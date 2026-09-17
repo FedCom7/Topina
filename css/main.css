@@ -11692,6 +11692,28 @@ div.gb-out-player:last-of-type .gb-out-meta {
 .pp-tl-line { fill: none; stroke: var(--accent-red, #B8433A); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
 .pp-tl-dot { fill: var(--accent-red, #B8433A); stroke: var(--bg-primary, #000); stroke-width: 2; }
 .pp-tl-dot--best { fill: var(--accent-green, #30d158); }
+/* Pallini dei grafici a tendenza (NFL career by category & co.): il contorno
+   prende il fondo della card, cosi' il pallino stacca dalla linea; massimo e
+   minimo di carriera come nella timeline — verde e rosso. */
+.an-trend-dot { stroke: var(--bg-card, #000); stroke-width: 2; }
+.an-trend-dot--hi { fill: var(--accent-green, #30d158); }
+.an-trend-dot--lo { fill: #e5484d; }
+
+/* Il migliore della colonna nelle tabelle della scheda giocatore. */
+.pp-table td.pp-best {
+    color: #b8860b;
+    font-weight: 800;
+}
+
+:root:not([data-theme="light"]) .pp-table td.pp-best {
+    color: #e8c14a;
+}
+.an-trend-callout {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--accent-green, #30d158);
+}
 .pp-tl-dot--inj { fill: var(--accent-amber, #f0b429); }
 .pp-tl-lead { stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
 .pp-tl-callout { font-size: 11px; font-weight: 700; font-family: var(--font-body); fill: var(--text-primary); }
@@ -13823,6 +13845,8 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-cmp-leg i.pp-bp-lg-med { width: 12px; height: 2px; background: var(--text-primary); }
 .pp-cmp-leg i.pp-bp-lg-mean { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-amber); }
 .pp-cmp-leg i.pp-bp-lg-wk { width: 2px; height: 12px; background: var(--text-muted); }
+.pp-cmp-leg i.pp-bp-lg-bar { width: 4px; height: 12px; border-radius: 1px; background: color-mix(in srgb, var(--text-primary) 26%, transparent); }
+.pp-cmp-leg i.pp-bp-lg-bartop { width: 4px; height: 12px; border-radius: 1px; background: var(--accent-red); }
 .pp-cmp-leg i.pp-bp-lg-proj { width: 9px; height: 9px; transform: rotate(45deg); border: 1.5px dashed var(--accent-amber); background: none; }
 
 /* Confronto con la lega Topina: grafico globale + distribuzione + percentili */
@@ -13869,6 +13893,12 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
    riquadro con mediana e quartili non comparirebbe piu'. */
 .pp-ridge-shape { fill: none; stroke: none; pointer-events: all; }
 .pp-ridge-line { fill: none; stroke: rgba(255, 255, 255, 0.5); stroke-width: 1.6; stroke-linejoin: round; }
+/* Le barre della distribuzione: una per passo dell'asse, la piu' alta in rosso
+   perche' e' il punteggio che quell'anno e' uscito piu' spesso. */
+.pp-ridge-bar { fill: color-mix(in srgb, var(--text-primary) 26%, transparent); }
+.pp-ridge-bar--top { fill: var(--accent-red); }
+.pp-ridge-g:hover .pp-ridge-bar { fill: color-mix(in srgb, var(--text-primary) 42%, transparent); }
+.pp-ridge-g:hover .pp-ridge-bar--top { fill: var(--accent-red); }
 /* La mediana passa all'accento: tolto il riempimento, in bianco su bianco
    spariva dentro al profilo che ha accanto. */
 .pp-ridge-median { stroke: var(--accent-red); stroke-width: 1.8; opacity: 0.95; }
@@ -13891,7 +13921,9 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 
 /* Traiettoria proiettato→reale per stagione (player · Carriera & arco) */
 .pp-pp-svg { width: 100%; height: auto; max-width: 620px; display: block; margin: 0 auto; }
-.pp-pp-diag { stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.7; }
+/* La diagonale e' la parita' proiezione-realta': verde e sottile, come
+   l'etichetta che le sta accanto — sopra quella riga si e' fatto meglio. */
+.pp-pp-diag { stroke: var(--accent-green); stroke-width: 1; stroke-dasharray: 5 4; opacity: 0.85; }
 .pp-pp-diaglbl { fill: var(--accent-green); font-size: 11px; font-weight: 700; }
 .pp-pp-line { fill: none; stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: 0.7; stroke-linejoin: round; }
 .pp-pp-dot { stroke: #000; stroke-width: 1.4; cursor: default; }
@@ -14276,7 +14308,9 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-gamelog {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    background: var(--bg-glass);
+    /* niente fondo: il riquadro lo fa gia' il bordo, e il grigio sotto una
+       tabella lunga la faceva sembrare disattivata */
+    background: transparent;
     padding: 0 14px;
 }
 .pp-gamelog + .pp-gamelog { margin-top: 8px; }
@@ -14318,6 +14352,8 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     width: 16px;
     height: 16px;
     object-fit: contain;
+    /* inline, se no il "v"/"@" finisce sulla riga sopra al logo */
+    display: inline-block;
     vertical-align: -3px;
     margin: 0 4px 0 2px;
 }
@@ -14451,7 +14487,10 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
    pannello arriva a mille pixel e i due grafici si spalmano fino ai bordi
    opposti lasciando un vuoto in mezzo — larghi il doppio del necessario e
    lontani fra loro proprio mentre vanno letti insieme. */
-.pp-pe-season { max-width: 940px; margin-inline: auto; }
+/* `width: 100%` non e' pleonastico: il blocco sta in un contenitore flex in
+   colonna e i margini automatici spengono lo stretch, quindi ogni stagione si
+   dimensionava sul proprio contenuto e le cascate uscivano di misure diverse. */
+.pp-pe-season { width: 100%; max-width: 940px; margin-inline: auto; }
 .pp-pe-charts { margin-top: 8px; }
 .pp-pe-charts--two {
     display: grid;

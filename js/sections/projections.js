@@ -28,7 +28,7 @@ import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName,
 import { multiLine, dumbbell, donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=66';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
-import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=1024';
+import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=1039';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1001';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
