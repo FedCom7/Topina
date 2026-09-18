@@ -1499,10 +1499,13 @@ function render() {
  * Passa alla squadra avversaria mantenendo la vista corrente. La scheda
  * dell'avversario entra dal lato verso cui punta la freccia.
  */
-function showOpponent() {
+function showOpponent(opts = {}) {
     const entries = teamEntries();
     const { opp } = entries[teamIdx];
-    const goingForward = teamIdx % 2 === 0;
+    // Col dito il verso lo decide il gesto: il campo esce da dove lo si sta
+    // spingendo, e il nuovo entra dal lato opposto. Senza gesto (tasto, doppio
+    // tocco) vale l'alternanza di sempre.
+    const goingForward = opts.verso != null ? opts.verso : teamIdx % 2 === 0;
     const next = entries.findIndex(e => e.team === opp);
     if (next >= 0) teamIdx = next;
 
@@ -1535,13 +1538,18 @@ function showOpponent() {
     newStage.style.minHeight = `${frozenHeight}px`;
     newStage.appendChild(ghost);
 
-    const D = 440;
+    // Se il dito ha gia' portato via mezza scheda, la coda dell'animazione e'
+    // piu' corta: partire da zero avrebbe fatto "saltare" indietro il campo.
+    const daX = opts.daX || 0;
+    const largo = stage.getBoundingClientRect().width || 1;
+    const fatto = Math.min(1, Math.abs(daX) / largo);
+    const D = Math.round(440 * (1 - fatto * 0.55));
     const E = 'cubic-bezier(0.22, 1, 0.36, 1)';
     const out = goingForward ? '-42%' : '42%';
     const inFrom = goingForward ? '42%' : '-42%';
 
     ghost.animate([
-        { transform: 'translateX(0)', opacity: 1 },
+        { transform: `translateX(${daX}px)`, opacity: opts.daOpacita ?? 1 },
         { transform: `translateX(${out})`, opacity: 0 },
     ], { duration: D, easing: E, fill: 'forwards' }).onfinish = () => {
         ghost.remove();
@@ -1554,38 +1562,103 @@ function showOpponent() {
     ], { duration: D, easing: E });
 }
 
-/** Swipe orizzontale sul campo/confronto → mostra l'avversario. */
 /**
- * Swipe per passare all'avversario. Deve restare un gesto VOLUTO — non un dito
- * che scorre la pagina — ma chiedeva troppo: mezzo schermo di corsa (175px su
- * un telefono da 390) e il gesto andava rifatto due volte su tre.
+ * Swipe sul campo (o sul confronto): il campo SEGUE il dito.
  *
- * Ora serve poco piu' di un quarto di schermo, il movimento deve essere largo
- * almeno una volta e mezza l'altezza, e c'e' un secondo per farlo. Il controllo
- * che protegge davvero dallo scroll e' il secondo: uno scorrimento verticale ha
- * dy molto maggiore di dx e non passa comunque.
+ * Non è più "misuro la corsa a fine gesto e decido": mentre il dito si muove
+ * la scheda si sposta con lui e sbiadisce un po', quindi se ci si ferma a metà
+ * resta lì ferma a metà. Al rilascio due strade sole: oltre la soglia la
+ * scheda finisce di uscire e quella dell'avversario entra dall'altro lato,
+ * sotto la soglia torna al suo posto con un rimbalzo corto.
+ *
+ * L'asse si decide al primo movimento e non cambia più: se il dito parte in
+ * verticale è uno scroll di pagina e lo swipe non si arma nemmeno (senza
+ * questo, leggendo la lista si trascinava il campo per sbaglio). Da quando si
+ * arma, invece, il movimento della pagina va fermato con `preventDefault` —
+ * per questo il listener non è passivo.
+ *
+ * Con `prefers-reduced-motion` il trascinamento non parte: resta il gesto
+ * secco di prima, che cambia squadra senza far viaggiare niente.
  */
 function bindSwipe(el) {
     if (!el) return;
-    const MIN_DX = () => Math.max(60, Math.min(150, window.innerWidth * 0.28));
-    let x0 = null, y0 = null, t0 = 0;
+    const stage = el.closest('.live-stage') || el;
+    const SOGLIA = () => Math.max(55, Math.min(130, window.innerWidth * 0.22));
+    const ridotto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let x0 = null, y0 = null, t0 = 0, asse = null, dx = 0;
+
+    const posa = (px) => {
+        // resistenza: più ci si allontana, meno il campo segue — dà il senso
+        // di un oggetto che si stacca invece di scorrere via da solo
+        const largo = stage.getBoundingClientRect().width || 1;
+        const q = Math.min(1, Math.abs(px) / largo);
+        const eff = px * (1 - q * 0.25);
+        el.style.transform = `translateX(${eff}px)`;
+        el.style.opacity = String(1 - q * 0.55);
+        return eff;
+    };
+
+    const rilascia = () => {
+        el.style.transform = '';
+        el.style.opacity = '';
+        el.classList.remove('live-dragging');
+    };
+
     el.addEventListener('touchstart', (e) => {
         if (e.touches.length > 1) { x0 = null; return; }
         x0 = e.changedTouches[0].clientX;
         y0 = e.changedTouches[0].clientY;
         t0 = performance.now();
+        asse = null;
+        dx = 0;
     }, { passive: true });
-    el.addEventListener('touchend', (e) => {
+
+    el.addEventListener('touchmove', (e) => {
+        if (x0 == null || e.touches.length > 1) return;
+        const t = e.changedTouches[0];
+        dx = t.clientX - x0;
+        const dy = t.clientY - y0;
+
+        if (asse === null) {
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;    // ancora fermo
+            asse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+            if (asse === 'x' && !ridotto()) el.classList.add('live-dragging');
+        }
+        if (asse !== 'x' || ridotto()) return;
+
+        e.preventDefault();      // da qui in poi il gesto è nostro, non dello scroll
+        posa(dx);
+    }, { passive: false });
+
+    const fine = () => {
         if (x0 == null) return;
-        const dx = e.changedTouches[0].clientX - x0;
-        const dy = e.changedTouches[0].clientY - y0;
+        const corsa = dx;
         const dt = performance.now() - t0;
         x0 = null;
-        if (Math.abs(dx) < MIN_DX()) return;          // corsa troppo corta
-        if (Math.abs(dx) < Math.abs(dy) * 1.6) return; // era uno scroll verticale
-        if (dt > 1000) return;                         // troppo lento: non è uno swipe
-        showOpponent();
-    }, { passive: true });
+        if (asse !== 'x') { rilascia(); return; }
+
+        // Oltre la soglia, oppure gesto corto ma veloce (flick): si cambia.
+        const basta = Math.abs(corsa) >= SOGLIA() || (Math.abs(corsa) > 30 && dt < 260);
+        if (!basta) {
+            if (ridotto() || !el.animate) { rilascia(); return; }
+            el.animate([
+                { transform: el.style.transform || 'none', opacity: el.style.opacity || 1 },
+                { transform: 'translateX(0)', opacity: 1 },
+            ], { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }).onfinish = rilascia;
+            el.style.transform = '';
+            el.style.opacity = '';
+            return;
+        }
+
+        const daX = parseFloat((el.style.transform.match(/-?[\d.]+/) || [0])[0]) || 0;
+        const daOpacita = parseFloat(el.style.opacity || '1');
+        el.classList.remove('live-dragging');
+        showOpponent({ verso: corsa < 0, daX, daOpacita });
+    };
+
+    el.addEventListener('touchend', fine, { passive: true });
+    el.addEventListener('touchcancel', () => { x0 = null; rilascia(); }, { passive: true });
 }
 
 /**

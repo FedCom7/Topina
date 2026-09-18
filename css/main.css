@@ -17638,6 +17638,16 @@ td.ps-div-seed {
     object-position: center 30%;
 }
 
+/* Mentre il dito trascina il campo: niente transizioni in mezzo (si muove il
+   transform a ogni frame) e nessuna selezione di testo per sbaglio. */
+.live-dragging {
+    transition: none !important;
+    will-change: transform, opacity;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+}
+
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;
