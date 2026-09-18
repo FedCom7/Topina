@@ -12,7 +12,7 @@ import { TEAMS } from './team.js?v=811';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=9';
-import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1001';
+import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1002';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=611';
 
 let initialized = false;

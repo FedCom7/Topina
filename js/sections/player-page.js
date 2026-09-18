@@ -23,7 +23,7 @@ import { canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { CURRENT_SEASON } from '../data.js?v=585';
 import { getAdvancedSeasons, getTeamAdvanced, getCombineDraft, getTeamDraftHistory, getDraftPeers, getAdvancedPool } from '../data/context-score.js?v=683';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
-import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=1001';
+import { getTeamRoster, getTeamInjuries, getTeamStarters, getPlayerInjuries, currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=534';
 import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=505';
@@ -919,7 +919,7 @@ export function rosterTableDetails(teamRoster, summaryLabel) {
         <tr>
             <td>${esc(p.name)}</td><td>${esc(p.pos || '—')}</td>
             <td>${p.jersey != null ? `#${p.jersey}` : '—'}</td>
-            <td>${p.status ? esc(p.status) : '—'}</td>
+            <td>${esc(ROSTER_LIST_LABELS[p.list] || p.status || '—')}</td>
             <td>${expDisplay(p.yearsExp)}</td>
             <td>${salaryDisplay(p.salary)}</td>
             <td>${p.snapPct != null ? fmt1(p.snapPct) + '%' : '—'}</td>
@@ -1033,35 +1033,44 @@ function _availabilityTimeline(players) {
 /** Liste di stato roster NFL (IR/PUP/NFI/Suspended/Practice Squad/...) riconosciute
  *  dal testo dello status ESPN. "Active"/"Day-To-Day" non sono liste a parte:
  *  restano nel roster normale. */
-const ROSTER_LISTS = [
-    { key: 'ir', label: 'Injured Reserve', re: /injured reserve/i },
-    { key: 'pup', label: 'PUP', re: /\bpup\b/i },
-    { key: 'nfi', label: 'Non-Football Injury', re: /non-football injury|\bnfi\b/i },
-    { key: 'susp', label: 'Suspended', re: /suspended/i },
-    { key: 'ps', label: 'Practice Squad', re: /practice squad/i },
-    { key: 'exempt', label: 'Exempt', re: /exempt/i },
-    { key: 'ret', label: 'Retired', re: /retired/i },
-];
+/**
+ * Etichetta leggibile di ogni lista roster. La chiave è il campo `list` che
+ * scrive `scripts/build-nfl-roster.mjs`: nflverse per la lista di base, Sleeper
+ * per distinguere IR / PUP / NFI / sospesi, che nflverse impacchetta tutti in
+ * `RES`. Prima qui c'erano espressioni regolari sulle stringhe lunghe di ESPN
+ * ("injured reserve", "practice squad"): quando la fonte è passata al file
+ * nflverse, che scrive CODICI, non combaciava più niente e tutti e 88 i
+ * giocatori finivano in un unico gruppone etichettato "ACT".
+ */
+export const ROSTER_LIST_LABELS = {
+    ACT: 'Active roster', PS: 'Practice squad', CUT: 'Released',
+    IR: 'Injured Reserve', PUP: 'PUP', NFI: 'Non-Football Injury',
+    SUSP: 'Suspended', COV: 'COVID list', DNR: 'Did not report',
+    RES: 'Reserve', EXE: 'Exempt', INA: 'Inactive', RET: 'Retired',
+};
+
+/** Liste di INDISPONIBILITÀ, in ordine di gravità: sono quelle della tab Injuries.
+ *  Active, practice squad e tagliati stanno in Roster, che è dove si va a
+ *  cercare "chi c'è", non "chi manca". */
+const UNAVAILABLE_LISTS = ['IR', 'PUP', 'NFI', 'SUSP', 'COV', 'DNR', 'RES', 'EXE', 'INA', 'RET'];
+
 const _rlNorm = (s) => (s || '').toLowerCase().replace(/[.,']/g, '').replace(/\s+/g, ' ').trim();
 
 /**
- * Liste di stato roster (IR, PUP, NFI, Suspended, Practice Squad, ...) — chi c'è
- * ADESSO su ciascuna, dallo status ufficiale ESPN del roster (fonte primaria:
- * copre tutti i giocatori, sempre aggiornata; le transactions da sole
- * coprirebbero solo le ultime ~20 mosse e perderebbero chi è in lista da più
- * tempo). Ogni giocatore viene arricchito, quando trovata, con la data
- * dell'ultima transaction che lo cita (per nome), per mostrare il movimento.
+ * Liste di stato roster — chi c'è ADESSO su ciascuna. Una scatola per lista,
+ * vuote comprese no: si mostrano solo quelle che hanno qualcuno, altrimenti
+ * una squadra senza sospesi porterebbe in giro una scatola vuota.
+ * Ogni giocatore viene arricchito, quando trovata, con la data dell'ultima
+ * transaction che lo cita (per cognome), per mostrare quando si è mosso.
  */
 export function rosterStatusListsBlock({ teamRoster, transactions }) {
     const players = teamRoster?.players || [];
     const byList = {};
     for (const p of players) {
-        if (!p.status || /^active$|^day-to-day$/i.test(p.status)) continue;
-        const cat = ROSTER_LISTS.find(l => l.re.test(p.status)) || { key: 'other', label: p.status };
-        (byList[cat.key] ??= { label: cat.label, players: [] }).players.push(p);
+        if (!UNAVAILABLE_LISTS.includes(p.list)) continue;
+        (byList[p.list] ??= []).push(p);
     }
-    const keys = Object.keys(byList);
-    if (!keys.length) return '';
+    if (!Object.keys(byList).length) return '';
 
     const dateFor = (name) => {
         if (!transactions?.length) return null;
@@ -1074,9 +1083,8 @@ export function rosterStatusListsBlock({ teamRoster, transactions }) {
         return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
-    const order = ['ir', 'pup', 'nfi', 'susp', 'ps', 'exempt', 'ret', 'other'];
-    const groups = order.filter(k => byList[k]).map(k => {
-        const { label, players: ps } = byList[k];
+    const groups = UNAVAILABLE_LISTS.filter(k => byList[k]).map(k => {
+        const ps = [...byList[k]].sort((a, b) => (a.pos || '').localeCompare(b.pos || '') || a.name.localeCompare(b.name));
         const rows = ps.map(p => {
             const d = dateFor(p.name);
             return `<div class="pp-rl-row">
@@ -1086,16 +1094,17 @@ export function rosterStatusListsBlock({ teamRoster, transactions }) {
             </div>`;
         }).join('');
         return `<div class="pp-rl-group">
-            <h4 class="pp-cat-title">${esc(label)} <span class="pp-rl-count">${ps.length}</span></h4>
+            <h4 class="pp-cat-title">${esc(ROSTER_LIST_LABELS[k] || k)} <span class="pp-rl-count">${ps.length}</span></h4>
             ${rows}
         </div>`;
     }).join('');
 
+    const totale = Object.values(byList).reduce((n, v) => n + v.length, 0);
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Roster status lists</span>
+        <span class="mc-kicker">Roster lists · unavailable <span class="pp-rl-count">${totale}</span></span>
         <div class="pp-rl-grid">${groups}</div>
-        <p class="pm-note">Who's currently on each reserve list, from the official ESPN roster status. Dates (when found) come from the most recent related transaction.</p>
+        <p class="pm-note">Who is on each reserve list right now. Base list from the official nflverse roster, refined with Sleeper to tell Injured Reserve, PUP, NFI and suspensions apart — nflverse files them all as one "reserve" code. "Reserve" means exactly that: on a reserve list, with no finer designation available. Dates, when found, come from the most recent related transaction. Active roster, practice squad and released players are in the Roster tab.</p>
     </section>`;
 }
 
@@ -1104,6 +1113,19 @@ export function teamInjuriesBlock({ teamInjuries, abbr }) {
     // card ordinate per gravità (Out/IR prima), con stripe di severità a colore.
     const sevRank = (s) => /out|injured reserve|reserve|\bpup\b/i.test(s || '') ? 3 : /doubtful/i.test(s || '') ? 2 : /questionable/i.test(s || '') ? 1 : 0;
     const sorted = [...teamInjuries.players].sort((a, b) => sevRank(b.status) - sevRank(a.status));
+    // Dettaglio ESPN (parte del corpo, tipo, rientro stimato): lo attacca il
+    // builder dentro a ogni giocatore, perché dal browser l'endpoint ESPN che
+    // lo espone è chiuso da CORS (manda gli header solo alle richieste senza
+    // Origin, cioè non a un browser). Arricchisce la card dove c'è, non decide
+    // chi ci finisce.
+    const eta = (iso) => {
+        if (!iso) return null;
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return null;
+        const giorni = Math.round((d - new Date()) / 86400000);
+        const data = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return giorni > 0 ? `${data} (in ${giorni}d)` : data;
+    };
     const cardOf = (p) => {
         // designazione in allenamento: si mostra solo se aggiunge informazione
         // (spesso coincide col report ufficiale — niente ripetizione inutile)
@@ -1113,7 +1135,7 @@ export function teamInjuriesBlock({ teamInjuries, abbr }) {
         const injury = [p.primaryInjury, p.secondaryInjury].filter(Boolean).join(', ');
         const sv = sevRank(p.status);
         const sevKey = sv >= 3 ? 'out' : sv === 2 ? 'doubt' : sv === 1 ? 'quest' : 'ok';
-        const detail = `${injury ? esc(injury) : ''}${p.practiceStatus ? `${injury ? ' · ' : ''}${esc(p.practiceStatus)}` : ''}${showPracticeInjury ? ` <small>(all.: ${esc(practiceInjury)})</small>` : ''}${updated ? ` <small>· agg. W${p.week ?? '?'}</small>` : ''}`;
+        const detail = `${injury ? esc(injury) : ''}${p.practiceStatus ? `${injury ? ' · ' : ''}${esc(p.practiceStatus)}` : ''}${showPracticeInjury ? ` <small>(practice: ${esc(practiceInjury)})</small>` : ''}${updated ? ` <small>· updated W${p.week ?? '?'}</small>` : ''}`;
         return `
         <div class="pp-injc pp-injc--${sevKey}">
             <div class="pp-injc-top">
@@ -1121,6 +1143,18 @@ export function teamInjuriesBlock({ teamInjuries, abbr }) {
                 ${p.status ? `<span class="pp-inj-status${severityClass(p.status)}">${esc(p.status)}</span>` : ''}
             </div>
             ${detail.trim() ? `<div class="pp-injc-det">${detail}</div>` : ''}
+            ${(() => {
+                const e = p.espn;
+                if (!e) return '';
+                // "Sprain · Knee (Right)" — si compone solo con quello che c'è
+                const corpo = [e.detail || e.type, e.location].filter(Boolean).join(' · ');
+                const parti = [
+                    corpo ? `<b>${esc(corpo)}</b>${e.side ? ` <small>(${esc(e.side)})</small>` : ''}` : '',
+                    e.returnDate ? `back: ${esc(eta(e.returnDate) || '')}` : '',
+                ].filter(Boolean).join(' · ');
+                if (!parti && !e.comment) return '';
+                return `<div class="pp-injc-espn">${parti}${e.comment ? `<div class="pp-injc-note">${esc(e.comment)}</div>` : ''}</div>`;
+            })()}
             ${injuryHistoryDetails(p.weeks)}
         </div>`;
     };
@@ -1130,7 +1164,7 @@ export function teamInjuriesBlock({ teamInjuries, abbr }) {
         ? `<div class="pp-injc-grid">${concerns.map(cardOf).join('')}</div>`
         : '<p class="pm-note">No player with an Out/Doubtful/Questionable designation in the latest report.</p>';
     const restGrid = rest.length
-        ? `<details class="pp-recap-ids" style="margin-top:10px"><summary>Altri ${rest.length} · partecipazione piena / rientrati</summary><div class="pp-injc-grid" style="margin-top:10px">${rest.map(cardOf).join('')}</div></details>`
+        ? `<details class="pp-recap-ids" style="margin-top:10px"><summary>Other ${rest.length} · full participation / returned</summary><div class="pp-injc-grid" style="margin-top:10px">${rest.map(cardOf).join('')}</div></details>`
         : '';
     return `
     <section class="pm-block pp-block">
@@ -1139,7 +1173,7 @@ export function teamInjuriesBlock({ teamInjuries, abbr }) {
         ${mainGrid}${restGrid}
         <p class="pm-note">${teamInjuries.source === 'espn-live'
             ? 'Live report (ESPN) — current status only, no season history available for this source.'
-            : `Latest status of each player in the injury report for the whole regular season (through W${Math.max(...teamInjuries.players.map(p => p.week || 0))}); open "Season history" to see when he got hurt, with what, and whether he returned.`}</p>
+            : `Latest status of each player in the injury report for the whole regular season (through W${Math.max(...teamInjuries.players.map(p => p.week || 0))}); open "Season history" to see when he got hurt, with what, and whether he returned.`}${teamInjuries.players.some(p => p.espn) ? ' Body part, injury type and estimated return date from the ESPN feed, where available.' : ''}</p>
     </section>`;
 }
 

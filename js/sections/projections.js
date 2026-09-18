@@ -29,7 +29,7 @@ import { multiLine, dumbbell, donutPoint, donutSeg, donutLabel } from '../ui/cha
 import { renderPreDraft, resetPreDraft } from './predraft.js?v=66';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
 import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=1047';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1001';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1002';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const POS_NAME = { QB: 'Quarterback', RB: 'Running back', WR: 'Wide receiver', TE: 'Tight end' };

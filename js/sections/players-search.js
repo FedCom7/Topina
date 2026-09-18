@@ -15,7 +15,7 @@ import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=683';
 import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=546';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=611';
-import { currentNflSeason } from '../data/nfl-team-extras.js?v=998';
+import { currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
 
 // ─── Selettore stagione · governa tutta la pagina (tabellone, classifiche,
 // confronto squadre, dashboard giocatori). Stessa logica di TEAM_HISTORY_YEARS

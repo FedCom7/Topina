@@ -26,7 +26,7 @@ import {
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=9';
 import { TEAMS } from './team.js?v=811';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1001';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1002';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

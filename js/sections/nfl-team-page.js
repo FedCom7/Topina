@@ -14,7 +14,7 @@
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=534';
 import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=683';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1001';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
@@ -34,7 +34,7 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1048';
+} from './player-page.js?v=1049';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
@@ -2358,14 +2358,47 @@ function depthChartTab(live, year) {
 
 /** Rosa completa (tutti i giocatori con statistiche) da nflverse (teamRoster).
  *  Nel tab dedicato Roster la tabella è aperta di default. */
+/**
+ * Rosa divisa per lista, invece della tabella unica di prima: elencava tutti e
+ * 88 i tesserati di fila — attivi, practice squad e tagliati insieme — e per
+ * sapere chi gioca davvero domenica bisognava leggere la colonna Status riga
+ * per riga. I gruppi sono quelli del campo `list` (vedi ROSTER_LIST_LABELS);
+ * gli indisponibili restano in coda, chiusi, perché il loro posto è la tab
+ * Injuries, ma toglierli di qui vorrebbe dire che la rosa non è più la rosa.
+ */
+const ROSTER_GROUPS = [
+    { codes: ['ACT'], label: 'Active roster', open: true },
+    { codes: ['PS'], label: 'Practice squad', open: false },
+    { codes: ['CUT'], label: 'Released', open: false },
+    { codes: ['IR', 'PUP', 'NFI', 'SUSP', 'COV', 'DNR', 'RES', 'EXE', 'INA', 'RET'], label: 'Unavailable (IR, PUP, …)', open: false },
+];
+
 function rosterBlock(teamRoster) {
     if (!teamRoster?.players?.length) return '';
-    const table = rosterTableDetails(teamRoster, `All players (${teamRoster.players.length}) with stats`)
-        .replace('<details ', '<details open ');
-    return `
+    const players = teamRoster.players;
+    // Nessun `list` (stagioni vecchie, o roster ESPN di ripiego): si torna alla
+    // tabella unica, che senza le liste e' l'unica cosa che ha senso.
+    if (!players.some(p => p.list)) {
+        return `
     <section class="pm-block pp-block">
         <span class="mc-kicker">Full roster</span>
-        ${table}
+        ${rosterTableDetails(teamRoster, `All players (${players.length}) with stats`).replace('<details ', '<details open ')}
+    </section>`;
+    }
+
+    const blocchi = ROSTER_GROUPS.map(g => {
+        const sub = players.filter(p => g.codes.includes(p.list));
+        if (!sub.length) return '';
+        const html = rosterTableDetails({ ...teamRoster, players: sub }, `${g.label} (${sub.length})`);
+        return g.open ? html.replace('<details ', '<details open ') : html;
+    }).filter(Boolean).join('');
+
+    const senzaLista = players.filter(p => !p.list).length;
+    return `
+    <section class="pm-block pp-block">
+        <span class="mc-kicker">Full roster <span class="pp-rl-count">${players.length}</span></span>
+        ${blocchi}
+        <p class="pm-note">Split by roster list: who is on the active roster, who is on the practice squad, who has been released.${senzaLista ? ` ${senzaLista} player(s) with no list are not shown in any group.` : ''} Reserve lists (IR, PUP, suspensions) have their own boxes in the Injuries tab.</p>
     </section>`;
 }
 

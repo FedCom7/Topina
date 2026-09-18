@@ -14233,6 +14233,15 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-injc-det { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; }
 .pp-injc-det small { color: var(--text-muted); }
 .pp-injc .pp-inj-history { margin-top: 8px; }
+/* Dettaglio ESPN (parte del corpo, tipo, rientro stimato): staccato dal
+   referto ufficiale da una riga, perche' e' un'altra fonte e non deve
+   sembrare parte della designazione di gara. */
+.pp-injc-espn {
+    font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+    margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-subtle);
+}
+.pp-injc-espn b { color: var(--text-primary); }
+.pp-injc-note { color: var(--text-muted); margin-top: 3px; }
 
 /* Liste di stato roster (IR/PUP/NFI/Suspended/Practice Squad/...) */
 .pp-rl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 20px; margin-top: 6px; }

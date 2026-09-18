@@ -11,6 +11,20 @@
  * season) da snap_counts_{Y}.csv, per ruoli (OL/DL/LB/...) non coperti da
  * adv_players_{Y}.json (che ha solo QB/RB/WR/TE/K).
  *
+ * Ogni giocatore porta anche `list`: la lista roster su cui si trova ADESSO
+ * (ACT, PS, CUT, IR, PUP, NFI, SUSP, RES, INA, EXE, RET). nflverse da solo non
+ * basta: mette IR, PUP, NFI e sospesi tutti sotto `RES`, e la colonna
+ * `status_description_abbr` a monte per il 2026 vale "REG" nel 97% dei casi.
+ * L'etichetta fine arriva da `injury_status` di Sleeper (IR/PUP/NA/Sus), che
+ * combacia quasi uno a uno con i RES di nflverse: 243 su 276 (88%) al
+ * 18/09/2026. Il resto resta `RES`, che a schermo è "Reserve" e non una
+ * bugia. Il dump Sleeper pesa 14 MB e per questo si scarica QUI e non nel
+ * browser — è tutto il punto di avere un builder.
+ *
+ * L'etichetta Sleeper si applica solo alla STAGIONE IN CORSO: il dump è uno
+ * stato attuale, non uno storico, e appiccicarlo al 2021 direbbe che un
+ * giocatore era in IR cinque anni fa perché lo è oggi.
+ *
  * Uso:  npm run build-nfl-roster            # 2019..2025
  *       npm run build-nfl-roster -- 2024    # una o più stagioni
  */
@@ -22,6 +36,46 @@ import { ROOT, canonAbbr, loadCsv, num } from './lib/nflverse.mjs';
 const OUT_DIR = path.join(ROOT, 'data', 'nfl');
 const DEFAULT_SEASONS = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
 const r1 = (v) => (v == null || Number.isNaN(v) ? null : +v.toFixed(1));
+
+/** Stagione NFL in corso — stessa regola di js/data/nfl-team-extras.js. */
+const currentNflSeason = (d = new Date()) => (d.getMonth() + 1 >= 3 ? d.getFullYear() : d.getFullYear() - 1);
+
+/** Codice nflverse → lista roster. `RES` si affina con Sleeper (vedi sotto). */
+const LIST_BY_STATUS = { ACT: 'ACT', DEV: 'PS', CUT: 'CUT', RES: 'RES', INA: 'INA', EXE: 'EXE', RET: 'RET' };
+/** `injury_status` Sleeper → lista, per i soli giocatori che nflverse dà in RES. */
+const LIST_BY_SLEEPER = { IR: 'IR', PUP: 'PUP', NA: 'NFI', Sus: 'SUSP', DNR: 'DNR', COV: 'COV' };
+
+const normName = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z ]/g, '').replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Indice Sleeper per etichettare le riserve. Tre chiavi in ordine di fiducia:
+ * gsis (esatto ma Sleeper ce l'ha solo per 3888 giocatori su 12228),
+ * squadra+nome, e nome da solo quando non è ambiguo — quest'ultimo recupera i
+ * 34 giocatori a cui Sleeper ha già tolto la squadra mettendoli in riserva.
+ */
+async function loadSleeperLists() {
+    try {
+        const res = await fetch('https://api.sleeper.app/v1/players/nfl');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const all = await res.json();
+        const byGsis = {}, byTeamName = {}, byName = {};
+        for (const p of Object.values(all)) {
+            const n = normName(p.full_name || p.search_full_name);
+            if (p.gsis_id) byGsis[p.gsis_id] ??= p;
+            if (p.team && n) byTeamName[`${canonAbbr(p.team)}|${n}`] ??= p;
+            if (n) byName[n] = (n in byName) ? null : p; // null = omonimi, non si usa
+        }
+        return (team, gsis, name) => {
+            const n = normName(name);
+            const p = byGsis[gsis] || byTeamName[`${team}|${n}`] || byName[n] || null;
+            return p ? LIST_BY_SLEEPER[p.injury_status] || null : null;
+        };
+    } catch (e) {
+        console.log(`  Sleeper non raggiungibile (${e.message}): le riserve restano "RES".`);
+        return () => null;
+    }
+}
 
 /** Snap% medio (0-100) di regular season per pfr_player_id. */
 async function loadSnapPct(year) {
@@ -107,10 +161,12 @@ async function loadStarters(year) {
 }
 
 async function buildSeason(year) {
-    const [rows, snapPct, starters] = await Promise.all([
+    const corrente = +year === currentNflSeason();
+    const [rows, snapPct, starters, sleeperList] = await Promise.all([
         loadCsv('rosters', [`roster_${year}.csv`, `roster_${year}.csv.gz`]),
         loadSnapPct(year),
         loadStarters(year),
+        corrente ? loadSleeperLists() : Promise.resolve(() => null),
     ]);
     if (!rows) return null;
 
@@ -127,6 +183,7 @@ async function buildSeason(year) {
             pos: (r.position || '').toUpperCase(),
             jersey: r.jersey_number ? +r.jersey_number : null,
             status: r.status || null,
+            list: null, // riempita sotto: serve il nome già normalizzato
             college: r.college || null,
             yearsExp: num(r.years_exp),
             depthPosition: r.depth_chart_position || null,
@@ -139,6 +196,10 @@ async function buildSeason(year) {
 
     const teams = {};
     for (const [team, byGsis] of Object.entries(byTeam)) {
+        for (const p of Object.values(byGsis)) {
+            const base = LIST_BY_STATUS[p.status] || (p.status ? 'RES' : null);
+            p.list = base === 'RES' ? (sleeperList(team, p.gsis, p.name) || 'RES') : base;
+        }
         teams[team] = Object.values(byGsis).sort((a, b) => (a.pos || '').localeCompare(b.pos || ''));
     }
     return { season: +year, generatedAt: new Date().toISOString(), teams, starters };
