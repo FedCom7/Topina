@@ -17648,6 +17648,29 @@ td.ps-div-seed {
     touch-action: pan-y;
 }
 
+/* Il palco normalmente taglia quello che esce dai suoi bordi; durante il
+   trascinamento no, altrimenti la scheda si tronca di netto appena parte.
+   A non far comparire la barra orizzontale ci pensa la sezione, con `clip`
+   (che a differenza di `hidden` non crea un contenitore di scorrimento). */
+.live-stage.is-dragging {
+    overflow: visible;
+}
+
+.page-section.live-clip-x {
+    overflow-x: clip;
+}
+
+/* La scheda dell'avversario, appoggiata di fianco in attesa di entrare. */
+.live-incoming {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    will-change: transform;
+    pointer-events: none;
+}
+
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;

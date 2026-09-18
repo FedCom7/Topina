@@ -1583,30 +1583,72 @@ function showOpponent(opts = {}) {
 function bindSwipe(el) {
     if (!el) return;
     const stage = el.closest('.live-stage') || el;
+    const sezione = el.closest('.page-section') || document.getElementById('live');
     const SOGLIA = () => Math.max(55, Math.min(130, window.innerWidth * 0.22));
     const ridotto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const E = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
     let x0 = null, y0 = null, t0 = 0, asse = null, dx = 0;
+    let entrante = null, prossimo = -1, finendo = false;
+
+    /**
+     * La scheda dell'avversario, pronta di fianco a quella a schermo.
+     *
+     * Si costruisce all'inizio del gesto con lo stesso `fieldHTML` del render
+     * normale — non e' un'anteprima finta, e' proprio il campo che si vedra'
+     * dopo — e si appoggia in posizione assoluta sul palco, spostata di una
+     * larghezza a destra o a sinistra. Da lì cammina col dito insieme all'altra.
+     *
+     * Nel confronto (le due squadre affiancate) non si fa: quella che entra
+     * sarebbe alta il doppio e il palco ballerebbe a ogni gesto.
+     */
+    const preparaEntrante = (verso) => {
+        if (!el.classList.contains('live-field-slider')) return null;
+        const entries = teamEntries();
+        const corrente = entries[teamIdx];
+        if (!corrente) return null;
+        prossimo = entries.findIndex(e => e.team === corrente.opp);
+        if (prossimo < 0) return null;
+
+        const tmp = document.createElement('div');
+        tmp.innerHTML = fieldHTML(entries[prossimo].team);
+        const card = tmp.querySelector('.live-field-slider');
+        if (!card) return null;
+        card.removeAttribute('data-swipe');
+        card.classList.add('live-incoming');
+        card.style.transform = `translateX(${verso < 0 ? '100%' : '-100%'})`;
+        stage.appendChild(card);
+        return card;
+    };
 
     const posa = (px) => {
-        // resistenza: più ci si allontana, meno il campo segue — dà il senso
-        // di un oggetto che si stacca invece di scorrere via da solo
         const largo = stage.getBoundingClientRect().width || 1;
         const q = Math.min(1, Math.abs(px) / largo);
+        // resistenza: piu' ci si allontana, meno il campo segue
         const eff = px * (1 - q * 0.25);
         el.style.transform = `translateX(${eff}px)`;
-        el.style.opacity = String(1 - q * 0.55);
+        // La scheda che esce NON sbiadisce: si vede intera finche' non lascia
+        // lo schermo. A prendersi la scena e' quella che entra.
+        if (entrante) {
+            const lato = eff < 0 ? '100%' : '-100%';
+            entrante.style.transform = `translateX(calc(${lato} + ${eff}px))`;
+        }
         return eff;
     };
 
-    const rilascia = () => {
+    const pulisci = () => {
         el.style.transform = '';
         el.style.opacity = '';
         el.classList.remove('live-dragging');
+        stage.classList.remove('is-dragging');
+        sezione?.classList.remove('live-clip-x');
+        entrante?.remove();
+        entrante = null;
+        prossimo = -1;
     };
 
     el.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) { x0 = null; return; }
+        if (finendo || e.touches.length > 1) { x0 = null; return; }
         x0 = e.changedTouches[0].clientX;
         y0 = e.changedTouches[0].clientY;
         t0 = performance.now();
@@ -1615,7 +1657,7 @@ function bindSwipe(el) {
     }, { passive: true });
 
     el.addEventListener('touchmove', (e) => {
-        if (x0 == null || e.touches.length > 1) return;
+        if (x0 == null || finendo || e.touches.length > 1) return;
         const t = e.changedTouches[0];
         dx = t.clientX - x0;
         const dy = t.clientY - y0;
@@ -1623,42 +1665,88 @@ function bindSwipe(el) {
         if (asse === null) {
             if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;    // ancora fermo
             asse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-            if (asse === 'x' && !ridotto()) el.classList.add('live-dragging');
+            if (asse === 'x' && !ridotto()) {
+                el.classList.add('live-dragging');
+                // Il palco smette di tagliare — se no la scheda si tronca di
+                // netto sul bordo — e il taglio passa alla sezione, che cosi'
+                // non guadagna una barra di scorrimento orizzontale.
+                stage.classList.add('is-dragging');
+                sezione?.classList.add('live-clip-x');
+                entrante = preparaEntrante(dx);
+            }
         }
         if (asse !== 'x' || ridotto()) return;
 
-        e.preventDefault();      // da qui in poi il gesto è nostro, non dello scroll
+        e.preventDefault();      // da qui in poi il gesto e' nostro, non dello scroll
         posa(dx);
     }, { passive: false });
 
     const fine = () => {
-        if (x0 == null) return;
+        if (x0 == null || finendo) return;
         const corsa = dx;
         const dt = performance.now() - t0;
         x0 = null;
-        if (asse !== 'x') { rilascia(); return; }
+        if (asse !== 'x') { pulisci(); return; }
 
         // Oltre la soglia, oppure gesto corto ma veloce (flick): si cambia.
         const basta = Math.abs(corsa) >= SOGLIA() || (Math.abs(corsa) > 30 && dt < 260);
+        const largo = stage.getBoundingClientRect().width || 1;
+        const daX = parseFloat((el.style.transform.match(/-?[\d.]+/) || [0])[0]) || 0;
+
         if (!basta) {
-            if (ridotto() || !el.animate) { rilascia(); return; }
-            el.animate([
-                { transform: el.style.transform || 'none', opacity: el.style.opacity || 1 },
-                { transform: 'translateX(0)', opacity: 1 },
-            ], { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }).onfinish = rilascia;
-            el.style.transform = '';
-            el.style.opacity = '';
+            if (!el.animate || ridotto()) { pulisci(); return; }
+            // torna al suo posto, e quella di fianco si ritira dal bordo
+            const rientro = { duration: 260, easing: E };
+            el.animate([{ transform: `translateX(${daX}px)` }, { transform: 'translateX(0)' }], rientro);
+            if (entrante) {
+                const lato = daX < 0 ? '100%' : '-100%';
+                entrante.animate([
+                    { transform: `translateX(calc(${lato} + ${daX}px))` },
+                    { transform: `translateX(${lato})` },
+                ], rientro);
+            }
+            setTimeout(pulisci, 260);
             return;
         }
 
-        const daX = parseFloat((el.style.transform.match(/-?[\d.]+/) || [0])[0]) || 0;
-        const daOpacita = parseFloat(el.style.opacity || '1');
-        el.classList.remove('live-dragging');
-        showOpponent({ verso: corsa < 0, daX, daOpacita });
+        // Senza la scheda pronta (confronto, o animazioni spente) resta la
+        // transizione di sempre, che ridisegna e fa entrare l'altra.
+        if (!entrante || !el.animate || ridotto()) {
+            pulisci();
+            showOpponent({ verso: corsa < 0 });
+            return;
+        }
+
+        // Si finisce il viaggio: quella che esce se ne va intera, quella che
+        // entra si mette al centro. Il tempo che resta dipende da quanta
+        // strada ha gia' fatto il dito.
+        finendo = true;
+        const resta = Math.max(0, 1 - Math.abs(daX) / largo);
+        const D = Math.round(120 + 260 * resta);
+        const fuori = daX < 0 ? -largo : largo;
+        const lato = daX < 0 ? '100%' : '-100%';
+
+        el.animate([
+            { transform: `translateX(${daX}px)` },
+            { transform: `translateX(${fuori}px)` },
+        ], { duration: D, easing: E, fill: 'forwards' });
+
+        entrante.animate([
+            { transform: `translateX(calc(${lato} + ${daX}px))` },
+            { transform: 'translateX(0)' },
+        ], { duration: D, easing: E, fill: 'forwards' }).onfinish = () => {
+            // Il render vero rimette esattamente la scheda che si sta gia'
+            // vedendo: lo scambio non si nota, e da lì i punti tornano ad
+            // aggiornarsi da soli come sempre.
+            teamIdx = prossimo;
+            finendo = false;
+            pulisci();
+            render();
+        };
     };
 
     el.addEventListener('touchend', fine, { passive: true });
-    el.addEventListener('touchcancel', () => { x0 = null; rilascia(); }, { passive: true });
+    el.addEventListener('touchcancel', () => { x0 = null; if (!finendo) pulisci(); }, { passive: true });
 }
 
 /**
