@@ -5,7 +5,7 @@
  *   #playoffs  → Playoff Picture (tabellone semifinali + Super Bowl)
  */
 import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, SEASONS, SEASONS_DESC, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=585';
-import { TEAMS } from './team.js?v=804';
+import { TEAMS } from './team.js?v=811';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loadedStandings = false;

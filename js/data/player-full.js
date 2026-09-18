@@ -160,6 +160,44 @@ export async function getPlayerSeasonTotals(playerId, season, pos) {
     return totals;
 }
 
+/** Campi che non si sommano: classifiche, primati, medie. */
+const NON_SOMMABILI = /(rank|lng|pct|rtg|adp|shard|_id)/;
+
+/**
+ * Totali di stagione allineati al game log.
+ *
+ * Sleeper ricalcola il totale di stagione solo a giornata chiusa, mentre il
+ * tabellino di ogni gara e' aggiornato subito: dal giovedi' al lunedi' la
+ * scheda diceva "1 gara, 35,7 punti" con la seconda gia' giocata e visibile
+ * due righe sotto. Se il game log ha piu' gare del totale, il totale si
+ * ricostruisce sommando le gare — cosi' la tabella e il game log non possono
+ * discordare. A stagione allineata (o chiusa) non si tocca niente.
+ */
+function allineaAlleSettimane(totals, weekly, pos) {
+    const gare = (weekly || []).filter(g => g.stats).length;
+    if (!gare || gare <= +(totals?.stats?.gp || 0)) return totals;
+
+    const stats = {};
+    for (const g of weekly) {
+        for (const k in (g.stats || {})) {
+            if (NON_SOMMABILI.test(k)) continue;
+            const v = g.stats[k];
+            if (typeof v !== 'number') continue;
+            stats[k] = (stats[k] || 0) + v;
+        }
+    }
+    stats.gp = gare;
+    // Le percentuali non si sommano: quella dei completi si ricalcola dai due
+    // conteggi (il passer rating no, e resta fuori finche' Sleeper non lo da').
+    if (stats.pass_att) stats.cmp_pct = (stats.pass_cmp || 0) / stats.pass_att * 100;
+    return {
+        ...(totals || {}),
+        stats,
+        pts: refPts(stats, pos),
+        team: weekly[weekly.length - 1]?.team || totals?.team || null,
+    };
+}
+
 /**
  * Orchestratore per la pagina giocatore: risolve l'id, carica anagrafica
  * e tutte le stagioni con dati (game log + totali), dalla più recente.
@@ -187,11 +225,13 @@ export async function getFullPlayer({ name, pos, year, topinaSeasons = [] }) {
     const years = [];
     for (let y = latest; y >= from; y--) years.push(y);
 
-    const results = await Promise.allSettled(years.map(async y => ({
-        year: y,
-        totals: await getPlayerSeasonTotals(playerId, y, P),
-        weekly: await getPlayerWeekly(playerId, y, P),
-    })));
+    const results = await Promise.allSettled(years.map(async y => {
+        const [totals, weekly] = await Promise.all([
+            getPlayerSeasonTotals(playerId, y, P),
+            getPlayerWeekly(playerId, y, P),
+        ]);
+        return { year: y, totals: allineaAlleSettimane(totals, weekly, P), weekly };
+    }));
 
     const seasons = results
         .filter(r => r.status === 'fulfilled' && (r.value.totals || r.value.weekly.length))

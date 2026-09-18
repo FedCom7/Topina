@@ -14,10 +14,10 @@
  */
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=602';
-import { TEAMS } from '../sections/team.js?v=804';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=611';
+import { TEAMS } from '../sections/team.js?v=811';
 import { playerImageService } from '../services/player-image-service.js?v=522';
-import { getPlayerInfo } from '../data/player-full.js?v=666';
+import { getPlayerInfo } from '../data/player-full.js?v=671';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 

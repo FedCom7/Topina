@@ -181,12 +181,27 @@ export async function getSeasonStats(year) {
 
     const map = new Map();
     list.forEach(e => {
-        const pl = e.player;
-        const s = e.stats || {};
-        if (!pl || (s.pts_half_ppr == null && s.pts_std == null)) return;
-        const pos = (pl.position || '').toUpperCase();
-        const name = `${pl.first_name} ${pl.last_name}`;
-        const entry = {
+        const entry = voceStat(e);
+        if (!entry) return;
+        const key = `${normName(entry.name)}|${entry.pos}`;
+        // omonimi: tieni chi ha giocato di più
+        if (!map.has(key) || (entry.gp || 0) > (map.get(key).gp || 0)) map.set(key, entry);
+    });
+
+    await aggiungiGiornateInCorso(map, year, list);
+
+    cacheSet(cacheKey, [...map.entries()].map(([k, e]) => [k, compact(e)]));
+    return (_memStats[year] = map);
+}
+
+/** Una voce della mappa da una riga Sleeper (stagionale o di settimana). */
+function voceStat(e) {
+    const pl = e.player;
+    const s = e.stats || {};
+    if (!pl || (s.pts_half_ppr == null && s.pts_std == null)) return null;
+    const pos = (pl.position || '').toUpperCase();
+    const name = `${pl.first_name} ${pl.last_name}`;
+    return {
             name, pos,
             playerId: e.player_id ?? pl.player_id ?? null,
             team: e.team || pl.team || '',
@@ -205,15 +220,77 @@ export async function getSeasonStats(year) {
             snaps: s.off_snp ?? null,
             fgm: s.fgm ?? null, xpm: s.xpm ?? null,
             sacks: s.sack ?? null, defInt: s.int ?? null,
-            raw: trimStats(s),
-        };
-        const key = `${normName(name)}|${pos}`;
-        // omonimi: tieni chi ha giocato di più
-        if (!map.has(key) || (entry.gp || 0) > (map.get(key).gp || 0)) map.set(key, entry);
-    });
+        raw: trimStats(s),
+    };
+}
 
-    cacheSet(cacheKey, [...map.entries()].map(([k, e]) => [k, compact(e)]));
-    return (_memStats[year] = map);
+/**
+ * La giornata che si sta giocando, sommata a mano al totale di stagione.
+ *
+ * Sleeper tiene DUE endpoint: il totale di stagione (`/stats/nfl/2026`) e il
+ * tabellino di ogni giornata (`/stats/nfl/2026/2`). Il primo lo ricalcola solo
+ * a giornata chiusa — il martedì — quindi dal giovedì al lunedì i punti del
+ * fine settimana in corso non ci sono: Josh Allen aveva giocato da sei ore e
+ * su Players si leggeva ancora la sola week 1. Il secondo invece è aggiornato
+ * mentre si gioca.
+ *
+ * Quali giornate aggiungere: quelle OLTRE la copertura del totale, cioè oltre
+ * il massimo di `gp` visto (chi le gioca tutte le ha giocate tutte). Si va
+ * avanti finché una giornata ha tabellini, al massimo tre — se ne mancassero
+ * di più il totale sarebbe rotto, e un ciclo lungo su un endpoint da 700 KB
+ * non è il modo di scoprirlo. In più un controllo sulla data: se il totale è
+ * stato toccato DOPO l'ultimo tabellino della giornata, quella giornata è già
+ * dentro e non si somma (se no si conterebbe due volte il martedì).
+ */
+async function aggiungiGiornateInCorso(map, year, listaStagione) {
+    if (!stagioneInCorso(year)) return;
+    const copertura = Math.max(0, ...listaStagione.map(e => +(e.stats?.gp || 0)));
+    const totaleAl = Math.max(0, ...listaStagione.map(e => +(e.last_modified || 0)));
+
+    for (let w = copertura + 1; w <= copertura + 3; w++) {
+        let lista;
+        try {
+            const res = await fetch(urlFor('stats', `${year}/${w}`));
+            if (!res.ok) return;
+            lista = await res.json();
+        } catch { return; }
+
+        const conStat = (lista || []).filter(e => (e.stats?.gp || 0) > 0);
+        if (!conStat.length) return;                                   // giornata non ancora cominciata
+        const giornataAl = Math.max(...conStat.map(e => +(e.last_modified || 0)));
+        if (totaleAl >= giornataAl) return;                            // già dentro al totale
+
+        for (const e of conStat) {
+            const voce = voceStat(e);
+            if (!voce) continue;
+            const key = `${normName(voce.name)}|${voce.pos}`;
+            const base = map.get(key);
+            map.set(key, base ? sommaVoci(base, voce, w) : { ...voce, liveWeeks: [w] });
+        }
+    }
+}
+
+/** Campi che NON si sommano: sono classifiche, primati o medie. */
+const NON_SOMMABILI = /(rank|lng|pct|rtg|adp|shard|_id)/;
+
+/** Totale + giornata in corso: i conteggi si sommano, il resto resta com'era. */
+function sommaVoci(base, add, week) {
+    const out = { ...base, liveWeeks: [...(base.liveWeeks || []), week] };
+    for (const k of ['ptsLeague', 'ptsHalf', 'ptsPpr', 'ptsStd', 'gp', 'gs', 'rec', 'tgt', 'recYd',
+        'rzTgt', 'drops', 'rushAtt', 'rushYd', 'passAtt', 'passYd', 'passTd', 'rushTd', 'recTd',
+        'snaps', 'fgm', 'xpm', 'sacks', 'defInt']) {
+        if (base[k] == null && add[k] == null) continue;
+        out[k] = (+base[k] || 0) + (+add[k] || 0);
+    }
+    out.raw = { ...(base.raw || {}) };
+    for (const k in (add.raw || {})) {
+        if (NON_SOMMABILI.test(k)) continue;
+        const v = add.raw[k];
+        if (typeof v !== 'number') continue;
+        out.raw[k] = (+out.raw[k] || 0) + v;
+    }
+    out.team = add.team || base.team;   // se è stato scambiato, vale la squadra di oggi
+    return out;
 }
 
 /** Match di una pick del draft contro le proiezioni: esatto poi fuzzy. */

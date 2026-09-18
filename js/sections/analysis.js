@@ -8,12 +8,12 @@
 
 import { TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
-import { TEAMS } from './team.js?v=804';
+import { TEAMS } from './team.js?v=811';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell } from '../ui/charts.js?v=9';
 import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1001';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=602';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=611';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

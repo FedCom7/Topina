@@ -150,6 +150,7 @@ function initDropdowns(navbar) {
     const navLinks = navbar.querySelector('.nav-links');
     const level2 = buildLevel2(navbar);
     buildNflPanel(navbar);
+    preparaPannelli(navbar);
 
     const closeMenu = () => {
         navbar.classList.remove('l2-open');
@@ -207,9 +208,11 @@ function initDropdowns(navbar) {
         // le voci a una riga restano 56px, il mega pannello NFL ne chiede ~330.
         // Si misura il pannello vero (e' in position:absolute, quindi la sua
         // altezza non dipende dalla barra che lo contiene).
+        riempiPeek(panel);
         navbar.style.setProperty('--dd-h', `${panel.offsetHeight}px`);
         navbar.classList.add('dropdown-active');
         panel.classList.add('panel-active');
+        document.body.classList.add('nav-dd-open');   // sfoca e spegne la pagina sotto
         apertoOra = panel;
     };
 
@@ -219,6 +222,7 @@ function initDropdowns(navbar) {
             navbar.classList.remove('dropdown-active');
             navbar.querySelectorAll('.nav-dropdown-panel.panel-active')
                 .forEach(p => p.classList.remove('panel-active'));
+            document.body.classList.remove('nav-dd-open');
             apertoOra = null;
         }, 150); // 150ms di grazia per spostarsi sul pannello
     };
@@ -244,6 +248,150 @@ function initDropdowns(navbar) {
             navbar.classList.add('l2-open');
         });
     });
+}
+
+/* ============================================================
+   Pannelli a due colonne: i link a sinistra, un assaggio a destra
+   ============================================================
+
+   A sinistra le voci scritte in index.html, piu' grandi. A destra
+   l'"assaggio": due o tre numeri veri presi dalla stessa sezione, cosi' la
+   barra dice gia' cosa si trova dentro invece di essere solo un elenco.
+
+   I dati si chiedono al PRIMO hover di quel pannello, non all'avvio: la barra
+   si monta su ogni pagina, e scaricare la stagione per un menu che magari
+   nessuno apre sarebbe un peso pagato da tutti. I moduli dati si caricano con
+   `import()` dinamico per lo stesso motivo. La risposta resta in `assaggi`
+   finche' dura la visita — la barra non e' una pagina di statistiche, un
+   valore fermo a un minuto fa va benissimo.
+
+   Il mega pannello NFL resta fuori: ha gia' le sue 32 squadre e occupa tutta
+   la riga. */
+
+const PEEK_TITOLI = {
+    'game-center': 'Last week',
+    standings: 'Standings',
+    leaders: 'Season leaders',
+    teams: 'Franchises',
+    draft: 'Last draft',
+    history: 'Roll of honour',
+};
+
+/** Un assaggio per sezione, chiesto una volta sola: nome → Promise di righe.
+ *  Lo condividono il pannello desktop e il secondo livello del menu mobile. */
+const assaggi = new Map();
+
+function assaggio(nome) {
+    if (!assaggi.has(nome)) assaggi.set(nome, datiPeek(nome).catch(() => []));
+    return assaggi.get(nome);
+}
+
+/** Le righe dell'assaggio come HTML (stesse classi su desktop e mobile). */
+function righeHTML(righe) {
+    return (righe || []).map(r => `<div class="nav-peek-row">
+            <span class="nav-peek-k">${esc(r.k)}</span>
+            <span class="nav-peek-v">${esc(r.v)}</span>
+        </div>`).join('');
+}
+
+function preparaPannelli(navbar) {
+    navbar.querySelectorAll('.nav-dropdown-panel').forEach(panel => {
+        const nome = panel.dataset.panel;
+        if (!PEEK_TITOLI[nome]) return;                 // il pannello NFL no
+        const links = document.createElement('div');
+        links.className = 'nav-dp-links';
+        while (panel.firstChild) links.appendChild(panel.firstChild);
+        panel.classList.add('nav-dp-two');
+        panel.innerHTML = '';
+        panel.appendChild(links);
+        const peek = document.createElement('div');
+        peek.className = 'nav-dp-peek';
+        peek.innerHTML = `<span class="nav-peek-title">${esc(PEEK_TITOLI[nome])}</span><div class="nav-peek-body"></div>`;
+        panel.appendChild(peek);
+    });
+}
+
+function riempiPeek(panel) {
+    const nome = panel.dataset.panel;
+    const body = panel.querySelector('.nav-peek-body');
+    if (!PEEK_TITOLI[nome] || !body || body.dataset.pieno) return;
+    body.dataset.pieno = '1';
+
+    // Niente messaggio d'errore in un menu: l'assaggio e' un di piu', e una
+    // riga rossa qui dentro sembrerebbe un guasto del sito. Se non arriva,
+    // resta il solo elenco delle voci.
+    assaggio(nome).then(righe => {
+        body.innerHTML = righeHTML(righe);
+        // il pannello e' cresciuto: la barra aperta deve crescere con lui
+        if (panel.classList.contains('panel-active')) {
+            document.querySelector('.navbar')?.style.setProperty('--dd-h', `${panel.offsetHeight}px`);
+        }
+    });
+}
+
+const n1 = (v) => Number(v || 0).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** I numeri di ogni sezione, ognuno dalla fonte che usa la sezione stessa. */
+async function datiPeek(nome) {
+    const dati = await import('../data.js?v=585');
+    const { CURRENT_SEASON, fetchFantasyData, processStandings, displayName } = dati;
+
+    if (nome === 'standings' || nome === 'teams') {
+        const d = await fetchFantasyData(CURRENT_SEASON);
+        const cl = processStandings(d, CURRENT_SEASON);
+        if (!cl.length) return [];
+        return cl.slice(0, 4).map((t, i) => ({
+            k: `${i + 1}. ${displayName(t.name)}`,
+            v: nome === 'teams' ? `${n1(t.pf)} PF` : `${t.w}-${t.l}`,
+        }));
+    }
+
+    if (nome === 'game-center') {
+        const d = await fetchFantasyData(CURRENT_SEASON);
+        const settimane = Object.keys(d?.weeks || {}).map(Number).sort((a, b) => a - b);
+        const ultima = settimane[settimane.length - 1];
+        const sfide = d?.weeks?.[String(ultima)]?.matchups || [];
+        return [{ k: 'Week', v: String(ultima ?? '—') }, ...sfide.slice(0, 3).map(m => ({
+            k: `${displayName(m.team1?.name)} – ${displayName(m.team2?.name)}`,
+            v: `${n1(m.team1?.score)} – ${n1(m.team2?.score)}`,
+        }))];
+    }
+
+    if (nome === 'leaders') {
+        const { getSeasonStats } = await import('../data/projections.js?v=611');
+        const mappa = await getSeasonStats(CURRENT_SEASON);
+        return [...mappa.values()]
+            .filter(e => e.ptsLeague != null && e.pos !== 'DEF')
+            .sort((a, b) => b.ptsLeague - a.ptsLeague)
+            .slice(0, 4)
+            .map(e => ({ k: `${e.name} · ${e.pos}`, v: n1(e.ptsLeague) }));
+    }
+
+    if (nome === 'draft') {
+        const d = await dati.fetchDraftData(CURRENT_SEASON).catch(() => null);
+        const scelte = dati.flattenDraft(d) || [];
+        if (!scelte.length) return [];
+        return [{ k: 'Season', v: String(CURRENT_SEASON) },
+            ...scelte.slice(0, 3).map(p => ({ k: `${p.round}.${p.pick} ${p.player}`, v: displayName(p.team) }))];
+    }
+
+    if (nome === 'history') {
+        const { SEASONS_DESC, getSuperBowlMatchup } = dati;
+        const righe = [];
+        for (const anno of SEASONS_DESC) {
+            if (righe.length >= 3) break;
+            const d = await fetchFantasyData(anno).catch(() => null);
+            const sb = d ? getSuperBowlMatchup(d, anno) : null;
+            if (!sb?.team1 || !sb?.team2) continue;
+            // stessa convenzione di data.js: sui pari punti vince team1
+            const campione = (parseFloat(sb.team1.score) || 0) >= (parseFloat(sb.team2.score) || 0)
+                ? sb.team1 : sb.team2;
+            righe.push({ k: String(anno), v: displayName(campione.name) });
+        }
+        return righe;
+    }
+
+    return [];
 }
 
 /**
@@ -293,12 +441,13 @@ function buildNflPanel(navbar) {
 function buildLevel2(navbar) {
     const el = document.createElement('div');
     el.className = 'nav-l2';
-    el.innerHTML = `<ul class="nav-l2-list"></ul>`;
+    el.innerHTML = `<ul class="nav-l2-list"></ul><div class="nav-l2-peek" hidden></div>`;
     navbar.appendChild(el);
 
     return {
         el,
         list: el.querySelector('.nav-l2-list'),
+        peek: el.querySelector('.nav-l2-peek'),
     };
 }
 
@@ -317,6 +466,18 @@ function fillLevel2(level2, item, panel) {
         li.appendChild(link);
         level2.list.appendChild(li);
     });
+
+    // Lo stesso assaggio del pannello desktop, in fondo al secondo livello:
+    // da telefono la barra e' una schermata intera, e sotto le voci c'era
+    // spazio vuoto dove i numeri della sezione stanno benissimo.
+    const nome = panel.dataset.panel;
+    level2.peek.hidden = !PEEK_TITOLI[nome];
+    if (PEEK_TITOLI[nome]) {
+        level2.peek.innerHTML = `<span class="nav-peek-title">${esc(PEEK_TITOLI[nome])}</span>
+            <div class="nav-peek-body"></div>`;
+        const body = level2.peek.querySelector('.nav-peek-body');
+        assaggio(nome).then(righe => { body.innerHTML = righeHTML(righe); });
+    }
 
     level2.el.scrollTop = 0;
 }

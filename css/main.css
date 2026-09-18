@@ -375,6 +375,136 @@ img {
 }
 
 /* --------------------------------
+   Pannelli a due colonne: voci a sinistra, assaggio a destra
+
+   Le voci diventano righe grandi in colonna (prima erano pillole in fila) e
+   accanto compaiono due o tre numeri della sezione. Il pannello non e' piu'
+   alto 56px fissi: cresce col contenuto, e navbar.js misura.
+   -------------------------------- */
+.nav-dropdown-panel.nav-dp-two {
+    height: auto;
+    align-items: start;
+    justify-content: center;
+    gap: 0;
+    padding: 18px 24px 24px;
+    display: grid;
+    grid-template-columns: minmax(220px, 300px) minmax(240px, 320px);
+    column-gap: 56px;
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+.nav-dp-two .nav-dp-links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-dp-two .nav-dp-item {
+    font-size: 1.32rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: 10px;
+    line-height: 1.25;
+}
+
+.nav-dp-two .nav-dp-item:not(.nav-dp-header) {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.nav-dp-two .nav-dp-item:hover {
+    color: var(--text-primary);
+}
+
+.nav-dp-two .nav-dp-sep {
+    width: 100%;
+    height: 1px;
+    margin: 6px 0 6px 10px;
+    max-width: 140px;
+}
+
+.nav-dp-peek {
+    padding-top: 6px;
+    min-width: 0;
+}
+
+.nav-peek-title {
+    display: block;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.nav-peek-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.nav-peek-row:last-child {
+    border-bottom: 0;
+}
+
+.nav-peek-k {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-peek-v {
+    flex-shrink: 0;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* La pagina sotto al menu aperto: sfocata e spenta, come nella barra di Apple.
+   Il velo sta sotto alla barra (z-index) e non intercetta i clic, cosi' basta
+   uscire col mouse per richiudere. */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(8, 10, 12, 0.34);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s var(--ease), visibility 0.22s var(--ease);
+}
+
+body.nav-dd-open::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+:root[data-theme="light"] body::after {
+    background: rgba(240, 240, 238, 0.42);
+}
+
+@media (max-width: 768px) {
+
+    /* su telefono i pannelli hover non esistono: niente velo */
+    body::after {
+        display: none;
+    }
+}
+
+/* --------------------------------
    Mega pannello NFL Hub — le 32 squadre per division
    Solo desktop: su mobile i pannelli hover sono nascosti (vedi @media 768px)
    e la voce NFL Hub resta un link verso #players.
@@ -2936,6 +3066,8 @@ img {
     /* Livello 2 → entra da destra sfumando, sopra il livello 1 (z-index 2). */
     .nav-l2 {
         display: flex;
+        /* voci sopra, assaggio sotto: in riga finirebbero affiancati */
+        flex-direction: column;
         padding: 22px 22px 32px;
         opacity: 0;
         visibility: hidden;
@@ -3005,6 +3137,24 @@ img {
     .nav-l2-link:focus-visible {
         color: var(--text-primary);
         background: var(--bg-glass);
+    }
+
+    /* L'assaggio della sezione, sotto le voci: stesse righe del pannello
+       desktop, staccate da una riga sottile perche' qui non c'e' una colonna
+       a dividerle dai link. */
+    .nav-l2-peek {
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .nav-l2-peek .nav-peek-title {
+        margin-bottom: 8px;
+    }
+
+    .nav-l2-peek .nav-peek-row {
+        font-size: 0.9rem;
+        padding: 7px 0;
     }
 
     .hero-title {

@@ -22,10 +22,10 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=585';
-import { TEAMS } from './team.js?v=804';
+import { TEAMS } from './team.js?v=811';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=7';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=822';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=830';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

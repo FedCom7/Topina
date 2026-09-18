@@ -29,7 +29,7 @@ import {
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=585';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=804';
+import { TEAMS } from './team.js?v=811';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=723';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
@@ -56,12 +56,12 @@ import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, sbEdition, faceFor, ens
 // Edizione post-draft: il voto NON si ricalcola qui. Si importa lo stesso
 // motore di Draft Grades — un solo voto in tutto il sito — con la stessa
 // catena usata dalle card della home (vedi home.js:loadPostDraftGrades).
-import { getSeasonProjections } from '../data/projections.js?v=602';
+import { getSeasonProjections } from '../data/projections.js?v=611';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { evaluateLeague } from '../data/team-eval.js?v=596';
 import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=65';
-import { computeGrades, makeEvaluator } from './draftgrades.js?v=795';
+import { computeGrades, makeEvaluator } from './draftgrades.js?v=803';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
