@@ -17671,6 +17671,16 @@ td.ps-div-seed {
     pointer-events: none;
 }
 
+/* Il verde del prato del Live, in un posto solo.
+   Era quasi nero; ora e' un verde da campo vero, ancora scuro abbastanza da
+   reggere nomi bianchi e punteggi colorati sopra. Per schiarirlo o scurirlo
+   si toccano questi tre valori (alto, mezzo, fondo) e basta. */
+.live-field-solo {
+    --fsv-turf-1: #2f4a3c;
+    --fsv-turf-2: #284033;
+    --fsv-turf-3: #1f342a;
+}
+
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;
@@ -18828,6 +18838,13 @@ td.ps-div-seed {
     transition: opacity var(--dur-slow) var(--ease),
                 filter var(--dur-slow) var(--ease),
                 transform var(--dur-med) var(--ease);
+}
+
+/* Appena ridisegnato: lo stato di ogni card e' quello di partenza, non una
+   cosa a cui arrivare (vedi `senzaScatti` in sections/live.js). */
+.live-stage.no-anim .formation-slot,
+.live-stage.no-anim .slot-photo img {
+    transition: none !important;
 }
 
 /* Il palco comprende campo E panchina: sono card identiche, e abbassando solo

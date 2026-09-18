@@ -27,7 +27,7 @@ import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { fieldSVG } from '../ui/field-svg.js?v=25';
+import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
 import { initPlayerModal } from '../components/player-modal.js?v=762';
@@ -1470,6 +1470,8 @@ function render() {
 `;
 
     hydrateHeadshots(root);
+    scaldaFotoAvversari();
+    senzaScatti(root);
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
     bindTeamPick(root);
 
@@ -1619,6 +1621,7 @@ function bindSwipe(el) {
         if (!card) return null;
         card.removeAttribute('data-swipe');
         card.classList.add('live-incoming');
+        hydrateHeadshots(card);   // le foto ci sono gia' in cache: niente sagome mentre entra
         card.style.transform = `translateX(calc(${verso < 0 ? '100%' : '-100%'} ${verso < 0 ? '+' : '-'} ${DIVARIO}px))`;
         stage.appendChild(card);
         return card;
@@ -3532,6 +3535,59 @@ function injuriesHTML(team, opp) {
  */
 const headshotCache = new Map();
 const cachedHeadshot = (name) => headshotCache.get(name) || 'images/fallback-player.svg';
+
+/**
+ * Le foto delle ALTRE squadre, scaricate mentre si guarda questa.
+ *
+ * Cambiando squadra il campo compariva con le sagome grigie al posto dei
+ * giocatori: le foto partono da un servizio esterno e ci mettono il loro
+ * tempo, e quella ricerca cominciava solo quando la scheda era gia' a schermo.
+ * Qui si fa prima: appena disegnata una squadra si va a cercare le foto di
+ * tutte le altre e si mettono nella cache dei nomi e in quella del browser
+ * (bastano un `new Image()`), cosi' allo scambio sono gia' pronte.
+ *
+ * Gira in coda — `requestIdleCallback` dove c'e' — perche' non deve rubare
+ * niente al disegno di quello che si sta guardando adesso, e una volta sola
+ * per giocatore: chi e' gia' in `headshotCache` si salta.
+ */
+function scaldaFotoAvversari() {
+    const dopo = window.requestIdleCallback || ((fn) => setTimeout(fn, 400));
+    dopo(() => {
+        const visti = new Set();
+        for (const e of teamEntries()) {
+            for (const p of [...(e.team?.starters || []), ...(e.team?.bench || [])]) {
+                if (!p?.name || p.placeholder || visti.has(p.name)) continue;
+                visti.add(p.name);
+                if (headshotCache.has(p.name)) continue;
+                playerImageService
+                    .getPlayerImageUrl(p.name, p.nfl_team || '', (p.position_in_team || p.position || '').toUpperCase(), CURRENT_SEASON)
+                    .then(url => {
+                        if (!url) return;
+                        headshotCache.set(p.name, url);
+                        new Image().src = url;   // nella cache del browser: allo scambio e' istantanea
+                    })
+                    .catch(() => {});
+            }
+        }
+    });
+}
+
+/**
+ * Un frame senza transizioni dopo ogni ridisegno.
+ *
+ * Le card hanno una transizione su opacita' e filtro (serve quando una partita
+ * finisce mentre si guarda). Su una scheda appena scritta pero' gli stati
+ * arrivano tutti insieme, e quella transizione li faceva vedere ACCENDERSI: i
+ * giocatori che devono ancora giocare comparivano pieni e si spegnevano un
+ * istante dopo. Con la classe per un frame lo stato giusto e' quello di
+ * partenza, e le transizioni tornano subito utili per i cambi veri.
+ */
+function senzaScatti(root) {
+    const stage = root.querySelector('.live-stage');
+    if (!stage) return;
+    stage.classList.add('no-anim');
+    requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove('no-anim')));
+}
 
 function hydrateHeadshots(root) {
     root.querySelectorAll('img[data-headshot]').forEach(img => {
