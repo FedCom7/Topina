@@ -33,7 +33,8 @@ import {
     teamContextBlock, defStatsBlock, fpaBlock, fpaTableHtml, matchupBlock, teamInjuriesBlock, rosterStatusListsBlock,
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
-} from './player-page.js?v=1047';
+    sampleTag, smallSampleNote,
+} from './player-page.js?v=1048';
 import {
     calendarBlocksBlock, draftBlock,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
@@ -143,6 +144,9 @@ function _pct01(v, arr) {
  * = percentile EPA, forza difesa = percentile inverso punti subiti) per lo
  * scatter del "viaggio" O×D. Tutto per heatmap, sparkline e scatter storici.
  */
+/** Partite minime perché una stagione valga un punto nei grafici storici. */
+const MIN_TREND_GAMES = 4;
+
 async function fetchStatTrend(abbr, teamHistory) {
     const A = canonAbbr(abbr);
     const rankOf = (val, arr, hi = true) => {
@@ -173,6 +177,12 @@ async function fetchStatTrend(abbr, teamHistory) {
             : Math.round(100 * (1 - _pct01(me.defense.papg, papgArr)));
         const qb = (usage || []).filter(p => p.pos === 'QB')
             .sort((a, b) => (b.passAtt || 0) - (a.passAtt || 0) || (b.gp || 0) - (a.gp || 0))[0]?.name || h.qbName || null;
+        // Una stagione entra nel "viaggio" storico solo da 4 partite in su: con
+        // una giornata giocata il 2026 si piazzava accanto alle stagioni intere
+        // ("miglior difesa 2026, 97/100" dopo una partita). I numeri della
+        // stagione in corso restano visibili nei blocchi qui sopra, dove
+        // portano scritto su quante partite sono.
+        if (me.games != null && me.games < MIN_TREND_GAMES) return null;
         return {
             year: y, record: h.record, qb, offR, defR,
             offense: me.offense, defense: me.defense, ranks: me.ranks || { offense: {}, defense: {} },
@@ -1976,7 +1986,7 @@ function teamDnaBlock(ctx) {
     if (!tiles && !scatter && !offBars && !defBars) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Identity card · ${esc(abbr)} ${year}</span>
+        <span class="mc-kicker">Identity card · ${esc(abbr)} ${year}${sampleTag(team)}</span>
         ${identity ? `<p class="pp-sos">${identity}</p>` : ''}
         ${tiles ? `<div class="pm-tiles pp-tiles">${tiles}</div>` : ''}
         <div class="ts-charts" style="margin-top:14px">
@@ -1992,7 +2002,7 @@ function teamDnaBlock(ctx) {
             </div>
         </div>
         ${fd}
-        <p class="pm-note">Summary from already-computed ranks (no new data): differential = points scored − allowed per game; turnover margin = takeaways − giveaways; strengths/weaknesses = the most extreme metrics in the NFL rank. The full detail is in the blocks below.</p>
+        <p class="pm-note">Summary from already-computed ranks (no new data): differential = points scored − allowed per game; turnover margin = takeaways − giveaways; strengths/weaknesses = the most extreme metrics in the NFL rank. The full detail is in the blocks below.${smallSampleNote(team)}</p>
     </section>`;
 }
 
@@ -2108,7 +2118,7 @@ function offenseAnalysisBlock(ctx) {
     if (!scatter && !rankBars && !fpBars) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Offense analysis · ${esc(abbr)} ${year}</span>
+        <span class="mc-kicker">Offense analysis · ${esc(abbr)} ${year}${sampleTag(team)}</span>
         <h3 class="pp-cat-title">The offense in the NFL</h3>
         <div class="ts-charts">
             ${scatter ? `<div class="ts-card">${scatter}<p class="pm-note">EPA/play (X) × success rate (Y) for all 32 teams; <b style="color:var(--accent-red)">${esc(abbr)}</b> highlighted, lines = NFL medians. Top-right the explosive and consistent offenses.</p></div>` : ''}
@@ -2186,7 +2196,7 @@ function defenseAnalysisBlock(ctx) {
     if (!scatter && !rankBars && !fpa) return '';
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Defense analysis · ${esc(abbr)} ${year}</span>
+        <span class="mc-kicker">Defense analysis · ${esc(abbr)} ${year}${sampleTag(team)}</span>
         <h3 class="pp-cat-title">The defense in the NFL</h3>
         <div class="ts-charts">
             ${scatter ? `<div class="ts-card">${scatter}<p class="pm-note">Points allowed/game (X, right = fewer = better) × takeaways (Y) for all 32 teams; <b style="color:var(--accent-red)">${esc(abbr)}</b> highlighted. Top-right the defenses that allow little and force turnovers.${hasDefEpa ? ' EPA and success allowed (from nflverse play-by-play) in the ranks alongside.' : ''}</p></div>` : ''}

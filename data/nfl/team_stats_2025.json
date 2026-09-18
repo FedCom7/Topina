@@ -1,6 +1,6 @@
 {
  "season": 2025,
- "generatedAt": "2026-07-11T14:37:18.037Z",
+ "generatedAt": "2026-09-18T16:28:10.583Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -63,7 +63,7 @@
     "TE": {
      "pgLeague": 12.3,
      "pgHalf": 9.7,
-     "rank": 21
+     "rank": 20
     },
     "K": {
      "pgLeague": 9.4,
@@ -299,7 +299,7 @@
     "WR": {
      "pgLeague": 26.8,
      "pgHalf": 21.5,
-     "rank": 26
+     "rank": 25
     },
     "TE": {
      "pgLeague": 8.3,
@@ -324,7 +324,7 @@
      "passYdsPg": 23,
      "rushYdsPg": 16,
      "playsPg": 23,
-     "ydsPerPlay": 18,
+     "ydsPerPlay": 19,
      "rzPlaysPg": 22,
      "passTd": 11,
      "rushTd": 14,
@@ -538,14 +538,14 @@
      "rank": 26
     },
     "WR": {
-     "pgLeague": 27.9,
-     "pgHalf": 22.3,
-     "rank": 21
+     "pgLeague": 27.3,
+     "pgHalf": 21.9,
+     "rank": 22
     },
     "TE": {
      "pgLeague": 11,
      "pgHalf": 8.6,
-     "rank": 26
+     "rank": 25
     },
     "K": {
      "pgLeague": 8,
@@ -781,7 +781,7 @@
     "WR": {
      "pgLeague": 26.9,
      "pgHalf": 22.1,
-     "rank": 24
+     "rank": 23
     },
     "TE": {
      "pgLeague": 10.5,
@@ -1017,12 +1017,12 @@
     "RB": {
      "pgLeague": 23.5,
      "pgHalf": 20.7,
-     "rank": 10
+     "rank": 11
     },
     "WR": {
-     "pgLeague": 32.1,
-     "pgHalf": 26.5,
-     "rank": 13
+     "pgLeague": 31.7,
+     "pgHalf": 26.1,
+     "rank": 12
     },
     "TE": {
      "pgLeague": 14.8,
@@ -1256,19 +1256,19 @@
      "rank": 25
     },
     "RB": {
-     "pgLeague": 18.5,
-     "pgHalf": 15.7,
+     "pgLeague": 18.6,
+     "pgHalf": 15.8,
      "rank": 29
     },
     "WR": {
-     "pgLeague": 26.1,
-     "pgHalf": 21.4,
-     "rank": 28
+     "pgLeague": 25.8,
+     "pgHalf": 21.2,
+     "rank": 29
     },
     "TE": {
-     "pgLeague": 14.8,
-     "pgHalf": 11.7,
-     "rank": 10
+     "pgLeague": 14.7,
+     "pgHalf": 11.6,
+     "rank": 11
     },
     "K": {
      "pgLeague": 6.2,
@@ -1750,7 +1750,7 @@
     "TE": {
      "pgLeague": 12.1,
      "pgHalf": 9.3,
-     "rank": 23
+     "rank": 22
     },
     "K": {
      "pgLeague": 7.9,
@@ -1758,7 +1758,7 @@
      "rank": 19
     },
     "DEF": {
-     "pgLeague": 3.8,
+     "pgLeague": 3.9,
      "pgHalf": 4.6,
      "rank": 26
     }
@@ -2709,12 +2709,12 @@
     "WR": {
      "pgLeague": 27.4,
      "pgHalf": 22.9,
-     "rank": 22
+     "rank": 21
     },
     "TE": {
      "pgLeague": 12.5,
      "pgHalf": 9.9,
-     "rank": 20
+     "rank": 19
     },
     "K": {
      "pgLeague": 9.6,
@@ -2722,7 +2722,7 @@
      "rank": 3
     },
     "DEF": {
-     "pgLeague": 8.2,
+     "pgLeague": 8.3,
      "pgHalf": 8.8,
      "rank": 6
     }
@@ -3427,7 +3427,7 @@
     "RB": {
      "pgLeague": 24.9,
      "pgHalf": 23.3,
-     "rank": 6
+     "rank": 7
     },
     "WR": {
      "pgLeague": 34.9,
@@ -3907,9 +3907,9 @@
      "rank": 12
     },
     "RB": {
-     "pgLeague": 23.2,
-     "pgHalf": 20.5,
-     "rank": 11
+     "pgLeague": 23.7,
+     "pgHalf": 20.9,
+     "rank": 9
     },
     "WR": {
      "pgLeague": 35.8,
@@ -3917,9 +3917,9 @@
      "rank": 4
     },
     "TE": {
-     "pgLeague": 11.4,
-     "pgHalf": 8.9,
-     "rank": 25
+     "pgLeague": 10.9,
+     "pgHalf": 8.5,
+     "rank": 26
     },
     "K": {
      "pgLeague": 8.9,
@@ -4391,12 +4391,12 @@
     "RB": {
      "pgLeague": 23.6,
      "pgHalf": 21.5,
-     "rank": 9
+     "rank": 10
     },
     "WR": {
-     "pgLeague": 27.1,
-     "pgHalf": 22,
-     "rank": 23
+     "pgLeague": 26.6,
+     "pgHalf": 21.6,
+     "rank": 26
     },
     "TE": {
      "pgLeague": 13.7,
@@ -4595,10 +4595,10 @@
     "totYdsPg": 351.9,
     "passYdsPg": 236.8,
     "rushYdsPg": 115.1,
-    "playsPg": 64.3,
-    "ydsPerPlay": 5.47,
+    "playsPg": 64.2,
+    "ydsPerPlay": 5.48,
     "passRate": 0.54,
-    "rzPlaysPg": 11.3,
+    "rzPlaysPg": 11.2,
     "turnovers": 18,
     "sacksAllowed": 41,
     "passTd": 29,
@@ -4642,7 +4642,7 @@
     "TE": {
      "pgLeague": 14.8,
      "pgHalf": 11.7,
-     "rank": 11
+     "rank": 10
     },
     "K": {
      "pgLeague": 5.8,
@@ -4662,7 +4662,7 @@
      "passYdsPg": 11,
      "rushYdsPg": 20,
      "playsPg": 4,
-     "ydsPerPlay": 19,
+     "ydsPerPlay": 18,
      "rzPlaysPg": 1,
      "passTd": 9,
      "rushTd": 6,
@@ -4876,8 +4876,8 @@
      "rank": 1
     },
     "WR": {
-     "pgLeague": 25.6,
-     "pgHalf": 21.2,
+     "pgLeague": 25.3,
+     "pgHalf": 21,
      "rank": 30
     },
     "TE": {
@@ -5112,19 +5112,19 @@
      "rank": 28
     },
     "RB": {
-     "pgLeague": 21.5,
-     "pgHalf": 19.9,
+     "pgLeague": 22.1,
+     "pgHalf": 20.5,
      "rank": 15
     },
     "WR": {
      "pgLeague": 26,
      "pgHalf": 22.2,
-     "rank": 29
+     "rank": 28
     },
     "TE": {
-     "pgLeague": 12.7,
-     "pgHalf": 10.2,
-     "rank": 19
+     "pgLeague": 12.1,
+     "pgHalf": 9.6,
+     "rank": 23
     },
     "K": {
      "pgLeague": 7.2,
@@ -5353,7 +5353,7 @@
      "rank": 15
     },
     "RB": {
-     "pgLeague": 19.9,
+     "pgLeague": 20,
      "pgHalf": 18,
      "rank": 22
     },
@@ -5363,7 +5363,7 @@
      "rank": 2
     },
     "TE": {
-     "pgLeague": 15.3,
+     "pgLeague": 15.2,
      "pgHalf": 12.3,
      "rank": 7
     },
@@ -5594,9 +5594,9 @@
      "rank": 10
     },
     "RB": {
-     "pgLeague": 24.7,
-     "pgHalf": 22.6,
-     "rank": 7
+     "pgLeague": 25,
+     "pgHalf": 23,
+     "rank": 6
     },
     "WR": {
      "pgLeague": 29.4,
@@ -5604,9 +5604,9 @@
      "rank": 19
     },
     "TE": {
-     "pgLeague": 16.7,
-     "pgHalf": 13.4,
-     "rank": 3
+     "pgLeague": 16.3,
+     "pgHalf": 13.1,
+     "rank": 4
     },
     "K": {
      "pgLeague": 7.5,
@@ -5840,9 +5840,9 @@
      "rank": 21
     },
     "WR": {
-     "pgLeague": 32.8,
-     "pgHalf": 27.2,
-     "rank": 12
+     "pgLeague": 31.4,
+     "pgHalf": 26,
+     "rank": 13
     },
     "TE": {
      "pgLeague": 13.1,
@@ -6081,14 +6081,14 @@
      "rank": 23
     },
     "WR": {
-     "pgLeague": 25.5,
-     "pgHalf": 21.3,
+     "pgLeague": 25.3,
+     "pgHalf": 21.1,
      "rank": 31
     },
     "TE": {
      "pgLeague": 12.3,
      "pgHalf": 9.7,
-     "rank": 22
+     "rank": 21
     },
     "K": {
      "pgLeague": 5.1,
@@ -6565,7 +6565,7 @@
     "WR": {
      "pgLeague": 26.9,
      "pgHalf": 21.1,
-     "rank": 25
+     "rank": 24
     },
     "TE": {
      "pgLeague": 13.7,
@@ -7052,7 +7052,7 @@
     "TE": {
      "pgLeague": 16.6,
      "pgHalf": 13.5,
-     "rank": 4
+     "rank": 3
     },
     "K": {
      "pgLeague": 8.5,
@@ -7533,7 +7533,7 @@
     },
     "TE": {
      "pgLeague": 10.7,
-     "pgHalf": 8.5,
+     "pgHalf": 8.4,
      "rank": 27
     },
     "K": {

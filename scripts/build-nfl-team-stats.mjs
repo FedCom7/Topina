@@ -9,8 +9,17 @@
  * l'attacco; aggregate per avversario danno le yard concesse.
  * Per stagioni future senza stats: solo calendario da api.nfldata.org.
  *
+ * A STAGIONE IN CORSO si aggregano solo le settimane CHIUSE, squadra per
+ * squadra. Sleeper pubblica le statistiche di una partita appena finisce,
+ * mentre il risultato ufficiale (da cui si contano le partite giocate) arriva
+ * dopo: il 18/09/2026, a giornata 2 appena cominciata, Buffalo aveva le stats
+ * di due partite e una sola partita contata, e la pagina squadra le mostrava
+ * come 871 yard e 121 giochi "a partita" — prima offesa NFL di ogni tempo per
+ * un giorno. Numeratore e denominatore devono venire dalle stesse partite.
+ *
  * Uso:  npm run build-team-stats            # tutte le stagioni 2019-2025
  *       npm run build-team-stats -- 2024    # una o più stagioni specifiche
+ *       npm run build-team-stats -- 2026    # stagione in corso (lo fa la Action ogni giorno)
  */
 
 import { writeFile, mkdir } from 'node:fs/promises';
@@ -85,6 +94,23 @@ async function fetchOfficialGames(season, lastWeek) {
     } catch { return null; }
 }
 
+/**
+ * Settimane con partita CHIUSA, squadra per squadra: solo queste si aggregano.
+ * Null se il calendario ufficiale non risponde — in quel caso si torna al
+ * vecchio comportamento (si prende tutto quello che pubblica Sleeper), che a
+ * stagione finita e' identico e a stagione in corso e' l'unica cosa possibile.
+ */
+function finalWeeksByTeam(games) {
+    if (!games) return null;
+    const out = {};
+    for (const x of games) {
+        if (x.home_score == null || x.away_score == null) continue;
+        (out[canon(x.home_team)] ??= new Set()).add(x.week);
+        (out[canon(x.away_team)] ??= new Set()).add(x.week);
+    }
+    return out;
+}
+
 function scheduleFromGames(games) {
     const byTeam = {};
     for (const x of games) {
@@ -104,6 +130,12 @@ async function buildSeason(season) {
     const team = (abbr) => (teams[abbr] ??= blankTeam());
     let anyData = false;
 
+    // Il calendario ufficiale si legge PRIMA delle stats, non dopo: dice quali
+    // partite sono finite davvero, e solo quelle si aggregano (vedi testata).
+    const official = await fetchOfficialGames(season, lastWeek);
+    const chiuse = finalWeeksByTeam(official);
+    const giocata = (abbr, w) => !chiuse || chiuse[abbr]?.has(w);
+
     for (let w = 1; w <= lastWeek; w++) {
         const list = await getJson(weeklyUrl(season, w));
         await sleep(300);
@@ -116,6 +148,9 @@ async function buildSeason(season) {
             const pos = (e.player?.position || '').toUpperCase();
             const T = canon(e.team), O = canon(e.opponent);
             if (!T || !POSITIONS.includes(pos)) continue;
+            // partita non ancora ufficialmente chiusa: si salta tutta la riga,
+            // compreso il contributo ai punti concessi dall'avversario
+            if (!giocata(T, w)) continue;
 
             if (pos === 'DEF') {
                 // una entry DEF per team-week: calendario, punti e difesa
@@ -157,7 +192,6 @@ async function buildSeason(season) {
 
     // calendario ufficiale (punteggi reali, casa/trasferta); fallback: quello
     // derivato dalle DEF (pts_allow ≈ punteggio, casa/trasferta inaffidabile)
-    const official = await fetchOfficialGames(season, lastWeek);
     const officialSched = official ? scheduleFromGames(official) : null;
     for (const [abbr, t] of Object.entries(teams)) {
         if (officialSched?.[abbr]) {

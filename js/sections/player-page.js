@@ -3200,6 +3200,28 @@ export function bindTeamYearSelector(section, abbr, pos) {
     });
 }
 
+/**
+ * Etichetta del campione: " · N games" finché la stagione non è completa.
+ *
+ * Da settembre 2026 i team_stats si rigenerano ogni giorno, quindi in pagina
+ * arrivano numeri veri già dalla settimana 1 — dove però un rank NFL è quasi
+ * rumore (con una giornata giocata Buffalo era il primo attacco della lega).
+ * Il numero di partite si mostra accanto all'anno perché chi legge sappia su
+ * cosa sta guardando un percentile. Una stagione chiusa ne ha 16 o 17: sotto
+ * quella soglia è in corso, e non serve sapere che giorno è oggi.
+ */
+export function sampleTag(team) {
+    const g = team?.games;
+    if (g == null || g >= 16) return '';
+    return ` · ${g} game${g === 1 ? '' : 's'}`;
+}
+
+/** Avviso sotto i grafici quando il campione è di poche partite. */
+export function smallSampleNote(team) {
+    const g = team?.games;
+    return (g != null && g < 4) ? ` Sample of ${g} game${g === 1 ? '' : 's'}: early-season ranks and percentiles move a lot.` : '';
+}
+
 export function teamContextBlock({ ctx, abbr, pos, advTeam }) {
     if (!ctx?.team?.offense) return '';
     const o = ctx.team.offense, r = ctx.team.ranks?.offense || {};
@@ -3243,13 +3265,13 @@ export function teamContextBlock({ ctx, abbr, pos, advTeam }) {
 
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">Team strength · offense ${abbr} ${ctx.season}${ctx.fallback ? ' (most recent available season)' : ''}</span>
+        <span class="mc-kicker">Team strength · offense ${abbr} ${ctx.season}${sampleTag(ctx.team)}${ctx.fallback ? ' (most recent available season)' : ''}</span>
         ${factChips ? `<div class="pp-fact-chips" style="margin:8px 0 12px">${factChips}</div>` : ''}
         <div class="dgt-sos-bars">${offMeters}</div>
         ${defMeters ? `
         <span class="mc-kicker" style="margin-top:18px">Defense ${abbr}</span>
         <div class="dgt-sos-bars">${defMeters}</div>` : ''}
-        <p class="pm-note">Meter = percentile among the 32 teams (full = 1st, empty = 32nd); green = top 10, red = bottom 10.${advTeam ? ' EPA/success/PROE from nflverse play-by-play.' : ''}</p>
+        <p class="pm-note">Meter = percentile among the 32 teams (full = 1st, empty = 32nd); green = top 10, red = bottom 10.${advTeam ? ' EPA/success/PROE from nflverse play-by-play.' : ''}${smallSampleNote(ctx.team)}</p>
     </section>`;
 }
 
@@ -3466,10 +3488,10 @@ export function defStatsBlock({ ctx, abbr }) {
     ].join('');
     return `
     <section class="pm-block pp-block">
-        <span class="mc-kicker">The defense · ${abbr} ${ctx.season}${ctx.fallback ? ' (most recent available season)' : ''}</span>
+        <span class="mc-kicker">The defense · ${abbr} ${ctx.season}${sampleTag(ctx.team)}${ctx.fallback ? ' (most recent available season)' : ''}</span>
         <div class="dgt-sos-bars">${meters}</div>
         <div class="pp-fact-chips" style="margin-top:12px">${extraChips}</div>
-        <p class="pm-note">Meter = percentile out of 32 teams; green = top 10, red = bottom 10.</p>
+        <p class="pm-note">Meter = percentile out of 32 teams; green = top 10, red = bottom 10.${smallSampleNote(ctx.team)}</p>
     </section>`;
 }
 
