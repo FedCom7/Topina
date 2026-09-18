@@ -43,8 +43,14 @@ function yardLines() {
                 // due cifre, che la rotazione impila una sopra l'altra, la
                 // lasciano passare in mezzo — con `dominant-baseline: central`
                 // nel CSS il centro del testo cade esattamente sulla linea.
-                out.push(`<text x="70" y="${y}" class="fsv-num">${n}</text>`);
-                out.push(`<text x="${VB_W - 70}" y="${y}" class="fsv-num fsv-num--r">${n}</text>`);
+                //
+                // La rotazione e' un attributo SVG col centro scritto a mano,
+                // non un `transform` CSS con `transform-box: fill-box`: quello
+                // su Safari (iPad) ruotava attorno a un altro punto e i numeri
+                // finivano sopra al campo, fuori posto. Qui il perno e' il
+                // punto stesso del numero, e vale uguale su ogni browser.
+                out.push(`<text x="70" y="${y}" transform="rotate(-90 70 ${y})" class="fsv-num">${n}</text>`);
+                out.push(`<text x="${VB_W - 70}" y="${y}" transform="rotate(90 ${VB_W - 70} ${y})" class="fsv-num fsv-num--r">${n}</text>`);
             }
         }
     }

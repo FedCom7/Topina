@@ -17690,15 +17690,11 @@ td.ps-div-seed {
     font-weight: 800;
     text-anchor: middle;
     /* Centrato sulla riga, non appoggiato sotto: cosi' la yard line passa
-       fra le due cifre. */
+       fra le due cifre. La rotazione sta nell'attributo `transform` dei
+       <text> (vedi ui/field-svg.js): con `transform-box: fill-box` Safari
+       ruotava attorno a un centro diverso e su iPad i numeri uscivano sopra
+       al campo. */
     dominant-baseline: central;
-    transform-box: fill-box;
-    transform-origin: center;
-    transform: rotate(-90deg);
-}
-
-.fsv-num--r {
-    transform: rotate(90deg);
 }
 
 /*

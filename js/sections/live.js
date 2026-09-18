@@ -27,7 +27,7 @@ import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { fieldSVG } from '../ui/field-svg.js?v=23';
+import { fieldSVG } from '../ui/field-svg.js?v=25';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
 import { initPlayerModal } from '../components/player-modal.js?v=762';
@@ -1585,6 +1585,9 @@ function bindSwipe(el) {
     const stage = el.closest('.live-stage') || el;
     const sezione = el.closest('.page-section') || document.getElementById('live');
     const SOGLIA = () => Math.max(55, Math.min(130, window.innerWidth * 0.22));
+    // Aria fra le due schede: appiccicate sembravano un unico foglio che
+    // scorre, e appena partiva il gesto il campo nuovo era gia' addosso.
+    const DIVARIO = 34;
     const ridotto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
     const E = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -1616,7 +1619,7 @@ function bindSwipe(el) {
         if (!card) return null;
         card.removeAttribute('data-swipe');
         card.classList.add('live-incoming');
-        card.style.transform = `translateX(${verso < 0 ? '100%' : '-100%'})`;
+        card.style.transform = `translateX(calc(${verso < 0 ? '100%' : '-100%'} ${verso < 0 ? '+' : '-'} ${DIVARIO}px))`;
         stage.appendChild(card);
         return card;
     };
@@ -1630,8 +1633,8 @@ function bindSwipe(el) {
         // La scheda che esce NON sbiadisce: si vede intera finche' non lascia
         // lo schermo. A prendersi la scena e' quella che entra.
         if (entrante) {
-            const lato = eff < 0 ? '100%' : '-100%';
-            entrante.style.transform = `translateX(calc(${lato} + ${eff}px))`;
+            const scarto = (eff < 0 ? DIVARIO : -DIVARIO) + eff;
+            entrante.style.transform = `translateX(calc(${eff < 0 ? '100%' : '-100%'} + ${scarto}px))`;
         }
         return eff;
     };
@@ -1700,9 +1703,10 @@ function bindSwipe(el) {
             el.animate([{ transform: `translateX(${daX}px)` }, { transform: 'translateX(0)' }], rientro);
             if (entrante) {
                 const lato = daX < 0 ? '100%' : '-100%';
+                const scarto = (daX < 0 ? DIVARIO : -DIVARIO);
                 entrante.animate([
-                    { transform: `translateX(calc(${lato} + ${daX}px))` },
-                    { transform: `translateX(${lato})` },
+                    { transform: `translateX(calc(${lato} + ${scarto + daX}px))` },
+                    { transform: `translateX(calc(${lato} + ${scarto}px))` },
                 ], rientro);
             }
             setTimeout(pulisci, 260);
@@ -1723,8 +1727,11 @@ function bindSwipe(el) {
         finendo = true;
         const resta = Math.max(0, 1 - Math.abs(daX) / largo);
         const D = Math.round(120 + 260 * resta);
-        const fuori = daX < 0 ? -largo : largo;
+        // fuori schermo per intero, divario compreso: se no l'ultimo pezzo di
+        // scheda resterebbe visibile mentre l'altra e' gia' al centro
+        const fuori = (daX < 0 ? -1 : 1) * (largo + DIVARIO);
         const lato = daX < 0 ? '100%' : '-100%';
+        const scarto = (daX < 0 ? DIVARIO : -DIVARIO);
 
         el.animate([
             { transform: `translateX(${daX}px)` },
@@ -1732,7 +1739,7 @@ function bindSwipe(el) {
         ], { duration: D, easing: E, fill: 'forwards' });
 
         entrante.animate([
-            { transform: `translateX(calc(${lato} + ${daX}px))` },
+            { transform: `translateX(calc(${lato} + ${scarto + daX}px))` },
             { transform: 'translateX(0)' },
         ], { duration: D, easing: E, fill: 'forwards' }).onfinish = () => {
             // Il render vero rimette esattamente la scheda che si sta gia'
