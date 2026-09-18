@@ -60,6 +60,35 @@ produttore: non aggiungerne altri, perché scrivono sugli stessi nodi e l'ultimo
 sovrascrive l'altro (successo il 2026-08-04). `deploy-data.yml` resta
 disattivato sull'automatico, solo avvio manuale per ricaricare gli storici.
 
+**Le statistiche di squadra NFL le fa `build-nflverse.yml`, nel giro
+GIORNALIERO.** `scripts/build-nfl-team-stats.mjs` scrive
+`data/nfl/team_stats_{Y}.json` — attacco, difesa, fantasy concessi per ruolo,
+rank 1-32, calendario — ed è la fonte di tutta la tab Stats della pagina
+squadra, del contesto squadra nella pagina giocatore e delle bye week. Per un
+anno intero non l'ha eseguito NESSUNA Action: il file della stagione in corso
+nasceva `scheduleOnly` (solo calendario) prima del via e restava tale finché
+qualcuno non lo rifaceva a mano, quindi da settembre a febbraio quei blocchi
+erano vuoti. Sta nel giro giornaliero e non in quello del martedì perché cambia
+dopo ogni partita — giovedì, domenica, lunedì. La sua riga va tenuta
+nell'elenco dei file committati in fondo al workflow, altrimenti gira a vuoto.
+
+Aggrega **solo le settimane chiuse**, squadra per squadra: Sleeper pubblica le
+statistiche appena la partita finisce, il risultato ufficiale (da cui si
+contano le partite giocate) arriva dopo. Il 18/09/2026, a giornata 2 appena
+cominciata, Buffalo aveva le stats di due partite e una sola partita contata:
+871 yard e 121 giochi *a partita*. Numeratore e denominatore devono venire
+dalle stesse partite. A stagione chiusa il filtro non cambia niente (verificato
+rigenerando il 2025 con e senza).
+
+A una giornata giocata un rank NFL è quasi rumore, e il sito lo dichiara invece
+di nasconderlo: `sampleTag()` in `player-page.js` mette " · N games" accanto
+all'anno finché la stagione non è completa, e sotto le 4 partite
+`smallSampleNote()` lo scrive nelle note. Sempre sotto le 4 partite la stagione
+in corso **non entra nei grafici storici** (`MIN_TREND_GAMES` in
+`nfl-team-page.js`): senza quel cancello una settimana finiva accanto alle
+stagioni intere e la pagina annunciava "miglior difesa 2026 (97/100)" dopo una
+partita sola.
+
 **Prima del draft non si scrive niente.** Finché la lega non ha draftato, ESPN
 riempie le squadre di rose segnaposto (`acquisitionType: null`): giocatori che
 non sono di nessuno. `run_espn.py` se ne accorge da `draft_espn.draft_is_done()`
