@@ -10,7 +10,8 @@
  * prende il posto del primo, con "Indietro" per tornare.
  */
 
-import { buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=623';
+import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=623';
+import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 
 const MOBILE_MQ = '(max-width: 768px)';
 
@@ -148,6 +149,7 @@ function initDropdowns(navbar) {
     const mq = window.matchMedia(MOBILE_MQ);
     const navLinks = navbar.querySelector('.nav-links');
     const level2 = buildLevel2(navbar);
+    buildNflPanel(navbar);
 
     const closeMenu = () => {
         navbar.classList.remove('l2-open');
@@ -201,6 +203,11 @@ function initDropdowns(navbar) {
     const open = (panel) => {
         clearTimeout(closeTimer);
         if (apertoOra && apertoOra !== panel) apertoOra.classList.remove('panel-active');
+        // L'altezza della barra aperta la decide il pannello, non una costante:
+        // le voci a una riga restano 56px, il mega pannello NFL ne chiede ~330.
+        // Si misura il pannello vero (e' in position:absolute, quindi la sua
+        // altezza non dipende dalla barra che lo contiene).
+        navbar.style.setProperty('--dd-h', `${panel.offsetHeight}px`);
         navbar.classList.add('dropdown-active');
         panel.classList.add('panel-active');
         apertoOra = panel;
@@ -229,11 +236,52 @@ function initDropdowns(navbar) {
         // ── Mobile: apre il secondo livello invece di navigare ──
         item.querySelector('.nav-link')?.addEventListener('click', (e) => {
             if (!mq.matches) return; // desktop: il link naviga normalmente
+            // Voce con `data-no-drill` (NFL Hub): il pannello esiste solo per
+            // l'hover desktop, da telefono resta un link normale.
+            if (item.dataset.noDrill !== undefined) return;
             e.preventDefault();
             fillLevel2(level2, item, panel);
             navbar.classList.add('l2-open');
         });
     });
+}
+
+/**
+ * Mega pannello "NFL Hub": le 32 squadre raggruppate per division, logo +
+ * nome, per arrivare alla pagina squadra (`#nfl-team/{ABBR}`) con un solo
+ * movimento invece di passare dall'hub e cercarla.
+ *
+ * Generato da NFL_TEAMS: scritto in index.html sarebbe una seconda lista di
+ * squadre da tenere allineata a mano a ogni rebrand. L'ordine delle division
+ * e' fisso (AFC poi NFC, East/North/South/West) perche' e' quello con cui si
+ * leggono le classifiche; le squadre dentro ognuna vanno in ordine alfabetico.
+ *
+ * Vive solo su desktop: su mobile il CSS nasconde i pannelli hover e la voce
+ * resta un link (vedi `data-no-drill`).
+ */
+function buildNflPanel(navbar) {
+    const panel = navbar.querySelector('[data-panel="nfl"]');
+    if (!panel) return;
+
+    const divisions = ['AFC East', 'AFC North', 'AFC South', 'AFC West',
+        'NFC East', 'NFC North', 'NFC South', 'NFC West'];
+
+    const blocco = (div) => {
+        const squadre = Object.entries(NFL_TEAMS)
+            .filter(([, t]) => t.division === div)
+            .sort((a, b) => a[1].name.localeCompare(b[1].name));
+        return `
+        <div class="nav-nfl-div">
+            <h3 class="nav-nfl-div-title">${esc(div)}</h3>
+            ${squadre.map(([abbr, t]) => `
+            <a class="nav-nfl-team" href="#nfl-team/${abbr}">
+                <img class="nav-nfl-team-logo" src="${teamLogoUrl(abbr)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+                <span class="nav-nfl-team-name">${esc(t.name)}</span>
+            </a>`).join('')}
+        </div>`;
+    };
+
+    panel.innerHTML = `<div class="nav-nfl-grid">${divisions.map(blocco).join('')}</div>`;
 }
 
 /** Contenitore del secondo livello, creato una volta sola.

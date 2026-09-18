@@ -310,8 +310,11 @@ img {
     overflow: hidden;
 }
 
+/* Quanto si apre la barra lo dice il pannello, non una costante: navbar.js
+   misura quello attivo e scrive --dd-h. Le voci a una riga restano 56px (il
+   ripiego), il mega pannello NFL ne chiede quanto gli serve. */
 .navbar.dropdown-active {
-    height: calc(var(--nav-height) + 56px);
+    height: calc(var(--nav-height) + var(--dd-h, 56px));
 }
 
 /* Secondo livello del menu mobile (drill-down). Su desktop non esiste. */
@@ -369,6 +372,84 @@ img {
     background: var(--border-subtle);
     margin: 0 6px;
     flex-shrink: 0;
+}
+
+/* --------------------------------
+   Mega pannello NFL Hub — le 32 squadre per division
+   Solo desktop: su mobile i pannelli hover sono nascosti (vedi @media 768px)
+   e la voce NFL Hub resta un link verso #players.
+   -------------------------------- */
+.nav-dropdown-panel--nfl {
+    /* altezza dal contenuto: la misura navbar.js per espandere la barra */
+    height: auto;
+    display: block;
+    padding: 16px 24px 22px;
+}
+
+.nav-nfl-grid {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 20px;
+}
+
+.nav-nfl-div-title {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 8px 6px;
+    margin: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+}
+
+.nav-nfl-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 450;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.nav-nfl-team:hover {
+    background: var(--bg-glass);
+    color: var(--text-primary);
+}
+
+.nav-nfl-team-logo {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    object-fit: contain;
+}
+
+.nav-nfl-team-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Barra strettina (portatile piccolo): restano quattro colonne — passare a due
+   raddoppierebbe l'altezza del pannello e la barra aperta coprirebbe mezzo
+   schermo. Si stringono testo e spazi, e i nomi lunghi si troncano. */
+@media (min-width: 769px) and (max-width: 1080px) {
+    .nav-nfl-grid {
+        gap: 12px 12px;
+    }
+
+    .nav-nfl-team {
+        font-size: 0.75rem;
+        gap: 6px;
+        padding: 4px 6px;
+    }
 }
 
 /* Hamburger */

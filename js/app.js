@@ -26,7 +26,7 @@ import { initLeaders } from './sections/leaders.js?v=67';
 import { initWaivers } from './sections/waivers.js?v=60';
 import { initMagazine } from './sections/magazine.js?v=774';
 import { initLive } from './sections/live.js?v=1072';
-import { initNavbar } from './ui/navbar.js?v=661';
+import { initNavbar } from './ui/navbar.js?v=662';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=6';
 

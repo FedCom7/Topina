@@ -23,7 +23,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1231">
+    <link rel="stylesheet" href="css/main.css?v=1232">
 </head>
 
 <body>
@@ -62,7 +62,13 @@
                 <li class="nav-item has-dropdown" data-dropdown="draft">
                     <a href="#draft" class="nav-link" data-section="draft">Draft</a>
                 </li>
-                <li class="nav-item"><a href="#players" class="nav-link" data-section="players">NFL Hub</a></li>
+                <!-- NFL Hub: su desktop apre il mega pannello con le 32 squadre per
+                     division (riempito da ui/navbar.js). `data-no-drill` dice al
+                     menu mobile di NON trasformarla in drill-down: da telefono la
+                     voce resta un link che porta a #players, come prima. -->
+                <li class="nav-item has-dropdown" data-dropdown="nfl" data-no-drill>
+                    <a href="#players" class="nav-link" data-section="players">NFL Hub</a>
+                </li>
                 <li class="nav-item has-dropdown" data-dropdown="history">
                     <a href="#history" class="nav-link" data-section="history">History</a>
                 </li>
@@ -132,6 +138,10 @@
             <a href="#projections" class="nav-dp-item" data-section="projections">Projections</a>
             <a href="#managerdna" class="nav-dp-item" data-section="managerdna">Manager DNA</a>
         </div>
+        <!-- Le 32 squadre per division: contenuto generato da ui/navbar.js da
+             NFL_TEAMS, cosi' non c'e' una seconda lista di squadre da tenere
+             allineata a mano. -->
+        <div class="nav-dropdown-panel nav-dropdown-panel--nfl" data-panel="nfl"></div>
         <div class="nav-dropdown-panel" data-panel="history">
             <a href="#history" class="nav-dp-item nav-dp-header" data-section="history">League History</a>
             <div class="nav-dp-sep"></div>
@@ -479,7 +489,7 @@
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1317"></script>
+    <script type="module" src="js/app.js?v=1318"></script>
 </body>
 
 </html>
