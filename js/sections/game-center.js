@@ -1,9 +1,9 @@
 import { fetchFantasyData, fetchDraftData, getWeekCount, weeksWithPending, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=585';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=172';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=811';
+import { TEAMS } from './team.js?v=813';
 import { initPlayerModal } from '../components/player-modal.js?v=762';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';

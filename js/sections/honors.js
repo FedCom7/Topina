@@ -6,8 +6,8 @@
  */
 
 import { CURRENT_SEASON } from '../data.js?v=585';
-import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=723';
-import { TEAMS } from './team.js?v=811';
+import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
+import { TEAMS } from './team.js?v=813';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let initialized = false;

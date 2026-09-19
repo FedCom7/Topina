@@ -2475,6 +2475,16 @@ body.nav-dd-open::after {
    LOADING STATE
    ================================ */
 
+/* Un caricamento non si mostra finche' non ha dentro la sua animazione.
+   `paint()` in js/ui/spinner.js marca il riquadro con `data-tl-art` appena ci
+   ha messo la scena: prima di quel momento sarebbe un rettangolo vuoto con una
+   scritta accanto, cioe' esattamente "il caricamento prima del caricamento".
+   Si nasconde con `visibility` e non con `display` apposta: lo spazio resta
+   occupato, e quando la scena arriva non salta niente. */
+.loading-state:has(.spinner:not([data-tl-art])) {
+    visibility: hidden;
+}
+
 .loading-state {
     display: flex;
     flex-direction: column;
@@ -2610,7 +2620,7 @@ body.nav-dd-open::after {
     /* la posa di riposo è quella a palla presa: con prefers-reduced-motion le
        animazioni sono spente e senza questa la palla starebbe sull'origine del
        viewBox, fuori dalla scena. */
-    transform: translate(30px, 18px) rotate(-62deg);
+    transform: translate(29.32px, 16.4px) rotate(75.5deg);
     animation: tl-run-ball 2.4s linear infinite;
 }
 
@@ -2620,7 +2630,12 @@ body.nav-dd-open::after {
 }
 
 .tl-run-lace {
-    stroke: var(--text-primary);
+    /* bianche SEMPRE, anche in tema chiaro: il pallone e'
+       --accent-red (#B8433A) in tutti e due i temi, mentre
+       --text-primary in chiaro diventa quasi nero e le cuciture
+       sparivano dentro il rosso. Qui il fondo non cambia, quindi
+       non deve cambiare nemmeno l'inchiostro. */
+    stroke: #fff;
     stroke-width: 0.7;
 }
 
@@ -2740,8 +2755,19 @@ body.nav-dd-open::after {
        angolo = atan(y'(u) / x'(u)) = atan((72u − 48) / −57.5)
    → 40°, 32°, 22.7°, 11.8°, 0°, −11.8°, −22.7°. Cambiando un punto della
    parabola vanno ricalcolati gli angoli, se no la palla vola di traverso.
-   Dal 48% in poi non è più balistica: è una palla che viene stretta al fianco,
-   e ruota fino alla presa in mano (−62°). */
+   Dal 48% in poi non è più balistica: è una palla che viene TENUTA, e la sua
+   posizione non si sceglie, si calcola dalle mani. Tre regole, le stesse della
+   scena del lancio:
+     - sta FRA le due mani (il punto medio dei due pugni, 29.9, 18.62);
+     - il suo asse lungo è PERPENDICOLARE all'avambraccio, cioè attraversa la
+       mano invece di stendersi sopra al braccio;
+     - la si impugna verso la punta VICINA al corpo, quindi il centro è
+       spostato di 2.3 lungo l'asse dalla parte che sporge in fuori: le dita
+       restano a 1.9 dalla punta vicina e la palla sporge di 6.5 dall'altra.
+   Prima era centrata sul pugno e inclinata a occhio (−62°): sembrava infilzata
+   sul polso invece che tenuta. Toccando gli angoli del braccio questi due
+   keyframe vanno rifatti — il conto sta in fondo a scripts/gen-pass-loader.py,
+   che fa lo stesso lavoro per l'altra scena. */
 @keyframes tl-run-ball {
     0%   { transform: translate(90px, 22px) rotate(40deg); opacity: 0; }
     8%   { transform: translate(80.4px, 15px) rotate(32deg); opacity: 1; }
@@ -2750,10 +2776,10 @@ body.nav-dd-open::after {
     32%  { transform: translate(51.7px, 6px) rotate(0deg); }
     40%  { transform: translate(42.1px, 7px) rotate(-11.8deg); }
     48%  { transform: translate(32.5px, 10px) rotate(-22.7deg); opacity: 1; }
-    58%  { transform: translate(31.5px, 13.5px) rotate(-45deg); }
-    72%  { transform: translate(30px, 18px) rotate(-62deg); }
-    88%  { transform: translate(30px, 18px) rotate(-62deg); opacity: 1; }
-    100% { transform: translate(30px, 18px) rotate(-62deg); opacity: 0; }
+    58%  { transform: translate(30.95px, 13.58px) rotate(51.5deg); }
+    72%  { transform: translate(29.32px, 16.4px) rotate(75.5deg); }
+    88%  { transform: translate(29.32px, 16.4px) rotate(75.5deg); opacity: 1; }
+    100% { transform: translate(29.32px, 16.4px) rotate(75.5deg); opacity: 0; }
 }
 
 /* Un giro di cuciture ogni 12%: in faccia (0), sul bordo di sopra dove si
@@ -2781,6 +2807,1037 @@ body.nav-dd-open::after {
     .tl-run-laces {
         animation: none;
     }
+}
+
+/* >>> INIZIO blocco generato da scripts/gen-pass-loader.py - non modificare a mano <<< */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Il secondo logo di caricamento: due omini che si passano la palla, avanti e
+   indietro, senza mai fermarsi. Convive con la corsa: quale delle due si vede
+   lo decide js/ui/spinner.js, una volta per caricamento pagina.
+
+   IL CICLO E' SIMMETRICO, e questa e' la cosa da sapere prima di toccarlo.
+   Chi ha lanciato riceve, chi ha ricevuto rilancia: la seconda meta' del ciclo
+   e' la prima RIBALTATA (x -> 154-x, rotazioni negate) e spostata di mezzo
+   giro. Per questo tutti i keyframe delle due figure li scrive un generatore
+   — scripts/gen-pass-loader.py — da una tabella di pose sola, quella di
+   sinistra. A mano sarebbero due serie di angoli con i segni girati: basta
+   sbagliarne uno e non lo si trova piu'.
+   **Non si modificano questi keyframe a mano: si cambia la tabella e si
+   rigenera.** L'asse di simmetria e' x=77, ed e' per questo che le ancHe
+   stanno a 20 e 134, le spalle a 24 e 130, le teste a 25.3 e 128.7.
+
+   La palla NON sparisce mai: non c'e' nessuna animazione di opacita'. Nella
+   prima versione la scena finiva con la palla in mano al ricevitore e il giro
+   dopo ricompariva dall'altra parte — un taglio che si vedeva. Qui il possesso
+   cambia davvero, quindi il ciclo si chiude da solo.
+
+   Ciclo da 3.2s, mezzo giro a testa. Le tappe della meta' di sinistra (a
+   destra tutto +50%) sono le quattro fasi vere del lancio:
+       0%     la palla sta al petto con DUE mani, peso indietro
+       0-13%  wind-up: la palla sale, il gomito si alza
+       13%    cocking: la "L" — gomito all'altezza della spalla, avambraccio
+              verticale, palla dietro l'orecchio
+       15%    massima rotazione esterna: il gomito parte AVANTI e la mano resta
+              indietro (il ritardo dell'avambraccio e' la frustata)
+       18%    rilascio, braccio in estensione completa, alto e avanti
+       18-33% volo: 0.48 s per 83 unita'
+       30%    la mano finisce all'ANCA OPPOSTA, gamba dietro sollevata
+       33%    l'altro prende, e da li' il mezzo giro ricomincia da lui */
+.spinner[data-art="pass"] {
+    /* La scena e' larga il triplo (viewBox 154x52): col riquadro da 84 la
+       figura verrebbe rimpicciolita dal `meet` e sparirebbe. Le misure tengono
+       il rapporto esatto del viewBox, cosi' gli omini vengono alti quanto il
+       corridore dell'altra scena (~1.08 px per unita'). */
+    width: 166px;
+    height: 56px;
+}
+
+.tl-pass {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Qui nessuno avanza: la linea e' ferma, il movimento lo fa la palla. */
+.tl-pass-line {
+    stroke: var(--border-card);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 8;
+}
+
+.tl-pass-torso,
+.tl-pass-l-arm, .tl-pass-l-leg,
+.tl-pass-r-arm, .tl-pass-r-leg {
+    stroke: currentColor;
+    stroke-width: 4.6;
+}
+
+.tl-pass-head {
+    fill: currentColor;
+    stroke: none;
+}
+
+.tl-pass-l-upper, .tl-pass-l-arm, .tl-pass-l-forearm, .tl-pass-l-leg, .tl-pass-l-shin,
+.tl-pass-r-upper, .tl-pass-r-arm, .tl-pass-r-forearm, .tl-pass-r-leg, .tl-pass-r-shin {
+    transform-box: view-box;
+}
+
+/* Gli arti LONTANI sono appena spenti, come nella corsa: a 166px un arto dello
+   stesso colore sparisce dentro il busto.
+   Quale sia quello lontano lo dice la figura, non il ruolo: tutti e due sono
+   DESTRIMANI e si guardano, quindi di uno vediamo il fianco destro e
+   dell'altro il sinistro. Chi sta a sinistra lancia col braccio lontano
+   (spento), chi sta a destra col braccio vicino (a piena tinta). E' l'unica
+   disposizione possibile per due destrimani girati al contrario, e si porta
+   dietro tutto il resto: da che parte passa la palla rispetto al busto. */
+.tl-pass-far {
+    opacity: 0.55;
+}
+
+
+/* ── figura di SINISTRA ─────────────────────────────────────────────────────
+   Snodi: anca (20,25), ginocchio (20,31.5), spalla (24,14),
+   gomito (24,20). Il `transform` fuori dai keyframe e' la posa dello 0%:
+   serve a prefers-reduced-motion, che spegne le animazioni e lascia in piedi
+   quella.
+   Il gruppo `-upper` tiene busto, testa e braccia e ruota attorno all'ANCA: e'
+   la separazione anca-spalle. Le gambe partono in avanti e il torso resta
+   indietro caricato, poi ruota e arriva. Senza quel gruppo il busto e'
+   inchiodato al bacino e il lancio diventa un gesto di solo braccio. */
+.tl-pass-l {
+    transform-box: view-box;
+    transform: translate(-0.5px, 0.2px);
+    animation: tl-pass-l-shift 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-upper {
+    transform-origin: 20px 25px;
+    transform: rotate(-4deg);
+    animation: tl-pass-l-turn 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-leg { transform-origin: 20px 25px; }
+.tl-pass-l-shin { transform-origin: 20px 31.5px; }
+.tl-pass-l-arm { transform-origin: 24px 14px; }
+.tl-pass-l-forearm { transform-origin: 24px 20px; }
+
+.tl-pass-l-leg-a {
+    transform: rotate(-12deg);
+    animation: tl-pass-l-thigh-a 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-leg-a .tl-pass-l-shin {
+    transform: rotate(4deg);
+    animation: tl-pass-l-shin-a 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-leg-b {
+    transform: rotate(12deg);
+    animation: tl-pass-l-thigh-b 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-leg-b .tl-pass-l-shin {
+    transform: rotate(6deg);
+    animation: tl-pass-l-shin-b 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-arm-throw {
+    transform: rotate(19deg);
+    animation: tl-pass-l-arm-throw 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-arm-throw .tl-pass-l-forearm {
+    transform: rotate(-116deg);
+    animation: tl-pass-l-forearm-throw 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-arm-off {
+    transform: rotate(12deg);
+    animation: tl-pass-l-arm-off 3.2s ease-in-out infinite;
+}
+
+.tl-pass-l-arm-off .tl-pass-l-forearm {
+    transform: rotate(-104deg);
+    animation: tl-pass-l-forearm-off 3.2s ease-in-out infinite;
+}
+
+
+/* ── figura di DESTRA ─────────────────────────────────────────────────────
+   Snodi: anca (134,25), ginocchio (134,31.5), spalla (130,14),
+   gomito (130,20). Il `transform` fuori dai keyframe e' la posa dello 0%:
+   serve a prefers-reduced-motion, che spegne le animazioni e lascia in piedi
+   quella.
+   Il gruppo `-upper` tiene busto, testa e braccia e ruota attorno all'ANCA: e'
+   la separazione anca-spalle. Le gambe partono in avanti e il torso resta
+   indietro caricato, poi ruota e arriva. Senza quel gruppo il busto e'
+   inchiodato al bacino e il lancio diventa un gesto di solo braccio. */
+.tl-pass-r {
+    transform-box: view-box;
+    transform: translate(0.5px, 0.2px);
+    animation: tl-pass-r-shift 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-upper {
+    transform-origin: 134px 25px;
+    transform: rotate(4deg);
+    animation: tl-pass-r-turn 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-leg { transform-origin: 134px 25px; }
+.tl-pass-r-shin { transform-origin: 134px 31.5px; }
+.tl-pass-r-arm { transform-origin: 130px 14px; }
+.tl-pass-r-forearm { transform-origin: 130px 20px; }
+
+.tl-pass-r-leg-a {
+    transform: rotate(12deg);
+    animation: tl-pass-r-thigh-a 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-leg-a .tl-pass-r-shin {
+    transform: rotate(-4deg);
+    animation: tl-pass-r-shin-a 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-leg-b {
+    transform: rotate(-12deg);
+    animation: tl-pass-r-thigh-b 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-leg-b .tl-pass-r-shin {
+    transform: rotate(-6deg);
+    animation: tl-pass-r-shin-b 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-arm-throw {
+    transform: rotate(-19deg);
+    animation: tl-pass-r-arm-throw 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-arm-throw .tl-pass-r-forearm {
+    transform: rotate(116deg);
+    animation: tl-pass-r-forearm-throw 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-arm-off {
+    transform: rotate(-12deg);
+    animation: tl-pass-r-arm-off 3.2s ease-in-out infinite;
+}
+
+.tl-pass-r-arm-off .tl-pass-r-forearm {
+    transform: rotate(104deg);
+    animation: tl-pass-r-forearm-off 3.2s ease-in-out infinite;
+}
+
+
+/* ── palla ───────────────────────────────────────────────────────────────
+   Niente `opacity`: la palla c'e' sempre, cambia solo padrone.
+   Finche' e' in mano i suoi keyframe NON sono la posizione della mano nel
+   disegno: sono quella posizione dopo averci applicato sopra lo spostamento
+   del corpo e la rotazione del busto. La palla sta fuori dai gruppi delle due
+   figure (deve volare via), quindi quelle due trasformazioni se le deve fare a
+   mano. Al rilascio la differenza vale 4.7 unita': ignorarla stacca la palla
+   dal pugno.
+   Il punto al 16.5% (e al 66.5%) e' il passaggio SOPRA la testa: senza, la
+   palla va in linea retta dall'orecchio alla mano tesa e attraversa la faccia,
+   mentre la mano ci passa sopra.
+
+   In volo e' balistica. Numeri veri: un lancio NFL parte fra i 20 e i 30 gradi
+   sopra l'orizzonte, e il muso della palla sta sulla tangente — gli angoli NON
+   sono scelti a occhio.
+       x(u) = 38.19 + 83.31u          (orizzontale a velocita' costante → `linear`)
+       y(u) = 11 − 38.85u + 39.94u²   (angolo di lancio 25°, apice 9.5 unita'
+                                       sopra il rilascio, presa a (121.5, 12.09))
+       angolo = atan(y'(u)/x'(u)) = atan((79.88u − 38.85) / 83.31)
+   → -25°, -15.3°, -4.7°, 6.2°, 16.7°, 26.2°, un keyframe ogni 3% (u di 1/5).
+   La prima versione lanciava a 45°: era un pallonetto, non un passaggio.
+   Il volo dura 0.48 s per 83 unita'. In scala stretta (un omino alto 33 unita'
+   e' alto 6 piedi, quindi una iarda sta in 16.5 unita') sarebbe un lancio di 5
+   iarde a 21 mph: un quarto della velocita' vera. Quella vera — 50 mph — vuole
+   0.2 s, cioe' cinque fotogrammi: una striscia rossa che non si vede. 0.48 s e'
+   il punto in cui la palla e' ancora un oggetto che si segue con l'occhio. */
+.tl-pass-ball {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: translate(29.26px, 18.89px) rotate(-2.8deg);
+    animation: tl-pass-ball 3.2s linear infinite;
+}
+
+.tl-pass-ball-body {
+    fill: var(--accent-red);
+    stroke: none;
+}
+
+.tl-pass-lace {
+    /* bianche SEMPRE, anche in tema chiaro: il pallone e' --accent-red
+       (#B8433A) in tutti e due i temi, mentre --text-primary in chiaro
+       diventa quasi nero e le cuciture sparivano dentro il rosso. Il fondo
+       non cambia, quindi non deve cambiare nemmeno l'inchiostro. */
+    stroke: #fff;
+    stroke-width: 0.7;
+}
+
+.tl-pass-laces {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: tl-pass-spiral 3.2s linear infinite;
+}
+
+@keyframes tl-pass-l-shift {
+    0%    { transform: translate(-0.5px, 0.2px); }
+    8%    { transform: translate(-1.2px, 0.3px); }
+    13%   { transform: translate(-0.8px, 0.4px); }
+    15%   { transform: translate(0.8px, 0.8px); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: translate(3px, 1.4px); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: translate(3.4px, 1.2px); }
+    30%   { transform: translate(3.6px, 1px); }
+    42%   { transform: translate(1px, 0.5px); }
+    50%   { transform: translate(-0.5px, 0.2px); }
+    62%   { transform: translate(-0.5px, 0.2px); }
+    75%   { transform: translate(-0.5px, 0.2px); }
+    83%   { transform: translate(-0.5px, -2px); }
+    88%   { transform: translate(-0.5px, -0.4px); }
+    92%   { transform: translate(-0.5px, 0.2px); }
+    100%  { transform: translate(-0.5px, 0.2px); }
+}
+
+@keyframes tl-pass-l-turn {
+    0%    { transform: rotate(-4deg); }
+    8%    { transform: rotate(-6deg); }
+    13%   { transform: rotate(-7deg); }
+    15%   { transform: rotate(-2deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: rotate(6deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: rotate(8deg); }
+    30%   { transform: rotate(8deg); }
+    42%   { transform: rotate(2deg); }
+    50%   { transform: rotate(-4deg); }
+    62%   { transform: rotate(-4deg); }
+    75%   { transform: rotate(2deg); }
+    83%   { transform: rotate(5deg); }
+    88%   { transform: rotate(0deg); }
+    92%   { transform: rotate(-2deg); }
+    100%  { transform: rotate(-4deg); }
+}
+
+@keyframes tl-pass-l-arm-throw {
+    0%    { transform: rotate(19deg); }
+    8%    { transform: rotate(60deg); }
+    13%   { transform: rotate(81deg); }
+    15%   { transform: rotate(125deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: rotate(251deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: rotate(285deg); }
+    30%   { transform: rotate(349deg); }
+    42%   { transform: rotate(379deg); }
+    50%   { transform: rotate(379deg); }
+    62%   { transform: rotate(372deg); }
+    75%   { transform: rotate(340deg); }
+    83%   { transform: rotate(306deg); }
+    88%   { transform: rotate(330deg); }
+    92%   { transform: rotate(382deg); }
+    100%  { transform: rotate(379deg); }
+}
+
+@keyframes tl-pass-l-forearm-throw {
+    0%    { transform: rotate(-116deg); }
+    8%    { transform: rotate(-200deg); }
+    13%   { transform: rotate(-256deg); }
+    15%   { transform: rotate(-275deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: rotate(-387deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: rotate(-380deg); }
+    30%   { transform: rotate(-307deg); }
+    42%   { transform: rotate(-476deg); }
+    50%   { transform: rotate(-476deg); }
+    62%   { transform: rotate(-472deg); }
+    75%   { transform: rotate(-466deg); }
+    83%   { transform: rotate(-451deg); }
+    88%   { transform: rotate(-465deg); }
+    92%   { transform: rotate(-489deg); }
+    100%  { transform: rotate(-476deg); }
+}
+
+@keyframes tl-pass-l-arm-off {
+    0%    { transform: rotate(12deg); }
+    8%    { transform: rotate(-20deg); }
+    13%   { transform: rotate(-60deg); }
+    15%   { transform: rotate(-75deg); }
+    18%   { transform: rotate(10deg); }
+    22%   { transform: rotate(35deg); }
+    30%   { transform: rotate(30deg); }
+    42%   { transform: rotate(14deg); }
+    50%   { transform: rotate(12deg); }
+    62%   { transform: rotate(6deg); }
+    75%   { transform: rotate(-34deg); }
+    83%   { transform: rotate(-45deg); }
+    88%   { transform: rotate(-14deg); }
+    92%   { transform: rotate(28deg); }
+    100%  { transform: rotate(12deg); }
+}
+
+@keyframes tl-pass-l-forearm-off {
+    0%    { transform: rotate(-104deg); }
+    8%    { transform: rotate(-70deg); }
+    13%   { transform: rotate(-40deg); }
+    15%   { transform: rotate(-35deg); }
+    18%   { transform: rotate(-120deg); }
+    22%   { transform: rotate(-130deg); }
+    30%   { transform: rotate(-125deg); }
+    42%   { transform: rotate(-108deg); }
+    50%   { transform: rotate(-104deg); }
+    62%   { transform: rotate(-100deg); }
+    75%   { transform: rotate(-80deg); }
+    83%   { transform: rotate(-97deg); }
+    88%   { transform: rotate(-115deg); }
+    92%   { transform: rotate(-133deg); }
+    100%  { transform: rotate(-104deg); }
+}
+
+@keyframes tl-pass-l-thigh-a {
+    0%    { transform: rotate(-12deg); }
+    8%    { transform: rotate(-16deg); }
+    13%   { transform: rotate(-30deg); }
+    15%   { transform: rotate(-34deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: rotate(-26deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: rotate(-24deg); }
+    30%   { transform: rotate(-22deg); }
+    42%   { transform: rotate(-14deg); }
+    50%   { transform: rotate(-12deg); }
+    62%   { transform: rotate(-14deg); }
+    75%   { transform: rotate(-18deg); }
+    83%   { transform: rotate(-36deg); }
+    88%   { transform: rotate(-24deg); }
+    92%   { transform: rotate(-18deg); }
+    100%  { transform: rotate(-12deg); }
+}
+
+@keyframes tl-pass-l-shin-a {
+    0%    { transform: rotate(4deg); }
+    8%    { transform: rotate(14deg); }
+    13%   { transform: rotate(26deg); }
+    15%   { transform: rotate(20deg); }
+    18%   { transform: rotate(8deg); }
+    22%   { transform: rotate(5deg); }
+    30%   { transform: rotate(3deg); }
+    42%   { transform: rotate(4deg); }
+    50%   { transform: rotate(4deg); }
+    62%   { transform: rotate(6deg); }
+    75%   { transform: rotate(12deg); }
+    83%   { transform: rotate(46deg); }
+    88%   { transform: rotate(20deg); }
+    92%   { transform: rotate(12deg); }
+    100%  { transform: rotate(4deg); }
+}
+
+@keyframes tl-pass-l-thigh-b {
+    0%    { transform: rotate(12deg); }
+    8%    { transform: rotate(14deg); }
+    13%   { transform: rotate(16deg); }
+    15%   { transform: rotate(20deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: rotate(26deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: rotate(42deg); }
+    30%   { transform: rotate(55deg); }
+    42%   { transform: rotate(10deg); }
+    50%   { transform: rotate(12deg); }
+    62%   { transform: rotate(13deg); }
+    75%   { transform: rotate(14deg); }
+    83%   { transform: rotate(26deg); }
+    88%   { transform: rotate(18deg); }
+    92%   { transform: rotate(14deg); }
+    100%  { transform: rotate(12deg); }
+}
+
+@keyframes tl-pass-l-shin-b {
+    0%    { transform: rotate(6deg); }
+    8%    { transform: rotate(4deg); }
+    13%   { transform: rotate(6deg); }
+    15%   { transform: rotate(14deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    18%   { transform: rotate(22deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    22%   { transform: rotate(34deg); }
+    30%   { transform: rotate(44deg); }
+    42%   { transform: rotate(14deg); }
+    50%   { transform: rotate(6deg); }
+    62%   { transform: rotate(10deg); }
+    75%   { transform: rotate(16deg); }
+    83%   { transform: rotate(28deg); }
+    88%   { transform: rotate(20deg); }
+    92%   { transform: rotate(16deg); }
+    100%  { transform: rotate(6deg); }
+}
+@keyframes tl-pass-r-shift {
+    0%    { transform: translate(0.5px, 0.2px); }
+    12%   { transform: translate(0.5px, 0.2px); }
+    25%   { transform: translate(0.5px, 0.2px); }
+    33%   { transform: translate(0.5px, -2px); }
+    38%   { transform: translate(0.5px, -0.4px); }
+    42%   { transform: translate(0.5px, 0.2px); }
+    50%   { transform: translate(0.5px, 0.2px); }
+    58%   { transform: translate(1.2px, 0.3px); }
+    63%   { transform: translate(0.8px, 0.4px); }
+    65%   { transform: translate(-0.8px, 0.8px); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: translate(-3px, 1.4px); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: translate(-3.4px, 1.2px); }
+    80%   { transform: translate(-3.6px, 1px); }
+    92%   { transform: translate(-1px, 0.5px); }
+    100%  { transform: translate(0.5px, 0.2px); }
+}
+
+@keyframes tl-pass-r-turn {
+    0%    { transform: rotate(4deg); }
+    12%   { transform: rotate(4deg); }
+    25%   { transform: rotate(-2deg); }
+    33%   { transform: rotate(-5deg); }
+    38%   { transform: rotate(0deg); }
+    42%   { transform: rotate(2deg); }
+    50%   { transform: rotate(4deg); }
+    58%   { transform: rotate(6deg); }
+    63%   { transform: rotate(7deg); }
+    65%   { transform: rotate(2deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: rotate(-6deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: rotate(-8deg); }
+    80%   { transform: rotate(-8deg); }
+    92%   { transform: rotate(-2deg); }
+    100%  { transform: rotate(4deg); }
+}
+
+@keyframes tl-pass-r-arm-throw {
+    0%    { transform: rotate(-379deg); }
+    12%   { transform: rotate(-372deg); }
+    25%   { transform: rotate(-340deg); }
+    33%   { transform: rotate(-306deg); }
+    38%   { transform: rotate(-330deg); }
+    42%   { transform: rotate(-382deg); }
+    49.99% { transform: rotate(-379deg); }
+    50%   { transform: rotate(-19deg); }
+    58%   { transform: rotate(-60deg); }
+    63%   { transform: rotate(-81deg); }
+    65%   { transform: rotate(-125deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: rotate(-251deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: rotate(-285deg); }
+    80%   { transform: rotate(-349deg); }
+    92%   { transform: rotate(-379deg); }
+    100%  { transform: rotate(-379deg); }
+}
+
+@keyframes tl-pass-r-forearm-throw {
+    0%    { transform: rotate(476deg); }
+    12%   { transform: rotate(472deg); }
+    25%   { transform: rotate(466deg); }
+    33%   { transform: rotate(451deg); }
+    38%   { transform: rotate(465deg); }
+    42%   { transform: rotate(489deg); }
+    49.99% { transform: rotate(476deg); }
+    50%   { transform: rotate(116deg); }
+    58%   { transform: rotate(200deg); }
+    63%   { transform: rotate(256deg); }
+    65%   { transform: rotate(275deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: rotate(387deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: rotate(380deg); }
+    80%   { transform: rotate(307deg); }
+    92%   { transform: rotate(476deg); }
+    100%  { transform: rotate(476deg); }
+}
+
+@keyframes tl-pass-r-arm-off {
+    0%    { transform: rotate(-12deg); }
+    12%   { transform: rotate(-6deg); }
+    25%   { transform: rotate(34deg); }
+    33%   { transform: rotate(45deg); }
+    38%   { transform: rotate(14deg); }
+    42%   { transform: rotate(-28deg); }
+    50%   { transform: rotate(-12deg); }
+    58%   { transform: rotate(20deg); }
+    63%   { transform: rotate(60deg); }
+    65%   { transform: rotate(75deg); }
+    68%   { transform: rotate(-10deg); }
+    72%   { transform: rotate(-35deg); }
+    80%   { transform: rotate(-30deg); }
+    92%   { transform: rotate(-14deg); }
+    100%  { transform: rotate(-12deg); }
+}
+
+@keyframes tl-pass-r-forearm-off {
+    0%    { transform: rotate(104deg); }
+    12%   { transform: rotate(100deg); }
+    25%   { transform: rotate(80deg); }
+    33%   { transform: rotate(97deg); }
+    38%   { transform: rotate(115deg); }
+    42%   { transform: rotate(133deg); }
+    50%   { transform: rotate(104deg); }
+    58%   { transform: rotate(70deg); }
+    63%   { transform: rotate(40deg); }
+    65%   { transform: rotate(35deg); }
+    68%   { transform: rotate(120deg); }
+    72%   { transform: rotate(130deg); }
+    80%   { transform: rotate(125deg); }
+    92%   { transform: rotate(108deg); }
+    100%  { transform: rotate(104deg); }
+}
+
+@keyframes tl-pass-r-thigh-a {
+    0%    { transform: rotate(12deg); }
+    12%   { transform: rotate(14deg); }
+    25%   { transform: rotate(18deg); }
+    33%   { transform: rotate(36deg); }
+    38%   { transform: rotate(24deg); }
+    42%   { transform: rotate(18deg); }
+    50%   { transform: rotate(12deg); }
+    58%   { transform: rotate(16deg); }
+    63%   { transform: rotate(30deg); }
+    65%   { transform: rotate(34deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: rotate(26deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: rotate(24deg); }
+    80%   { transform: rotate(22deg); }
+    92%   { transform: rotate(14deg); }
+    100%  { transform: rotate(12deg); }
+}
+
+@keyframes tl-pass-r-shin-a {
+    0%    { transform: rotate(-4deg); }
+    12%   { transform: rotate(-6deg); }
+    25%   { transform: rotate(-12deg); }
+    33%   { transform: rotate(-46deg); }
+    38%   { transform: rotate(-20deg); }
+    42%   { transform: rotate(-12deg); }
+    50%   { transform: rotate(-4deg); }
+    58%   { transform: rotate(-14deg); }
+    63%   { transform: rotate(-26deg); }
+    65%   { transform: rotate(-20deg); }
+    68%   { transform: rotate(-8deg); }
+    72%   { transform: rotate(-5deg); }
+    80%   { transform: rotate(-3deg); }
+    92%   { transform: rotate(-4deg); }
+    100%  { transform: rotate(-4deg); }
+}
+
+@keyframes tl-pass-r-thigh-b {
+    0%    { transform: rotate(-12deg); }
+    12%   { transform: rotate(-13deg); }
+    25%   { transform: rotate(-14deg); }
+    33%   { transform: rotate(-26deg); }
+    38%   { transform: rotate(-18deg); }
+    42%   { transform: rotate(-14deg); }
+    50%   { transform: rotate(-12deg); }
+    58%   { transform: rotate(-14deg); }
+    63%   { transform: rotate(-16deg); }
+    65%   { transform: rotate(-20deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: rotate(-26deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: rotate(-42deg); }
+    80%   { transform: rotate(-55deg); }
+    92%   { transform: rotate(-10deg); }
+    100%  { transform: rotate(-12deg); }
+}
+
+@keyframes tl-pass-r-shin-b {
+    0%    { transform: rotate(-6deg); }
+    12%   { transform: rotate(-10deg); }
+    25%   { transform: rotate(-16deg); }
+    33%   { transform: rotate(-28deg); }
+    38%   { transform: rotate(-20deg); }
+    42%   { transform: rotate(-16deg); }
+    50%   { transform: rotate(-6deg); }
+    58%   { transform: rotate(-4deg); }
+    63%   { transform: rotate(-6deg); }
+    65%   { transform: rotate(-14deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    68%   { transform: rotate(-22deg); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+    72%   { transform: rotate(-34deg); }
+    80%   { transform: rotate(-44deg); }
+    92%   { transform: rotate(-14deg); }
+    100%  { transform: rotate(-6deg); }
+}
+@keyframes tl-pass-ball {
+    0%     { transform: translate(29.26px, 18.89px) rotate(-2.8deg); animation-timing-function: ease-in-out; }
+    8%     { transform: translate(22.15px, 12.93px) rotate(0.6deg); animation-timing-function: ease-in-out; }
+    13%    { transform: translate(18.17px, 10.23px) rotate(1.9deg); animation-timing-function: ease-in-out; }
+    15%    { transform: translate(24.26px, 6.7px) rotate(3.9deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    16.5%  { transform: translate(33.08px, 5.27px) rotate(5.1deg); }
+    18%    { transform: translate(40.49px, 11.07px) rotate(-25deg); }
+    21%    { transform: translate(56.74px, 5.07px) rotate(-15.2deg); }
+    24%    { transform: translate(72.98px, 2.21px) rotate(-4.5deg); }
+    27%    { transform: translate(89.23px, 2.51px) rotate(6.6deg); }
+    30%    { transform: translate(105.47px, 5.95px) rotate(17.2deg); }
+    33%    { transform: translate(121.72px, 12.54px) rotate(26.7deg); animation-timing-function: ease-out; }
+    38%    { transform: translate(121.89px, 15.4px) rotate(0.8deg); animation-timing-function: ease-out; }
+    42%    { transform: translate(125.7px, 17.8px) rotate(2.1deg); animation-timing-function: ease-out; }
+    50%    { transform: translate(124.74px, 18.89px) rotate(2.8deg); animation-timing-function: ease-in-out; }
+    58%    { transform: translate(131.85px, 12.93px) rotate(-0.6deg); animation-timing-function: ease-in-out; }
+    63%    { transform: translate(135.83px, 10.23px) rotate(-1.9deg); animation-timing-function: ease-in-out; }
+    65%    { transform: translate(129.74px, 6.7px) rotate(-3.9deg); animation-timing-function: cubic-bezier(.45, 0, .9, .35); }
+    66.5%  { transform: translate(120.92px, 5.27px) rotate(-5.1deg); }
+    68%    { transform: translate(113.51px, 11.07px) rotate(25deg); }
+    71%    { transform: translate(97.26px, 5.07px) rotate(15.2deg); }
+    74%    { transform: translate(81.02px, 2.21px) rotate(4.5deg); }
+    77%    { transform: translate(64.77px, 2.51px) rotate(-6.6deg); }
+    80%    { transform: translate(48.53px, 5.95px) rotate(-17.2deg); }
+    83%    { transform: translate(32.28px, 12.54px) rotate(-26.7deg); animation-timing-function: ease-out; }
+    88%    { transform: translate(32.11px, 15.4px) rotate(-0.8deg); animation-timing-function: ease-out; }
+    92%    { transform: translate(28.3px, 17.8px) rotate(-2.1deg); animation-timing-function: ease-out; }
+    100%   { transform: translate(29.26px, 18.89px) rotate(-2.8deg); }
+}
+/* La spirale. Una palla lanciata bene gira a circa 600 giri al minuto, cioe'
+   10 giri al secondo: dentro i 15%% di volo (0.48 s) ce ne stanno CINQUE, uno
+   ogni 3%%. Sono 625 rpm — il numero vero, non un compromesso grafico.
+   Girando attorno all'asse lungo la SAGOMA della palla non cambia mai (un
+   ellissoide che ruota sul proprio asse resta identico): a girare sono solo le
+   cuciture. Quindi le muoviamo lungo l'asse corto — su per la faccia,
+   schiacciate sul bordo, via dietro, e di nuovo su dal basso — che e' la
+   proiezione di un punto che gira. Fuori dai due voli la palla e' in una mano
+   e le cuciture stanno ferme in faccia.
+   Lo spostamento massimo (2.1) resta dentro il semiasse corto dell'ovale
+   (2.7): oltre, le cuciture escono dalla palla e allargano il bounding box che
+   fa da origine alla rotazione del padre. */
+@keyframes tl-pass-spiral {
+    0%, 18%, 21%, 24%, 27%, 30%, 33%, 68%, 71%, 74%, 77%, 80%, 83%, 100% { transform: translateY(0) scaleY(1); opacity: 1; }
+    18.75%, 21.75%, 24.75%, 27.75%, 30.75%, 68.75%, 71.75%, 74.75%, 77.75%, 80.75% { transform: translateY(-2.1px) scaleY(0.08); opacity: 0; }
+    20.25%, 23.25%, 26.25%, 29.25%, 32.25%, 70.25%, 73.25%, 76.25%, 79.25%, 82.25% { transform: translateY(2.1px) scaleY(0.08); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tl-pass-l, .tl-pass-l-upper, .tl-pass-l-leg, .tl-pass-l-shin,
+    .tl-pass-l-arm, .tl-pass-l-forearm,
+    .tl-pass-r, .tl-pass-r-upper, .tl-pass-r-leg, .tl-pass-r-shin,
+    .tl-pass-r-arm, .tl-pass-r-forearm,
+    .tl-pass-ball, .tl-pass-laces {
+        animation: none;
+    }
+}
+/* >>> FINE blocco generato <<< */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   I CARICAMENTI A PAGINA PIENA. Li disegna js/ui/loading-page.js; qui c'e'
+   solo il movimento.
+
+   Non sono lo spinner in grande: rispondono a una domanda diversa. Lo spinner
+   sta in un riquadro che si aggiorna mentre il resto e' gia' a schermo; questi
+   stanno dove la sezione e' ancora VUOTA e lo spazio va riempito. Per questo
+   `.tl-page` prende un'altezza minima invece di adattarsi al contenuto: una
+   sezione vuota con un francobollo in mezzo e' la cosa che si voleva togliere.
+
+   Quello che NON coprono mai: hero, testate, selettori d'anno. Quella roba e'
+   gia' pronta e nasconderla per fare scena vorrebbe dire ritardare di proposito
+   cose che oggi si vedono all'istante. */
+.tl-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    width: 100%;
+    grid-column: 1 / -1;
+    /* L'altezza e' tarata su dove cade la piega nelle pagine squadra:
+       l'hero e' alto 62vh, sotto restano circa 300px prima del bordo
+       dello schermo, e un loader piu' alto di cosi' avrebbe il logo
+       mezzo tagliato. */
+    min-height: min(44vh, 330px);
+    padding: 20px;
+    color: var(--text-muted);
+}
+
+.tl-page-label {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* ── la lavagna tattica ───────────────────────────────────────────────────
+   Una giocata VERA che si svolge: personnel e formazione dichiarati in alto a
+   sinistra, la difesa col suo fronte e la sua copertura, e ventidue uomini che
+   si muovono. Le giocate stanno in js/ui/loading-page.js (PLAYBOOK) e ne esce
+   una a caso a ogni caricamento.
+
+   Ciclo da 5s, e le tappe sono quelle di un'azione:
+       0-14%   PRE-SNAP: chi va in motion attraversa la formazione, i
+               linebacker che fingono il blitz si fanno vedere sulla linea
+       14%     SNAP
+       14-58%  la giocata: le tracce si disegnano mentre i giocatori le
+               corrono, la linea si scontra, la copertura scende
+       58-80%  resta ferma, che e' il momento in cui si legge
+       80-100% sfuma e si ricomincia
+
+   L'attacco e' caldo, la difesa fredda: e' cio' che rende la lavagna
+   leggibile in un colpo, prima ancora di capire chi fa cosa. */
+.tl-play {
+    --tl-off: var(--accent-red);
+    --tl-def: var(--accent-blue);
+    width: 100%;
+    max-width: 540px;
+    height: auto;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.tl-play-hash {
+    stroke: currentColor;
+    stroke-width: 1;
+    stroke-dasharray: 3 12;
+    opacity: .28;
+}
+
+.tl-play-los {
+    stroke: currentColor;
+    stroke-width: 1.6;
+    opacity: .55;
+}
+
+.tl-play-nome,
+.tl-play-vs {
+    fill: currentColor;
+    stroke: none;
+    font-family: var(--font-body, Inter), system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: .12em;
+    opacity: .55;
+}
+
+.tl-play-vs {
+    font-size: 9px;
+    opacity: .38;
+}
+
+/* Attacco e difesa. Il colore sta sul marker E sulla sua traccia: una route
+   rossa che finisce in un pallino rosso si segue senza pensarci. */
+.tl-play-att { stroke: var(--tl-off); }
+.tl-play-dif { stroke: var(--tl-def); }
+
+.tl-play-man { stroke-width: 2.4; }
+
+/* Chi sta fermo e' spento: in uno schema l'occhio deve capire in un colpo chi
+   si muove. */
+.tl-play-ol,
+.tl-play-dl { opacity: .5; }
+
+.tl-play-linea {
+    stroke-width: 2;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    opacity: .75;
+}
+
+/* La difesa e' piu' tenue dell'attacco, non tratteggiata. Il tratteggio
+   sarebbe la convenzione giusta della lavagna, ma `stroke-dasharray` e'
+   gia' impegnato a far DISEGNARE la traccia: usarlo anche per l'aspetto
+   trasforma la linea in una fila di formiche che marciano invece che in un
+   tracciato che si scrive. A distinguerle basta il colore. */
+.tl-play-linea.tl-play-dif {
+    stroke-width: 1.8;
+    opacity: .5;
+}
+
+/* Il motion: linea tratteggiata fitta, e c'e' solo prima dello snap. */
+.tl-play-pre {
+    stroke-width: 1.6;
+    stroke-dasharray: 3 4;
+    opacity: .5;
+    animation: tl-play-pre-line 5s linear infinite;
+}
+
+.tl-play-run,
+.tl-play-pre-run {
+    /* il percorso glielo mette il modulo inline, ed e' LO STESSO d della
+       traccia: un solo posto dove sta scritto dove si corre */
+    offset-rotate: 0deg;
+    offset-distance: 0%;
+}
+
+.tl-t-f { --tl-run: tl-play-run-f; --tl-draw: tl-play-draw-f; }
+.tl-t-m { --tl-run: tl-play-run-m; --tl-draw: tl-play-draw-m; }
+.tl-t-s { --tl-run: tl-play-run-s; --tl-draw: tl-play-draw-s; }
+
+g.tl-play-run { animation: var(--tl-run) 5s ease-in-out infinite; }
+path.tl-play-linea { animation: var(--tl-draw) 5s ease-in-out infinite; }
+g.tl-play-pre-run { animation: tl-play-pre-run 5s ease-in-out infinite; }
+
+/* Chi e' andato in motion ha DUE marker: quello del pre-snap si spegne allo
+   snap, questo si accende li'. Sono due animazioni sullo stesso elemento —
+   la seconda vince sull'opacita' perche' arriva dopo. */
+.tl-play-tardi { animation: var(--tl-run) 5s ease-in-out infinite, tl-play-tardi 5s linear infinite; }
+
+.tl-play-ol { animation: tl-play-block 5s ease-in-out infinite; }
+.tl-play-dl { animation: tl-play-rush 5s ease-in-out infinite; }
+
+/* Il ritorno a zero si fa SEMPRE da invisibili (il salto a 90.01%): riportare
+   un giocatore all'inizio a vista vorrebbe dire vederlo tornare indietro di
+   corsa lungo la sua traccia. */
+@keyframes tl-play-run-s {
+    0%, 14%  { offset-distance: 0%; opacity: 1; }
+    58%, 80% { offset-distance: 100%; opacity: 1; }
+    90%      { offset-distance: 100%; opacity: 0; }
+    90.01%   { offset-distance: 0%; opacity: 0; }
+    100%     { offset-distance: 0%; opacity: 1; }
+}
+
+@keyframes tl-play-run-m {
+    0%, 14%  { offset-distance: 0%; opacity: 1; }
+    46%, 80% { offset-distance: 100%; opacity: 1; }
+    90%      { offset-distance: 100%; opacity: 0; }
+    90.01%   { offset-distance: 0%; opacity: 0; }
+    100%     { offset-distance: 0%; opacity: 1; }
+}
+
+@keyframes tl-play-run-f {
+    0%, 14%  { offset-distance: 0%; opacity: 1; }
+    34%, 80% { offset-distance: 100%; opacity: 1; }
+    90%      { offset-distance: 100%; opacity: 0; }
+    90.01%   { offset-distance: 0%; opacity: 0; }
+    100%     { offset-distance: 0%; opacity: 1; }
+}
+
+@keyframes tl-play-draw-s {
+    0%, 14%  { stroke-dashoffset: 100; }
+    58%, 80% { stroke-dashoffset: 0; opacity: .75; }
+    90%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes tl-play-draw-m {
+    0%, 14%  { stroke-dashoffset: 100; }
+    46%, 80% { stroke-dashoffset: 0; opacity: .75; }
+    90%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes tl-play-draw-f {
+    0%, 14%  { stroke-dashoffset: 100; }
+    34%, 80% { stroke-dashoffset: 0; opacity: .75; }
+    90%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* Il pre-snap: chi va in motion attraversa la formazione, chi finge il blitz
+   si fa vedere. Finito lo snap sparisce — quel marker ha fatto il suo. */
+@keyframes tl-play-pre-run {
+    0%     { offset-distance: 0%; opacity: 1; }
+    14%    { offset-distance: 100%; opacity: 1; }
+    14.01% { offset-distance: 100%; opacity: 0; }
+    100%   { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes tl-play-pre-line {
+    0%       { opacity: 0; }
+    4%, 14%  { opacity: .5; }
+    24%, 100% { opacity: 0; }
+}
+
+@keyframes tl-play-tardi {
+    0%, 13.99% { opacity: 0; }
+    14%, 80%   { opacity: 1; }
+    90%, 100%  { opacity: 0; }
+}
+
+/* La linea che si sfida: l'attacco spinge e poi cede di due unita', la difesa
+   guadagna terreno. Non e' decorazione — senza, ventidue uomini di cui cinque
+   piantati sembrano una formazione, non una giocata. */
+@keyframes tl-play-block {
+    0%, 14%  { transform: translateY(0); }
+    24%      { transform: translateY(-2px); }
+    40%      { transform: translateY(1px); }
+    58%, 80% { transform: translateY(2.5px); }
+    100%     { transform: translateY(0); }
+}
+
+@keyframes tl-play-rush {
+    0%, 14%  { transform: translateY(0); }
+    24%      { transform: translateY(1.8px); }
+    40%      { transform: translateY(3.4px); }
+    58%, 80% { transform: translateY(4.5px); }
+    100%     { transform: translateY(0); }
+}
+
+/* La difesa parte a 138 e guadagna 4.5, l'attacco sta a 150 e cede 2.5: a
+   giocata finita restano 10 unita' fra i due, che con marker da 7 di diametro
+   e' contatto senza compenetrazione. Spingendo fino a 7 i due gruppi si
+   mangiavano a vicenda e la linea diventava una macchia. */
+
+/* ── il logo della squadra che si riempie ─────────────────────────────────
+   Due strati dello stesso file: sotto il logo spento e in grigio, sopra lo
+   stesso logo a colori ritagliato da una linea che sale.
+   Il ritaglio e la linea vivono in due animazioni separate ma raccontano la
+   STESSA quota: `inset(P 0 0 0)` nasconde il P%% in alto, e la linea sta a
+   `top: P`. Se si tocca una percentuale vanno toccate tutte e due, o il pelo
+   dell'acqua si stacca dall'acqua. */
+.tl-fill {
+    position: relative;
+    width: min(46vw, 168px);
+    aspect-ratio: 1;
+}
+
+.tl-fill-dim,
+.tl-fill-lit {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.tl-fill-dim {
+    opacity: .15;
+    filter: grayscale(1);
+}
+
+.tl-fill-lit {
+    clip-path: inset(100% 0 0 0);
+    animation: tl-fill-rise 2.8s ease-in-out infinite;
+}
+
+.tl-fill-line {
+    position: absolute;
+    left: -4%;
+    right: -4%;
+    top: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--team-color, var(--accent-red));
+    box-shadow: 0 0 10px var(--team-color, var(--accent-red));
+    animation: tl-fill-wave 2.8s ease-in-out infinite;
+}
+
+@keyframes tl-fill-rise {
+    0%       { clip-path: inset(100% 0 0 0); opacity: 1; }
+    62%      { clip-path: inset(0 0 0 0); opacity: 1; }
+    78%      { clip-path: inset(0 0 0 0); opacity: 1; }
+    92%      { clip-path: inset(0 0 0 0); opacity: 0; }
+    92.01%   { clip-path: inset(100% 0 0 0); opacity: 0; }
+    100%     { clip-path: inset(100% 0 0 0); opacity: 1; }
+}
+
+@keyframes tl-fill-wave {
+    0%       { top: 100%; opacity: .85; }
+    62%      { top: 0%; opacity: .85; }
+    72%      { top: 0%; opacity: 0; }
+    92.01%   { top: 100%; opacity: 0; }
+    100%     { top: 100%; opacity: .85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* I selettori ripetono il qualificatore di elemento (g., path.) perche'
+       le regole di sopra ce l'hanno: `g.tl-play-run` pesa piu' di
+       `.tl-play-run`, e senza la stessa forma questa media query non morde.
+       Non si vedeva a occhio — la giocata continuava tranquillamente a girare
+       anche col movimento ridotto — si e' vista solo misurando lo
+       stroke-dashoffset. */
+    path.tl-play-linea,
+    g.tl-play-run,
+    g.tl-play-pre-run,
+    .tl-play-pre,
+    .tl-play-tardi,
+    .tl-play-ol,
+    .tl-play-dl,
+    .tl-fill-lit,
+    .tl-fill-line {
+        animation: none;
+    }
+
+    /* A fermo immagine la giocata si mostra DISEGNATA, non in bianco: una
+       lavagna vuota non dice niente a nessuno. I marker del pre-snap invece
+       si spengono, se no ogni uomo in motion comparirebbe due volte. */
+    path.tl-play-linea { stroke-dashoffset: 0; }
+    g.tl-play-run { offset-distance: 100%; }
+    g.tl-play-pre-run { opacity: 0; }
+    .tl-play-tardi { opacity: 1; }
+    .tl-fill-lit { clip-path: inset(38% 0 0 0); }
+    .tl-fill-line { top: 38%; }
 }
 
 .empty-state {

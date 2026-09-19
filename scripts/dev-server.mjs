@@ -50,14 +50,25 @@ const server = createServer(async (req, res) => {
         const info = await stat(filePath).catch(() => null);
         if (info?.isDirectory()) filePath = join(filePath, 'index.html');
 
+        // La data del file SERVITO, non di quello chiesto: se la riga sopra ha
+        // aggiunto index.html, `info` e' della cartella.
+        const st = await stat(filePath);
         const data = await readFile(filePath);
         // Ogni file si rilegge da disco a ogni richiesta (nessuna cache lato
         // server), e no-store dice al browser di non tenersene una copia sua:
         // un salvataggio si vede al refresh successivo, senza mai riavviare
         // questo processo. Va riavviato solo se cambia lo script stesso.
+        //
+        // `Last-Modified` c'e' per preview-loaders.html, che si riaggiorna da
+        // solo: chiede in HEAD la data dei file che sorveglia e ridisegna
+        // quando cambia. Senza questo header quel banco non si accorge di
+        // niente sotto `npm run preview` (funzionava solo con
+        // `python3 -m http.server`, che la manda). Non fa cache: `no-store`
+        // resta, e il browser non usa la data per riciclare una copia.
         res.writeHead(200, {
             'Content-Type': MIME[extname(filePath)] || 'application/octet-stream',
             'Cache-Control': 'no-store',
+            'Last-Modified': st.mtime.toUTCString(),
         });
         res.end(data);
     } catch {

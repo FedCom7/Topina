@@ -8,7 +8,7 @@
 
 import { buildCareers } from './careers.js?v=643';
 import { NFL_TEAMS } from './nfl-teams.js?v=513';
-import { normName } from './projections.js?v=602';
+import { normName } from './projections.js?v=611';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const teamLogoUrl = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${(abbr || '').toLowerCase()}.png`;

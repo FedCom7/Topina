@@ -30,9 +30,9 @@
  * numero è "di ciò che sappiamo, quanto se n'è andato".
  */
 
-import { normName } from './projections.js?v=602';
-import { getAdvancedPlayers } from './context-score.js?v=615';
-import { canonAbbr } from './nfl-schedule.js?v=544';
+import { normName } from './projections.js?v=611';
+import { getAdvancedPlayers } from './context-score.js?v=683';
+import { canonAbbr } from './nfl-schedule.js?v=546';
 
 const _cache = {};   // year → Promise<risultato | null>
 

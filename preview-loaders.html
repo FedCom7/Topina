@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Banco di prova — caricamenti</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        COME SI APRE
+            python3 -m http.server 8123        (dalla radice del repo)
+            http://localhost:8123/preview-loaders.html
+        Da file:// non funziona: i moduli ES vogliono un server.
+
+        COSA SI VEDE
+        Tutti i caricamenti del sito in una pagina sola, fermi o al
+        rallentatore. I caricamenti durano il tempo di una fetch: per guardarne
+        uno bisognerebbe rallentare la rete e sperare di beccarlo.
+
+        NIENTE COPIE
+        Le scene arrivano da js/ui/spinner.js e js/ui/loading-page.js, e lo
+        stile da css/main.css: gli stessi file che usa il sito. Quello che si
+        aggiusta qui e' aggiustato anche la'. Due copie divergono alla prima
+        correzione fatta da una parte sola — e' la stessa regola di
+        preview-stickers.html.
+
+        RICARICAMENTO AUTOMATICO
+        La pagina controlla ogni secondo se quei tre file sono cambiati sul
+        disco (chiede al server la data del file, in HEAD). Se cambia il CSS si riaggancia il foglio di stile e basta (la
+        pagina non si ricarica, i comandi restano dove sono); se cambia un
+        modulo lo reimporta e ridisegna. Quindi: si salva nell'editor e si
+        guarda qui, senza toccare niente.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;800&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito. L'href lo riscrive il ricaricamento automatico. -->
+    <link rel="stylesheet" id="site-css" href="css/main.css">
+    <style>
+        /* Cromatura del banco di prova, non del sito. Nessuna di queste classi
+           finisce mai in produzione. */
+        :root {
+            --lab-bg: #0a0a0b;
+            --lab-fg: var(--text-primary);
+            --lab-muted: var(--text-muted);
+            --lab-border: rgba(255, 255, 255, .14);
+            --lab-panel: rgba(255, 255, 255, .05);
+        }
+
+        body.lab-light {
+            --lab-bg: #eeece6;
+            --lab-fg: #17171a;
+            --lab-muted: #55555c;
+            --lab-border: rgba(0, 0, 0, .14);
+            --lab-panel: rgba(0, 0, 0, .04);
+        }
+
+        body {
+            margin: 0;
+            padding: 0 20px 90px;
+            background: var(--lab-bg);
+            color: var(--lab-fg);
+            font-family: var(--font-body, Inter), system-ui, sans-serif;
+        }
+
+        h1 {
+            font-family: var(--font-display, 'Inter Tight'), system-ui, sans-serif;
+            font-size: 21px;
+            margin: 22px 0 2px;
+        }
+
+        h2 {
+            font-size: 12px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+            margin: 34px 0 12px;
+            border-top: 1px solid var(--lab-border);
+            padding-top: 14px;
+        }
+
+        /* La riga che lega i banchi fra loro: e' la stessa di
+           preview-scorebug.html e degli altri, cosi' da qualunque banco si
+           raggiungono tutti in un clic. */
+        .labnav {
+            margin: 0 0 8px;
+            font-size: .68rem;
+            color: var(--lab-muted);
+        }
+
+        .labnav a { color: var(--lab-muted); }
+
+        .labnav .current {
+            color: var(--lab-fg);
+            font-weight: 700;
+        }
+
+        .lab-sub {
+            color: var(--lab-muted);
+            font-size: 13px;
+            margin: 0 0 18px;
+            max-width: 70ch;
+            line-height: 1.5;
+        }
+
+        .lab-bar {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            padding: 11px 14px;
+            margin: 14px 0 6px;
+            background: var(--lab-bg);
+            border: 1px solid var(--lab-border);
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .lab-bar label { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+        .lab-bar input[type=range] { width: 170px; }
+        .lab-bar code { color: var(--lab-muted); font-size: 12px; }
+
+        #lab-status {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--lab-muted);
+        }
+
+        #lab-status.hit { color: #46c07a; }
+
+        .lab-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .lab-card {
+            border: 1px solid var(--lab-border);
+            border-radius: 10px;
+            padding: 16px;
+            background: var(--lab-panel);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .lab-name {
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--lab-muted);
+        }
+
+        /* Lo zoom si fa con `zoom`, non con `transform: scale()`: lo scale non
+           occupa spazio, la card resta della misura di prima e la scena le esce
+           dai bordi. Sembrava un difetto del disegno — la palla tagliata a meta'
+           parabola — ed era solo la card. */
+        .lab-zoom2 { zoom: 2; }
+        .lab-zoom4 { zoom: 4; }
+
+        .lab-page {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 16px;
+        }
+
+        .lab-page > div {
+            border: 1px dashed var(--lab-border);
+            border-radius: 10px;
+            background: var(--lab-panel);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Banco di prova — caricamenti</h1>
+    <p class="labnav">
+        <a href="preview.html">Preview hub</a> ·
+        <a href="preview-scorebug.html">Score-bug lab</a> ·
+        <a href="preview-player-card.html">Player card lab</a> ·
+        <a href="preview-field.html">Field lab</a> ·
+        <a href="preview-sb-logo.html">SB logo lab</a> ·
+        <a href="preview-stickers.html">Sticker lab</a> ·
+        <span class="current">Loaders lab</span> ·
+        <a href="index.html">Real site</a>
+    </p>
+    <p class="lab-sub">Le scene vere di <code>js/ui/spinner.js</code> e <code>js/ui/loading-page.js</code>
+        con il CSS vero di <code>css/main.css</code>. Non ci sono copie: quello che si aggiusta qui
+        e' aggiustato anche nel sito. Salva nell'editor e guarda qui — la pagina si riaggiorna da sola.</p>
+
+    <div class="lab-bar">
+        <label><input type="checkbox" id="freeze"> fermo immagine</label>
+        <label>ciclo <input type="range" id="scrub" min="0" max="100" step="0.5" value="25">
+            <code id="scrubv">25%</code></label>
+        <label>velocita' <input type="range" id="speed" min="5" max="150" step="5" value="100">
+            <code id="speedv">1.00×</code></label>
+        <label><input type="checkbox" id="light"> fondo chiaro</label>
+        <span id="lab-status">in ascolto…</span>
+    </div>
+
+    <h2>Spinner nei riquadri · un box che si aggiorna</h2>
+    <div class="lab-row" id="row-real"></div>
+    <div class="lab-row" id="row-zoom2" style="margin-top:16px"></div>
+    <div class="lab-row" id="row-zoom4" style="margin-top:16px"></div>
+
+    <h2>Pagina piena · la lavagna tattica</h2>
+    <p class="lab-sub">Per tutte le sezioni. A ogni caricamento ne esce una a caso: qui ci sono tutte.
+        Personnel e formazione in alto a sinistra, la difesa col suo fronte e la sua copertura.
+        Pre-snap il motion attraversa e chi finge il blitz si fa vedere; allo snap partono in
+        ventidue. Il bordo tratteggiato e' il posto che occupano davvero.</p>
+    <div class="lab-page" id="row-play"></div>
+
+    <h2>Pagina piena · il logo che si riempie</h2>
+    <p class="lab-sub">Solo per le pagine squadra — della lega e di NFL Hub — dove un marchio e un
+        colore ci sono gia'.</p>
+    <div class="lab-page" id="row-page"></div>
+
+    <script type="module">
+        /* I tre file sorvegliati. Sono gli stessi che carica il sito: se il
+           banco ne tenesse una copia, la copia divergerebbe. */
+        const WATCH = ['css/main.css', 'js/ui/spinner.js', 'js/ui/loading-page.js'];
+
+        const TEAMS = [
+            ['Team%20Logo/team_oscurus_transparent.png', '#800020', 'Oscurus'],
+            ['Team%20Logo/team_capi_transparent.png', '#FF6600', 'Capi dei Pianeti'],
+            ['Team%20Logo/team_lasers_transparent.png', '#D4AF37', 'Lasers'],
+            ['Team%20Logo/team_sommo_transparent.png', '#1c4750', 'Sommo'],
+        ];
+
+        const $ = (id) => document.getElementById(id);
+        const stato = (msg, hit) => {
+            const el = $('lab-status');
+            el.textContent = msg;
+            el.classList.toggle('hit', !!hit);
+        };
+
+        /* Disegna tutto. Si richiama a ogni modifica di un modulo: i moduli si
+           reimportano con una query diversa, perche' un `import` gia' risolto
+           resta in cache per sempre. */
+        async function render() {
+            const t = Date.now();
+            const spinner = await import(`./js/ui/spinner.js?lab=${t}`);
+            const page = await import(`./js/ui/loading-page.js?lab=${t}`);
+
+            const card = (name, zoom) => `<div class="lab-card">
+                <div class="${zoom}"><div class="spinner" data-art="${name}"></div></div>
+                <div class="lab-name">${name}${zoom ? ' · ×' + zoom.slice(-1) : ''}</div>
+            </div>`;
+
+            const nomi = spinner.loadingArtNames();
+            $('row-real').innerHTML = nomi.map(n => card(n, '')).join('');
+            $('row-zoom2').innerHTML = nomi.map(n => card(n, 'lab-zoom2')).join('');
+            $('row-zoom4').innerHTML = nomi.map(n => card(n, 'lab-zoom4')).join('');
+
+            $('row-play').innerHTML = Array.from({ length: page.playCount() }, (_, i) =>
+                `<div>${page.playLoader('Loading Standings', i)}</div>`).join('');
+
+            $('row-page').innerHTML = TEAMS.map(([logo, col, nome]) =>
+                `<div>${page.teamLoader(logo, col, `Opening the ${nome} vault`)}</div>`).join('');
+
+            // il modulo vero riempie gli spinner, con lo stesso osservatore del sito
+            spinner.startLoadingArt();
+            setTimeout(applica, 60);
+        }
+
+        /* Fermo immagine, scorrimento del ciclo e velocita'.
+           Si fanno con la Web Animations API e non con `animation-play-state`
+           piu' un delay negativo: su un'animazione gia' in pausa Chrome non
+           ricalcola la fase, e si finisce per fotografare una figura in un
+           istante e la palla in un altro. */
+        const animazioni = () => [...document.querySelectorAll('.spinner, .tl-page')]
+            .flatMap(el => el.getAnimations({ subtree: true }));
+
+        function applica() {
+            const pct = Number($('scrub').value);
+            const rate = Number($('speed').value) / 100;
+            $('scrubv').textContent = pct + '%';
+            $('speedv').textContent = rate.toFixed(2) + '×';
+            for (const a of animazioni()) {
+                a.playbackRate = rate;
+                if ($('freeze').checked) {
+                    a.pause();
+                    // ogni scena ha la sua durata (4s la lavagna, 3.2s il
+                    // lancio): si scorre la FRAZIONE del suo ciclo, non i secondi
+                    a.currentTime = (a.effect.getTiming().duration || 3200) * pct / 100;
+                } else {
+                    a.play();
+                }
+            }
+        }
+
+        for (const id of ['freeze', 'scrub', 'speed']) $(id).addEventListener('input', applica);
+        /* Il chiaro deve accendere il tema VERO del sito, non solo la cromatura
+           del banco: i componenti leggono i token di :root[data-theme="light"],
+           e senza questa riga il banco non puo' accorgersi di un colore che si
+           rompe in chiaro. E' successo davvero — le cuciture della palla erano
+           var(--text-primary), quasi nere in chiaro, e sparivano dentro il
+           rosso senza che qui si vedesse niente. */
+        $('light').addEventListener('change', (e) => {
+            document.body.classList.toggle('lab-light', e.target.checked);
+            if (e.target.checked) document.documentElement.dataset.theme = 'light';
+            else delete document.documentElement.dataset.theme;
+        });
+
+        /* Il ricaricamento automatico: si chiede al server la data di ogni
+           file e si confronta con l'ultima vista. Nessuna dipendenza, nessun
+           watcher: `python3 -m http.server` manda gia' Last-Modified. */
+        const visto = new Map();
+
+        /* La "firma" di un file. Di norma basta la data che manda il server;
+           se un server non la mandasse si ripiega sul contenuto, che e' sempre
+           vero ma costa una GET intera a ogni giro. Il dev server del repo
+           (scripts/dev-server.mjs) la manda, e anche python3 -m http.server. */
+        async function firmaDi(url) {
+            const q = url + '?ping=' + Date.now();
+            const r = await fetch(q, { method: 'HEAD', cache: 'no-store' });
+            const d = r.headers.get('last-modified') || r.headers.get('etag');
+            if (d) return d;
+            const testo = await (await fetch(q, { cache: 'no-store' })).text();
+            return String(testo.length) + ':' + testo.slice(-120);
+        }
+
+        function ricaricaCss() {
+            // riagganciare il foglio NON ricarica la pagina: i comandi restano
+            // dove sono e non si perde la posizione nello scroll
+            $('site-css').href = 'css/main.css?lab=' + Date.now();
+            setTimeout(applica, 80);
+        }
+
+        async function guarda() {
+            for (const url of WATCH) {
+                let d;
+                try { d = await firmaDi(url); } catch { continue; }
+                if (!visto.has(url)) { visto.set(url, d); continue; }
+                if (visto.get(url) === d) continue;
+                visto.set(url, d);
+                const ora = new Date().toLocaleTimeString('it-IT');
+                if (url.endsWith('.css')) { ricaricaCss(); stato(`css ricaricato · ${ora}`, true); }
+                else { await render(); stato(`${url.split('/').pop()} ricaricato · ${ora}`, true); }
+                setTimeout(() => stato('in ascolto…'), 2500);
+            }
+        }
+
+        await render();
+        applica();
+        stato('in ascolto…');
+        setInterval(guarda, 1000);
+    </script>
+</body>
+
+</html>

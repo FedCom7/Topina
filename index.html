@@ -23,7 +23,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1247">
+    <link rel="stylesheet" href="css/main.css?v=1252">
 </head>
 
 <body>
@@ -153,7 +153,7 @@
     </nav>
 
     <!-- ====== HOME (vetrina dinamica, renderizzata da home.js) ====== -->
-    <section class="page-section active" id="home">
+    <section class="page-section" id="home">
         <div id="home-showcase">
             <div class="loading-state">
                 <div class="spinner"></div>
@@ -282,7 +282,10 @@
             </div>
             <div class="pick-row" id="pj-pick-row"></div>
             <div id="pj-content">
-                <div class="loading-state"><div class="spinner"></div><p>Loading projections...</p></div>
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading projections...</p>
+                </div>
             </div>
         </div>
     </section>
@@ -295,13 +298,13 @@
                 <p class="section-subtitle">How each manager drafts and trades, and what holds up</p>
             </div>
             <div id="dna-content">
-                <div class="loading-state"><div class="spinner"></div><p>Reading the DNA...</p></div>
-            </div>
-        </div>
-    </section>
+                <div class="loading-state">
+                    </div>
+                    </div>
+                </div>
 
     <!-- ====== MANAGER DNA TEAM (#managerdna/{teamKey}) ====== -->
-    <section class="page-section" id="managerdna-team">
+    <section class="page-section" id="managerdna-team" data-route="managerdna/">
         <!-- Contenuto iniettato da js/sections/managerdna-team.js -->
     </section>
 
@@ -323,17 +326,17 @@
     </section>
 
     <!-- ====== DRAFT GRADE TEAM (#draftgrades/{year}/{teamKey}) ====== -->
-    <section class="page-section" id="draftgrade-team">
+    <section class="page-section" id="draftgrade-team" data-route="draftgrades/">
         <!-- Contenuto iniettato da js/sections/draftgrade-team.js -->
     </section>
 
     <!-- ====== PAGINA GIOCATORE (#player/{year}/{pos}/{nome}) ====== -->
-    <section class="page-section" id="player-page">
+    <section class="page-section" id="player-page" data-route="player/">
         <!-- Contenuto iniettato da js/sections/player-page.js -->
     </section>
 
     <!-- ====== PAGINA SQUADRA NFL (#nfl-team/{abbr}/{anno?}) ====== -->
-    <section class="page-section" id="nfl-team-page">
+    <section class="page-section" id="nfl-team-page" data-route="nfl-team/">
         <!-- Contenuto iniettato da js/sections/nfl-team-page.js -->
     </section>
 
@@ -479,17 +482,68 @@
     </section>
 
     <!-- ====== TEAM ====== -->
-    <section class="page-section" id="team">
+    <section class="page-section" id="team" data-route="team-">
         <!-- Contenuto iniettato da js/sections/team.js -->
     </section>
 
     <!-- ====== GAME ANALYSIS (#game/{year}/{week}/{idx}) ====== -->
-    <section class="page-section" id="game">
+    <section class="page-section" id="game" data-route="game/">
         <!-- Contenuto iniettato da js/sections/game.js -->
     </section>
 
     <!-- App Entry Point -->
-    <script type="module" src="js/app.js?v=1336"></script>
+    <!--
+        Il caricamento PRIMA di tutto il resto.
+
+        Ogni `<div class="spinner">` scritto qui nasce VUOTO: la scena — gli
+        omini con la palla — gliela disegna dentro `startLoadingArt()`, che
+        vive in app.js, cioe' in fondo a una quarantina di moduli. Senza questa
+        riga si vedeva quindi un riquadro vuoto con la scritta accanto per un
+        secondo e mezzo, e solo dopo partiva l'animazione: un caricamento prima
+        del caricamento.
+
+        Questo modulo importa solo file senza dipendenze, quindi il suo grafo
+        e' pronto quasi subito; i moduli si eseguono nell'ordine in cui stanno
+        nel documento, e stando prima di app.js tocca a lui per primo.
+    -->
+    <!--
+        Accende la sezione giusta PRIMA del primo disegno. Deve essere uno
+        script classico e senza import: un modulo aspetta il suo grafo, e in
+        quei decimi di secondo restava accesa la home — con il suo "Loading..."
+        — anche aprendo tutt'altro. Era il primo dei due caricamenti in fila.
+        La mappa non e' scritta qui: la dichiarano le sezioni con `data-route`.
+    -->
+    <script>
+        (function () {
+            var h = (location.hash || '').replace(/^#/, '') || 'home';
+            var sez = document.querySelectorAll('.page-section');
+            var scelta = null;
+            for (var i = 0; i < sez.length; i++) {
+                var pref = sez[i].getAttribute('data-route');
+                if (pref && h.indexOf(pref) === 0) { scelta = sez[i]; break; }
+            }
+            if (!scelta) scelta = document.getElementById(h) || document.getElementById('home');
+            if (scelta && scelta.classList.contains('page-section')) scelta.classList.add('active');
+        })();
+    </script>
+    <script type="module">
+        import { startLoadingArt } from './js/ui/spinner.js?v=11';
+        import { sectionIdFor, activateSection } from './js/utils/route.js?v=2';
+        // Si accende SUBITO la sezione giusta. Senza, resta acceso #home —
+        // che qui nasce `active` — e per mezzo secondo si vede il "Loading..."
+        // della home anche aprendo tutt'altro: era il primo dei due
+        // caricamenti in fila.
+        const sez = sectionIdFor(location.hash);
+        activateSection(sez);
+        // E si disegnano subito gli omini dentro agli spinner scritti
+        // nell'HTML: senza, restano riquadri vuoti col testo accanto finche'
+        // non e' arrivata tutta app.js — una quarantina di moduli — e si
+        // vedeva un caricamento fermo per un secondo e mezzo prima che
+        // partisse l'animazione. La scena la disegna sempre lo stesso modulo,
+        // qui solo prima.
+        startLoadingArt();
+    </script>
+    <script type="module" src="js/app.js?v=1338"></script>
 </body>
 
 </html>

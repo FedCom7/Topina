@@ -8,7 +8,7 @@
 import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     getSeasonConfig, displayName, SEASONS
-} from '../data.js?v=547';
+} from '../data.js?v=585';
 import { TEAM_KEYS } from './team-config.js?v=535';
 import { FLEX_ELIGIBLE } from './league-rules.js?v=528';
 

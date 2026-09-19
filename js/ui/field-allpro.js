@@ -13,7 +13,7 @@
  * sdraiato, le due metà e le end zone.
  */
 import { fieldMarker, fieldClipDefs } from './field-formation.js?v=3';
-import { esc } from '../data/player-search-core.js?v=13';
+import { esc } from '../data/player-search-core.js?v=623';
 
 // Geometria del campo orizzontale: stesse unità (yard) e stessa larghezza
 // campo (53.3 yd) del campo formazione della pagina squadra NFL, solo

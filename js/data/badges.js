@@ -8,7 +8,7 @@
  *  - exclusive : solo UN team per stagione completata può averlo
  *  - seasonal  : sbloccabile ogni stagione, si resetta l'anno dopo
  */
-import { SEASONS } from '../data.js?v=547';
+import { SEASONS } from '../data.js?v=585';
 import { TEAM_KEYS } from './team-config.js?v=535';
 import { TEAM_KEY_LIST } from './league-data.js?v=586';
 

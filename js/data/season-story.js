@@ -9,7 +9,7 @@
  * in meno che una cifra finta.
  */
 
-import { displayName } from '../data.js?v=547';
+import { displayName } from '../data.js?v=585';
 import { TEAM_KEYS } from './team-config.js?v=535';
 import { TEAM_KEY_LIST } from './league-data.js?v=586';
 

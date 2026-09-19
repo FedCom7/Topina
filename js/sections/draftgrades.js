@@ -35,8 +35,8 @@
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=585';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=811';
-import { getHonorsBundle } from '../data/honors.js?v=723';
+import { TEAMS } from './team.js?v=813';
+import { getHonorsBundle } from '../data/honors.js?v=724';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=611';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=595';
 import { initPlayerModal } from '../components/player-modal.js?v=762';

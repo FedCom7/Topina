@@ -1,34 +1,35 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=1077';
-import { initGameCenter } from './sections/game-center.js?v=814';
-import { initStandings, initPlayoffs } from './sections/standings.js?v=759';
-import { initDraft } from './sections/draft.js?v=796';
-import { initDraftGrades } from './sections/draftgrades.js?v=803';
-import { initProjections } from './sections/projections.js?v=627';
-import { initManagerDna } from './sections/managerdna.js?v=43';
-import { initManagerDnaTeam } from './sections/managerdna-team.js?v=809';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=811';
-import { initPlayerPage } from './sections/player-page.js?v=1049';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1103';
-import { initPlayersSearch } from './sections/players-search.js?v=996';
-import { initStats } from './sections/stats.js?v=866';
-import { initHistory } from './sections/history.js?v=747';
-import { initHonors } from './sections/honors.js?v=732';
-import { initAllPro } from './sections/allpro.js?v=743';
-import { initHallOfFame } from './sections/halloffame.js?v=759';
-import { initTeam } from './sections/team.js?v=811';
+import { initHome } from './sections/home.js?v=1070';
+import { initGameCenter } from './sections/game-center.js?v=807';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=754';
+import { initDraft } from './sections/draft.js?v=790';
+import { initDraftGrades } from './sections/draftgrades.js?v=804';
+import { initProjections } from './sections/projections.js?v=606';
+import { initManagerDna } from './sections/managerdna.js?v=37';
+import { initManagerDnaTeam } from './sections/managerdna-team.js?v=804';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=804';
+import { initPlayerPage } from './sections/player-page.js?v=1047';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1080';
+import { initPlayersSearch } from './sections/players-search.js?v=988';
+import { initStats } from './sections/stats.js?v=859';
+import { initHistory } from './sections/history.js?v=742';
+import { initHonors } from './sections/honors.js?v=727';
+import { initAllPro } from './sections/allpro.js?v=737';
+import { initHallOfFame } from './sections/halloffame.js?v=753';
+import { initTeam } from './sections/team.js?v=813';
 import { initTeams } from './sections/teams.js?v=724';
-import { initGame } from './sections/game.js?v=812';
-import { initAnalysis } from './sections/analysis.js?v=830';
-import { initLeaders } from './sections/leaders.js?v=75';
-import { initWaivers } from './sections/waivers.js?v=67';
-import { initMagazine } from './sections/magazine.js?v=782';
-import { initLive } from './sections/live.js?v=1093';
-import { initNavbar } from './ui/navbar.js?v=665';
+import { initGame } from './sections/game.js?v=807';
+import { initAnalysis } from './sections/analysis.js?v=831';
+import { initLeaders } from './sections/leaders.js?v=68';
+import { initWaivers } from './sections/waivers.js?v=61';
+import { initMagazine } from './sections/magazine.js?v=775';
+import { initLive } from './sections/live.js?v=1073';
+import { initNavbar } from './ui/navbar.js?v=662';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
-import { startLoadingArt } from './ui/spinner.js?v=6';
+import { startLoadingArt } from './ui/spinner.js?v=11';
+import { sectionIdFor, activateSection } from './utils/route.js?v=2';
 
 const SECTIONS = {
     'home': initHome,
@@ -118,12 +119,9 @@ function navigate() {
     const isDnaTeam = active.startsWith('managerdna/');
     const isPlayer = active.startsWith('player/');
     const isNflTeam = active.startsWith('nfl-team/');
-    const sectionId = isTeam ? 'team' : isGame ? 'game' : isDGTeam ? 'draftgrade-team' : isDnaTeam ? 'managerdna-team' : isPlayer ? 'player-page' : isNflTeam ? 'nfl-team-page' : active;
-
-    // Update sections
-    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const section = document.getElementById(sectionId);
-    if (section) section.classList.add('active');
+    // La mappa hash -> sezione sta in js/utils/route.js, non qui: la usa anche
+    // il caricamento a pagina piena in index.html, che gira prima di app.js.
+    activateSection(sectionIdFor(active));
 
     // Update nav — team pages mantengono "Teams" evidenziato,
     // le voci da dropdown evidenziano la voce madre

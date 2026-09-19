@@ -8,7 +8,7 @@
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { computeTeamBadges } from '../data/badges.js?v=559';
 import { stickerSVG, champStickerSVG, fitStickerTexts } from '../ui/badge-svg.js?v=521';
-import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=11';
+import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';
 import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=762';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { apHalfFieldSvg, sbLineup } from '../ui/field-allpro.js?v=8';
@@ -16,6 +16,7 @@ import { hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
 import { CURRENT_SEASON, fetchFantasyData, SEASONS_DESC, displayName } from '../data.js?v=585';
 import { getWaiverMoves } from '../data/waiver-moves.js?v=7';
 import { TEAM_PALETTE, TEAM_KEYS } from '../data/team-config.js?v=535';
+import { teamLoader } from '../ui/loading-page.js?v=6';
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {
@@ -75,36 +76,17 @@ export const TEAMS = {
 
 let _badgesByTile = null; // badge correnti indicizzati per il popover
 
-export function initTeam() {
-    const hash = location.hash.slice(1); // es. 'team-capi'
-    const teamKey = hash.replace('team-', '');
-    const team = TEAMS[teamKey];
-    if (!team) return;
-
-    const section = document.getElementById('team');
-    section.style.setProperty('--team-color', team.color);
-
-    const spinner = '<div class="loading-state"><div class="spinner"></div></div>';
-    section.innerHTML = `
-        <header class="team-hero">
-            <div class="th-bg">
-                <div class="th-glow th-glow-a"></div>
-                <div class="th-glow th-glow-b"></div>
-                <div class="th-grid"></div>
-            </div>
-            <img class="th-watermark" src="${team.logo}" alt="" aria-hidden="true"
-                 onerror="this.style.display='none'">
-            <div class="th-sb-stickers" id="team-sb-stickers"></div>
-            <div class="sticker-field" id="team-stickers"></div>
-            <div class="th-content section-inner">
-                <span class="th-kicker">Topina League · Est. 2019</span>
-                <h1 class="th-name">${team.name}</h1>
-                <div class="th-quickstats" id="team-quickstats"></div>
-                <div class="badge-pop" id="badge-pop" hidden></div>
-            </div>
-            <div class="th-fade"></div>
-        </header>
-        <div class="section-inner team-bento" id="team-bento">
+/* Il corpo della pagina. Non si stampa al primo render: finche' i dati non ci
+   sono al suo posto c'e' UN caricamento grosso, non otto spinnerini dentro otto
+   riquadri vuoti — che era quello che si vedeva prima, e faceva sembrare la
+   pagina rotta invece che in arrivo.
+   L'hero sopra invece si stampa subito: nome, colori e logo non aspettano
+   nessuna fetch, e nasconderli per fare scena vorrebbe dire ritardare di
+   proposito l'unica cosa gia' pronta.
+   I `${spinner}` qui dentro restano: valgono per i riquadri che DOPO si
+   riempiono per conto loro (rosa e waiver fanno le loro richieste). */
+function bentoHTML(team, spinner) {
+    return `        <div class="section-inner team-bento" id="team-bento">
             <div class="bento-cell cell-history" style="--cell-i:0">
                 <div class="bento-cell-head"><h2 class="bento-cell-title">History</h2></div>
                 <div id="team-history">${spinner}</div>
@@ -170,10 +152,50 @@ export function initTeam() {
             </div>
         </div>
     `;
+}
+
+export function initTeam() {
+    const hash = location.hash.slice(1); // es. 'team-capi'
+    const teamKey = hash.replace('team-', '');
+    const team = TEAMS[teamKey];
+    if (!team) return;
+
+    const section = document.getElementById('team');
+    section.style.setProperty('--team-color', team.color);
+
+    const spinner = '<div class="loading-state"><div class="spinner"></div></div>';
+    section.innerHTML = `
+        <header class="team-hero">
+            <div class="th-bg">
+                <div class="th-glow th-glow-a"></div>
+                <div class="th-glow th-glow-b"></div>
+                <div class="th-grid"></div>
+            </div>
+            <img class="th-watermark" src="${team.logo}" alt="" aria-hidden="true"
+                 onerror="this.style.display='none'">
+            <div class="th-sb-stickers" id="team-sb-stickers"></div>
+            <div class="sticker-field" id="team-stickers"></div>
+            <div class="th-content section-inner">
+                <span class="th-kicker">Topina League · Est. 2019</span>
+                <h1 class="th-name">${team.name}</h1>
+                <div class="th-quickstats" id="team-quickstats"></div>
+                <div class="badge-pop" id="badge-pop" hidden></div>
+            </div>
+            <div class="th-fade"></div>
+        </header>
+        <!-- stesse classi del bento vero, team-bento compresa: quella ha un
+             margin-top di -84px che lo fa risalire sotto l'hero, e senza il
+             caricamento starebbe 84px piu' in basso del contenuto che
+             sostituisce: mezzo fuori schermo, e con un salto all'arrivo dei
+             dati. Un segnaposto sta dove stara' la roba. -->
+        <div class="section-inner team-bento" id="team-body">${teamLoader(team.logo, team.color, `Opening the ${team.name} vault`)}</div>
+    `;
 
     getLeagueData().then(league => {
         // Se nel frattempo l'utente ha cambiato pagina, non renderizzare
         if (!location.hash.includes(team.key)) return;
+        // il corpo nasce adesso, al posto del caricamento
+        document.getElementById('team-body').outerHTML = bentoHTML(team, spinner);
         const at = league.allTime[team.key];
         const lastComplete = [...league.seasons].reverse().find(s => s.complete);
         const isReigningChamp = lastComplete?.sbWinnerKey === team.key;

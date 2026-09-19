@@ -8,7 +8,7 @@
  */
 
 import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
-import { NFL_TEAMS } from './nfl-teams.js?v=511';
+import { NFL_TEAMS } from './nfl-teams.js?v=513';
 
 const GAME_DURATION_MS = 3.25 * 60 * 60 * 1000; // ~3h15m
 
