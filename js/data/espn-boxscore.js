@@ -82,7 +82,10 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
     // stiamo gia' scaricando — nessuna richiesta in piu'. Sono un'altra cosa
     // dal bollettino del giovedi' che arriva con la lega: quello dice se
     // giochera', questo se sta ancora giocando.
-    const injuries = new Map();  // nome normalizzato → { name, status, detail, team }
+    // Chiave "SIGLA|nome": il nome da solo non basta. Nella week 2 del 2026
+    // c'erano DUE Justin Jefferson — quello di Minnesota in campo e quello di
+    // Cleveland dato Out — e la scheda del primo diceva "out to return".
+    const injuries = new Map();  // "SIGLA|nome normalizzato" → { name, status, detail, team }
     if (!eventIds.length) return { players, defenses, teamByName, usage, injuries };
 
     const summaries = await Promise.all(eventIds.map(async id => {
@@ -113,7 +116,7 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
                 const nome = voce.athlete?.displayName;
                 if (!nome) continue;
                 const dettaglio = voce.details?.detail;
-                injuries.set(normName(nome), {
+                injuries.set(`${sigla}|${normName(nome)}`, {
                     name: nome,
                     team: sigla,
                     status: voce.status || '',

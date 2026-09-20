@@ -24,7 +24,7 @@ import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGi
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=570';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=573';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=78';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
@@ -150,7 +150,7 @@ const INJ_LABEL = {
 function injuryTagHTML(p, corto = false) {
     // Uno dato per uscito dalla partita e' "Out" adesso, anche se venerdi' era
     // soltanto in dubbio: lo stato di giornata, quando c'e', viene prima.
-    const inGara = boxData?.injuries?.get(normName(p?.name || ''));
+    const inGara = infortunioDiGiornata(p);
     const raw = inGara?.status || injuryOf(p);
     if (!raw) return '';
     const k = String(raw).toLowerCase().replace(/[^a-z]+/g, '-');
@@ -180,12 +180,24 @@ const inPanchina = (p) => matchups.some(m => ['team1', 'team2']
     .some(lato => (m[lato]?.bench || []).some(x => x?.name === p?.name)));
 
 /**
+ * L'infortunio di giornata di QUESTO giocatore, dal tabellino della sua
+ * partita. Si cerca per squadra + nome: i nomi si ripetono (due Justin
+ * Jefferson nella stessa giornata, uno in campo e uno fuori) e col solo nome
+ * lo stato finiva addosso all'omonimo.
+ */
+function infortunioDiGiornata(p) {
+    const sigla = canonAbbr(p?.nfl_team || '') || teamAbbrFromName(p?.name || '');
+    if (!sigla || !p?.name) return null;
+    return boxData?.injuries?.get(`${sigla}|${normName(p.name)}`) || null;
+}
+
+/**
  * Lo stato fisico da mostrare per esteso: prima quello di giornata (dal
  * tabellino, con dentro il motivo), poi la designazione della settimana.
  * Torna null per chi sta bene, che e' la stragrande maggioranza.
  */
 function statoFisico(p) {
-    const inGara = boxData?.injuries?.get(normName(p?.name || ''));
+    const inGara = infortunioDiGiornata(p);
     if (inGara?.status) {
         return `${inGara.status} to return${inGara.detail ? ` · ${inGara.detail}` : ''}`;
     }
@@ -3654,7 +3666,7 @@ function injuriesHTML(team, opp) {
     for (const p of all) {
         if (!p?.name || visti.has(p.name)) continue;
         visti.add(p.name);
-        const inGara = boxData?.injuries?.get(normName(p.name));
+        const inGara = infortunioDiGiornata(p);
         const settimana = injuryOf(p);
         if (!inGara && !settimana) continue;
         const stato = inGara?.status || String(settimana).replace(/_/g, ' ').toLowerCase();
