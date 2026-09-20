@@ -3710,6 +3710,389 @@ g.tl-play-pre-run { animation: tl-play-pre-run 5s ease-in-out infinite; }
     .tl-fill-line { top: 38%; }
 }
 
+/* --------------------------------
+   Pannelli a due colonne: voci a sinistra, assaggio a destra
+
+   Le voci diventano righe grandi in colonna (prima erano pillole in fila) e
+   accanto compaiono due o tre numeri della sezione. Il pannello non e' piu'
+   alto 56px fissi: cresce col contenuto, e navbar.js misura.
+   -------------------------------- */
+.nav-dropdown-panel.nav-dp-two {
+    height: auto;
+    align-items: start;
+    justify-content: center;
+    gap: 0;
+    padding: 18px 24px 24px;
+    display: grid;
+    grid-template-columns: minmax(220px, 300px) minmax(240px, 320px);
+    column-gap: 56px;
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+.nav-dp-two .nav-dp-links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-dp-two .nav-dp-item {
+    font-size: 1.32rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: 10px;
+    line-height: 1.25;
+}
+
+.nav-dp-two .nav-dp-item:not(.nav-dp-header) {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.nav-dp-two .nav-dp-item:hover {
+    color: var(--text-primary);
+}
+
+.nav-dp-two .nav-dp-sep {
+    width: 100%;
+    height: 1px;
+    margin: 6px 0 6px 10px;
+    max-width: 140px;
+}
+
+.nav-dp-peek {
+    padding-top: 6px;
+    min-width: 0;
+}
+
+.nav-peek-title {
+    display: block;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.nav-peek-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.nav-peek-row:last-child {
+    border-bottom: 0;
+}
+
+.nav-peek-k {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-peek-v {
+    flex-shrink: 0;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* La pagina sotto al menu aperto: sfocata e spenta, come nella barra di Apple.
+   Il velo sta sotto alla barra (z-index) e non intercetta i clic, cosi' basta
+   uscire col mouse per richiudere. */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(8, 10, 12, 0.34);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s var(--ease), visibility 0.22s var(--ease);
+}
+
+body.nav-dd-open::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+:root[data-theme="light"] body::after {
+    background: rgba(240, 240, 238, 0.42);
+}
+
+@media (max-width: 768px) {
+
+    /* su telefono i pannelli hover non esistono: niente velo */
+    body::after {
+        display: none;
+    }
+}
+
+/* --------------------------------
+   Mega pannello NFL Hub — le 32 squadre per division
+   Solo desktop: su mobile i pannelli hover sono nascosti (vedi @media 768px)
+   e la voce NFL Hub resta un link verso #players.
+   -------------------------------- */
+.nav-dropdown-panel--nfl {
+    /* altezza dal contenuto: la misura navbar.js per espandere la barra */
+    height: auto;
+    display: block;
+    padding: 16px 24px 22px;
+}
+
+.nav-nfl-grid {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 20px;
+}
+
+.nav-nfl-div-title {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 8px 6px;
+    margin: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+}
+
+.nav-nfl-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 450;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.nav-nfl-team:hover {
+    background: var(--bg-glass);
+    color: var(--text-primary);
+}
+
+.nav-nfl-team-logo {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    object-fit: contain;
+}
+
+.nav-nfl-team-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Barra strettina (portatile piccolo): restano quattro colonne — passare a due
+   raddoppierebbe l'altezza del pannello e la barra aperta coprirebbe mezzo
+   schermo. Si stringono testo e spazi, e i nomi lunghi si troncano. */
+@media (min-width: 769px) and (max-width: 1080px) {
+    .nav-nfl-grid {
+        gap: 12px 12px;
+    }
+
+    .nav-nfl-team {
+        font-size: 0.75rem;
+        gap: 6px;
+        padding: 4px 6px;
+    }
+}
+
+/* Hamburger */
+.nav-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+}
+
+/* Freccia "indietro": solo nel drill-down mobile, mai su desktop */
+.nav-back {
+    display: none;
+}
+
+.nav-hamburger span {
+    width: 22px;
+    height: 2px;
+    background: var(--text-secondary);
+    border-radius: 2px;
+    transition: all var(--dur-med) var(--ease);
+}
+
+/* Azioni a destra della barra mobile (lente + hamburger). Nascoste su desktop. */
+.nav-actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Bottone del tema. Su telefono sta fra le azioni della barra, accanto alla
+   lente; su schermo largo le azioni sono nascoste (le voci stanno al centro),
+   quindi il bottone si stacca e va da solo in alto a destra. Mostra l'icona
+   del tema in cui PORTA: sole sullo scuro, luna sul chiaro. */
+.nav-theme-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--dur-med) var(--ease), opacity var(--dur-med) var(--ease);
+}
+
+.nav-theme-btn:hover {
+    color: var(--text-primary);
+}
+
+.nav-theme-btn:focus-visible {
+    outline: 2px solid var(--accent-red);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+.nav-theme-moon { display: none; }
+:root[data-theme="light"] .nav-theme-sun { display: none; }
+:root[data-theme="light"] .nav-theme-moon { display: block; }
+
+@media (min-width: 769px) {
+    .nav-actions {
+        display: flex;
+        position: absolute;
+        top: 0;
+        right: 20px;
+        height: var(--nav-height);
+    }
+
+    .nav-actions > :not(.nav-theme-btn) {
+        display: none;
+    }
+}
+
+.nav-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--dur-med) var(--ease);
+}
+
+.nav-search-btn:hover,
+.nav-search-btn[aria-expanded="true"] {
+    color: var(--text-primary);
+}
+
+/* Overlay lente: scende sotto la barra, a tutta pagina. Solo mobile. */
+.nav-search {
+    display: none;
+    position: absolute;
+    top: var(--nav-height);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: var(--nav-overlay-bg);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 16px;
+    gap: 14px;
+    min-height: calc(100vh - var(--nav-height));
+    max-height: calc(100vh - var(--nav-height));
+    overflow-y: auto;
+}
+
+.nav-search.open {
+    display: flex;
+}
+
+.nav-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    height: 46px;
+    border-radius: var(--pill-radius);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+}
+
+.nav-search-input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.nav-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.nav-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ================================
+   PAGE SECTIONS
+   ================================ */
+
+.page-section {
+    display: none;
+    min-height: 100vh;
+    padding-top: var(--nav-height);
+}
+
+@media (max-width: 768px) {
+    /* L'assaggio della sezione, sotto le voci: stesse righe del pannello
+       desktop, staccate da una riga sottile perche' qui non c'e' una colonna
+       a dividerle dai link. */
+    .nav-l2-peek {
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .nav-l2-peek .nav-peek-title {
+        margin-bottom: 8px;
+    }
+
+    .nav-l2-peek .nav-peek-row {
+        font-size: 0.9rem;
+        padding: 7px 0;
+    }
+}
+
 .empty-state {
     text-align: center;
     padding: 60px 24px;
@@ -18636,6 +19019,13 @@ td.ps-div-seed {
     opacity: 0.25;
 }
 
+/* La colonna centrale ha una larghezza fissa su tutte le righe: con `auto` si
+   allargava sui ruoli lunghi ("RB/WR") e i ruoli delle altre righe non erano
+   piu' incolonnati con quello. */
+.live-cmp-row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto 56px auto auto minmax(0, 1fr) auto;
+}
+
 .live-cmp-slot {
     font-family: var(--font-display);
     font-size: 0.72rem;
@@ -18643,7 +19033,7 @@ td.ps-div-seed {
     letter-spacing: 0.08em;
     color: var(--text-muted);
     text-align: center;
-    min-width: 44px;
+    min-width: 0;
 }
 
 /* Il nome per intero, su due righe se serve. Su una riga sola i puntini si
@@ -18674,7 +19064,10 @@ td.ps-div-seed {
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
-    min-width: 52px;
+    /* Larghezza FISSA, non `min-width`: ogni riga e' una griglia a se', quindi
+       una casella punti piu' larga (quella con la proiezione accanto) spostava
+       il ruolo al centro e i ruoli non erano piu' incolonnati fra le righe. */
+    width: 88px;
     text-align: center;
     opacity: 0.45;
 }
@@ -18682,6 +19075,25 @@ td.ps-div-seed {
 .live-cmp-pts--win {
     color: var(--accent-green);
     opacity: 1;
+}
+
+/* I due punteggi veri stanno attaccati al centro, le proiezioni ai lati: a
+   sinistra la previsione va PRIMA del numero, e il modo piu' semplice e'
+   rovesciare la riga invece di scrivere un secondo HTML solo per quel lato. */
+.live-cmp-pts {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+}
+
+.live-cmp-pts--l {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.live-cmp-pts--r {
+    justify-content: flex-start;
 }
 
 /* Riquadri stat stile Game Center: valore sopra, etichetta micro sotto.
@@ -18731,11 +19143,11 @@ td.ps-div-seed {
 
 @media (max-width: 640px) {
     .live-cmp-row {
-        gap: 6px;
+        gap: 4px;
     }
 
     .live-cmp-slot {
-        min-width: 30px;
+        min-width: 26px;
         font-size: 0.6rem;
     }
 
@@ -18745,6 +19157,31 @@ td.ps-div-seed {
 
     .live-cmp-pts {
         font-size: 0.9rem;
+        width: 64px;
+        gap: 2px;
+    }
+
+    /* Le tre statistiche si stringono e si appoggiano al centro della riga:
+       larghe come su schermo grande lasciavano un buco fra numero e numero e
+       spingevano i punti verso i bordi, dove si confrontano peggio. */
+    .live-cmp-stats {
+        grid-template-columns: repeat(3, 30px);
+    }
+
+    .live-cmp-stats--l {
+        justify-self: end;
+    }
+
+    .live-cmp-stats--r {
+        justify-self: start;
+    }
+
+    .live-cmp-mini b {
+        font-size: 0.74rem;
+    }
+
+    .live-cmp-mini span {
+        font-size: 0.5rem;
     }
 }
 
@@ -18772,6 +19209,140 @@ td.ps-div-seed {
     height: 100%;
     object-fit: cover;
     object-position: center 30%;
+}
+
+/* Mentre il dito trascina il campo: niente transizioni in mezzo (si muove il
+   transform a ogni frame) e nessuna selezione di testo per sbaglio. */
+.live-dragging {
+    transition: none !important;
+    will-change: transform, opacity;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+}
+
+/* Il palco normalmente taglia quello che esce dai suoi bordi; durante il
+   trascinamento no, altrimenti la scheda si tronca di netto appena parte.
+   A non far comparire la barra orizzontale ci pensa la sezione, con `clip`
+   (che a differenza di `hidden` non crea un contenitore di scorrimento). */
+.live-stage.is-dragging {
+    overflow: visible;
+}
+
+.page-section.live-clip-x {
+    overflow-x: clip;
+}
+
+/* La scheda dell'avversario, appoggiata di fianco in attesa di entrare. */
+.live-incoming {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    will-change: transform;
+    pointer-events: none;
+}
+
+/* Pallone del possesso nel "dentro la partita": stesso ovale della scena di
+   caricamento (ui/spinner.js), qui fermo e piccolo. Sta in linea con la
+   squadra che attacca — a sinistra la nostra, a destra l'avversaria. */
+.live-poss {
+    width: 17px;
+    height: 12px;
+    margin-left: 6px;
+    vertical-align: -1px;
+    flex: 0 0 auto;
+}
+
+.live-poss-body {
+    fill: var(--accent-red);
+}
+
+.live-poss-laces line {
+    /* bianche sempre, come nel caricamento: il pallone e' rosso in tutti e due
+       i temi, e in chiaro un inchiostro scuro spariva dentro al rosso */
+    stroke: #fff;
+    stroke-width: 0.7;
+    stroke-linecap: round;
+}
+
+/* Su telefono l'intestazione e' stretta e il pallone in riga spingerebbe
+   fuori il nome dell'avversario: va sotto al logo, alla stessa altezza per
+   tutt'e due i casi. Resta rosso e resta uno solo, quindi si capisce lo
+   stesso di chi e' la palla guardando chi attacca nel campetto qui sotto. */
+@media (max-width: 640px) {
+    .live-deep-head {
+        position: relative;
+    }
+
+    .live-deep-head .live-poss {
+        position: absolute;
+        left: 2px;
+        top: 26px;
+        margin: 0;
+    }
+}
+
+/* Numero di maglia accanto al nome sul campo del Live. Vuoto finche' non
+   arriva dalla rosa ESPN, e vuoto NON deve occupare spazio: `:empty` toglie
+   anche il margine, se no i nomi senza numero partirebbero spostati. */
+.slot-num {
+    margin-right: 4px;
+    font-family: var(--font-display);
+    font-size: 0.78em;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.slot-num:empty {
+    display: none;
+}
+
+/* Sulla figurina della scheda giocatore sta sotto al ruolo, stessa colonna. */
+.pm-panini-num {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Lo stato fisico nella scheda del giocatore: sta in fondo alla riga del
+   ruolo, e si fa notare quel tanto che basta. */
+.pm-game-inj {
+    color: var(--accent-amber, #f0b429);
+    font-weight: 700;
+}
+
+/* «Mentre non c'eri»: il cartello sopra al Live mentre si rivedono le giocate
+   perse. Sta nel flusso, non sopra al contenuto: non c'e' niente da chiudere
+   e sparisce da solo quando la replica finisce. */
+.live-ritorno {
+    margin: 0 auto 14px;
+    padding: 9px 16px;
+    max-width: 420px;
+    border-radius: var(--pill-radius, 999px);
+    border: 1px solid var(--border-card);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.live-ritorno b {
+    color: var(--text-primary);
+}
+
+/* Il verde del prato del Live, in un posto solo.
+   Era quasi nero; ora e' un verde da campo vero, ancora scuro abbastanza da
+   reggere nomi bianchi e punteggi colorati sopra. Per schiarirlo o scurirlo
+   si toccano questi tre valori (alto, mezzo, fondo) e basta. */
+.live-field-solo {
+    --fsv-turf-1: #2f4a3c;
+    --fsv-turf-2: #284033;
+    --fsv-turf-3: #1f342a;
 }
 
 .live-field-solo .field-svg {

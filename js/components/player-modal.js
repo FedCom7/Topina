@@ -15,8 +15,8 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=611';
-import { TEAMS } from '../sections/team.js?v=811';
-import { playerImageService } from '../services/player-image-service.js?v=522';
+import { TEAMS } from '../sections/team.js?v=829';
+import { playerImageService } from '../services/player-image-service.js?v=532';
 import { getPlayerInfo } from '../data/player-full.js?v=671';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
@@ -118,6 +118,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         appendContextBlocks(content, { game, pos, nfl, career, awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
+        hydrateJersey(content, name, nfl, year);
         return;
     }
 
@@ -130,6 +131,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
             </div>
         </div>`;
     hydrateHeadshot(content, name, nfl, pos, year);
+    hydrateJersey(content, name, nfl, year);
 
     try {
         const built = await buildCard({ name, pos, nfl, year });
@@ -140,6 +142,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         appendContextBlocks(content, { game, pos, nfl, career: built.career, awards: built.awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
+        hydrateJersey(content, name, nfl, year);
     } catch (e) {
         console.error('[player-modal]', e);
         if (token !== _openToken) return;
@@ -240,7 +243,8 @@ function gameStatCells(pos, s = {}, proj = null) {
 
 function gameBlockHtml(game, pos, nfl) {
     const { pts = 0, opponent = '', status = '', kickoff = '', week, year, started, stats,
-        projPts = null, projStats = null, gameState = '', score = null, oppScore = null } = game;
+        projPts = null, projStats = null, gameState = '', score = null, oppScore = null,
+        injury = null } = game;
     // accanto a ogni numero reale, in piccolo, quello che era previsto
     const cells = gameStatCells(pos, stats, projStats); // include già fum_lost se presente
 
@@ -292,7 +296,8 @@ function gameBlockHtml(game, pos, nfl) {
         <div class="pm-game-head">
             <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small>${projPts != null
                 ? `<small class="pm-proj" title="projected">${Number(projPts).toFixed(1)}</small>` : ''}</span>
-            <span class="pm-game-meta">${chi}${quando ? `<br>${quando}` : ''}<br>${ruolo}</span>
+            <span class="pm-game-meta">${chi}${quando ? `<br>${quando}` : ''}<br>${ruolo}${injury
+                ? ` · <span class="pm-game-inj">${String(injury).replace(/[<>&]/g, '')}</span>` : ''}</span>
         </div>
         ${statoUtile ? `<p class="pm-game-status">${statoUtile}</p>` : ''}
         ${grid}
@@ -311,6 +316,24 @@ function appendFullStatsLink(content, { name, pos, year }) {
     const ruolo = /\//.test(pos || '') ? '' : encodeURIComponent(pos || '');
     content.insertAdjacentHTML('beforeend',
         `<a class="pm-fullstats" href="#player/${y}/${ruolo}/${encodeURIComponent(name)}">Open full stats →</a>`);
+}
+
+/**
+ * Il numero di maglia sulla figurina, accanto al ruolo. Come la foto, arriva
+ * dalla rosa ESPN della stagione in corso: se non c'e' (stagione vecchia,
+ * difese, giocatore svincolato) la casella resta nascosta invece di mostrare
+ * un cancelletto vuoto.
+ */
+function hydrateJersey(content, name, nfl, year) {
+    const el = content.querySelector('.pm-panini-num');
+    if (!el || !name || !nfl) return;
+    playerImageService.getPlayerJersey(name, nfl, year)
+        .then(n => {
+            if (n == null || n === '') return;
+            el.textContent = `#${n}`;
+            el.hidden = false;
+        })
+        .catch(() => { });
 }
 
 function hydrateHeadshot(content, name, nfl, pos, year) {
@@ -461,7 +484,12 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
     // cognome, l'ultima parola del nome — unico pezzo che serve a
     // riconoscere il giocatore quando tutto il resto (ruolo, logo, traguardi)
     // è già sparito.
-    const surname = name.trim().split(/\s+/).pop();
+    // L'ultima parola non sempre e' il cognome: "James Cook III" finiva sulla
+    // figurina come "III". I suffissi si saltano e si prende la parola prima.
+    const parole = name.trim().split(/\s+/);
+    const suffisso = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+    while (parole.length > 1 && suffisso.test(parole[parole.length - 1])) parole.pop();
+    const surname = parole[parole.length - 1];
 
     return `
     <div class="pm-panini${gold ? ' pm-panini--gold' : ''}">
@@ -470,6 +498,7 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
             <span class="pm-panini-side-name pm-panini-side-name--short">${surname}</span>
             ${pos ? `<span class="pm-panini-pos${posInline ? ' pm-panini-pos--inline' : ''}">
                 <span>${pos}</span>
+                <span class="pm-panini-num" data-jersey hidden></span>
                 ${nfl ? `<img class="pm-panini-pos-logo" src="${posLogoUrl(nfl)}" alt="" onerror="this.style.display='none'">` : ''}
             </span>` : ''}
             <div class="pm-panini-top">

@@ -32,7 +32,7 @@
 
 import { normName } from './projections.js?v=611';
 import { getAdvancedPlayers } from './context-score.js?v=683';
-import { canonAbbr } from './nfl-schedule.js?v=546';
+import { canonAbbr } from './nfl-schedule.js?v=552';
 
 const _cache = {};   // year → Promise<risultato | null>
 

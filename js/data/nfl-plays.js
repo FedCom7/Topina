@@ -15,7 +15,7 @@
  * gzip, l'ultima pagina da 20 giocate 2 KB. Il polling usa la seconda forma.
  */
 
-import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=16';
 
 const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl';
 

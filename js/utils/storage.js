@@ -63,6 +63,7 @@ const FAMILIES = [
     { current: 'nfl-sched4-',          stale: /^nfl-sched\d*-/,           tier: 1 },
     { current: 'nfl-weekgames1-',      stale: /^nfl-weekgames\d*-/,       tier: 1 },
     { current: 'topina_pbp_v1_',       stale: /^topina_pbp_v\d+_/,        tier: 1 },
+    { current: 'topina_livesnap_v1_',  stale: /^topina_livesnap_v\d+_/,   tier: 0 },
     { current: 'topina_pweek_v2_',     stale: /^topina_pweek_v\d+_/,      tier: 2 },
     { current: 'topina_pseason_v2_',   stale: /^topina_pseason_v\d+_/,    tier: 2 },
     { current: 'topina_pinfo_v1_',     stale: /^topina_pinfo_v\d+_/,      tier: 2 },

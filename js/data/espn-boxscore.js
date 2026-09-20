@@ -14,7 +14,7 @@
  * un disallineamento, e nessuna è deducibile dalla documentazione.
  */
 
-import { canonAbbr } from './nfl-schedule.js?v=546';
+import { canonAbbr } from './nfl-schedule.js?v=552';
 import { fetchPlays } from './nfl-plays.js?v=571';
 
 const SUMMARY = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary';
@@ -77,7 +77,16 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
     // riceve, chi corre, quanti palloni gli arrivano. Sono gli stessi tabellini
     // già scaricati qui, quindi non costa una richiesta in più.
     const usage = new Map();     // sigla squadra → { info, players[] }
-    if (!eventIds.length) return { players, defenses, teamByName, usage };
+    // Infortuni annunciati DURANTE la partita: "questionable to return", con
+    // il perche' ("Stinger"). Stanno nella stessa risposta del tabellino, che
+    // stiamo gia' scaricando — nessuna richiesta in piu'. Sono un'altra cosa
+    // dal bollettino del giovedi' che arriva con la lega: quello dice se
+    // giochera', questo se sta ancora giocando.
+    // Chiave "SIGLA|nome": il nome da solo non basta. Nella week 2 del 2026
+    // c'erano DUE Justin Jefferson — quello di Minnesota in campo e quello di
+    // Cleveland dato Out — e la scheda del primo diceva "out to return".
+    const injuries = new Map();  // "SIGLA|nome normalizzato" → { name, status, detail, team }
+    if (!eventIds.length) return { players, defenses, teamByName, usage, injuries };
 
     const summaries = await Promise.all(eventIds.map(async id => {
         const chiave = String(id);
@@ -100,6 +109,23 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
 
     for (const d of summaries) {
         if (!d?.boxscore) continue;
+
+        for (const blocco of d.injuries || []) {
+            const sigla = canonAbbr(blocco.team?.abbreviation);
+            for (const voce of blocco.injuries || []) {
+                const nome = voce.athlete?.displayName;
+                if (!nome) continue;
+                const dettaglio = voce.details?.detail;
+                injuries.set(`${sigla}|${normName(nome)}`, {
+                    name: nome,
+                    team: sigla,
+                    status: voce.status || '',
+                    // "Not Specified" e' il modo di ESPN per dire che non lo sa
+                    detail: dettaglio && dettaglio !== 'Not Specified' ? dettaglio : '',
+                    comment: voce.shortComment || '',
+                });
+            }
+        }
 
         for (const team of d.boxscore.players || []) {
             const sigla = canonAbbr(team.team?.abbreviation);
@@ -289,5 +315,5 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
     for (const quadro of usage.values()) {
         quadro.players = [...quadro.players.values()];
     }
-    return { players, defenses, teamByName, usage };
+    return { players, defenses, teamByName, usage, injuries };
 }

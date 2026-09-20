@@ -19,8 +19,8 @@
 
 import { normName } from './projections.js?v=611';
 import { getTeamStats } from './nfl-team-stats.js?v=856';
-import { canonAbbr } from './nfl-schedule.js?v=546';
-import { getSeasonConfig } from '../data.js?v=585';
+import { canonAbbr } from './nfl-schedule.js?v=552';
+import { getSeasonConfig } from '../data.js?v=594';
 
 const _players = {};   // year → adv_players json (o null)
 const _team = {};      // year → adv_team json (o null)
