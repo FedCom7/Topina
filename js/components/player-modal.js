@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=611';
-import { TEAMS } from '../sections/team.js?v=820';
+import { TEAMS } from '../sections/team.js?v=822';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { getPlayerInfo } from '../data/player-full.js?v=671';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
@@ -118,6 +118,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         appendContextBlocks(content, { game, pos, nfl, career, awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
+        hydrateJersey(content, name, nfl, year);
         return;
     }
 
@@ -130,6 +131,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
             </div>
         </div>`;
     hydrateHeadshot(content, name, nfl, pos, year);
+    hydrateJersey(content, name, nfl, year);
 
     try {
         const built = await buildCard({ name, pos, nfl, year });
@@ -140,6 +142,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         appendContextBlocks(content, { game, pos, nfl, career: built.career, awards: built.awards });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
+        hydrateJersey(content, name, nfl, year);
     } catch (e) {
         console.error('[player-modal]', e);
         if (token !== _openToken) return;
@@ -315,6 +318,24 @@ function appendFullStatsLink(content, { name, pos, year }) {
         `<a class="pm-fullstats" href="#player/${y}/${ruolo}/${encodeURIComponent(name)}">Open full stats →</a>`);
 }
 
+/**
+ * Il numero di maglia sulla figurina, accanto al ruolo. Come la foto, arriva
+ * dalla rosa ESPN della stagione in corso: se non c'e' (stagione vecchia,
+ * difese, giocatore svincolato) la casella resta nascosta invece di mostrare
+ * un cancelletto vuoto.
+ */
+function hydrateJersey(content, name, nfl, year) {
+    const el = content.querySelector('.pm-panini-num');
+    if (!el || !name || !nfl) return;
+    playerImageService.getPlayerJersey(name, nfl, year)
+        .then(n => {
+            if (n == null || n === '') return;
+            el.textContent = `#${n}`;
+            el.hidden = false;
+        })
+        .catch(() => { });
+}
+
 function hydrateHeadshot(content, name, nfl, pos, year) {
     const img = content.querySelector('.pm-headshot');
     if (!img) return;
@@ -472,6 +493,7 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
             <span class="pm-panini-side-name pm-panini-side-name--short">${surname}</span>
             ${pos ? `<span class="pm-panini-pos${posInline ? ' pm-panini-pos--inline' : ''}">
                 <span>${pos}</span>
+                <span class="pm-panini-num" data-jersey hidden></span>
                 ${nfl ? `<img class="pm-panini-pos-logo" src="${posLogoUrl(nfl)}" alt="" onerror="this.style.display='none'">` : ''}
             </span>` : ''}
             <div class="pm-panini-top">

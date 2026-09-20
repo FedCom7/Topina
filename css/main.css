@@ -18781,6 +18781,31 @@ td.ps-div-seed {
     pointer-events: none;
 }
 
+/* Numero di maglia accanto al nome sul campo del Live. Vuoto finche' non
+   arriva dalla rosa ESPN, e vuoto NON deve occupare spazio: `:empty` toglie
+   anche il margine, se no i nomi senza numero partirebbero spostati. */
+.slot-num {
+    margin-right: 4px;
+    font-family: var(--font-display);
+    font-size: 0.78em;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.slot-num:empty {
+    display: none;
+}
+
+/* Sulla figurina della scheda giocatore sta sotto al ruolo, stessa colonna. */
+.pm-panini-num {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
 /* Lo stato fisico nella scheda del giocatore: sta in fondo alla riga del
    ruolo, e si fa notare quel tanto che basta. */
 .pm-game-inj {

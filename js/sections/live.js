@@ -17,7 +17,7 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=594';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=820';
+import { TEAMS } from './team.js?v=822';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=129';
@@ -30,7 +30,7 @@ import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
-import { initPlayerModal } from '../components/player-modal.js?v=771';
+import { initPlayerModal } from '../components/player-modal.js?v=774';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=16';
@@ -1594,6 +1594,7 @@ function render() {
 `;
 
     hydrateHeadshots(root);
+    idrataNumeri(root);
     scaldaFotoAvversari();
     senzaScatti(root);
     root.querySelector('.live-refresh-btn')?.addEventListener('click', () => loadData());
@@ -1746,6 +1747,7 @@ function bindSwipe(el) {
         card.removeAttribute('data-swipe');
         card.classList.add('live-incoming');
         hydrateHeadshots(card);   // le foto ci sono gia' in cache: niente sagome mentre entra
+        idrataNumeri(card);
         card.style.transform = `translateX(calc(${verso < 0 ? '100%' : '-100%'} ${verso < 0 ? '+' : '-'} ${DIVARIO}px))`;
         stage.appendChild(card);
         return card;
@@ -2182,6 +2184,42 @@ function shortStatLabel(k) {
 }
 
 /** Slot giocatore sul campo — card con foto, nome, punti e statistiche. */
+/**
+ * Il numero di maglia accanto al nome.
+ *
+ * Nasce vuoto e si riempie dopo (`idrataNumeri`): il numero non sta nei dati
+ * della lega, arriva dalla rosa ESPN che il servizio delle foto scarica
+ * comunque — quindi costa zero richieste in piu', ma non e' li' al momento di
+ * scrivere l'HTML. Restando vuoto non occupa spazio: chi non ce l'ha non
+ * lascia un buco davanti al nome.
+ */
+function numeroHTML(p) {
+    if (!p?.name) return '';
+    const gia = numeriMaglia.get(p.name);
+    return `<span class="slot-num" data-jersey="${escAttr(p.name)}" data-jersey-team="${escAttr(p.nfl_team || '')}">${gia ? `${gia}` : ''}</span>`;
+}
+
+/** Numeri gia' risolti in questa sessione: si riscrivono subito a ogni render. */
+const numeriMaglia = new Map();
+
+/** Riempie i numeri rimasti vuoti, uno per giocatore, senza bloccare il disegno. */
+function idrataNumeri(root) {
+    root.querySelectorAll('[data-jersey]').forEach(el => {
+        const nome = el.dataset.jersey, sigla = el.dataset.jerseyTeam;
+        if (!nome || el.textContent) return;
+        const gia = numeriMaglia.get(nome);
+        if (gia) { el.textContent = gia; return; }
+        if (!sigla) return;
+        playerImageService.getPlayerJersey(nome, canonAbbr(sigla) || sigla, CURRENT_SEASON)
+            .then(n => {
+                if (n == null || n === '') return;
+                numeriMaglia.set(nome, String(n));
+                el.textContent = String(n);
+            })
+            .catch(() => { });
+    });
+}
+
 function fieldSlot(p, extraClass = '') {
     if (!p) return '';
     if (p.placeholder) return emptySlot(p, extraClass);
@@ -2195,7 +2233,7 @@ function fieldSlot(p, extraClass = '') {
          ${gameAttr(p)}>
         <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>
-        <span class="slot-name">${nomeCampoHTML(p, shortName(p))}</span>
+        <span class="slot-name">${numeroHTML(p)}${nomeCampoHTML(p, shortName(p))}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
         ${injury ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}</span>` : ''}

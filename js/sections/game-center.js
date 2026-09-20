@@ -3,8 +3,8 @@ import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=822';
-import { initPlayerModal } from '../components/player-modal.js?v=771';
+import { TEAMS } from './team.js?v=824';
+import { initPlayerModal } from '../components/player-modal.js?v=774';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
