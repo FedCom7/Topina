@@ -148,7 +148,10 @@ const INJ_LABEL = {
 };
 
 function injuryTagHTML(p, corto = false) {
-    const raw = injuryOf(p);
+    // Uno dato per uscito dalla partita e' "Out" adesso, anche se venerdi' era
+    // soltanto in dubbio: lo stato di giornata, quando c'e', viene prima.
+    const inGara = boxData?.injuries?.get(normName(p?.name || ''));
+    const raw = inGara?.status || injuryOf(p);
     if (!raw) return '';
     const k = String(raw).toLowerCase().replace(/[^a-z]+/g, '-');
     const [lungo, breve] = INJ_LABEL[k] || [String(raw), String(raw).slice(0, 3)];
@@ -2453,9 +2456,9 @@ function compareHTML(team, opp) {
             ${comparePhoto(a)}
             ${compareName(a, 'l')}
             ${compareStatsBlock(a, aWin, 'l')}
-            <span class="live-cmp-pts${aWin ? ' live-cmp-pts--win' : ''}"${a ? ` data-slot-player="${escAttr(a.name)}"` : ''}>${a ? ptsHTML(a) : '—'}</span>
+            <span class="live-cmp-pts live-cmp-pts--l${aWin ? ' live-cmp-pts--win' : ''}"${a ? ` data-slot-player="${escAttr(a.name)}"` : ''}>${a ? ptsHTML(a) : '—'}</span>
             <span class="live-cmp-slot">${slot}</span>
-            <span class="live-cmp-pts${bWin ? ' live-cmp-pts--win' : ''}"${b ? ` data-slot-player="${escAttr(b.name)}"` : ''}>${b ? ptsHTML(b) : '—'}</span>
+            <span class="live-cmp-pts live-cmp-pts--r${bWin ? ' live-cmp-pts--win' : ''}"${b ? ` data-slot-player="${escAttr(b.name)}"` : ''}>${b ? ptsHTML(b) : '—'}</span>
             ${compareStatsBlock(b, bWin, 'r')}
             ${compareName(b, 'r')}
             ${comparePhoto(b)}

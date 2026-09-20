@@ -18614,6 +18614,25 @@ td.ps-div-seed {
     opacity: 1;
 }
 
+/* I due punteggi veri stanno attaccati al centro, le proiezioni ai lati: a
+   sinistra la previsione va PRIMA del numero, e il modo piu' semplice e'
+   rovesciare la riga invece di scrivere un secondo HTML solo per quel lato. */
+.live-cmp-pts {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+}
+
+.live-cmp-pts--l {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.live-cmp-pts--r {
+    justify-content: flex-start;
+}
+
 /* Riquadri stat stile Game Center: valore sopra, etichetta micro sotto.
    Spenti di default, accesi per chi ha fatto più punti nella riga. */
 /* Tre colonne di larghezza fissa per lato: ogni riga produce sempre tre celle
@@ -18661,11 +18680,11 @@ td.ps-div-seed {
 
 @media (max-width: 640px) {
     .live-cmp-row {
-        gap: 6px;
+        gap: 4px;
     }
 
     .live-cmp-slot {
-        min-width: 30px;
+        min-width: 26px;
         font-size: 0.6rem;
     }
 
@@ -18675,6 +18694,31 @@ td.ps-div-seed {
 
     .live-cmp-pts {
         font-size: 0.9rem;
+        min-width: 42px;
+        gap: 2px;
+    }
+
+    /* Le tre statistiche si stringono e si appoggiano al centro della riga:
+       larghe come su schermo grande lasciavano un buco fra numero e numero e
+       spingevano i punti verso i bordi, dove si confrontano peggio. */
+    .live-cmp-stats {
+        grid-template-columns: repeat(3, 30px);
+    }
+
+    .live-cmp-stats--l {
+        justify-self: end;
+    }
+
+    .live-cmp-stats--r {
+        justify-self: start;
+    }
+
+    .live-cmp-mini b {
+        font-size: 0.74rem;
+    }
+
+    .live-cmp-mini span {
+        font-size: 0.5rem;
     }
 }
 
