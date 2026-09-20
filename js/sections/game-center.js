@@ -1,5 +1,5 @@
 import { fetchFantasyData, fetchDraftData, getWeekCount, weeksWithPending, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=585';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=172';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=546';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';

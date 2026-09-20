@@ -218,7 +218,12 @@ function normalizePlayer(entry, week, games, scoring) {
         game_opp_score: Number.isFinite(game.oppScore) ? game.oppScore : null,
         fantasy_points: money(ppe.appliedStatTotal),
         stats: buildStats(real?.stats, type),
-        injury_status: entry.injuryStatus || (player.injured ? 'INJURED' : 'NORMAL'),
+        // `player.injuryStatus` e' la designazione vera (QUESTIONABLE, OUT,
+        // INJURY_RESERVE...). `entry.injuryStatus` e' lo stato della riga di
+        // rosa e vale NORMAL quasi sempre: leggendo quello per primo, un
+        // giocatore in dubbio risultava sano — Barkley "questionable" il
+        // 20/09/2026 non compariva da nessuna parte.
+        injury_status: player.injuryStatus || entry.injuryStatus || (player.injured ? 'INJURED' : 'NORMAL'),
         locked: started,
         started,
     };

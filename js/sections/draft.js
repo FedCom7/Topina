@@ -8,7 +8,7 @@ import { TEAMS } from './team.js?v=813';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=762';
 import { db } from '../firebase-config.js?v=3';
-import { fetchDraftStatus } from '../data/espn-fantasy.js?v=172';
+import { fetchDraftStatus } from '../data/espn-fantasy.js?v=175';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loaded = false;

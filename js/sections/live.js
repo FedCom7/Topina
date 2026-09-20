@@ -24,8 +24,8 @@ import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGi
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=570';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=78';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
@@ -3518,13 +3518,38 @@ function nflGamesHTML(team) {
 }
 
 /** Solo l'elenco: è la parte che cambia, aggiornata senza toccare il resto. */
+/**
+ * Il bollettino delle due squadre in campo.
+ *
+ * Due fonti, e dicono cose diverse. La lega porta la designazione della
+ * settimana (QUESTIONABLE, OUT, IR): decisa il venerdi', ferma per tutta la
+ * domenica. Il tabellino della partita porta invece quello che succede MENTRE
+ * si gioca — "Questionable" con dentro il motivo ("Stinger"), cioe' l'uscita
+ * di Barkley al primo possesso — e quando c'e' vince lui, perche' e' la
+ * notizia piu' fresca.
+ */
 function injuriesHTML(team, opp) {
     const all = [...(team.starters || []), ...(team.bench || []),
     ...(opp.starters || []), ...(opp.bench || [])];
-    const injuries = all.filter(p => injuryOf(p));
-    return injuries.length
-        ? `<ul class="live-side-list">${injuries.map(p =>
-            `<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(injuryOf(p))}</span></li>`).join('')}</ul>`
+
+    const righe = [];
+    const visti = new Set();
+    for (const p of all) {
+        if (!p?.name || visti.has(p.name)) continue;
+        visti.add(p.name);
+        const inGara = boxData?.injuries?.get(normName(p.name));
+        const settimana = injuryOf(p);
+        if (!inGara && !settimana) continue;
+        const stato = inGara?.status || String(settimana).replace(/_/g, ' ').toLowerCase();
+        const perche = inGara?.detail ? ` · ${inGara.detail}` : '';
+        // "in dubbio per il rientro" e' l'unica cosa che il bollettino
+        // settimanale non sa dire, quindi si scrive per esteso
+        const dove = inGara ? ' to return' : '';
+        righe.push(`<li>${escAttr(p.name)} — <span class="live-injury-tag">${escAttr(stato)}${dove}</span>${escAttr(perche)}</li>`);
+    }
+
+    return righe.length
+        ? `<ul class="live-side-list">${righe.join('')}</ul>`
         : '<p class="pm-empty">No injuries reported.</p>';
 }
 

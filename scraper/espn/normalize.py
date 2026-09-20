@@ -112,7 +112,15 @@ def normalize_player(entry, week, opponents, scoring=None):
     }
 
     # --- additive live fields (ignored by existing consumers) ---
-    out["injury_status"] = entry.get("injuryStatus") or ("INJURED" if player.get("injured") else "NORMAL")
+    # La designazione vera sta sul GIOCATORE: quella della riga di rosa
+    # ("entry") e' NORMAL quasi sempre, e leggendola per prima un giocatore
+    # in dubbio finiva nell'archivio come sano. Stesso ordine in
+    # js/data/espn-fantasy.js.
+    out["injury_status"] = (
+        player.get("injuryStatus")
+        or entry.get("injuryStatus")
+        or ("INJURED" if player.get("injured") else "NORMAL")
+    )
     out["locked"] = started
     out["started"] = started
     if player.get("lastNewsDate"):

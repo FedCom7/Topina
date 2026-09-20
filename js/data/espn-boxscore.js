@@ -77,7 +77,13 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
     // riceve, chi corre, quanti palloni gli arrivano. Sono gli stessi tabellini
     // già scaricati qui, quindi non costa una richiesta in più.
     const usage = new Map();     // sigla squadra → { info, players[] }
-    if (!eventIds.length) return { players, defenses, teamByName, usage };
+    // Infortuni annunciati DURANTE la partita: "questionable to return", con
+    // il perche' ("Stinger"). Stanno nella stessa risposta del tabellino, che
+    // stiamo gia' scaricando — nessuna richiesta in piu'. Sono un'altra cosa
+    // dal bollettino del giovedi' che arriva con la lega: quello dice se
+    // giochera', questo se sta ancora giocando.
+    const injuries = new Map();  // nome normalizzato → { name, status, detail, team }
+    if (!eventIds.length) return { players, defenses, teamByName, usage, injuries };
 
     const summaries = await Promise.all(eventIds.map(async id => {
         const chiave = String(id);
@@ -100,6 +106,23 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
 
     for (const d of summaries) {
         if (!d?.boxscore) continue;
+
+        for (const blocco of d.injuries || []) {
+            const sigla = canonAbbr(blocco.team?.abbreviation);
+            for (const voce of blocco.injuries || []) {
+                const nome = voce.athlete?.displayName;
+                if (!nome) continue;
+                const dettaglio = voce.details?.detail;
+                injuries.set(normName(nome), {
+                    name: nome,
+                    team: sigla,
+                    status: voce.status || '',
+                    // "Not Specified" e' il modo di ESPN per dire che non lo sa
+                    detail: dettaglio && dettaglio !== 'Not Specified' ? dettaglio : '',
+                    comment: voce.shortComment || '',
+                });
+            }
+        }
 
         for (const team of d.boxscore.players || []) {
             const sigla = canonAbbr(team.team?.abbreviation);
@@ -289,5 +312,5 @@ export async function fetchBoxscoreTotals(eventIds = [], finite = new Set()) {
     for (const quadro of usage.values()) {
         quadro.players = [...quadro.players.values()];
     }
-    return { players, defenses, teamByName, usage };
+    return { players, defenses, teamByName, usage, injuries };
 }

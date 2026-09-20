@@ -48,7 +48,7 @@ import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } fro
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=35';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=54';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=57';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWaiverMoves } from '../data/waiver-moves.js?v=3';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
