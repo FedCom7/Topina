@@ -19244,46 +19244,6 @@ td.ps-div-seed {
     pointer-events: none;
 }
 
-/* Pallone del possesso nel "dentro la partita": stesso ovale della scena di
-   caricamento (ui/spinner.js), qui fermo e piccolo. Sta in linea con la
-   squadra che attacca — a sinistra la nostra, a destra l'avversaria. */
-.live-poss {
-    width: 17px;
-    height: 12px;
-    margin-left: 6px;
-    vertical-align: -1px;
-    flex: 0 0 auto;
-}
-
-.live-poss-body {
-    fill: var(--accent-red);
-}
-
-.live-poss-laces line {
-    /* bianche sempre, come nel caricamento: il pallone e' rosso in tutti e due
-       i temi, e in chiaro un inchiostro scuro spariva dentro al rosso */
-    stroke: #fff;
-    stroke-width: 0.7;
-    stroke-linecap: round;
-}
-
-/* Su telefono l'intestazione e' stretta e il pallone in riga spingerebbe
-   fuori il nome dell'avversario: va sotto al logo, alla stessa altezza per
-   tutt'e due i casi. Resta rosso e resta uno solo, quindi si capisce lo
-   stesso di chi e' la palla guardando chi attacca nel campetto qui sotto. */
-@media (max-width: 640px) {
-    .live-deep-head {
-        position: relative;
-    }
-
-    .live-deep-head .live-poss {
-        position: absolute;
-        left: 2px;
-        top: 26px;
-        margin: 0;
-    }
-}
-
 /* Numero di maglia accanto al nome sul campo del Live. Vuoto finche' non
    arriva dalla rosa ESPN, e vuoto NON deve occupare spazio: `:empty` toglie
    anche il margine, se no i nomi senza numero partirebbero spostati. */
@@ -24713,6 +24673,26 @@ a.sb:hover {
     width: 48px;
     height: 48px;
     object-fit: contain;
+}
+
+/* Il pallone di chi attacca, accanto alla sigla sotto al logo. Bianco, con
+   le cuciture scure: sta su fondo nero accanto a loghi di ogni colore, e il
+   rosso della scena di caricamento ci si sarebbe confuso. */
+.fst-palla {
+    width: 26px;
+    height: 18px;
+    margin-left: 6px;
+    vertical-align: -3px;
+}
+
+.fst-palla-corpo {
+    fill: #fff;
+}
+
+.fst-palla-cuciture line {
+    stroke: #1a1d20;
+    stroke-width: 0.7;
+    stroke-linecap: round;
 }
 
 .fst-logo--vuoto {
