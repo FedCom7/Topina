@@ -37,9 +37,9 @@
 
 import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=585';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
-import { getHonorsBundle } from '../data/honors.js?v=723';
+import { getHonorsBundle } from '../data/honors.js?v=724';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=811';
+import { TEAMS } from './team.js?v=813';
 import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=762';
 import { teamsCardsHTML } from './teams.js?v=724';
 import { playerImageService } from '../services/player-image-service.js?v=522';
@@ -48,11 +48,12 @@ import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } fro
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=35';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=54';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=172';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { getWaiverMoves } from '../data/waiver-moves.js?v=3';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=7';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
-import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
+import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=4';
+import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
 import { getSeasonProjections } from '../data/projections.js?v=611';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
@@ -62,7 +63,7 @@ import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=803';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=804';
 
 let initialized = false;
 
@@ -889,6 +890,28 @@ function bannerSide(rawName, scoreHTML, winner) {
 let cacheSettimanaViva = null;   // { anno, promessa }
 
 /**
+ * Il numero nel mezzo del banner, come nel Live (`probabilita` in live.js):
+ * probabilità di vittoria finché c'è qualcosa da giocare, quota di punti
+ * quando non ce n'è più. La quota da sola diceva 100% a Sommo con un solo
+ * Thursday Night giocato e 140 punti ancora da assegnare.
+ */
+function probabilitaBanner(m, s1, s2, calib) {
+    const quota = {
+        pct: s1 + s2 > 0 ? (s1 / (s1 + s2)) * 100 : 50,
+        title: 'Share of the points on the board so far',
+    };
+    if (!calib) return quota;
+    const wp = matchupWinProb(m.team1, m.team2, calib);
+    if (wp.settled || !wp.ready) return quota;
+    const f = (n) => n.toFixed(1);
+    return {
+        pct: wp.p1 * 100,
+        title: `Win probability · projected ${f(wp.exp1)} - ${f(wp.exp2)}`
+            + ` with ${wp.openStarters} starter${wp.openStarters === 1 ? '' : 's'} still to play`,
+    };
+}
+
+/**
  * Una richiesta sola, tre lettori: la chiamano `cardLiveMatchups` (per
  * disegnare le sfide), `cardLastResults` (per sapere se sta gia' mostrando
  * quella settimana) e `initHome` (per sapere se la stagione e' partita).
@@ -925,6 +948,10 @@ async function leggiSettimanaViva(season) {
     if (!leagueDrafted) return null;
 
     await fillMissingProjections(matchups, season.year, week).catch(() => { });
+    // Le proiezioni servono anche alla probabilita' di vittoria, quindi la
+    // calibrazione si chiede solo adesso: se non arriva, il banner ripiega
+    // sulla quota di punti (`probabilitaBanner`).
+    const calib = await getWinProbCalib().catch(() => null);
 
     const bugs = matchups.map(m => {
         // Come giornataCominciata in Live: se un titolare di una delle due
@@ -939,14 +966,15 @@ async function leggiSettimanaViva(season) {
         const proiettata = (t) => !started && P(t.score) === 0 && t.projected_score != null;
         const punti = (t) => (proiettata(t) ? P(t.projected_score) : P(t.score));
         const s1 = punti(m.team1), s2 = punti(m.team2);
-        const total = s1 + s2;
+        const prob = probabilitaBanner(m, s1, s2, calib);
         return currentScoreBugHTML({
             left: bannerSide(m.team1.name,
                 bannerScoreHTML(s1, m.team1.projected_score, 'l', proiettata(m.team1)), s1 >= s2),
             right: bannerSide(m.team2.name,
                 bannerScoreHTML(s2, m.team2.projected_score, 'r', proiettata(m.team2)), s2 >= s1),
             mid: chiusa ? 'final' : (started ? 'live' : 'vs'),
-            probPct: total > 0 ? (s1 / total) * 100 : 50,
+            probPct: prob.pct,
+            probTitle: prob.title,
         });
     }).join('');
 

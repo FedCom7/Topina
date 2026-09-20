@@ -580,10 +580,12 @@ async function athleteNameFromRef(ref) {
     return (_athleteName[ref] = d?.displayName || d?.fullName || null);
 }
 
+// Etichette in inglese come tutto ciò che il sito mostra (le vede sia il
+// blocco in Stats sia quello nella tab Home).
 const LEADER_CATS = [
-    ['passingYards', 'Yard su lancio'], ['rushingYards', 'Yard su corsa'],
-    ['receivingYards', 'Yard in ricezione'], ['totalTackles', 'Tackle'],
-    ['sacks', 'Sack'], ['interceptions', 'Intercetti'],
+    ['passingYards', 'Passing yards'], ['rushingYards', 'Rushing yards'],
+    ['receivingYards', 'Receiving yards'], ['totalTackles', 'Tackles'],
+    ['sacks', 'Sacks'], ['interceptions', 'Interceptions'],
 ];
 
 /**

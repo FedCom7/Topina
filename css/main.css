@@ -375,136 +375,6 @@ img {
 }
 
 /* --------------------------------
-   Pannelli a due colonne: voci a sinistra, assaggio a destra
-
-   Le voci diventano righe grandi in colonna (prima erano pillole in fila) e
-   accanto compaiono due o tre numeri della sezione. Il pannello non e' piu'
-   alto 56px fissi: cresce col contenuto, e navbar.js misura.
-   -------------------------------- */
-.nav-dropdown-panel.nav-dp-two {
-    height: auto;
-    align-items: start;
-    justify-content: center;
-    gap: 0;
-    padding: 18px 24px 24px;
-    display: grid;
-    grid-template-columns: minmax(220px, 300px) minmax(240px, 320px);
-    column-gap: 56px;
-    max-width: 780px;
-    margin: 0 auto;
-}
-
-.nav-dp-two .nav-dp-links {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.nav-dp-two .nav-dp-item {
-    font-size: 1.32rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
-    padding: 5px 10px;
-    border-radius: 10px;
-    line-height: 1.25;
-}
-
-.nav-dp-two .nav-dp-item:not(.nav-dp-header) {
-    font-size: 1.05rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.nav-dp-two .nav-dp-item:hover {
-    color: var(--text-primary);
-}
-
-.nav-dp-two .nav-dp-sep {
-    width: 100%;
-    height: 1px;
-    margin: 6px 0 6px 10px;
-    max-width: 140px;
-}
-
-.nav-dp-peek {
-    padding-top: 6px;
-    min-width: 0;
-}
-
-.nav-peek-title {
-    display: block;
-    font-size: 0.64rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-}
-
-.nav-peek-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 5px 0;
-    border-bottom: 1px solid var(--border-subtle);
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-}
-
-.nav-peek-row:last-child {
-    border-bottom: 0;
-}
-
-.nav-peek-k {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.nav-peek-v {
-    flex-shrink: 0;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-}
-
-/* La pagina sotto al menu aperto: sfocata e spenta, come nella barra di Apple.
-   Il velo sta sotto alla barra (z-index) e non intercetta i clic, cosi' basta
-   uscire col mouse per richiudere. */
-body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 90;
-    background: rgba(8, 10, 12, 0.34);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.22s var(--ease), visibility 0.22s var(--ease);
-}
-
-body.nav-dd-open::after {
-    opacity: 1;
-    visibility: visible;
-}
-
-:root[data-theme="light"] body::after {
-    background: rgba(240, 240, 238, 0.42);
-}
-
-@media (max-width: 768px) {
-
-    /* su telefono i pannelli hover non esistono: niente velo */
-    body::after {
-        display: none;
-    }
-}
-
-/* --------------------------------
    Mega pannello NFL Hub — le 32 squadre per division
    Solo desktop: su mobile i pannelli hover sono nascosti (vedi @media 768px)
    e la voce NFL Hub resta un link verso #players.
@@ -4123,8 +3993,6 @@ g.tl-play-pre-run { animation: tl-play-pre-run 5s ease-in-out infinite; }
     /* Livello 2 → entra da destra sfumando, sopra il livello 1 (z-index 2). */
     .nav-l2 {
         display: flex;
-        /* voci sopra, assaggio sotto: in riga finirebbero affiancati */
-        flex-direction: column;
         padding: 22px 22px 32px;
         opacity: 0;
         visibility: hidden;
@@ -4194,24 +4062,6 @@ g.tl-play-pre-run { animation: tl-play-pre-run 5s ease-in-out infinite; }
     .nav-l2-link:focus-visible {
         color: var(--text-primary);
         background: var(--bg-glass);
-    }
-
-    /* L'assaggio della sezione, sotto le voci: stesse righe del pannello
-       desktop, staccate da una riga sottile perche' qui non c'e' una colonna
-       a dividerle dai link. */
-    .nav-l2-peek {
-        margin-top: 22px;
-        padding-top: 16px;
-        border-top: 1px solid var(--border-subtle);
-    }
-
-    .nav-l2-peek .nav-peek-title {
-        margin-bottom: 8px;
-    }
-
-    .nav-l2-peek .nav-peek-row {
-        font-size: 0.9rem;
-        padding: 7px 0;
     }
 
     .hero-title {
@@ -8309,6 +8159,175 @@ g.tl-play-pre-run { animation: tl-play-pre-run 5s ease-in-out infinite; }
    raddoppierebbe. */
 .mc-scorebug-list .gc-banner {
     margin-bottom: 0;
+}
+
+/* ═══ Tab Home della pagina squadra NFL: preview del target share ═══════
+   Il selettore delle tre visuali. Stesse pill della nav di sezione, un gradino
+   più piccole: è un comando dentro una card, non la navigazione della pagina. */
+.ts-seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.ts-seg-btn {
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.ts-seg-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.06); }
+.ts-seg-btn.is-active { color: var(--text-primary); background: rgba(255, 255, 255, 0.09); border-color: var(--border-subtle); }
+
+.ts-seg-more {
+    align-self: flex-start;
+    margin-top: 10px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent-red);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+.ts-seg-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── L'anello che si apre (solo la preview in Home: `--live`) ──
+   La fetta sotto il puntatore si stacca lungo la propria bisettrice — la
+   direzione gliel'ha scritta chi disegna (`--sx`/`--sy`), perché l'angolo in
+   CSS non si conosce — e le altre si spengono. Il movimento è di 7px: quanto
+   basta a dire "questa", non tanto da sfasciare la ruota. */
+.ts-ring--live .ts-ring-slice {
+    transition: transform var(--dur-med, 0.28s) var(--ease), opacity var(--dur-med, 0.28s) var(--ease);
+    cursor: pointer;
+}
+.ts-ring--live.is-open .ts-ring-slice { opacity: 0.34; }
+.ts-ring--live .ts-ring-slice:hover,
+.ts-ring--live .ts-ring-slice:focus-visible {
+    opacity: 1;
+    transform: translate(calc(var(--sx, 0) * 7px), calc(var(--sy, 0) * 7px));
+}
+.ts-ring--live .ts-ring-slice:focus { outline: none; }
+
+/* Le percentuali aria/terra al centro lasciano il posto alla scheda: sono la
+   risposta alla domanda di prima, e sovrapposte alla scheda sarebbero rumore. */
+.ts-ring--live .ts-ring-num,
+.ts-ring--live .ts-ring-lbl2 { transition: opacity var(--dur-fast, 0.18s) var(--ease); }
+.ts-ring--live.is-open .ts-ring-num,
+.ts-ring--live.is-open .ts-ring-lbl2 { opacity: 0; }
+
+.ts-ring-wrap { position: relative; }
+
+/* La scheda sta AL CENTRO dell'anello: il buco è largo un centinaio di pixel e
+   lei è più grande, quindi galleggia sopra la fascia interna — che intanto si è
+   spenta. `pointer-events: none` è la parte importante: se la scheda ricevesse
+   il puntatore, coprendo la fetta la spegnerebbe e lampeggerebbe. */
+.ts-ring-card {
+    position: absolute;
+    left: 50%;
+    top: 49.5%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    /* Stretta: l'anello è largo 700 unità e la scheda gli sta sopra, quindi
+       ogni pixel in più è una fetta che sparisce dietro. Con 196px copre il
+       buco centrale e la fascia aria/terra — che intanto si è spenta — e lascia
+       vedere la corona dei giocatori tutt'intorno. */
+    width: min(196px, 52%);
+    padding: 9px 10px;
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--card-accent, #4f8cff) 40%, var(--border-subtle));
+    background: color-mix(in srgb, var(--bg-card, #0b0b0d) 92%, var(--card-accent, #4f8cff) 8%);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+    animation: tsCardIn var(--dur-fast, 0.18s) var(--ease);
+}
+@keyframes tsCardIn {
+    from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.ts-ring-card[hidden] { display: none; }
+
+.ts-ring-card-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ts-ring-card-photo {
+    width: 34px; height: 34px; flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+}
+.ts-ring-card-photo[hidden] { display: none; }
+.ts-ring-card-id { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.ts-ring-card-name {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ts-ring-card-sub {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ts-ring-card-big { display: flex; align-items: baseline; gap: 6px; }
+.ts-ring-card-share {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: color-mix(in srgb, var(--card-accent, #4f8cff) 55%, white 45%);
+}
+.ts-ring-card-unit { font-size: 0.62rem; color: var(--text-muted); }
+
+.ts-ring-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 8px; }
+.ts-ring-card-cell {
+    display: flex; align-items: baseline; gap: 4px;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.ts-ring-card-cell b { font-size: 0.76rem; font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ── Leader di squadra sotto il calendario ── */
+.nfl-home-lead-list { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.nfl-home-lead {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 4px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.nfl-home-lead:last-child { border-bottom: none; }
+.nfl-home-lead-photo {
+    width: 28px; height: 28px; flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+}
+.nfl-home-lead-id { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; flex: 1; }
+.nfl-home-lead-id b {
+    font-size: 0.84rem; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nfl-home-lead-id span {
+    font-size: 0.62rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nfl-home-lead-val {
+    font-family: var(--font-display);
+    font-size: 1.05rem; font-weight: 800; flex: none;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Waiver wire: il mercato in home ──
@@ -12980,28 +12999,6 @@ div.gb-out-player:last-of-type .gb-out-meta {
 .pp-tl-line { fill: none; stroke: var(--accent-red, #B8433A); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
 .pp-tl-dot { fill: var(--accent-red, #B8433A); stroke: var(--bg-primary, #000); stroke-width: 2; }
 .pp-tl-dot--best { fill: var(--accent-green, #30d158); }
-/* Pallini dei grafici a tendenza (NFL career by category & co.): il contorno
-   prende il fondo della card, cosi' il pallino stacca dalla linea; massimo e
-   minimo di carriera come nella timeline — verde e rosso. */
-.an-trend-dot { stroke: var(--bg-card, #000); stroke-width: 2; }
-.an-trend-dot--hi { fill: var(--accent-green, #30d158); }
-.an-trend-dot--lo { fill: #e5484d; }
-
-/* Il migliore della colonna nelle tabelle della scheda giocatore. */
-.pp-table td.pp-best {
-    color: #b8860b;
-    font-weight: 800;
-}
-
-:root:not([data-theme="light"]) .pp-table td.pp-best {
-    color: #e8c14a;
-}
-.an-trend-callout {
-    font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 700;
-    fill: var(--accent-green, #30d158);
-}
 .pp-tl-dot--inj { fill: var(--accent-amber, #f0b429); }
 .pp-tl-lead { stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
 .pp-tl-callout { font-size: 11px; font-weight: 700; font-family: var(--font-body); fill: var(--text-primary); }
@@ -15133,8 +15130,6 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 .pp-cmp-leg i.pp-bp-lg-med { width: 12px; height: 2px; background: var(--text-primary); }
 .pp-cmp-leg i.pp-bp-lg-mean { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-amber); }
 .pp-cmp-leg i.pp-bp-lg-wk { width: 2px; height: 12px; background: var(--text-muted); }
-.pp-cmp-leg i.pp-bp-lg-bar { width: 4px; height: 12px; border-radius: 1px; background: color-mix(in srgb, var(--text-primary) 26%, transparent); }
-.pp-cmp-leg i.pp-bp-lg-bartop { width: 4px; height: 12px; border-radius: 1px; background: var(--accent-red); }
 .pp-cmp-leg i.pp-bp-lg-proj { width: 9px; height: 9px; transform: rotate(45deg); border: 1.5px dashed var(--accent-amber); background: none; }
 
 /* Confronto con la lega Topina: grafico globale + distribuzione + percentili */
@@ -15181,12 +15176,6 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
    riquadro con mediana e quartili non comparirebbe piu'. */
 .pp-ridge-shape { fill: none; stroke: none; pointer-events: all; }
 .pp-ridge-line { fill: none; stroke: rgba(255, 255, 255, 0.5); stroke-width: 1.6; stroke-linejoin: round; }
-/* Le barre della distribuzione: una per passo dell'asse, la piu' alta in rosso
-   perche' e' il punteggio che quell'anno e' uscito piu' spesso. */
-.pp-ridge-bar { fill: color-mix(in srgb, var(--text-primary) 26%, transparent); }
-.pp-ridge-bar--top { fill: var(--accent-red); }
-.pp-ridge-g:hover .pp-ridge-bar { fill: color-mix(in srgb, var(--text-primary) 42%, transparent); }
-.pp-ridge-g:hover .pp-ridge-bar--top { fill: var(--accent-red); }
 /* La mediana passa all'accento: tolto il riempimento, in bianco su bianco
    spariva dentro al profilo che ha accanto. */
 .pp-ridge-median { stroke: var(--accent-red); stroke-width: 1.8; opacity: 0.95; }
@@ -15209,9 +15198,7 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
 
 /* Traiettoria proiettato→reale per stagione (player · Carriera & arco) */
 .pp-pp-svg { width: 100%; height: auto; max-width: 620px; display: block; margin: 0 auto; }
-/* La diagonale e' la parita' proiezione-realta': verde e sottile, come
-   l'etichetta che le sta accanto — sopra quella riga si e' fatto meglio. */
-.pp-pp-diag { stroke: var(--accent-green); stroke-width: 1; stroke-dasharray: 5 4; opacity: 0.85; }
+.pp-pp-diag { stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.7; }
 .pp-pp-diaglbl { fill: var(--accent-green); font-size: 11px; font-weight: 700; }
 .pp-pp-line { fill: none; stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: 0.7; stroke-linejoin: round; }
 .pp-pp-dot { stroke: #000; stroke-width: 1.4; cursor: default; }
@@ -15382,6 +15369,48 @@ a.pp-recap-team--link:hover { background: color-mix(in srgb, var(--text-primary)
     border: 1px solid transparent; border-radius: 999px; padding: 5px 13px; cursor: pointer; transition: .15s; }
 .nfl-secnav button:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.06); }
 .nfl-secnav button.is-active { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); border-color: var(--border-subtle); }
+
+/* ── Le barre a tab sul telefono: UNA riga che scorre ──
+   Le due barre (pagina squadra NFL e scheda giocatore) hanno la stessa forma e
+   avevano lo stesso difetto: `flex-wrap: wrap` mandava le nove voci a capo su
+   tre righe, 112px di altezza prima di arrivare al contenuto, e le pill
+   restavano allineate a sinistra in un blocco sfrangiato.
+
+   Una riga sola che scorre di lato: alta 44px, la pill accanto si intravede
+   sul bordo — che è il modo in cui si capisce che c'è altro, senza scriverlo —
+   e lo scatto la ferma in vista invece di lasciarla a metà. La barra di
+   scorrimento si nasconde: qui è un elenco da sfogliare, non una finestra.
+
+   Niente sfumatura ai bordi: la barra è sticky e semitrasparente, quindi una
+   maschera le mangerebbe anche il fondo e si vedrebbe la pagina passare sotto
+   agli angoli. E niente di tutto questo sopra i 768px, dove le voci ci stanno
+   in due righe larghe e lo scorrimento sarebbe un impiccio col mouse. */
+@media (max-width: 768px) {
+    .nfl-secnav,
+    .pp-tabsbar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        /* Il gesto di cambio sezione vive sul pannello, non qui: sulla barra
+           il dito deve scorrere le voci e basta. */
+        touch-action: pan-x;
+    }
+
+    .nfl-secnav::-webkit-scrollbar,
+    .pp-tabsbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nfl-secnav button,
+    .pp-tab {
+        flex: 0 0 auto;
+        scroll-snap-align: center;
+        white-space: nowrap;
+    }
+}
 
 /* Power ranking · classifica composita (Lega / #players) */
 .lc-prwrap { margin: 4px 0 18px; }
@@ -15605,9 +15634,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
 .pp-gamelog {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    /* niente fondo: il riquadro lo fa gia' il bordo, e il grigio sotto una
-       tabella lunga la faceva sembrare disattivata */
-    background: transparent;
+    background: var(--bg-glass);
     padding: 0 14px;
 }
 .pp-gamelog + .pp-gamelog { margin-top: 8px; }
@@ -15649,8 +15676,6 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
     width: 16px;
     height: 16px;
     object-fit: contain;
-    /* inline, se no il "v"/"@" finisce sulla riga sopra al logo */
-    display: inline-block;
     vertical-align: -3px;
     margin: 0 4px 0 2px;
 }
@@ -15784,10 +15809,7 @@ a.pp-id:hover { color: var(--text-primary); border-color: var(--border-card); }
    pannello arriva a mille pixel e i due grafici si spalmano fino ai bordi
    opposti lasciando un vuoto in mezzo — larghi il doppio del necessario e
    lontani fra loro proprio mentre vanno letti insieme. */
-/* `width: 100%` non e' pleonastico: il blocco sta in un contenitore flex in
-   colonna e i margini automatici spengono lo stretch, quindi ogni stagione si
-   dimensionava sul proprio contenuto e le cascate uscivano di misure diverse. */
-.pp-pe-season { width: 100%; max-width: 940px; margin-inline: auto; }
+.pp-pe-season { max-width: 940px; margin-inline: auto; }
 .pp-pe-charts { margin-top: 8px; }
 .pp-pe-charts--two {
     display: grid;
@@ -16479,21 +16501,128 @@ a.ps-sb-game:hover { border-color: var(--accent-blue, #4f9dff); transform: trans
 }
 
 /* Calendario a blocchi — blocco fisso, nessuno scroll interno: mostra tutta la stagione. */
-.nfl-home-cal-list { margin-top: 4px; }
-.nfl-home-cal-group { margin: 14px 0 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-.nfl-home-cal-group:first-child { margin-top: 2px; }
+/* Il calendario è alto ALMENO quanto il campo della colonna accanto: l'altezza
+   vera del campo la sa solo il browser (è un SVG che si scala sulla larghezza
+   della colonna), quindi la misura `matchCalToField()` e la passa qui come
+   `--nfl-cal-min`. Finché le partite sono poche le righe si dividono lo spazio
+   che avanza e le due colonne finiscono pari; quando sono tante il blocco
+   cresce oltre il campo, senza scorrimento interno — tutta la stagione si
+   vede, e questa è la scelta dichiarata: meglio due colonne sfalsate che
+   mezza stagione nascosta dietro una barra. */
+.nfl-home-cal { display: flex; flex-direction: column; }
+.nfl-home-cal-list { margin-top: 4px; display: flex; flex-direction: column; flex: 1; min-height: var(--nfl-cal-min, 0);
+    container-type: inline-size; }
+
+/* Colonna stretta — fra i 900 e i ~1300px di finestra la lista scende a ~210px
+   e in una riga sola non ci sta più niente: al nome restavano 9px a 1200 e
+   ZERO a 1024, cioè nome e data spariti mentre orario e rete stavano larghi.
+   Là la riga va su DUE piani: sopra settimana, stemma, avversario e data;
+   sotto, rientrata sotto il nome, la riga di rete e orari. Nessuna
+   informazione cade: cade l'allineamento, che è la cosa che conta meno.
+   La misura è quella della LISTA, non della finestra — è la colonna che si
+   stringe, e la stessa lista sul telefono è larga il doppio. */
+@container (max-width: 265px) {
+    .nfl-home-game-card { flex-wrap: wrap; row-gap: 2px; gap: 6px; }
+    .nfl-home-game-logo { width: 24px; height: 24px; }
+    .nfl-home-game-body { flex: 1 1 60px; }
+    .nfl-home-game-result {
+        flex: 1 0 100%;
+        align-items: flex-start;
+        text-align: left;
+        padding-left: 46px;   /* rientro: sotto il nome, non sotto la settimana */
+    }
+}
+.nfl-home-cal-group { flex: 0 0 auto; }
+/* Le intestazioni di gruppo (Preseason / Regular Season / Postseason) nella
+   COLONNA della tab Home. Il markup porta due classi, `.nfl-sched-group` (lo
+   stile della tab Schedule, dove il calendario è la pagina: 0.98rem, Inter
+   Tight, peso 800, bianco) e questa, scritta apposta per la colonna. Stessa
+   specificità: vinceva quella scritta più in basso nel file, cioè la grande, e
+   la compatta non ha mai disegnato niente. Si vedeva: «PRESEASON» a 15,7px
+   gridava più del titolo del blocco stesso, «FULL SCHEDULE», che sta a 11,2.
+
+   Due classi nel selettore, così vince per specificità e non per posizione —
+   e ciò che eredita dalla regola grande (font del display, bordo, margini) va
+   annullato qui, o resta addosso. */
+.nfl-home-cal-group,
+.nfl-sched-group.nfl-home-cal-group {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 14px 0 2px;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.nfl-home-cal-group:first-child,
+.nfl-sched-group.nfl-home-cal-group:first-child { margin-top: 2px; }
+
+/* Il risultato non aveva misura propria: ereditava il rem pieno della pagina e
+   a 16px era la cosa più grande della card, sopra al nome dell'avversario che
+   è il motivo per cui si guarda la riga. Ora sta appena sotto. */
+/* Il risultato è la cosa che si cerca scorrendo un calendario di partite
+   giocate: è il numero più grande della riga, e con le righe più alte c'è lo
+   spazio per dirlo. */
+.nfl-home-game-result .pp-res { font-size: 1.18rem; font-weight: 800; letter-spacing: -0.01em; }
+/* Righe del calendario: compatte. Erano 60px per una partita giocata e 77 per
+   una da giocare — una stagione intera sono trenta righe, e in una colonna
+   accanto al campo e ai grafici scorreva all'infinito. I tagli sono tre e
+   nessuno tocca la misura del testo: meno imbottitura, interlinea stretta su
+   nome e data (erano 41px per due righe da 14 e 11), e l'ET con la rete
+   affiancati invece che incolonnati. */
 .nfl-home-game-card {
-    display: flex; align-items: center; gap: 12px; padding: 9px 6px;
+    /* 8px e non 10 fra le colonne, stemma 28 e non 30: alla data servivano 64px
+       e ne aveva 61, e per tre pixel «Sun, Sep 20» diventava «Sun, Sep …». */
+    display: flex; align-items: center; gap: 8px; padding: 5px 6px;
     border-bottom: 1px solid var(--border-subtle);
+    /* Si allargano per riempire l'altezza del campo, mai sotto il minimo: una
+       riga schiacciata non si legge, e a quel punto è il blocco a crescere. */
+    flex: 1 1 auto; min-height: 44px;
 }
 .nfl-home-game-card:last-child { border-bottom: none; }
 .nfl-home-game-card.is-next { background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: var(--radius-md); }
-.nfl-home-game-wk { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); width: 34px; flex: none; }
-.nfl-home-game-logo { width: 38px; height: 38px; object-fit: contain; flex: none; }
-.nfl-home-game-body { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-.nfl-home-game-body b { font-size: 0.88rem; color: var(--text-primary); }
-.nfl-home-game-result { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; text-align: right; }
-.nfl-home-game-time { font-size: 0.74rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+/* Un filo più larga e con l'interlinea stretta: «HOF Game» va a capo su due
+   righe (non lo si accorcia, è il nome della partita) e a interlinea piena
+   faceva crescere la riga più del suo contenuto. */
+.nfl-home-game-wk { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); width: 40px; flex: none; line-height: 1.15; }
+.nfl-home-game-logo { width: 28px; height: 28px; object-fit: contain; flex: none; }
+.nfl-home-game-body { display: flex; flex-direction: column; gap: 0; flex: 1 1 auto; min-width: 72px; line-height: 1.25; }
+/* Nome e data su UNA riga ciascuno. Quando a destra compare la pill della rete
+   la colonna di mezzo si stringe, la data andava a capo e quella riga diventava
+   più alta di tutte le altre: un calendario con le righe a fisarmonica a
+   seconda che la partita sia trasmessa o no. */
+.nfl-home-game-body b { font-size: 0.88rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nfl-home-game-body .pm-note { line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nfl-home-game-result { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: 0 1 auto; min-width: 0; text-align: right; line-height: 1.25; }
+/* Partita da giocare: rete a sinistra, i due orari incolonnati a destra.
+   La pill è tenuta stretta e con un tetto: il nome della rete è lungo quanto
+   gli pare («FOX» ma anche «NFLN», «PRIME», «PEACOCK») e senza limite era lui a
+   decidere quanto spazio restava alla data — con «NFLN» la riga diceva già
+   «Sun, Aug …». Se il nome non ci sta si accorcia lui, che è il dato meno
+   importante dei tre. */
+.nfl-home-game-when { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* L'ordine di chi cede spazio è dichiarato, non lasciato al caso: la data ha un
+   minimo garantito (69px le servono), gli orari non si stringono mai, e la
+   pill della rete è l'unica che si accorcia. Senza, bastava «PRIME» al posto
+   di «FOX» perché la riga diventasse «Sun, Sep …». */
+.nfl-home-game-when .nfl-sched-tv {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nfl-home-game-times { flex: 0 0 auto; }
+.nfl-home-game-times { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.nfl-home-game-time { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+/* L'ET sotto l'orario di Roma: c'è per chi confronta con ESPN o con la TV
+   americana, non è l'ora a cui ci si siede sul divano. Quindi piccolo e
+   spento, come la data sotto il nome dell'avversario. */
+.nfl-home-game-et { font-size: 0.62rem; font-style: normal; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
 .nfl-home-game-result .nfl-sched-tv {
     display: inline-block; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.02em;
     color: var(--text-secondary); background: var(--bg-glass);
@@ -17216,75 +17345,6 @@ td.ps-div-seed {
    ma la corona esterna è divisa fra tutti i giocatori invece che fra uno e il
    resto. Le fette prendono fill/fill-opacity inline (sfumatura per ordine),
    qui sta solo quello che non cambia da fetta a fetta. */
-/* Home: l'anello da solo, la legenda dietro alla "i" in alto a destra. */
-.nfl-home-ring { position: relative; margin-bottom: 16px; }
-
-/* a tutta larghezza della Home, con un tetto perche' oltre certi pixel
-   l'anello diventa una ruota panoramica e basta */
-.nfl-home-ring .ts-ring-wrap {
-    width: 100%;
-    max-width: 900px;
-}
-
-/* Nella Home l'anello e' piu' piccolo che in Target share, quindi il testo
-   scritto in unita' dell'SVG rimpicciolisce con lui: qui va piu' grande, o
-   nomi e percentuali diventano una didascalia. */
-.nfl-home-ring .ts-ring-lbl { font-size: 14px; }
-.nfl-home-ring .ts-ring-lbl-val { font-size: 15px; }
-.nfl-home-ring .ts-ring-td { font-size: 13px; }
-.nfl-home-ring .ts-ring-num { font-size: 28px; }
-.nfl-home-ring .ts-ring-lbl2 { font-size: 11px; }
-.nfl-home-ring .ts-ring-band-lbl { font-size: 10px; }
-.nfl-home-ring .ts-ring-band-val { font-size: 12px; }
-
-.nfl-ring-info {
-    position: absolute;
-    top: 12px;
-    right: 14px;
-    z-index: 3;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-card, transparent);
-    color: var(--text-muted);
-    font-family: var(--font-body);
-    font-size: 0.72rem;
-    font-weight: 700;
-    font-style: italic;
-    line-height: 18px;
-    text-align: center;
-    cursor: help;
-}
-
-.nfl-ring-pop {
-    position: absolute;
-    top: 26px;
-    right: 0;
-    z-index: 4;
-    display: block;
-    width: min(360px, 78vw);
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-card);
-    background: var(--surface-card);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-    font-style: normal;
-    text-align: left;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity var(--dur-fast) var(--ease);
-}
-
-.nfl-ring-info:hover .nfl-ring-pop,
-.nfl-ring-info:focus .nfl-ring-pop,
-.nfl-ring-info:focus-within .nfl-ring-pop {
-    opacity: 1;
-    visibility: visible;
-}
-
-.nfl-ring-pop .pm-note { display: block; margin-top: 8px; }
-
 .ts-ring-band--tgt { fill: #4f8cff; fill-opacity: 0.30; }
 .ts-ring-band--car { fill: #f5a524; fill-opacity: 0.30; }
 .ts-ring-sl { stroke: var(--bg-primary, #000); stroke-width: 1.5; }
@@ -17329,6 +17389,16 @@ td.ps-div-seed {
 .ts-xlab { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
 .ts-heat-stack { display: flex; flex-direction: column; gap: 16px; margin-top: 14px; }
 .ts-spark-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; }
+
+/* Il riassunto della tab Home è un ASSAGGIO: le stesse cose, in meno spazio.
+   Con le caselle da 148px nella card del riassunto ne stavano tre per riga, e
+   la quarta apriva una riga sua quasi vuota — un centinaio di pixel di altezza
+   per una casella sola. Qui le quattro stanno in fila; sul telefono la griglia
+   torna a due o tre da sé, perché il minimo resta. Il grafico del rango si
+   abbassa dal canto suo (`_bumpChart(…, { h: 200 })`), non da qui. */
+.nfl-home-summary .ts-spark-grid {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+}
 .ts-spark-cell { background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 10px; }
 .ts-spark-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 5px; }
 .ts-spark-lbl { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
@@ -18704,49 +18774,6 @@ td.ps-div-seed {
     object-position: center 30%;
 }
 
-/* Mentre il dito trascina il campo: niente transizioni in mezzo (si muove il
-   transform a ogni frame) e nessuna selezione di testo per sbaglio. */
-.live-dragging {
-    transition: none !important;
-    will-change: transform, opacity;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: pan-y;
-}
-
-/* Il palco normalmente taglia quello che esce dai suoi bordi; durante il
-   trascinamento no, altrimenti la scheda si tronca di netto appena parte.
-   A non far comparire la barra orizzontale ci pensa la sezione, con `clip`
-   (che a differenza di `hidden` non crea un contenitore di scorrimento). */
-.live-stage.is-dragging {
-    overflow: visible;
-}
-
-.page-section.live-clip-x {
-    overflow-x: clip;
-}
-
-/* La scheda dell'avversario, appoggiata di fianco in attesa di entrare. */
-.live-incoming {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 2;
-    will-change: transform;
-    pointer-events: none;
-}
-
-/* Il verde del prato del Live, in un posto solo.
-   Era quasi nero; ora e' un verde da campo vero, ancora scuro abbastanza da
-   reggere nomi bianchi e punteggi colorati sopra. Per schiarirlo o scurirlo
-   si toccano questi tre valori (alto, mezzo, fondo) e basta. */
-.live-field-solo {
-    --fsv-turf-1: #2f4a3c;
-    --fsv-turf-2: #284033;
-    --fsv-turf-3: #1f342a;
-}
-
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;
@@ -18766,11 +18793,15 @@ td.ps-div-seed {
     font-weight: 800;
     text-anchor: middle;
     /* Centrato sulla riga, non appoggiato sotto: cosi' la yard line passa
-       fra le due cifre. La rotazione sta nell'attributo `transform` dei
-       <text> (vedi ui/field-svg.js): con `transform-box: fill-box` Safari
-       ruotava attorno a un centro diverso e su iPad i numeri uscivano sopra
-       al campo. */
+       fra le due cifre. */
     dominant-baseline: central;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(-90deg);
+}
+
+.fsv-num--r {
+    transform: rotate(90deg);
 }
 
 /*
@@ -19904,13 +19935,6 @@ td.ps-div-seed {
     transition: opacity var(--dur-slow) var(--ease),
                 filter var(--dur-slow) var(--ease),
                 transform var(--dur-med) var(--ease);
-}
-
-/* Appena ridisegnato: lo stato di ogni card e' quello di partenza, non una
-   cosa a cui arrivare (vedi `senzaScatti` in sections/live.js). */
-.live-stage.no-anim .formation-slot,
-.live-stage.no-anim .slot-photo img {
-    transition: none !important;
 }
 
 /* Il palco comprende campo E panchina: sono card identiche, e abbassando solo

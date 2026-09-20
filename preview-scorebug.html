@@ -32,7 +32,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
         rel="stylesheet">
     <!-- il CSS VERO del sito: se una cosa si vede bene qui, si vede bene là -->
-    <link rel="stylesheet" href="css/main.css?v=1245">
+    <link rel="stylesheet" href="css/main.css?v=1219">
     <style>
         /* Cromatura del banco di prova. Volutamente diversa dal sito: deve
            essere ovvio a colpo d'occhio che non si sta guardando la pagina
@@ -282,6 +282,7 @@
             <a href="preview-field.html">Field lab</a> ·
             <a href="preview-sb-logo.html">SB logo lab</a> ·
             <a href="preview-stickers.html">Sticker lab</a> ·
+            <a href="preview-loaders.html">Loaders lab</a> ·
             <a href="index.html">Real site</a>
         </p>
         <p class="lab-sub">
@@ -346,8 +347,10 @@
             <b>Attuale.</b> La prima variante non è una proposta: è il banner che il sito disegna adesso in
             Live, tirato dentro da <code>js/ui/score-bug-current.js</code> — lo stesso modulo che usa
             <code>live.js</code>. Modificarlo qui lo modifica sul sito, quindi si guarda prima nei sei stati
-            e poi si tocca. La barra in basso è la quota di punti fatti, non una probabilità di vittoria: il
-            pulsante &laquo;barra quota&raquo; la toglie per vedere il banner senza.
+            e poi si tocca. La barra in basso, a giornata in corso, è la PROBABILITÀ DI VITTORIA
+            (<code>js/data/win-prob.js</code>: punti già fatti più le proiezioni di chi deve ancora giocare);
+            a giornata chiusa torna a essere la quota di punti, che dice quanto larga è stata la vittoria.
+            Il pulsante &laquo;barra quota&raquo; la toglie per vedere il banner senza.
             <br><br>
             <b>Un avvertimento sulla larghezza.</b> L'attuale si rimpicciolisce con una
             <code>@media (max-width:768px)</code>, che guarda la FINESTRA, non la colonna: coi pulsanti
@@ -375,7 +378,7 @@
            contorno di Live (niente teamNameHTML da data.js, che ha un await su
            Firebase in cima al modulo): i nomi li componiamo qui sotto nella
            stessa forma che refitTeamNames() si aspetta. */
-        import { currentScoreBugHTML } from './js/ui/score-bug-current.js?v=3';
+        import { currentScoreBugHTML } from './js/ui/score-bug-current.js?v=4';
         import { refitTeamNames } from './js/utils/team-abbr.js?v=1';
 
         /* Le quattro squadre VERE: nomi, colori e loghi sono quelli di

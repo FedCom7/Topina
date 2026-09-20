@@ -16,6 +16,8 @@ import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team
 import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=683';
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
+import { playerImageService } from '../services/player-image-service.js?v=522';
+import { bindTabSwipe, centerActiveTab, nextTab } from '../ui/tab-swipe.js?v=1';
 import { canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
 import { getSeasonStats, normName } from '../data/projections.js?v=611';
@@ -34,11 +36,12 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1049';
+} from './player-page.js?v=1047';
 import {
-    calendarBlocksBlock, draftBlock,
+    calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1087';
+} from './nfl-team-home.js?v=1070';
+import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {
     const section = document.getElementById('nfl-team-page');
@@ -58,7 +61,10 @@ export async function initNflTeamPage() {
         return;
     }
 
-    section.innerHTML = `<div class="section-inner"><div class="loading-state"><div class="spinner"></div><p>Caricamento ${esc(identity.name)}...</p></div></div>`;
+    // Il logo della squadra che si riempie, come nelle pagine squadra della
+    // lega: qui un'identita' precisa c'e' gia' (marchio e colore), e una
+    // lavagna generica sprecherebbe l'unica cosa che questa pagina sa.
+    section.innerHTML = `<div class="section-inner">${teamLoader(teamLogo(abbr), identity.color || 'var(--accent-red)', `Loading ${identity.name}`)}</div>`;
 
     try {
         const year = requestedYear || TEAM_HISTORY_YEARS[TEAM_HISTORY_YEARS.length - 1];
@@ -177,11 +183,7 @@ async function fetchStatTrend(abbr, teamHistory) {
             : Math.round(100 * (1 - _pct01(me.defense.papg, papgArr)));
         const qb = (usage || []).filter(p => p.pos === 'QB')
             .sort((a, b) => (b.passAtt || 0) - (a.passAtt || 0) || (b.gp || 0) - (a.gp || 0))[0]?.name || h.qbName || null;
-        // Una stagione entra nel "viaggio" storico solo da 4 partite in su: con
-        // una giornata giocata il 2026 si piazzava accanto alle stagioni intere
-        // ("miglior difesa 2026, 97/100" dopo una partita). I numeri della
-        // stagione in corso restano visibili nei blocchi qui sopra, dove
-        // portano scritto su quante partite sono.
+        // Stagione in corso fuori dai grafici storici sotto le 4 partite.
         if (me.games != null && me.games < MIN_TREND_GAMES) return null;
         return {
             year: y, record: h.record, qb, offR, defR,
@@ -319,14 +321,16 @@ function teamScheduleBlock(live, { ctx }) {
             <span class="pp-mu2-bar"><span class="pp-mu2-fill" style="width:${pct}%"></span></span>
         </span>`;
     };
-    // Orario partite future: ET (come ESPN) + equivalente italiano.
+    // Orario partite future: davanti Roma, che è il fuso di chi legge; sotto in
+    // piccolo l'ET, che resta perché è come la partita viene annunciata ovunque.
+    // Erano invertiti, e l'orario buono era quello piccolo.
     const timeCell = (g) => {
         const d = g.date ? new Date(g.date) : null;
         if (!d || isNaN(d.getTime())) return '<span class="nfl-sched-sched">—</span>';
         if (g.timeValid === false) return '<span class="nfl-sched-sched">TBD</span>';   // orario non ancora fissato (flex)
         const et = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
         const it = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
-        return `<div class="nfl-sched-time"><b>${esc(et)} ET</b><span>${esc(it)} IT</span></div>`;
+        return `<div class="nfl-sched-time"><b>${esc(it)} IT</b><span>${esc(et)} ET</span></div>`;
     };
     const tvCell = (g) => g.tv ? `<span class="nfl-sched-tv">${esc(g.tv)}</span>` : '<span class="nfl-sched-sched">—</span>';
     const oppCell = (g, withRec) => {
@@ -336,7 +340,10 @@ function teamScheduleBlock(live, { ctx }) {
     };
     const POST_SHORT = { 'Wild Card': 'Wild Card', 'Wild Card Round': 'Wild Card', 'Divisional Round': 'Divisional', 'Conference Championship': 'Conference', 'Super Bowl': 'Super Bowl' };
     const wkLabel = (g) => {
-        if (g.seasonType === 1) return g.weekNum != null ? String(g.weekNum) : '';   // preseason: solo numero
+        // Preseason: il numero di ESPN parte da 2 (la sua week 1 è la Hall of
+        // Fame Game). La regola sta in preseasonWeek, una sola per le due
+        // pagine — qui senza il prefisso «Wk», che nella tabella è già colonna.
+        if (g.seasonType === 1) return preseasonWeek(g).replace(/^Wk /, '');
         if (g.seasonType === 3) return POST_SHORT[g.weekText] || g.weekText || 'Post';
         return g.weekNum != null ? String(g.weekNum) : (g.weekText || '');
     };
@@ -504,13 +511,32 @@ function bindSectionNav(section, initial = 'home') {
         if (yearMenu && id === 'home') yearMenu.hidden = true;
     };
 
+    // Sulla barra a una riga (telefono) la pill scelta può stare fuori dallo
+    // sguardo: si porta al centro, così si vede sempre dove si è e quali sono
+    // le sezioni accanto.
+    const risali = () => {
+        const navTop = nav.getBoundingClientRect().top + window.scrollY - navH;
+        if (window.scrollY > navTop) window.scrollTo({ top: navTop, behavior: 'smooth' });
+    };
+
     nav.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-sec]');
         if (!btn) return;
         show(btn.dataset.sec);
+        centerActiveTab(nav, btn);
         // Se la nav è già scrollata via, riportala in cima così la sezione parte dall'alto.
-        const navTop = nav.getBoundingClientRect().top + window.scrollY - navH;
-        if (window.scrollY > navTop) window.scrollTo({ top: navTop, behavior: 'smooth' });
+        risali();
+    });
+
+    // Scorrendo di lato si passa alla sezione accanto: sul telefono le voci
+    // sono nove, e senza questo per cambiarne una bisogna risalire alla barra.
+    bindTabSwipe(section, (dir) => {
+        const attivo = btns.find(b => b.classList.contains('is-active'));
+        const prossimo = nextTab(btns, attivo, dir);
+        if (!prossimo) return;
+        show(prossimo.dataset.sec);
+        centerActiveTab(nav, prossimo);
+        risali();
     });
 
     show(panels[initial] ? initial : 'home');
@@ -613,7 +639,150 @@ function render(section, ctx) {
     hydrateCharts(section);
     hydrateFormationPhotos(section);
     alignYearToContent(section);
+    matchCalToField(section);
+    bindHomeShare(section, ctx);
+    hydrateHomeLeaders(section);
     if (ctx.openEventId) openLinkedGame(section, abbr, ctx.openEventId);
+}
+
+/* ─── La preview del target share: cambio visuale e scheda al centro ───
+ *
+ * Due comportamenti, un listener per tipo di evento sul blocco intero: le
+ * visuali sono tre stringhe già nel documento (si accende quella scelta, non
+ * si ridisegna niente) e la scheda legge i `data-*` che ogni fetta si porta
+ * dietro. Nessun ricalcolo al passaggio del mouse: è un grafico, non un'app. */
+function bindHomeShare(section, ctx) {
+    const blocco = section.querySelector('.nfl-home-ts');
+    if (!blocco) return;
+
+    blocco.addEventListener('click', (e) => {
+        const tab = e.target.closest('[data-tsview]');
+        if (tab) {
+            const id = tab.dataset.tsview;
+            blocco.querySelectorAll('[data-tsview]').forEach(b => {
+                const on = b === tab;
+                b.classList.toggle('is-active', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            blocco.querySelectorAll('[data-tspanel]').forEach(p => { p.hidden = p.dataset.tspanel !== id; });
+            return;
+        }
+        // Il rimando alla tab Stats passa dal bottone della nav invece di
+        // riscrivere qui la logica: così fa anche la risalita sotto la barra.
+        const vai = e.target.closest('[data-goto-sec]');
+        if (vai) section.querySelector(`.nfl-secnav button[data-sec="${vai.dataset.gotoSec}"]`)?.click();
+    });
+
+    bindRingCard(blocco, ctx);
+}
+
+/**
+ * La scheda al centro dell'anello.
+ *
+ * La fetta sotto il dito si stacca (CSS, col versore che le ha messo il
+ * disegno) e qui si riempie la scheda: le percentuali aria/terra al centro si
+ * spengono e al loro posto compare il giocatore. Tutto quello che serve sta
+ * nei `data-*` della fetta — questa funzione non conosce né usage né stats.
+ *
+ * `pointerover` e non `mouseover` perché sul telefono il tocco fa la stessa
+ * cosa: la scheda resta finché non si tocca un'altra fetta o fuori dall'anello.
+ */
+function bindRingCard(blocco, ctx) {
+    const wrap = blocco.querySelector('.ts-ring--live');
+    const card = wrap?.querySelector('.ts-ring-card');
+    if (!wrap || !card) return;
+    const q = (sel) => card.querySelector(sel);
+    const foto = q('.ts-ring-card-photo');
+
+    const mostra = (g) => {
+        const d = g.dataset;
+        const altri = d.pos === '' && /^Others/.test(d.name || '');
+        q('.ts-ring-card-name').textContent = altri ? d.name : _tsLast(d.name);
+        const plur = (n, uno, molti) => `${n} ${+n === 1 ? uno : molti}`;
+        q('.ts-ring-card-sub').textContent = [d.pos, d.gp > 0 ? plur(d.gp, 'game', 'games') : '', d.side === 'air' ? 'receiving' : 'rushing']
+            .filter(Boolean).join(' · ');
+        q('.ts-ring-card-share').textContent = `${d.share}%`;
+        q('.ts-ring-card-unit').textContent = `of the team's ${d.unit}`;
+        card.style.setProperty('--card-accent', d.color || 'var(--accent-blue)');
+
+        const celle = [
+            [d.vol, d.unit],
+            d.cr !== '' ? [`${d.cr}%`, 'caught'] : null,
+            +d.yd > 0 ? [fmt0(+d.yd), 'yards'] : null,
+            +d.td > 0 ? [d.td, +d.td === 1 ? 'touchdown' : 'touchdowns'] : null,
+            +d.fd > 0 ? [fmt0(+d.fd), +d.fd === 1 ? 'first down' : 'first downs'] : null,
+            +d.rz > 0 ? [d.rz + (d.rzshare !== '' ? ` · ${d.rzshare}%` : ''), 'red zone'] : null,
+        ].filter(Boolean);
+        q('.ts-ring-card-grid').innerHTML = celle
+            .map(([v, l]) => `<span class="ts-ring-card-cell"><b>${esc(String(v))}</b>${esc(l)}</span>`).join('');
+
+        foto.hidden = altri;
+        foto.src = 'images/fallback-player.svg';
+        if (!altri) {
+            playerImageService.getPlayerImageUrl(d.name, ctx.abbr, d.pos, ctx.year)
+                // il puntatore può essersi già spostato: si scrive solo se la
+                // scheda mostra ancora quel giocatore
+                .then(url => { if (url && q('.ts-ring-card-name').textContent === _tsLast(d.name)) foto.src = url; })
+                .catch(() => { /* resta il segnaposto */ });
+        }
+        card.hidden = false;
+        wrap.classList.add('is-open');
+    };
+    const nascondi = () => { card.hidden = true; wrap.classList.remove('is-open'); };
+
+    wrap.addEventListener('pointerover', (e) => {
+        const g = e.target.closest('.ts-ring-slice[data-name]');
+        if (g) mostra(g);
+    });
+    wrap.addEventListener('pointerleave', nascondi);
+    wrap.addEventListener('focusin', (e) => {
+        const g = e.target.closest('.ts-ring-slice[data-name]');
+        if (g) mostra(g);
+    });
+    wrap.addEventListener('focusout', (e) => { if (!wrap.contains(e.relatedTarget)) nascondi(); });
+}
+
+/** Le facce dei leader di squadra: segnaposto subito, foto vera quando arriva. */
+function hydrateHomeLeaders(section) {
+    section.querySelectorAll('img[data-lead-photo]').forEach(img => {
+        img.onerror = () => { if (!img.src.endsWith('fallback-player.svg')) img.src = 'images/fallback-player.svg'; };
+        playerImageService.getPlayerImageUrl(img.dataset.playerName, img.dataset.team, null, img.dataset.year)
+            .then(url => { if (url) img.src = url; })
+            .catch(() => { /* resta il segnaposto */ });
+    });
+}
+
+/**
+ * Il calendario, nella colonna di sinistra, alto almeno quanto il campo che sta
+ * in quella di mezzo.
+ *
+ * In CSS non si può: sono due colonne diverse di una griglia, e l'altezza del
+ * campo non è un numero scritto da nessuna parte — è un SVG che si scala sulla
+ * larghezza della sua colonna, quindi cambia con la finestra. Si misura qui e
+ * si passa come `--nfl-cal-min`; le righe del calendario si dividono lo spazio
+ * che avanza (`flex: 1` con un minimo), e se le partite sono troppe il blocco
+ * cresce oltre invece di comprimersi o scorrere.
+ *
+ * Il `ResizeObserver` c'è perché la misura giusta non esiste al primo giro: il
+ * campo cambia altezza quando la finestra si stringe, quando le foto dei
+ * giocatori arrivano e quando si passa da una tab all'altra.
+ */
+let _calObserver = null;
+function matchCalToField(section) {
+    const field = section.querySelector('.nfl-home-field');
+    const cal = section.querySelector('.nfl-home-cal-list');
+    _calObserver?.disconnect();
+    _calObserver = null;
+    if (!field || !cal) return;
+    const aggiorna = () => {
+        const h = Math.round(field.getBoundingClientRect().height);
+        // Zero = colonna nascosta (altra tab, o mobile prima del layout): un
+        // minimo a zero non fa danni, ma scriverlo cancellerebbe la misura buona.
+        if (h > 0) cal.style.setProperty('--nfl-cal-min', `${h}px`);
+    };
+    aggiorna();
+    _calObserver = new ResizeObserver(aggiorna);
+    _calObserver.observe(field);
 }
 
 /**
@@ -630,53 +799,114 @@ function openLinkedGame(section, abbr, eventId) {
     row.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
+/* ─── Preview del target share, nella tab Home ─────────────────────────
+ * Le stesse visuali della tab Stats, tre invece di sei, in un blocco che ne
+ * mostra una per volta. Non è una copia: chiama gli STESSI costruttori
+ * (`_tsShareRing`, `_tsTouchSplit`, `_tsUsoBlocks`), così una correzione a un
+ * grafico arriva in tutt'e due i posti. In Stats resta tutto com'era, heatmap
+ * e note comprese: qui si guarda, là si studia — e il rimando in fondo porta
+ * esattamente lì.
+ *
+ * Le tre scelte sono quelle che rispondono alla stessa domanda, "a chi va il
+ * pallone": l'anello (quanto), il tornado (corse contro target) e la vista del
+ * Live (chi lo prende davvero). Le altre tre di Stats — efficienza, percentili,
+ * tocchi per snap — rispondono a "quanto rende", che è la domanda dopo.
+ */
+const TS_VIEWS = [
+    { id: 'ring', label: 'Share of the ball' },
+    { id: 'touch', label: 'Who gets the ball' },
+    { id: 'uso', label: 'Inside the offense' },
+];
+
+function targetSharePreviewBlock(ctx) {
+    const { usage, abbr, year, seasonStats } = ctx;
+    if (!usage?.length) return '';
+    const viste = {
+        ring: _tsShareRing(usage, abbr, seasonStats, { live: true }),
+        touch: _tsTouchSplit(_tsTouchRows(usage)),
+        uso: _tsUsoBlocks(usage),
+    };
+    const disponibili = TS_VIEWS.filter(v => viste[v.id]);
+    if (!disponibili.length) return '';
+    const attiva = disponibili.some(v => v.id === 'ring') ? 'ring' : disponibili[0].id;
+
+    const tabs = disponibili.map(v => `
+        <button type="button" class="ts-seg-btn${v.id === attiva ? ' is-active' : ''}"
+                data-tsview="${v.id}" aria-pressed="${v.id === attiva}">${v.label}</button>`).join('');
+    const pannelli = disponibili.map(v => `
+        <div class="ts-view" data-tspanel="${v.id}"${v.id === attiva ? '' : ' hidden'}>
+            ${v.id === 'uso' ? `<div class="ts-uso">${viste[v.id]}</div>` : viste[v.id]}
+            <p class="pm-note">${TS_VIEW_NOTE[v.id]}</p>
+        </div>`).join('');
+
+    return `
+    <section class="pm-block pp-block nfl-home-ts">
+        <span class="mc-kicker">Who gets the ball · ${esc(abbr)} ${esc(String(year))}</span>
+        <div class="ts-seg" role="tablist" aria-label="Target share views">${tabs}</div>
+        ${pannelli}
+        <button type="button" class="ts-seg-more" data-goto-sec="stats">
+            Full breakdown in Stats <span aria-hidden="true">→</span>
+        </button>
+    </section>`;
+}
+
+/* Una riga a testa, non il paragrafo della tab Stats: qui la nota deve dire
+   come si legge il grafico, non raccontarlo. */
+const TS_VIEW_NOTE = {
+    ring: 'Inner ring: air vs ground. Outer: one slice per player, size = his share; on the air side how full a slice is = the share of his targets he caught. Outside, the bar is his red-zone work, with touchdowns on the tip. Hover a slice for the rest.',
+    touch: 'One row per player, sorted by touches per game. Left = carries, right = targets, same scale on both sides. The bar under the name is his share of the offensive snaps.',
+    uso: 'Same layout as the in-game view in Live, with season totals. On the targets rows the brighter part is what he actually caught; the number on the right is league points per game.',
+};
+
+/* ─── Leader di squadra, sotto il calendario ───────────────────────────
+ * Gli stessi dati del blocco in Stats (ESPN `team/leaders`), disegnati per una
+ * colonna stretta: una riga per categoria, con la faccia. La foto arriva dopo
+ * dal servizio immagini, come ovunque: il blocco si disegna subito col
+ * segnaposto e non aspetta la rete. */
+function homeLeadersBlock(live, abbr, year) {
+    const leaders = live?.leaders;
+    if (!leaders?.length) return '';
+    const righe = leaders.map(l => `
+        <div class="nfl-home-lead">
+            <img class="nfl-home-lead-photo" src="images/fallback-player.svg" alt=""
+                 data-lead-photo data-player-name="${esc(l.name)}" data-team="${esc(abbr)}" data-year="${esc(String(year))}">
+            <div class="nfl-home-lead-id">
+                <b>${esc(l.name)}</b>
+                <span>${esc(l.label)}</span>
+            </div>
+            <span class="nfl-home-lead-val">${esc(String(l.value ?? '—'))}</span>
+        </div>`).join('');
+    return `
+    <section class="pm-block pp-block nfl-home-leaders">
+        <span class="mc-kicker">Team leaders · ${esc(String(year))}</span>
+        <div class="nfl-home-lead-list">${righe}</div>
+    </section>`;
+}
+
 /** Compone la griglia a 3 colonne della tab Home. Sinistra: calendario. Centro:
  *  campo formazione + riassunto. Destra: head coach, draft, stadio, classifica division. */
 function homeGridBlock(ctx) {
     const { abbr, identity, year, live, teamExtras } = ctx;
     const cal = calendarBlocksBlock(live);
+    const leaders = homeLeadersBlock(live, abbr, year);
     const field = formationFieldBlock(live?.depthChart, abbr, year);
+    const share = targetSharePreviewBlock(ctx);
     const summary = homeSummaryChartsBlock(ctx);
     const coach = coachCardHtml(live?.profile);
     const draft = draftBlock(teamExtras?.draftHistory);
     const stadium = stadiumCardHtml(live?.profile);
     const stand = divisionStandingsBlock(live?.standings, identity, abbr);
-    const ring = homeShareRingBlock(ctx);
-    const left = cal, center = field + ring + summary, right = coach + draft + stadium + stand;
+    // Sotto al campo va chi tocca il pallone (la preview del target share) e non
+    // più il riassunto dei grafici: quello è storia di squadra, sta bene in coda
+    // alla colonna di destra sotto la classifica, dove la domanda è già "come
+    // sta andando la squadra". Sotto al calendario i leader della stagione.
+    const left = cal + leaders, center = field + share, right = coach + draft + stadium + stand + summary;
     if (!left && !center && !right) return '';
     return `<div class="nfl-home-grid">
         <div class="nfl-home-col nfl-home-col-l">${left}</div>
         <div class="nfl-home-col nfl-home-col-c">${center}</div>
         <div class="nfl-home-col nfl-home-col-r">${right}</div>
     </div>`;
-}
-
-/**
- * L'anello "chi tocca la palla" anche sulla Home: e' il grafico che risponde
- * alla prima domanda che ci si fa su una squadra, e stava solo dentro Target
- * share. Qui va da solo — niente tessere, niente scatter — con un rimando alla
- * tab che lo spiega per esteso. La Home non segue il selettore dell'anno
- * (vedi bindYearRepaint), quindi mostra sempre la stagione con cui si e'
- * aperta la pagina, ed e' per questo che l'anno sta scritto nel titolo.
- */
-function homeShareRingBlock(ctx) {
-    const { usage, abbr, year, seasonStats } = ctx;
-    const ring = _tsShareRing(usage, abbr, seasonStats, { pezzi: true });
-    if (!ring) return '';
-    // Sulla Home resta il solo anello: chiave, legenda e nota stanno dietro
-    // alla "i" in alto a destra, e compaiono passandoci sopra (o col tab).
-    return `
-    <section class="pm-block pp-block nfl-home-ring">
-        <span class="mc-kicker">Share of the ball · ${esc(abbr)} ${year}</span>
-        <span class="nfl-ring-info" tabindex="0" role="button" aria-label="How to read this chart">i
-            <span class="nfl-ring-pop">
-                ${ring.key}
-                ${ring.legend}
-                <span class="pm-note">Inner ring: how the offense splits between air and ground. Outer ring: one slice per player, sized by his share of the team's targets (or carries); on the air side each slice is filled by his catch rate. Hover a slice for the detail, or open <b>Target share</b> for the full picture.</span>
-            </span>
-        </span>
-        ${ring.chart}
-    </section>`;
 }
 
 // Sottoinsieme compatto di SPARKS per il riassunto nella tab Home (il set completo resta in Stats).
@@ -691,7 +921,7 @@ const HOME_SPARKS = [
 function homeSummaryChartsBlock(ctx) {
     const seasons = ctx.statTrend;
     const team = ctx.ctx?.team;
-    const bump = seasons && seasons.length >= 3 ? _bumpChart(seasons) : '';
+    const bump = seasons && seasons.length >= 3 ? _bumpChart(seasons, { h: 200 }) : '';
     const sparks = seasons && seasons.length >= 2 ? _sparkGrid(seasons, HOME_SPARKS) : '';
     let rankPanel = '';
     if (team?.offense && team?.defense) {
@@ -1292,11 +1522,67 @@ const _tsCr = (rows) => {
 const TS_RING_SLICES = 7;   // per reparto; il resto finisce in "Others"
 
 /**
- * @param {object} [opts] `pezzi: true` restituisce le tre parti separate
- *   (grafico, chiave, legenda) invece del blocco unico: serve alla Home, che
- *   tiene la legenda dentro una tendina e a schermo lascia il solo anello.
+ * `live` (solo la preview in Home): ogni fetta esce dentro un `<g>` che porta i
+ * suoi numeri in `data-*`, e il wrapper prende la classe `ts-ring--live`. Senza
+ * quella classe il CSS non fa niente di diverso — la stessa funzione disegna
+ * l'anello fermo della tab Stats, che resta com'era: un anello solo, non due
+ * copie che divergono al primo ritocco.
  */
-function _tsShareRing(usage, abbr, stats, opts = {}) {
+/**
+ * Una fetta dell'anello, coi suoi pezzi dentro un gruppo solo.
+ *
+ * Il gruppo porta due cose: la direzione in cui staccarsi (`--sx`/`--sy`, il
+ * versore della bisettrice della fetta — il CSS non può calcolarselo, l'angolo
+ * lo sa solo chi disegna) e i numeri del giocatore in `data-*`, che la scheda
+ * al centro legge senza rifare nessun conto. Fuori dalla modalità `live` è un
+ * gruppo inerte attorno agli stessi path di prima.
+ */
+function _tsSliceGroup(pezzi, { sl, b, share, rz, td, cx, cy, a, sw, live }) {
+    const dentro = pezzi.join('');
+    if (!live) return `<g class="ts-ring-slice">${dentro}</g>`;
+    const mid = a + sw / 2;
+    const dir = donutPoint(0, 0, 1, mid);   // versore: 0° = ore 12, orario
+    const x = sl.x || {};
+    const aria = b.key === 'tgt';
+    const rzTeam = aria ? (b.teamX?.rzTgt || 0) : (b.teamX?.rzAtt || 0);
+    const d = {
+        name: sl.rest ? sl.name : sl.name,
+        pos: sl.pos || '',
+        side: aria ? 'air' : 'ground',
+        unit: aria ? 'targets' : 'carries',
+        share: Math.round(share * 100),
+        vol: Math.round(sl.v),
+        gp: sl.gp || 0,
+        cr: sl.cr != null ? Math.round(sl.cr * 100) : '',
+        yd: aria ? (x.recYd || 0) : (x.rushYd || 0),
+        td: td || 0,
+        fd: aria ? (x.recFd || 0) : (x.rushFd || 0),
+        rz,
+        rzshare: rzTeam > 0 ? Math.round(rz / rzTeam * 100) : '',
+        color: b.base,
+    };
+    const attrs = Object.entries(d).map(([k, v]) => `data-${k}="${esc(String(v))}"`).join(' ');
+    return `<g class="ts-ring-slice" tabindex="0" ${attrs}
+        style="--sx:${dir.x.toFixed(3)};--sy:${dir.y.toFixed(3)}">${dentro}</g>`;
+}
+
+/** La scheda che compare al centro dell'anello. Vuota finché non si passa sopra a una fetta. */
+function _tsRingCard() {
+    return `
+    <div class="ts-ring-card" hidden aria-live="polite">
+        <div class="ts-ring-card-top">
+            <img class="ts-ring-card-photo" src="images/fallback-player.svg" alt="">
+            <div class="ts-ring-card-id">
+                <b class="ts-ring-card-name"></b>
+                <span class="ts-ring-card-sub"></span>
+            </div>
+        </div>
+        <div class="ts-ring-card-big"><b class="ts-ring-card-share"></b><span class="ts-ring-card-unit"></span></div>
+        <div class="ts-ring-card-grid"></div>
+    </div>`;
+}
+
+function _tsShareRing(usage, abbr, stats, { live = false } = {}) {
     const tot = (p, k) => +(p[k] || 0) * (p.gp || 0);
     const all = (usage || []).filter(p => (p.gp || 0) >= 1);
     // Il dettaglio del tooltip viene da Sleeper (TD, red zone, primi down):
@@ -1393,7 +1679,11 @@ function _tsShareRing(usage, abbr, stats, opts = {}) {
             // anche quando due spicchi sono quasi uguali
             const op = sl.rest ? 0.22 : (0.95 - i * 0.09);
             const tip = _tsSliceTip(sl, b, share);
-            const fetta = (rIn, rOut, o) => parts.push(
+            // I pezzi di UNA fetta (fondo, riempimento del catch rate, barra
+            // red zone) vanno raccolti e chiusi insieme: quando si stacca al
+            // passaggio del mouse si deve muovere tutta, non a strati.
+            const pezzi = [];
+            const fetta = (rIn, rOut, o) => pezzi.push(
                 donutSeg(cx, cy, rIn, rOut, a, a + sw, 'ts-ring-sl', tip)
                     .replace('<path ', `<path fill="${b.base}" fill-opacity="${o.toFixed(2)}" `));
             /* Il catch rate è un RIEMPIMENTO, non un numero: la corona intera
@@ -1419,10 +1709,11 @@ function _tsShareRing(usage, abbr, stats, opts = {}) {
                 // un filo di margine fra una barra e l'altra, così due spicchi
                 // contigui non si leggono come un blocco unico
                 const gap = Math.min(0.6, sw * 0.08);
-                parts.push(donutSeg(cx, cy, RZ_BASE, RZ_BASE + h, a + gap, a + sw - gap, 'ts-ring-rz',
+                pezzi.push(donutSeg(cx, cy, RZ_BASE, RZ_BASE + h, a + gap, a + sw - gap, 'ts-ring-rz',
                     `${esc(sl.rest ? sl.name : _tsLast(sl.name))} — ${_tsU(rz, b.key === 'tgt' ? 'targets' : 'carries')} in the red zone${b.teamX ? ` (${Math.round(rz / ((b.key === 'tgt' ? b.teamX.rzTgt : b.teamX.rzAtt) || rz) * 100)}% of the team's)` : ''}${td ? ` · ${td} TD` : ''}`)
                     .replace('<path ', `<path fill="${b.base}" fill-opacity="0.95" `));
             }
+            parts.push(_tsSliceGroup(pezzi, { sl, b, share, rz, td, cx, cy, a, sw, live }));
             if (td > 0 && sw >= 9) {
                 const pTd = donutPoint(cx, cy, RZ_BASE + (rzMax > 0 && rz > 0 ? Math.max(3, (rz / rzMax) * RZ_MAX) : 0) + 9, a + sw / 2);
                 labels.push(`<text x="${pTd.x.toFixed(1)}" y="${(pTd.y + 3.5).toFixed(1)}" class="ts-ring-td" text-anchor="middle">${td}<title>${esc(sl.rest ? sl.name : _tsLast(sl.name))} — ${td} ${b.key === 'tgt' ? 'receiving' : 'rushing'} TD</title></text>`);
@@ -1451,17 +1742,18 @@ function _tsShareRing(usage, abbr, stats, opts = {}) {
         return `<span class="ts-leg"><i style="background:${b.base};opacity:${op.toFixed(2)}"></i>${esc(sl.rest ? sl.name : _tsLast(sl.name))} <b>${Math.round(sl.v / b.team * 100)}%</b></span>`;
     }).join('')).join('<span class="ts-leg-sep"></span>');
 
-    const svg = `<svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Share of the team's targets and carries by player">
+    return `<div class="ts-chart ts-ring-wrap${live ? ' ts-ring--live' : ''}">
+        <svg viewBox="0 0 ${W} ${H}" class="ts-svg" role="img" aria-label="Share of the team's targets and carries by player">
             ${parts.join('')}${labels.join('')}${centre}
-        </svg>`;
-    const key = `<div class="ts-ring-key">
+        </svg>
+        ${live ? _tsRingCard() : ''}
+        <div class="ts-ring-key">
             <span class="ts-ring-key-item"><i class="ts-ring-key-rz"></i>outer bar = touches in the red zone${rzMax > 0 ? ` (tallest = ${fmt0(rzMax)})` : ''}</span>
             <span class="ts-ring-key-item"><i class="ts-ring-key-td">7</i>number on the tip = touchdowns</span>
             <span class="ts-ring-key-item"><i class="ts-ring-key-catch"></i>how full an air slice is = share of his targets he caught</span>
-        </div>`;
-    const leg = `<div class="ts-legend ts-ring-legend">${legend}</div>`;
-    if (opts.pezzi) return { chart: `<div class="ts-chart ts-ring-wrap">${svg}</div>`, key, legend: leg };
-    return `<div class="ts-chart ts-ring-wrap">${svg}${key}${leg}</div>`;
+        </div>
+        <div class="ts-legend ts-ring-legend">${legend}</div>
+    </div>`;
 }
 
 /* ── Palloni per snap ────────────────────────────────────────────────
@@ -1761,11 +2053,22 @@ function _seasonPathScatter(points, cfg) {
  * fatti) e difesa (rank punti subiti) stagione per stagione. Due linee che si
  * incrociano quando la squadra cambia pelle. Dati già in statTrend (ranks).
  */
-function _bumpChart(seasons) {
+/**
+ * Rango offesa/difesa stagione per stagione.
+ *
+ * `h` esiste per il riassunto della tab Home: là il grafico è UNA delle cose
+ * in pagina, non la pagina, e a 300 unità di viewBox — che il CSS scala sulla
+ * larghezza della card — si mangiava 390px dei 718 del riquadro. Si abbassa il
+ * viewBox e non l'altezza in CSS: le scritte sono in unità SVG e scalano col
+ * fattore della larghezza, che non cambia — quindi restano della stessa misura
+ * di prima invece di schiacciarsi. La scala verticale resta 1-32 piena, così un
+ * grafico compatto e uno intero si leggono con lo stesso righello.
+ */
+function _bumpChart(seasons, { h = 300 } = {}) {
     const rows = seasons.map(s => ({ year: s.year, off: s.ranks?.offense?.ppg ?? null, def: s.ranks?.defense?.papg ?? null }))
         .filter(r => r.off != null || r.def != null);
     if (rows.length < 3) return '';
-    const W = 440, H = 300, m = { l: 34, r: 64, t: 20, b: 28 };
+    const W = 440, H = h, m = { l: 34, r: 64, t: 20, b: 28 };
     const pw = W - m.l - m.r, ph = H - m.t - m.b, n = rows.length;
     const xAt = i => m.l + (n > 1 ? i / (n - 1) : 0.5) * pw;
     const yAt = rank => m.t + (rank - 1) / 31 * ph; // 1ª → alto, 32ª → basso

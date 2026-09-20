@@ -123,6 +123,62 @@ stesso: nove maglie titolari e sei posti in panchina con la sagoma grigia,
 trattini al posto di nome, punti e statistiche. Vale sia sul percorso ESPN sia
 sul ripiego da Firebase.
 
+### La percentuale nel banner è una probabilità di vittoria, e va calcolata
+
+Il numero in mezzo al tabellone (home e Live, `js/ui/score-bug-current.js`) era
+la QUOTA DI PUNTI già a referto, `s1 / (s1 + s2)`. Il 19/09/2026, col solo
+Thursday Night giocato, diceva **100% a Sommo** — 58,50 contro 0,00 — mentre
+restavano 142 punti proiettati da giocare. Il conto era giusto, la domanda
+sbagliata: nel posto dove l'app ESPN mette la probabilità di vittoria, un
+numero senza etichetta si legge come probabilità di vittoria.
+
+Ora la calcola `js/data/win-prob.js`: ogni titolare che deve ancora giocare è
+una variabile centrata sulla sua proiezione, chi ha finito porta punti certi e
+varianza zero, la differenza fra i due totali è normale e la probabilità è la
+sua coda. Quattro cose da non disfare:
+
+1. **La dispersione è MISURATA, non scelta.**
+   `scripts/build-winprob-calib.mjs` → `data/model/winprob_calib.json`: 4360
+   titolare-settimana dal 2019, proiezione ESPN contro punti veri, `sd = a +
+   b·proiezione` per ruolo. Le proiezioni storiche vengono da
+   `leaguedefaults/3` (la nostra lega su ESPN nasce nel 2026; quel pool
+   pubblico risponde anche per le stagioni chiuse) e i punti si **ricalcolano
+   col punteggio della nostra lega**, così proiezione e realtà stanno sulla
+   stessa scala. Chi tocca i parametri rilancia il builder e rilegge il report.
+2. **La scala (1,13) si misura sui totali di squadra, non si stima sugli
+   esiti.** Nove giocatori indipendenti darebbero sd 24,3; i totali veri
+   sbagliano di 27,5, perché nella stessa settimana c'è dell'altro che si muove
+   insieme. Il rapporto si misura su 444 squadra-settimana. La controprova —
+   la scala che minimizzerebbe la log-loss sui 222 esiti veri — dà 1,20, e il
+   builder la stampa apposta: se le due divergono c'è qualcosa che non torna.
+3. **Lo scarto per ruolo si applica.** ESPN è ottimista di due terzi di punto
+   su ogni RB e WR. Nella differenza fra due squadre si annullerebbe — ma solo
+   a parità di titolari ancora da giocare, che è esattamente il caso che qui
+   non vale (una squadra ne ha nove, l'altra sette).
+4. **Senza il tabellone NFL non si mostra nessuna probabilità.** Se `game_state`
+   manca e un giocatore ha già punti, non si sa quanta partita gli resti:
+   sommare la proiezione intera sopra i punti fatti li conta due volte (visto in
+   locale, dove ESPN nega il CORS: Sommo proiettato a 199,7 invece di 157,8).
+   `ready` diventa falso e il banner torna alla quota di punti.
+
+La taratura è validata e il builder la ristampa a ogni giro: **prima del
+kickoff la probabilità non sa niente** (Brier 0,251 contro 0,250 di un
+testa-o-croce — con quattro rose così simili, la vigilia è davvero un lancio di
+moneta), e diventa informativa man mano che la giornata avanza (0,190 a metà,
+0,082 con un titolare per parte ancora in campo). Le percentuali si leggono
+come si comportano.
+
+Il file di calibrazione si rigenera **a mano**, come quello del Draft Grade, e
+non da un'Action: le stagioni chiuse non cambiano più, e ogni esecuzione tira
+giù un anno di proiezioni da ESPN. Vale la pena rilanciarlo a fine stagione,
+quando ci sono diciassette settimane nuove da aggiungere al campione.
+
+A giornata chiusa il numero torna a essere la **quota di punti**: lì la
+probabilità sarebbe 0 o 100 — vera e inutile — mentre la quota dice quanto larga
+è stata la vittoria. Il tooltip (`probTitle`) è l'unico posto dove il banner
+dichiara quale dei due sta mostrando: se si aggiunge un terzo significato in
+quel punto, va dichiarato lì.
+
 **Draft di prova, TEMPORANEO — da cancellare a fine preseason 2026.**
 `scripts/espn/draft_demo.py` **non è versionato** (sta nel `.gitignore`): scrive
 sul nodo vero del draft, e nel repo sarebbe un modo per sovrascrivere il draft

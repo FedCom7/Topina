@@ -17,24 +17,25 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=585';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=811';
+import { TEAMS } from './team.js?v=813';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=129';
-import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
+import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=567';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=75';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=172';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
 import { initPlayerModal } from '../components/player-modal.js?v=762';
-import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
+import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=35';
 import { playerImageService } from '../services/player-image-service.js?v=522';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
-import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
+import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=4';
+import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
 
 const POLL_MS = 30000;
 
@@ -210,6 +211,9 @@ const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maxi
 // solo dai giocatori già scesi in campo: da quel momento il tabellone racconta
 // quello che sta succedendo, e chi non ha ancora giocato sta a zero.
 let giornataCominciata = false;
+/** Calibrazione della probabilità di vittoria (data/model/winprob_calib.json).
+ *  Null finché non è arrivata: senza, il banner ripiega sulla quota di punti. */
+let winCalib = null;
 const pIsProjected = (p) => !giornataCominciata && p && p.started === false && p.projected_points != null;
 const effPts = (p) => P(pIsProjected(p) ? p.projected_points : p.fantasy_points);
 // Effective team score: projected total pre-game, real once points exist.
@@ -223,6 +227,11 @@ export async function initLive() {
     loaded = true;
     initPlayerModal();
     restoreReceipts();
+    // La calibrazione della probabilita' di vittoria: un file da due chili di
+    // byte, letto una volta. Non si aspetta — se arriva dopo il primo disegno,
+    // il giro di polling successivo mette il numero al suo posto; nel frattempo
+    // il banner mostra la quota di punti, come prima.
+    getWinProbCalib().then(c => { winCalib = c; }).catch(() => { });
 
     const root = document.getElementById('live-root');
     if (!root) return;
@@ -1296,6 +1305,21 @@ function refreshInPlace(events = []) {
         if (!proj && from !== s[i]) countUp(el, from, s[i]);
     });
 
+    // La probabilità di vittoria cambia a ogni giro — una partita che finisce,
+    // un touchdown, un quarto che scorre — e senza queste righe restava quella
+    // del primo disegno finché non si ricaricava la pagina.
+    const prob = probabilita(m, s[0], s[1]);
+    const pct = Math.max(0, Math.min(100, Math.round(prob.pct)));
+    const lead = root.querySelector('.live-mc-lead');
+    if (lead) {
+        lead.textContent = `${Math.max(pct, 100 - pct)}%`;
+        lead.classList.toggle('live-mc-lead--l', pct >= 50);
+        lead.classList.toggle('live-mc-lead--r', pct < 50);
+        lead.title = prob.title;
+    }
+    const barra = root.querySelector('.live-mc-probbar');
+    if (barra) { barra.style.setProperty('--p', `${pct}%`); barra.title = prob.title; }
+
     // punti e statistiche di ogni giocatore a schermo (campo, panchina, chip,
     // righe di confronto: tutti marcati con la stessa chiave)
     root.querySelectorAll('[data-slot-player]').forEach(el => {
@@ -1894,8 +1918,8 @@ function matchupCardHTML(entry) {
     const proj2 = teamIsProjected(right);
     const s1 = teamEffScore(left), s2 = teamEffScore(right);
     const t1 = teamOf(left.name), t2 = teamOf(right.name);
-    const total = s1 + s2;
     const selLeft = selected === left;
+    const prob = probabilita(m, s1, s2);
 
     return currentScoreBugHTML({
         left: {
@@ -1911,9 +1935,37 @@ function matchupCardHTML(entry) {
             winner: leagueDrafted && s2 >= s1, selected: !selLeft,
         },
         mid: isLiveSource ? 'live' : 'vs',
-        probPct: total > 0 ? (s1 / total) * 100 : 50,
+        probPct: prob.pct,
+        probTitle: prob.title,
         selColor: (selLeft ? t1 : t2)?.color,
     });
+}
+
+/**
+ * Il numero nel mezzo del banner: probabilità di vittoria finché c'è qualcosa
+ * da giocare, quota di punti quando non ce n'è più.
+ *
+ * La probabilità (js/data/win-prob.js) parte dai punti già fatti e da quel che
+ * le proiezioni dicono dei giocatori ancora in campo. La quota di punti, che
+ * stava qui prima, rispondeva a un'altra domanda: col solo Thursday Night
+ * giocato diceva 100% con 140 punti ancora da assegnare.
+ *
+ * A giornata chiusa la probabilità sarebbe 0 o 100 — vero e inutile — e allora
+ * torna la quota, che dice quanto larga è stata la vittoria.
+ */
+function probabilita(m, s1, s2) {
+    const quota = {
+        pct: s1 + s2 > 0 ? (s1 / (s1 + s2)) * 100 : 50,
+        title: 'Share of the points on the board so far',
+    };
+    if (!winCalib || !leagueDrafted) return quota;
+    const wp = matchupWinProb(m.team1, m.team2, winCalib);
+    if (wp.settled || !wp.ready) return quota;
+    return {
+        pct: wp.p1 * 100,
+        title: `Win probability · projected ${fmt(wp.exp1)} - ${fmt(wp.exp2)}`
+            + ` with ${wp.openStarters} starter${wp.openStarters === 1 ? '' : 's'} still to play`,
+    };
 }
 
 function chip(p, side) {

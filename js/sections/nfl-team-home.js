@@ -19,17 +19,63 @@ const _dateFmt = (iso) => {
     const d = new Date(iso);
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 };
-const _timeFmt = (g) => {
+/**
+ * L'orario della partita, per chi la guarda da qui.
+ *
+ * Prima c'era il solo ET, che è l'orario di ESPN e della lega ma non quello di
+ * chi legge: per sapere se una partita è alle 19 o alle 2 di notte bisognava
+ * fare i conti a mente, e cambiano due volte l'anno perché Italia e Stati Uniti
+ * non spostano le lancette lo stesso giorno. Ora davanti c'è Roma e l'ET resta
+ * sotto in piccolo — serve ancora, perché è come la partita viene annunciata
+ * ovunque. Il fuso lo fa `toLocaleTimeString`, che l'ora legale la sa.
+ *
+ * Esce HTML, non testo: chi lo usa NON deve passarlo da `esc()`.
+ */
+const _whenHtml = (g) => {
+    const tv = g.tv ? `<span class="nfl-sched-tv">${esc(g.tv)}</span>` : '';
+    const riga = (dentro) => `<span class="nfl-home-game-when">${tv}${dentro}</span>`;
     const d = g.date ? new Date(g.date) : null;
-    if (!d || isNaN(d.getTime())) return null;
-    if (g.timeValid === false) return 'TBD';
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET';
+    if (!d || isNaN(d.getTime())) return tv ? riga('') : '';
+    if (g.timeValid === false) return riga('<b class="nfl-home-game-time">TBD</b>');
+    const it = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+    const et = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+    // Rete a sinistra, e i due orari incolonnati a destra: sopra l'ET, piccolo,
+    // che è il riferimento con cui la partita viene annunciata ovunque; sotto
+    // Roma, grande, che è l'ora a cui ci si siede davvero a guardarla.
+    return riga(`<span class="nfl-home-game-times">`
+        + `<i class="nfl-home-game-et">${esc(et)} ET</i>`
+        + `<b class="nfl-home-game-time">${esc(it)} IT</b>`
+        + `</span>`);
 };
+
+/**
+ * L'etichetta della settimana in preseason, che NON è il numero che manda ESPN.
+ *
+ * ESPN numera la preseason da 2: la sua week 1 è la Hall of Fame Game, che
+ * esiste solo per le due squadre che la giocano (CAR-ARI nel 2026) e sta nel
+ * calendario di tutte e sole quelle. Mostrando `weekNum` crudo, le tre partite
+ * di agosto si chiamavano «Wk 2, 3, 4» e la prima settimana sembrava saltata.
+ *
+ * Il numero giusto ESPN ce l'ha già scritto in `weekText` — «Preseason Week 1»
+ * — quindi si legge da lì, che è il dato dichiarato; `weekNum - 1` resta come
+ * ripiego se quel testo un domani cambiasse forma. La partita di apertura si
+ * riconosce dal suo `weekText` («Hall of Fame Weekend») o dal numero 1, e si
+ * chiama «HOF Game»: è una partita a sé, non la prima di una serie.
+ */
+export function preseasonWeek(g) {
+    const txt = g.weekText || '';
+    if (/hall of fame/i.test(txt) || g.weekNum === 1) return 'HOF Game';
+    const m = txt.match(/week\s*(\d+)/i);
+    if (m) return `Wk ${m[1]}`;
+    return g.weekNum != null ? `Wk ${Math.max(1, g.weekNum - 1)}` : '';
+}
 
 function gameCardHtml(g, seasonType, nextKey) {
     const ha = g.homeAway === 'home' ? 'vs' : '@';
     const isNext = (g.eventId || `${g.seasonType}-${g.weekNum}-${g.date}`) === nextKey;
-    const wk = seasonType === 3 ? (g.weekText || 'Post') : (g.weekNum != null ? `Wk ${g.weekNum}` : '');
+    const wk = seasonType === 3 ? (g.weekText || 'Post')
+        : seasonType === 1 ? preseasonWeek(g)
+        : (g.weekNum != null ? `Wk ${g.weekNum}` : '');
     let resultHtml;
     if (g.completed && g.score != null && g.oppScore != null) {
         const s = +g.score, o = +g.oppScore;
@@ -37,8 +83,7 @@ function gameCardHtml(g, seasonType, nextKey) {
         const letter = cls === 'w' ? 'W' : cls === 'l' ? 'L' : 'T';
         resultHtml = `<span class="pp-res pp-res--${cls}">${letter} ${g.score}-${g.oppScore}</span>`;
     } else {
-        const t = _timeFmt(g);
-        resultHtml = `${t ? `<span class="nfl-home-game-time">${esc(t)}</span>` : ''}${g.tv ? `<span class="nfl-sched-tv">${esc(g.tv)}</span>` : ''}`;
+        resultHtml = _whenHtml(g);
     }
     return `
     <div class="nfl-home-game-card${isNext ? ' is-next' : ''}">

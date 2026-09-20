@@ -32,9 +32,18 @@
  * scritta di mezzo, col colore e la punta della freccia a dire di chi è. La
  * quota dell'altro è il complemento a 100: scriverla era ripetersi.
  *
- * Due ganci che l'aggiornamento in place cerca e che quindi non si rinominano
+ * Il numero nel mezzo, a giornata in corso, è la PROBABILITÀ DI VITTORIA
+ * (`js/data/win-prob.js`) — non più la quota di punti a referto, che con un solo
+ * Thursday Night giocato diceva 100% mentre restavano 140 punti da giocare. Da
+ * giornata chiusa torna a essere la quota, perché lì la probabilità non ha più
+ * niente da dire: chi ha vinto ha vinto. `probTitle` distingue i due casi, ed è
+ * l'unico posto in cui il banner dichiara cosa sta mostrando.
+ *
+ * Tre ganci che l'aggiornamento in place cerca e che quindi non si rinominano
  * a cuor leggero:
  *   `.gc-banner-score`  — live.js ci rimette la classe `winner` a ogni giro
+ *   `.live-mc-lead` e `.live-mc-probbar` — la probabilità cambia a ogni giro di
+ *                         polling, e live.js le riscrive senza rifare la card
  *   `.pts-val`          — `countUp()` anima scrivendo QUI dentro, e la
  *                         proiezione (`.pts-proj`) gli resta fuori: dentro, il
  *                         primo fotogramma dell'animazione se la mangerebbe.
@@ -48,11 +57,18 @@
  * @param {string} [m.mid='vs']    la scritta piccola in mezzo ('live' o 'vs')
  * @param {number|null} [m.probPct] quota del lato sinistro, 0-100; null o
  *                                  assente = niente barra
+ * @param {string} [m.probTitle]   cos'è quella percentuale, per il tooltip: a
+ *                                 giornata in corso è la PROBABILITÀ DI
+ *                                 VITTORIA (js/data/win-prob.js), a giornata
+ *                                 chiusa la quota di punti. Due significati
+ *                                 diversi nello stesso posto, e senza la
+ *                                 didascalia si leggono uguale.
  * @param {string} [m.selColor]    colore del contorno sul nome selezionato
  * @returns {string} HTML
  */
 export function currentScoreBugHTML(m) {
-    const { left, right, mid = 'vs', probPct = null } = m;
+    const { left, right, mid = 'vs', probPct = null,
+        probTitle = 'Share of the points on the board so far' } = m;
     const c1 = left.color || 'var(--accent-red)';
     const c2 = right.color || 'var(--accent-blue)';
     const sel = m.selColor || (right.selected ? c2 : c1);
@@ -75,14 +91,14 @@ export function currentScoreBugHTML(m) {
                 <span class="gc-banner-score${left.winner ? ' winner' : ''}">${left.scoreHTML}</span>
                 <div class="gc-banner-mid">
                     <span class="gc-banner-vs">${mid}</span>
-                    ${pct == null ? '' : `<span class="live-mc-lead live-mc-lead--${pct >= 50 ? 'l' : 'r'}">${Math.max(pct, 100 - pct)}%</span>`}
+                    ${pct == null ? '' : `<span class="live-mc-lead live-mc-lead--${pct >= 50 ? 'l' : 'r'}" title="${probTitle}">${Math.max(pct, 100 - pct)}%</span>`}
                 </div>
                 <span class="gc-banner-score${right.winner ? ' winner' : ''}">${right.scoreHTML}</span>
                 <div class="gc-banner-side gc-banner-side-r">
                     <span class="gc-banner-name${right.selected ? ' live-name-selected' : ''}">${right.nameHTML}</span>
                 </div>
             </div>
-            ${pct == null ? '' : `<span class="live-mc-probbar" style="--p:${pct}%"></span>`}
+            ${pct == null ? '' : `<span class="live-mc-probbar" style="--p:${pct}%" title="${probTitle}"></span>`}
         </div>
     </div>`;
 }
