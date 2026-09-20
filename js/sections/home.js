@@ -39,9 +39,9 @@ import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, 
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=723';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=822';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=774';
-import { teamsCardsHTML } from './teams.js?v=733';
+import { TEAMS } from './team.js?v=827';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=780';
+import { teamsCardsHTML } from './teams.js?v=737';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=44';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
@@ -51,7 +51,7 @@ import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=57';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWaiverMoves } from '../data/waiver-moves.js?v=3';
-import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=546';
+import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=552';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getSeasonProjections } from '../data/projections.js?v=611';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
@@ -62,7 +62,7 @@ import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=814';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=819';
 
 let initialized = false;
 

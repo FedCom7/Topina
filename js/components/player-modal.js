@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=611';
-import { TEAMS } from '../sections/team.js?v=822';
+import { TEAMS } from '../sections/team.js?v=827';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { getPlayerInfo } from '../data/player-full.js?v=671';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
@@ -484,7 +484,12 @@ export function paniniCard({ name, pos, nfl, info, career, hofYear, compact = fa
     // cognome, l'ultima parola del nome — unico pezzo che serve a
     // riconoscere il giocatore quando tutto il resto (ruolo, logo, traguardi)
     // è già sparito.
-    const surname = name.trim().split(/\s+/).pop();
+    // L'ultima parola non sempre e' il cognome: "James Cook III" finiva sulla
+    // figurina come "III". I suffissi si saltano e si prende la parola prima.
+    const parole = name.trim().split(/\s+/);
+    const suffisso = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+    while (parole.length > 1 && suffisso.test(parole[parole.length - 1])) parole.pop();
+    const surname = parole[parole.length - 1];
 
     return `
     <div class="pm-panini${gold ? ' pm-panini--gold' : ''}">

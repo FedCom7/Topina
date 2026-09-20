@@ -80,12 +80,19 @@ export async function getWeekSchedule(year, week, seasonType = 2) {
                 const sit = comp.situation || null;
                 const to = !sit ? null
                     : (c.homeAway === 'home' ? sit.homeTimeouts : sit.awayTimeouts);
+                // Chi ha la palla adesso: ESPN dà l'id della squadra in
+                // `situation.possession`. Serve al "dentro la partita", che
+                // mette il pallone accanto a chi attacca.
+                const idPoss = sit?.possession != null ? String(sit.possession) : '';
+                const mioId = String(c.team?.id ?? '');
+                const possesso = !idPoss ? '' : (idPoss === mioId ? 'mia' : 'loro');
                 entries.push([abbr, comp.date, ev.id, state, opponent,
                     gameStatus(c, other, st), Number(c.score) || 0,
                     Number(other.score) || 0, st.shortDetail || '',
                     Number.isFinite(to) ? to : null,
                     Number.isFinite(sit && (c.homeAway === 'home' ? sit.awayTimeouts : sit.homeTimeouts))
-                        ? (c.homeAway === 'home' ? sit.awayTimeouts : sit.homeTimeouts) : null]);
+                        ? (c.homeAway === 'home' ? sit.awayTimeouts : sit.homeTimeouts) : null,
+                    possesso]);
             });
         });
         if (!entries.length) return null;
@@ -239,7 +246,7 @@ function _toMap(entries) {
     const map = new Map();
     entries.forEach(([abbr, iso, eventId = null, state = 'pre', opponent = '',
         status = '', score = 0, oppScore = 0, detail = '',
-        timeouts = null, oppTimeouts = null] ) => {
+        timeouts = null, oppTimeouts = null, possesso = ''] ) => {
         const start = new Date(iso);
         map.set(abbr, {
             start, end: new Date(start.getTime() + GAME_DURATION_MS),
@@ -249,6 +256,8 @@ function _toMap(entries) {
             // timeout rimasti: null quando ESPN non li da' (partita non in
             // corso). Non si inventano: senza il dato non si disegnano.
             timeouts, oppTimeouts,
+            // chi ha la palla: 'mia' (questa squadra), 'loro', o '' se non si sa
+            possesso,
         });
     });
     return map;

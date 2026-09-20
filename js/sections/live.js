@@ -17,8 +17,8 @@
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=594';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=822';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
+import { TEAMS } from './team.js?v=827';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=129';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=1';
@@ -30,7 +30,7 @@ import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
-import { initPlayerModal } from '../components/player-modal.js?v=774';
+import { initPlayerModal } from '../components/player-modal.js?v=780';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=16';
@@ -3558,6 +3558,28 @@ function confrontoHTML(quadro, sigla) {
     </div>`;
 }
 
+/**
+ * Il pallone accanto a chi attacca, nel "dentro la partita".
+ *
+ * E' lo stesso disegno della scena di caricamento (due omini che si passano la
+ * palla, vedi ui/spinner.js): stesso ovale rosso e stesse quattro cuciture
+ * bianche, qui fermo e piccolo. Chi ce l'ha lo dice il tabellone NFL
+ * (`situation.possession`); se non lo dice — partita non cominciata, finita, o
+ * dato assente — non si disegna niente, che e' meglio di una palla messa a
+ * caso.
+ */
+function pallaHTML(lato) {
+    return `<svg class="live-poss live-poss--${lato}" viewBox="-6 -4 12 8" aria-hidden="true" focusable="false">
+        <ellipse class="live-poss-body" cx="0" cy="0" rx="4.2" ry="2.7"/>
+        <g class="live-poss-laces">
+            <line x1="-2" y1="0" x2="2" y2="0"/>
+            <line x1="-1.1" y1="-0.6" x2="-1.1" y2="0.6"/>
+            <line x1="0" y1="-0.6" x2="0" y2="0.6"/>
+            <line x1="1.1" y1="-0.6" x2="1.1" y2="0.6"/>
+        </g>
+    </svg>`;
+}
+
 function deepGameHTML({ sigla, miei, quadro }) {
     const g = quadro.info;
     const nomiMiei = new Set(miei.map(p => normName(p.name)));
@@ -3584,8 +3606,10 @@ function deepGameHTML({ sigla, miei, quadro }) {
     <article class="live-deep-game">
         <header class="live-deep-head">
             ${g.logo ? `<img class="live-deep-logo" src="${g.logo}" alt="" loading="lazy">` : ''}
-            <span class="live-deep-team">${escAttr(g.teamName || sigla)}</span>
-            <span class="live-deep-vs">${g.home ? 'vs' : '@'} ${escAttr(g.opponentName || g.opponent || '')}</span>
+            <span class="live-deep-team">${escAttr(g.teamName || sigla)}${
+                liveSchedule?.get(sigla)?.possesso === 'mia' && g.state === 'in' ? pallaHTML('l') : ''}</span>
+            <span class="live-deep-vs">${g.home ? 'vs' : '@'} ${escAttr(g.opponentName || g.opponent || '')}${
+                liveSchedule?.get(sigla)?.possesso === 'loro' && g.state === 'in' ? pallaHTML('r') : ''}</span>
             ${g.state === 'pre' ? ''
                 : `<span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>`}
             <span class="live-deep-when">${escAttr(g.detail || '')}</span>

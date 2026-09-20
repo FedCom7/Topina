@@ -18,13 +18,13 @@ import { TEAM_KEYS } from '../data/team-config.js?v=535';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { buildCareers } from '../data/careers.js?v=643';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals, seasonAvg,
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=819';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=9';
-import { TEAMS } from './team.js?v=824';
+import { TEAMS } from './team.js?v=829';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1002';
 

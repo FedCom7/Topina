@@ -18566,6 +18566,13 @@ td.ps-div-seed {
     opacity: 0.25;
 }
 
+/* La colonna centrale ha una larghezza fissa su tutte le righe: con `auto` si
+   allargava sui ruoli lunghi ("RB/WR") e i ruoli delle altre righe non erano
+   piu' incolonnati con quello. */
+.live-cmp-row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto 56px auto auto minmax(0, 1fr) auto;
+}
+
 .live-cmp-slot {
     font-family: var(--font-display);
     font-size: 0.72rem;
@@ -18573,7 +18580,7 @@ td.ps-div-seed {
     letter-spacing: 0.08em;
     color: var(--text-muted);
     text-align: center;
-    min-width: 44px;
+    min-width: 0;
 }
 
 /* Il nome per intero, su due righe se serve. Su una riga sola i puntini si
@@ -18604,7 +18611,10 @@ td.ps-div-seed {
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
-    min-width: 52px;
+    /* Larghezza FISSA, non `min-width`: ogni riga e' una griglia a se', quindi
+       una casella punti piu' larga (quella con la proiezione accanto) spostava
+       il ruolo al centro e i ruoli non erano piu' incolonnati fra le righe. */
+    width: 88px;
     text-align: center;
     opacity: 0.45;
 }
@@ -18694,7 +18704,7 @@ td.ps-div-seed {
 
     .live-cmp-pts {
         font-size: 0.9rem;
-        min-width: 42px;
+        width: 64px;
         gap: 2px;
     }
 
@@ -18779,6 +18789,46 @@ td.ps-div-seed {
     z-index: 2;
     will-change: transform;
     pointer-events: none;
+}
+
+/* Pallone del possesso nel "dentro la partita": stesso ovale della scena di
+   caricamento (ui/spinner.js), qui fermo e piccolo. Sta in linea con la
+   squadra che attacca — a sinistra la nostra, a destra l'avversaria. */
+.live-poss {
+    width: 17px;
+    height: 12px;
+    margin-left: 6px;
+    vertical-align: -1px;
+    flex: 0 0 auto;
+}
+
+.live-poss-body {
+    fill: var(--accent-red);
+}
+
+.live-poss-laces line {
+    /* bianche sempre, come nel caricamento: il pallone e' rosso in tutti e due
+       i temi, e in chiaro un inchiostro scuro spariva dentro al rosso */
+    stroke: #fff;
+    stroke-width: 0.7;
+    stroke-linecap: round;
+}
+
+/* Su telefono l'intestazione e' stretta e il pallone in riga spingerebbe
+   fuori il nome dell'avversario: va sotto al logo, alla stessa altezza per
+   tutt'e due i casi. Resta rosso e resta uno solo, quindi si capisce lo
+   stesso di chi e' la palla guardando chi attacca nel campetto qui sotto. */
+@media (max-width: 640px) {
+    .live-deep-head {
+        position: relative;
+    }
+
+    .live-deep-head .live-poss {
+        position: absolute;
+        left: 2px;
+        top: 26px;
+        margin: 0;
+    }
 }
 
 /* Numero di maglia accanto al nome sul campo del Live. Vuoto finche' non
