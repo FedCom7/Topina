@@ -15,9 +15,9 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=585';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=594';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=811';
+import { TEAMS } from './team.js?v=820';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=546';
 import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=129';
@@ -30,10 +30,10 @@ import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
-import { initPlayerModal } from '../components/player-modal.js?v=762';
+import { initPlayerModal } from '../components/player-modal.js?v=771';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=31';
-import { playerImageService } from '../services/player-image-service.js?v=522';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=5';
+import { playerImageService } from '../services/player-image-service.js?v=532';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=16';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 
 const POLL_MS = 30000;
@@ -77,6 +77,7 @@ const BIG_EVENTS = new Set(['pass_td', 'rush_td', 'rec_td', 'ret_td', 'fum_td', 
 
 let prevSnapshot = null;   // { playerName: { pts, stats } }
 let receipts = [];         // storico scontrini (più recenti in testa)
+let daRivedere = null;     // giocate perse fra due visite, in attesa del disegno
 let compareMode = false;   // false = campo, true = confronto titolari
 let fxLayer = null;        // livello degli effetti, vive dentro il campo
 let fxDemoFatta = false;   // ?fxdemo= parte una volta per caricamento
@@ -175,6 +176,23 @@ function teamOf(rawName) {
 const inPanchina = (p) => matchups.some(m => ['team1', 'team2']
     .some(lato => (m[lato]?.bench || []).some(x => x?.name === p?.name)));
 
+/**
+ * Lo stato fisico da mostrare per esteso: prima quello di giornata (dal
+ * tabellino, con dentro il motivo), poi la designazione della settimana.
+ * Torna null per chi sta bene, che e' la stragrande maggioranza.
+ */
+function statoFisico(p) {
+    const inGara = boxData?.injuries?.get(normName(p?.name || ''));
+    if (inGara?.status) {
+        return `${inGara.status} to return${inGara.detail ? ` · ${inGara.detail}` : ''}`;
+    }
+    const settimana = injuryOf(p);
+    if (!settimana) return null;
+    // "INJURY_RESERVE" → "Injury reserve"
+    const t = String(settimana).replace(/_/g, ' ').toLowerCase();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 function gameAttr(p) {
     const payload = {
         pts: effPts(p),
@@ -189,6 +207,11 @@ function gameAttr(p) {
         year: CURRENT_SEASON,
         // era sempre `true`: la scheda di un panchinaro diceva "Starter"
         started: !inPanchina(p),
+        // Lo stato fisico: sul campo e' una lettera sulla targhetta, qui c'e'
+        // spazio per dirlo per esteso, col motivo quando la partita e' in corso
+        // ("Questionable to return · Stinger"). Aprendo la scheda di uno in
+        // dubbio, il primo pensiero e' proprio quello.
+        injury: statoFisico(p),
         stats: (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {},
         // sempre anche la previsione, che la scheda mostra in piccolo accanto
         // a ogni numero reale — a giornata iniziata è l'unico modo per capire
@@ -1099,6 +1122,7 @@ async function hydrateScheduleAndRender(year, week) {
     if (document.getElementById('live-root')?.querySelector('.live-header')) refreshInPlace(fresh);
     else render();
     if (fresh.length) flashNewReceipts(fresh);
+    if (daRivedere?.length) { const persi = daRivedere; daRivedere = null; riproduciPersi(persi); }
     if (!pbpTimer) startPlayPolling();
 }
 
@@ -1366,16 +1390,101 @@ function refreshInPlace(events = []) {
     if (inj) inj.innerHTML = injuriesHTML(entry.team, entry.opp);
 }
 
+/**
+ * «Mentre non c'eri»: la fotografia dell'ultimo giro non muore con la pagina.
+ *
+ * Dal telefono il Live non si tiene aperto: si guarda, si blocca lo schermo, si
+ * riapre mezz'ora dopo. Fino a ieri quel ritorno era muto — `detectEvents`
+ * senza una fotografia precedente restituisce zero, di proposito, per non
+ * sparare coriandoli su cose successe chissa' quando. Ora la fotografia si
+ * salva a ogni giro e al rientro si confronta con quella nuova: le giocate
+ * perse si rivedono una per una, a tempo, invece di comparire gia' successe
+ * dentro ai totali.
+ *
+ * La chiave porta stagione e giornata: la settimana dopo la fotografia vecchia
+ * non c'entra piu' niente. La scadenza e' di sei ore — oltre, non e' piu' «il
+ * mio ritorno alla partita», e' un'altra giornata.
+ */
+const SNAP_TTL_MS = 6 * 60 * 60 * 1000;
+const snapKey = () => `topina_livesnap_v1_${CURRENT_SEASON}_${currentWeekNum}`;
+
+function salvaSnapshot(snap) {
+    // Solo a giornata cominciata: prima del kickoff sono tutti a zero e la
+    // fotografia direbbe soltanto che nessuno ha ancora giocato. E mai una
+    // fotografia VUOTA: il primo giro puo' arrivare qui prima delle rose, e
+    // scriverla cancellerebbe quella della visita precedente — cioe' proprio
+    // le giocate da rivedere.
+    if (!giornataCominciata || !Object.keys(snap || {}).length) return;
+    cacheSet(snapKey(), snap);
+}
+
+/** La fotografia dell'ultima visita, se e' di questa giornata e non e' vecchia. */
+function snapshotSalvato() {
+    try { return cacheGet(snapKey(), SNAP_TTL_MS) || null; } catch { return null; }
+}
+
 /** Aggiorna lo storico scontrini dopo un poll (tenuti gli ultimi 40). */
 function updateReceipts() {
     const curr = takeSnapshot();
-    const events = detectEvents(prevSnapshot, curr);
+    // Primo giro dopo l'apertura: il confronto si fa con la fotografia lasciata
+    // dall'ultima visita, e quello che ne esce sono le giocate perse.
+    // Una fotografia senza giocatori non conta come "giro precedente": capita
+    // al primo passaggio, quando le rose non sono ancora arrivate.
+    const piena = (s) => !!s && Object.keys(s).length > 0;
+    // La replica si mette in coda e parte DOPO il disegno: `render()` riscrive
+    // tutto il Live, e un cartello messo prima sparirebbe con la pagina vecchia.
+    if (!piena(prevSnapshot) && piena(curr)) daRivedere = detectEvents(snapshotSalvato(), curr);
+    const events = detectEvents(piena(prevSnapshot) ? prevSnapshot : null, curr);
     prevSnapshot = curr;
+    salvaSnapshot(curr);
     if (events.length) {
         receipts = [...events, ...receipts].slice(0, 40);
         try { sessionStorage.setItem('topina-live-receipts', JSON.stringify(receipts)); } catch { /* quota */ }
     }
     return events;
+}
+
+/**
+ * Rivede le giocate perse, una alla volta.
+ *
+ * Non tutte: in mezz'ora di partite vere i cambiamenti sono decine, e
+ * riaccenderli tutti insieme sarebbe una sagra illeggibile. Si tengono i
+ * momenti che contano — chi ha mosso punti — i piu' grossi per primi, al
+ * massimo sei, e si sparano a un secondo e mezzo l'uno dall'altro cosi' si
+ * leggono. Gli altri restano nel feed delle giocate, che e' il posto giusto
+ * per la cronaca minuta.
+ *
+ * Il percorso e' quello di sempre (`flashNewReceipts`): stessi bagliori, stessi
+ * coriandoli, stesso conteggio che sale. L'unica differenza e' che partono da
+ * un confronto con la visita precedente invece che col poll precedente.
+ */
+function riproduciPersi(eventi) {
+    const forti = eventi
+        .filter(e => Math.abs(e.ptsDelta) > 0 || e.changes.some(c => c.big))
+        .sort((a, b) => Math.abs(b.ptsDelta) - Math.abs(a.ptsDelta))
+        .slice(0, 6);
+    if (!forti.length) return;
+
+    receipts = [...eventi, ...receipts].slice(0, 40);
+    mostraRitorno(forti.length);
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    forti.forEach((ev, i) => setTimeout(() => flashNewReceipts([ev]), 900 + i * 1500));
+}
+
+/** Il cartello che dice cosa si sta rivedendo: senza, sembrerebbe che stia succedendo adesso. */
+function mostraRitorno(quante) {
+    const root = document.getElementById('live-root');
+    if (!root) return;
+    root.querySelector('.live-ritorno')?.remove();
+    const el = document.createElement('div');
+    el.className = 'live-ritorno';
+    el.innerHTML = `<b>While you were away</b> · ${quante} play${quante > 1 ? 's' : ''} replayed`;
+    root.prepend(el);
+    setTimeout(() => {
+        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' })
+            .onfinish = () => el.remove();
+    }, 900 + quante * 1500);
 }
 
 function restoreReceipts() {
@@ -3323,7 +3432,12 @@ function deepGames(team) {
             },
         });
     }
-    return out;
+    // In corso per prime, poi le finite, poi quelle che devono cominciare: le
+    // sigle in cima si leggono da sinistra, e a sinistra ci va quello che sta
+    // succedendo adesso. Fra partite dello stesso stato resta l'ordine delle
+    // rose, che e' stabile fra un poll e l'altro.
+    const peso = (g) => ({ in: 0, post: 1 }[g.quadro?.info?.state] ?? 2);
+    return out.sort((a, b) => peso(a) - peso(b));
 }
 
 /**

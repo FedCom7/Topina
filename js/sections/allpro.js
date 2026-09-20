@@ -4,11 +4,11 @@
  * (QB, RB×2, WR×2, TE, FLEX, K, DEF), da js/data/honors.js.
  */
 
-import { CURRENT_SEASON } from '../data.js?v=585';
+import { CURRENT_SEASON } from '../data.js?v=594';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
-import { TEAMS } from './team.js?v=813';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=762';
-import { playerImageService } from '../services/player-image-service.js?v=522';
+import { TEAMS } from './team.js?v=822';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=771';
+import { playerImageService } from '../services/player-image-service.js?v=532';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let initialized = false;

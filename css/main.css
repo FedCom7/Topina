@@ -18737,6 +18737,32 @@ td.ps-div-seed {
     pointer-events: none;
 }
 
+/* Lo stato fisico nella scheda del giocatore: sta in fondo alla riga del
+   ruolo, e si fa notare quel tanto che basta. */
+.pm-game-inj {
+    color: var(--accent-amber, #f0b429);
+    font-weight: 700;
+}
+
+/* «Mentre non c'eri»: il cartello sopra al Live mentre si rivedono le giocate
+   perse. Sta nel flusso, non sopra al contenuto: non c'e' niente da chiudere
+   e sparisce da solo quando la replica finisce. */
+.live-ritorno {
+    margin: 0 auto 14px;
+    padding: 9px 16px;
+    max-width: 420px;
+    border-radius: var(--pill-radius, 999px);
+    border: 1px solid var(--border-card);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.live-ritorno b {
+    color: var(--text-primary);
+}
+
 /* Il verde del prato del Live, in un posto solo.
    Era quasi nero; ora e' un verde da campo vero, ancora scuro abbastanza da
    reggere nomi bianchi e punteggi colorati sopra. Per schiarirlo o scurirlo

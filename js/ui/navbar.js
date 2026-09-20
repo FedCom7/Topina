@@ -333,7 +333,7 @@ const n1 = (v) => Number(v || 0).toLocaleString('it-IT', { minimumFractionDigits
 
 /** I numeri di ogni sezione, ognuno dalla fonte che usa la sezione stessa. */
 async function datiPeek(nome) {
-    const dati = await import('../data.js?v=585');
+    const dati = await import('../data.js?v=594');
     const { CURRENT_SEASON, fetchFantasyData, processStandings, displayName } = dati;
 
     if (nome === 'standings' || nome === 'teams') {

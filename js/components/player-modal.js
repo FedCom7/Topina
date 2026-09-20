@@ -15,8 +15,8 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=611';
-import { TEAMS } from '../sections/team.js?v=811';
-import { playerImageService } from '../services/player-image-service.js?v=522';
+import { TEAMS } from '../sections/team.js?v=820';
+import { playerImageService } from '../services/player-image-service.js?v=532';
 import { getPlayerInfo } from '../data/player-full.js?v=671';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
@@ -240,7 +240,8 @@ function gameStatCells(pos, s = {}, proj = null) {
 
 function gameBlockHtml(game, pos, nfl) {
     const { pts = 0, opponent = '', status = '', kickoff = '', week, year, started, stats,
-        projPts = null, projStats = null, gameState = '', score = null, oppScore = null } = game;
+        projPts = null, projStats = null, gameState = '', score = null, oppScore = null,
+        injury = null } = game;
     // accanto a ogni numero reale, in piccolo, quello che era previsto
     const cells = gameStatCells(pos, stats, projStats); // include già fum_lost se presente
 
@@ -292,7 +293,8 @@ function gameBlockHtml(game, pos, nfl) {
         <div class="pm-game-head">
             <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small>${projPts != null
                 ? `<small class="pm-proj" title="projected">${Number(projPts).toFixed(1)}</small>` : ''}</span>
-            <span class="pm-game-meta">${chi}${quando ? `<br>${quando}` : ''}<br>${ruolo}</span>
+            <span class="pm-game-meta">${chi}${quando ? `<br>${quando}` : ''}<br>${ruolo}${injury
+                ? ` · <span class="pm-game-inj">${String(injury).replace(/[<>&]/g, '')}</span>` : ''}</span>
         </div>
         ${statoUtile ? `<p class="pm-game-status">${statoUtile}</p>` : ''}
         ${grid}
