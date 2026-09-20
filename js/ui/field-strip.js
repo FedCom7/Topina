@@ -804,6 +804,26 @@ const logoImg = (t) => t.logo
     ? `<img class="fst-logo" src="${esc(t.logo)}" alt="" loading="lazy">`
     : `<span class="fst-logo fst-logo--vuoto">${esc(t.abbr || '')}</span>`;
 
+/**
+ * Il pallone di chi ha la palla, accanto al logo della sua squadra.
+ *
+ * E' lo stesso ovale della scena di caricamento (ui/spinner.js) — quattro
+ * cuciture e via — ma bianco: qui sta su fondo scuro accanto a un logo
+ * colorato, e un pallone rosso si sarebbe confuso con le tinte delle squadre.
+ * Compare solo a partita in corso, perche' fuori da li' il possesso non vuol
+ * dire niente.
+ */
+const pallaPossesso = () => `
+    <svg class="fst-palla" viewBox="-6 -4 12 8" aria-hidden="true" focusable="false">
+        <ellipse class="fst-palla-corpo" cx="0" cy="0" rx="4.2" ry="2.7"/>
+        <g class="fst-palla-cuciture">
+            <line x1="-2" y1="0" x2="2" y2="0"/>
+            <line x1="-1.1" y1="-0.6" x2="-1.1" y2="0.6"/>
+            <line x1="0" y1="-0.6" x2="0" y2="0.6"/>
+            <line x1="1.1" y1="-0.6" x2="1.1" y2="0.6"/>
+        </g>
+    </svg>`;
+
 /** Riga di mezzo dello scorebug: quarto e orologio sopra, situazione sotto. */
 function situazione(s) {
     if (s.stato === 'pre') return `<span class="fst-quando">${esc(s.orologio || 'Kickoff')}</span>`;
@@ -972,14 +992,16 @@ export function fieldStripHTML(s) {
         <div class="fst-bug">
             <div class="fst-lato">
                 ${logoImg(s.away)}
-                <span class="fst-abbr">${esc(s.away.abbr)}</span>
+                <span class="fst-abbr">${esc(s.away.abbr)}${
+                    s.stato === 'in' && s.possesso === 'away' ? pallaPossesso() : ''}</span>
             </div>
             ${punteggio(s.away, s.possesso === 'away')}
             <div class="fst-mid">${situazione(s)}</div>
             ${punteggio(s.home, s.possesso === 'home')}
             <div class="fst-lato fst-lato--r">
                 ${logoImg(s.home)}
-                <span class="fst-abbr">${esc(s.home.abbr)}</span>
+                <span class="fst-abbr">${esc(s.home.abbr)}${
+                    s.stato === 'in' && s.possesso === 'home' ? pallaPossesso() : ''}</span>
             </div>
         </div>
 
