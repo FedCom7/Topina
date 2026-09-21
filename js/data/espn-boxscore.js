@@ -15,7 +15,7 @@
  */
 
 import { canonAbbr } from './nfl-schedule.js?v=552';
-import { fetchPlays } from './nfl-plays.js?v=571';
+import { fetchPlays } from './nfl-plays.js?v=572';
 
 const SUMMARY = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary';
 

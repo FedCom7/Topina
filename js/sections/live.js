@@ -19,12 +19,12 @@ import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SE
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=829';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
-import { fetchPlays, resolveAthlete, headshotUrl } from '../data/nfl-plays.js?v=571';
+import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=131';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
-import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=573';
+import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=574';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=28';
@@ -1032,6 +1032,23 @@ function startedGames() {
  */
 let boxData = null;
 
+/** Chi ha la palla in red zone adesso, una per PARTITA (eventId → { redZone }):
+ *  due nostri titolari nella stessa partita non raddoppiano la richiesta. */
+let situationByEvent = new Map();
+
+/** Letta solo per le partite IN CORSO: a partita finita o non ancora
+ *  cominciata il campo non serve, ed è inutile pagarne la richiesta. */
+async function loadSituations() {
+    if (!liveSchedule) { situationByEvent = new Map(); return; }
+    const ids = new Set();
+    for (const g of liveSchedule.values()) {
+        if (g.state === 'in' && g.eventId) ids.add(String(g.eventId));
+    }
+    if (!ids.size) { situationByEvent = new Map(); return; }
+    const entries = await Promise.all([...ids].map(async id => [id, await fetchSituation(id)]));
+    situationByEvent = new Map(entries.filter(([, s]) => s));
+}
+
 async function loadBoxscores() {
     const games = startedGames();
     if (!games.length) { boxData = null; return; }
@@ -1132,6 +1149,8 @@ async function hydrateScheduleAndRender(year, week) {
     giornataCominciata = startedGames().length > 0;
     try { await loadBoxscores(); }
     catch (e) { console.warn('[live] tabellino ESPN non disponibile:', e.message); boxData = null; }
+    try { await loadSituations(); }
+    catch (e) { console.warn('[live] situazione partita non disponibile:', e.message); situationByEvent = new Map(); }
     if (boardIsEmpty() || lineupsFromDraft) {
         try { await fillFromEspn(); }
         catch (e) { console.warn('[live] punti dal tabellino non ricomposti:', e.message); }
@@ -1377,6 +1396,9 @@ function refreshInPlace(events = []) {
         el.classList.toggle('live-slot--soon', !daGiocare(p));
         // il puntino "sta giocando": prima compariva solo ridisegnando la
         // pagina, quindi una partita che cominciava non lo accendeva mai
+        const redzone = inRedZoneOra(p);
+        el.classList.toggle('live-slot--redzone', redzone);
+        el.classList.toggle('live-slot--onball', !redzone && inCampoOra(p));
 
         el.setAttribute('data-game', gameAttr(p).slice('data-game="'.length, -1));
     });
@@ -1555,6 +1577,30 @@ function gameOver(p) {
     if (!p || p.placeholder) return false;
     const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
     return ab ? liveSchedule?.get(ab)?.state === 'post' : false;
+}
+
+/**
+ * Il suo lato è quello che sta giocando ORA — come nell'app Fantasy ESPN, che
+ * non sa quali 11 sono davvero in campo e quindi accende tutta la squadra che
+ * ha la palla. Per un D/ST è al contrario: scende in campo quando è LUI a
+ * difendere, cioè quando ce l'ha l'avversario.
+ */
+function inCampoOra(p) {
+    if (!liveNow(p)) return false;
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+    const g = ab ? liveSchedule?.get(ab) : null;
+    if (!g?.possesso) return false;
+    const role = (p.position_in_team || p.position || '').toUpperCase();
+    const miaPalla = g.possesso === 'mia';
+    return (role === 'DEF' || role === 'D/ST') ? !miaPalla : miaPalla;
+}
+
+/** In più, quel possesso è dentro la red zone. */
+function inRedZoneOra(p) {
+    if (!inCampoOra(p)) return false;
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+    const eventId = liveSchedule?.get(ab)?.eventId;
+    return !!(eventId && situationByEvent.get(String(eventId))?.redZone);
 }
 
 // ─── Rendering ────────────────────────────────────────────────────
@@ -2278,8 +2324,9 @@ function fieldSlot(p, extraClass = '') {
     const role = (p.position_in_team || p.position || '').toUpperCase();
     const live = liveNow(p);
     const injury = injuryOf(p);
+    const zona = inRedZoneOra(p) ? ' live-slot--redzone' : (inCampoOra(p) ? ' live-slot--onball' : '');
     return `
-    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${daGiocare(p) ? '' : ' live-slot--soon'}${extraClass}" data-player-modal
+    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${daGiocare(p) ? '' : ' live-slot--soon'}${zona}${extraClass}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>

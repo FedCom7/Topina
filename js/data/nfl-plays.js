@@ -140,6 +140,25 @@ export async function fetchPlays(eventId, { all = false, pageSize = 25 } = {}) {
     }
 }
 
+/**
+ * Se il possesso in corso è dentro la red zone — il campo che l'app Fantasy
+ * ESPN usa per accendere di rosso i giocatori della squadra che sta
+ * attaccando lì dentro. Chi ha la palla lo dice già il tabellone
+ * (`getWeekSchedule` → `possesso`), qui serve solo questo booleano in più.
+ * ~400 byte, stesso host CORS-aperto di `fetchPlays`. Null su qualsiasi
+ * errore, o a partita finita/non ancora cominciata: il chiamante non accende
+ * nessuno se non lo sa per certo.
+ */
+export async function fetchSituation(eventId) {
+    if (!eventId) return null;
+    try {
+        const s = await getJson(`${CORE}/events/${eventId}/competitions/${eventId}/situation`, 5000);
+        return { redZone: !!s.isRedZone };
+    } catch {
+        return null;
+    }
+}
+
 // ─── Anagrafica atleti ───────────────────────────────────────────
 
 const ATHLETE_CACHE_KEY = 'topina-espn-athletes';

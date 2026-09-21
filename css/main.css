@@ -1196,14 +1196,17 @@ img {
     white-space: nowrap;
 }
 
+/* Niente opacità qui: un titolare che deve ancora giocare parte già
+   spento (`.is-giornata .live-slot--soon`, opacità 0.4), e un'animazione che
+   la forza a 0→1 vinceva comunque sulla regola statica — la card si vedeva
+   accendersi per i 0.5s dell'entrata e spegnersi solo alla fine. Lo
+   scivolamento basta a far sentire l'ingresso. */
 @keyframes slideInField {
     from {
-        opacity: 0;
         transform: translateY(16px) scale(0.96);
     }
 
     to {
-        opacity: 1;
         transform: translateY(0) scale(1);
     }
 }
@@ -1434,6 +1437,7 @@ img {
     background: rgba(255, 255, 255, 0.08);
     border: 1.5px solid rgba(255, 255, 255, 0.35);
     flex-shrink: 0;
+    transition: border-color var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
 }
 
 .slot-photo img {
@@ -19667,6 +19671,41 @@ td.ps-div-seed {
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent-green) 55%, transparent);
 }
 
+/* Chi ha la palla adesso — arancio — e chi in più ce l'ha in red zone —
+   rosso: lo stesso segnale dell'app Fantasy ESPN, che non sa quali 11 sono
+   davvero in campo e quindi accende tutta la squadra che sta attaccando (o
+   difendendo, per un D/ST). Qui il campo/panchina non ha un riquadro suo
+   (vedi sopra, "senza card"): senza uno sfondo pieno da cui partire, un
+   contorno colorato si perdeva sull'erba. Vince sull'anello verde di sopra
+   perché arriva dopo nel foglio, a parità di specificità: sapere CHI ha la
+   palla è più utile di sapere che la partita è in corso, che qui vale
+   comunque (la palla non ce l'ha nessuno se il gioco è fermo). */
+.live-field-solo .formation-slot.live-slot--onball,
+.live-bench .formation-slot.live-slot--onball {
+    background: color-mix(in srgb, var(--accent-amber) 24%, transparent);
+    border-radius: 14px;
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent-amber) 55%, transparent) inset;
+}
+
+.live-field-solo .formation-slot.live-slot--onball .slot-photo,
+.live-bench .formation-slot.live-slot--onball .slot-photo {
+    border-color: var(--accent-amber);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-amber) 55%, transparent);
+}
+
+.live-field-solo .formation-slot.live-slot--redzone,
+.live-bench .formation-slot.live-slot--redzone {
+    background: color-mix(in srgb, var(--accent-red) 32%, transparent);
+    border-radius: 14px;
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent-red) 65%, transparent) inset;
+}
+
+.live-field-solo .formation-slot.live-slot--redzone .slot-photo,
+.live-bench .formation-slot.live-slot--redzone .slot-photo {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-red) 65%, transparent);
+}
+
 /* Il puntino sta sul bordo del cerchio, non dentro: dentro finiva sotto il
    ritaglio circolare della foto (`overflow: hidden` + `border-radius: 50%`) e
    non si vedeva affatto. Il contorno scuro lo stacca da qualunque maglia. */
@@ -20465,7 +20504,18 @@ td.ps-div-seed {
 .live-stage .formation-slot {
     transition: opacity var(--dur-slow) var(--ease),
                 filter var(--dur-slow) var(--ease),
-                transform var(--dur-med) var(--ease);
+                transform var(--dur-med) var(--ease),
+                background var(--dur-med) var(--ease),
+                box-shadow var(--dur-med) var(--ease);
+}
+
+/* Il fermo di un frame che `senzaScatti()` chiede dopo ogni ridisegno: senza
+   questa regola la classe non spegneva nulla, e le card che dovevano nascere
+   già spente (`live-slot--soon`) si vedevano accendersi per la transizione
+   sopra prima di spegnersi di nuovo. */
+.live-stage.no-anim .formation-slot,
+.live-stage.no-anim .formation-slot * {
+    transition: none !important;
 }
 
 /* Il palco comprende campo E panchina: sono card identiche, e abbassando solo
