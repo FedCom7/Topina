@@ -19399,6 +19399,78 @@ td.ps-div-seed {
     color: var(--text-muted);
 }
 
+/* La "i" accanto al titolo di ogni grafico di Analysis, e il riquadro che
+   apre. Il titolo diventa una riga con due pezzi: testo a sinistra, "i" a
+   destra, cosi' la pastiglia sta sempre allo stesso posto. */
+.an-sub-title--info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.an-info {
+    flex: 0 0 auto;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.an-info:hover,
+.an-info.is-on {
+    color: var(--text-primary);
+    border-color: var(--an-tinta, var(--accent-red));
+}
+
+.an-info-box {
+    position: absolute;
+    z-index: 1400;
+    padding: 13px 15px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-card);
+    background: var(--surface-card);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+}
+
+.an-info-cosa {
+    margin: 0 0 9px;
+    color: var(--text-primary);
+}
+
+.an-info-riga {
+    margin: 0 0 7px;
+}
+
+.an-info-riga:last-child {
+    margin-bottom: 0;
+}
+
+.an-info-riga span {
+    display: inline-block;
+    min-width: 54px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 /* Nelle classifiche di Analysis: il secondo numero, piccolo e spento, a
    sinistra di quello grande (totale con la panchina accanto al titolare). */
 .st-leader-extra {
