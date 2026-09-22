@@ -6,6 +6,7 @@
  */
 import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, SEASONS, SEASONS_DESC, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=594';
 import { TEAMS } from './team.js?v=829';
+import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 
 let loadedStandings = false;
@@ -147,7 +148,7 @@ function generateRankingCards(standings) {
         const streakType = t.streak.startsWith('W') ? 'w' : t.streak.startsWith('L') ? 'l' : 't';
 
         return `
-        <div class="st-rank-wrap st-rank-wrap--${side}" style="--team-color:${info.color}; --card-i:${i}">
+        <div class="st-rank-wrap st-rank-wrap--${side}${info.key === squadraPreferita() ? ' is-mia' : ''}" style="--team-color:${info.color}; --card-i:${i}">
             <span class="st-rank-number" aria-hidden="true">${rank}</span>
             <a href="#team-${info.key || ''}" class="st-rank-card">
                 <img class="st-rank-watermark" src="${info.logo}" alt="" aria-hidden="true" onerror="this.style.display='none'">
@@ -236,8 +237,13 @@ function generateBracket(standings, fantasyData, config, playoffsStarted, year) 
         const champClass = isChampion ? 'champion' : '';
         const seedBadge = seed !== null ? `<span class="playoff-seed">#${seed}</span>` : '';
 
+        // La squadra scelta nelle impostazioni si riconosce anche qui: le card
+        // sono quattro loghi uguali, e senza un segno bisogna ricordarsi il
+        // proprio seed per trovarsi.
+        const miaClass = info.key === squadraPreferita() ? 'is-mia' : '';
+
         return `
-            <div class="playoff-card ${posClass} ${isTall ? 'tall' : ''} ${loserClass} ${champClass}" style="--team-color:${info.color}">
+            <div class="playoff-card ${posClass} ${isTall ? 'tall' : ''} ${loserClass} ${champClass} ${miaClass}" style="--team-color:${info.color}">
                 ${seedBadge}
                 <img src="${info.logo}" alt="${info.name}" class="playoff-logo">
             </div>
@@ -274,7 +280,7 @@ function generateBracket(standings, fantasyData, config, playoffsStarted, year) 
         const cls = decided ? (isWin ? ' pob-team--win' : ' pob-team--lose') : '';
         const sc = scores ? fmt(scores[name]) : '';
         return `
-        <a href="#team-${info.key || ''}" class="pob-team${cls}" style="--team-color:${info.color}">
+        <a href="#team-${info.key || ''}" class="pob-team${cls}${info.key === squadraPreferita() ? ' is-mia' : ''}" style="--team-color:${info.color}">
             <img class="pob-logo" src="${info.logo}" alt="" onerror="this.style.display='none'">
             <span class="pob-abbr">${abbrOf(info)}</span>
             <span class="pob-score">${sc}</span>

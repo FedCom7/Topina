@@ -12,6 +12,8 @@
 
 import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=623';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
+import { TEAMS } from '../sections/team.js?v=829';
+import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
 
 const MOBILE_MQ = '(max-width: 768px)';
 
@@ -27,6 +29,62 @@ export function initNavbar() {
     initDropdowns(navbar);
     initSearch(navbar);
     initTheme();
+    initPreferenze();
+}
+
+/**
+ * Impostazioni: la squadra del cuore.
+ *
+ * Una preferenza sola, ma e' quella che cambia come si apre il Live: scelta la
+ * squadra, il Live parte sempre dal suo campo invece che dalla prima della
+ * lista. Sta nella barra e non in una pagina perche' e' roba di chi guarda,
+ * non della lega — e da li' si raggiunge da qualunque sezione.
+ *
+ * Il pannello si costruisce da TEAMS: una seconda lista di squadre scritta a
+ * mano sarebbe una cosa in piu' da tenere allineata a ogni rebrand.
+ */
+function initPreferenze() {
+    const box = document.getElementById('nav-prefs');
+    const btn = document.getElementById('nav-prefs-btn');
+    const panel = document.getElementById('nav-prefs-panel');
+    if (!box || !btn || !panel) return;
+
+    const disegna = () => {
+        const scelta = squadraPreferita();
+        panel.innerHTML = `
+            <span class="nav-prefs-title">Your team</span>
+            <p class="nav-prefs-hint">Live opens on this team.</p>
+            ${Object.values(TEAMS).map(t => `
+            <button class="nav-prefs-team${t.key === scelta ? ' is-on' : ''}" type="button" data-team="${t.key}">
+                <img src="${t.logo}" alt="" loading="lazy">
+                <span>${esc(t.name)}</span>
+            </button>`).join('')}
+            <button class="nav-prefs-team nav-prefs-none${scelta ? '' : ' is-on'}" type="button" data-team="">
+                No favourite
+            </button>`;
+    };
+
+    const apri = (si) => {
+        panel.hidden = !si;
+        btn.setAttribute('aria-expanded', String(si));
+        box.classList.toggle('is-open', si);
+        // La barra ritaglia quello che esce dai suoi bordi (le serve per
+        // aprirsi e chiudersi coi sottomenu): finche' il pannello e' fuori,
+        // il ritaglio va sospeso, se no se ne vede una striscia sola.
+        document.querySelector('.navbar')?.classList.toggle('prefs-open', si);
+        if (si) disegna();
+    };
+
+    btn.addEventListener('click', (e) => { e.stopPropagation(); apri(panel.hidden); });
+    panel.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-team]');
+        if (!b) return;
+        impostaSquadraPreferita(b.dataset.team || null);
+        disegna();
+        apri(false);
+    });
+    document.addEventListener('click', (e) => { if (!box.contains(e.target)) apri(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') apri(false); });
 }
 
 /**

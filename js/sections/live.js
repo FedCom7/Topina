@@ -20,7 +20,7 @@ import { TEAM_KEYS } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=829';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
-import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=131';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=145';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
@@ -36,6 +36,7 @@ import { playerImageService } from '../services/player-image-service.js?v=532';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=16';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
+import { squadraPreferita } from '../utils/preferenze.js?v=1';
 
 const POLL_MS = 30000;
 
@@ -88,6 +89,10 @@ let loaded = false;
 let pollTimer = null;
 let matchups = [];
 let teamIdx = 0; // indice nell'elenco "piatto" delle 4 squadre (teamEntries())
+// La squadra del cuore vale come punto di partenza, non come gabbia: si applica
+// alla prima apertura (e quando la si cambia dalla barra), poi comanda chi
+// guarda — cambiare campo non deve riportarlo indietro al giro dopo.
+let preferitaApplicata = false;
 let isLiveSource = false;
 let weekLabelText = '';
 /* Solo la giornata — "Week 1", "Playoffs", "Super Bowl" — senza l'anno.
@@ -259,6 +264,14 @@ const effPts = (p) => P(pIsProjected(p) ? p.projected_points : p.fantasy_points)
 // finché la giornata non è cominciata.
 const teamIsProjected = (t) => !giornataCominciata && P(t.score) === 0 && t.projected_score != null;
 const teamEffScore = (t) => (teamIsProjected(t) ? P(t.projected_score) : P(t.score));
+
+/* Squadra del cuore cambiata dalla barra: se il Live e' gia' a schermo si
+   sposta subito, senza aspettare un ricaricamento. */
+window.addEventListener('topina:squadra', () => {
+    preferitaApplicata = false;
+    applicaPreferita();
+    if (document.getElementById('live-root')?.querySelector('.live-header')) render();
+});
 
 export async function initLive() {
     if (loaded) return;
@@ -1156,6 +1169,7 @@ async function hydrateScheduleAndRender(year, week) {
         catch (e) { console.warn('[live] punti dal tabellino non ricomposti:', e.message); }
     }
     if (teamIdx >= teamEntries().length) teamIdx = 0;
+    applicaPreferita();
     // Prima di disegnare: così le giocate già viste in una visita precedente
     // sono nel feed fin dal primo fotogramma, senza aspettare il polling.
     if (!pbpDemo()) loadPlayCache();
@@ -1777,6 +1791,31 @@ function showOpponent(opts = {}) {
  * Con `prefers-reduced-motion` il trascinamento non parte: resta il gesto
  * secco di prima, che cambia squadra senza far viaggiare niente.
  */
+/**
+ * Apre il Live sulla squadra del cuore, se ne e' stata scelta una nelle
+ * impostazioni della barra. Una volta sola per visita: dopo decide chi guarda.
+ */
+function applicaPreferita() {
+    if (preferitaApplicata) return;
+    const entries = teamEntries();
+    if (!entries.length) return;      // dati non ancora pronti: si riprova al giro dopo
+    preferitaApplicata = true;
+    const voluta = squadraPreferita();
+    if (!voluta) return;
+    const i = entries.findIndex(e => TEAM_KEYS[displayName(e.team?.name)] === voluta);
+    if (i >= 0) teamIdx = i;
+}
+
+/**
+ * La squadra a schermo e' la SECONDA della sua sfida?
+ *
+ * `teamEntries()` mette in fila le quattro squadre a coppie: indice pari e' la
+ * prima della sfida (quella a sinistra nel tabellone), dispari la seconda. Da
+ * quella di destra il gesto valido e' verso destra, da quella di sinistra
+ * verso sinistra.
+ */
+const versoIndietro = () => teamIdx % 2 === 1;
+
 function bindSwipe(el) {
     if (!el) return;
     const stage = el.closest('.live-stage') || el;
@@ -1867,6 +1906,14 @@ function bindSwipe(el) {
         if (asse === null) {
             if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;    // ancora fermo
             asse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+            // Un verso solo, quello che ha senso: le due squadre della sfida
+            // stanno una a sinistra e una a destra nel tabellone, e il gesto
+            // le sfoglia in quell'ordine. Da quella di sinistra si trascina a
+            // sinistra (esce lei, entra da destra l'altra); da quella di
+            // destra si torna indietro trascinando a destra. Il verso
+            // sbagliato non fa niente invece di far comparire la stessa
+            // squadra dal lato opposto.
+            if (asse === 'x' && dx > 0 !== versoIndietro()) asse = 'bloccato';
             if (asse === 'x' && !ridotto()) {
                 el.classList.add('live-dragging');
                 // Il palco smette di tagliare — se no la scheda si tronca di

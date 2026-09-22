@@ -604,6 +604,12 @@ async function render(model) {
 
     const kpi = pointsComparison(model, currentTeam);
 
+    // La sezione si tinge del colore della squadra scelta: sottotitoli,
+    // pastiglie accese e accenti smettono di essere tutti rossi e diventano
+    // "di chi si sta guardando". Con "League" la variabile non c'e' e vale il
+    // rosso di sempre.
+    tintaSquadra(currentTeam);
+
     const tabsHtml = `
         <div class="an-tabs">
             ${TABS.map(t => `<button class="year-pill an-tab${t.id === currentTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
@@ -1657,13 +1663,37 @@ function roleBreakdown(model) {
     });
 }
 
+/**
+ * Scrive (o toglie) `--an-tinta` sulla sezione Analysis. Una variabile sola:
+ * il CSS la usa dove prima c'era `--accent-red`, e non serve toccare un
+ * elemento per volta a ogni ridisegno.
+ */
+function tintaSquadra(teamKey) {
+    const sez = document.getElementById('analysis');
+    if (!sez) return;
+    // Il ruolo `bright` della palette, non l'identita': il bordeaux di Oscurus
+    // (#800020) e il petrolio di Sommo su fondo nero spariscono, ed e'
+    // esattamente il motivo per cui quel secondo colore esiste.
+    const colore = teamKey && teamKey !== 'all' ? TEAM_PALETTE[teamKey]?.bright : null;
+    if (colore) sez.style.setProperty('--an-tinta', colore);
+    else sez.style.removeProperty('--an-tinta');
+}
+
 function leagueRankings(model) {
     const rows = Object.values(TEAMS).map(t => {
         const kpi = pointsComparison(model, t.key);
         const { additions } = marketView(model, t.key);
+        // Due numeri diversi, e la differenza conta: da titolare sono i punti
+        // che hanno messo nel tabellino della squadra, in totale ci sono anche
+        // le settimane passate in panchina — presi e mai schierati.
+        const pickupStarted = additions.reduce((s, a) => s + a.agg.ptsStarted, 0);
         const pickupPts = additions.reduce((s, a) => s + a.agg.pts, 0);
         const topPickup = additions[0] || null;
         const draftPicks = (draftView(model, t.key) || []).filter(p => p.rec && p.agg);
+        // Tutti i punti delle scelte al draft, panchina compresa: il numero
+        // grande e' la miglior formazione possibile con loro, questo e' quanto
+        // hanno prodotto in tutto mentre erano in rosa.
+        const draftedAll = draftPicks.reduce((s, p) => s + p.agg.pts, 0);
         const topDraft = draftPicks.length
             ? draftPicks.reduce((best, p) => p.agg.pts > best.agg.pts ? p : best)
             : null;
@@ -1673,14 +1703,14 @@ function leagueRankings(model) {
         return {
             key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
             drafted: kpi.drafted === null ? null : kpi.drafted + (kpi.po?.drafted || 0),
-            pickupPts, topPickup, topDraft,
+            draftedAll, pickupStarted, pickupPts, topPickup, topDraft,
             benchLost: kpi.benchLost + (kpi.po?.benchLost || 0),
             worstMiss: kpi.worstMiss,
         };
     });
     return {
         draft: [...rows].sort((a, b) => (b.drafted || 0) - (a.drafted || 0)),
-        pickups: [...rows].sort((a, b) => b.pickupPts - a.pickupPts),
+        pickups: [...rows].sort((a, b) => b.pickupStarted - a.pickupStarted),
         bench: [...rows].sort((a, b) => b.benchLost - a.benchLost),
     };
 }
@@ -2705,13 +2735,18 @@ function renderLeagueView(model) {
     ${blockStandings(model)}
 
     <div class="an-rankings">
-        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${nomeCorto({ name: r.topDraft.rec.name, pos: r.topDraft.rec.position })} · ${fmt(r.topDraft.agg.pts, 0)} pt` : null, 'win')}
-        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${nomeCorto({ name: r.topPickup.rec.name, pos: r.topPickup.rec.position })} · ${fmt(r.topPickup.agg.pts, 0)} pt` : null, 'win')}
+        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${nomeCorto({ name: r.topDraft.rec.name, pos: r.topDraft.rec.position })} · ${fmt(r.topDraft.agg.pts, 0)} pt` : null, 'win',
+            r => r.draftedAll, 'All points scored by that draft class, bench weeks included')}
+        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupStarted, r => r.topPickup ? `Top: ${nomeCorto({ name: r.topPickup.rec.name, pos: r.topPickup.rec.position })} · ${fmt(r.topPickup.agg.ptsStarted, 0)} pt` : null, 'win',
+            r => r.pickupPts, 'All their points on the roster, bench weeks included')}
         ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst: ${nomeCorto({ name: r.worstMiss.name, pos: r.worstMiss.position })} · ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
     <p class="an-footnote">Points from that year's draft picks, from in-season waiver pickups, and left unplayed
        on the bench — each ranked highest first, <b>playoffs included</b>. Draft is the best lineup that could
-       be fielded each week with that year's picks alone, counting their points wherever they played in the league.</p>
+       be fielded each week with that year's picks alone, counting their points wherever they played in the league.
+       Pickups is what they scored <b>as starters</b>. The smaller number beside each total is everything those
+       players scored while on the roster, <b>bench weeks included</b>: the gap between the two is what was
+       bought and never played.</p>
 
     <h3 class="an-sub-title">Scoring Consistency</h3>
     ${buildDistributionChart(scoreDistribution(model))}
@@ -3394,20 +3429,24 @@ function pannelloClassifica(titolo, righe, { evidenza = 'bene', vuoto = 'No data
                 ? `<span class="st-leader-nm">${r.nome}</span>
                    <span class="st-leader-team">${notaPezzi(r.sotto)}</span>`
                 : `${r.nome}${r.sotto ? `<span class="st-leader-team">${r.sotto}</span>` : ''}`}</span>
-            <span class="st-leader-value">${r.valore}</span>
+            <span class="st-leader-value">${r.extra
+            ? `<small class="st-leader-extra" title="${escAttr(r.extraTitolo || '')}">${r.extra}</small>` : ''}${r.valore}</span>
         </div>`).join('')}
     </div>`;
 }
 
 /** Classifica fra le quattro squadre: l'immagine e' lo stemma. */
-function rankingBlock(title, rows, valueFn, noteFn, evidenzaMode = 'win') {
+function rankingBlock(title, rows, valueFn, noteFn, evidenzaMode = 'win', extraFn = null, extraTitolo = '') {
     return pannelloClassifica(title, rows.map(r => {
         const val = valueFn(r);
+        const extra = extraFn ? extraFn(r) : null;
         return {
             img: `<img src="${TEAMS[r.key].logo}" alt="" class="st-leader-img st-leader-img--team">`,
             nome: r.name,
             sotto: noteFn(r) || '',
             valore: val !== null && val !== undefined ? fmt(val, 0) : '—',
+            extra: extra !== null && extra !== undefined ? fmt(extra, 0) : null,
+            extraTitolo,
         };
     }), { evidenza: evidenzaMode === 'loss' ? 'male' : 'bene' });
 }

@@ -23,7 +23,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1278">
+    <link rel="stylesheet" href="css/main.css?v=1290">
 </head>
 
 <body>
@@ -74,6 +74,20 @@
                 </li>
             </ul>
             <div class="nav-actions">
+                <!-- Impostazioni: per ora una sola, la squadra del cuore. Il
+                     pannello lo riempie ui/navbar.js da TEAMS, cosi' non c'e'
+                     una seconda lista di squadre da tenere allineata. -->
+                <div class="nav-prefs" id="nav-prefs">
+                    <button class="nav-prefs-btn" id="nav-prefs-btn" type="button"
+                            aria-label="Settings" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <div class="nav-prefs-panel" id="nav-prefs-panel" hidden></div>
+                </div>
                 <button class="nav-theme-btn" id="nav-theme-btn" type="button" aria-label="Switch to light theme" aria-pressed="false">
                     <!-- sole: si vede sul tema scuro, porta al chiaro -->
                     <svg class="nav-theme-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -546,7 +560,7 @@
         // qui solo prima.
         startLoadingArt();
     </script>
-    <script type="module" src="js/app.js?v=1362"></script>
+    <script type="module" src="js/app.js?v=1373"></script>
 </body>
 
 </html>

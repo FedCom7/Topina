@@ -4,6 +4,7 @@ import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=552';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=829';
+import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { initPlayerModal } from '../components/player-modal.js?v=780';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
@@ -338,6 +339,19 @@ function renderMatchups(grid) {
     // Sort Super Bowl week: Final (highest score?) first — conservando
     // l'indice originale, usato dalla route #game/{year}/{week}/{idx}
     let matchups = weekData.matchups.map((m, idx) => ({ m, idx }));
+
+    // La partita della squadra del cuore va in cima: e' quella che si apre il
+    // Game Center per guardare, e finiva seconda solo per l'ordine in cui
+    // Firebase scrive le sfide. L'INDICE originale se lo porta dietro
+    // (`idx`), perche' e' quello della rotta #game/{anno}/{week}/{idx}: se si
+    // usasse la posizione a schermo, cliccando si aprirebbe un'altra partita.
+    const mia = squadraPreferita();
+    if (mia) {
+        const diMia = ({ m }) => TEAM_KEYS[displayName(m.team1?.name)] === mia
+            || TEAM_KEYS[displayName(m.team2?.name)] === mia;
+        matchups.sort((a, b) => (diMia(b) ? 1 : 0) - (diMia(a) ? 1 : 0));
+    }
+
     if (currentWeek === getSeasonConfig(currentYear).superBowlWeek) {
         matchups.sort((a, b) => {
             const totalA = parseFloat(a.m.team1.score) + parseFloat(a.m.team2.score);
