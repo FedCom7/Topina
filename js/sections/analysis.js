@@ -11,7 +11,7 @@ import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS
 import { TEAMS } from './team.js?v=829';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { dotPlot, dumbbell } from '../ui/charts.js?v=9';
+import { dotPlot, dumbbell, donutSeg } from '../ui/charts.js?v=9';
 import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1002';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=611';
 
@@ -1824,6 +1824,12 @@ const INFO_GRAFICI = {
         base: 'Whole roster.',
         regola: 'The designation is the Friday one: it says whether he was in doubt, not whether he then played. "DNP" is the only confirmation, taken from the official game roster.',
     },
+    'draft-vs-mercato': {
+        cosa: 'How much of what the team actually fielded came from the draft, and how much from the market.',
+        base: 'Points scored as starters only.',
+        regola: 'Draft = players this team picked that year; market = anyone who arrived later, however they arrived. Bench weeks are out, so the two slices add up to the team\'s real score. A player drafted by someone else and picked up later counts as market.',
+    },
+
     'classifiche': {
         cosa: 'Three rankings side by side: draft, market and bench.',
         base: 'Each has its own basis — which is exactly why this "i" is here.',
@@ -1887,6 +1893,62 @@ function sottoTitolo(id, testo, extra = '') {
         ? `<button class="an-info" type="button" data-info="${id}" aria-label="What am I looking at?">i</button>`
         : '';
     return `<h3 class="an-sub-title an-sub-title--info ${extra}">${testo}${info}</h3>`;
+}
+
+
+/**
+ * Draft o mercato: da dove arrivano i punti che la squadra ha davvero
+ * SCHIERATO.
+ *
+ * Una ciambella per squadra. La fetta grande sono i punti fatti da titolare
+ * dai giocatori scelti al draft, l'altra quelli di chi e' arrivato dopo. Due
+ * squadre con lo stesso totale possono averlo costruito in modi opposti — una
+ * col draft, l'altra rifacendosi in stagione — e questa e' la domanda a cui
+ * gli altri grafici non rispondono.
+ *
+ * Solo i punti da TITOLARE: la panchina non e' finita nel punteggio, e qui si
+ * guarda cosa ha prodotto la formazione. Le due fette insieme fanno quindi il
+ * totale della squadra, non la somma di tutto quello che la rosa ha segnato.
+ */
+function blockDraftVsMercato(model) {
+    const dati = Object.values(TEAMS).map(t => {
+        const { additions } = marketView(model, t.key);
+        const presi = additions.reduce((acc, a) => acc + a.agg.ptsStarted, 0);
+        const picks = (draftView(model, t.key) || []).filter(x => x.rec && x.agg);
+        const draftati = picks.reduce((acc, x) => acc + x.agg.ptsStarted, 0);
+        return { key: t.key, name: t.name, colore: CHART_COLORS[t.key] || '#888', draftati, presi };
+    }).filter(d => d.draftati + d.presi > 0);
+
+    if (!dati.length) return '';
+
+    const R = 52, RI = 32, C = 62;   // raggio esterno, interno, centro del riquadro
+    const ciambella = (d) => {
+        const tot = d.draftati + d.presi;
+        const quota = tot ? d.draftati / tot : 0;
+        const fine = quota * 360;
+        return `
+        <figure class="an-torta">
+            <svg viewBox="0 0 ${C * 2} ${C * 2}" class="an-torta-svg" role="img"
+                 aria-label="${escAttr(d.name)}: ${fmt(d.draftati, 0)} points from draft picks, ${fmt(d.presi, 0)} from pickups">
+                ${donutSeg(C, C, RI, R, 0, fine, 'an-torta-draft', `Draft · ${fmt(d.draftati, 0)} pt`)}
+                ${donutSeg(C, C, RI, R, fine, 360, 'an-torta-mercato', `Market · ${fmt(d.presi, 0)} pt`)}
+                <text x="${C}" y="${C - 2}" class="an-torta-num" text-anchor="middle">${Math.round(quota * 100)}%</text>
+                <text x="${C}" y="${C + 12}" class="an-torta-lbl" text-anchor="middle">draft</text>
+            </svg>
+            <figcaption>
+                <span class="an-torta-team">${escAttr(d.name)}</span>
+                <span class="an-torta-cifre">${fmt(d.draftati, 0)} <i>draft</i> · ${fmt(d.presi, 0)} <i>market</i></span>
+            </figcaption>
+        </figure>`;
+    };
+
+    return `
+    ${sottoTitolo('draft-vs-mercato', 'Starter points: draft or market?')}
+    <div class="an-torte" style="${dati.map(d => `--tc-${d.key}:${d.colore}`).join(';')}">
+        ${dati.map(d => `<div class="an-torta-wrap" style="--tc-sel:${d.colore}">${ciambella(d)}</div>`).join('')}
+    </div>
+    <p class="an-footnote">Only points scored <b>as starters</b>: the two slices add up to the team's real score,
+       not to everything the roster produced. The draft slice is in the team's colour.</p>`;
 }
 
 function leagueRankings(model) {
@@ -2970,6 +3032,8 @@ function renderLeagueView(model) {
     ${legend}
     ${buildDraftScatterSection(draftValueScatter(model))}
     <p class="an-footnote">Each dot is a pick from that year's draft, positioned by pick number and the points its player scored for the team that took him.</p>
+
+    ${blockDraftVsMercato(model)}
 
     <div id="an-leaders-wrap">${renderPositionLeaders(model)}</div>
 
