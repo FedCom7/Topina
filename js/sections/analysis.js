@@ -1921,17 +1921,32 @@ function blockDraftVsMercato(model) {
 
     if (!dati.length) return '';
 
-    const R = 52, RI = 32, C = 62;   // raggio esterno, interno, centro del riquadro
+    // Anello sottile, non una fetta di torta: due archi con le punte tonde,
+    // staccati da un pelo di spazio. Il raggio e' uno solo — la larghezza la
+    // fa lo `stroke`, non la differenza fra due raggi.
+    const C = 62, R = 46;
+    const giro = 2 * Math.PI * R;
+    const STACCO = 7;                 // il buco fra i due archi, in unita' d'arco
     const ciambella = (d) => {
         const tot = d.draftati + d.presi;
         const quota = tot ? d.draftati / tot : 0;
-        const fine = quota * 360;
+        // con una quota piena (o vuota) niente stacco: un anello intero non ha
+        // due capi da separare
+        const stacco = quota > 0.02 && quota < 0.98 ? STACCO : 0;
+        const arcoDraft = Math.max(0, quota * giro - stacco);
+        const arcoMercato = Math.max(0, (1 - quota) * giro - stacco);
         return `
         <figure class="an-torta">
             <svg viewBox="0 0 ${C * 2} ${C * 2}" class="an-torta-svg" role="img"
                  aria-label="${escAttr(d.name)}: ${fmt(d.draftati, 0)} points from draft picks, ${fmt(d.presi, 0)} from pickups">
-                ${donutSeg(C, C, RI, R, 0, fine, 'an-torta-draft', `Draft · ${fmt(d.draftati, 0)} pt`)}
-                ${donutSeg(C, C, RI, R, fine, 360, 'an-torta-mercato', `Market · ${fmt(d.presi, 0)} pt`)}
+                <g transform="rotate(-90 ${C} ${C})">
+                    ${arcoDraft > 0 ? `<circle class="an-torta-arco an-torta-draft" cx="${C}" cy="${C}" r="${R}"
+                        stroke-dasharray="${arcoDraft.toFixed(2)} ${(giro - arcoDraft).toFixed(2)}"
+                        stroke-dashoffset="${(-stacco / 2).toFixed(2)}"><title>Draft · ${fmt(d.draftati, 0)} pt</title></circle>` : ''}
+                    ${arcoMercato > 0 ? `<circle class="an-torta-arco an-torta-mercato" cx="${C}" cy="${C}" r="${R}"
+                        stroke-dasharray="${arcoMercato.toFixed(2)} ${(giro - arcoMercato).toFixed(2)}"
+                        stroke-dashoffset="${(-(quota * giro + stacco / 2)).toFixed(2)}"><title>Market · ${fmt(d.presi, 0)} pt</title></circle>` : ''}
+                </g>
                 <text x="${C}" y="${C - 2}" class="an-torta-num" text-anchor="middle">${Math.round(quota * 100)}%</text>
                 <text x="${C}" y="${C + 12}" class="an-torta-lbl" text-anchor="middle">draft</text>
             </svg>
@@ -3021,6 +3036,8 @@ function renderLeagueView(model) {
        players scored while on the roster, <b>bench weeks included</b>: the gap between the two is what was
        bought and never played.</p>
 
+    ${blockDraftVsMercato(model)}
+
     ${sottoTitolo('costanza', `Scoring Consistency`)}
     ${buildDistributionChart(scoreDistribution(model))}
 
@@ -3032,8 +3049,6 @@ function renderLeagueView(model) {
     ${legend}
     ${buildDraftScatterSection(draftValueScatter(model))}
     <p class="an-footnote">Each dot is a pick from that year's draft, positioned by pick number and the points its player scored for the team that took him.</p>
-
-    ${blockDraftVsMercato(model)}
 
     <div id="an-leaders-wrap">${renderPositionLeaders(model)}</div>
 

@@ -3992,7 +3992,7 @@ body.nav-dd-open::after {
         height: var(--nav-height);
     }
 
-    .nav-actions > :not(.nav-theme-btn) {
+    .nav-actions > :not(.nav-theme-btn):not(.nav-prefs) {
         display: none;
     }
 }
@@ -19421,12 +19421,19 @@ td.ps-div-seed {
     height: auto;
 }
 
+/* L'anello: filo sottile con le punte tonde, non una fetta piena. */
+.an-torta-arco {
+    fill: none;
+    stroke-width: 7;
+    stroke-linecap: round;
+}
+
 .an-torta-draft {
-    fill: var(--tc-sel, var(--accent-red));
+    stroke: var(--tc-sel, var(--accent-red));
 }
 
 .an-torta-mercato {
-    fill: color-mix(in srgb, var(--text-primary) 18%, transparent);
+    stroke: color-mix(in srgb, var(--text-primary) 20%, transparent);
 }
 
 .an-torta-num {

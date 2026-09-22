@@ -25,7 +25,7 @@ import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
 import { TEAMS } from './team.js?v=829';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=7';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=862';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=865';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
