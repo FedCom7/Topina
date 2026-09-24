@@ -2,7 +2,8 @@
  * Topina League — SPA Router & Init
  */
 import { initHome } from './sections/home.js?v=1098';
-import { initGameCenter } from './sections/game-center.js?v=837';
+import { initGameCenter } from './sections/game-center.js?v=845';
+
 import { initStandings, initPlayoffs } from './sections/standings.js?v=779';
 import { initDraft } from './sections/draft.js?v=815';
 import { initDraftGrades } from './sections/draftgrades.js?v=827';
@@ -13,19 +14,20 @@ import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=827';
 import { initPlayerPage } from './sections/player-page.js?v=1072';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=1112';
 import { initPlayersSearch } from './sections/players-search.js?v=1001';
-import { initStats } from './sections/stats.js?v=904';
+import { initStats } from './sections/stats.js?v=922';
 import { initHistory } from './sections/history.js?v=762';
 import { initHonors } from './sections/honors.js?v=747';
 import { initAllPro } from './sections/allpro.js?v=760';
 import { initHallOfFame } from './sections/halloffame.js?v=774';
 import { initTeam } from './sections/team.js?v=838';
 import { initTeams } from './sections/teams.js?v=744';
-import { initGame } from './sections/game.js?v=829';
-import { initAnalysis } from './sections/analysis.js?v=879';
-import { initLeaders } from './sections/leaders.js?v=109';
-import { initWaivers } from './sections/waivers.js?v=113';
+import { initGame } from './sections/game.js?v=831';
+import { initAnalysis } from './sections/analysis.js?v=894';
+import { initLeaders } from './sections/leaders.js?v=123';
+import { initWaivers } from './sections/waivers.js?v=126';
+
 import { initMagazine } from './sections/magazine.js?v=796';
-import { initLive } from './sections/live.js?v=1123';
+import { initLive } from './sections/live.js?v=1131';
 import { initNavbar } from './ui/navbar.js?v=686';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';

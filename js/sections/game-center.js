@@ -516,7 +516,9 @@ function nomeCampoHTML(p, lungo) {
         // ultima parola, tranne il vecchio "Washington Football Team"
         ? (/football team$/i.test(p.name) ? 'Football Team' : parti[parti.length - 1])
         : (parti.length < 2 ? p.name : parti.slice(1).join(' '));
-    return `<span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span>`;
+    // Il nome sta in una scatola sua: e' quella a doversi centrare sotto la
+    // foto, e numero e stato fisico le stanno accanto FUORI dal flusso.
+    return `<span class="slot-nm"><span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span></span>`;
 }
 
 function slotContent(p) {

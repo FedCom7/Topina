@@ -1175,7 +1175,7 @@ async function loadPlayerInjuryBadges(container, model) {
  * `showTeamCol` (tab Confronto, anno precedente) mostra sempre la squadra in
  * una colonna a sé, perché lì non c'è "questa squadra" con cui confrontare.
  */
-export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, injuryInfo = null } = {}) {
+export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, injuryInfo = null, teamOnBadge = false } = {}) {
     const teamCell = showTeamCol ? `<span class="an-drill-team">${w ? (TEAMS[w.teamKey]?.name || '') : ''}</span>` : '';
     // dnp === true: sappiamo per certo che non ha giocato, anche se il referto
     // (fermo al venerdì) diceva solo "Questionable" — vale la pena dirlo.
@@ -1192,7 +1192,13 @@ export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, inju
         ? `<span class="an-badge an-badge-bench">Unrostered</span>`
         : !showTeamCol && teamKey && w.teamKey !== teamKey
             ? `<span class="an-badge an-badge-drop">On ${TEAMS[w.teamKey]?.name || '?'}</span>`
-            : `<span class="an-badge ${w.started ? 'an-badge-start' : 'an-badge-bench'}">${w.started ? 'Starter' : 'Bench'}</span>`;
+            // `teamOnBadge`: in Players il giocatore non e' "di" nessuno in
+            // partenza, e puo' cambiare rosa durante l'anno. Senza il nome
+            // accanto, "Starter" non dice di CHI: la squadra si legge qui,
+            // settimana per settimana, invece che in una targhetta sola in
+            // cima che varrebbe per tutta la stagione.
+            : `<span class="an-badge ${w.started ? 'an-badge-start' : 'an-badge-bench'}">${w.started ? 'Starter' : 'Bench'}${
+            teamOnBadge && TEAMS[w.teamKey] ? ` · ${TEAMS[w.teamKey].name}` : ''}</span>`;
 
     // Righe "calcolate" (nessuna squadra fantasy le ha mai registrate: punti
     // ricostruiti da statistiche NFL vere, non un dato di lega) restano
@@ -1215,7 +1221,7 @@ export function drillRow(rec, wk, w, { teamKey = null, showTeamCol = false, inju
  * getUnrosteredScores) riempie il buco con il punteggio reale — spento e
  * segnato con un asterisco, mai un dato di lega.
  */
-function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Map(), showTeamCol = false) {
+function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Map(), showTeamCol = false, teamOnBadge = false) {
     const righe = [];
     for (let wk = 1; wk <= model.lastWeek; wk++) {
         // la settimana a venire sta in `pending`: niente punti d'archivio, ma
@@ -1242,7 +1248,7 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
             const c = calcScores.get(wk);
             w = { ...w, pts: c.pts, stats: c.stats, opponent: w.opponent || c.opponent, live: true };
         }
-        righe.push(drillRow(rec, wk, w, { teamKey, showTeamCol, injuryInfo: infortuni.get(wk) }));
+        righe.push(drillRow(rec, wk, w, { teamKey, showTeamCol, teamOnBadge, injuryInfo: infortuni.get(wk) }));
     }
     return righe.join('');
 }
@@ -1257,7 +1263,7 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
  * `getUnrosteredScores`, spente e con l'asterisco, che e' esattamente cosa
  * sono — punti ricostruiti da statistiche NFL vere, mai un dato di lega.
  */
-export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null } = {}) {
+export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null, teamOnBadge = false } = {}) {
     const m = model || modelCache[year] || null;
     const rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
     const [infortuni, unros] = await Promise.all([
@@ -1280,7 +1286,7 @@ export async function playerSeasonDrill(year, { name, position, nflTeam }, { mod
     // week 1 il drill mostrava una W2 vuota.
     const ultima = lastWeek || m?.lastWeek || (calcScores.size ? Math.max(...calcScores.keys()) : 0);
     if (!ultima) return '';
-    return fullSeasonDrillRows({ lastWeek: ultima, playedWeeks: m?.playedWeeks }, rec, teamKey, infortuni, calcScores);
+    return fullSeasonDrillRows({ lastWeek: ultima, playedWeeks: m?.playedWeeks }, rec, teamKey, infortuni, calcScores, false, teamOnBadge);
 }
 
 async function weekDrillHtml(playerName) {
@@ -1541,7 +1547,14 @@ function teamWeekLog(model, teamKey) {
 }
 
 /** Media delle ultime `n` giornate giocate contro la media di stagione. */
-function teamForm(model, n = 3) {
+/**
+ * Quante giornate fanno "adesso". Sotto questa soglia la forma non esiste:
+ * le ultime N sono la stagione intera, e ogni squadra sta per forza sulla
+ * propria media.
+ */
+const FORM_N = 3;
+
+function teamForm(model, n = FORM_N) {
     const weeks = playedWeeks(model);
     return Object.values(TEAMS).map(t => {
         const punti = weeks.map(w => model.teamWeeks[t.key]?.[w]?.score).filter(v => v != null);
@@ -1741,7 +1754,7 @@ const INFO_GRAFICI = {
     'caldo': {
         cosa: 'Who is scoring above their own pace right now.',
         base: 'Starters only.',
-        regola: 'Recent weeks against the season average: it measures form, not how good the team is.',
+        regola: 'The last three weeks against the team\u2019s own season average: it measures form, not how good the team is — a weak team playing above itself shows up here. It needs more than three weeks played, otherwise the two figures are the same weeks and every team lands on its own average.',
     },
     'scontro': {
         cosa: 'Where each team gains ground on the others, position by position.',
@@ -1794,9 +1807,9 @@ const INFO_GRAFICI = {
         regola: 'A position can be low because the player scores little or because he was rarely started: the week-by-week chart above tells the two apart.',
     },
     'costanza': {
-        cosa: 'How much the weekly scores swing.',
-        base: 'Starters only, regular season.',
-        regola: 'The less they swing, the more predictable the team: two teams with the same average can be opposites here.',
+        cosa: 'How much the weekly scores swing, this season.',
+        base: 'Team scores — starters only, by definition. Weeks actually played.',
+        regola: 'Each dot is one week. The vertical line is the average, the band is ±1 standard deviation: the narrower it is, the more predictable the team. Two teams with the same average can be opposites here. All-Time Stats has the same chart over every season.',
     },
     'valore-pick': {
         cosa: 'What each draft pick returned compared with where it was taken.',
@@ -2018,15 +2031,21 @@ function leagueRankings(model) {
     };
 }
 
+/**
+ * I punteggi settimanali di ogni squadra, uno per uno.
+ *
+ * Solo le giornate DAVVERO giocate: la stagione in corso si porta dietro le
+ * settimane future a zero, e contarle schiacciava la nuvola contro lo zero
+ * (col vecchio disegno il minimo era 0,0 per tutte e quattro).
+ */
 function scoreDistribution(model) {
-    return Object.values(TEAMS).map(t => {
-        const scores = Object.values(model.teamWeeks[t.key] || {}).map(tw => tw.score);
-        if (!scores.length) return null;
-        const sorted = [...scores].sort((a, b) => a - b);
-        const mid = Math.floor(sorted.length / 2);
-        const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        return { key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888', min: sorted[0], median, max: sorted[sorted.length - 1] };
-    }).filter(Boolean);
+    const out = {};
+    for (const t of Object.values(TEAMS)) {
+        for (const tw of Object.values(model.teamWeeks[t.key] || {})) {
+            if (tw.score > 0) (out[t.key] ||= []).push(tw.score);
+        }
+    }
+    return out;
 }
 
 export function draftValueScatter(model) {
@@ -2287,6 +2306,12 @@ function blockLuck(model) {
 function blockForm(model) {
     const forma = teamForm(model);
     if (!forma.length) return seasonEmpty('The season has not started yet.');
+
+    // A inizio stagione le ultime N giornate SONO tutta la stagione, e ogni
+    // squadra sta per forza sulla propria media: quattro pallini al centro e
+    // "0,0%" per tutti. Non c'e' niente da leggere, quindi il blocco non esce
+    // affatto — ne' grafico ne' spiegazione.
+    if (playedWeeks(model).length <= FORM_N) return '';
     const righe = [...forma]
         .sort((a, b) => (b.recente - b.media) - (a.recente - a.media))
         .map(t => ({
@@ -2867,11 +2892,36 @@ function roleWeeklyScores(model, mode, teamKey) {
     return byRole;
 }
 
+/** Per ruolo: corsie QB..DEF, colori dei ruoli, etichetta corta. */
 function buildRoleDistribution(byRole) {
-    const roles = Object.keys(ROLE_COLORS).filter(r => (byRole[r] || []).length);
+    return buildDotDistribution(byRole, Object.keys(ROLE_COLORS), ROLE_COLORS, r => r, 44);
+}
+
+/**
+ * Per squadra: stesse corsie, ma i nomi per esteso non stanno in 44px — il
+ * margine sinistro cresce, come nel dot plot dei margini che ha lo stesso
+ * problema. I colori sono quelli gia' resi leggibili su fondo nero.
+ */
+function buildTeamDistribution(byTeam) {
+    const chiavi = Object.values(TEAMS).map(t => t.key);
+    const colori = Object.fromEntries(chiavi.map(k => [k, CHART_COLORS[k] || '#888']));
+    return buildDotDistribution(byTeam, chiavi, colori, k => TEAMS[k].name, 132);
+}
+
+/**
+ * Un punto per prestazione, una corsia per categoria: media, ±1 deviazione
+ * standard e la nuvola vera sotto.
+ *
+ * Le corsie arrivano da fuori (ruoli o squadre) perche' il disegno e' lo
+ * stesso. Il gemello in All-Time Stats fa lo stesso conto su tutte le
+ * stagioni: se cambia uno dei due, l'altro va allineato.
+ */
+function buildDotDistribution(dati, ordine, colori, etichetta, margineSx) {
+    const byRole = dati;
+    const roles = ordine.filter(r => (byRole[r] || []).length);
     if (!roles.length) return emptyState('No data available');
 
-    const RDP = { w: 800, l: 44, r: 16, t: 14, b: 28, lane: 56 };
+    const RDP = { w: 800, l: margineSx, r: 16, t: 14, b: 28, lane: 56 };
     const allPts = roles.flatMap(r => byRole[r]);
     const maxPts = Math.max(...allPts, 1);
     const xTicks = niceTicks(0, maxPts);
@@ -2891,7 +2941,7 @@ function buildRoleDistribution(byRole) {
     const lanes = roles.map((role, ri) => {
         const pts = byRole[role];
         const { mean, std } = meanStd(pts);
-        const color = ROLE_COLORS[role];
+        const color = colori[role];
         const cy = RDP.t + ri * RDP.lane + RDP.lane / 2;
         const jitH = RDP.lane * 0.62;
         const band = `<rect x="${x(Math.max(mean - std, 0)).toFixed(1)}" y="${(cy - jitH / 2).toFixed(1)}"
@@ -2903,7 +2953,7 @@ function buildRoleDistribution(byRole) {
         }).join('');
         const meanLine = `<line x1="${x(mean).toFixed(1)}" y1="${(cy - jitH / 2 - 3).toFixed(1)}" x2="${x(mean).toFixed(1)}" y2="${(cy + jitH / 2 + 3).toFixed(1)}" stroke="${color}" stroke-width="2.5"/>`;
         const meanLabel = `<text x="${x(mean).toFixed(1)}" y="${(cy - jitH / 2 - 6).toFixed(1)}" class="an-tick" text-anchor="middle" style="fill:${color};font-weight:700">${fmt1n(mean)}</text>`;
-        const roleLabel = `<text x="${RDP.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${role}</text>`;
+        const roleLabel = `<text x="${RDP.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${etichetta(role)}</text>`;
         return `${band}${dots}${meanLine}${meanLabel}${roleLabel}`;
     }).join('');
 
@@ -3066,7 +3116,9 @@ function renderLeagueView(model) {
     ${blockDraftVsMercato(model)}
 
     ${sottoTitolo('costanza', `Scoring Consistency`)}
-    ${buildDistributionChart(scoreDistribution(model))}
+    <div class="an-chart">${buildTeamDistribution(scoreDistribution(model))}</div>
+    <p class="an-footnote">Each dot is one week's score this season. The vertical line is the average, the band is
+       ±1 standard deviation: a narrow band is a team you can count on, a wide one swings.</p>
 
     ${blockMargin(model)}
 
@@ -3675,28 +3727,6 @@ function buildPickupsCompareTable(model) {
             <tbody>${body}</tbody>
         </table>
     </div>`;
-}
-
-function buildDistributionChart(rows) {
-    if (!rows.length) return emptyState('No scoring data available');
-    const maxVal = Math.max(...rows.map(r => r.max), 1);
-    return `
-    <div class="an-dist-chart">
-        ${rows.map(r => `
-        <div class="an-dist-row">
-            <span class="an-dist-name">${r.name}</span>
-            <span class="an-dist-track">
-                <span class="an-dist-range" style="left:${(r.min / maxVal * 100).toFixed(1)}%; width:${((r.max - r.min) / maxVal * 100).toFixed(1)}%; background:${r.color}"></span>
-                <span class="an-dist-median" style="left:${(r.median / maxVal * 100).toFixed(1)}%"></span>
-            </span>
-            <span class="an-dist-values">
-                <span class="an-dist-min">${fmt(r.min, 1)}</span>
-                <span class="an-dist-med">${fmt(r.median, 1)}</span>
-                <span class="an-dist-max">${fmt(r.max, 1)}</span>
-            </span>
-        </div>`).join('')}
-    </div>
-    <p class="an-footnote">Bar = min–max range of weekly scores; the vertical mark is the median.</p>`;
 }
 
 function buildDraftScatterSection(points) {
