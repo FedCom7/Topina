@@ -12,7 +12,7 @@
 
 import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=623';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { TEAMS } from '../sections/team.js?v=833';
+import { TEAMS } from '../sections/team.js?v=838';
 import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
 
 const MOBILE_MQ = '(max-width: 768px)';

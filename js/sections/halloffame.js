@@ -11,7 +11,7 @@
 import { CURRENT_SEASON } from '../data.js?v=594';
 import { electHallOfFame, FIRST_CLASS_YEAR, MIN_SEASONS, WAIT_YEARS } from '../data/hall-of-fame.js?v=631';
 import { playerImageService } from '../services/player-image-service.js?v=532';
-import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=783';
+import { paniniCard, initPlayerModal } from '../components/player-modal.js?v=787';
 import { resolveSleeperId, getPlayerInfo } from '../data/player-full.js?v=671';
 
 let initialized = false;

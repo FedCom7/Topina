@@ -83,6 +83,9 @@ export function righeDaEspn(tx, nomi) {
             pos: p.pos || '',
             nfl: p.nfl || '',
             bid: tx.bidAmount || null,
+            // id della transazione: due righe con lo stesso id sono la stessa
+            // mossa vista dai due lati, e la pagina le riunisce in una riga
+            tx: tx.id != null ? String(tx.id) : null,
             scambio: null,
         };
     };

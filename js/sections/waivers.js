@@ -22,10 +22,10 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
-import { TEAMS } from './team.js?v=833';
+import { TEAMS } from './team.js?v=838';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=12';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=868';
+import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=18';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=872';
 
 /** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */
 const escAttr = (v) => String(v ?? '').replace(/[&<>"]/g,
@@ -103,19 +103,73 @@ function nomeLink(m) {
     return `<a class="wv-player-link" href="${href}">${m.nome}</a>`;
 }
 
-function riga(m) {
+/**
+ * Le righe come si guardano: uno scambio e' UNA mossa, non due.
+ *
+ * ESPN scrive l'acquisto e il taglio che lo paga nella stessa transazione
+ * (stesso `tx`): qui le due righe si riuniscono, prima chi esce e poi chi
+ * entra, che e' l'ordine in cui la mossa e' stata pensata. Chi non ha un
+ * compagno — un acquisto a rosa libera, un taglio secco — resta una riga da
+ * solo.
+ */
+function accorpa(lista) {
+    const perTx = new Map();
+    const fuori = [];
+    for (const m of lista) {
+        if (!m.tx || !m.scambio) { fuori.push({ singola: m }); continue; }
+        const g = perTx.get(m.tx) || {};
+        g[m.verso] = m;
+        perTx.set(m.tx, g);
+    }
+    for (const g of perTx.values()) {
+        if (g.in && g.out) fuori.push({ esce: g.out, entra: g.in });
+        else fuori.push({ singola: g.in || g.out });
+    }
+    // l'ordine resta quello di `ordina`: si usa la riga piu' recente del gruppo
+    const quando = (r) => {
+        const m = r.singola || r.entra || r.esce;
+        return [Number(m.data) || 0, m.settimana ?? -1];
+    };
+    return fuori.sort((a, b) => quando(b)[0] - quando(a)[0] || quando(b)[1] - quando(a)[1]);
+}
+
+/** Il giocatore dentro una riga: foto, nome, ruolo, squadra NFL. */
+function chi(m, cls = '') {
+    return `${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
+        <span class="an-player-name ${cls}">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${
+        m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>`;
+}
+
+function intestazione(m, etichetta, classe) {
     const logo = logoSquadra(m.squadra);
-    const dentro = m.verso === 'in';
     return `
-    <div class="wv-row">
         <span class="wv-when">${m.settimana != null ? `W${m.settimana}` : ''}${m.data ? `<i>${dataBreve(m.data)}</i>` : ''}</span>
         <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>
-        <span class="wv-dir ${dentro ? 'wv-in' : 'wv-out'}">${dentro ? 'Added' : 'Dropped'}</span>
-        ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
-        <span class="an-player-name">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}${
-            m.scambio ? `<span class="wv-scambio">${dentro ? 'for' : 'replaced by'} <b>${escAttr(m.scambio.nome)}</b>${
-                m.scambio.pos ? ` ${escAttr(m.scambio.pos)}` : ''}</span>` : ''}</span>
-        <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
+        <span class="wv-dir ${classe}">${etichetta}</span>`;
+}
+
+function riga(r) {
+    if (r.singola) {
+        const m = r.singola;
+        const dentro = m.verso === 'in';
+        return `
+        <div class="wv-row">
+            ${intestazione(m, dentro ? 'Added' : 'Dropped', dentro ? 'wv-in' : 'wv-out')}
+            ${chi(m)}
+            <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
+        </div>`;
+    }
+
+    const { esce, entra } = r;
+    return `
+    <div class="wv-row wv-row--swap">
+        ${intestazione(entra, 'Swap', 'wv-swap')}
+        <span class="wv-coppia">
+            <span class="wv-lato wv-lato--out">${chi(esce, 'wv-nome-out')}</span>
+            <span class="wv-freccia" aria-hidden="true">→</span>
+            <span class="wv-lato wv-lato--in">${chi(entra)}</span>
+        </span>
+        <span class="wv-kind">${entra.tipo}${entra.bid ? ` · $${entra.bid}` : ''}</span>
     </div>`;
 }
 
@@ -166,7 +220,7 @@ function render() {
         <div class="pm-tile"><b>${inn}</b><span>players added</span></div>
         <div class="pm-tile"><b>${lista.length - inn}</b><span>players dropped</span></div>
     </div>
-    <div class="wv-list">${limitedRows(lista.map(riga), VISIBILI, 'waivers')}</div>
+    <div class="wv-list">${limitedRows(accorpa(lista).map(riga), VISIBILI, 'waivers')}</div>
     <p class="an-footnote">${nota}</p>`;
     hydrateImages(wrap);
 }
