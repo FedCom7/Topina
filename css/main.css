@@ -19441,72 +19441,15 @@ td.ps-div-seed {
     color: var(--text-muted);
 }
 
-/* Waivers: lo scambio e' UNA riga — chi esce, la freccia, chi entra. Le due
-   meta' stanno nella colonna del giocatore, che per questo diventa larga il
-   doppio (vedi .wv-row--swap). */
-.wv-coppia {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-}
-
-.wv-lato {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    flex: 1 1 0;
-}
-
-.wv-lato .an-player-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.wv-lato .wv-photo {
-    flex: 0 0 auto;
-}
-
-/* Chi esce e' spento: la riga si legge da sinistra a destra come la mossa,
-   e l'occhio finisce su chi e' arrivato. */
-.wv-lato--out .an-player-name,
-.wv-lato--out .wv-photo {
-    opacity: 0.55;
-}
-
+/* Waivers: chi lascia e' spento e col nome barrato — la riga si legge
+   dall'alto in basso, e l'occhio resta su chi e' arrivato. */
 .wv-nome-out {
     text-decoration: line-through;
     text-decoration-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
 }
 
-.wv-freccia {
-    flex: 0 0 auto;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-.wv-dir.wv-swap {
-    background: color-mix(in srgb, var(--text-primary) 12%, transparent);
-    color: var(--text-secondary);
-}
-
-@media (max-width: 720px) {
-
-    /* Su telefono le due meta' vanno una sopra l'altra: affiancate restano due
-       nomi tagliati a meta'. */
-    .wv-coppia {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-    }
-
-    .wv-freccia {
-        transform: rotate(90deg);
-        margin-left: 12px;
-    }
+.wv-r2 {
+    opacity: 0.62;
 }
 
 /* Draft o mercato: quattro ciambelle in riga, una per squadra. */
@@ -26660,6 +26603,13 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     text-decoration: underline;
 }
 
+/* Le due versioni del nome — intera e con la sola iniziale — stanno tutt'e due
+   nel markup e si scambiano col CSS: cosi' il link resta uno, e il nome giusto
+   dipende dalla larghezza e non da quando e' stata disegnata la riga. */
+.wv-n-corto {
+    display: none;
+}
+
 .wv-row {
     display: grid;
     grid-template-columns: 64px minmax(120px, 0.9fr) 74px 40px minmax(160px, 1.4fr) minmax(90px, 0.6fr);
@@ -26669,11 +26619,32 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Lo scambio ha una colonna sola per i due giocatori, larga quanto foto +
-   nome di prima messi insieme. Sta DOPO .wv-row: stesso peso, vince l'ultima. */
+/* Lo scambio: stesse colonne di una mossa singola, ma DUE righe — sopra chi
+   entra, sotto chi esce. Etichette, foto e nomi si incolonnano perche' stanno
+   nelle stesse colonne. Data, squadra e tipo valgono per tutt'e due e si
+   allungano su entrambe le righe. La regola sta DOPO .wv-row: stesso peso,
+   vince l'ultima. */
 .wv-row--swap {
-    grid-template-columns: 64px minmax(120px, 0.9fr) 74px minmax(280px, 2.6fr) minmax(90px, 0.6fr);
+    grid-template-rows: auto auto;
+    row-gap: 7px;
 }
+
+.wv-row--swap > .wv-when,
+.wv-row--swap > .wv-team {
+    grid-row: 1 / span 2;
+}
+
+.wv-row--swap > .wv-kind {
+    grid-column: 6;
+    grid-row: 1 / span 2;
+}
+
+.wv-row--swap > .wv-r1 { grid-row: 1; }
+.wv-row--swap > .wv-r2 { grid-row: 2; }
+
+.wv-row--swap > .wv-dir { grid-column: 3; }
+.wv-row--swap > .wv-photo { grid-column: 4; }
+.wv-row--swap > .an-player-name { grid-column: 5; }
 
 .wv-when {
     display: flex;
@@ -26756,6 +26727,11 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     .wv-kind { display: none; }
     .wv-team { font-size: 0.72rem; }
     .wv-kpis { gap: 6px; }
+
+    /* Nome corto: qui "Parker Washington" andava a capo e spostava in giu' la
+       riga di chi esce, che deve restare incolonnata con quella di chi entra. */
+    .wv-n-full { display: none; }
+    .wv-n-corto { display: inline; }
 }
 
 

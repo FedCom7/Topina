@@ -98,9 +98,24 @@ function dataBreve(iso) {
  * testo, un link lo porterebbe a una scheda vuota.
  */
 function nomeLink(m) {
-    if (!m.pos || String(m.nome).startsWith('#')) return m.nome;
+    const testo = `<span class="wv-n-full">${m.nome}</span><span class="wv-n-corto">${nomeCorto(m.nome)}</span>`;
+    if (!m.pos || String(m.nome).startsWith('#')) return testo;
     const href = `#player/${currentYear}/${encodeURIComponent(m.pos)}/${encodeURIComponent(m.nome)}`;
-    return `<a class="wv-player-link" href="${href}">${m.nome}</a>`;
+    return `<a class="wv-player-link" href="${href}">${testo}</a>`;
+}
+
+/**
+ * Il nome come si scrive sul telefono: iniziale e cognome.
+ *
+ * Li' la colonna del nome e' larga meno della meta', e un nome intero andava a
+ * capo su due righe — con lo scambio, le due meta' della transazione non erano
+ * piu' incolonnate. Chi ha un nome solo (le difese) resta com'e', e il suffisso
+ * se lo tiene: "Travis Etienne Jr." diventa "T. Etienne Jr.".
+ */
+function nomeCorto(nome) {
+    const parti = String(nome ?? '').trim().split(/\s+/);
+    if (parti.length < 2 || !parti[0]) return nome;
+    return `${parti[0][0]}. ${parti.slice(1).join(' ')}`;
 }
 
 /**
@@ -133,19 +148,27 @@ function accorpa(lista) {
     return fuori.sort((a, b) => quando(b)[0] - quando(a)[0] || quando(b)[1] - quando(a)[1]);
 }
 
-/** Il giocatore dentro una riga: foto, nome, ruolo, squadra NFL. */
-function chi(m, cls = '') {
-    return `${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
-        <span class="an-player-name ${cls}">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${
-        m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>`;
+/**
+ * Le tre caselle di un giocatore nella riga: etichetta, foto, nome.
+ *
+ * `riga` dice in quale delle due righe interne vanno (`r1` chi entra, `r2` chi
+ * esce): le caselle si incolonnano da sole perche' sono nelle stesse colonne
+ * della griglia, una sopra l'altra.
+ */
+function chi(m, riga, etichetta, classe, spento = false) {
+    return `
+        <span class="wv-dir ${classe} ${riga}">${etichetta}</span>
+        ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, `an-headshot wv-photo ${riga}`)}
+        <span class="an-player-name ${riga}${spento ? ' wv-nome-out' : ''}">${nomeLink(m)} ${
+        m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>`;
 }
 
-function intestazione(m, etichetta, classe) {
+/** Quando e chi: valgono per tutta la transazione, quindi stanno al centro. */
+function intestazione(m) {
     const logo = logoSquadra(m.squadra);
     return `
         <span class="wv-when">${m.settimana != null ? `W${m.settimana}` : ''}${m.data ? `<i>${dataBreve(m.data)}</i>` : ''}</span>
-        <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>
-        <span class="wv-dir ${classe}">${etichetta}</span>`;
+        <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>`;
 }
 
 function riga(r) {
@@ -154,21 +177,21 @@ function riga(r) {
         const dentro = m.verso === 'in';
         return `
         <div class="wv-row">
-            ${intestazione(m, dentro ? 'Added' : 'Dropped', dentro ? 'wv-in' : 'wv-out')}
-            ${chi(m)}
+            ${intestazione(m)}
+            ${chi(m, 'wv-r1', dentro ? 'Added' : 'Dropped', dentro ? 'wv-in' : 'wv-out', !dentro)}
             <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
         </div>`;
     }
 
+    // Una transazione sola, due righe dentro lo stesso riquadro: sopra chi
+    // arriva, sotto chi lascia. Data, squadra e tipo valgono per tutt'e due e
+    // stanno in mezzo alle due righe.
     const { esce, entra } = r;
     return `
     <div class="wv-row wv-row--swap">
-        ${intestazione(entra, 'Swap', 'wv-swap')}
-        <span class="wv-coppia">
-            <span class="wv-lato wv-lato--out">${chi(esce, 'wv-nome-out')}</span>
-            <span class="wv-freccia" aria-hidden="true">→</span>
-            <span class="wv-lato wv-lato--in">${chi(entra)}</span>
-        </span>
+        ${intestazione(entra)}
+        ${chi(entra, 'wv-r1', 'Added', 'wv-in')}
+        ${chi(esce, 'wv-r2', 'Dropped', 'wv-out', true)}
         <span class="wv-kind">${entra.tipo}${entra.bid ? ` · $${entra.bid}` : ''}</span>
     </div>`;
 }
