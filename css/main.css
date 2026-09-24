@@ -26672,6 +26672,16 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     min-width: 0;
 }
 
+/* Il logo qui e' piu' grande che nelle pillole: e' l'unica cosa che dice di
+   chi e' la mossa, e sul telefono resta da solo. Il margine della classe
+   condivisa se ne va: la spaziatura la da' gia' il `gap`. */
+.wv-team .an-team-pill-logo {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    margin-right: 0;
+}
+
 /* Entrata e uscita si leggono dal colore prima che dalla parola: scorrendo la
    lista si cerca "chi e' arrivato", non si legge riga per riga. */
 .wv-dir {
@@ -26720,13 +26730,18 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     /* Sul telefono la riga si stringe su cosa e' successo e a chi: la squadra
        resta (senza di lei la mossa non ha un soggetto), il tipo esce. */
     .wv-row {
-        grid-template-columns: 44px 1fr 62px 30px minmax(0, 1.6fr);
+        grid-template-columns: 44px 30px 62px 30px minmax(0, 1fr);
         gap: 8px;
     }
 
     .wv-kind { display: none; }
-    .wv-team { font-size: 0.72rem; }
     .wv-kpis { gap: 6px; }
+
+    /* Della squadra resta il solo logo: il nome scritto per intero prendeva un
+       terzo della riga per dire quello che il logo dice da solo, e lo toglieva
+       al nome del giocatore. Il nome resta nell'`alt` dell'immagine, quindi
+       chi legge a voce lo sente lo stesso. */
+    .wv-team-nome { display: none; }
 
     /* Nome corto: qui "Parker Washington" andava a capo e spostava in giu' la
        riga di chi esce, che deve restare incolonnata con quella di chi entra. */

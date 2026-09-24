@@ -168,7 +168,9 @@ function intestazione(m) {
     const logo = logoSquadra(m.squadra);
     return `
         <span class="wv-when">${m.settimana != null ? `W${m.settimana}` : ''}${m.data ? `<i>${dataBreve(m.data)}</i>` : ''}</span>
-        <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>`;
+        <span class="wv-team">${logo
+            ? `<img src="${logo}" alt="${escAttr(nomeSquadra(m.squadra))}" class="an-team-pill-logo">` : ''}<span
+            class="wv-team-nome">${nomeSquadra(m.squadra)}</span></span>`;
 }
 
 function riga(r) {
