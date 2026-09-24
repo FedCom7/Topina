@@ -46,7 +46,19 @@ const TIPI = {
 /** Dal nome che mostra il sito alla chiave della squadra (da team-config: team.js sarebbe un anello). */
 const chiaveDaNome = (nome) => TEAM_KEYS[nome] || nome || null;
 
-/** Da una transazione ESPN alle righe da mostrare: una per giocatore mosso. */
+/**
+ * Da una transazione ESPN alle righe da mostrare: una per giocatore mosso.
+ *
+ * Chi ha preso il posto di chi non va indovinato: ESPN mette l'acquisto e il
+ * taglio che lo paga nella STESSA transazione. Appiattendo gli `items` in
+ * righe separate quel legame si perdeva, e una giornata con tre entrate e tre
+ * uscite diventava sei mosse scollegate. Qui ogni riga si porta dietro il suo
+ * compagno in `scambio`.
+ *
+ * Quando in una transazione ci sono piu' entrate e piu' uscite — capita di
+ * rado, e mai nel nostro storico — si accoppiano nell'ordine in cui ESPN le
+ * scrive; chi resta senza compagno non ne ha uno, e non se ne inventa.
+ */
 export function righeDaEspn(tx, nomi) {
     const tipo = TIPI[tx.type] || null;
     if (!tipo || tipo === 'Draft') return [];
@@ -54,26 +66,42 @@ export function righeDaEspn(tx, nomi) {
     // fallimento: non sono mosse avvenute.
     if (tx.status && tx.status !== 'EXECUTED') return [];
     const quando = tx.proposedDate || tx.processDate || null;
-    return (tx.items || [])
-        .filter(it => it.type === 'ADD' || it.type === 'DROP')
-        .map(it => {
-            const p = nomi.get(String(it.playerId)) || {};
-            const squadraId = it.type === 'ADD' ? (it.toTeamId ?? tx.teamId) : (it.fromTeamId ?? tx.teamId);
-            return {
-                settimana: tx.scoringPeriodId ?? null,
-                data: quando,
-                verso: it.type === 'ADD' ? 'in' : 'out',
-                tipo,
-                // ESPN da' il suo teamId: qui dentro le squadre viaggiano
-                // sempre con la CHIAVE Topina, o logo e filtro non
-                // funzionerebbero sulle righe che arrivano da li'.
-                squadra: chiaveDaNome(fantasyTeamName(squadraId)),
-                nome: p.name || `#${it.playerId}`,
-                pos: p.pos || '',
-                nfl: p.nfl || '',
-                bid: tx.bidAmount || null,
-            };
-        });
+
+    const voce = (it) => {
+        const p = nomi.get(String(it.playerId)) || {};
+        const squadraId = it.type === 'ADD' ? (it.toTeamId ?? tx.teamId) : (it.fromTeamId ?? tx.teamId);
+        return {
+            settimana: tx.scoringPeriodId ?? null,
+            data: quando,
+            verso: it.type === 'ADD' ? 'in' : 'out',
+            tipo,
+            // ESPN da' il suo teamId: qui dentro le squadre viaggiano
+            // sempre con la CHIAVE Topina, o logo e filtro non
+            // funzionerebbero sulle righe che arrivano da li'.
+            squadra: chiaveDaNome(fantasyTeamName(squadraId)),
+            nome: p.name || `#${it.playerId}`,
+            pos: p.pos || '',
+            nfl: p.nfl || '',
+            bid: tx.bidAmount || null,
+            // id della transazione: due righe con lo stesso id sono la stessa
+            // mossa vista dai due lati, e la pagina le riunisce in una riga
+            tx: tx.id != null ? String(tx.id) : null,
+            scambio: null,
+        };
+    };
+
+    const mosse = (tx.items || []).filter(it => it.type === 'ADD' || it.type === 'DROP');
+    const entrati = mosse.filter(it => it.type === 'ADD').map(voce);
+    const usciti = mosse.filter(it => it.type === 'DROP').map(voce);
+
+    for (let i = 0; i < Math.min(entrati.length, usciti.length); i++) {
+        const a = entrati[i], b = usciti[i];
+        // solo il minimo per scriverlo accanto: nome e ruolo dell'altro
+        a.scambio = { nome: b.nome, pos: b.pos, nfl: b.nfl, verso: 'out' };
+        b.scambio = { nome: a.nome, pos: a.pos, nfl: a.nfl, verso: 'in' };
+    }
+
+    return [...entrati, ...usciti];
 }
 
 /**

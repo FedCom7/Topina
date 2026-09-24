@@ -1,7 +1,8 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=594';
 import { TEAM_LOGOS, TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=829';
-import { buildSeasonModel, pointsComparison, marketView } from './analysis.js?v=845';
+import { TEAMS } from './team.js?v=838';
+import { buildSeasonModel, pointsComparison, marketView,
+    sottoTitolo, apriInfo, registraInfo, BASE_RUOLI } from './analysis.js?v=879';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
 
 let loaded = false;
@@ -15,8 +16,14 @@ let recordsListenerBound = false;
 let playerViewMode = 'all'; // 'all' | 'starters'
 let chartsListenerBound = false;
 let chartMarkersCache = null;
-let byRoleCache = null;         // { role: [pts, ...] } — titolari + panchina
-let byRoleStartersCache = null; // { role: [pts, ...] } — solo titolari
+// Weekly scores by position / by team. Il selettore e' SUO e non segue quello
+// di "Player Trends" qui sopra: li' la domanda e' quanti punti produce la lega,
+// qui com'e' fatta una settimana — e la panchina da sola ha senso solo nella
+// seconda. Le tre basi si calcolano tutte in una passata e si tengono pronte:
+// cambiare pillola non deve rileggere sette stagioni.
+let roleDistMode = 'starters';  // 'all' | 'starters' | 'bench'
+let byRoleCache = null;         // { base: { role: [pts, ...] } }
+let byTeamCache = null;         // { base: { teamKey: [pts, ...] } }
 
 // Categorie di statistiche giocatore unificate su tre granularità (game/season/career)
 const STAT_CATS = [
@@ -33,6 +40,74 @@ const STAT_CATS = [
     { key: 'patMade', label: 'Extra Points Made', extract: p => Number(p.stats.pat_made) || 0 },
     { key: 'fgMade', label: 'Field Goals Made', extract: p => ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_40_49', 'fg_50_plus'].reduce((s, f) => s + (Number(p.stats[f]) || 0), 0) },
 ];
+
+/* ============================================================
+   Le spiegazioni dei grafici — la "i" in alto a destra
+   ============================================================
+
+   Stesso riquadro di Analysis, e lo stesso codice: da li' arrivano
+   `sottoTitolo` e `apriInfo`, qui ci sono solo i testi. Tre righe per grafico,
+   sempre nello stesso ordine — cosa si guarda, su quali giocatori e' calcolato,
+   con che regola. La terza e' quella che serve: "punti lasciati in panchina"
+   non e' la somma dei panchinari, e senza dirlo il numero si legge come
+   un'altra cosa. */
+registraInfo({
+    'st-punti-squadra': {
+        cosa: 'What each team put on the board, season by season.',
+        base: 'The scores that decided the games — starters only. Playoffs and Super Bowl included.',
+        regola: 'The dashed vertical lines mark seasons where the number of weeks changed: a jump there is the calendar, not the team.',
+    },
+    'st-costanza': {
+        cosa: 'How far a team swings between its worst week and its best.',
+        base: 'Team scores, every week of every season, playoffs included.',
+        regola: 'The bar runs from the lowest weekly score to the highest, the mark inside is the median. A short bar is a team you can predict — not necessarily a better one.',
+    },
+    'st-draftata': {
+        cosa: 'How much the draft alone was worth, year by year.',
+        base: 'Draft picks only, starters and bench.',
+        regola: 'The best lineup those picks could have fielded each week, counting their points wherever they played in the league: a pick who was dropped and scored for someone else is still draft value. Playoffs included.',
+    },
+    'st-innesti': {
+        cosa: 'How much was rebuilt after the draft.',
+        base: 'Players added during the season, not drafted.',
+        regola: 'Only the points scored while they were on THIS roster: what a pickup did before arriving, or after being dropped, is not in the line.',
+    },
+    'st-panchina': {
+        cosa: 'What the lineup calls cost, added up over a season.',
+        base: 'Whole roster, but the number is about decisions.',
+        regola: 'NOT the sum of what the bench scored. Each week we build the best lineup the roster could have fielded and subtract the one actually fielded. A bench player who scored less than the starter in his slot adds nothing. Playoffs included.',
+    },
+    'st-margine': {
+        cosa: 'Whether a team wins narrowly or comfortably — and how it loses.',
+        base: 'Every game played, playoffs included. Ties are left out.',
+        regola: 'Each dot is one game: right of zero a win, left a loss, distance from zero the margin. The vertical mark is the average, the band is ±1 standard deviation.',
+    },
+    'st-produzione': {
+        cosa: 'How many fantasy points the league produced in total, year by year.',
+        base: 'Follows the All / Starters Only switch above.',
+        regola: 'Every player on every roster, summed. A season with more weeks produces more points, so the dashed marks matter here too.',
+    },
+    'st-ruolo-anno': {
+        cosa: 'How that production splits across QB, RB, WR, TE, K and DEF.',
+        base: 'Follows the All / Starters Only switch above.',
+        regola: 'The lines move with the scoring rules and with how many players of each position sit on rosters, not only with how good those players were.',
+    },
+    'st-per-ruolo': {
+        cosa: 'What a single week looks like at each position: how much a QB usually scores, and how wildly it swings.',
+        base: 'Follows the Show switch: every performance, starters only, or bench only.',
+        regola: 'Each dot is one player in one week, all seasons together. The vertical line is the average, the band is ±1 standard deviation: a wide band is a boom-or-bust position, a tight one is reliable.',
+    },
+    'st-per-squadra': {
+        cosa: 'The same weekly performances, split by the team the player was on that week instead of by position.',
+        base: 'Follows the Show switch: every performance, starters only, or bench only.',
+        regola: 'It measures what a roster produced per player-week, not who won: on "All" a deep bench lifts the average, on "Starters Only" it cannot. Comparing the two views is the point.',
+    },
+    'st-draft-pick': {
+        cosa: 'What each pick number has actually been worth.',
+        base: 'Every draft pick of every season, points scored for the team that made the pick.',
+        regola: 'Above the gold line the pick beat what that slot usually returns, below it fell short. The line is the average across all years at that pick number.',
+    },
+});
 
 function emptyLeader(extra) {
     return { value: 0, player: '', team: '', ...extra };
@@ -82,6 +157,17 @@ export async function initStats() {
 function calculateStats(allSeasons) {
     let totalGames = 0;
     let totalPoints = 0;
+
+    /**
+     * La stagione e' arrivata in fondo? Lo dice il Super Bowl: se quella
+     * settimana ha una sfida con dei punti, si e' giocato tutto. Guardare
+     * l'anno (`season === CURRENT_SEASON`) non basterebbe — a febbraio la
+     * stagione in corso E' finita, e i suoi primati valgono.
+     */
+    const stagioneFinita = (data, season, config) => {
+        const sb = data?.weeks?.[String(config.superBowlWeek)]?.matchups || [];
+        return sb.some(m => (parseFloat(m?.team1?.score) || 0) > 0 || (parseFloat(m?.team2?.score) || 0) > 0);
+    };
 
     // Global Records
     let highestScore = { value: 0, team: '', week: '', season: '' };
@@ -461,14 +547,23 @@ function calculateStats(allSeasons) {
         });
 
         // End of Season: Check Most/Fewest Points
-        Object.entries(seasonPoints).forEach(([team, points]) => {
-            if (points > mostPointsSeason.value) {
-                mostPointsSeason = { value: points.toFixed(2), team, season };
-            }
-            if (points < fewestPointsSeason.value && points > 0) {
-                fewestPointsSeason = { value: points.toFixed(2), team, season };
-            }
-        });
+        //
+        // Solo stagioni FINITE. Una stagione in corso ha giocato due giornate
+        // su diciassette: il suo totale e' per forza il piu' basso di sempre, e
+        // "fewest points in a season" diventerebbe un primato automatico che
+        // cambia squadra ogni settimana fino a dicembre. Vale anche per il
+        // massimo, che per lo stesso motivo non puo' dire niente finche' la
+        // stagione non e' completa.
+        if (stagioneFinita(data, season, config)) {
+            Object.entries(seasonPoints).forEach(([team, points]) => {
+                if (points > mostPointsSeason.value) {
+                    mostPointsSeason = { value: points.toFixed(2), team, season };
+                }
+                if (points < fewestPointsSeason.value && points > 0) {
+                    fewestPointsSeason = { value: points.toFixed(2), team, season };
+                }
+            });
+        }
 
         // End of Season: store chart trends (playoff inclusi)
         chartTeamPoints[season] = { ...chartSeasonTeamPts };
@@ -1173,11 +1268,11 @@ function renderPlayerProdCharts() {
     }));
 
     el.innerHTML = `
-        <h3 class="an-sub-title">Total Player Production by Season</h3>
+        ${sottoTitolo('st-produzione', 'Total Player Production by Season')}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(prodSeries, chartMarkersCache)}<div class="an-chart-tooltip" hidden></div></div>
         <p class="an-footnote">Sum of every player's fantasy points across the whole league, season by season.</p>
 
-        <h3 class="an-sub-title">Player Production by Role</h3>
+        ${sottoTitolo('st-ruolo-anno', 'Player Production by Role')}
         ${legendOf(roleSeries)}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(roleSeries, chartMarkersCache)}<div class="an-chart-tooltip" hidden></div></div>
         <p class="an-footnote">${playerViewMode === 'starters' ? 'Starters only.' : 'Player production includes bench points.'}</p>
@@ -1191,23 +1286,58 @@ function bindPlayerViewToggle() {
     const el = document.getElementById('charts-block');
     if (!el) return;
     el.addEventListener('click', (e) => {
+        // La "i" dei grafici: stesso riquadro di Analysis, da cui arriva.
+        const info = e.target.closest('.an-info');
+        if (info) { apriInfo(info); return; }
+
+        // Base di "Weekly scores by position" e del suo gemello per squadra.
+        const roleBtn = e.target.closest('.st-roledist-pill');
+        if (roleBtn) {
+            roleDistMode = roleBtn.dataset.stMode;
+            renderRoleDistChart();
+            return;
+        }
+
         const btn = e.target.closest('.st-player-mode-pill');
         if (!btn) return;
         playerViewMode = btn.dataset.playerMode;
         btn.parentElement.querySelectorAll('.st-player-mode-pill').forEach(b => b.classList.toggle('active', b === btn));
         renderPlayerProdCharts();
-        if (byRoleCache && byRoleStartersCache) renderRoleDistChart();
     });
 }
 
+/**
+ * Come si e' giocata una settimana, guardata due volte: per ruolo e per
+ * squadra.
+ *
+ * Gli stessi punti, divisi in due modi diversi — un QB contro un RB, e poi la
+ * rosa di uno contro quella dell'altro. Il secondo taglio e' quello che il
+ * grafico per ruolo non puo' dare: dice quanto produce ogni rosa per
+ * giocatore-settimana, e confrontando "All" con "Starters Only" si vede chi ha
+ * la panchina piena e chi no.
+ *
+ * Il selettore e' uno solo per tutt'e due: sono lo stesso dato e cambiarlo su
+ * uno solo darebbe due grafici che raccontano settimane diverse.
+ */
 function renderRoleDistChart() {
     const roleDist = document.getElementById('charts-role-dist');
-    if (!roleDist) return;
-    const byRole = playerViewMode === 'starters' ? byRoleStartersCache : byRoleCache;
+    if (!roleDist || !byRoleCache || !byTeamCache) return;
+    const base = BASE_RUOLI[roleDistMode];
+    const pillola = (modo, testo) =>
+        `<button class="an-avg-pill st-roledist-pill${roleDistMode === modo ? ' active' : ''}" data-st-mode="${modo}">${testo}</button>`;
+
     roleDist.innerHTML = `
-        <h3 class="an-sub-title">Weekly scores by position</h3>
-        <div class="an-chart">${buildRoleDistribution(byRole)}</div>
-        <p class="an-footnote">Each dot is a weekly performance (${playerViewMode === 'starters' ? 'starters only' : 'starters and bench'}, all seasons). The band is ±1 standard deviation around the average (vertical line).</p>
+        ${sottoTitolo('st-per-ruolo', 'Weekly scores by position')}
+        <div class="an-avg-toggle">
+            <span class="an-avg-label">Show:</span>
+            ${pillola('all', 'All')}${pillola('starters', 'Starters Only')}${pillola('bench', 'Bench Only')}
+        </div>
+        <div class="an-chart">${buildRoleDistribution(byRoleCache[roleDistMode])}</div>
+        <p class="an-footnote">Each dot is a weekly performance (${base}, all seasons). The band is ±1 standard deviation around the average (vertical line).</p>
+
+        ${sottoTitolo('st-per-squadra', 'Weekly scores by team')}
+        <div class="an-chart">${buildTeamDistribution(byTeamCache[roleDistMode])}</div>
+        <p class="an-footnote">The same weekly performances (${base}, all seasons), split by the team the player was on that week. It shows what a roster produced per player-week — not who won.</p>
     `;
 }
 
@@ -1249,7 +1379,7 @@ function renderCharts(stats) {
         <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:8px;">Team Trends</h2>
         <p class="st-block-desc">The 4 teams' scores season by season: how they perform on the field, how consistent their scoring is, and how their management choices (draft, market, bench) hold up over time.</p>
 
-        <h3 class="an-sub-title">Team Points by Season</h3>
+        ${sottoTitolo('st-punti-squadra', 'Team Points by Season')}
         ${legendOf(teamSeries)}
         <div class="an-chart st-trend-chart">${buildSeasonLineChart(teamSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
         <p class="an-footnote">Playoffs and Super Bowl included. Dashed lines mark seasons where the number of weeks changed.</p>
@@ -1375,23 +1505,30 @@ async function renderAdvancedCharts(markers) {
         }
     }
 
-    // 6) Distribuzione punteggi per ruolo (titolari + panchina, tutte le stagioni) — anche solo titolari
-    const byRole = {};
-    const byRoleStarters = {};
+    // 6) Come si e' giocata una settimana, tutte le stagioni insieme: gli stessi
+    //    punti divisi per ruolo e per squadra, nelle tre basi del selettore.
+    //    Una passata sola su sette stagioni: cambiare pillola ridisegna e basta.
+    const vuoto = () => ({ all: {}, starters: {}, bench: {} });
+    const byRole = vuoto();
+    const byTeam = vuoto();
     for (const s of seasons) {
         for (const rec of models[s].players.values()) {
             const role = rec.position;
             if (!ROLE_COLORS[role]) continue;
-            (byRole[role] ||= []);
-            (byRoleStarters[role] ||= []);
             for (const w of Object.values(rec.weeks)) {
-                byRole[role].push(w.pts);
-                if (w.started) byRoleStarters[role].push(w.pts);
+                const base = w.started ? 'starters' : 'bench';
+                (byRole.all[role] ||= []).push(w.pts);
+                (byRole[base][role] ||= []).push(w.pts);
+                // La squadra e' quella che lo aveva QUELLA settimana: un
+                // giocatore passato di mano conta di qua e poi di la'.
+                if (!TEAMS[w.teamKey]) continue;
+                (byTeam.all[w.teamKey] ||= []).push(w.pts);
+                (byTeam[base][w.teamKey] ||= []).push(w.pts);
             }
         }
     }
     byRoleCache = byRole;
-    byRoleStartersCache = byRoleStarters;
+    byTeamCache = byTeam;
 
     // 7) Margine di vittoria/sconfitta per team (media + varianza), da tutti i matchup
     const teamMarginStats = {}; // key -> { wins: [margini], losses: [margini] }
@@ -1419,25 +1556,25 @@ async function renderAdvancedCharts(markers) {
 
     if (teamRest) {
         teamRest.innerHTML = `
-            <h3 class="an-sub-title">Scoring Consistency (all seasons)</h3>
+            ${sottoTitolo('st-costanza', 'Scoring Consistency (all seasons)')}
             ${buildConsistencyChart(distRows)}
 
-            <h3 class="an-sub-title">Drafted Team Points by Season</h3>
+            ${sottoTitolo('st-draftata', 'Drafted Team Points by Season')}
             ${legendOf(draftedSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(draftedSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
             <p class="an-footnote">The best lineup each team could have fielded every week with its draft picks alone, counting their points wherever they played in the league. Playoffs included.</p>
 
-            <h3 class="an-sub-title">In-Season Pickup Points by Season</h3>
+            ${sottoTitolo('st-innesti', 'In-Season Pickup Points by Season')}
             ${legendOf(pickupSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(pickupSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
             <p class="an-footnote">Points scored on this roster by players added off the waiver wire during the season, not from the draft.</p>
 
-            <h3 class="an-sub-title">Points Left on the Bench by Season</h3>
+            ${sottoTitolo('st-panchina', 'Points Left on the Bench by Season')}
             ${legendOf(benchSeries)}
             <div class="an-chart st-trend-chart">${buildSeasonLineChart(benchSeries, markers)}<div class="an-chart-tooltip" hidden></div></div>
             <p class="an-footnote">Optimal lineup points minus what was actually started, added up across the season, playoffs included.</p>
 
-            <h3 class="an-sub-title">Margin: Wins vs Losses</h3>
+            ${sottoTitolo('st-margine', 'Margin: Wins vs Losses')}
             <div class="an-chart">${buildMarginDotPlot(teamMarginStats)}</div>
             <p class="an-footnote">Each dot is a game: to the right (+) wins, to the left (−) losses, distance from 0 = margin. The vertical mark is the average, the band is ±1 standard deviation.</p>
         `;
@@ -1451,7 +1588,7 @@ async function renderAdvancedCharts(markers) {
             <h2 class="an-sub-title" style="font-size:1.4rem; text-transform:none; letter-spacing:0; margin-top:56px;">Draft Trends</h2>
             <p class="st-block-desc">The value of every draft pick across all seasons: where the steals and busts land relative to the league average for that pick number.</p>
 
-            <h3 class="an-sub-title">Draft: Value per Pick (All Years)</h3>
+            ${sottoTitolo('st-draft-pick', 'Draft: Value per Pick (All Years)')}
             <div class="an-chart-legend">
                 <span class="an-legend-item"><span class="an-legend-key" style="background:#f5d576"></span>Average per pick</span>
             </div>
@@ -1718,11 +1855,38 @@ function bindDraftScatterAll(container) {
 
 /* ---------- Dot plot: distribuzione punteggi per ruolo (media + ±σ) ---------- */
 
-const RDP = { w: 800, l: 52, r: 16, t: 14, b: 28, lane: 46 };
+const RDP_BASE = { w: 800, l: 52, r: 16, t: 14, b: 28, lane: 46 };
 
+/** Per ruolo: corsie QB..DEF, colori dei ruoli, etichetta corta. */
 function buildRoleDistribution(byRole) {
-    const roles = Object.keys(ROLE_COLORS).filter(r => (byRole[r] || []).length);
+    return buildDotDistribution(byRole, Object.keys(ROLE_COLORS), ROLE_COLORS, r => r, RDP_BASE.l);
+}
+
+/**
+ * Per squadra: stesse corsie, ma i nomi per esteso non stanno in 52px — il
+ * margine sinistro raddoppia, come nel dot plot dei margini che ha lo stesso
+ * problema. I colori sono quelli della squadra, gia' resi leggibili su fondo
+ * nero dalla palette.
+ */
+function buildTeamDistribution(byTeam) {
+    const chiavi = Object.keys(TEAMS);
+    const colori = Object.fromEntries(chiavi.map(k => [k, CHART_COLORS_BY_KEY[k] || '#888']));
+    return buildDotDistribution(byTeam, chiavi, colori, k => TEAMS[k].name, 132);
+}
+
+/**
+ * Un punto per prestazione, una corsia per categoria: media, ±1 deviazione
+ * standard e la nuvola vera sotto.
+ *
+ * Le corsie arrivano da fuori (ruoli o squadre) perche' il disegno e' lo
+ * stesso: due copie di questo codice divergerebbero al primo ritocco, e i due
+ * grafici stanno uno sotto l'altro — una differenza si vedrebbe subito.
+ */
+function buildDotDistribution(dati, ordine, colori, etichetta, margineSx) {
+    const roles = ordine.filter(r => (dati[r] || []).length);
     if (!roles.length) return '<div class="empty-state"><p class="empty-state-text">No data available</p></div>';
+    const byRole = dati;
+    const RDP = { ...RDP_BASE, l: margineSx };
 
     const allPts = roles.flatMap(r => byRole[r]);
     const maxPts = Math.max(...allPts, 1);
@@ -1747,7 +1911,7 @@ function buildRoleDistribution(byRole) {
         const mean = pts.reduce((a, b) => a + b, 0) / n;
         const variance = pts.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n;
         const std = Math.sqrt(variance);
-        const color = ROLE_COLORS[role];
+        const color = colori[role];
         const cy = RDP.t + ri * RDP.lane + RDP.lane / 2;
         const jitH = RDP.lane * 0.62;
 
@@ -1762,7 +1926,7 @@ function buildRoleDistribution(byRole) {
 
         const meanLine = `<line x1="${x(mean).toFixed(1)}" y1="${(cy - jitH / 2 - 3).toFixed(1)}" x2="${x(mean).toFixed(1)}" y2="${(cy + jitH / 2 + 3).toFixed(1)}" stroke="${color}" stroke-width="2.5"/>`;
         const meanLabel = `<text x="${x(mean).toFixed(1)}" y="${(cy - jitH / 2 - 6).toFixed(1)}" class="an-tick" text-anchor="middle" style="fill:${color};font-weight:700">${mean.toFixed(1)}</text>`;
-        const roleLabel = `<text x="${RDP.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${role}</text>`;
+        const roleLabel = `<text x="${RDP.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${etichetta(role)}</text>`;
 
         return `${band}${dots}${meanLine}${meanLabel}${roleLabel}`;
     }).join('');

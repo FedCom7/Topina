@@ -992,16 +992,16 @@ export function fieldStripHTML(s) {
         <div class="fst-bug">
             <div class="fst-lato">
                 ${logoImg(s.away)}
-                <span class="fst-abbr">${esc(s.away.abbr)}${
-                    s.stato === 'in' && s.possesso === 'away' ? pallaPossesso() : ''}</span>
+                <span class="fst-abbr">${esc(s.away.abbr)}</span>
+                ${s.stato === 'in' && s.possesso === 'away' ? pallaPossesso() : ''}
             </div>
             ${punteggio(s.away, s.possesso === 'away')}
             <div class="fst-mid">${situazione(s)}</div>
             ${punteggio(s.home, s.possesso === 'home')}
             <div class="fst-lato fst-lato--r">
                 ${logoImg(s.home)}
-                <span class="fst-abbr">${esc(s.home.abbr)}${
-                    s.stato === 'in' && s.possesso === 'home' ? pallaPossesso() : ''}</span>
+                <span class="fst-abbr">${esc(s.home.abbr)}</span>
+                ${s.stato === 'in' && s.possesso === 'home' ? pallaPossesso() : ''}
             </div>
         </div>
 

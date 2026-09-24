@@ -16,7 +16,7 @@ import { getFullPlayer, FIRST_STATS_YEAR } from '../data/player-full.js?v=671';
 import { computeSeasonMetrics, computeEfficiency, snapSharePct, computeProvisionalAdv } from '../data/player-metrics.js?v=530';
 import { getTeamContext, getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { getCareer, getPlayerAwards, buildCareers } from '../data/careers.js?v=643';
-import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=780';
+import { topinaBlock, awardsBlock } from '../components/player-modal.js?v=787';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=611';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { canonAbbr } from '../data/nfl-schedule.js?v=552';
@@ -256,10 +256,10 @@ function renderPlayerPage(section, ctx) {
         <nav class="pp-tabsbar" role="tablist" aria-label="Player card sections">
             <button class="pp-tab is-active" role="tab" aria-selected="true" data-tab="stats">Stats</button>
             <button class="pp-tab" role="tab" aria-selected="false" data-tab="analysis">Analysis</button>
+            <button class="pp-tab" role="tab" aria-selected="false" data-tab="gamelog">Game Log</button>
             <button class="pp-tab" role="tab" aria-selected="false" data-tab="news">News</button>
             <button class="pp-tab" role="tab" aria-selected="false" data-tab="bio">Bio</button>
             <button class="pp-tab" role="tab" aria-selected="false" data-tab="splits">Splits</button>
-            <button class="pp-tab" role="tab" aria-selected="false" data-tab="gamelog">Game Log</button>
         </nav>
 
         <div class="pp-tab-panel" role="tabpanel" data-panel="stats">
@@ -274,7 +274,6 @@ function renderPlayerPage(section, ctx) {
             ${advancedRadarBlock(ctx)}
             ${advancedNflverseBlock(advSeasons, pos)}
             ${advancedSlopeBlock(ctx)}
-            ${perfExplainBlock(ctx)}
             ${draftScatterBlock(ctx)}
             ${similarPlayersBlock(ctx)}
             ${teamContextCompact(ctx)}
@@ -283,6 +282,11 @@ function renderPlayerPage(section, ctx) {
             ${projVsActualBlock({ seasons, projByYear: ctx.projByYear })}
             ${projectionTablesBlock(ctx)}
             ${topinaBoxBlock(career, awards)}
+            ${perfExplainBlock(ctx)}
+        </div>
+
+        <div class="pp-tab-panel" role="tabpanel" data-panel="gamelog" hidden>
+            ${gamelogBlock(seasons, pos)}
         </div>
 
         <div class="pp-tab-panel" role="tabpanel" data-panel="news" hidden>
@@ -300,10 +304,6 @@ function renderPlayerPage(section, ctx) {
             ${splitsBlock(ctx)}
         </div>
 
-        <div class="pp-tab-panel" role="tabpanel" data-panel="gamelog" hidden>
-            ${gamelogBlock(seasons, pos)}
-        </div>
-
         ${footnote()}
     </div>`;
 
@@ -315,7 +315,80 @@ function renderPlayerPage(section, ctx) {
     bindViolinHover(section);
     bindFormHover(section);
     bindSimilarPlayers(section);
+    marcaMigliori(section, pos);
     bindTabs(section);
+}
+
+/**
+ * Il migliore di ogni colonna in oro, e via i trattini rimasti.
+ *
+ * Si fa sul DOM e non nei costruttori di tabella perché le tabelle qui sono
+ * una decina, scritte in posti diversi: un solo passaggio dopo il render vale
+ * per tutte e non si dimentica di nessuna. Regole:
+ *  - si guardano solo le colonne di NUMERI; anno, settimana, squadra e
+ *    avversario restano fuori (l'anno "migliore" non vuol dire niente);
+ *  - in quasi tutte vince il numero più alto, tranne quelle dove un numero
+ *    basso è la cosa buona (bust, deviazione standard, palle perse);
+ *  - int, sack e fumble dipendono dal RUOLO: un intercetto preso è un disastro
+ *    per un QB e un capolavoro per una difesa;
+ *  - se la colonna ha meno di due valori, o lo stesso valore è il massimo in
+ *    mezza tabella, non si marca niente: l'oro deve dire "questo è il
+ *    migliore", non colorare una riga a caso.
+ */
+const COL_FUORI = /^(year|anno|season|stagione|sett\.?|week|w|avv\.?|opp|team|squadra|pos|età|age|split|round|pick|date|data|rank)$/i;
+const COL_MIN_MEGLIO = /^(bust|drop|drops|std dev|dev\. std|deviazione|pt subiti|punti subiti|yd concesse|yard concesse|fum persi|fumble persi)$/i;
+const COL_RUOLO = /^(int|intercetti|sack|fum|fumble|fum rec|fum lost)$/i;
+
+/**
+ * Il numero dentro una cella, con i separatori come li scrive la pagina.
+ * "3,668" sono tremilaseicentosessantotto yard e "130,5" e' un rating: decide
+ * l'ultimo separatore — se ha una o due cifre dopo e' la virgola decimale, se
+ * ne ha tre e' il punto delle migliaia.
+ */
+function numeroDaCella(testo) {
+    let x = testo.replace(/[%\s\u00a0]/g, '');
+    if (!/^[-+]?[\d.,]+$/.test(x)) return null;
+    const dec = x.match(/[.,](\d{1,2})$/);
+    if (dec) {
+        const i = x.lastIndexOf(dec[0][0]);
+        x = x.slice(0, i).replace(/[.,]/g, '') + '.' + x.slice(i + 1);
+    } else {
+        x = x.replace(/[.,]/g, '');
+    }
+    const n = Number.parseFloat(x);
+    return Number.isFinite(n) ? n : null;
+}
+
+function marcaMigliori(section, pos) {
+    // per chi la palla la lancia o la porta, quelle colonne sono guai subiti
+    const subite = ['QB', 'RB', 'WR', 'TE'].includes(String(pos).toUpperCase());
+
+    section.querySelectorAll('table.pp-table').forEach(tab => {
+        const intestazioni = [...tab.querySelectorAll('thead th')].map(th => th.textContent.trim());
+        const righe = [...tab.querySelectorAll('tbody tr')].filter(tr => tr.cells.length === intestazioni.length);
+        if (righe.length < 2) return;
+
+        intestazioni.forEach((titolo, c) => {
+            if (!titolo || COL_FUORI.test(titolo)) return;
+            const valori = righe.map(tr => {
+                const t = tr.cells[c]?.textContent.trim() || '';
+                if (t === '—') tr.cells[c].textContent = '';
+                // "20/29" e "1,5K" non sono confrontabili come numero: si salta
+                if (!t || /[\/K]/.test(t)) return null;
+                return numeroDaCella(t);
+            });
+            const buoni = valori.filter(v => v != null);
+            if (buoni.length < 2) return;
+            const minMeglio = COL_MIN_MEGLIO.test(titolo) || (COL_RUOLO.test(titolo) && subite);
+            const best = minMeglio ? Math.min(...buoni) : Math.max(...buoni);
+            if (best === (minMeglio ? Math.max(...buoni) : Math.min(...buoni))) return;  // tutti uguali
+            // Se lo stesso valore e' il massimo in mezza tabella non e' un
+            // primato: e' una colonna piatta (le 17 gare giocate ogni anno).
+            const quanti = buoni.filter(v => v === best).length;
+            if (quanti > Math.max(2, righe.length * 0.4)) return;
+            valori.forEach((v, r) => { if (v === best) righe[r].cells[c].classList.add('pp-best'); });
+        });
+    });
 }
 
 /**
@@ -1202,9 +1275,15 @@ export function buildTrendChart(points, color, chartId, unit = 'pt/gara') {
     const x = i => TC.l + (points.length > 1 ? (i / (points.length - 1)) * plotW : plotW / 2);
     const y = v => TC.t + (1 - (v - yMin) / (yMax - yMin || 1)) * plotH;
 
+    // Le yard arrivano a quattro cifre e sull'asse diventavano "2000,0": sopra
+    // il migliaio si scrive in K, che e' come si leggono le yard di stagione.
+    // E il ",0" di un intero non dice niente: via anche quello.
+    const tick = v => (Math.abs(v) >= 1000
+        ? `${fmt1(v / 1000).replace(/[.,]0$/, '')}K`
+        : fmt1(v).replace(/[.,]0$/, ''));
     const grid = ticks.map(v => `
         <line x1="${TC.l}" y1="${y(v)}" x2="${TC.l + plotW}" y2="${y(v)}" class="an-gridline"/>
-        <text x="${TC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${fmt1(v)}</text>`).join('');
+        <text x="${TC.l - 8}" y="${y(v) + 3}" class="an-tick" text-anchor="end">${tick(v)}</text>`).join('');
     const xTicks = points.map((p, i) => `<text x="${x(i)}" y="${TC.h - 8}" class="an-tick" text-anchor="middle">${esc(String(p.x))}</text>`).join('');
 
     // Stile "analysis" (Distacco cumulativo): polyline pulita continua, niente
@@ -1221,16 +1300,40 @@ export function buildTrendChart(points, color, chartId, unit = 'pt/gara') {
         const from = k === 0 ? lastSolid : projP[k - 1];
         return from ? `<line x1="${x(from.i).toFixed(1)}" y1="${y(from.y).toFixed(1)}" x2="${x(p.i).toFixed(1)}" y2="${y(p.y).toFixed(1)}" stroke="${color}" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>` : '';
     }).join('');
+    // Un pallino su OGNI anno, cosi' si vede dove cade ogni stagione senza
+    // passarci sopra col mouse; il massimo di carriera e' verde e il minimo
+    // rosso, come i callout della timeline.
+    const hiV = solidP.length ? Math.max(...solidP.map(p => p.y)) : null;
+    const loV = solidP.length ? Math.min(...solidP.map(p => p.y)) : null;
+    // un solo anno a schermo, o tutti uguali: non c'e' ne' meglio ne' peggio
+    const marca = hiV != null && loV != null && hiV !== loV;
     const endDots = [
-        lastSolid ? `<circle cx="${x(lastSolid.i).toFixed(1)}" cy="${y(lastSolid.y).toFixed(1)}" r="4" fill="${color}" stroke="#000" stroke-width="2"/>` : '',
+        ...solidP.map(p => {
+            const hi = marca && p.y === hiV, lo = marca && p.y === loV;
+            const cls = hi ? ' an-trend-dot--hi' : lo ? ' an-trend-dot--lo' : '';
+            const r = hi || lo ? 4.5 : 3.5;
+            return `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.y).toFixed(1)}" r="${r}" class="an-trend-dot${cls}"${cls ? '' : ` fill="${color}"`}/>`;
+        }),
         ...projP.map(p => `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.y).toFixed(1)}" r="4.5" fill="transparent" stroke="${color}" stroke-width="2"/>`),
     ].join('');
+
+    // Scritta sul massimo, come il "Career high" della timeline: il verde da
+    // solo dice che e' il meglio, non quanto.
+    const callout = (() => {
+        if (!marca) return '';
+        const p = solidP.find(q => q.y === hiV);
+        const cx = x(p.i), cy = y(p.y);
+        const anchor = cx > TC.l + plotW * 0.82 ? 'end' : cx < TC.l + plotW * 0.18 ? 'start' : 'middle';
+        // sopra al pallino, ma senza uscire dal grafico
+        const ty = Math.max(TC.t + 10, cy - 14);
+        return `<text x="${cx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${anchor}" class="an-trend-callout">Career high · ${tick(hiV)}</text>`;
+    })();
 
     const dataAttr = JSON.stringify(points).replace(/'/g, '&#39;');
     return `
     <div class="an-chart" id="${chartId}" data-points='${dataAttr}' data-color="${color}" data-unit="${esc(unit)}">
         <svg viewBox="0 0 ${TC.w} ${TC.h}" class="an-svg">
-            ${grid}${xTicks}${poly}${dashed}${endDots}
+            ${grid}${xTicks}${poly}${dashed}${endDots}${callout}
             <line class="an-crosshair" x1="0" y1="${TC.t}" x2="0" y2="${TC.t + plotH}" visibility="hidden"/>
             <rect class="an-hit" x="${TC.l}" y="${TC.t}" width="${plotW}" height="${plotH}" fill="transparent"/>
         </svg>
@@ -1499,7 +1602,10 @@ const kdeAt = (vals, y, bw) => {
     return s / (vals.length * bw * Math.sqrt(2 * Math.PI));
 };
 
-const RIDGE = { w: 720, l: 52, r: 16, t: 16, b: 30, rowStep: 44, amp: 60 };
+// `amp` sta sotto a `rowStep`: con le barre piene una cresta piu' alta del
+// passo fra le righe finiva dentro l'anno sopra. Col profilo si sovrapponeva
+// e basta.
+const RIDGE = { w: 720, l: 52, r: 16, t: 16, b: 30, rowStep: 50, amp: 42 };
 
 /**
  * Ridgeline (joyplot) della distribuzione dei punti per stagione: una cresta di
@@ -1561,10 +1667,21 @@ function seasonRidgeline(seasons, nextSeasonProj, nextSeason) {
         const maxD = Math.max(...dens, 1e-9);
         const top = xs.map((x, j) => `${xAt(x).toFixed(1)},${(by - dens[j] / maxD * C.amp).toFixed(1)}`);
         const path = `M${xAt(0).toFixed(1)},${by.toFixed(1)} L${top.join(' L')} L${xAt(xMax).toFixed(1)},${by.toFixed(1)} Z`;
+        // Una barra per ogni passo dell'asse, alta quanto la densita' li': la
+        // riga di profilo diceva la stessa cosa, ma a barre si legge dove si
+        // ammucchiano le prestazioni senza inseguire una curva. La piu' alta
+        // e' la zona di punteggio piu' frequente dell'anno.
+        const iTop = dens.indexOf(Math.max(...dens));
+        const bw = Math.max(2, (plotW / STEPS) - 2);
+        const bars = xs.map((x, j) => {
+            const h = dens[j] / maxD * C.amp;
+            if (h < 0.4) return '';
+            return `<rect x="${(xAt(x) - bw / 2).toFixed(1)}" y="${(by - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1" class="pp-ridge-bar${j === iTop ? ' pp-ridge-bar--top' : ''}"/>`;
+        }).join('');
         const medY = by - kdeAt(c.pts, c.med, c.bw) / maxD * C.amp;
         seasonRows += `<g class="pp-bp-g pp-ridge-g" data-bpv data-year="${c.year}" data-media="${fmt1(c.mean)}" data-med="${fmt1(c.med)}" data-q1="${fmt1(c.q1)}" data-q3="${fmt1(c.q3)}" data-min="${fmt1(c.min)}" data-max="${fmt1(c.max)}" data-n="${c.n}">
             <path d="${path}" class="pp-ridge-shape"/>
-            <polyline points="${top.join(' ')}" class="pp-ridge-line"/>
+            ${bars}
             <line x1="${xAt(c.med).toFixed(1)}" y1="${by.toFixed(1)}" x2="${xAt(c.med).toFixed(1)}" y2="${medY.toFixed(1)}" class="pp-ridge-median"/>
             <circle cx="${xAt(c.mean).toFixed(1)}" cy="${by.toFixed(1)}" r="3" class="pp-bp-mean"/>
             <text x="${(C.l - 8)}" y="${(by + 4).toFixed(1)}" class="an-tick pp-ridge-ylbl" text-anchor="end">${c.year}</text>
@@ -1583,7 +1700,8 @@ function seasonRidgeline(seasons, nextSeasonProj, nextSeason) {
 
     const legend = `
     <div class="pp-cmp-legend">
-        <span class="pp-cmp-leg"><i class="pp-bp-lg-box"></i>density (per season)</span>
+        <span class="pp-cmp-leg"><i class="pp-bp-lg-bar"></i>how often (per season)</span>
+        <span class="pp-cmp-leg"><i class="pp-bp-lg-bartop"></i>most frequent score</span>
         <span class="pp-cmp-leg"><i class="pp-bp-lg-med"></i>median</span>
         <span class="pp-cmp-leg"><i class="pp-bp-lg-mean"></i>media</span>
         ${hasProj ? `<span class="pp-cmp-leg"><i class="pp-bp-lg-proj"></i>proiez. ${nextSeason}</span>` : ''}
@@ -1735,7 +1853,8 @@ function seasonFormChart(seasons, projByYear) {
     // gradiente non serve a nessuno. L'area colorata suggeriva un totale
     // accumulato — "quanto ha fatto in tutto" — mentre qui ogni punto e' una
     // partita a se': quello che conta e' l'andamento, non l'area sotto.
-    const bg = `<rect x="${C.l}" y="${C.t}" width="${plotW.toFixed(1)}" height="${plotH.toFixed(1)}" rx="8" class="pp-bp-bg"/>`;
+    // Niente riquadro grigio dietro alla spezzata: il grafico sta gia' dentro
+    // la card, e il fondo lo staccava una seconda volta.
     const legend = `
     <div class="pp-cmp-legend">
         <span class="pp-cmp-leg"><i class="pp-form-lg-line"></i>pt/gara</span>
@@ -1746,7 +1865,7 @@ function seasonFormChart(seasons, projByYear) {
     return `
     <div class="pp-cmp-chart pp-form-chart" data-form-year="${season.year}">
         <svg viewBox="0 0 ${C.w} ${C.h}" class="an-svg pp-form-svg" preserveAspectRatio="xMidYMid meet">
-            ${bg}${grid}
+            ${grid}
             <polyline points="${linePts}" class="pp-form-line"/>
             <polyline points="${rollPts}" class="pp-form-roll"/>
             ${projLine}${dots}${annots}${xLabels}
@@ -2435,8 +2554,10 @@ function advancedNflverseBlock(advSeasons, pos) {
 
 // ─── Carriera per categoria ──────────────────────────────────────
 
-const g0 = (s, k) => s?.[k] != null ? fmt0(s[k]) : '—';
-const g1 = (s, k) => s?.[k] != null ? fmt1(s[k]) : '—';
+// Zero e dato mancante: cella VUOTA. Una tabella di trenta colonne piena di
+// "0" e di trattini lunghi nasconde i numeri che contano davvero.
+const g0 = (s, k) => (s?.[k] ? fmt0(s[k]) : '');
+const g1 = (s, k) => (s?.[k] ? fmt1(s[k]) : '');
 
 const CATEGORIES = [
     {
@@ -2534,7 +2655,9 @@ function categoryTables(seasons, pos) {
         const key = cat.title.toLowerCase().replace(/[^a-z]+/g, '-');
         const points = [...rows].sort((a, b) => a.year - b.year)
             .map(s => ({ x: s.year, y: cat.chartValue(s.totals.stats) })).filter(p => p.y != null);
-        const chart = points.length >= 2 ? buildTrendChart(points, '#4f8cff', `pp-cat-chart-${key}`, cat.chartUnit) : '';
+        // stesso rosso del grafico Fantasy qui sopra: le categorie sono lo
+        // stesso giocatore visto da un'altra statistica, non un'altra serie
+        const chart = points.length >= 2 ? buildTrendChart(points, '#B8433A', `pp-cat-chart-${key}`, cat.chartUnit) : '';
         panels.push({ key, label: cat.title, html: `${table}${chart ? `<h3 class="pp-cat-title" style="margin-top:18px">${esc(cat.chartLabel)} per stagione</h3>${chart}` : ''}` });
     }
 
@@ -2765,6 +2888,18 @@ function perfExplainBlock(ctx) {
     const eligible = (full?.seasons || []).filter(s => projByYear?.[s.year]?.raw && s.totals?.stats);
     if (!eligible.length) return '';
 
+    // Quante colonne ha la cascata piu' lunga (proiettato + gradini + eventuale
+    // "Other" + reale): la larghezza dell'SVG dipende dal numero di gradini, e
+    // senza questo conto ogni stagione veniva di una misura diversa.
+    const colonne = (dec) => {
+        const gradini = dec.rows.filter(r => Math.abs(r.pts) >= 1).length;
+        return gradini + 2 + (Math.abs(dec.residual) >= 2 ? 1 : 0);
+    };
+    const maxColonne = Math.max(...eligible.map(s => {
+        const d = decomposeSeason({ pos, proj: projByYear[s.year].raw, actual: s.totals.stats });
+        return d ? colonne(d) : 0;
+    }), 0);
+
     const seasons = eligible.sort((a, b) => b.year - a.year).map(s => {
         const dec = decomposeSeason({ pos, proj: projByYear[s.year].raw, actual: s.totals.stats });
         if (!dec) return '';
@@ -2785,7 +2920,7 @@ function perfExplainBlock(ctx) {
         <div class="pp-pe-season">
             <div class="pp-pe-head">${s.year}: reale <b>${fmt0(dec.actPts)}</b> − proiettato ${fmt0(dec.projPts)} = <span class="pp-res pp-res--${dec.error >= 0 ? 'w' : 'l'}">${dec.error >= 0 ? '+' : ''}${fmt0(dec.error)}</span> · ${dec.gpA}/${dec.gpP} gare${missed >= 2 ? ` <span class="pp-pe-miss">(${missed} saltate)</span>` : ''}</div>
             ${verdict?.headline ? `<div class="pp-perr-verdict pp-perr-verdict--${dec.error >= 0 ? 'w' : 'l'}">${verdict.headline}</div>` : ''}
-            ${perfWaterfall(dec, shown)}
+            ${perfWaterfall(dec, shown, { cols: maxColonne })}
             ${readoutHtml}
             ${causesHtml}
         </div>`;
@@ -2807,6 +2942,8 @@ function perfExplainBlock(ctx) {
  */
 export function perfWaterfall(dec, shown, opts = {}) {
     const compact = !!opts.compact;
+    // `cols` tiene la stessa larghezza su piu' cascate affiancate o incolonnate:
+    // si dimensiona sulla piu' lunga, le altre lasciano piu' aria fra i gradini.
     const steps = shown.map(r => ({ label: r.label, d: r.pts, proj: r.proj, actual: r.actual }));
     if (Math.abs(dec.residual) >= 2) steps.push({ label: 'Other', d: dec.residual });
     const cats = ['Projected', ...steps.map(s => s.label), 'Actual'];
@@ -2815,7 +2952,8 @@ export function perfWaterfall(dec, shown, opts = {}) {
     // più stretta. Le proporzioni restano alte abbastanza da starci accanto a
     // un grafico quadrato senza lasciare un buco sotto, e le etichette dei
     // gradini restano — senza, a metà cascata non si sa più di che stat si parli.
-    const W = Math.max(compact ? 260 : 340, (compact ? 34 : 52) + n * (compact ? 44 : 60));
+    const nW = Math.max(n, opts.cols || 0);
+    const W = Math.max(compact ? 260 : 340, (compact ? 34 : 52) + nW * (compact ? 44 : 60));
     const H = compact ? 200 : 214;
     const M = compact ? { l: 30, r: 8, t: 20, b: 52 } : { l: 40, r: 14, t: 24, b: 52 };
     const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
@@ -2825,8 +2963,12 @@ export function perfWaterfall(dec, shown, opts = {}) {
     const ticks = niceTicks(0, top);
     const yMax = ticks[ticks.length - 1] || 1;
     const y = v => M.t + (1 - v / yMax) * plotH;
-    const bw = Math.min(compact ? 24 : 40, (plotW / n) * 0.6);
-    const cx = i => M.l + (i + 0.5) * (plotW / n);
+    // Passo della colonna sulla larghezza piena (nW): cosi' due cascate di
+    // lunghezza diversa hanno i gradini nella stessa posizione, e a chi ne ha
+    // meno avanza spazio a destra invece di allargarsi le barre.
+    const passo = plotW / nW;
+    const bw = Math.min(compact ? 24 : 40, passo * 0.6);
+    const cx = i => M.l + (i + 0.5) * passo;
 
     const grid = ticks.map(v => `
         <line x1="${M.l}" y1="${y(v).toFixed(1)}" x2="${M.l + plotW}" y2="${y(v).toFixed(1)}" class="an-gridline"/>
@@ -2932,16 +3074,20 @@ function gamelogBlock(seasons, pos) {
     if (!withLog.length) return '';
     const cols = logCols(pos);
 
+    // Una tabella lunga piena di "0" e di trattini lunghi e' rumore: la casella
+    // vuota dice gia' che quel giorno quella statistica non c'e' stata.
+    const vuoto = (c) => (c == null || c === '—' || c === '0' || c === '0/0' ? '' : c);
+
     const details = withLog.map((s, i) => {
         const rows = s.weekly.map(g => {
             const snap = snapSharePct(g);
             return `<tr>
                 <td>W${g.week}</td>
                 <td class="pp-opp">${g.opponent ? `${g.isAway ? '@' : 'v'}<img class="pp-opp-logo" src="${teamLogo(g.opponent)}" alt="${esc(g.opponent)}" title="${g.isAway ? '@ ' : 'vs '}${esc(g.opponent)}" onerror="this.style.display='none'">` : '—'}</td>
-                ${cols.cells(g.stats).map(c => `<td>${c}</td>`).join('')}
-                <td>${snap != null ? snap + '%' : '—'}</td>
-                <td class="pm-td-strong">${g.pts != null ? fmt1(g.pts) : '—'}</td>
-                <td>${g.stats.pts_half_ppr != null ? fmt1(g.stats.pts_half_ppr) : '—'}</td>
+                ${cols.cells(g.stats).map(c => `<td>${vuoto(c)}</td>`).join('')}
+                <td>${snap != null ? snap + '%' : ''}</td>
+                <td class="pm-td-strong">${g.pts != null ? fmt1(g.pts) : ''}</td>
+                <td>${g.stats.pts_half_ppr != null ? fmt1(g.stats.pts_half_ppr) : ''}</td>
             </tr>`;
         }).join('');
         return `

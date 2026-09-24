@@ -8,10 +8,10 @@
 
 import { TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
-import { TEAMS } from './team.js?v=829';
+import { TEAMS } from './team.js?v=838';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { dotPlot, dumbbell } from '../ui/charts.js?v=9';
+import { dotPlot, dumbbell, donutSeg } from '../ui/charts.js?v=9';
 import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1002';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=611';
 
@@ -25,7 +25,7 @@ let avgMode = 'total'; // 'total' | 'starter' | 'nfl' — base di partite, punti
 // nessuna rosa: Firebase quelle non le ha proprio.
 const nflTotals = {};
 let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
-let roleDistMode = 'starters'; // 'all' | 'starters' — base di Weekly scores by position.
+let roleDistMode = 'starters'; // 'all' | 'starters' | 'bench' — base di Weekly scores by position.
 // Parte dai titolari come "Points by position (starters)" accanto.
 // Quale squadra guardare nel grafico "Weekly scores by position" della vista
 // Totale: 'all' le mette tutte insieme, altrimenti solo quella scelta.
@@ -457,8 +457,12 @@ export function keyStatLine(position, s) {
     }
 }
 
-export function headshotImg(rec, cls = 'an-headshot') {
-    return `<img src="images/fallback-player.svg" class="${cls} an-img" loading="lazy"
+export function headshotImg(rec, cls = 'an-headshot', extra = '') {
+    // `extra`: attributi che dipendono dal posto in cui la foto finisce e non
+    // dal giocatore — in Waivers la riga della griglia, che cambia a ogni
+    // mossa. Senza, quella pagina dovrebbe rifarsi l'img per conto suo, e due
+    // copie dello stesso markup prima o poi divergono.
+    return `<img src="images/fallback-player.svg" class="${cls} an-img" loading="lazy" ${extra}
         data-player-name="${rec.name}" data-team="${rec.nflTeam || ''}" data-pos="${rec.position || ''}" alt="${rec.name}">`;
 }
 
@@ -604,6 +608,12 @@ async function render(model) {
 
     const kpi = pointsComparison(model, currentTeam);
 
+    // La sezione si tinge del colore della squadra scelta: sottotitoli,
+    // pastiglie accese e accenti smettono di essere tutti rossi e diventano
+    // "di chi si sta guardando". Con "League" la variabile non c'e' e vale il
+    // rosso di sempre.
+    tintaSquadra(currentTeam);
+
     const tabsHtml = `
         <div class="an-tabs">
             ${TABS.map(t => `<button class="year-pill an-tab${t.id === currentTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
@@ -743,7 +753,7 @@ function renderSeasonTab(model) {
     const intent = draftIntent(model, currentTeam);
 
     return `
-    <h3 class="an-sub-title">Every player who passed through the roster</h3>
+    ${sottoTitolo('roster-tutti', `Every player who passed through the roster`)}
     <div class="an-list-head">
         <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
     </div>
@@ -818,7 +828,7 @@ function renderMarketTab(model) {
     const ranks = leaguePositionRanks(model);
 
     const additionsHtml = additions.length ? `
-        <h3 class="an-sub-title">In-season pickups${hasDraft ? '' : ' (draft not available)'}</h3>
+        ${sottoTitolo('pickups', `In-season pickups${hasDraft ? '' : ' (draft not available)'}`)}
         <div class="an-list-head">
             <span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
         </div>
@@ -837,7 +847,7 @@ function renderMarketTab(model) {
     ` : `<h3 class="an-sub-title">In-season pickups</h3>${emptyState('No pickups: roster unchanged from the draft')}`;
 
     const finalHtml = finalRoster.length ? `
-        <h3 class="an-sub-title">Final roster (W${model.lastWeek})</h3>
+        ${sottoTitolo('roster-finale', `Final roster (W${model.lastWeek})`)}
         <div class="an-final-roster">
             ${finalRoster.map(({ rec, agg, drafted }) => `
             <span class="an-roster-chip${drafted ? '' : ' an-roster-chip--add'}" title="${fmt(ptsOf(agg), 2)} pt">
@@ -854,7 +864,7 @@ function renderLineupTab(model) {
     const slots = lineupView(model, currentTeam);
     const ranks = leaguePositionRanks(model);
     return `
-    <h3 class="an-sub-title">Best lineup ${currentYear} — top performer per slot</h3>
+    ${sottoTitolo('best-lineup', `Best lineup ${currentYear} — top performer per slot`)}
     <div class="an-lineup-grid">
         ${slots.map(({ slot, row }) => {
         if (!row) {
@@ -1007,6 +1017,9 @@ function bindContentEvents() {
     if (!wrap) return;
 
     wrap.addEventListener('click', (e) => {
+        const infoBtn = e.target.closest('.an-info');
+        if (infoBtn) { apriInfo(infoBtn); return; }
+
         const tab = e.target.closest('.an-tab');
         if (tab) {
             currentTab = tab.dataset.tab;
@@ -1657,13 +1670,333 @@ function roleBreakdown(model) {
     });
 }
 
+/**
+ * Scrive (o toglie) `--an-tinta` sulla sezione Analysis. Una variabile sola:
+ * il CSS la usa dove prima c'era `--accent-red`, e non serve toccare un
+ * elemento per volta a ogni ridisegno.
+ */
+function tintaSquadra(teamKey) {
+    const sez = document.getElementById('analysis');
+    if (!sez) return;
+    // Il ruolo `bright` della palette, non l'identita': il bordeaux di Oscurus
+    // (#800020) e il petrolio di Sommo su fondo nero spariscono, ed e'
+    // esattamente il motivo per cui quel secondo colore esiste.
+    const colore = teamKey && teamKey !== 'all' ? TEAM_PALETTE[teamKey]?.bright : null;
+    if (colore) sez.style.setProperty('--an-tinta', colore);
+    else sez.style.removeProperty('--an-tinta');
+}
+
+
+/* ============================================================
+   Le spiegazioni dei grafici — la "i" in alto a destra
+   ============================================================
+
+   Ogni grafico di questa sezione porta una "i": cliccandola si apre un
+   riquadro che dice tre cose, sempre nello stesso ordine — cosa si sta
+   guardando, su quali giocatori è calcolato (titolari, rosa intera, scelte al
+   draft) e con che regola. La terza è quella che serve davvero: "punti lasciati
+   in panchina" non è la somma dei panchinari, è quanto si sarebbe guadagnato
+   schierando ogni settimana la formazione migliore possibile, e senza dirlo il
+   numero si legge come un'altra cosa.
+
+   Il testo sta qui e non accanto al grafico di proposito: le note a piè di
+   pagina erano diventate lunghe e si leggevano prima del grafico che dovevano
+   spiegare. */
+const INFO_GRAFICI = {
+    'roster-tutti': {
+        cosa: 'Everyone who spent at least one week on this roster, with the points they scored while they were here.',
+        base: 'Whole roster — starters and bench.',
+        regola: 'Points scored for another team in the league, before or after, are not in this row: those are the "Elsewhere" column.',
+    },
+    'pickups': {
+        cosa: 'Who arrived during the season: they were not among this team\'s draft picks.',
+        base: 'Whole roster — starters and bench.',
+        regola: 'The week shown is when they appeared on the roster; if they were dropped, the week after the last one they were here.',
+    },
+    'roster-finale': {
+        cosa: 'The roster as it stood in the last archived week.',
+        base: 'Whole roster — starters and bench.',
+        regola: 'Points are the ones scored for THIS team, not the player\'s whole season.',
+    },
+    'best-lineup': {
+        cosa: 'The best season-long performer for each lineup slot.',
+        base: 'Whole roster: a bench player can take the slot.',
+        regola: 'Picked on total points scored for this team, slot by slot, never repeating a player.',
+    },
+    'standings': {
+        cosa: 'Record, points for and points against of the four teams.',
+        base: 'Starters only, regular season.',
+        regola: 'Playoffs stay out: two games would skew the averages.',
+    },
+    'corsa': {
+        cosa: 'Wins piling up week after week.',
+        base: 'Real results, regular season.',
+        regola: 'One line per team: where they cross, the lead changed hands.',
+    },
+    'fortuna': {
+        cosa: 'How many of the other teams that week\'s score would have beaten.',
+        base: 'Starters only.',
+        regola: 'Green = actually won, red = lost. A week counts as luck only when the two disagree: you lost while beating most of the league, or the other way round. Playoffs are shown but never counted — the pairings work differently.',
+    },
+    'caldo': {
+        cosa: 'Who is scoring above their own pace right now.',
+        base: 'Starters only.',
+        regola: 'Recent weeks against the season average: it measures form, not how good the team is.',
+    },
+    'scontro': {
+        cosa: 'Where each team gains ground on the others, position by position.',
+        base: 'Starters at that position.',
+        regola: 'The per-position average against the league\'s: the bar is the edge (or the gap) on an average week.',
+    },
+    'panchina-cumulata': {
+        cosa: 'What was left on the bench, adding up week after week.',
+        base: 'Whole roster, but the number is about lineup decisions.',
+        regola: 'NOT the sum of the bench\'s points. Each week we build the best lineup the roster could have fielded and subtract the one actually fielded: what remains is the regret. A bench player who scored less than the starter at his position adds nothing.',
+    },
+    'record-vero': {
+        cosa: 'The real record next to the one you would have with an all-play schedule.',
+        base: 'Starters only, regular season.',
+        regola: 'The luck figure is the difference between the two: positive if the schedule helped, negative if it hurt.',
+    },
+    'forma': {
+        cosa: 'Week-by-week points against the season average.',
+        base: 'Starters only.',
+        regola: 'The flat line is the season average: above it the team is beating its own pace.',
+    },
+    'upgrade': {
+        cosa: 'Where to intervene: the weakest starter and who could replace him.',
+        base: 'Starters for the comparison, unrostered players for the alternatives.',
+        regola: 'It reads points per game, not totals: someone who arrived mid-season has few points but can be worth more than a player who has been here all along.',
+    },
+    'schierata-vs-ottima': {
+        cosa: 'Two lines: what was actually fielded and the best lineup available, week by week.',
+        base: 'Whole roster for the optimal line, starters for the real one.',
+        regola: 'The gap between the lines IS what was left on the bench. Where they touch, that week the lineup was perfect.',
+    },
+    'margine': {
+        cosa: 'By how much this team wins, and by how much it loses.',
+        base: 'Real results, regular season.',
+        regola: 'Narrow wins with heavy losses describe a different team from wide wins and close losses, at the same record.',
+    },
+    'per-ruolo-settimana': {
+        cosa: 'Points from each position, week by week.',
+        base: 'Starters at that position.',
+        regola: 'The bench is not in here: this is what the fielded lineup produced.',
+    },
+    'distacco': {
+        cosa: 'The gap from the league average, building up over time.',
+        base: 'Starters only.',
+        regola: 'Each week adds the difference between the team\'s points and the four-team average: the rising line is the one gaining ground.',
+    },
+    'per-ruolo': {
+        cosa: 'How many points each position produced over the season.',
+        base: 'Starters at that position.',
+        regola: 'A position can be low because the player scores little or because he was rarely started: the week-by-week chart above tells the two apart.',
+    },
+    'costanza': {
+        cosa: 'How much the weekly scores swing.',
+        base: 'Starters only, regular season.',
+        regola: 'The less they swing, the more predictable the team: two teams with the same average can be opposites here.',
+    },
+    'valore-pick': {
+        cosa: 'What each draft pick returned compared with where it was taken.',
+        base: 'That team\'s draft picks only.',
+        regola: 'Points count wherever the player scored them, even after being dropped: the pick is judged on the player, not on how long he stayed.',
+    },
+    'confronto-rose': {
+        cosa: 'Rosters side by side, player against player in the same slot.',
+        base: 'Each team\'s best season lineup.',
+        regola: 'It compares slots, not totals: it says where a team is stronger, not by how much it won.',
+    },
+    'confronto-draftate': {
+        cosa: 'The drafted teams side by side, slot by slot.',
+        base: 'Draft picks only — whoever came later is out.',
+        regola: 'It answers "who drafted better", ignoring what the market fixed afterwards.',
+    },
+    'top-ruolo': {
+        cosa: 'The best at each position across the league this season.',
+        base: 'Points scored as a starter.',
+        regola: 'One name per position: it says who owns that slot in the league, not who has the deepest roster.',
+    },
+    'confronto-pickup': {
+        cosa: 'What in-season pickups returned, team by team.',
+        base: 'Only players who were not draft picks.',
+        regola: 'The big number is points scored AS A STARTER; the small one beside it is everything they produced, bench weeks included.',
+    },
+    'infortuni': {
+        cosa: 'Who ended up on the injury report, week by week.',
+        base: 'Whole roster.',
+        regola: 'The designation is the Friday one: it says whether he was in doubt, not whether he then played. "DNP" is the only confirmation, taken from the official game roster.',
+    },
+    'draft-vs-mercato': {
+        cosa: 'How much of what the team actually fielded came from the draft, and how much from the market.',
+        base: 'Points scored as starters only.',
+        regola: 'Draft = players this team picked that year; market = anyone who arrived later, however they arrived. Bench weeks are out, so the two slices add up to the team\'s real score. A player drafted by someone else and picked up later counts as market.',
+    },
+
+    'classifiche': {
+        cosa: 'Three rankings side by side: draft, market and bench.',
+        base: 'Each has its own basis — which is exactly why this "i" is here.',
+        regola: '<b>Best Draft</b>: the best lineup that could be fielded each week with the draft picks alone (the small number is everything those picks produced, bench included). <b>Best Pickups</b>: points scored as starters by players who arrived after the draft (small number: the total with bench weeks). <b>Points Left on the Bench</b>: NOT the sum of the bench, but the difference between the best possible lineup and the one actually fielded, week by week. All three include the playoffs.',
+    },
+};
+
+
+/**
+ * Il riquadro con la spiegazione. Uno solo, riusato: appare accanto alla "i"
+ * che si e' premuta e si chiude al clic fuori, con Escape o ripremendo la
+ * stessa "i". Sta in fondo al `body` e non dentro al grafico perche' le card
+ * ritagliano quello che esce dai loro bordi.
+ */
+let infoBox = null;
+let infoAperta = null;
+
+/**
+ * Altre sezioni aggiungono le loro schede al catalogo.
+ *
+ * Il testo di un grafico sta accanto al grafico, non qui: All-Time Stats
+ * registra le sue e usa lo stesso `sottoTitolo`, cosi' il riquadro si apre e si
+ * chiude allo stesso modo in tutte e due le pagine senza una seconda copia del
+ * meccanismo.
+ */
+export function registraInfo(schede) {
+    Object.assign(INFO_GRAFICI, schede);
+}
+
+export function apriInfo(btn) {
+    const dati = INFO_GRAFICI[btn.dataset.info];
+    if (!dati) return;
+    if (infoAperta === btn) { chiudiInfo(); return; }
+
+    if (!infoBox) {
+        infoBox = document.createElement('div');
+        infoBox.className = 'an-info-box';
+        document.body.appendChild(infoBox);
+        document.addEventListener('click', (e) => {
+            if (!infoBox.contains(e.target) && !e.target.closest('.an-info')) chiudiInfo();
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudiInfo(); });
+        window.addEventListener('scroll', () => chiudiInfo(), { passive: true });
+    }
+
+    infoBox.innerHTML = `
+        <p class="an-info-cosa">${dati.cosa}</p>
+        <p class="an-info-riga"><span>Counts</span> ${dati.base}</p>
+        <p class="an-info-riga"><span>How</span> ${dati.regola}</p>`;
+    infoBox.hidden = false;
+    infoAperta = btn;
+    btn.classList.add('is-on');
+
+    // sotto alla "i", allineato a destra, e rientrato se sborderebbe
+    const r = btn.getBoundingClientRect();
+    const largo = Math.min(340, window.innerWidth - 24);
+    infoBox.style.width = `${largo}px`;
+    const destra = Math.min(window.scrollX + r.right, window.scrollX + window.innerWidth - 12);
+    infoBox.style.left = `${Math.max(window.scrollX + 12, destra - largo)}px`;
+    infoBox.style.top = `${window.scrollY + r.bottom + 8}px`;
+}
+
+function chiudiInfo() {
+    if (!infoBox) return;
+    infoBox.hidden = true;
+    infoAperta?.classList.remove('is-on');
+    infoAperta = null;
+}
+
+/** Titolo di un grafico con la sua "i": il testo sta in INFO_GRAFICI. */
+export function sottoTitolo(id, testo, extra = '') {
+    const info = INFO_GRAFICI[id]
+        ? `<button class="an-info" type="button" data-info="${id}" aria-label="What am I looking at?">i</button>`
+        : '';
+    return `<h3 class="an-sub-title an-sub-title--info ${extra}">${testo}${info}</h3>`;
+}
+
+
+/**
+ * Draft o mercato: da dove arrivano i punti che la squadra ha davvero
+ * SCHIERATO.
+ *
+ * Una ciambella per squadra. La fetta grande sono i punti fatti da titolare
+ * dai giocatori scelti al draft, l'altra quelli di chi e' arrivato dopo. Due
+ * squadre con lo stesso totale possono averlo costruito in modi opposti — una
+ * col draft, l'altra rifacendosi in stagione — e questa e' la domanda a cui
+ * gli altri grafici non rispondono.
+ *
+ * Solo i punti da TITOLARE: la panchina non e' finita nel punteggio, e qui si
+ * guarda cosa ha prodotto la formazione. Le due fette insieme fanno quindi il
+ * totale della squadra, non la somma di tutto quello che la rosa ha segnato.
+ */
+function blockDraftVsMercato(model) {
+    const dati = Object.values(TEAMS).map(t => {
+        const { additions } = marketView(model, t.key);
+        const presi = additions.reduce((acc, a) => acc + a.agg.ptsStarted, 0);
+        const picks = (draftView(model, t.key) || []).filter(x => x.rec && x.agg);
+        const draftati = picks.reduce((acc, x) => acc + x.agg.ptsStarted, 0);
+        return { key: t.key, name: t.name, colore: CHART_COLORS[t.key] || '#888', draftati, presi };
+    }).filter(d => d.draftati + d.presi > 0);
+
+    if (!dati.length) return '';
+
+    // Anello sottile, non una fetta di torta: due archi con le punte tonde,
+    // staccati da un pelo di spazio. Il raggio e' uno solo — la larghezza la
+    // fa lo `stroke`, non la differenza fra due raggi.
+    const C = 62, R = 46;
+    const giro = 2 * Math.PI * R;
+    const STACCO = 7;                 // il buco fra i due archi, in unita' d'arco
+    const ciambella = (d) => {
+        const tot = d.draftati + d.presi;
+        const quota = tot ? d.draftati / tot : 0;
+        // con una quota piena (o vuota) niente stacco: un anello intero non ha
+        // due capi da separare
+        const stacco = quota > 0.02 && quota < 0.98 ? STACCO : 0;
+        const arcoDraft = Math.max(0, quota * giro - stacco);
+        const arcoMercato = Math.max(0, (1 - quota) * giro - stacco);
+        return `
+        <figure class="an-torta">
+            <svg viewBox="0 0 ${C * 2} ${C * 2}" class="an-torta-svg" role="img"
+                 aria-label="${escAttr(d.name)}: ${fmt(d.draftati, 0)} points from draft picks, ${fmt(d.presi, 0)} from pickups">
+                <g transform="rotate(-90 ${C} ${C})">
+                    ${arcoDraft > 0 ? `<circle class="an-torta-arco an-torta-draft" cx="${C}" cy="${C}" r="${R}"
+                        stroke-dasharray="${arcoDraft.toFixed(2)} ${(giro - arcoDraft).toFixed(2)}"
+                        stroke-dashoffset="${(-stacco / 2).toFixed(2)}"><title>Draft · ${fmt(d.draftati, 0)} pt</title></circle>` : ''}
+                    ${arcoMercato > 0 ? `<circle class="an-torta-arco an-torta-mercato" cx="${C}" cy="${C}" r="${R}"
+                        stroke-dasharray="${arcoMercato.toFixed(2)} ${(giro - arcoMercato).toFixed(2)}"
+                        stroke-dashoffset="${(-(quota * giro + stacco / 2)).toFixed(2)}"><title>Market · ${fmt(d.presi, 0)} pt</title></circle>` : ''}
+                </g>
+                <text x="${C}" y="${C - 2}" class="an-torta-num" text-anchor="middle">${Math.round(quota * 100)}%</text>
+                <text x="${C}" y="${C + 12}" class="an-torta-lbl" text-anchor="middle">draft</text>
+            </svg>
+            <figcaption>
+                <span class="an-torta-team">${escAttr(d.name)}</span>
+                <span class="an-torta-cifre">${fmt(d.draftati, 0)} <i>draft</i> · ${fmt(d.presi, 0)} <i>market</i></span>
+            </figcaption>
+        </figure>`;
+    };
+
+    return `
+    ${sottoTitolo('draft-vs-mercato', 'Starter points: draft or market?')}
+    <div class="an-torte" style="${dati.map(d => `--tc-${d.key}:${d.colore}`).join(';')}">
+        ${dati.map(d => `<div class="an-torta-wrap" style="--tc-sel:${d.colore}">${ciambella(d)}</div>`).join('')}
+    </div>
+    <p class="an-footnote">Only points scored <b>as starters</b>: the two slices add up to the team's real score,
+       not to everything the roster produced. The draft slice is in the team's colour.</p>`;
+}
+
 function leagueRankings(model) {
     const rows = Object.values(TEAMS).map(t => {
         const kpi = pointsComparison(model, t.key);
         const { additions } = marketView(model, t.key);
+        // Due numeri diversi, e la differenza conta: da titolare sono i punti
+        // che hanno messo nel tabellino della squadra, in totale ci sono anche
+        // le settimane passate in panchina — presi e mai schierati.
+        const pickupStarted = additions.reduce((s, a) => s + a.agg.ptsStarted, 0);
         const pickupPts = additions.reduce((s, a) => s + a.agg.pts, 0);
         const topPickup = additions[0] || null;
         const draftPicks = (draftView(model, t.key) || []).filter(p => p.rec && p.agg);
+        // Tutti i punti delle scelte al draft, panchina compresa: il numero
+        // grande e' la miglior formazione possibile con loro, questo e' quanto
+        // hanno prodotto in tutto mentre erano in rosa.
+        const draftedAll = draftPicks.reduce((s, p) => s + p.agg.pts, 0);
         const topDraft = draftPicks.length
             ? draftPicks.reduce((best, p) => p.agg.pts > best.agg.pts ? p : best)
             : null;
@@ -1673,14 +2006,14 @@ function leagueRankings(model) {
         return {
             key: t.key, name: t.name, color: CHART_COLORS[t.key] || '#888',
             drafted: kpi.drafted === null ? null : kpi.drafted + (kpi.po?.drafted || 0),
-            pickupPts, topPickup, topDraft,
+            draftedAll, pickupStarted, pickupPts, topPickup, topDraft,
             benchLost: kpi.benchLost + (kpi.po?.benchLost || 0),
             worstMiss: kpi.worstMiss,
         };
     });
     return {
         draft: [...rows].sort((a, b) => (b.drafted || 0) - (a.drafted || 0)),
-        pickups: [...rows].sort((a, b) => b.pickupPts - a.pickupPts),
+        pickups: [...rows].sort((a, b) => b.pickupStarted - a.pickupStarted),
         bench: [...rows].sort((a, b) => b.benchLost - a.benchLost),
     };
 }
@@ -1798,7 +2131,7 @@ function renderPositionLeaders(model) {
     const cards = ROLES.map(pos => positionLeaderCard(pos, byPos[pos] || [], leaderMode)).filter(Boolean).join('');
     if (!cards) return '';
     return `
-    <h3 class="an-sub-title an-rule">Top Performers by Position</h3>
+    ${sottoTitolo('top-ruolo', `Top Performers by Position`, 'an-rule')}
     <div class="an-controls">
         <div class="an-avg-toggle">
             <span class="an-avg-label">Points:</span>
@@ -1858,7 +2191,7 @@ function blockStandings(model) {
     const base = Math.floor(Math.min(...tutti) / 100) * 100 - 100;
 
     return `
-    <h3 class="an-sub-title">Record, points for and against</h3>
+    ${sottoTitolo('standings', `Record, points for and against`)}
     <p class="an-footnote">Regular season. The gap between the two dots is the balance:
        to the right of the grey one means scoring more than conceding.</p>
     ${dumbbell(righe, {
@@ -1894,7 +2227,7 @@ function blockRecordRace(model) {
     const apCapolista = [...teams].sort((a, b) => b.apW - a.apW)[0];
 
     return `
-    <h3 class="an-sub-title">The race: wins week by week</h3>
+    ${sottoTitolo('corsa', `The race: wins week by week`)}
     <p class="an-footnote">Cumulative wins; hover any week to read every team's record
        at that point. ${capolista.name} leads on ${capolista.w}–${capolista.l}.</p>
     ${lineChartHTML(serie)}
@@ -1939,7 +2272,7 @@ function blockLuck(model) {
     const baciata = [...teams].sort((a, b) => b.luck - a.luck)[0];
 
     return `
-    <h3 class="an-sub-title">Luck, week by week</h3>
+    ${sottoTitolo('fortuna', `Luck, week by week`)}
     <p class="an-footnote">A week counts only when the result contradicts the field:
        <b>beat two of three and lose</b> is −1, <b>beat one of three and win</b> is +1.
        Everything else is earned — losing after beating nobody is a bad week, not bad luck.
@@ -1964,7 +2297,7 @@ function blockForm(model) {
             tip: `${t.name} — last ${t.giornate}: ${fmt1n(t.recente)} pt, season ${fmt1n(t.media)} pt`,
         }));
     return `
-    <h3 class="an-sub-title">Who is hot right now</h3>
+    ${sottoTitolo('caldo', `Who is hot right now`)}
     <p class="an-footnote">Average of the last three weeks against the team's own season average.
        The cumulative chart further down is dominated by the early weeks and hides current form.</p>
     ${dotPlot(righe, { axisLabel: 'season average', fmt: fmt1n })}`;
@@ -1993,7 +2326,7 @@ function blockPositionEdge(model) {
     }).join('');
 
     return `
-    <h3 class="an-sub-title">Where each team wins the matchup</h3>
+    ${sottoTitolo('scontro', `Where each team wins the matchup`)}
     <p class="an-footnote">Points per week from starters in each position, against the league
        average in the same position. Right of the line is an edge, left is a hole.</p>
     <div class="an-edge-grid">${gruppi}</div>`;
@@ -2023,7 +2356,7 @@ function blockEfficiency(model) {
     });
     const migliore = [...eff].sort((a, b) => b.effMedia - a.effMedia)[0];
     return `
-    <h3 class="an-sub-title">Points left on the bench, adding up</h3>
+    ${sottoTitolo('panchina-cumulata', `Points left on the bench, adding up`)}
     <p class="an-footnote">Every week the gap between what was started and the best lineup
        available, piling up. A flat stretch is a manager getting it right; a steep one is a
        week thrown away. Best of the season: <b>${migliore.name}</b>,
@@ -2106,7 +2439,7 @@ function teamLuckHTML(model, teamKey) {
         <span class="an-luck-po-label" style="grid-column:${daPo + 1} / -1">Playoffs</span>`;
 
     return `
-    <h3 class="an-sub-title">Record: earned or scheduled?</h3>
+    ${sottoTitolo('record-vero', `Record: earned or scheduled?`)}
     <div class="an-luck-kpi">
         <div><b>${t.w}–${t.l}${t.t ? `–${t.t}` : ''}${poHtml}</b><span>Real record</span></div>
         <div><b>${fmtAp(t.apW)}–${fmtAp(t.apL)}${poApHtml}</b><span>All-play record</span></div>
@@ -2156,7 +2489,7 @@ function teamFormHTML(model, teamKey) {
     }
     const scarto = t.media > 0 ? ((t.recente - t.media) / t.media) * 100 : 0;
     return `
-    <h3 class="an-sub-title">Form</h3>
+    ${sottoTitolo('forma', `Form`)}
     <p class="an-footnote">Last ${t.giornate} weeks at <b>${fmt1n(t.recente)}</b> pt per week
        against a season average of <b>${fmt1n(t.media)}</b>: ${segno(scarto)}%.</p>
     ${lineChartHTML(serie)}`;
@@ -2177,7 +2510,7 @@ function teamEdgeHTML(model, teamKey) {
         }))
         .sort((a, b) => (b.value - b.ref) - (a.value - a.ref));
     return `
-    <h3 class="an-sub-title">Where this team wins the matchup</h3>
+    ${sottoTitolo('scontro', `Where this team wins the matchup`)}
     <p class="an-footnote">Points per week from starters in each position, against the league
        average in the same position.</p>
     ${dotPlot(righe, { axisLabel: 'league average', fmt: fmt1n })}`;
@@ -2341,7 +2674,7 @@ function upgradesHTML(sugg, model) {
     }).join('');
 
     return `
-    <h3 class="an-sub-title">Where to look for an upgrade</h3>
+    ${sottoTitolo('upgrade', `Where to look for an upgrade`)}
     <p class="an-footnote">Only the positions where this team is <b>below</b> the league average above: its
        weakest regular starter (at least ${UPGRADE_MIN_START} starts) against the free agents who averaged
        more — per game, over the whole NFL season, recalculated from real stats with the league's scoring.
@@ -2404,7 +2737,7 @@ function teamEfficiencyHTML(model, teamKey) {
     ];
     const peggiore = [...t.giornate].sort((a, b) => (a.ottimale - a.schierati) - (b.ottimale - b.schierati)).pop();
     return `
-    <h3 class="an-sub-title">Started vs best possible, week by week</h3>
+    ${sottoTitolo('schierata-vs-ottima', `Started vs best possible, week by week`)}
     <p class="an-footnote">The gap between the two lines <b>is</b> what was left on the bench:
        ${fmt(t.persi, 1)} pt over the regular season, ${fmt1n(t.effMedia)}% efficiency.
        Worst call in W${peggiore.wk} (−${fmt(peggiore.ottimale - peggiore.schierati, 1)} pt).</p>
@@ -2507,7 +2840,7 @@ function blockMargin(model) {
     const stats = teamMarginStatsForYear(model);
     if (!Object.values(stats).some(s => s.wins.length || s.losses.length)) return '';
     return `
-    <h3 class="an-sub-title">Margin: Wins vs Losses</h3>
+    ${sottoTitolo('margine', `Margin: Wins vs Losses`)}
     <div class="an-chart">${buildMarginDotPlot(stats)}</div>
     <p class="an-footnote">Each dot is a game this season: to the right (+) wins, to the left (−) losses, distance from 0 = margin. The vertical mark is the average, the band is ±1 standard deviation.</p>`;
 }
@@ -2525,6 +2858,9 @@ function roleWeeklyScores(model, mode, teamKey) {
         for (const w of Object.values(rec.weeks)) {
             if (teamKey && w.teamKey !== teamKey) continue;
             if (mode === 'starters' && !w.started) continue;
+            // La panchina da sola risponde a una domanda diversa dalle altre
+            // due: non "quanto vale questo ruolo" ma "quanto stava fermo".
+            if (mode === 'bench' && w.started) continue;
             (byRole[rec.position] ||= []).push(w.pts);
         }
     }
@@ -2574,6 +2910,13 @@ function buildRoleDistribution(byRole) {
     return `<svg viewBox="0 0 ${RDP.w} ${h}" class="an-svg">${gridX}${lanes}</svg>`;
 }
 
+/** Come si chiama a parole la base scelta: la usano il piede del grafico e la "i". */
+export const BASE_RUOLI = {
+    all: 'starters and bench',
+    starters: 'starters only',
+    bench: 'bench only',
+};
+
 function blockRoleDist(model, teamKey) {
     // Nella vista Totale (teamKey non passato) il pill sceglie UNA squadra alla
     // volta, "All" le mette tutte insieme. Sulla pagina di una squadra sola
@@ -2594,17 +2937,18 @@ function blockRoleDist(model, teamKey) {
     const chi = teamKey ? "this team's players" : scelta ? TEAMS[scelta].name : 'this season';
 
     return `
-    <h3 class="an-sub-title">Weekly scores by position</h3>
+    ${sottoTitolo('per-ruolo-settimana', `Weekly scores by position`)}
     <div class="an-controls">
         <div class="an-avg-toggle">
             <span class="an-avg-label">Show:</span>
             <button class="an-avg-pill${roleDistMode === 'all' ? ' active' : ''}" data-roledist-mode="all">All</button>
             <button class="an-avg-pill${roleDistMode === 'starters' ? ' active' : ''}" data-roledist-mode="starters">Starters Only</button>
+            <button class="an-avg-pill${roleDistMode === 'bench' ? ' active' : ''}" data-roledist-mode="bench">Bench Only</button>
         </div>
         ${teamToggle}
     </div>
     <div class="an-chart">${buildRoleDistribution(byRole)}</div>
-    <p class="an-footnote">Each dot is a weekly performance by ${chi} (${roleDistMode === 'starters' ? 'starters only' : 'starters and bench'}). The band is ±1 standard deviation around the average (vertical line)${(teamKey || scelta) ? ' — a wide band is a boom-or-bust position, a tight one is reliable' : ''}.</p>`;
+    <p class="an-footnote">Each dot is a weekly performance by ${chi} (${BASE_RUOLI[roleDistMode]}). The band is ±1 standard deviation around the average (vertical line)${(teamKey || scelta) ? ' — a wide band is a boom-or-bust position, a tight one is reliable' : ''}.</p>`;
 }
 
 /** Cambiare modalità o squadra ridisegna solo questo blocco, come per Top Performers by Position. */
@@ -2692,35 +3036,43 @@ function renderLeagueView(model) {
         </div>
     </div>
 
-    <h3 class="an-sub-title">Cumulative gap from league average</h3>
+    ${sottoTitolo('distacco', `Cumulative gap from league average`)}
     ${legend}
     <div class="an-chart" id="an-line-chart">${buildLineChart(series)}<div class="an-chart-tooltip" hidden></div></div>
     <p class="an-footnote">Each line is the team's cumulative score minus the league average at the same week: above 0 = above average, below = below. The tooltip shows the real cumulative total.</p>
 
-    <h3 class="an-sub-title">Points by position (starters)</h3>
+    ${sottoTitolo('per-ruolo', `Points by position (starters)`)}
     ${legend}
     <div class="an-chart" id="an-role-chart">${buildRoleChart(roleBreakdown(model))}<div class="an-chart-tooltip" hidden></div></div>
     <p class="an-footnote">Total season points scored by each team's starters at that position.</p>
 
     ${blockStandings(model)}
 
+    ${sottoTitolo('classifiche', 'Draft, market and bench')}
     <div class="an-rankings">
-        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${nomeCorto({ name: r.topDraft.rec.name, pos: r.topDraft.rec.position })} · ${fmt(r.topDraft.agg.pts, 0)} pt` : null, 'win')}
-        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupPts, r => r.topPickup ? `Top: ${nomeCorto({ name: r.topPickup.rec.name, pos: r.topPickup.rec.position })} · ${fmt(r.topPickup.agg.pts, 0)} pt` : null, 'win')}
+        ${rankingBlock('Best Draft', rk.draft, r => r.drafted, r => r.topDraft ? `Top: ${nomeCorto({ name: r.topDraft.rec.name, pos: r.topDraft.rec.position })} · ${fmt(r.topDraft.agg.pts, 0)} pt` : null, 'win',
+            r => r.draftedAll, 'All points scored by that draft class, bench weeks included')}
+        ${rankingBlock('Best Pickups', rk.pickups, r => r.pickupStarted, r => r.topPickup ? `Top: ${nomeCorto({ name: r.topPickup.rec.name, pos: r.topPickup.rec.position })} · ${fmt(r.topPickup.agg.ptsStarted, 0)} pt` : null, 'win',
+            r => r.pickupPts, 'All their points on the roster, bench weeks included')}
         ${rankingBlock('Points Left on the Bench', rk.bench, r => r.benchLost, r => r.worstMiss ? `Worst: ${nomeCorto({ name: r.worstMiss.name, pos: r.worstMiss.position })} · ${fmt(r.worstMiss.pts, 1)} pt (W${r.worstMiss.wk})` : null, 'loss')}
     </div>
     <p class="an-footnote">Points from that year's draft picks, from in-season waiver pickups, and left unplayed
        on the bench — each ranked highest first, <b>playoffs included</b>. Draft is the best lineup that could
-       be fielded each week with that year's picks alone, counting their points wherever they played in the league.</p>
+       be fielded each week with that year's picks alone, counting their points wherever they played in the league.
+       Pickups is what they scored <b>as starters</b>. The smaller number beside each total is everything those
+       players scored while on the roster, <b>bench weeks included</b>: the gap between the two is what was
+       bought and never played.</p>
 
-    <h3 class="an-sub-title">Scoring Consistency</h3>
+    ${blockDraftVsMercato(model)}
+
+    ${sottoTitolo('costanza', `Scoring Consistency`)}
     ${buildDistributionChart(scoreDistribution(model))}
 
     ${blockMargin(model)}
 
     ${seasonTrendHTML(model)}
 
-    <h3 class="an-sub-title">Draft: Value per Pick</h3>
+    ${sottoTitolo('valore-pick', `Draft: Value per Pick`)}
     ${legend}
     ${buildDraftScatterSection(draftValueScatter(model))}
     <p class="an-footnote">Each dot is a pick from that year's draft, positioned by pick number and the points its player scored for the team that took him.</p>
@@ -2735,14 +3087,14 @@ function renderLeagueView(model) {
     </div>
     <p class="an-footnote">Best and worst single-week scores by a starter this season.</p>
 
-    <h3 class="an-sub-title an-rule">Roster Comparison — Drafted Team</h3>
+    ${sottoTitolo('confronto-draftate', `Roster Comparison — Drafted Team`, 'an-rule')}
     ${buildRosterCompareTable(model, 'drafted')}
 
-    <h3 class="an-sub-title">Roster Comparison — Best Team</h3>
+    ${sottoTitolo('confronto-rose', `Roster Comparison — Best Team`)}
     ${buildRosterCompareTable(model, 'best')}
     <p class="an-footnote">Starting slots filled with the best available player at the position (W/R = flex RB/WR/TE) among everyone who passed through the roster that season; below the line, the bench players. "Starters" = sum of starting slots only, "Total" = every player on the roster.</p>
 
-    <h3 class="an-sub-title">Pickups Comparison</h3>
+    ${sottoTitolo('confronto-pickup', `Pickups Comparison`)}
     ${buildPickupsCompareTable(model)}
     <p class="an-footnote">In-season pickups sorted by points scored (best first), not by position.</p>`;
 }
@@ -2994,14 +3346,14 @@ export function sumWeeklyStats(weeks) {
 async function loadTeamInjuryReport(wrap, model, teamKey) {
     const box = wrap.querySelector('#an-injury-team-wrap');
     if (!box) return;
-    box.innerHTML = `<h3 class="an-sub-title">Injury Report</h3><p class="an-footnote">Loading…</p>`;
+    box.innerHTML = `${sottoTitolo('infortuni', `Injury Report`)}<p class="an-footnote">Loading…</p>`;
 
     const righe = await teamInjuryReport(model, teamKey);
     if (!wrap.isConnected || wrap.querySelector('#an-injury-team-wrap') !== box) return;
 
     const t = TEAMS[teamKey];
     box.innerHTML = `
-    <h3 class="an-sub-title">Injury Report</h3>
+    ${sottoTitolo('infortuni', `Injury Report`)}
     ${injuryLegendHTML([righe])}
     <p class="an-footnote">Everyone who passed through the roster this season: first the players the team
        drafted, then the ones picked up in-season, each sorted by weeks missed. <i>#R3</i> is the draft round, shown only for drafted
@@ -3394,20 +3746,24 @@ function pannelloClassifica(titolo, righe, { evidenza = 'bene', vuoto = 'No data
                 ? `<span class="st-leader-nm">${r.nome}</span>
                    <span class="st-leader-team">${notaPezzi(r.sotto)}</span>`
                 : `${r.nome}${r.sotto ? `<span class="st-leader-team">${r.sotto}</span>` : ''}`}</span>
-            <span class="st-leader-value">${r.valore}</span>
+            <span class="st-leader-value">${r.extra
+            ? `<small class="st-leader-extra" title="${escAttr(r.extraTitolo || '')}">${r.extra}</small>` : ''}${r.valore}</span>
         </div>`).join('')}
     </div>`;
 }
 
 /** Classifica fra le quattro squadre: l'immagine e' lo stemma. */
-function rankingBlock(title, rows, valueFn, noteFn, evidenzaMode = 'win') {
+function rankingBlock(title, rows, valueFn, noteFn, evidenzaMode = 'win', extraFn = null, extraTitolo = '') {
     return pannelloClassifica(title, rows.map(r => {
         const val = valueFn(r);
+        const extra = extraFn ? extraFn(r) : null;
         return {
             img: `<img src="${TEAMS[r.key].logo}" alt="" class="st-leader-img st-leader-img--team">`,
             nome: r.name,
             sotto: noteFn(r) || '',
             valore: val !== null && val !== undefined ? fmt(val, 0) : '—',
+            extra: extra !== null && extra !== undefined ? fmt(extra, 0) : null,
+            extraTitolo,
         };
     }), { evidenza: evidenzaMode === 'loss' ? 'male' : 'bene' });
 }

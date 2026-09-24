@@ -22,10 +22,14 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
-import { TEAMS } from './team.js?v=829';
+import { TEAMS } from './team.js?v=838';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=7';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=845';
+import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=18';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=879';
+
+/** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */
+const escAttr = (v) => String(v ?? '').replace(/[&<>"]/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -94,22 +98,121 @@ function dataBreve(iso) {
  * testo, un link lo porterebbe a una scheda vuota.
  */
 function nomeLink(m) {
-    if (!m.pos || String(m.nome).startsWith('#')) return m.nome;
+    const testo = `<span class="wv-n-full">${m.nome}</span><span class="wv-n-corto">${nomeCorto(m.nome)}</span>`;
+    if (!m.pos || String(m.nome).startsWith('#')) return testo;
     const href = `#player/${currentYear}/${encodeURIComponent(m.pos)}/${encodeURIComponent(m.nome)}`;
-    return `<a class="wv-player-link" href="${href}">${m.nome}</a>`;
+    return `<a class="wv-player-link" href="${href}">${testo}</a>`;
 }
 
-function riga(m) {
-    const logo = logoSquadra(m.squadra);
-    const dentro = m.verso === 'in';
+/**
+ * Il nome come si scrive sul telefono: iniziale e cognome.
+ *
+ * Li' la colonna del nome e' larga meno della meta', e un nome intero andava a
+ * capo su due righe — con lo scambio, le due meta' della transazione non erano
+ * piu' incolonnate. Chi ha un nome solo (le difese) resta com'e', e il suffisso
+ * se lo tiene: "Travis Etienne Jr." diventa "T. Etienne Jr.".
+ */
+function nomeCorto(nome) {
+    const parti = String(nome ?? '').trim().split(/\s+/);
+    if (parti.length < 2 || !parti[0]) return nome;
+    return `${parti[0][0]}. ${parti.slice(1).join(' ')}`;
+}
+
+/**
+ * Le righe come si guardano: una transazione e' UN riquadro, non N righe
+ * sparse.
+ *
+ * Cosa tiene insieme le righe dipende dalla fonte, e le due non sanno le stesse
+ * cose:
+ *
+ *  - **ESPN** da' l'id della transazione: l'acquisto e il taglio che lo paga
+ *    sono la stessa mossa, dichiarata tale da chi l'ha registrata.
+ *  - **La ricostruzione dalle rose** (2019-2025) non ha nessun id, e nemmeno il
+ *    giorno: sa che nella settimana 6 quella squadra aveva dentro Tizio e non
+ *    aveva piu' Caio. L'unita' li' e' la SETTIMANA della squadra, ed e' tutto
+ *    quello che si puo' dire senza inventare.
+ *
+ * Perche' non si appaia uno a uno nelle stagioni ricostruite: su 315
+ * settimane-squadra dal 2019 al 2025, solo 121 hanno esattamente un entrato e
+ * un uscito. Nelle altre le mosse sono da due a sei e l'ordine non esiste nel
+ * dato, quindi qualunque accoppiamento sarebbe sorteggiato. Nemmeno il ruolo lo
+ * decide: anche fra le coppie gia' forzate dai numeri, solo il 45% e'
+ * ruolo-su-ruolo — un kicker si taglia per prendere un ricevitore, e capita
+ * quanto lo scambio alla pari.
+ *
+ * Il riquadro percio' non dice "Tizio ha preso il posto di Caio": dice "questa
+ * squadra, questa settimana, dentro questi e fuori questi". E' vero per
+ * tutt'e due le fonti, e nel caso 1-1 si legge esattamente come una
+ * sostituzione.
+ *
+ * Una distinzione pero' il dato la fa, e va tenuta: un giocatore passato da una
+ * rosa a un'altra (`Move`) e' uno scambio fra allenatori, non un giro di
+ * mercato libero — due cose diverse, avvenute per forza in momenti diversi.
+ * Mescolarle nello stesso riquadro univa transazioni che si sa essere separate:
+ * succedeva in 46 delle 315 settimane-squadra dal 2019 al 2025.
+ */
+const famiglia = (m) => (m.tipo === 'Move' ? 'mv' : 'wire');
+
+function accorpa(lista) {
+    const gruppi = new Map();
+    for (const m of lista) {
+        const chiave = m.tx ? `tx:${m.tx}` : `wk:${m.squadra}|${m.settimana}|${famiglia(m)}`;
+        const g = gruppi.get(chiave) || { entrate: [], uscite: [] };
+        g[m.verso === 'in' ? 'entrate' : 'uscite'].push(m);
+        gruppi.set(chiave, g);
+    }
+    // l'ordine resta quello di `ordina`: si usa la riga piu' recente del gruppo
+    const quando = (r) => {
+        const m = r.entrate[0] || r.uscite[0];
+        return [Number(m.data) || 0, m.settimana ?? -1];
+    };
+    return [...gruppi.values()]
+        .sort((a, b) => quando(b)[0] - quando(a)[0] || quando(b)[1] - quando(a)[1]);
+}
+
+/**
+ * Le tre caselle di un giocatore: etichetta, foto, nome.
+ *
+ * `n` e' la riga interna del riquadro. Le caselle si incolonnano perche' ognuna
+ * ha la sua colonna fissa nel CSS e la riga gliela scrive il markup: quante
+ * righe servano lo sa solo lui, e cambia da una transazione all'altra.
+ */
+function chi(m, n, etichetta, classe, spento) {
+    const g = `style="grid-row:${n}"`;
+    const s = spento ? ' wv-l-out' : '';
     return `
-    <div class="wv-row">
+        <span class="wv-dir ${classe}${s}" ${g}>${etichetta}</span>
+        ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl },
+        `an-headshot wv-photo${s}`, g)}
+        <span class="an-player-name${s}${spento ? ' wv-nome-out' : ''}" ${g}>${nomeLink(m)} ${
+        m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>`;
+}
+
+/** Quando e chi: valgono per tutta la transazione, quindi stanno al centro. */
+function intestazione(m) {
+    const logo = logoSquadra(m.squadra);
+    return `
         <span class="wv-when">${m.settimana != null ? `W${m.settimana}` : ''}${m.data ? `<i>${dataBreve(m.data)}</i>` : ''}</span>
-        <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>
-        <span class="wv-dir ${dentro ? 'wv-in' : 'wv-out'}">${dentro ? 'Added' : 'Dropped'}</span>
-        ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
-        <span class="an-player-name">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>
-        <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
+        <span class="wv-team">${logo
+            ? `<img src="${logo}" alt="${escAttr(nomeSquadra(m.squadra))}" class="an-team-pill-logo">` : ''}<span
+            class="wv-team-nome">${nomeSquadra(m.squadra)}</span></span>`;
+}
+
+function riga(r) {
+    const linee = [
+        ...r.entrate.map(m => ({ m, etichetta: 'Added', classe: 'wv-in', spento: false })),
+        ...r.uscite.map(m => ({ m, etichetta: 'Dropped', classe: 'wv-out', spento: true })),
+    ];
+    // Il tipo vale per il riquadro: lo dichiara la mossa in entrata, che e'
+    // quella con un nome (waiver, free agent, trade); il taglio che la paga non
+    // ne ha uno suo.
+    const capo = r.entrate[0] || r.uscite[0];
+    return `
+    <div class="wv-row${linee.length > 1 ? ' wv-row--multi' : ''}"
+        style="grid-template-rows: repeat(${linee.length}, auto)">
+        ${intestazione(capo)}
+        ${linee.map((l, i) => chi(l.m, i + 1, l.etichetta, l.classe, l.spento)).join('')}
+        <span class="wv-kind">${capo.tipo}${capo.bid ? ` · $${capo.bid}` : ''}</span>
     </div>`;
 }
 
@@ -151,7 +254,10 @@ function render() {
         : `Reconstructed from the weekly rosters: for these seasons nobody recorded the transactions, but a player
            who is on a roster in one week and was not in the previous one was picked up in between. The week is
            exact, the day is not available — and a move that happened and was undone inside the same week leaves
-           no trace.`;
+           no trace. Free agent moves made by the same team in the same week are shown together, in one block:
+           the rosters are weekly snapshots, so two separate trips to the wire inside one week cannot be told
+           apart — and who took whose spot was never recorded, so it is not guessed here. Players traded between
+           two teams keep a block of their own: that much the rosters do say.`;
 
     const inn = lista.filter(m => m.verso === 'in').length;
     wrap.innerHTML = `
@@ -160,7 +266,7 @@ function render() {
         <div class="pm-tile"><b>${inn}</b><span>players added</span></div>
         <div class="pm-tile"><b>${lista.length - inn}</b><span>players dropped</span></div>
     </div>
-    <div class="wv-list">${limitedRows(lista.map(riga), VISIBILI, 'waivers')}</div>
+    <div class="wv-list">${limitedRows(accorpa(lista).map(riga), VISIBILI, 'waivers')}</div>
     <p class="an-footnote">${nota}</p>`;
     hydrateImages(wrap);
 }
