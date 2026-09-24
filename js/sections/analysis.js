@@ -457,8 +457,12 @@ export function keyStatLine(position, s) {
     }
 }
 
-export function headshotImg(rec, cls = 'an-headshot') {
-    return `<img src="images/fallback-player.svg" class="${cls} an-img" loading="lazy"
+export function headshotImg(rec, cls = 'an-headshot', extra = '') {
+    // `extra`: attributi che dipendono dal posto in cui la foto finisce e non
+    // dal giocatore — in Waivers la riga della griglia, che cambia a ogni
+    // mossa. Senza, quella pagina dovrebbe rifarsi l'img per conto suo, e due
+    // copie dello stesso markup prima o poi divergono.
+    return `<img src="images/fallback-player.svg" class="${cls} an-img" loading="lazy" ${extra}
         data-player-name="${rec.name}" data-team="${rec.nflTeam || ''}" data-pos="${rec.position || ''}" alt="${rec.name}">`;
 }
 

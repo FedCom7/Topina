@@ -19448,7 +19448,7 @@ td.ps-div-seed {
     text-decoration-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
 }
 
-.wv-r2 {
+.wv-l-out {
     opacity: 0.62;
 }
 
@@ -26619,32 +26619,25 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Lo scambio: stesse colonne di una mossa singola, ma DUE righe — sopra chi
-   entra, sotto chi esce. Etichette, foto e nomi si incolonnano perche' stanno
-   nelle stesse colonne. Data, squadra e tipo valgono per tutt'e due e si
-   allungano su entrambe le righe. La regola sta DOPO .wv-row: stesso peso,
-   vince l'ultima. */
-.wv-row--swap {
-    grid-template-rows: auto auto;
+/* Un riquadro = una transazione, quante che siano le righe dentro: sopra chi
+   entra, sotto chi esce. Ogni casella ha la sua COLONNA fissa e il markup le
+   scrive la RIGA, perche' quante ne servano lo sa solo lui — due per uno
+   scambio, fino a dodici per una settimana ricostruita dalle rose. Quello che
+   vale per tutta la transazione (quando, chi, il tipo) si allunga su tutte. */
+.wv-row > .wv-when,
+.wv-row > .wv-team,
+.wv-row > .wv-kind {
+    grid-row: 1 / -1;
+}
+
+.wv-row > .wv-dir { grid-column: 3; }
+.wv-row > .wv-photo { grid-column: 4; }
+.wv-row > .an-player-name { grid-column: 5; }
+.wv-row > .wv-kind { grid-column: 6; }
+
+.wv-row--multi {
     row-gap: 7px;
 }
-
-.wv-row--swap > .wv-when,
-.wv-row--swap > .wv-team {
-    grid-row: 1 / span 2;
-}
-
-.wv-row--swap > .wv-kind {
-    grid-column: 6;
-    grid-row: 1 / span 2;
-}
-
-.wv-row--swap > .wv-r1 { grid-row: 1; }
-.wv-row--swap > .wv-r2 { grid-row: 2; }
-
-.wv-row--swap > .wv-dir { grid-column: 3; }
-.wv-row--swap > .wv-photo { grid-column: 4; }
-.wv-row--swap > .an-player-name { grid-column: 5; }
 
 .wv-when {
     display: flex;
