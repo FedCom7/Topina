@@ -25,7 +25,7 @@ import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
 import { TEAMS } from './team.js?v=838';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=18';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=875';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=879';
 
 /** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */
 const escAttr = (v) => String(v ?? '').replace(/[&<>"]/g,

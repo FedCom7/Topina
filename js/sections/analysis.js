@@ -25,7 +25,7 @@ let avgMode = 'total'; // 'total' | 'starter' | 'nfl' — base di partite, punti
 // nessuna rosa: Firebase quelle non le ha proprio.
 const nflTotals = {};
 let leaderMode = 'total'; // 'total' | 'perGame' — base dei Top Performers by Position
-let roleDistMode = 'starters'; // 'all' | 'starters' — base di Weekly scores by position.
+let roleDistMode = 'starters'; // 'all' | 'starters' | 'bench' — base di Weekly scores by position.
 // Parte dai titolari come "Points by position (starters)" accanto.
 // Quale squadra guardare nel grafico "Weekly scores by position" della vista
 // Totale: 'all' le mette tutte insieme, altrimenti solo quella scelta.
@@ -1851,7 +1851,19 @@ const INFO_GRAFICI = {
 let infoBox = null;
 let infoAperta = null;
 
-function apriInfo(btn) {
+/**
+ * Altre sezioni aggiungono le loro schede al catalogo.
+ *
+ * Il testo di un grafico sta accanto al grafico, non qui: All-Time Stats
+ * registra le sue e usa lo stesso `sottoTitolo`, cosi' il riquadro si apre e si
+ * chiude allo stesso modo in tutte e due le pagine senza una seconda copia del
+ * meccanismo.
+ */
+export function registraInfo(schede) {
+    Object.assign(INFO_GRAFICI, schede);
+}
+
+export function apriInfo(btn) {
     const dati = INFO_GRAFICI[btn.dataset.info];
     if (!dati) return;
     if (infoAperta === btn) { chiudiInfo(); return; }
@@ -1892,7 +1904,7 @@ function chiudiInfo() {
 }
 
 /** Titolo di un grafico con la sua "i": il testo sta in INFO_GRAFICI. */
-function sottoTitolo(id, testo, extra = '') {
+export function sottoTitolo(id, testo, extra = '') {
     const info = INFO_GRAFICI[id]
         ? `<button class="an-info" type="button" data-info="${id}" aria-label="What am I looking at?">i</button>`
         : '';
@@ -2846,6 +2858,9 @@ function roleWeeklyScores(model, mode, teamKey) {
         for (const w of Object.values(rec.weeks)) {
             if (teamKey && w.teamKey !== teamKey) continue;
             if (mode === 'starters' && !w.started) continue;
+            // La panchina da sola risponde a una domanda diversa dalle altre
+            // due: non "quanto vale questo ruolo" ma "quanto stava fermo".
+            if (mode === 'bench' && w.started) continue;
             (byRole[rec.position] ||= []).push(w.pts);
         }
     }
@@ -2895,6 +2910,13 @@ function buildRoleDistribution(byRole) {
     return `<svg viewBox="0 0 ${RDP.w} ${h}" class="an-svg">${gridX}${lanes}</svg>`;
 }
 
+/** Come si chiama a parole la base scelta: la usano il piede del grafico e la "i". */
+export const BASE_RUOLI = {
+    all: 'starters and bench',
+    starters: 'starters only',
+    bench: 'bench only',
+};
+
 function blockRoleDist(model, teamKey) {
     // Nella vista Totale (teamKey non passato) il pill sceglie UNA squadra alla
     // volta, "All" le mette tutte insieme. Sulla pagina di una squadra sola
@@ -2921,11 +2943,12 @@ function blockRoleDist(model, teamKey) {
             <span class="an-avg-label">Show:</span>
             <button class="an-avg-pill${roleDistMode === 'all' ? ' active' : ''}" data-roledist-mode="all">All</button>
             <button class="an-avg-pill${roleDistMode === 'starters' ? ' active' : ''}" data-roledist-mode="starters">Starters Only</button>
+            <button class="an-avg-pill${roleDistMode === 'bench' ? ' active' : ''}" data-roledist-mode="bench">Bench Only</button>
         </div>
         ${teamToggle}
     </div>
     <div class="an-chart">${buildRoleDistribution(byRole)}</div>
-    <p class="an-footnote">Each dot is a weekly performance by ${chi} (${roleDistMode === 'starters' ? 'starters only' : 'starters and bench'}). The band is ±1 standard deviation around the average (vertical line)${(teamKey || scelta) ? ' — a wide band is a boom-or-bust position, a tight one is reliable' : ''}.</p>`;
+    <p class="an-footnote">Each dot is a weekly performance by ${chi} (${BASE_RUOLI[roleDistMode]}). The band is ±1 standard deviation around the average (vertical line)${(teamKey || scelta) ? ' — a wide band is a boom-or-bust position, a tight one is reliable' : ''}.</p>`;
 }
 
 /** Cambiare modalità o squadra ridisegna solo questo blocco, come per Top Performers by Position. */
