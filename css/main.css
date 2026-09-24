@@ -8533,8 +8533,11 @@ body.nav-dd-open::after {
     padding: clamp(10px, 2.4cqi, 16px) clamp(12px, 3cqi, 24px);
 }
 
+/* Il logo in filigrana basta a dire di chi è il lato: qui, a differenza del
+   Live (dove non c'è altro modo di sapere chi si sta guardando), il nome
+   ripeteva un'informazione già a schermo. */
 .mc-scorebug-list .gc-banner-name {
-    font-size: clamp(0.9rem, 3.4cqi, 1.35rem);
+    display: none;
 }
 
 .mc-scorebug-list .gc-banner-score {
@@ -19074,6 +19077,8 @@ td.ps-div-seed {
     width: 88px;
     text-align: center;
     opacity: 0.45;
+    /* Ancora per la proiezione qui sotto, che ora vive fuori dal flusso. */
+    position: relative;
 }
 
 .live-cmp-pts--win {
@@ -19081,23 +19086,50 @@ td.ps-div-seed {
     opacity: 1;
 }
 
-/* I due punteggi veri stanno attaccati al centro, le proiezioni ai lati: a
-   sinistra la previsione va PRIMA del numero, e il modo piu' semplice e'
-   rovesciare la riga invece di scrivere un secondo HTML solo per quel lato. */
+/* Il punteggio vero (o l'unico numero, per chi non ha ancora giocato) sta
+   SEMPRE attaccato al centro della riga. */
 .live-cmp-pts {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 4px;
 }
 
 .live-cmp-pts--l {
-    flex-direction: row-reverse;
     justify-content: flex-end;
 }
 
 .live-cmp-pts--r {
     justify-content: flex-start;
+}
+
+/* La proiezione accanto (`.pts-proj`) non è più un secondo elemento del
+ * flex: prima condivideva la casella con `.pts-val`, e chi non aveva ancora
+ * giocato — un solo numero, quello blu — finiva impacchettato in un punto
+ * diverso da chi aveva già un punteggio vero PIÙ la sua proiezione (due
+ * numeri): il blu non era mai allineato col verde della riga sopra o sotto.
+ * Nei casi con numeri larghi la coppia superava anche la larghezza fissa
+ * della casella, e il pezzo che sporgeva finiva sotto la colonna del ruolo
+ * in mezzo — un numero "tagliato" a schermo.
+ *
+ * Tolta dal flusso, la proiezione non sposta più `.pts-val`: quello resta
+ * SEMPRE nello stesso punto, che la proiezione ci sia o no, ed è libero di
+ * occupare tutta la sua larghezza senza doverla dividere con nessuno. */
+.live-cmp-pts .pts-proj {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+    white-space: nowrap;
+}
+
+.live-cmp-pts--l .pts-proj {
+    right: 100%;
+    margin-right: 4px;
+}
+
+.live-cmp-pts--r .pts-proj {
+    left: 100%;
+    margin-left: 4px;
 }
 
 /* Riquadri stat stile Game Center: valore sopra, etichetta micro sotto.
@@ -19165,20 +19197,9 @@ td.ps-div-seed {
         gap: 2px;
     }
 
-    /* Le tre statistiche si stringono e si appoggiano al centro della riga:
-       larghe come su schermo grande lasciavano un buco fra numero e numero e
-       spingevano i punti verso i bordi, dove si confrontano peggio. */
-    .live-cmp-stats {
-        grid-template-columns: repeat(3, 30px);
-    }
-
-    .live-cmp-stats--l {
-        justify-self: end;
-    }
-
-    .live-cmp-stats--r {
-        justify-self: start;
-    }
+    /* L'appoggio al centro sta nel blocco ≤900 qui sotto: vale anche per il
+       tablet, e ripeterlo qui non cambierebbe nulla — quel blocco viene dopo
+       nel foglio e vince comunque a pari specificità. */
 
     .live-cmp-mini b {
         font-size: 0.74rem;
@@ -20054,6 +20075,43 @@ td.ps-div-seed {
     .live-cmp-stats {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    /* Le tre statistiche si stringono su se stesse e si appoggiano al centro
+       della riga, invece di spalmarsi per tutta la mezza larghezza: quelle
+       colonne elastiche qui sopra, senza questo, su un tablet diventavano da
+       110px l'una e fra un numero e l'altro restava un vuoto che li faceva
+       leggere come tre dati scollegati. Appoggiandosi al centro restano un
+       gruppo solo, accanto al punteggio a cui appartengono.
+
+       Valeva già sotto i 640px, ma stava dentro QUEL blocco e sul tablet non
+       arrivava — ed è la stessa cosa che serve a entrambi, quindi vive qui. */
+    .live-cmp-stats--l {
+        justify-self: end;
+    }
+
+    .live-cmp-stats--r {
+        justify-self: start;
+    }
+}
+
+/* SOLO TABLET: più aria attorno al badge del ruolo.
+
+   Fra i numeri e il badge c'erano 5px da tutte e quattro le parti — il gap
+   della griglia e basta — e su uno schermo di questa taglia i punteggi gli
+   finivano addosso. Qui la colonna del ruolo è `auto`, cioè larga quanto il
+   testo che le capita: 16px per "RB", 21px per "WR". Dandole una misura fissa
+   si ottengono due cose con una proprietà sola — lo spazio che mancava, e
+   l'incolonnamento dei punteggi fra righe con ruoli diversi, che con `auto`
+   ballavano di qualche pixel.
+
+   È la stessa ragione per cui il desktop tiene quella colonna a 56px fissi
+   (vedi `.live-cmp-row` in cima); qui il valore è più piccolo perché lo sono
+   anche i caratteri. Sotto i 640px non si applica: là lo spazio è prezioso e
+   il badge ha già la sua `min-width`. */
+@media (min-width: 641px) and (max-width: 900px) {
+    .live-cmp-slot {
+        min-width: 38px;
+    }
 }
 
 /* Sotto i 640 si stringe anche il resto. Il ruolo con la squadra è la prima
@@ -20085,6 +20143,116 @@ td.ps-div-seed {
 
     .live-cmp-meta .live-vs { font-size: 0.55rem; }
     .live-cmp-meta .gb-out-inj { padding: 0 4px; }
+}
+
+/* Sotto i 480 la colonna del nome è troppo stretta anche su due righe:
+   "New England Patriots" restava "New Engla…" e la parola che dice la
+   squadra spariva del tutto. Niente riga in più: restano le stesse due di
+   sempre (sopra, e le statistiche sotto), si scambia solo chi sta dove. Il
+   nome prende il posto della foto e ne eredita la larghezza; la foto scende
+   nella riga delle statistiche, che le fa posto restringendosi di una
+   colonna. */
+@media (max-width: 480px) {
+    /* TRE RIGHE OTTICHE, e una sola linea per la seconda.
+
+       1. il nome
+       2. punteggi + badge del ruolo + targhetta (Q, avversario): tutti sulla
+          STESSA baseline, quella del badge del ruolo
+       3. foto + statistiche
+
+       Le due distanze fra loro sono pari (~9px di bianco), e i tre nudge qui
+       sotto servono a questo. Sono misurati a schermo, non dedotti dalle
+       metriche del font: ogni pezzo ha un corpo diverso (16px il punteggio,
+       9,6px il ruolo, 9,9px la targhetta) e allineare i BORDI dei box li
+       lascia otticamente sfalsati — a parità di bordo basso, il testo piccolo
+       legge più in alto del numero grande.
+
+       L'altezza minima della prima riga è quella che tiene i due bianchi pari;
+       cresce da sola solo se il nome ha bisogno di due righe. Il padding in
+       cima va a zero perché quello spazio se lo prende il nome scendendo (il
+       suo nudge, sotto): tenerlo avrebbe reso la card più alta senza motivo. */
+    .live-cmp-row {
+        grid-template-rows: minmax(40px, auto) auto;
+        padding-top: 0;
+    }
+
+    .live-cmp-row > :nth-child(1) { grid-area: 2 / 1 / 3 / 2; }  /* foto sinistra, scesa */
+    /* Il nome copre anche la colonna dei punti, non solo quella della foto:
+       gli serviva più delle 26px che aveva, e quello spazio sopra i punti è
+       comunque vuoto (vedi sotto). */
+    .live-cmp-row > :nth-child(2) { grid-area: 1 / 1 / 2 / 4; }  /* nome sinistra, fin sopra i punti */
+    .live-cmp-row > :nth-child(3) { grid-area: 2 / 2 / 3 / 4; }  /* stat sinistra, senza la colonna della foto */
+    .live-cmp-row > :nth-child(4) { grid-area: 1 / 3 / 2 / 4; }  /* punti sinistra */
+    .live-cmp-row > :nth-child(6) { grid-area: 1 / 5 / 2 / 6; }  /* punti destra */
+    .live-cmp-row > :nth-child(7) { grid-area: 2 / 5 / 3 / 7; }  /* stat destra, senza la colonna della foto */
+    .live-cmp-row > :nth-child(8) { grid-area: 1 / 5 / 2 / 8; }  /* nome destra, fin sopra i punti */
+    .live-cmp-row > :nth-child(9) { grid-area: 2 / 7 / 3 / 8; }  /* foto destra, scesa */
+
+    /* Il nome resta sopra e i punti sotto, come prima — ma ora il blocco
+       nome+etichetta riempie tutta l'altezza della riga (non più solo
+       quella del suo contenuto) e si apre a fisarmonica: il nome resta
+       ancorato in cima, l'etichetta (squadra, avversario, infortunio) scende
+       fino in fondo, alla stessa altezza dei punti. Prima quell'etichetta
+       stava appiccicata subito sotto al nome, e in mezzo restava vuoto
+       esattamente lo spazio che ora la fa scendere. */
+    .live-cmp-row > :nth-child(2),
+    .live-cmp-row > :nth-child(8) {
+        align-self: stretch;
+    }
+
+    .live-cmp-who {
+        justify-content: space-between;
+    }
+
+    /* I tre nudge della riga 2. Il riferimento è il badge del ruolo (W/R, QB)
+       in mezzo: sta 5,4px più in basso dei punteggi perché è centrato
+       sull'INTERA riga, non sulla prima. Ci scendono sopra gli altri due. */
+
+    /* Il punteggio (e con lui la proiezione, che gli è appesa). La casella
+       era larga il doppio del numero che ci scrive dentro — 64px per una
+       "40.8" da 37px — e quello scarto serve al nome, che ne ha più bisogno. */
+    .live-cmp-pts {
+        width: 44px;
+        transform: translateY(5.4px);
+    }
+
+    /* La targhetta e la sigla dell'avversario, che però NON si allineano come
+       gli altri: una pillola piena e una sigla si leggono per il loro CENTRO,
+       non per la linea di base, quindi qui il riferimento è il centro ottico
+       delle cifre del punteggio. E i due centri non coincidono fra loro — la
+       pillola è un rettangolo pieno, la sigla è testo tutto maiuscolo il cui
+       inchiostro sta più in alto dentro il suo box — per questo la sigla porta
+       il suo scarto in più. Misurati sui pixel accesi: così entrambi cadono
+       sul centro delle cifre a scarto zero. */
+    .live-cmp-meta {
+        transform: translateY(2.6px);
+    }
+
+    .live-cmp-meta .live-vs {
+        transform: translateY(-1px);
+    }
+
+    /* Il nome scende anche lui: dopo che la riga 2 è calata, sopra restavano
+       19px di bianco contro i 9 di sotto. Così i due tornano pari. */
+    .live-cmp-name {
+        transform: translateY(10.2px);
+    }
+
+    /* A destra l'etichetta si appoggiava di norma al bordo esterno (verso il
+       nome, lontano dalla foto — sensato quando il blocco era stretto).
+       Ora che arriva fin sopra ai punti, con un solo pezzo — es. solo "Q",
+       senza avversario — quello stesso bordo è quello della FOTO: ci
+       finiva sopra. Qui deve appoggiarsi dall'altro lato, verso i punti. A
+       sinistra il bordo di riposo era già quello della foto e lì non serve
+       toccare nulla: c'è sempre il margine di un cerchio a lasciarle aria. */
+    .live-cmp-who--r .live-cmp-meta {
+        justify-content: flex-start;
+    }
+
+    .live-cmp-row > :nth-child(4),
+    .live-cmp-row > :nth-child(6) {
+        align-self: end;
+    }
 }
 
 /* Stats di gara nella scheda giocatore: su schermi stretti 4 colonne sono
