@@ -39,9 +39,9 @@ import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, 
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=829';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=780';
-import { teamsCardsHTML } from './teams.js?v=737';
+import { TEAMS } from './team.js?v=833';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=783';
+import { teamsCardsHTML } from './teams.js?v=740';
 import { playerImageService } from '../services/player-image-service.js?v=532';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=44';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
@@ -50,7 +50,7 @@ import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } f
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { getWaiverMoves } from '../data/waiver-moves.js?v=7';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=12';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=552';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
@@ -63,7 +63,7 @@ import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=820';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=823';
 
 let initialized = false;
 

@@ -29,7 +29,7 @@ import {
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
 } from '../data.js?v=594';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=829';
+import { TEAMS } from './team.js?v=833';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
@@ -61,7 +61,7 @@ import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { evaluateLeague } from '../data/team-eval.js?v=596';
 import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=65';
-import { computeGrades, makeEvaluator } from './draftgrades.js?v=820';
+import { computeGrades, makeEvaluator } from './draftgrades.js?v=823';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

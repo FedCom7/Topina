@@ -22,10 +22,14 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
-import { TEAMS } from './team.js?v=829';
+import { TEAMS } from './team.js?v=833';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=7';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=865';
+import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=12';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=868';
+
+/** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */
+const escAttr = (v) => String(v ?? '').replace(/[&<>"]/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -108,7 +112,9 @@ function riga(m) {
         <span class="wv-team">${logo ? `<img src="${logo}" alt="" class="an-team-pill-logo">` : ''}${nomeSquadra(m.squadra)}</span>
         <span class="wv-dir ${dentro ? 'wv-in' : 'wv-out'}">${dentro ? 'Added' : 'Dropped'}</span>
         ${headshotImg({ name: m.nome, position: m.pos, nflTeam: m.nfl }, 'an-headshot wv-photo')}
-        <span class="an-player-name">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>
+        <span class="an-player-name">${nomeLink(m)} ${m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}${
+            m.scambio ? `<span class="wv-scambio">${dentro ? 'for' : 'replaced by'} <b>${escAttr(m.scambio.nome)}</b>${
+                m.scambio.pos ? ` ${escAttr(m.scambio.pos)}` : ''}</span>` : ''}</span>
         <span class="wv-kind">${m.tipo}${m.bid ? ` · $${m.bid}` : ''}</span>
     </div>`;
 }

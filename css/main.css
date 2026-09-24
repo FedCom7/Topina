@@ -19441,6 +19441,20 @@ td.ps-div-seed {
     color: var(--text-muted);
 }
 
+/* Waivers: chi ha preso il posto di chi, sotto al nome. Riga a se', piccola
+   e spenta: e' il contorno della mossa, non la mossa. */
+.wv-scambio {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.wv-scambio b {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
 /* Draft o mercato: quattro ciambelle in riga, una per squadra. */
 .an-torte {
     display: grid;
