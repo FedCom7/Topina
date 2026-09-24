@@ -36,11 +36,11 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1065';
+} from './player-page.js?v=1067';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1101';
+} from './nfl-team-home.js?v=1102';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {
