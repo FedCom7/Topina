@@ -83,6 +83,17 @@ function calculateStats(allSeasons) {
     let totalGames = 0;
     let totalPoints = 0;
 
+    /**
+     * La stagione e' arrivata in fondo? Lo dice il Super Bowl: se quella
+     * settimana ha una sfida con dei punti, si e' giocato tutto. Guardare
+     * l'anno (`season === CURRENT_SEASON`) non basterebbe — a febbraio la
+     * stagione in corso E' finita, e i suoi primati valgono.
+     */
+    const stagioneFinita = (data, season, config) => {
+        const sb = data?.weeks?.[String(config.superBowlWeek)]?.matchups || [];
+        return sb.some(m => (parseFloat(m?.team1?.score) || 0) > 0 || (parseFloat(m?.team2?.score) || 0) > 0);
+    };
+
     // Global Records
     let highestScore = { value: 0, team: '', week: '', season: '' };
     let lowestScore = { value: 1000, team: '', week: '', season: '' };
@@ -461,14 +472,23 @@ function calculateStats(allSeasons) {
         });
 
         // End of Season: Check Most/Fewest Points
-        Object.entries(seasonPoints).forEach(([team, points]) => {
-            if (points > mostPointsSeason.value) {
-                mostPointsSeason = { value: points.toFixed(2), team, season };
-            }
-            if (points < fewestPointsSeason.value && points > 0) {
-                fewestPointsSeason = { value: points.toFixed(2), team, season };
-            }
-        });
+        //
+        // Solo stagioni FINITE. Una stagione in corso ha giocato due giornate
+        // su diciassette: il suo totale e' per forza il piu' basso di sempre, e
+        // "fewest points in a season" diventerebbe un primato automatico che
+        // cambia squadra ogni settimana fino a dicembre. Vale anche per il
+        // massimo, che per lo stesso motivo non puo' dire niente finche' la
+        // stagione non e' completa.
+        if (stagioneFinita(data, season, config)) {
+            Object.entries(seasonPoints).forEach(([team, points]) => {
+                if (points > mostPointsSeason.value) {
+                    mostPointsSeason = { value: points.toFixed(2), team, season };
+                }
+                if (points < fewestPointsSeason.value && points > 0) {
+                    fewestPointsSeason = { value: points.toFixed(2), team, season };
+                }
+            });
+        }
 
         // End of Season: store chart trends (playoff inclusi)
         chartTeamPoints[season] = { ...chartSeasonTeamPts };
