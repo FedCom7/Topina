@@ -1,7 +1,7 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=1097';
+import { initHome } from './sections/home.js?v=1098';
 import { initGameCenter } from './sections/game-center.js?v=837';
 import { initStandings, initPlayoffs } from './sections/standings.js?v=779';
 import { initDraft } from './sections/draft.js?v=815';
@@ -23,7 +23,7 @@ import { initTeams } from './sections/teams.js?v=744';
 import { initGame } from './sections/game.js?v=829';
 import { initAnalysis } from './sections/analysis.js?v=879';
 import { initLeaders } from './sections/leaders.js?v=109';
-import { initWaivers } from './sections/waivers.js?v=112';
+import { initWaivers } from './sections/waivers.js?v=113';
 import { initMagazine } from './sections/magazine.js?v=796';
 import { initLive } from './sections/live.js?v=1123';
 import { initNavbar } from './ui/navbar.js?v=686';

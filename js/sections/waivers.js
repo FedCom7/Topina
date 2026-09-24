@@ -24,7 +24,7 @@
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
 import { TEAMS } from './team.js?v=838';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getWaiverMoves, ordina } from '../data/waiver-moves.js?v=18';
+import { getWaiverMoves, ordina, accorpa } from '../data/waiver-moves.js?v=19';
 import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=879';
 
 /** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */
@@ -120,55 +120,16 @@ function nomeCorto(nome) {
 
 /**
  * Le righe come si guardano: una transazione e' UN riquadro, non N righe
- * sparse.
- *
- * Cosa tiene insieme le righe dipende dalla fonte, e le due non sanno le stesse
- * cose:
- *
- *  - **ESPN** da' l'id della transazione: l'acquisto e il taglio che lo paga
- *    sono la stessa mossa, dichiarata tale da chi l'ha registrata.
- *  - **La ricostruzione dalle rose** (2019-2025) non ha nessun id, e nemmeno il
- *    giorno: sa che nella settimana 6 quella squadra aveva dentro Tizio e non
- *    aveva piu' Caio. L'unita' li' e' la SETTIMANA della squadra, ed e' tutto
- *    quello che si puo' dire senza inventare.
- *
- * Perche' non si appaia uno a uno nelle stagioni ricostruite: su 315
- * settimane-squadra dal 2019 al 2025, solo 121 hanno esattamente un entrato e
- * un uscito. Nelle altre le mosse sono da due a sei e l'ordine non esiste nel
- * dato, quindi qualunque accoppiamento sarebbe sorteggiato. Nemmeno il ruolo lo
- * decide: anche fra le coppie gia' forzate dai numeri, solo il 45% e'
- * ruolo-su-ruolo — un kicker si taglia per prendere un ricevitore, e capita
- * quanto lo scambio alla pari.
+ * sparse. Il raggruppamento (`accorpa`, in `data/waiver-moves.js`) lo usa
+ * anche la home: perche' non si appaia uno a uno nelle stagioni ricostruite,
+ * e perche' un `Move` fra allenatori resta separato da un giro di mercato
+ * libero, e' spiegato li'.
  *
  * Il riquadro percio' non dice "Tizio ha preso il posto di Caio": dice "questa
- * squadra, questa settimana, dentro questi e fuori questi". E' vero per
+ * squadra, questo momento, dentro questi e fuori questi". E' vero per
  * tutt'e due le fonti, e nel caso 1-1 si legge esattamente come una
  * sostituzione.
- *
- * Una distinzione pero' il dato la fa, e va tenuta: un giocatore passato da una
- * rosa a un'altra (`Move`) e' uno scambio fra allenatori, non un giro di
- * mercato libero — due cose diverse, avvenute per forza in momenti diversi.
- * Mescolarle nello stesso riquadro univa transazioni che si sa essere separate:
- * succedeva in 46 delle 315 settimane-squadra dal 2019 al 2025.
  */
-const famiglia = (m) => (m.tipo === 'Move' ? 'mv' : 'wire');
-
-function accorpa(lista) {
-    const gruppi = new Map();
-    for (const m of lista) {
-        const chiave = m.tx ? `tx:${m.tx}` : `wk:${m.squadra}|${m.settimana}|${famiglia(m)}`;
-        const g = gruppi.get(chiave) || { entrate: [], uscite: [] };
-        g[m.verso === 'in' ? 'entrate' : 'uscite'].push(m);
-        gruppi.set(chiave, g);
-    }
-    // l'ordine resta quello di `ordina`: si usa la riga piu' recente del gruppo
-    const quando = (r) => {
-        const m = r.entrate[0] || r.uscite[0];
-        return [Number(m.data) || 0, m.settimana ?? -1];
-    };
-    return [...gruppi.values()]
-        .sort((a, b) => quando(b)[0] - quando(a)[0] || quando(b)[1] - quando(a)[1]);
-}
 
 /**
  * Le tre caselle di un giocatore: etichetta, foto, nome.

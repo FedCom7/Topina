@@ -162,6 +162,43 @@ export function ordina(lista) {
 }
 
 /**
+ * Le righe raggruppate come le guarda chi legge: una transazione è UN
+ * riquadro, non N righe sparse. Cosa tiene insieme le righe dipende dalla
+ * fonte — vedi la spiegazione lunga in `sections/waivers.js`, che di questo
+ * raggruppamento è la prima cliente:
+ *
+ *  - **ESPN** dà l'id della transazione (`m.tx`): l'acquisto e il taglio che
+ *    lo paga sono la stessa mossa.
+ *  - **La ricostruzione dalle rose** non ha un id: l'unità è la SETTIMANA
+ *    della squadra, tenendo separati i cambi di formazione fra allenatori
+ *    (`Move`) dal giro di mercato libero (`famiglia`).
+ *
+ * Vive qui, non in sections/waivers.js, perché la usa anche la home
+ * (`sections/home.js`): una sezione non può importarne un'altra senza
+ * rischiare un anello, e la stessa mossa raggruppata in due modi diversi in
+ * due posti mostrerebbe due riquadri diversi per la stessa transazione.
+ */
+const famiglia = (m) => (m.tipo === 'Move' ? 'mv' : 'wire');
+
+/** @returns {Array<{entrate: Array, uscite: Array}>} più recente in alto. */
+export function accorpa(lista) {
+    const gruppi = new Map();
+    for (const m of lista) {
+        const chiave = m.tx ? `tx:${m.tx}` : `wk:${m.squadra}|${m.settimana}|${famiglia(m)}`;
+        const g = gruppi.get(chiave) || { entrate: [], uscite: [] };
+        g[m.verso === 'in' ? 'entrate' : 'uscite'].push(m);
+        gruppi.set(chiave, g);
+    }
+    // l'ordine resta quello di `ordina`: si usa la riga piu' recente del gruppo
+    const quando = (r) => {
+        const m = r.entrate[0] || r.uscite[0];
+        return [Number(m.data) || 0, m.settimana ?? -1];
+    };
+    return [...gruppi.values()]
+        .sort((a, b) => quando(b)[0] - quando(a)[0] || quando(b)[1] - quando(a)[1]);
+}
+
+/**
  * Tutte le mosse di una stagione, già ordinate (più recente in alto).
  * @returns {Promise<{mosse: Array, fonte: 'espn'|'rose'}>}
  */

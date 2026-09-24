@@ -50,7 +50,7 @@ import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } f
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { getWaiverMoves } from '../data/waiver-moves.js?v=18';
+import { getWaiverMoves, accorpa } from '../data/waiver-moves.js?v=19';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=552';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
@@ -1084,40 +1084,38 @@ async function cardLastResults(ctx) {
 }
 
 /* ─── Il mercato ──────────────────────────────────────────────────
-   Le stesse mosse della sezione Waivers (`data/waiver-moves.js`, che sceglie
-   da sé la fonte: transazioni ESPN quando ci sono, ricostruzione dalle rose
-   per le stagioni vecchie), ma RAGGRUPPATE. ESPN registra ogni transazione
-   come righe separate — un ADD e un DROP — e due righe staccate raccontano
-   uno scambio peggio di una riga sola: qui la domanda è «cosa ha fatto quella
-   squadra», non «quanti giocatori si sono mossi». La chiave del gruppo è
-   squadra + momento, e sulle stagioni ricostruite il momento è la settimana,
-   l'unica cosa che si sappia.
+   Le stesse mosse della sezione Waivers, raggruppate con la stessa unità
+   (`accorpa`, in `data/waiver-moves.js`): un ADD e il DROP che lo paga sono
+   la STESSA transazione, non due righe staccate — è il raggruppamento per
+   id-transazione (o settimana+famiglia sulle stagioni ricostruite) che vive
+   là apposta perché lo usino sia la pagina Waivers che questa card, senza
+   farlo divergere in due posti.
 
-   Card ASSENTE, non vuota, finché nessuno ha mosso niente: a inizio stagione
-   un riquadro "no moves" sarebbe un buco in mezzo al mosaico. */
+   Solo la giornata di mercato IN CORSO, non tutta la stagione: dal martedì
+   dopo il Monday Night fino all'inizio del Monday Night successivo. Quella
+   finestra è sempre "l'ultima settimana giocata + 1" — è lì che ESPN stessa
+   fa scattare lo scoringPeriodId delle transazioni (vedi il commento su
+   `fetchTransactions` in `data/espn-fantasy.js`) — quindi non serve
+   interrogare il calendario NFL per saperlo: basta l'ultima settimana già in
+   mano da Firebase.
+
+   Card ASSENTE, non vuota, finché questa finestra non ha mosse: a inizio
+   settimana un riquadro "no moves" sarebbe un buco in mezzo al mosaico. */
 const WV_GROUPS = 6;
 
 async function cardWaivers({ season }) {
     const { mosse } = await getWaiverMoves(season.year).catch(() => ({ mosse: [] }));
-    if (!mosse?.length) return '';
+    const settimanaMercato = lastPlayedWeek(season) + 1;
+    const diQuestaSettimana = mosse.filter(m => m.settimana === settimanaMercato);
+    if (!diQuestaSettimana.length) return '';
 
-    // `mosse` arriva già ordinata (più recente in alto): i gruppi ereditano
-    // quell'ordine così come si formano, senza riordinarli una seconda volta.
-    const gruppi = [];
-    const perChiave = new Map();
-    for (const m of mosse) {
-        const chiave = `${m.squadra}|${m.data || `w${m.settimana}`}`;
-        let g = perChiave.get(chiave);
-        if (!g) {
-            g = { squadra: m.squadra, data: m.data, settimana: m.settimana, tipo: m.tipo, bid: null, in: [], out: [] };
-            perChiave.set(chiave, g);
-            gruppi.push(g);
-        }
-        if (m.bid && !g.bid) g.bid = m.bid;
-        (m.verso === 'in' ? g.in : g.out).push(m);
-    }
+    const gruppi = accorpa(diQuestaSettimana).slice(0, WV_GROUPS).map(g => {
+        const capo = g.entrate[0] || g.uscite[0];
+        return { squadra: capo.squadra, data: capo.data, settimana: capo.settimana,
+            tipo: capo.tipo, bid: capo.bid, in: g.entrate, out: g.uscite };
+    });
 
-    const tiles = gruppi.slice(0, WV_GROUPS).map(g => wvMoveHTML(g, season.year)).join('');
+    const tiles = gruppi.map(g => wvMoveHTML(g, season.year)).join('');
     return card({
         span: 'wide', cls: 'mc-wv-card',
         kicker: 'The market',
