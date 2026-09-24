@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-09-23T13:57:48.465Z",
+ "generatedAt": "2026-09-24T13:53:52.857Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -344,7 +344,7 @@
      "takeaways": 12,
      "passDefended": 18,
      "tacklesForLoss": 16,
-     "qbHits": 10
+     "qbHits": 9
     }
    },
    "schedule": [
@@ -585,7 +585,7 @@
      "takeaways": 13,
      "passDefended": 21,
      "tacklesForLoss": 24,
-     "qbHits": 11
+     "qbHits": 10
     }
    },
    "schedule": [
@@ -1788,7 +1788,7 @@
      "fumblesForced": 19,
      "defTds": 12,
      "takeaways": 23,
-     "passDefended": 14,
+     "passDefended": 13,
      "tacklesForLoss": 29,
      "qbHits": 4
     }
@@ -1967,7 +1967,7 @@
     "defTds": 0,
     "safeties": 0,
     "takeaways": 2,
-    "passDefended": 4,
+    "passDefended": 5,
     "tacklesForLoss": 10,
     "qbHits": 7,
     "blockedKicks": 0
@@ -2029,7 +2029,7 @@
      "fumblesForced": 28,
      "defTds": 13,
      "takeaways": 16,
-     "passDefended": 28,
+     "passDefended": 27,
      "tacklesForLoss": 13,
      "qbHits": 29
     }
@@ -2752,7 +2752,7 @@
      "fumblesForced": 12,
      "defTds": 16,
      "takeaways": 8,
-     "passDefended": 27,
+     "passDefended": 28,
      "tacklesForLoss": 21,
      "qbHits": 18
     }
@@ -3656,7 +3656,7 @@
     "takeaways": 0,
     "passDefended": 8,
     "tacklesForLoss": 11,
-    "qbHits": 14,
+    "qbHits": 13,
     "blockedKicks": 0
    },
    "fpa": {
@@ -3716,9 +3716,9 @@
      "fumblesForced": 20,
      "defTds": 20,
      "takeaways": 30,
-     "passDefended": 15,
+     "passDefended": 14,
      "tacklesForLoss": 11,
-     "qbHits": 7
+     "qbHits": 11
     }
    },
    "schedule": [
@@ -3957,9 +3957,9 @@
      "fumblesForced": 21,
      "defTds": 21,
      "takeaways": 18,
-     "passDefended": 16,
+     "passDefended": 15,
      "tacklesForLoss": 18,
-     "qbHits": 8
+     "qbHits": 7
     }
    },
    "schedule": [
@@ -6546,7 +6546,7 @@
     "defTds": 0,
     "safeties": 0,
     "takeaways": 1,
-    "passDefended": 9,
+    "passDefended": 8,
     "tacklesForLoss": 7,
     "qbHits": 14,
     "blockedKicks": 0
@@ -6608,9 +6608,9 @@
      "fumblesForced": 17,
      "defTds": 30,
      "takeaways": 28,
-     "passDefended": 11,
+     "passDefended": 16,
      "tacklesForLoss": 27,
-     "qbHits": 9
+     "qbHits": 8
     }
    },
    "schedule": [
@@ -7090,7 +7090,7 @@
      "fumblesForced": 5,
      "defTds": 5,
      "takeaways": 6,
-     "passDefended": 12,
+     "passDefended": 11,
      "tacklesForLoss": 7,
      "qbHits": 13
     }
@@ -7572,7 +7572,7 @@
      "fumblesForced": 25,
      "defTds": 32,
      "takeaways": 11,
-     "passDefended": 13,
+     "passDefended": 12,
      "tacklesForLoss": 19,
      "qbHits": 23
     }
