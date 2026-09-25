@@ -1231,6 +1231,15 @@ img {
     }
 }
 
+/* `.formation-slot` prende `animation: slideInField` incondizionato, quindi
+   ogni card RICOSTRUITA (swipe, freccia di swap, confronto) la rifà da capo:
+   la molla dell'easing elastico manda tutto il campo 16px piu' in basso e lo
+   fa risalire con un rimbalzo, come se fosse la primissima comparsa. `.live-
+   stage.no-entrance` la spegne per i ridisegni successivi al primo. */
+.live-stage.no-entrance .formation-slot {
+    animation: none;
+}
+
 /* ---- Horizontal Field ---- */
 .matchup-field-horizontal {
     position: relative;

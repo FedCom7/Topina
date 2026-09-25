@@ -82,6 +82,14 @@ let prevSnapshot = null;   // { playerName: { pts, stats } }
 let receipts = [];         // storico scontrini (più recenti in testa)
 let daRivedere = null;     // giocate perse fra due visite, in attesa del disegno
 let compareMode = false;   // false = campo, true = confronto titolari
+// `.formation-slot` entra con un balzo elastico (`slideInField`, in CSS): bello
+// alla primissima comparsa, ma quella regola e' sulla classe base, quindi
+// riparte da capo ad OGNI ricostruzione del campo — swipe, freccia di swap,
+// confronto — perche' sono tutti elementi nuovi. Il risultato e' un rimbalzo
+// verticale a ogni cambio squadra, non solo al primo arrivo. Il flag fa
+// scattare il balzo una volta sola per visita; da lì in poi `fieldHTML`/
+// `compareHTML` aggiungono `no-entrance`, che spegne l'animazione in CSS.
+let campoGiaInScena = false;
 let fxLayer = null;        // livello degli effetti, vive dentro il campo
 let fxDemoFatta = false;   // ?fxdemo= parte una volta per caricamento
 let simDemo = false;       // simulatore da console acceso: i numeri sono finti
@@ -2748,8 +2756,10 @@ function fieldHTML(team) {
     // Niente intestazione sopra il campo: il nome della squadra lo dicono già
     // il selettore in cima e il banner del punteggio. Il tasto Compare vive
     // dentro il campo, in alto a destra.
+    const primaVolta = !campoGiaInScena;
+    campoGiaInScena = true;
     return `
-    <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}">
+    <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}${primaVolta ? '' : ' no-entrance'}">
         <div class="live-field-slider" data-swipe>
             <div class="matchup-field-horizontal live-field-solo">
                 ${fieldSVG()}
@@ -2889,9 +2899,11 @@ function compareStatsBlock(p, win, side) {
 function compareHTML(team, opp) {
     const pairs = slotPairs({ team1: team, team2: opp });
     const t1 = teamOf(team.name), t2 = teamOf(opp.name);
+    const primaVolta = !campoGiaInScena;
+    campoGiaInScena = true;
 
     return `
-    <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}">
+    <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}${primaVolta ? '' : ' no-entrance'}">
     <div class="live-compare" style="--tc1:${t1?.color || 'var(--accent-red)'};--tc2:${t2?.color || 'var(--accent-blue)'}" data-swipe>
         <button class="live-compare-btn live-compare-btn--on" type="button" data-compare>Field</button>
         ${pairs.map(({ slot, a, b }) => {
