@@ -4298,13 +4298,15 @@ body.nav-dd-open::after {
     /* Logo e lente si dissolvono all'apertura del menu: in alto resta solo la X
        (e, nel sotto-menu, la freccia indietro a sinistra). */
     .nav-logo,
-    .nav-search-btn {
+    .nav-search-btn,
+    .nav-prefs {
         transition: opacity var(--dur-med) var(--ease), color var(--dur-med) var(--ease), visibility 0s;
     }
 
     .navbar:has(.nav-links.open) .nav-logo,
     .navbar:has(.nav-links.open) .nav-search-btn,
-    .navbar:has(.nav-links.open) .nav-theme-btn {
+    .navbar:has(.nav-links.open) .nav-theme-btn,
+    .navbar:has(.nav-links.open) .nav-prefs {
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
@@ -12947,7 +12949,7 @@ div.gb-out-player:last-of-type .gb-out-meta {
     display: block;
     height: 100%;
     border-radius: var(--pill-radius);
-    background: color-mix(in srgb, var(--team-color) 70%, white 10%);
+    background: var(--text-primary);
     transition: width 0.6s var(--ease);
 }
 
@@ -22019,6 +22021,15 @@ td.ps-div-seed {
 #draftgrades .dg-sum {
     background: var(--bg-primary, #000);
     border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* tema chiaro: il bordo bianco sopra sparisce su fondo bianco (--bg-primary
+   diventa #fff), quindi qui torna scuro come le altre card del sito */
+:root[data-theme="light"] #draftgrades .mosaic-card,
+:root[data-theme="light"] #draftgrade-team .mosaic-card,
+:root[data-theme="light"] #draftgrades-content .mosaic-card,
+:root[data-theme="light"] #draftgrades .dg-sum {
+    border-color: var(--border-card);
 }
 
 /* la card di Projections tiene il glow spento ma resta a vetro come il sito */

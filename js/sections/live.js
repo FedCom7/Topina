@@ -938,6 +938,7 @@ async function loadData({ silent = false } = {}) {
                 lineupsFromDraft = leagueDrafted;
             }
             matchups = live;
+            scaldaFotoAvversari(true);   // subito: non aspettare il primo render
             // chi non ha una proiezione la riceve dal listone; se ce l'hanno
             // già tutti (rose ESPN) non parte nessuna chiamata
             await fillMissingProjections(matchups, CURRENT_SEASON, week);
@@ -983,6 +984,7 @@ async function loadData({ silent = false } = {}) {
         applyDraftLineups(matchups, draftArchivio);
         lineupsFromDraft = true;
     }
+    scaldaFotoAvversari(true);   // subito: non aspettare il primo render
     await fillMissingProjections(matchups, CURRENT_SEASON, pickedWeek);
     currentWeekNum = pickedWeek;
     const config = getSeasonConfig(CURRENT_SEASON);
@@ -3884,13 +3886,18 @@ const cachedHeadshot = (name) => headshotCache.get(name) || 'images/fallback-pla
  * tutte le altre e si mettono nella cache dei nomi e in quella del browser
  * (bastano un `new Image()`), cosi' allo scambio sono gia' pronte.
  *
- * Gira in coda — `requestIdleCallback` dove c'e' — perche' non deve rubare
- * niente al disegno di quello che si sta guardando adesso, e una volta sola
- * per giocatore: chi e' gia' in `headshotCache` si salta.
+ * Di norma gira in coda — `requestIdleCallback` dove c'e' — perche' non deve
+ * rubare niente al disegno di quello che si sta guardando adesso. Ma la
+ * primissima chiamata, subito dopo che `matchups` arriva (`loadData`), va
+ * fatta SUBITO (`immediate`): `headshotCache` nasce vuota a ogni caricamento
+ * pagina, e chi scorre il campo nei primi istanti — un gesto naturale quanto
+ * aprire la sezione — arrivava prima che la coda partisse, vedendo le sagome
+ * anche per giocatori gia' noti da sessioni precedenti.
+ *
+ * Una volta sola per giocatore: chi e' gia' in `headshotCache` si salta.
  */
-function scaldaFotoAvversari() {
-    const dopo = window.requestIdleCallback || ((fn) => setTimeout(fn, 400));
-    dopo(() => {
+function scaldaFotoAvversari(immediate = false) {
+    const via = () => {
         const visti = new Set();
         for (const e of teamEntries()) {
             for (const p of [...(e.team?.starters || []), ...(e.team?.bench || [])]) {
@@ -3907,7 +3914,10 @@ function scaldaFotoAvversari() {
                     .catch(() => {});
             }
         }
-    });
+    };
+    if (immediate) { via(); return; }
+    const dopo = window.requestIdleCallback || ((fn) => setTimeout(fn, 400));
+    dopo(via);
 }
 
 /**
