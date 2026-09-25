@@ -2,7 +2,7 @@ import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonC
 import { TEAM_LOGOS, TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=838';
 import { buildSeasonModel, pointsComparison, marketView,
-    sottoTitolo, apriInfo, registraInfo, BASE_RUOLI } from './analysis.js?v=879';
+    sottoTitolo, apriInfo, registraInfo, BASE_RUOLI } from './analysis.js?v=894';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
 
 let loaded = false;
@@ -57,10 +57,15 @@ registraInfo({
         base: 'The scores that decided the games — starters only. Playoffs and Super Bowl included.',
         regola: 'The dashed vertical lines mark seasons where the number of weeks changed: a jump there is the calendar, not the team.',
     },
+    'st-ppg': {
+        cosa: 'What a single game was worth in each season — and how often each score actually came up.',
+        base: 'Every game played by any team: the scores that decided them, so starters only. Playoffs included, unplayed weeks excluded.',
+        regola: 'Scores are grouped in 10-point bands and the height of a stick is how many games landed in that band, on a scale shared by every row so a short season looks short. The red line is that season’s average. Unlike the totals above, nothing here grows just because a season had more weeks.',
+    },
     'st-costanza': {
-        cosa: 'How far a team swings between its worst week and its best.',
-        base: 'Team scores, every week of every season, playoffs included.',
-        regola: 'The bar runs from the lowest weekly score to the highest, the mark inside is the median. A short bar is a team you can predict — not necessarily a better one.',
+        cosa: 'How far a team swings from week to week.',
+        base: 'Team scores — starters only, by definition. Every week of every season, playoffs included.',
+        regola: 'Each dot is one week. The vertical line is the average, the band is ±1 standard deviation: a narrow band is a team you can count on, a wide one swings. Same reading as the two charts at the bottom of the page, which split the very same points by player instead.',
     },
     'st-draftata': {
         cosa: 'How much the draft alone was worth, year by year.',
@@ -1476,18 +1481,21 @@ async function renderAdvancedCharts(markers) {
         return c.benchLost + (c.po?.benchLost || 0);
     });
 
-    // 4) Costanza dei punteggi su tutte le stagioni (range min–mediana–max per team)
-    const distRows = teamKeys.map(key => {
-        const scores = [];
-        for (const s of seasons) {
-            for (const tw of Object.values(models[s].teamWeeks[key] || {})) scores.push(tw.score);
+    // 4) Costanza: ogni punteggio di squadra di ogni settimana, cosi' com'e'.
+    //    La media, la banda e la nuvola le disegna il dot plot condiviso — la
+    //    stessa lettura dei due grafici in fondo alla pagina, che sono la
+    //    stessa cosa vista per giocatore invece che per squadra.
+    const punteggiSquadra = {};   // { squadra: [punteggi] } — tutte le stagioni
+    const perStagione = {};       // { stagione: [punteggi] } — tutte le squadre
+    for (const s of seasons) {
+        for (const key of teamKeys) {
+            for (const tw of Object.values(models[s].teamWeeks[key] || {})) {
+                if (!(tw.score > 0)) continue;   // le settimane non giocate non sono partite
+                (punteggiSquadra[key] ||= []).push(tw.score);
+                (perStagione[s] ||= []).push(tw.score);
+            }
         }
-        if (!scores.length) return null;
-        const sorted = scores.sort((a, b) => a - b);
-        const mid = Math.floor(sorted.length / 2);
-        const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        return { name: TEAMS[key].name, color: CHART_COLORS_BY_KEY[key] || '#888', min: sorted[0], median, max: sorted[sorted.length - 1] };
-    }).filter(Boolean);
+    }
 
     // 5) Draft: Value per Pick su tutte le stagioni insieme, con la media per numero di pick
     const draftPoints = [];
@@ -1556,8 +1564,12 @@ async function renderAdvancedCharts(markers) {
 
     if (teamRest) {
         teamRest.innerHTML = `
+            ${sottoTitolo('st-ppg', 'Points per Game by Season')}
+            ${buildPpgRidge(seasons, perStagione)}
+
             ${sottoTitolo('st-costanza', 'Scoring Consistency (all seasons)')}
-            ${buildConsistencyChart(distRows)}
+            <div class="an-chart">${buildTeamDistribution(punteggiSquadra)}</div>
+            <p class="an-footnote">Each dot is one week's score, all seasons and playoffs included. The vertical line is the average, the band is ±1 standard deviation: a narrow band is a team you can count on, a wide one swings.</p>
 
             ${sottoTitolo('st-draftata', 'Drafted Team Points by Season')}
             ${legendOf(draftedSeries)}
@@ -1605,27 +1617,89 @@ function rawKeyMatches(model, raw, teamKey) {
     return TEAM_KEYS[displayName(raw)] === teamKey;
 }
 
-// Range bar per team (min → max, tick sulla mediana) — riusa le classi .an-dist-*
-function buildConsistencyChart(rows) {
-    if (!rows.length) return '';
-    const maxVal = Math.max(...rows.map(r => r.max), 1);
+/* ---------- Istogrammi per stagione: la distribuzione dei punti a partita ---------- */
+
+/**
+ * Quante volte e' uscito ciascun punteggio, stagione per stagione.
+ *
+ * Una corsia per anno, i punti sull'orizzontale e l'altezza dell'asta uguale a
+ * quante partite sono finite in quella fascia. Non dice chi ha segnato: dice
+ * com'e' fatta una giornata in quell'anno — se i punteggi si stringono attorno
+ * alla media o si sparpagliano, e dove sta il grosso.
+ *
+ * Sta accanto a "Team Points by Season" perche' quello e' un TOTALE, e un
+ * totale dipende da quante giornate ha avuto la stagione: il grafico sopra ha
+ * le righe tratteggiate apposta per avvisare che un gradino puo' essere il
+ * calendario. Qui l'unita' e' la partita, e il calendario sparisce.
+ *
+ * La scala verticale e' UNA per tutte le corsie: con una scala per riga, una
+ * stagione con poche partite avrebbe aste alte quanto quelle di un anno intero
+ * e sembrerebbe altrettanto fitta.
+ */
+const PPG = { w: 800, l: 46, r: 14, t: 16, b: 30, lane: 58, bin: 10 };
+
+function buildPpgRidge(seasons, perStagione) {
+    const anni = seasons.filter(s => (perStagione[s] || []).length);
+    if (!anni.length) return '';
+
+    const tutti = anni.flatMap(s => perStagione[s]);
+    const xTicks = chartNiceTicks(0, Math.max(...tutti));
+    const xMax = xTicks[xTicks.length - 1];
+
+    // Fasce da 10 punti: e' la grana con cui un punteggio si legge davvero
+    // ("sui 130"). Punto per punto le aste sarebbero alte 1 e senza forma.
+    const nBin = Math.ceil(xMax / PPG.bin);
+    const conteggi = {};
+    for (const a of anni) {
+        const c = new Array(nBin).fill(0);
+        for (const v of perStagione[a]) c[Math.min(Math.floor(v / PPG.bin), nBin - 1)]++;
+        conteggi[a] = c;
+    }
+    const maxConta = Math.max(...anni.flatMap(a => conteggi[a]), 1);
+
+    const plotW = PPG.w - PPG.l - PPG.r;
+    const h = PPG.t + PPG.b + anni.length * PPG.lane;
+    const x = v => PPG.l + (v / xMax) * plotW;
+    const largaBin = (PPG.bin / xMax) * plotW;
+
+    const griglia = xTicks.map(v => `
+        <line x1="${x(v).toFixed(1)}" y1="${PPG.t}" x2="${x(v).toFixed(1)}" y2="${PPG.t + anni.length * PPG.lane}" class="an-gridline"/>
+        <text x="${x(v).toFixed(1)}" y="${h - 8}" class="an-tick" text-anchor="middle">${Math.round(v)}</text>`).join('');
+
+    const corsie = anni.map((anno, ri) => {
+        const base = PPG.t + (ri + 1) * PPG.lane - 8;
+        // Le aste si fermano al 60% della corsia: sopra ci va il numero della
+        // media, e piu' alte di cosi' quel numero finiva dentro la riga
+        // dell'anno precedente.
+        const altMax = PPG.lane * 0.6;
+        const punti = perStagione[anno];
+        const media = punti.reduce((a, b) => a + b, 0) / punti.length;
+
+        const aste = conteggi[anno].map((n, bi) => {
+            if (!n) return '';
+            const alt = (n / maxConta) * altMax;
+            return `<rect x="${(x(bi * PPG.bin) + 0.8).toFixed(1)}" y="${(base - alt).toFixed(1)}"
+                width="${Math.max(largaBin - 1.6, 1).toFixed(1)}" height="${alt.toFixed(1)}" rx="1.5"
+                fill="var(--text-secondary)" opacity="0.5"><title>${anno}: ${n} game${n === 1 ? '' : 's'} between ${bi * PPG.bin} and ${(bi + 1) * PPG.bin} pt</title></rect>`;
+        }).join('');
+
+        // La media e' l'unica cosa rossa: passa DAVANTI alle aste e sborda sotto
+        // la linea di base, cosi' si trova anche dove l'istogramma e' fitto.
+        const linea = `<line x1="${x(media).toFixed(1)}" y1="${(base - altMax - 3).toFixed(1)}"
+            x2="${x(media).toFixed(1)}" y2="${(base + 4).toFixed(1)}"
+            stroke="var(--accent-red, #e05a4f)" stroke-width="2.2"/>`;
+        const valore = `<text x="${x(media).toFixed(1)}" y="${(base - altMax - 7).toFixed(1)}" class="an-tick"
+            text-anchor="middle" style="fill:var(--accent-red, #e05a4f);font-weight:700">${media.toFixed(1)}</text>`;
+        const riga = `<line x1="${PPG.l}" y1="${base.toFixed(1)}" x2="${(PPG.w - PPG.r).toFixed(1)}" y2="${base.toFixed(1)}" class="an-gridline"/>`;
+        const etichetta = `<text x="${PPG.l - 10}" y="${(base - 2).toFixed(1)}" class="st-role-label" text-anchor="end">${anno}</text>`;
+        return `${riga}${aste}${linea}${valore}${etichetta}`;
+    }).join('');
+
     return `
-    <div class="an-dist-chart">
-        ${rows.map(r => `
-        <div class="an-dist-row">
-            <span class="an-dist-name">${r.name}</span>
-            <span class="an-dist-track">
-                <span class="an-dist-range" style="left:${(r.min / maxVal * 100).toFixed(1)}%; width:${((r.max - r.min) / maxVal * 100).toFixed(1)}%; background:${r.color}"></span>
-                <span class="an-dist-median" style="left:${(r.median / maxVal * 100).toFixed(1)}%"></span>
-            </span>
-            <span class="an-dist-values">
-                <span class="an-dist-min">${Math.round(r.min)}</span>
-                <span class="an-dist-med">${Math.round(r.median)}</span>
-                <span class="an-dist-max">${Math.round(r.max)}</span>
-            </span>
-        </div>`).join('')}
-    </div>
-    <p class="an-footnote">Min–max range of weekly scores (all seasons, playoffs included); the vertical mark is the median. Shorter bar = more consistent team.</p>`;
+    <div class="an-chart"><svg viewBox="0 0 ${PPG.w} ${h}" class="an-svg">${griglia}${corsie}</svg></div>
+    <p class="an-footnote">One row per season, points along the bottom. Each stick is a 10-point band and its height
+       is how many games ended in that band — all four teams together, playoffs included, weeks actually played only.
+       The red line is that season's average. The height scale is shared across rows, so a short season looks short.</p>`;
 }
 
 /* ---------- Line chart per stagioni (SVG, x categorico = anni) ---------- */

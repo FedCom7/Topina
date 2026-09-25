@@ -12,19 +12,20 @@
  * e si vede a che posto sta rispetto a chi e' gia' in rosa.
  *
  * I punti vengono da Sleeper (`getSeasonStats`: stagione intera, tutti i
- * giocatori, punteggio della lega). Il modello di stagione di Firebase dice
- * CHI aveva chi: "libero" vuol dire nessuna squadra nell'ultima giornata
- * archiviata — la stessa regola che usava il Best Available.
+ * giocatori, punteggio della lega). Chi ha chi, sulla stagione in corso, lo
+ * dicono le rose ESPN LIVE; per le stagioni chiuse il modello di Firebase.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=594';
+import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=594';
+import { TEAM_KEYS } from '../data/team-config.js?v=535';
+import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=175';
 import { TEAMS } from './team.js?v=838';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats } from '../data/projections.js?v=611';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=879';
+} from './analysis.js?v=894';
 import { getPlayerWeekly } from '../data/player-full.js?v=671';
 
 let initialized = false;
@@ -67,15 +68,48 @@ function renderPickRow() {
    ============================================================ */
 
 /**
+ * Chi ha chi ADESSO, letto dalle rose ESPN.
+ *
+ * Firebase archivia le giornate CHIUSE piu' un segnaposto della settimana
+ * dopo, scritto il martedi': una presa fatta il mercoledi' li' non c'e'
+ * ancora. Bryce Young, preso da Sommo il 23/09/2026, in questa pagina
+ * risultava svincolato — e nella lista "Available" compariva fra i liberi.
+ *
+ * Ritorna `null` quando non si sa: stagione chiusa, ESPN che non risponde, o
+ * draft non ancora fatto (li' le rose sono segnaposto di ESPN e non sono di
+ * nessuno). In quel caso comanda Firebase, come prima.
+ */
+async function roseVive(anno) {
+    if (String(anno) !== String(CURRENT_SEASON)) return null;
+    try {
+        const { matchups, drafted } = await fetchLeagueWeek(anno);
+        if (!drafted) return null;
+        const out = new Map();
+        for (const m of matchups || []) {
+            for (const t of [m.team1, m.team2]) {
+                const k = TEAM_KEYS[displayName(t?.name)] || null;
+                if (!k) continue;
+                for (const p of [...(t.starters || []), ...(t.bench || [])]) {
+                    if (p?.name && !p.placeholder) out.set(chiave(p.name), { key: k, nome: p.name });
+                }
+            }
+        }
+        return out.size ? out : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Chi aveva questo giocatore, e in quale settimana è arrivato.
  *
  * Il nome del modello di Firebase e quello di Sleeper non coincidono sempre
  * (suffissi, punteggiatura): si confronta la forma normalizzata, la stessa che
  * usa il resto del sito.
  */
-function indiceRose(model) {
+function indiceRose(model, vive) {
     const idx = new Map();
-    if (!model) return idx;
+    if (!model) return applicaRoseVive(idx, vive);
     for (const rec of model.players.values()) {
         let ultimo = null, wk = -1;
         for (const [w, dati] of Object.entries(rec.weeks)) {
@@ -91,6 +125,29 @@ function indiceRose(model) {
         // cerca il giocatore per nome esatto.
         idx.set(chiave(rec.name), { nome: rec.name, ultimo, finale, settimane: Object.keys(rec.weeks).length });
     }
+    return applicaRoseVive(idx, vive);
+}
+
+/**
+ * Le rose vive hanno l'ultima parola su CHI HA CHI.
+ *
+ * Tre casi, e servono tutti e tre: chi e' in una rosa ESPN prende quella
+ * squadra (anche se per Firebase era di un'altra, o di nessuno); chi Firebase
+ * dava in rosa e nelle rose vive non c'e' piu' e' stato tagliato, quindi passa
+ * a "Dropped by"; chi nel modello non c'e' proprio — preso dopo l'ultima
+ * giornata archiviata, come Young — entra adesso.
+ */
+function applicaRoseVive(idx, vive) {
+    if (!vive) return idx;
+    for (const info of idx.values()) {
+        const ora = vive.get(chiave(info.nome));
+        if (ora) { info.finale = ora.key; continue; }
+        if (info.finale) { info.ultimo = info.finale; info.finale = null; }
+    }
+    for (const [k, v] of vive) {
+        if (idx.has(k)) continue;
+        idx.set(k, { nome: v.nome, ultimo: null, finale: v.key, settimane: 0 });
+    }
     return idx;
 }
 
@@ -104,16 +161,22 @@ function indiceRose(model) {
 const chiave = (nome) => String(nome || '').toLowerCase().replace(/[.,']/g, '')
     .replace(/\s+(jr|sr|ii|iii|iv|v)\s*$/, '').replace(/\s+/g, ' ').trim();
 
-/** La targhetta della squadra Topina, o niente se non l'ha mai avuto nessuno. */
+/**
+ * La targhetta dice CHI CE L'HA ADESSO, e solo quello.
+ *
+ * Chi e' stato tagliato non ne ha una: "Dropped by" rispondeva a una domanda
+ * diversa da quella della lista ("di chi e'?") e in coda a cento righe si
+ * leggeva come un possesso. Dove e' passato durante l'anno lo dice il
+ * dettaglio, riga per riga, accanto a Starter/Bench — che e' il posto dove
+ * quella storia ha una data.
+ */
 function targhettaRosa(info) {
-    if (!info) return '';
+    if (!info?.finale) return '';
     // Nel colore della squadra, non nel verde/ambra generici di "titolare" e
     // "tagliato": in una lista di cento righe la squadra si riconosce dal
     // colore prima che dal nome.
-    const colore = (k) => TEAMS[k]?.color ? ` style="--team-color:${TEAMS[k].color}"` : '';
-    if (info.finale) return ` <span class="an-badge ld-team-badge"${colore(info.finale)}>${TEAMS[info.finale]?.name || info.finale}</span>`;
-    if (info.ultimo) return ` <span class="an-badge ld-team-badge ld-team-badge--drop"${colore(info.ultimo)}>Dropped by ${TEAMS[info.ultimo]?.name || info.ultimo}</span>`;
-    return '';
+    const colore = TEAMS[info.finale]?.color ? ` style="--team-color:${TEAMS[info.finale].color}"` : '';
+    return ` <span class="an-badge ld-team-badge"${colore}>${TEAMS[info.finale]?.name || info.finale}</span>`;
 }
 
 /**
@@ -267,9 +330,10 @@ async function load() {
 
     // Le due fonti sono indipendenti: se il modello manca la lista esce lo
     // stesso, solo senza targhette di rosa.
-    const [stats, model] = await Promise.all([
+    const [stats, model, vive] = await Promise.all([
         getSeasonStats(anno).catch(() => null),
         buildSeasonModel(anno).catch(() => null),
+        roseVive(anno),
     ]);
     if (String(currentYear) !== String(anno)) return;   // l'utente ha già cambiato anno
 
@@ -277,7 +341,7 @@ async function load() {
         wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No player stats for ${anno}</p></div>`;
         return;
     }
-    stato = { stats, model, roseIdx: indiceRose(model) };
+    stato = { stats, model, roseIdx: indiceRose(model, vive) };
     render();
 }
 
@@ -398,7 +462,7 @@ async function apriDrill(row, idx) {
         // lo conosce cosi' ("Kenneth Walker III"), non come lo scrive Sleeper.
         const nomeLega = stato.roseIdx.get(chiave(e.name))?.nome || e.name;
         righe = await playerSeasonDrill(anno, { name: nomeLega, position: e.pos, nflTeam: e.team },
-            { model: stato.model, extraScores, lastWeek: ultimaGiornata() });
+            { model: stato.model, extraScores, lastWeek: ultimaGiornata(), teamOnBadge: true });
     } catch { righe = ''; }
     // Nel frattempo si puo' aver cambiato anno o filtro: il contenitore di
     // allora non esiste piu', e scriverci dentro riempirebbe una riga che ora

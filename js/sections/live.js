@@ -1464,7 +1464,7 @@ function refreshInPlace(events = []) {
 
     // referto medico: nessuna immagine, si può riscrivere per intero
     const inj = document.getElementById('live-injuries');
-    if (inj) inj.innerHTML = injuriesHTML(entry.team, entry.opp);
+    if (inj) inj.innerHTML = injuriesHTML(entry.team);
 }
 
 /**
@@ -1674,7 +1674,7 @@ function render() {
     <div class="live-widgets">
         ${playFeedHTML()}
         ${nflGamesHTML(team)}
-        ${sidebarHTML(team, opp)}
+        ${sidebarHTML(team)}
     </div>
     ${deepDiveHTML(team)}
 `;
@@ -2229,7 +2229,9 @@ function nomeCampoHTML(p, lungo) {
         // ultima parola, tranne il vecchio "Washington Football Team"
         ? (/football team$/i.test(p.name) ? 'Football Team' : parti[parti.length - 1])
         : (parti.length < 2 ? p.name : parti.slice(1).join(' '));
-    return `<span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span>`;
+    // Il nome sta in una scatola sua: e' quella a doversi centrare sotto la
+    // foto, e numero e stato fisico le stanno accanto FUORI dal flusso.
+    return `<span class="slot-nm"><span class="slot-nm-full">${lungo}</span><span class="slot-nm-m">${corto}</span></span>`;
 }
 
 function escAttr(s) {
@@ -2381,10 +2383,10 @@ function fieldSlot(p, extraClass = '') {
          ${gameAttr(p)}>
         <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>
-        <span class="slot-name">${numeroHTML(p)}${nomeCampoHTML(p, shortName(p))}</span>
+        <span class="slot-name">${numeroHTML(p)}${nomeCampoHTML(p, shortName(p))}${
+        injury ? `<span class="slot-inj">${injuryTagHTML(p, true)}</span>` : ''}</span>
         <span class="slot-pts">${ptsHTML(p)}</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML(p)}</span>
-        ${injury ? `<span class="live-slot-meta">${injuryTagHTML(p, true)}</span>` : ''}
     </div>`;
 }
 
@@ -3140,11 +3142,11 @@ function popPoints(slot, delta, onDone = () => { }) {
         .onfinish = () => { tag.remove(); onDone(); };
 }
 
-function sidebarHTML(team, opp) {
+function sidebarHTML(team) {
     return `
     <div class="mosaic-card mc-in live-side-card">
         <span class="mc-kicker">Injury report</span>
-        <div id="live-injuries">${injuriesHTML(team, opp)}</div>
+        <div id="live-injuries">${injuriesHTML(team)}</div>
     </div>`;
 }
 
@@ -3843,9 +3845,16 @@ function nflGamesHTML(team) {
  * di Barkley al primo possesso — e quando c'e' vince lui, perche' e' la
  * notizia piu' fresca.
  */
-function injuriesHTML(team, opp) {
-    const all = [...(team.starters || []), ...(team.bench || []),
-    ...(opp.starters || []), ...(opp.bench || [])];
+/**
+ * Il referto medico della squadra che si sta guardando — titolari e panchina.
+ *
+ * Prima c'era dentro anche l'avversario: in un pannello alto due righe, sotto
+ * un campo che mostra una squadra sola, i nomi degli altri si leggevano come
+ * propri. Chi vuole il referto dell'avversario cambia squadra col selettore,
+ * che e' la stessa mossa che gli cambia il campo.
+ */
+function injuriesHTML(team) {
+    const all = [...(team.starters || []), ...(team.bench || [])];
 
     const righe = [];
     const visti = new Set();

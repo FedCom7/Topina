@@ -1455,7 +1455,15 @@ img {
     height: clamp(22px, 2.4vw, 32px);
 }
 
+/* Sotto la foto ci va IL NOME, centrato sul cerchio. Numero di maglia e stato
+   fisico gli stanno ai lati ma fuori dal flusso (position: absolute): dentro,
+   ognuno spostava il nome di mezza parola, e due giocatori accanto — uno col
+   numero e uno senza — avevano i nomi disallineati fra loro.
+   Per questo il taglio con i puntini sta su .slot-nm e non qui: un
+   `overflow: hidden` su questo elemento ritaglierebbe via proprio le due cose
+   che devono uscirne. */
 .slot-name {
+    position: relative;
     font-size: clamp(0.7rem, 1.2vw, 0.95rem);
     /* Increased size */
     color: #f8fafc;
@@ -1464,9 +1472,24 @@ img {
     white-space: nowrap;
     /* Removed max-width restriction on name itself to allow using full card width */
     line-height: 1.1;
+}
+
+.slot-name .slot-nm {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.slot-num,
+.slot-inj {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    line-height: 1;
+}
+
+.slot-num { right: calc(100% + 3px); }
+.slot-inj { left: calc(100% + 3px); }
 
 .slot-pts {
     /* il numero sotto la foto è la cosa che si guarda di più su questa pagina:
@@ -14955,28 +14978,34 @@ body.pm-open { overflow: hidden; }
 }
 
 @media (max-width: 640px) {
-    /* Foglio che sale dal basso. `vh` qui mente: sul telefono vale la finestra
-       GRANDE, quella con la barra degli indirizzi ritirata, che e' piu' alta di
-       quello che si vede davvero appena si apre la scheda. Il risultato era il
-       bordo di sopra in vista e il fondo del foglio nascosto sotto la barra del
-       browser. `dvh` segue la finestra vera mentre la barra entra ed esce; `vh`
-       resta come ripiego per i browser che non lo conoscono. */
+    /* Una scheda che sta TUTTA nello schermo, in mezzo. Prima era un foglio
+       agganciato al basso, alto fino al 92%: si apriva a tre quarti di pagina e
+       la sua coda restava sotto il bordo dello schermo, quindi la si trovava
+       gia' tagliata.
+
+       Il margine lo tiene l'OVERLAY, non la scheda: cosi' `max-height: 100%`
+       della scheda si misura sullo spazio gia' scontato dei margini e non puo'
+       sforare, qualunque cosa ci sia dentro — se il contenuto e' piu' alto
+       dello schermo la scheda si ferma li' e scorre dentro di se'.
+
+       `vh` qui mente: sul telefono vale la finestra GRANDE, quella con la barra
+       degli indirizzi ritirata, che e' piu' alta di quello che si vede davvero.
+       `dvh` segue la finestra vera mentre la barra entra ed esce; `vh` resta
+       come ripiego per i browser che non lo conoscono, e `env(safe-area-*)`
+       tiene fuori notch e barra dei gesti. */
     .pm-overlay {
-        padding: 0;
-        align-items: flex-end;
+        align-items: center;
+        padding: calc(10px + env(safe-area-inset-top, 0px)) 10px
+                 calc(10px + env(safe-area-inset-bottom, 0px));
         height: 100vh;
         height: 100dvh;
     }
 
     .pm-dialog {
         width: 100%;
-        max-height: 92vh;
-        max-height: 92dvh;
-        border-radius: 20px 20px 0 0;
+        max-height: 100%;
+        border-radius: 20px;
         padding: 20px 16px;
-        /* Sotto c'e' la barra dei gesti dell'iPhone: senza questo l'ultima riga
-           della scheda ci finisce sotto. */
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 
     .pm-layout { flex-direction: column; align-items: center; gap: 14px; }
@@ -19644,7 +19673,6 @@ td.ps-div-seed {
    arriva dalla rosa ESPN, e vuoto NON deve occupare spazio: `:empty` toglie
    anche il margine, se no i nomi senza numero partirebbero spostati. */
 .slot-num {
-    margin-right: 4px;
     font-family: var(--font-display);
     font-size: 0.78em;
     font-weight: 700;

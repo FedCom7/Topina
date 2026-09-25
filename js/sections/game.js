@@ -123,7 +123,8 @@ export async function initGame() {
             <div class="mosaic-card mc-wide gb-card mc-in" id="gb-chart-card">
                 <span class="mc-kicker">Weekend trend</span>
                 <h2 class="mc-title">Point by point</h2>
-                <p class="gb-card-sub">Points accumulate while the starters' real NFL games are played.</p>
+                <p class="gb-card-sub">Points accumulate while the starters' real NFL games are played. The axis runs
+                   on playing time only — the hours between games, Friday and Saturday included, take no width.</p>
                 <div class="mc-body" id="gb-chart">
                     <div class="loading-state"><div class="spinner"></div><p>Loading NFL schedule...</p></div>
                 </div>
@@ -217,23 +218,71 @@ function buildChartSVG(m, sched) {
     rose.forEach(list => list.forEach(x => {
         if (!x.win) x.win = { start: new Date(t0), end: new Date(tEnd) };
     }));
+    /*
+     * L'asse misura il tempo GIOCATO, non quello dell'orologio.
+     *
+     * Una settimana NFL sta dentro una finestra di quattro giorni ma si gioca
+     * in due o tre blocchi: il giovedi' sera, la domenica e il lunedi' sera.
+     * Fra l'uno e l'altro non segna nessuno, e su un asse a tempo reale quelle
+     * pause si prendevano due terzi della larghezza — il venerdi' e il sabato
+     * erano una riga piatta lunga quanto tutta la domenica, e i sorpassi veri
+     * si schiacciavano in un angolo.
+     *
+     * Qui le pause valgono ZERO: si uniscono le finestre delle partite dei
+     * titolari, e la coordinata di un istante e' il tempo di gioco accumulato
+     * fino a li'. Le etichette restano l'ora vera, quindi lo stacco si legge
+     * comunque — "Thu 02:15" seguito da "Sun 19:00".
+     */
     const pad = 25 * 60 * 1000;
-    const T0 = t0 - pad, T1 = tEnd + pad;
+    const blocchi = [];
+    for (const w of conPartita
+        .map(x => ({ a: x.win.start.getTime(), b: x.win.end.getTime() }))
+        .sort((p, q) => p.a - q.a)) {
+        const ultimo = blocchi[blocchi.length - 1];
+        if (ultimo && w.a <= ultimo.b) ultimo.b = Math.max(ultimo.b, w.b);
+        else blocchi.push({ ...w });
+    }
+    // un filo di respiro prima del primo kickoff e dopo l'ultimo fischio: sta
+    // dentro i blocchi, se no verrebbe compresso via con le pause
+    blocchi[0].a -= pad;
+    blocchi[blocchi.length - 1].b += pad;
+
+    /** Tempo di gioco accumulato fino a `t`: dentro una pausa non avanza. */
+    const vivo = (t) => {
+        let acc = 0;
+        for (const b of blocchi) {
+            if (t <= b.a) break;
+            acc += Math.min(t, b.b) - b.a;
+            if (t <= b.b) break;
+        }
+        return acc;
+    };
+
+    const T0 = blocchi[0].a, T1 = blocchi[blocchi.length - 1].b;
 
     // I punti di un giocatore maturano dentro la finestra della sua partita:
     // interpolazione lineare, come prima. È la parte di valore del grafico.
+    //
+    // La frazione si misura in tempo di GIOCO, non di orologio. Per chi ha una
+    // partita vera e' lo stesso conto (la sua finestra sta tutta dentro un
+    // blocco); cambia per chi nel calendario non c'e' — bye o squadra non
+    // riconosciuta — che ripiega sull'intera finestra della settimana: a
+    // orologio i suoi punti maturavano anche il venerdi' e il sabato, e con le
+    // pause larghe zero quel pezzo diventava uno scalino verticale.
     const valueAt = (list, t) => list.reduce((s, x) => {
-        const a = x.win.start.getTime(), b = x.win.end.getTime();
-        const f = t <= a ? 0 : t >= b ? 1 : (t - a) / (b - a);
+        const a = vivo(x.win.start.getTime()), b = vivo(x.win.end.getTime()), v = vivo(t);
+        const f = b <= a ? (v >= b ? 1 : 0) : v <= a ? 0 : v >= b ? 1 : (v - a) / (b - a);
         return s + x.pts * f;
     }, 0);
 
     const istanti = [...new Set([T0, T1, ...rose.flat().flatMap(x => [x.win.start.getTime(), x.win.end.getTime()])])]
         .sort((a, b) => a - b);
+    // I punti si calcolano sull'ora VERA (`valueAt`), si disegnano sul tempo
+    // di gioco (`vivo`): le due cose non vanno confuse.
     const serie = rose.map((list, i) => ({
         name: nomi[i],
         color: inchiostri[i],
-        values: istanti.map(ms => ({ x: ms, y: valueAt(list, ms) })),
+        values: istanti.map(ms => ({ x: vivo(ms), y: valueAt(list, ms) })),
     }));
 
     // Tick sull'asse dei tempi: i kickoff distinti, accorpati entro 40 minuti.
@@ -245,7 +294,7 @@ function buildChartSVG(m, sched) {
     kick.forEach(k => {
         if (k - ultimo < 40 * 60 * 1000) return;
         ultimo = k;
-        xTicks.push({ x: k, label: `${giornoFmt.format(new Date(k))} ${oraFmt.format(new Date(k))}`.replace('.', '') });
+        xTicks.push({ x: vivo(k), label: `${giornoFmt.format(new Date(k))} ${oraFmt.format(new Date(k))}`.replace('.', '') });
     });
 
     // Callout sull'ultimo sorpasso: è il momento che decide la partita, e a
@@ -259,7 +308,7 @@ function buildChartSVG(m, sched) {
         }
     }
     const callout = sorpasso
-        ? { x: sorpasso.x, y: sorpasso.y, text: `${sorpasso.chi} takes the lead · ${oraFmt.format(new Date(sorpasso.x))}` }
+        ? { x: vivo(sorpasso.x), y: sorpasso.y, text: `${sorpasso.chi} takes the lead · ${oraFmt.format(new Date(sorpasso.x))}` }
         : null;
 
     return multiLine(serie, { height: 320, xTicks, callout, yFmt: (v) => String(Math.round(v)) });
