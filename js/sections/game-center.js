@@ -1,12 +1,12 @@
-import { fetchFantasyData, fetchDraftData, getWeekCount, weeksWithPending, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=594';
+import { fetchFantasyData, fetchDraftData, getWeekCount, weeksWithPending, displayName, teamNameHTML, SEASONS, SEASONS_DESC, CURRENT_SEASON, getSeasonConfig, getSuperBowlMatchup } from '../data.js?v=595';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=552';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=838';
+import { TEAMS } from './team.js?v=840';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
-import { initPlayerModal } from '../components/player-modal.js?v=787';
-import { playerImageService } from '../services/player-image-service.js?v=532';
+import { initPlayerModal } from '../components/player-modal.js?v=789';
+import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
 import { superBowlLogoSVG, markSVG, leagueShieldSVG, LEAGUE_MARK, PLAYOFF_MARK, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';

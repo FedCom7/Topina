@@ -27672,3 +27672,310 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
         grid-row: 1;
     }
 }
+
+
+/* ── Player Stats: le schede e i segnali ─────────────────────────────── */
+
+.ps-empty {
+    margin-top: 28px;
+}
+
+.ps-grid-after {
+    margin-top: 18px;
+}
+
+/* Le carte "da comprare" hanno la barra verde: nelle coppie sopra/sotto
+   (TD, uso, oltre l'atteso) il colore dice da che parte sta il segnale prima
+   ancora del titolo. */
+.ps-rate-card--buy .ps-rate-bar i {
+    background: var(--accent-green, #22c55e);
+}
+
+/* legenda dei ruoli: pallino nel colore del ruolo, testo neutro */
+.ps-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 4px 0 8px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.ps-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ps-legend i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.ps-legend .ps-altri-key {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+/* ── scatter uso × produzione e corsie della costanza ── */
+.ps-dot {
+    fill: currentColor;
+    opacity: 0.7;
+}
+
+.ps-dot.is-marked {
+    opacity: 1;
+    stroke: var(--bg-primary);
+    stroke-width: 1.5;
+}
+
+.ps-dot-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--text-primary);
+    paint-order: stroke;
+    stroke: var(--bg-primary);
+    stroke-width: 3px;
+}
+
+.ps-diag {
+    stroke: var(--text-muted);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 5;
+    opacity: 0.7;
+}
+
+.ps-diag-lbl,
+.ps-axis {
+    font-size: 11px;
+    fill: var(--text-muted);
+}
+
+.ps-lane-band {
+    fill: var(--text-primary);
+    opacity: 0.07;
+}
+
+.ps-lane-med {
+    stroke: var(--text-primary);
+    stroke-width: 2;
+    opacity: 0.8;
+}
+
+.ps-lane-line {
+    stroke: var(--accent-red);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+}
+
+.ps-lane-name {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-primary);
+}
+
+.ps-lane-val {
+    font-size: 12px;
+    font-weight: 800;
+    fill: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-lane-sub,
+.ps-lane-head {
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: var(--text-muted);
+}
+
+/* ── calendario ── */
+.ps-sos,
+.ps-trees {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+}
+
+.ps-sos-row {
+    display: grid;
+    grid-template-columns: 22px minmax(120px, 190px) minmax(90px, 1fr) 46px minmax(0, 190px);
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ps-sos-team {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.ps-sos-team b {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    margin-right: 6px;
+}
+
+.ps-sos-team small {
+    font-size: 0.72rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ps-sos-team small a {
+    color: var(--text-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* barra divergente: la tacca centrale e' la media di lega */
+.ps-sos-bar {
+    position: relative;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border-subtle);
+}
+
+.ps-sos-bar::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    width: 1.5px;
+    height: 14px;
+    background: var(--text-muted);
+}
+
+.ps-sos-bar i {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 4px;
+}
+
+.ps-sos-bar i.is-easy { background: var(--accent-green, #22c55e); }
+.ps-sos-bar i.is-hard { background: var(--accent-red); }
+
+.ps-sos-val {
+    text-align: right;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-sos-val.is-easy { color: var(--accent-green, #22c55e); }
+.ps-sos-val.is-hard { color: var(--accent-red); }
+
+.ps-sos-opp {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.ps-sos-opp img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.ps-sos-opp small {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-left: 2px;
+}
+
+/* ── alberi dei target ── */
+.ps-tree-row {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+}
+
+.ps-tree-bar {
+    display: flex;
+    height: 22px;
+    gap: 2px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+/* lo spicchio prende il colore del ruolo dalla classe .pos-*; il testo dentro
+   e' scuro in tutti e due i temi, perche' i colori dei ruoli sono chiari */
+.ps-tree-seg {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding: 0 6px;
+    background: currentColor;
+    text-decoration: none;
+    overflow: hidden;
+}
+
+.ps-tree-seg em {
+    font-style: normal;
+    font-size: 0.66rem;
+    font-weight: 800;
+    color: #111;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-tree-seg:hover {
+    filter: brightness(1.12);
+}
+
+.ps-tree-altri {
+    color: var(--text-muted);
+    opacity: 0.35;
+}
+
+.ps-tree-top {
+    text-align: right;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.84rem;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+    .ps-sos-row {
+        grid-template-columns: 18px minmax(0, 1fr) 42px;
+        row-gap: 5px;
+    }
+
+    .ps-sos-bar {
+        grid-column: 2 / 4;
+        grid-row: 2;
+    }
+
+    .ps-sos-opp {
+        grid-column: 2 / 4;
+        grid-row: 3;
+    }
+
+    .ps-sos-val {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .ps-tree-row {
+        grid-template-columns: 48px minmax(0, 1fr) 36px;
+    }
+
+    .ps-tree-row .ps-sos-team b {
+        display: none;
+    }
+}

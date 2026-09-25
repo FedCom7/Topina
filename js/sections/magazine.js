@@ -27,9 +27,9 @@ import {
     fetchFantasyData, fetchDraftData, flattenDraft,
     displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON,
     getSeasonConfig, getWeekCount, getSuperBowlMatchup,
-} from '../data.js?v=594';
+} from '../data.js?v=595';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=838';
+import { TEAMS } from './team.js?v=840';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
@@ -50,18 +50,18 @@ import {
     DRAFT_LEDE_OPENERS, DRAFT_GM_QUOTES, DRAFT_GM_DEFENSE_QUOTES,
     DRAFT_STEAL_LINES, DRAFT_REACH_LINES, DRAFT_NOTE_LEADS, DRAFT_CLOSERS,
 } from '../data/magazine-voices.js?v=519';
-import { playerImageService } from '../services/player-image-service.js?v=532';
+import { playerImageService } from '../services/player-image-service.js?v=533';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
 import { superBowlLogoSVG, leagueShieldSVG, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';
 // Edizione post-draft: il voto NON si ricalcola qui. Si importa lo stesso
 // motore di Draft Grades — un solo voto in tutto il sito — con la stessa
 // catena usata dalle card della home (vedi home.js:loadPostDraftGrades).
-import { getSeasonProjections } from '../data/projections.js?v=611';
+import { getSeasonProjections } from '../data/projections.js?v=631';
 import { getHistoryIndex } from '../data/player-history.js?v=595';
 import { predictSeason } from '../data/draft-predictions.js?v=694';
 import { evaluateLeague } from '../data/team-eval.js?v=596';
 import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=65';
-import { computeGrades, makeEvaluator } from './draftgrades.js?v=827';
+import { computeGrades, makeEvaluator } from './draftgrades.js?v=829';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

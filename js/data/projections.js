@@ -68,6 +68,13 @@ const KEPT_STATS = new Set([
     'idp_tkl', 'idp_tkl_solo', 'idp_sack', 'idp_int', 'idp_ff', 'idp_fum_rec',
     'idp_pass_def', 'idp_qb_hit', 'idp_tkl_loss', 'idp_def_td', 'idp_safe',
     'kr', 'kr_yd', 'kr_td', 'pr', 'pr_yd', 'pr_td', 'st_td',
+    // difese (Player Stats). Le FASCE dei punti concessi sono il pezzo che
+    // mancava per dare a una difesa i punti della lega: Sleeper non manda i
+    // punti concessi partita per partita, ma quante partite sono finite in
+    // ogni fascia — che sono proprio le fasce del nostro regolamento.
+    'pts_allow_0', 'pts_allow_1_6', 'pts_allow_7_13', 'pts_allow_14_20',
+    'pts_allow_21_27', 'pts_allow_28_34', 'pts_allow_35p',
+    'def_3_and_out', 'tkl_loss', 'qb_hit', 'ff', 'def_pass_def', 'blk_kick',
 ]);
 
 /** Copia di `stats` con le sole chiavi che qualcuno legge davvero. */
@@ -171,7 +178,9 @@ export async function getSeasonStats(year) {
     // stat per stat senza rimappare nulla. Bumpare qui NON basta — la versione
     // va cambiata anche in FAMILIES.current dentro utils/storage.js, altrimenti
     // i blob v5 restano lì per sempre.
-    const cacheKey = `topina_stats_v6_${year}`;
+    // v7: le fasce dei punti concessi delle difese (KEPT_STATS). Senza cambiare
+    // chiave, i blob v6 gia' salvati restavano senza per tutta la loro durata.
+    const cacheKey = `topina_stats_v7_${year}`;
     const hit = cacheGet(cacheKey, stagioneInCorso(year) ? STATS_TTL_LIVE_MS : STATS_TTL_MS);
     if (hit) return (_memStats[year] = new Map(hit));
 
@@ -198,7 +207,11 @@ export async function getSeasonStats(year) {
 function voceStat(e) {
     const pl = e.player;
     const s = e.stats || {};
-    if (!pl || (s.pts_half_ppr == null && s.pts_std == null)) return null;
+    // Fuori chi non ha statistiche, non chi ha fatto ZERO punti: Sleeper non
+    // manda i campi che valgono zero, quindi una difesa a 0,0 (Miami 2026, week
+    // 2: +4 dagli intercetti, -4 dai 35 punti concessi) arrivava senza
+    // `pts_half_ppr` ne' `pts_std` e spariva, pur avendo giocato due partite.
+    if (!pl || (s.pts_half_ppr == null && s.pts_std == null && !(s.gp > 0))) return null;
     const pos = (pl.position || '').toUpperCase();
     const name = `${pl.first_name} ${pl.last_name}`;
     return {
