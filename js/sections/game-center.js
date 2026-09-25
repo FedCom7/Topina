@@ -14,6 +14,7 @@ import { superBowlLogoSVG, markSVG, leagueShieldSVG, LEAGUE_MARK, PLAYOFF_MARK, 
 let currentData = null;
 let currentYear = CURRENT_SEASON;
 let currentWeek = 1;
+let settimanePendenti = new Set();
 let loaded = false;
 // Prima del draft ESPN riempie le squadre di rose segnaposto: giocatori che non
 // sono di nessuno. Con questo a falso non se ne mostra nessuno.
@@ -136,6 +137,12 @@ async function loadYear(year) {
     // letti dal resto del sito.
     const letti = await fetchFantasyData(year);
     currentData = letti?.weeks ? { ...letti, weeks: weeksWithPending(letti) } : letti;
+    // Le settimane SEGNAPOSTO: ci sono le rose ma non i punti, che arrivano
+    // dall'archivio del martedi'. Game Center le mostra lo stesso, riempite
+    // dall'API della lega — ma la pagina di dettaglio legge `weeks` senza
+    // segnaposto, quindi per quelle non esiste e il link sarebbe un vicolo
+    // cieco ("Matchup not found").
+    settimanePendenti = new Set(Object.keys(letti?.pendingWeeks || {}));
     if (!currentData?.weeks) {
         grid.innerHTML = `<div class="empty-state"><p class="empty-state-text">No data for the ${year} season</p></div>`;
         renderPickRow();
@@ -146,7 +153,13 @@ async function loadYear(year) {
     // scraper carica anche la PROSSIMA, con le sole proiezioni, e a giornata in
     // corso quella e' una partita che non e' ancora stata giocata da nessuno.
     const maxWeek = ultimaSettimanaVisibile(getWeekCount(currentData));
-    currentWeek = lastPlayedWeek(maxWeek);
+    // Sulla stagione in corso si apre sulla giornata APERTA, non sull'ultima
+    // archiviata: il giovedi' e la domenica i punti di quella settimana su
+    // Firebase sono ancora zeri (li scrive l'Action il martedi'), e cercare
+    // "l'ultima con punti" riportava indietro alla settimana gia' finita —
+    // Game Center mostrava la week 2 mentre si giocava la 3. I numeri veri di
+    // quella giornata li prende `refreshOpenWeek` dall'API della lega.
+    currentWeek = String(year) === String(CURRENT_SEASON) ? maxWeek : lastPlayedWeek(maxWeek);
     renderPickRow(maxWeek);
     await showMatchups();
 }
@@ -372,10 +385,16 @@ function renderMatchups(grid) {
         const c2 = TEAMS[TEAM_KEYS[displayName(m.team2.name)]]?.color || 'var(--accent-blue)';
         const campo = campoSVG(m, faseDi(m));
 
+        // Giornata senza archivio: niente link e niente "Analysis", perche' la
+        // pagina di dettaglio non avrebbe nulla da mostrare. Il banner resta
+        // identico a vedersi, solo non si clicca.
+        const apribile = !settimanePendenti.has(String(currentWeek));
         return `
         <div class="matchup-card" style="animation-delay:${i * 80}ms" data-idx="${idx}">
-            <a class="gc-banner" href="#game/${currentYear}/${currentWeek}/${idx}"
-               style="--tc1:${c1};--tc2:${c2}" title="Open the game analysis">
+            ${apribile
+            ? `<a class="gc-banner" href="#game/${currentYear}/${currentWeek}/${idx}"
+               style="--tc1:${c1};--tc2:${c2}" title="Open the game analysis">`
+            : `<div class="gc-banner gc-banner--muto" style="--tc1:${c1};--tc2:${c2}">`}
                 <img class="gc-banner-wm gc-banner-wm-l" src="${logo1}" alt="" aria-hidden="true">
                 <img class="gc-banner-wm gc-banner-wm-r" src="${logo2}" alt="" aria-hidden="true">
                 <div class="gc-banner-inner">
@@ -385,14 +404,14 @@ function renderMatchups(grid) {
                     <span class="gc-banner-score${w1 ? ' winner' : ''}">${teamScoreHTML(m.team1)}</span>
                     <div class="gc-banner-mid">
                         <span class="gc-banner-vs">vs</span>
-                        <span class="gc-banner-cta">Analysis <span aria-hidden="true">→</span></span>
+                        ${apribile ? '<span class="gc-banner-cta">Analysis <span aria-hidden="true">→</span></span>' : ''}
                     </div>
                     <span class="gc-banner-score${w2 ? ' winner' : ''}">${teamScoreHTML(m.team2)}</span>
                     <div class="gc-banner-side gc-banner-side-r">
                         <span class="gc-banner-name">${teamNameHTML(m.team2.name)}</span>
                     </div>
                 </div>
-            </a>
+            ${apribile ? '</a>' : '</div>'}
             <div class="matchup-field-horizontal">
                 <span class="field-team-label field-team-label-top">${teamNameHTML(m.team1.name)}</span>
                 ${campo}

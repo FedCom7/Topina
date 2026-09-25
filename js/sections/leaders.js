@@ -250,8 +250,15 @@ function pillsRuolo() {
     // Anche il ruolo e' una tendina: una scelta sola. Prima erano pastiglie a
     // scelta multipla ("RB e WR"), ma sei pastiglie accanto a due tendine non
     // stavano su una riga.
-    const ruoli = [{ value: 'all', label: 'All positions' }, ...RUOLI.map(r => ({ value: r, label: r }))];
-    const ruolo = attivi.size === 1 ? [...attivi][0] : 'all';
+    // RB / WR insieme: sono i due ruoli che si contendono il flex, e al
+    // momento di scegliere chi schierare li' e' la domanda — uno contro l'altro
+    // nella stessa classifica. Sta subito dopo i due ruoli che unisce.
+    const ruoli = [{ value: 'all', label: 'All positions' },
+        ...RUOLI.flatMap(r => r === 'WR'
+            ? [{ value: r, label: r }, { value: 'RB/WR', label: 'RB / WR' }]
+            : [{ value: r, label: r }])];
+    const ruolo = attivi.size === 1 ? [...attivi][0]
+        : (attivi.size === 2 && attivi.has('RB') && attivi.has('WR')) ? 'RB/WR' : 'all';
     const mostra = [{ value: 'all', label: 'All players' }, { value: 'available', label: 'Available' }];
     const ordina = [{ value: 'total', label: 'Total points' }, { value: 'perGame', label: 'Points per game' }];
     return `
@@ -367,7 +374,7 @@ function render() {
     // La pagina si riscrive tutta a ogni filtro: le tendine sono nodi nuovi e
     // vanno riagganciate ogni volta.
     bindPickDropdown(wrap, (id, value) => {
-        if (id === 'pos') attivi = value === 'all' ? new Set(RUOLI) : new Set([value]);
+        if (id === 'pos') attivi = value === 'all' ? new Set(RUOLI) : new Set(value.split('/'));
         else if (id === 'show') soloLiberi = value === 'available';
         else if (id === 'sort') ordine = value;
         render();

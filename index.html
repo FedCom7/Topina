@@ -23,7 +23,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1329">
+    <link rel="stylesheet" href="css/main.css?v=1332">
 </head>
 
 <body>
@@ -144,6 +144,7 @@
             <a href="#leaders" class="nav-dp-item nav-dp-header" data-section="leaders">Players</a>
             <div class="nav-dp-sep"></div>
             <a href="#waivers" class="nav-dp-item" data-section="waivers">Waivers</a>
+            <a href="#playerstats" class="nav-dp-item" data-section="playerstats">Player Stats</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="draft">
             <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
@@ -498,6 +499,26 @@
         </div>
     </section>
 
+    <!-- ====== PLAYER STATS ======
+         Il deep dive sui numeri: frequenze, tabella completa, il "1" di ogni
+         squadra. La chiave e' `playerstats` perche' `stats` e' gia' All-Time
+         Stats, sotto History. -->
+    <section class="page-section" id="playerstats">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Player Stats</h1>
+                <p class="section-subtitle">Every number, sortable — and what it means</p>
+            </div>
+            <div class="pick-row" id="ps-pick-row"></div>
+            <div id="playerstats-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading stats...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== TEAM ====== -->
     <section class="page-section" id="team" data-route="team-">
         <!-- Contenuto iniettato da js/sections/team.js -->
@@ -560,7 +581,7 @@
         // qui solo prima.
         startLoadingArt();
     </script>
-    <script type="module" src="js/app.js?v=1416"></script>
+    <script type="module" src="js/app.js?v=1423"></script>
 
 </body>
 

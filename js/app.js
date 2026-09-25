@@ -2,7 +2,7 @@
  * Topina League — SPA Router & Init
  */
 import { initHome } from './sections/home.js?v=1098';
-import { initGameCenter } from './sections/game-center.js?v=845';
+import { initGameCenter } from './sections/game-center.js?v=847';
 
 import { initStandings, initPlayoffs } from './sections/standings.js?v=779';
 import { initDraft } from './sections/draft.js?v=815';
@@ -23,8 +23,9 @@ import { initTeam } from './sections/team.js?v=838';
 import { initTeams } from './sections/teams.js?v=744';
 import { initGame } from './sections/game.js?v=831';
 import { initAnalysis } from './sections/analysis.js?v=894';
-import { initLeaders } from './sections/leaders.js?v=123';
+import { initLeaders } from './sections/leaders.js?v=124';
 import { initWaivers } from './sections/waivers.js?v=126';
+import { initPlayerStats } from './sections/player-stats.js?v=7';
 
 import { initMagazine } from './sections/magazine.js?v=796';
 import { initLive } from './sections/live.js?v=1132';
@@ -42,6 +43,7 @@ const SECTIONS = {
     'analysis': initAnalysis,
     'leaders': initLeaders,
     'waivers': initWaivers,
+    'playerstats': initPlayerStats,
     'draft': initDraft,
     'draftgrades': initDraftGrades,
     'projections': initProjections,
@@ -67,6 +69,7 @@ const NAV_PARENT = {
     'playoffs': 'standings',
     'magazine': 'game-center',
     'waivers': 'leaders',
+    'playerstats': 'leaders',
     'stats': 'history',
 };
 

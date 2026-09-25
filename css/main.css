@@ -1061,6 +1061,23 @@ img {
     opacity: 1;
 }
 
+/* Giornata in corso: il dettaglio non esiste ancora, quindi il banner non si
+   solleva e non cambia cursore. Un banner che si anima sotto al dito promette
+   una pagina che poi dice "Matchup not found". */
+.gc-banner--muto {
+    cursor: default;
+}
+
+.gc-banner--muto:hover {
+    transform: none;
+    border-color: var(--border-subtle);
+    box-shadow: none;
+}
+
+.gc-banner--muto:hover::before {
+    opacity: 0.7;
+}
+
 .gc-banner-wm {
     position: absolute;
     top: 50%;
@@ -27281,4 +27298,377 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 :root[data-theme="light"] .pm-panini--gold,
 :root[data-theme="light"] .live-matchup-card {
     box-shadow: none;
+}
+
+
+/* ============================================================
+   PLAYER STATS (#playerstats) — js/sections/player-stats.js
+   ============================================================
+   Tre blocchi: le carte delle frequenze, la Big Board ordinabile, il "1" di
+   ogni squadra. La tabella riusa .pm-table/.pp-table (e l'oro .pp-best) delle
+   schede giocatore: stessi numeri, stesso aspetto. Qui c'e' solo quello che
+   quelle classi non hanno. */
+
+.ps-pos-bar {
+    margin-bottom: 6px;
+}
+
+.ps-sample {
+    margin: 10px 0 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--accent-red);
+}
+
+.ps-block {
+    margin-top: 34px;
+}
+
+/* ── 1. le frequenze ── */
+.ps-rate-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.ps-rate-card {
+    padding: 14px 18px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-card);
+    min-width: 0;
+}
+
+.ps-rate-card .an-sub-title {
+    margin-top: 0;
+}
+
+.ps-rate-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 9px;
+}
+
+/* nome e valore sulla stessa riga, la barra sotto per tutta la larghezza:
+   si legge prima chi, poi quanto, poi "rispetto al primo" */
+.ps-rate-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: center;
+}
+
+.ps-rate-n {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-rate-who {
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.ps-rate-who a {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.84rem;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-rate-who a:hover,
+.ps-rate-who a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ps-rate-team {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.ps-rate-val {
+    text-align: right;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-rate-val b {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.ps-rate-val small {
+    display: block;
+    font-size: 0.64rem;
+    color: var(--text-muted);
+}
+
+.ps-rate-bar {
+    grid-column: 2 / 4;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-subtle);
+    overflow: hidden;
+}
+
+.ps-rate-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent-red);
+}
+
+.ps-logo {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+    margin-right: 4px;
+    vertical-align: -3px;
+}
+
+/* ── 2. la Big Board ── */
+.ps-board-bar {
+    margin: 4px 0 12px;
+}
+
+.ps-board-count {
+    margin-left: 4px;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+.ps-table th,
+.ps-table td {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-table th.ps-th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.ps-table th.ps-th:hover,
+.ps-table th.is-sorted {
+    color: var(--text-primary);
+}
+
+.ps-table th sup {
+    font-size: 0.62em;
+    color: var(--text-muted);
+    margin-left: 1px;
+}
+
+/* La colonna del nome resta ferma mentre si scorre di lato: su telefono la
+   tabella e' larga tre schermi, e senza il nome i numeri non sono di nessuno. */
+.ps-table .ps-th-name,
+.ps-table .ps-td-name {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    text-align: left;
+    background: var(--surface-card);
+}
+
+.ps-table thead .ps-th-name {
+    z-index: 2;
+}
+
+.ps-td-name a {
+    color: var(--text-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.ps-td-name a:hover,
+.ps-td-name a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ps-td-team {
+    margin-left: 6px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.ps-more {
+    margin-top: 10px;
+    padding: 6px 14px;
+    border-radius: var(--pill-radius);
+    border: 1px solid var(--border-subtle);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ps-more:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+/* ── 3. il "1" di ogni squadra ── */
+.ps-depth {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+}
+
+.ps-depth-row {
+    display: grid;
+    grid-template-columns: 22px 62px 30px minmax(0, 1fr) minmax(90px, 26%) 42px;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ps-depth-n {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-depth-team {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.ps-depth-team b {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.ps-depth-photo {
+    width: 30px;
+    height: 30px;
+}
+
+.ps-depth-who {
+    min-width: 0;
+}
+
+.ps-depth-who a {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.86rem;
+    text-decoration: none;
+}
+
+.ps-depth-who a:hover,
+.ps-depth-who a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ps-depth-who small {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-depth-who small b {
+    color: var(--text-secondary);
+}
+
+/* La barra e' i punti a partita contro il migliore; la tacca e' la media dei
+   32. Sopra la media la barra prende il rosso del sito, sotto resta spenta:
+   si vede da lontano chi ha un "1" da titolare e chi no. */
+.ps-depth-bar {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-subtle);
+}
+
+.ps-depth-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--text-muted);
+    opacity: 0.55;
+}
+
+.ps-depth-row.is-up .ps-depth-bar i {
+    background: var(--accent-red);
+    opacity: 1;
+}
+
+.ps-depth-bar::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: var(--ps-media);
+    width: 2px;
+    height: 14px;
+    border-radius: 1px;
+    background: var(--text-primary);
+    opacity: 0.45;
+}
+
+.ps-depth-val {
+    text-align: right;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+    .ps-rate-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Su telefono la barra scende sotto al nome: sei colonne affiancate a
+       390px lasciavano al nome venti pixel. */
+    .ps-depth-row {
+        grid-template-columns: 18px 22px 30px minmax(0, 1fr) 40px;
+        row-gap: 5px;
+    }
+
+    .ps-depth-team b {
+        display: none;
+    }
+
+    /* il riassunto va a capo invece di tagliarsi: in fondo c'e' la quota di
+       target della squadra, che e' il dato per cui si guarda questa lista */
+    .ps-depth-who small {
+        white-space: normal;
+    }
+
+    .ps-depth-bar {
+        grid-column: 4 / 5;
+        grid-row: 2;
+    }
+
+    .ps-depth-val {
+        grid-column: 5;
+        grid-row: 1;
+    }
 }
