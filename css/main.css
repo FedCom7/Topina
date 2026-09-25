@@ -27979,3 +27979,69 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
         display: none;
     }
 }
+
+
+/* ── Live: score race ─────────────────────────────────────────────────
+   In fondo alla pagina, sotto "Inside the game". Le linee sono nei colori
+   di squadra (ruolo `bright` della palette: leggibili sul nero), il resto
+   neutro. */
+.live-race {
+    margin-top: 30px;
+}
+
+.live-race-line {
+    fill: none;
+    stroke-width: 2.4;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.live-race-dot {
+    fill: var(--c);
+    stroke: var(--bg-primary);
+    stroke-width: 1.5;
+}
+
+/* lo scarto col punteggio ufficiale: vuoto, per non confondersi con una giocata */
+.live-race-dot.is-scarto {
+    fill: var(--bg-primary);
+    stroke: var(--c);
+    stroke-width: 1.8;
+}
+
+/* Il touchdown: tondo pieno nel colore della squadra, bordo del colore del
+   fondo per staccarlo dalla linea, e la scritta scura — i colori `bright` delle
+   squadre sono chiari in tutti e due i temi. */
+.live-race-td circle {
+    fill: var(--c);
+    stroke: var(--bg-primary);
+    stroke-width: 2;
+}
+
+.live-race-td text {
+    font-size: 8.5px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    fill: #111;
+    pointer-events: none;
+}
+
+.live-race-cut {
+    stroke: var(--text-muted);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.6;
+}
+
+.live-race-name {
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.live-race-score {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+

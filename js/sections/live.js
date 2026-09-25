@@ -16,7 +16,7 @@
  */
 
 import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=595';
-import { TEAM_KEYS } from '../data/team-config.js?v=535';
+import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=840';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
@@ -37,6 +37,7 @@ import { cacheGet, cacheSet } from '../utils/storage.js?v=17';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
+import { costruisciRace, asseVivo } from '../data/live-race.js?v=3';
 
 const POLL_MS = 30000;
 
@@ -751,6 +752,8 @@ async function pollPlays() {
         // perche' deve aggiornarsi anche nei giri in cui non succede niente ai
         // NOSTRI giocatori — la partita va avanti lo stesso.
         aggiornaCampo();
+        // ogni giocata nuova e' un gradino nuovo della race
+        aggiornaRace();
     }
 }
 
@@ -1465,6 +1468,9 @@ function refreshInPlace(events = []) {
     // referto medico: nessuna immagine, si può riscrivere per intero
     const inj = document.getElementById('live-injuries');
     if (inj) inj.innerHTML = injuriesHTML(entry.team);
+
+    // la race: i punteggi ufficiali sono cambiati, e con loro l'ultimo gradino
+    aggiornaRace();
 }
 
 /**
@@ -1645,6 +1651,244 @@ function renderEmptyField(root, entry, entries, nota) {
     }
 }
 
+
+/* ============================================================
+   SCORE RACE — i punti delle due squadre, giocata per giocata
+   ============================================================ */
+
+/** Nomi degli atleti ESPN risolti per la race ('' = cercato e non trovato). */
+const nomiAtletiRace = new Map();
+let raceInCorso = false;
+
+/** Di chi e' un contributo di scorePlay: un nostro giocatore, una nostra difesa, o nessuno. */
+function chiEDellaRace(idx) {
+    return (c) => {
+        if (c.defTeamId) return idx.byDefTeam.get(String(c.defTeamId)) || null;
+        const id = String(c.espnId);
+        const nome = ESPN_ID_TO_NAME.get(id) || nomiAtletiRace.get(id);
+        return idx.byAthlete.get(id) || (nome ? idx.byName.get(normName(nome)) : null) || null;
+    };
+}
+
+/** La partita NFL di un titolare (le difese hanno la squadra solo nel nome). */
+const partitaDi = (p) => liveSchedule?.get(canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name) || '') || null;
+
+/**
+ * Dove va lo scarto di un titolare: all'ultima giocata della sua partita, che
+ * a gara finita e' la fine e a gara in corso e' "adesso". Prima del kickoff
+ * nessuno scarto: non ha ancora giocato.
+ */
+function fineDellaPartita(p) {
+    const g = partitaDi(p);
+    if (!g?.eventId || g.state === 'pre') return null;
+    const lista = giocateDi.get(String(g.eventId)) || [];
+    if (lista.length) return { ts: lista[lista.length - 1].ts, eventId: String(g.eventId) };
+    return { ts: Math.min(Date.now(), g.end.getTime()), eventId: String(g.eventId) };
+}
+
+/** Le giocate delle sole partite in cui gioca un titolare di una delle due squadre. */
+function giocateDellaRace(entry) {
+    const partite = new Set();
+    for (const t of [entry.team, entry.opp]) {
+        for (const p of t?.starters || []) {
+            const g = partitaDi(p);
+            if (g?.eventId) partite.add(String(g.eventId));
+        }
+    }
+    return [...partite].flatMap(id => giocateDi.get(id) || []);
+}
+
+const ORA_RACE = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+const ORA_SOLA = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' });
+
+/**
+ * Il grafico. Due linee a gradino — il punteggio cambia a scatti, una giocata
+ * alla volta — nei colori delle squadre, sull'asse del tempo GIOCATO: le ore
+ * fra una partita e l'altra non occupano larghezza (come "Point by point" in
+ * Game Center), e una riga tratteggiata segna dove si passa a un'altra fascia
+ * di partite. Le giocate da 4 punti in su hanno il loro pallino; gli scarti
+ * col punteggio ufficiale un pallino vuoto.
+ */
+function raceSVG(race, entry) {
+    const W = 820, H = 300, L = 44, R = 150, T = 18, B = 34;
+
+    // finestre di gioco: dalla prima all'ultima giocata di ogni partita coinvolta
+    const perPartita = new Map();
+    for (const e of race.eventi) {
+        const f = perPartita.get(e.eventId) || { a: e.ts, b: e.ts };
+        f.a = Math.min(f.a, e.ts); f.b = Math.max(f.b, e.ts);
+        perPartita.set(e.eventId, f);
+    }
+    for (const [id, f] of perPartita) {
+        const lista = giocateDi.get(id) || [];
+        if (lista.length) { f.a = Math.min(f.a, lista[0].ts); f.b = Math.max(f.b, lista[lista.length - 1].ts); }
+    }
+    const { vivo, blocchi } = asseVivo([...perPartita.values()]);
+    const inizio = blocchi[0].a;
+    const totX = Math.max(1, vivo(blocchi[blocchi.length - 1].b));
+    const x = (ts) => L + (vivo(ts) / totX) * (W - L - R);
+
+    // i gradini, squadra per squadra
+    const tot = [0, 0];
+    const passi = [[{ ts: inizio, v: 0 }], [{ ts: inizio, v: 0 }]];
+    for (const e of race.eventi) {
+        tot[e.lato] += e.pts;
+        passi[e.lato].push({ ts: e.ts, v: tot[e.lato], e });
+    }
+    const valori = passi.flat().map(s => s.v).concat(race.finali);
+    const minV = Math.min(0, ...valori);
+    const tk = (() => {
+        const max = Math.max(...valori, 1);
+        const grezzo = (max - minV) / 5;
+        const pot = 10 ** Math.floor(Math.log10(grezzo || 1));
+        const passo = [1, 2, 2.5, 5, 10].map(m => m * pot).find(p => p >= grezzo) || pot * 10;
+        const out = [];
+        for (let v = Math.floor(minV / passo) * passo; v <= max + passo - 1e-9; v += passo) out.push(+v.toFixed(6));
+        return out;
+    })();
+    const lo = tk[0], hi = tk[tk.length - 1];
+    const y = (v) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
+    const xFine = x(race.eventi[race.eventi.length - 1].ts);
+
+    const colore = (t) => TEAM_PALETTE[TEAM_KEYS[displayName(t?.name)]]?.bright || 'var(--text-secondary)';
+    const colori = [colore(entry.team), colore(entry.opp)];
+
+    const griglia = tk.map(v => `
+        <line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}" class="an-gridline"/>
+        <text x="${L - 8}" y="${(y(v) + 4).toFixed(1)}" class="an-tick" text-anchor="end">${Math.round(v)}</text>`).join('');
+
+    // Una tacca e il giorno per ogni fascia di partite, e dentro ogni fascia
+    // l'ora piena (ora italiana) dove c'e' spazio: con una partita sola l'asse
+    // aveva un'etichetta e basta, e non si capiva quando fosse successo cosa.
+    const ORA = 3600 * 1000;
+    let ultimoX = -Infinity;
+    const fasce = blocchi.map((b, i) => {
+        const primo = race.eventi.find(e => e.ts >= b.a && e.ts <= b.b) || { ts: b.a };
+        const xa = x(b.a);
+        let out = `${i ? `<line x1="${xa.toFixed(1)}" y1="${T}" x2="${xa.toFixed(1)}" y2="${H - B}" class="live-race-cut"/>` : ''}
+            <text x="${(xa + 4).toFixed(1)}" y="${H - B + 16}" class="an-tick">${ORA_RACE.format(new Date(primo.ts)).replace(',', '')}</text>`;
+        ultimoX = xa + 78;   // l'etichetta del giorno e' larga
+        for (let t = Math.ceil(b.a / ORA) * ORA; t < b.b; t += ORA) {
+            const xt = x(t);
+            if (xt - ultimoX < 56 || xt > W - R - 20) continue;
+            out += `<text x="${xt.toFixed(1)}" y="${H - B + 16}" class="an-tick" text-anchor="middle">${ORA_SOLA.format(new Date(t))}</text>`;
+            ultimoX = xt + 22;
+        }
+        return out;
+    }).join('');
+
+    const linea = (serie, i) => {
+        let d = `M${x(serie[0].ts).toFixed(1)},${y(0).toFixed(1)}`;
+        for (const s of serie.slice(1)) d += ` H${x(s.ts).toFixed(1)} V${y(s.v).toFixed(1)}`;
+        d += ` H${xFine.toFixed(1)}`;
+        return `<path d="${d}" class="live-race-line" style="stroke:${colori[i]}"/>`;
+    };
+
+    const pallini = (serie, i) => serie.slice(1)
+        .filter(s => !s.e.td && (s.e.scarto || Math.abs(s.e.pts) >= 4))
+        .map(s => `<circle cx="${x(s.ts).toFixed(1)}" cy="${y(s.v).toFixed(1)}" r="${s.e.scarto ? 3.5 : 4}"
+            class="live-race-dot${s.e.scarto ? ' is-scarto' : ''}" style="--c:${colori[i]}">
+            <title>${escAttr(s.e.chi)} ${s.e.pts > 0 ? '+' : ''}${s.e.pts.toFixed(2)} · ${escAttr(s.e.testo)} · ${ORA_RACE.format(new Date(s.ts)).replace(',', '')}</title></circle>`).join('');
+
+    // I touchdown: un tondo pieno col colore della squadra e la scritta TD,
+    // disegnato sopra tutto il resto. Se nella stessa giocata segnano in due
+    // della stessa squadra (il QB che lancia e il WR che riceve) il tondo e'
+    // uno solo, con i due nomi nel suggerimento.
+    const touchdown = (serie, i) => {
+        const perGiocata = new Map();
+        for (const s of serie.slice(1)) {
+            if (!s.e.td) continue;
+            const k = s.ts;
+            const gia = perGiocata.get(k);
+            if (gia) { gia.chi.push(`${s.e.chi} ${s.e.pts > 0 ? '+' : ''}${s.e.pts.toFixed(2)}`); gia.s = s; continue; }
+            perGiocata.set(k, { s, chi: [`${s.e.chi} ${s.e.pts > 0 ? '+' : ''}${s.e.pts.toFixed(2)}`] });
+        }
+        return [...perGiocata.values()].map(({ s, chi }) => `
+        <g class="live-race-td" style="--c:${colori[i]}">
+            <circle cx="${x(s.ts).toFixed(1)}" cy="${y(s.v).toFixed(1)}" r="10"/>
+            <text x="${x(s.ts).toFixed(1)}" y="${(y(s.v) + 3.2).toFixed(1)}" text-anchor="middle">TD</text>
+            <title>Touchdown · ${escAttr(chi.join(' · '))} · ${escAttr(s.e.testo)} · ${ORA_RACE.format(new Date(s.ts)).replace(',', '')}</title>
+        </g>`).join('');
+    };
+
+    // I nomi a fine linea, col punteggio UFFICIALE. Se le due linee finiscono
+    // vicine le etichette si scostano, invece di scriversi una sopra l'altra.
+    const ye = race.finali.map(v => y(v));
+    if (Math.abs(ye[0] - ye[1]) < 30) {
+        const mezzo = (ye[0] + ye[1]) / 2, alto = ye[0] <= ye[1] ? 0 : 1;
+        ye[alto] = mezzo - 15; ye[1 - alto] = mezzo + 15;
+    }
+    // 16px dalla fine: se l'ultima giocata e' un touchdown il suo tondo (raggio
+    // 10) sta proprio li', e a 10px toccava la prima lettera del nome.
+    const nomi = [entry.team, entry.opp].map((t, i) => `
+        <text x="${(xFine + 16).toFixed(1)}" y="${(ye[i] - 2).toFixed(1)}" class="live-race-name" style="fill:${colori[i]}">${escAttr(displayName(t.name))}</text>
+        <text x="${(xFine + 16).toFixed(1)}" y="${(ye[i] + 14).toFixed(1)}" class="live-race-score">${race.finali[i].toFixed(2)}</text>`).join('');
+
+    return `
+    <div class="an-chart live-race-chart">
+        <svg viewBox="0 0 ${W} ${H}" class="an-svg" role="img" aria-label="Score race between the two teams, play by play">
+            ${griglia}${fasce}
+            ${passi.map(linea).join('')}
+            ${passi.map(pallini).join('')}
+            ${passi.map(touchdown).join('')}
+            ${nomi}
+        </svg>
+    </div>`;
+}
+
+function raceInnerHTML(entry) {
+    const testa = `
+        <div class="live-deep-title">
+            <span class="mc-kicker">Score race</span>
+            <span class="live-deep-hint">every play by your starters, as it happened</span>
+        </div>`;
+    if (!entry?.team || !entry?.opp) return '';
+    const lati = [entry.team, entry.opp].map(t => ({ nome: t.name, titolari: t.starters || [] }));
+    const race = costruisciRace(giocateDellaRace(entry), lati, chiEDellaRace(rosterIndex()), fineDellaPartita);
+    if (!race.eventi.length) {
+        return `${testa}<p class="pm-empty">The race starts with the first play by a starter.</p>`;
+    }
+    return `${testa}${raceSVG(race, entry)}
+        <p class="an-footnote">Each step is a play, scored with the league rules. What the plays do not carry — a
+           defense's points-allowed bonus, a stat correction — is added at the end of that player's game as a hollow
+           dot, so each line ends on the official score. <b>TD</b> marks a touchdown. Hover a dot for the play.</p>`;
+}
+
+/**
+ * Riscrive la race. I nomi degli atleti che la mappa statica non conosce
+ * (riserve, rookie) si risolvono prima, una volta sola per atleta, dalla stessa
+ * cache che usano le card delle giocate: senza, le giocate di un rookie non
+ * sarebbero di nessuno e tutti i suoi punti arriverebbero come scarto a fine
+ * partita, in un gradino solo.
+ */
+async function aggiornaRace() {
+    const box = document.getElementById('live-race');
+    if (!box || raceInCorso) return;
+    const entry = teamEntries()[teamIdx];
+    if (!entry) return;
+    raceInCorso = true;
+    try {
+        const idx = rosterIndex();
+        const mancanti = new Set();
+        for (const g of giocateDellaRace(entry)) {
+            for (const id of Object.values(g.actors || {})) {
+                const s = String(id);
+                if (!idx.byAthlete.has(s) && !ESPN_ID_TO_NAME.has(s) && !nomiAtletiRace.has(s)) mancanti.add(s);
+            }
+        }
+        if (mancanti.size) {
+            await Promise.all([...mancanti].map(async id => {
+                const info = await resolveAthlete(id).catch(() => null);
+                nomiAtletiRace.set(id, info?.name || '');
+            }));
+        }
+        const ora = document.getElementById('live-race');
+        if (ora) ora.innerHTML = raceInnerHTML(teamEntries()[teamIdx]);
+    } finally {
+        raceInCorso = false;
+    }
+}
+
 function render() {
     const root = document.getElementById('live-root');
     const entries = teamEntries();
@@ -1677,6 +1921,7 @@ function render() {
         ${sidebarHTML(team)}
     </div>
     ${deepDiveHTML(team)}
+    <section class="live-race" id="live-race">${raceInnerHTML(entry)}</section>
 `;
 
     hydrateHeadshots(root);
@@ -1694,6 +1939,8 @@ function render() {
     bindSwipe(root.querySelector('[data-swipe]'));
     bindDeepDive(root);
     festeggiaSegnatura(root.querySelector('.fst'));
+    // la race riparte coi nomi degli atleti che la mappa statica non conosce
+    aggiornaRace();
     // Il campo è stato riscritto: il livello effetti se n'è andato con lui,
     // e con esso qualunque festa in volo.
     fermaEffetti();
