@@ -542,14 +542,14 @@ function bagliore(layer, p, colore, durata) {
  * rifare i conti sugli offset. Respira appena, perché immobile per cinque
  * secondi sembra un fermo immagine.
  */
-function timbro(layer, testo, cattivo, punti) {
+function timbro(layer, testo, cattivo, punti, tenuta = STAMP_TENUTA_MS) {
     const t = document.createElement('i');
     t.className = 'live-fx-stamp' + (cattivo ? ' live-fx-stamp--bad' : '');
     t.textContent = testo;
     layer.appendChild(t);
 
     const entra = 350, esce = 700;
-    const tot = entra + STAMP_TENUTA_MS + esce;
+    const tot = entra + tenuta + esce;
     const o = (ms) => ms / tot;
 
     // I punti si schiantano poco dopo la parola, in basso a destra rispetto a
@@ -561,8 +561,8 @@ function timbro(layer, testo, cattivo, punti) {
         { transform: 'translate(-50%,-50%) scale(0.94) rotate(-3deg)', opacity: 1, offset: o(entra * 0.7),
             easing: 'cubic-bezier(.2,1.5,.4,1)' },
         { transform: 'translate(-50%,-50%) scale(1) rotate(-3deg)', opacity: 1, offset: o(entra) },
-        { transform: 'translate(-50%,-51%) scale(1.02) rotate(-3deg)', opacity: 1, offset: o(entra + STAMP_TENUTA_MS * 0.5) },
-        { transform: 'translate(-50%,-50%) scale(1) rotate(-3deg)', opacity: 1, offset: o(entra + STAMP_TENUTA_MS) },
+        { transform: 'translate(-50%,-51%) scale(1.02) rotate(-3deg)', opacity: 1, offset: o(entra + tenuta * 0.5) },
+        { transform: 'translate(-50%,-50%) scale(1) rotate(-3deg)', opacity: 1, offset: o(entra + tenuta) },
         { transform: 'translate(-50%,-60%) scale(1.08) rotate(-3deg)', opacity: 0, offset: 1 },
     ], { duration: tot, fill: 'forwards' });
     return t;
@@ -672,8 +672,8 @@ let coda = [];
  * sopravvive per conto suo, e se ne arriva un altro glielo si toglie di mezzo
  * (vedi `avvia`).
  */
-function durataTotale(spec) {
-    const conTimbro = spec.stampa ? 350 + STAMP_TENUTA_MS + 700 : 0;
+function durataTotale(spec, tenuta = STAMP_TENUTA_MS) {
+    const conTimbro = spec.stampa ? 350 + tenuta + 700 : 0;
     return Math.max(spec.dura || 0, conTimbro) + 250;   // un respiro fra una e l'altra
 }
 
@@ -703,7 +703,7 @@ function prossima() {
     if (!n) return;
     // fra l'accodamento e adesso la pagina può essere stata ridisegnata
     if (!n.layer.isConnected || !n.slot.isConnected) return prossima();
-    avvia(n.layer, n.slot, n.spec, n.colori, n.punti);
+    avvia(n.layer, n.slot, n.spec, n.colori, n.punti, n.opzioni);
 }
 
 /**
@@ -711,7 +711,7 @@ function prossima() {
  * Torna false se non ha disegnato niente (moto ridotto, o evento senza
  * reazione): il chiamante non deve cambiare comportamento, serve solo ai test.
  */
-export function sparaEffetto(layer, slot, spec, colori, punti = 0) {
+export function sparaEffetto(layer, slot, spec, colori, punti = 0, opzioni = {}) {
     if (!layer || !slot || !spec) return false;
     if (ridotto()) return false;                 // stessa guardia di popPoints
 
@@ -719,15 +719,27 @@ export function sparaEffetto(layer, slot, spec, colori, punti = 0) {
         // In coda, non sovrapposta. Al massimo due in attesa e ordinate per
         // importanza: se ne arrivano troppe, a restare è il touchdown, non il
         // sack che gli è capitato dietro.
-        coda.push({ layer, slot, spec, colori, punti });
+        coda.push({ layer, slot, spec, colori, punti, opzioni });
         coda.sort((a, b) => a.spec.rango - b.spec.rango);
         coda = coda.slice(0, 2);
         return 'coda';
     }
-    return avvia(layer, slot, spec, colori, punti);
+    return avvia(layer, slot, spec, colori, punti, opzioni);
 }
 
-function avvia(layer, slot, spec, colori, punti) {
+function avvia(layer, slot, spec, colori, punti, opzioni = {}) {
+    // `opzioni.durata`: la festa intera deve stare in quel tempo. Serve alla
+    // replica "While you were away", dove le feste perse si rivedono in fila a
+    // cinque secondi l'una invece dei dieci del vivo. Si accorcia TUTTO in
+    // proporzione — fuochi, timbro, commento — cosi' la festa resta la stessa,
+    // solo piu' veloce. Senza opzioni non cambia niente.
+    let tenuta = STAMP_TENUTA_MS, bolla = BOLLA_MS;
+    if (opzioni.durata) {
+        const f = Math.min(1, opzioni.durata / durataTotale(spec));
+        spec = { ...spec, dura: Math.round((spec.dura || 0) * f), trema: spec.trema ? Math.round(spec.trema * f) : spec.trema };
+        tenuta = Math.max(1200, Math.round(STAMP_TENUTA_MS * f));
+        bolla = Math.max(1500, opzioni.durata - 400);
+    }
     // Via i resti della festa precedente. Il commento dura dieci secondi e può
     // sopravvivere al proprio turno: due nuvolette sovrapposte, o due timbri
     // sullo stesso punto del campo, non si leggono.
@@ -797,20 +809,20 @@ function avvia(layer, slot, spec, colori, punti) {
         }, spec.trema + 80);
     }
 
-    if (spec.stampa) mio.fissi.push(timbro(layer, spec.stampa, !!spec.cattivo, punti));
+    if (spec.stampa) mio.fissi.push(timbro(layer, spec.stampa, !!spec.cattivo, punti, tenuta));
     if (spec.dice) {
         // Il commento resta dieci secondi per tutti gli eventi, anche quelli con
         // una festa corta: è una battuta, si legge con calma. Il turno della
         // festa è già lungo abbastanza da coprirlo (vedi `durataTotale`).
         setTimeout(() => {
-            if (vivo()) mio.fissi.push(fumetto(layer, p, spec.dice, !!spec.cattivo, BOLLA_MS));
+            if (vivo()) mio.fissi.push(fumetto(layer, p, spec.dice, !!spec.cattivo, bolla));
         }, ritardoBolla(spec));
     }
 
     // Finita questa, tocca a quella in coda.
     mio.timer = setTimeout(() => {
         if (festaInCorso === mio) { festaInCorso = null; spegniFesta(mio); prossima(); }
-    }, durataTotale(spec));
+    }, durataTotale(spec, tenuta));
     return true;
 }
 

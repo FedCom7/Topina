@@ -237,35 +237,52 @@ export function calendario(cur, prec, pos, finestra = 'rest') {
 }
 
 /* ============================================================
-   6. ALBERO DEI TARGET — come si dividono i palloni
+   6. ALBERI — come si dividono i palloni
    ============================================================ */
 
 /**
- * Per ogni squadra, come si dividono i target fra i suoi ricevitori.
+ * Tre modi di contare "i palloni" di una squadra.
+ *
+ * - `target`: i passaggi lanciati verso un giocatore — WR, TE, RB.
+ * - `corse`: le portate. Ci sono anche i QB: una corsa del quarterback e' una
+ *   portata che al running back non arriva, e senza di loro la quota dei RB di
+ *   una squadra con un QB che corre (Hurts, Allen, Jackson) risultava gonfiata.
+ * - `tocchi`: target + portate, le occasioni di un giocatore in tutto. E' la
+ *   misura che mette RB e ricevitori sullo stesso piano.
+ */
+export const MISURE_ALBERO = {
+    target: { valore: (r) => r.tgt || 0, ruoli: ['WR', 'TE', 'RB'] },
+    corse: { valore: (r) => r.rushAtt || 0, ruoli: ['RB', 'QB', 'WR', 'TE'] },
+    tocchi: { valore: (r) => (r.tgt || 0) + (r.rushAtt || 0), ruoli: ['RB', 'WR', 'TE', 'QB'] },
+};
+
+/**
+ * Per ogni squadra, come si dividono i palloni fra i suoi giocatori.
  *
  * Chi ha meno del 6% finisce in "altri": una squadra NFL fa girare la palla fra
  * una decina di giocatori, e dieci spicchi da due pixel non si leggono. La
  * squadra e' quella ATTUALE del giocatore: chi e' stato scambiato porta i suoi
- * target nella squadra nuova.
+ * palloni nella squadra nuova.
  */
-export function alberiTarget(righe, soglia = 0.06) {
+export function alberi(righe, misura = 'target', soglia = 0.06) {
+    const m = MISURE_ALBERO[misura] || MISURE_ALBERO.target;
     const per = new Map();
     for (const r of righe) {
-        if (!r.team || !r.tgt || !['WR', 'TE', 'RB'].includes(r.pos)) continue;
+        if (!r.team || !m.ruoli.includes(r.pos) || !m.valore(r)) continue;
         (per.get(r.team) || per.set(r.team, []).get(r.team)).push(r);
     }
     const out = [];
     for (const [team, lista] of per) {
-        const tot = lista.reduce((a, r) => a + r.tgt, 0);
+        const tot = lista.reduce((a, r) => a + m.valore(r), 0);
         if (!tot) continue;
-        const ord = [...lista].sort((a, b) => b.tgt - a.tgt);
-        const fette = [], altri = { tgt: 0, n: 0 };
+        const ord = [...lista].sort((a, b) => m.valore(b) - m.valore(a));
+        const fette = [], altri = { n: 0, valore: 0 };
         for (const r of ord) {
-            const quota = r.tgt / tot;
-            if (quota >= soglia) fette.push({ name: r.name, pos: r.pos, tgt: r.tgt, quota, r });
-            else { altri.tgt += r.tgt; altri.n += 1; }
+            const v = m.valore(r), quota = v / tot;
+            if (quota >= soglia) fette.push({ name: r.name, pos: r.pos, valore: v, quota, r });
+            else { altri.valore += v; altri.n += 1; }
         }
-        out.push({ team, tot, fette, altri: { ...altri, quota: altri.tgt / tot }, primo: fette[0]?.quota || 0 });
+        out.push({ team, tot, fette, altri: { ...altri, quota: altri.valore / tot }, primo: fette[0]?.quota || 0 });
     }
     return out.sort((a, b) => b.primo - a.primo);
 }

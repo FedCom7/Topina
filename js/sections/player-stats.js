@@ -43,8 +43,8 @@ import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=896';
 import { LEAGUE_SCORING, scoreProjectedStats } from '../data/scoring.js?v=592';
 import {
-    tassiLega, tdAttesi, puntiAttesi, costanza, lineaTitolare, calendario, alberiTarget,
-} from '../data/player-signals.js?v=2';
+    tassiLega, tdAttesi, puntiAttesi, costanza, lineaTitolare, calendario, alberi, MISURE_ALBERO,
+} from '../data/player-signals.js?v=3';
 
 const RUOLI = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
@@ -939,6 +939,16 @@ registraInfo({
         base: 'Fantasy points allowed per game to the position, in league scoring, from the NFL team stats.',
         regola: 'Early in the season two games say little about a defense, so this season is blended with the last one, which counts as four games: by week 12 the current season is already three quarters of the number. Positive means the remaining opponents allow more than average — a friendlier road. Once the season is over it measures the schedule the team faced instead.',
     },
+    'ps-alberi-corse': {
+        cosa: 'How each offense splits its carries.',
+        base: 'Rushing attempts from Sleeper, live — quarterbacks included: a QB run is a carry the running back does not get.',
+        regola: 'Sorted by how much one player carries the load. A back with 70% of the carries is a workhorse; two at 40% each is a committee, and neither is a safe start. Anyone under 6% is grouped in "others".',
+    },
+    'ps-alberi-tocchi': {
+        cosa: 'Targets and carries together: every chance a player gets to touch the ball.',
+        base: 'Targets plus rushing attempts from Sleeper, live.',
+        regola: 'The measure that puts backs and receivers on the same scale. Read it next to the other two trees: a back who owns the carry tree but disappears in the target one is a one-dimensional player, and loses snaps whenever his team falls behind.',
+    },
     'ps-alberi': {
         cosa: 'How each offense splits its targets among its receivers, backs and tight ends.',
         base: 'Targets from Sleeper, live. Players are counted on their current team: a traded player brings his targets with him.',
@@ -1236,28 +1246,43 @@ function bloccoCalendario() {
    TEAMS — alberi dei target
    ============================================================ */
 
-function bloccoAlberi() {
-    const alberi = alberiTarget(stato.righe);
-    if (!alberi.length) return `${sottoTitolo('ps-alberi', 'Target trees')}<p class="an-footnote">No targets yet.</p>`;
+/** Come si chiama ogni albero, e come si dice la sua unita' in una frase. */
+const ALBERI = {
+    target: { id: 'ps-alberi', titolo: 'Target trees', unita: 'targets', primo: 'busiest target' },
+    corse: { id: 'ps-alberi-corse', titolo: 'Carry trees', unita: 'carries', primo: 'busiest ball carrier' },
+    tocchi: { id: 'ps-alberi-tocchi', titolo: 'Touch trees', unita: 'touches (targets + carries)', primo: 'busiest player' },
+};
+
+/**
+ * Un albero: una riga per squadra, uno spicchio per giocatore largo quanto la
+ * sua quota. Tre alberi con lo stesso disegno — target, portate, tocchi — cosi'
+ * si confrontano a colpo d'occhio: un RB che domina l'albero delle corse ma
+ * sparisce in quello dei target e' un giocatore da una sola dimensione.
+ */
+function bloccoAlberi(misura = 'target') {
+    const a = ALBERI[misura];
+    const lista = alberi(stato.righe, misura);
+    if (!lista.length) return `${sottoTitolo(a.id, a.titolo)}<p class="an-footnote">No ${a.unita} yet.</p>`;
     const cognome = (nome) => nome.split(' ').slice(1).join(' ') || nome;
+    const ruoli = MISURE_ALBERO[misura].ruoli.filter(p => lista.some(x => x.fette.some(f => f.pos === p)));
     return `
-    ${sottoTitolo('ps-alberi', 'Target trees')}
-    <div class="ps-legend">${['WR', 'TE', 'RB'].map(p => `<span><i class="pos-${p.toLowerCase()}"></i>${p}</span>`).join('')}<span><i class="ps-altri-key"></i>others</span></div>
+    ${sottoTitolo(a.id, a.titolo)}
+    <div class="ps-legend">${ruoli.map(p => `<span><i class="pos-${p.toLowerCase()}"></i>${p}</span>`).join('')}<span><i class="ps-altri-key"></i>others</span></div>
     <ol class="ps-trees">
-        ${alberi.map(a => `
+        ${lista.map(x => `
         <li class="ps-tree-row">
-            <span class="ps-sos-team">${logo(a.team)}<b>${escAttr(a.team)}</b></span>
+            <span class="ps-sos-team">${logo(x.team)}<b>${escAttr(x.team)}</b></span>
             <span class="ps-tree-bar">
-                ${a.fette.map(f => `<a class="ps-tree-seg pos-${f.pos.toLowerCase()}" href="${linkGiocatore(f.r)}"
-                    style="flex:${f.quota.toFixed(4)}" title="${escAttr(f.name)} · ${f.pos} · ${perc(f.quota)} of targets (${f.tgt})">
+                ${x.fette.map(f => `<a class="ps-tree-seg pos-${f.pos.toLowerCase()}" href="${linkGiocatore(f.r)}"
+                    style="flex:${f.quota.toFixed(4)}" title="${escAttr(f.name)} · ${f.pos} · ${perc(f.quota)} of ${a.unita} (${f.valore})">
                     ${f.quota >= 0.14 ? `<em>${escAttr(cognome(f.name))} ${perc(f.quota)}</em>` : ''}</a>`).join('')}
-                ${a.altri.tgt ? `<span class="ps-tree-seg ps-tree-altri" style="flex:${a.altri.quota.toFixed(4)}"
-                    title="${a.altri.n} others · ${perc(a.altri.quota)} of targets"></span>` : ''}
+                ${x.altri.valore ? `<span class="ps-tree-seg ps-tree-altri" style="flex:${x.altri.quota.toFixed(4)}"
+                    title="${x.altri.n} others · ${perc(x.altri.quota)} of ${a.unita}"></span>` : ''}
             </span>
-            <span class="ps-tree-top">${perc(a.primo)}</span>
+            <span class="ps-tree-top">${perc(x.primo)}</span>
         </li>`).join('')}
     </ol>
-    <p class="an-footnote">Sorted by the share of the busiest target: at the top, offenses that lean on one player.
+    <p class="an-footnote">Sorted by the share of the ${a.primo}: at the top, offenses that lean on one player.
        Players under 6% are grouped in grey.</p>`;
 }
 
@@ -1323,7 +1348,9 @@ function render() {
             : vista === 'teams' ? `
         <section class="ps-block" id="ps-depth-wrap">${ogniSquadra()}</section>
         <section class="ps-block">${bloccoCalendario()}</section>
-        <section class="ps-block">${bloccoAlberi()}</section>`
+        <section class="ps-block">${bloccoAlberi('target')}</section>
+        <section class="ps-block">${bloccoAlberi('corse')}</section>
+        <section class="ps-block">${bloccoAlberi('tocchi')}</section>`
                 : `
         <section class="ps-block">${carteFrequenze()}</section>
         <section class="ps-block">${bigBoard()}</section>`;

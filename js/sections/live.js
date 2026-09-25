@@ -31,7 +31,7 @@ import { fieldSVG } from '../ui/field-svg.js?v=28';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
 import { initPlayerModal } from '../components/player-modal.js?v=789';
-import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=35';
+import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=36';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=17';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
@@ -1536,46 +1536,204 @@ function updateReceipts() {
 }
 
 /**
- * Rivede le giocate perse, una alla volta.
+ * Rivede quello che si e' perso, in due tempi.
  *
- * Non tutte: in mezz'ora di partite vere i cambiamenti sono decine, e
- * riaccenderli tutti insieme sarebbe una sagra illeggibile. Si tengono i
- * momenti che contano — chi ha mosso punti — i piu' grossi per primi, al
- * massimo sei, e si sparano a un secondo e mezzo l'uno dall'altro cosi' si
- * leggono. Gli altri restano nel feed delle giocate, che e' il posto giusto
- * per la cronaca minuta.
+ * Prima TUTTI i punti insieme: ogni foto si accende, ogni "+x" vola, ogni
+ * totale sale — il colpo d'occhio su quanto e' cambiato. Poi le feste, in fila
+ * e TUTTE: ogni touchdown, field goal, sack, intercetto dei titolari della
+ * squadra che si sta guardando, cinque secondi l'una.
  *
- * Il percorso e' quello di sempre (`flashNewReceipts`): stessi bagliori, stessi
- * coriandoli, stesso conteggio che sale. L'unica differenza e' che partono da
- * un confronto con la visita precedente invece che col poll precedente.
+ * La versione di prima ne teneva sei e le lanciava ogni secondo e mezzo con
+ * punti e festa insieme: le feste durano dieci secondi e passano da una coda
+ * che ne trattiene due, quindi se ne vedevano tre e le altre si perdevano.
+ * Qui si scandiscono da fuori, una alla volta, e la durata la decide la
+ * replica (`sparaEffetto(..., { durata })`); il vivo resta a dieci secondi.
+ *
+ * Un giocatore che mentre eri via ha fatto due touchdown ne festeggia due: un
+ * confronto fra due fotografie non dice in che ordine sono successe le cose,
+ * ma dice quante.
  */
+const REPLICA_PUNTI_MS = 2600;   // i "+x" fuori meno dei dieci secondi del vivo
+const REPLICA_FESTA_MS = 5000;   // la meta' del vivo: si recupera, non si rivive
+
 function riproduciPersi(eventi) {
-    const forti = eventi
-        .filter(e => Math.abs(e.ptsDelta) > 0 || e.changes.some(c => c.big))
-        .sort((a, b) => Math.abs(b.ptsDelta) - Math.abs(a.ptsDelta))
-        .slice(0, 6);
-    if (!forti.length) return;
-
+    const conPunti = eventi.filter(e => Math.abs(e.ptsDelta) > 0 || e.changes.some(c => c.big));
+    if (!conPunti.length) return;
     receipts = [...eventi, ...receipts].slice(0, 40);
-    mostraRitorno(forti.length);
 
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    forti.forEach((ev, i) => setTimeout(() => flashNewReceipts([ev]), 900 + i * 1500));
+    const feste = festeDaRivedere(conPunti);
+    const fermo = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Mentre il cartello e' aperto la pagina deve mostrare com'era PRIMA: il
+    // disegno appena fatto ha gia' i totali nuovi, e sotto al cartello si
+    // vedevano i numeri finali che poi, alla partenza della replica, tornavano
+    // indietro per risalire.
+    const numeri = numeriDiPrima(conPunti);
+    mostraRitorno(riassuntoRitorno(conPunti), numeri.ripristina, () => {
+        // 1. tutti i punti insieme — giocatori e, quando le etichette
+        //    spariscono, anche il tabellone delle due squadre
+        flashNewReceipts(conPunti, { festa: false, pop: REPLICA_PUNTI_MS, flash: REPLICA_PUNTI_MS + 800 });
+        setTimeout(numeri.sali, REPLICA_PUNTI_MS);
+        if (fermo) return;
+        // 2. le feste in fila, quando i totali hanno finito di salire
+        feste.forEach((f, i) => setTimeout(() => lanciaFestaRivista(f),
+            REPLICA_PUNTI_MS + 700 + i * (REPLICA_FESTA_MS + 300)));
+    });
 }
 
-/** Il cartello che dice cosa si sta rivedendo: senza, sembrerebbe che stia succedendo adesso. */
-function mostraRitorno(quante) {
+/**
+ * Le feste da rivedere: solo la squadra guardata e solo i titolari in campo,
+ * come dal vivo (`festeggia`). Una per ogni evento grosso — due touchdown sono
+ * due feste — al massimo quattro dello stesso tipo per giocatore, e le piu'
+ * importanti prima.
+ */
+function festeDaRivedere(eventi) {
+    const guardata = teamEntries()[teamIdx]?.team?.name;
+    const campo = fxLayer?.closest('.matchup-field-horizontal');
+    const out = [];
+    for (const ev of eventi) {
+        if (ev.team !== guardata) continue;
+        if (!campo?.querySelector(`[data-slot-player="${CSS.escape(ev.name)}"]`)) continue;
+        for (const c of ev.changes || []) {
+            if (!(c.delta > 0)) continue;
+            const spec = effettoPer({ changes: [c] });
+            if (!spec) continue;
+            for (let k = 0; k < Math.min(c.delta, 4); k++) out.push({ nome: ev.name, spec });
+        }
+    }
+    return out.sort((a, b) => a.spec.rango - b.spec.rango);
+}
+
+/**
+ * Rimette a schermo i numeri di prima dell'assenza — ogni giocatore che ha
+ * mosso punti e i due totali del tabellone — e ritorna come farli risalire
+ * (`sali`) o come rimettere quelli veri senza animazione (`ripristina`, se il
+ * cartello viene chiuso uscendo dal Live).
+ */
+function numeriDiPrima(eventi) {
     const root = document.getElementById('live-root');
-    if (!root) return;
-    root.querySelector('.live-ritorno')?.remove();
+    const entry = teamEntries()[teamIdx];
+    if (!root || !entry) return { sali() { }, ripristina() { } };
+    const toccati = [];
+    const abbassa = (el, delta) => {
+        const n = numEl(el);
+        if (!n || !delta) return;
+        const ora = P(n.textContent);
+        const prima = +(ora - delta).toFixed(2);
+        n.textContent = fmt(prima);
+        toccati.push({ el, prima, ora });
+    };
+
+    // i giocatori: `flashNewReceipts` li riparte comunque da qui e li fa salire
+    for (const ev of eventi) {
+        if (!ev.ptsDelta) continue;
+        for (const slot of root.querySelectorAll(`[data-slot-player="${CSS.escape(ev.name)}"]`)) {
+            const el = slot.querySelector('.slot-pts, .live-chip-pts') || (slot.classList.contains('live-cmp-pts') ? slot : null);
+            if (el) abbassa(el, ev.ptsDelta);
+        }
+    }
+    // le due squadre: contano solo i titolari, come nel punteggio vero
+    const banner = [...root.querySelectorAll('.gc-banner-score')];
+    const squadre = [];
+    banner.forEach((el, i) => {
+        const squadra = entry.m?.[`team${i + 1}`];
+        if (!squadra || teamIsProjected(squadra)) return;
+        const titolari = new Set((squadra.starters || []).map(p => p.name));
+        const delta = eventi.filter(e => e.team === squadra.name && titolari.has(e.name))
+            .reduce((a, e) => a + e.ptsDelta, 0);
+        const prima = toccati.length;
+        abbassa(el, delta);
+        if (toccati.length > prima) squadre.push(toccati[toccati.length - 1]);
+    });
+
+    const fermo = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return {
+        sali() {
+            for (const x of squadre) {
+                if (!x.el.isConnected) continue;
+                if (fermo()) numEl(x.el).textContent = fmt(x.ora);
+                else countUp(x.el, x.prima, x.ora, 1200);
+            }
+        },
+        ripristina() {
+            for (const x of toccati) if (x.el.isConnected) numEl(x.el).textContent = fmt(x.ora);
+        },
+    };
+}
+
+/** Una festa della replica. Il giocatore si cerca adesso: la pagina puo' essere cambiata. */
+function lanciaFestaRivista(f) {
+    if (!fxLayer?.isConnected) return;
+    const campo = fxLayer.closest('.matchup-field-horizontal');
+    const slot = campo?.querySelector(`[data-slot-player="${CSS.escape(f.nome)}"]`);
+    if (!slot) return;
+    const tinta = teamOf(teamEntries()[teamIdx]?.team?.name)?.color || 'var(--accent-red)';
+    // niente punti sul timbro: li ha gia' mostrati il primo tempo, e su un
+    // giocatore con due touchdown il totale sotto al primo sarebbe sbagliato
+    sparaEffetto(fxLayer, slot, f.spec,
+        [`color-mix(in srgb, ${tinta} 68%, white 32%)`, '#ffffff', '#f5c451'], 0,
+        { durata: REPLICA_FESTA_MS });
+}
+
+/** Cosa dire nel cartello: quanto ha fatto ognuna delle due squadre, e cosa e' successo. */
+function riassuntoRitorno(eventi) {
+    const entry = teamEntries()[teamIdx];
+    const squadre = [entry?.team, entry?.opp].filter(Boolean).map(t => {
+        const titolari = new Set((t.starters || []).map(p => p.name));
+        const punti = eventi.filter(e => e.team === t.name && titolari.has(e.name))
+            .reduce((a, e) => a + e.ptsDelta, 0);
+        return { nome: displayName(t.name), punti };
+    });
+    const conta = (chiavi) => eventi.reduce((a, e) => a + (e.changes || [])
+        .filter(c => chiavi.includes(c.key) && c.delta > 0).reduce((x, c) => x + c.delta, 0), 0);
+    const fatti = [
+        [conta(['pass_td', 'rush_td', 'rec_td', 'def_td', 'ret_td', 'fum_td', 'def_ret_td']), 'touchdown', 'touchdowns'],
+        [conta(['fg_made', 'fg_0_39', 'fg_40_49', 'fg_50_plus']), 'field goal', 'field goals'],
+        [conta(['sack']), 'sack', 'sacks'],
+        [conta(['def_int']), 'interception', 'interceptions'],
+        [conta(['pass_int', 'fum_lost']), 'turnover', 'turnovers'],
+    ].filter(([n]) => n > 0).map(([n, uno, piu]) => `${n} ${n === 1 ? uno : piu}`);
+    return { squadre, fatti };
+}
+
+/**
+ * Il cartello: al centro dello schermo, sopra la pagina, senza spostarla.
+ * Resta un paio di secondi — il tempo di leggere quanto e' cambiato — e poi
+ * parte la replica; un tocco lo chiude subito. Sta su `body` e non dentro il
+ * Live: il primo polling ridisegna la pagina, e un cartello dentro sparirebbe
+ * con lei.
+ */
+function mostraRitorno(r, annulla, poi) {
+    document.querySelector('.live-ritorno')?.remove();
+    const segno = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`;
     const el = document.createElement('div');
     el.className = 'live-ritorno';
-    el.innerHTML = `<b>While you were away</b> · ${quante} play${quante > 1 ? 's' : ''} replayed`;
-    root.prepend(el);
-    setTimeout(() => {
-        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' })
+    el.setAttribute('role', 'status');
+    el.innerHTML = `
+        <div class="live-ritorno-box">
+            <span class="live-ritorno-kicker">While you were away</span>
+            ${r.squadre.length ? `<div class="live-ritorno-score">${r.squadre.map(q => `
+                <span><em>${escAttr(q.nome)}</em><b class="${q.punti > 0 ? 'is-up' : q.punti < 0 ? 'is-down' : ''}">${segno(q.punti)}</b></span>`).join('')}
+            </div>` : ''}
+            ${r.fatti.length ? `<p class="live-ritorno-fatti">${r.fatti.join(' · ')}</p>` : ''}
+            <small>Replaying it now · tap to skip</small>
+        </div>`;
+    document.body.appendChild(el);
+
+    let chiuso = false;
+    const chiudi = (parti = true) => {
+        if (chiuso) return;
+        chiuso = true;
+        window.removeEventListener('hashchange', via);
+        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, fill: 'forwards' })
             .onfinish = () => el.remove();
-    }, 900 + quante * 1500);
+        if (parti) poi();
+        else annulla();
+    };
+    // cambiando pagina il cartello se ne va, e la replica non parte
+    const via = () => chiudi(false);
+    window.addEventListener('hashchange', via);
+    el.addEventListener('click', () => chiudi());
+    setTimeout(() => chiudi(), 2800);
 }
 
 function restoreReceipts() {
@@ -3068,7 +3226,13 @@ function countUp(el, from, to, ms = 900) {
 const FLASH_MS = 10000;     // quanto resta accesa la foto del giocatore
 const POP_DELAY_MS = 10000; // l'etichetta dei punti resta fuori tanto, poi il totale sale
 
-function flashNewReceipts(events) {
+/**
+ * `opzioni`: la replica "While you were away" usa questo stesso percorso, ma
+ * vuole i punti SENZA la festa (le feste arrivano dopo, in fila) e piu' corti
+ * dei dieci secondi del vivo. Senza opzioni e' il comportamento di sempre.
+ */
+function flashNewReceipts(events, opzioni = {}) {
+    const { festa = true, pop = POP_DELAY_MS, flash = FLASH_MS } = opzioni;
     for (const ev of events) {
         // stesso giocatore può stare in più punti (campo, panchina, confronto)
         for (const slot of document.querySelectorAll(`[data-slot-player="${CSS.escape(ev.name)}"]`)) {
@@ -3080,7 +3244,7 @@ function flashNewReceipts(events) {
                 { boxShadow: `0 0 22px 6px ${color}`, borderColor: color, offset: 0.04 },
                 { boxShadow: `0 0 18px 5px ${color}`, borderColor: color, offset: 0.88 },
                 { boxShadow: '0 0 0 0 transparent', borderColor: 'rgba(255,255,255,0.35)', offset: 1 },
-            ], { duration: FLASH_MS, easing: 'ease-out' });
+            ], { duration: flash, easing: 'ease-out' });
 
             // Il totale non si muove subito: prima si legge quanto è arrivato
             // accanto alla foto, poi il numero in basso lo assorbe salendo.
@@ -3105,12 +3269,12 @@ function flashNewReceipts(events) {
                 // ADESSO, che nel frattempo può essere cambiato ancora
                 sum = () => countUp(ptsEl, P(numEl(ptsEl).textContent), vero());
             }
-            if (ev.ptsDelta) popPoints(slot, ev.ptsDelta, sum);
+            if (ev.ptsDelta) popPoints(slot, ev.ptsDelta, sum, pop);
             else sum();
         }
         document.querySelector(`[data-receipt="${ev.id}"]`)?.classList.add('live-receipt--new');
     }
-    festeggia(events);
+    if (festa) festeggia(events);
 }
 
 /**
@@ -3389,7 +3553,7 @@ if (typeof window !== 'undefined') {
  * Etichetta volante accanto alla bolla: quanti punti ha portato l'azione.
  * `onDone` scatta quando sparisce — è lì che il totale comincia a salire.
  */
-function popPoints(slot, delta, onDone = () => { }) {
+function popPoints(slot, delta, onDone = () => { }, durata = POP_DELAY_MS) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) { onDone(); return; }
     const tag = document.createElement('span');
     tag.className = `live-pop ${delta > 0 ? 'pos' : 'neg'}`;
@@ -3409,7 +3573,7 @@ function popPoints(slot, delta, onDone = () => { }) {
         { transform: 'translateY(-1px) scale(1.06)', opacity: 0.45, offset: 0.8 },
         { transform: 'translateY(0) scale(1)', opacity: 1, offset: 0.93 },
         { transform: 'translateY(-10px) scale(0.95)', opacity: 0 },
-    ], { duration: POP_DELAY_MS, easing: 'ease-in-out' })
+    ], { duration: durata, easing: 'ease-in-out' })
         .onfinish = () => { tag.remove(); onDone(); };
 }
 
