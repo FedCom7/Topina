@@ -18950,9 +18950,17 @@ td.ps-div-seed {
     pointer-events: none;
 }
 
-/* campo + panchina si muovono insieme durante lo scambio squadra */
+/* campo + panchina si muovono insieme durante lo scambio squadra.
+   `touch-action` va dichiarato QUI, prima che il gesto cominci, non sulla
+   classe `.live-dragging` aggiunta a meta' gesto: Safari decide come gestire
+   lo scroll nativo al `touchstart`, non lo rivaluta a ogni frame. Lasciato al
+   default (`auto`) fino a quel momento, il compositor trattava la minima
+   componente verticale di uno swipe (mai perfettamente orizzontale) come pan
+   nativo della pagina, che poi rimbalzava indietro al rilascio — il campo
+   cambiava squadra e la pagina faceva un salto in giu' e ritorno. */
 .live-field-slider {
     will-change: transform, opacity;
+    touch-action: pan-y;
 }
 
 /* ── Panchina sotto il campo (nessun riquadro: le card stanno sul fondo pagina) ── */
@@ -19357,7 +19365,6 @@ td.ps-div-seed {
     will-change: transform, opacity;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: pan-y;
 }
 
 /* Il palco normalmente taglia quello che esce dai suoi bordi; durante il
