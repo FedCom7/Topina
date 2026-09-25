@@ -2624,6 +2624,14 @@ function idrataNumeri(root) {
     });
 }
 
+// Niente `loading="lazy"` sulla foto: questo slot nasce dentro `.live-field-
+// slider`, che allo scambio squadra parte con un `transform: translateX`
+// fuori schermo e scivola dentro. Il browser valuta l'intersezione col
+// viewport DOPO il transform, quindi all'inserimento l'immagine risulta
+// fuori vista e il caricamento lazy resta in coda finche' lo scorrimento non
+// la porta davvero a schermo — cioe' quasi alla fine dell'animazione, dove si
+// vedeva la foto comparire di scatto. Il campo e' sempre sopra la piega:
+// lazy non aveva niente da guadagnare qui.
 function fieldSlot(p, extraClass = '') {
     if (!p) return '';
     if (p.placeholder) return emptySlot(p, extraClass);
@@ -2636,7 +2644,7 @@ function fieldSlot(p, extraClass = '') {
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
-        <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
+        <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt=""
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>
         <span class="slot-name">${numeroHTML(p)}${nomeCampoHTML(p, shortName(p))}${
         injury ? `<span class="slot-inj">${injuryTagHTML(p, true)}</span>` : ''}</span>
@@ -2663,7 +2671,7 @@ function emptySlot(p, extraClass = '') {
     const role = (p.position_in_team || p.position || '').toUpperCase();
     return `
     <div class="formation-slot live-slot live-slot--empty${extraClass}">
-        <span class="slot-photo"><img src="images/fallback-player.svg" alt="" loading="lazy"></span>
+        <span class="slot-photo"><img src="images/fallback-player.svg" alt=""></span>
         <span class="slot-name">–</span>
         <span class="slot-pts">–</span>
         <span class="live-slot-stats live-slot-stats--ring">${statRingHTML({ position: role, stats: {} })}</span>
@@ -2792,11 +2800,15 @@ function benchHTML(team) {
     </div>`;
 }
 
-/** Foto tonda usata nel confronto (stesso trattamento a vetro del campo). */
+/**
+ * Foto tonda usata nel confronto (stesso trattamento a vetro del campo).
+ * Niente `loading="lazy"`, stesso motivo di `fieldSlot`: nasce dentro lo
+ * stesso `.live-field-slider` che scorre da fuori schermo.
+ */
 function comparePhoto(p) {
     if (!p) return '<span class="live-cmp-photo live-cmp-photo--empty"></span>';
     const role = (p.position_in_team || p.position || '').toUpperCase();
-    return `<span class="live-cmp-photo"><img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
+    return `<span class="live-cmp-photo"><img src="${cachedHeadshot(p.name)}" alt=""
         data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>`;
 }
 

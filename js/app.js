@@ -28,7 +28,7 @@ import { initWaivers } from './sections/waivers.js?v=128';
 import { initPlayerStats } from './sections/player-stats.js?v=15';
 
 import { initMagazine } from './sections/magazine.js?v=798';
-import { initLive } from './sections/live.js?v=1139';
+import { initLive } from './sections/live.js?v=1140';
 import { initNavbar } from './ui/navbar.js?v=688';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
