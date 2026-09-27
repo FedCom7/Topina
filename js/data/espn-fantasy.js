@@ -202,6 +202,19 @@ function normalizePlayer(entry, week, games, scoring) {
     const out = {
         position: SLOT_TO_POSITION[entry.lineupSlotId] || String(entry.lineupSlotId),
         name,
+        /*
+         * L'id ESPN del giocatore. Non e' un id "del fantasy": e' lo STESSO
+         * id atleta che il play-by-play mette in `participants[]`
+         * (verificato: 4430807 e' Bijan Robinson in entrambe le API). Vale la
+         * pena portarlo fuori perche' e' l'unico agganciamento esatto fra una
+         * nostra rosa e una giocata NFL — `PLAYER_ID_MAP` in player-map.js e'
+         * generata da dati vecchi e i rookie non ci sono, e il ripiego sul
+         * nome normalizzato sbaglia sui casi limite. Lo usa il Night Recap.
+         *
+         * Le difese NON ce l'hanno buono: li' ESPN mette un id suo (negativo),
+         * non un id atleta. Per loro si passa da `ESPN_TEAM_IDS`.
+         */
+        espn_id: player.id != null ? String(player.id) : '',
         position_in_team: posLabel,
         nfl_team: nflTeam,
         opponent: game.opponent || '',

@@ -281,7 +281,14 @@ const LAMPI = {
  * sembrerebbero uno sfarfallio, tre che si smorzano sembrano uno scatto.
  */
 function lampo(layer, forza) {
-    const s = LAMPI[forza] || LAMPI.medio;
+    // `forza` è di norma il nome di una delle tre intensità. Può anche essere
+    // un oggetto, e allora sovrascrive solo i campi che porta: serve al Night
+    // Recap, che di lampi ne vuole UNO solo e cortissimo — tre colpi su 900ms
+    // dentro una festa da un secondo e mezzo sono più della metà del tempo con
+    // lo schermo acceso.
+    const s = forza && typeof forza === 'object'
+        ? { ...LAMPI.medio, ...forza }
+        : (LAMPI[forza] || LAMPI.medio);
     const f = crea(layer, 'live-fx-flash', '');
 
     const keys = [{ opacity: 0, offset: 0 }];
@@ -782,7 +789,11 @@ function avvia(layer, slot, spec, colori, punti, opzioni = {}) {
     // e fuochi anche al field goal è cambiare un numero nella tabella, non
     // aggiungere un ramo qui.
     if (spec.coriandoli) {
-        coriandoli(layer, p, colori, Math.round(spec.coriandoli * meta), 4, spec.dura / 5, vivo);
+        // `ondate` dalla riga: il Night Recap ne vuole UNA sola — la
+        // "flashata" — perché là il passo dopo arriva in due secondi e quattro
+        // ondate resterebbero addosso alle giocate seguenti.
+        const ondate = spec.ondate ?? 4;
+        coriandoli(layer, p, colori, Math.round(spec.coriandoli * meta), ondate, spec.dura / (ondate + 1), vivo);
     }
     if (spec.razzi) {
         for (let i = 0; i < spec.razzi; i++) {

@@ -20,18 +20,18 @@ import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=840';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
-import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=145';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=146';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=574';
-import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
+import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=176';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { fieldSVG } from '../ui/field-svg.js?v=30';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
 import { initPlayerModal } from '../components/player-modal.js?v=789';
-import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=36';
+import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=38';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { cacheGet, cacheSet } from '../utils/storage.js?v=17';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
@@ -40,6 +40,7 @@ import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { costruisciRace, asseVivo } from '../data/live-race.js?v=3';
 import { prossimiDi } from '../data/next-up.js?v=3';
 import { aggiornaPannello } from '../ui/next-up-panel.js?v=3';
+import { statRingHTML as anelloHTML, statVoci as vociAnello } from '../ui/stat-ring.js?v=1';
 
 const POLL_MS = 30000;
 
@@ -59,21 +60,6 @@ const STAT_LABELS = {
     sack: 'Sack', def_int: 'DEF interception', fum_rec: 'Fumble recovery',
     safety: 'Safety', def_td: 'DEF TD', def_2pt_ret: 'DEF 2-PT return',
     def_ret_td: 'DEF return TD', pts_allowed: 'Points allowed', yds_allowed: 'Yards allowed',
-};
-
-/**
- * Statistiche mostrate sulla card: sempre 6 per ruolo (griglia 2×3), così tutti
- * i riquadri hanno la stessa dimensione e i valori a 0 diventano un trattino.
- * Le chiavi sono quelle reali dei dati 2026+ (fg_made/fg_att sono già forniti,
- * non vanno più ricalcolati sommando le fasce di distanza).
- */
-const STATS_BY_ROLE = {
-    QB: ['pass_comp', 'pass_att', 'pass_yds', 'pass_td', 'pass_int', 'rush_yds'],
-    RB: ['rush_att', 'rush_yds', 'rush_td', 'targets', 'rec', 'rec_yds'],
-    WR: ['targets', 'rec', 'rec_yds', 'rec_td', 'rush_yds', 'rush_td'],
-    TE: ['targets', 'rec', 'rec_yds', 'rec_td', 'rush_yds', 'rush_td'],
-    K: ['pat_made', 'fg_made', 'fg_att', 'fg_0_39', 'fg_40_49', 'fg_50_plus'],
-    DEF: ['sack', 'def_int', 'fum_rec', 'def_td', 'pts_allowed', 'yds_allowed'],
 };
 
 /** Eventi "grossi": meritano evidenza nello scontrino. */
@@ -2827,41 +2813,16 @@ function byPos(starters, pos, nth = 0) {
 }
 
 /** Valore di una statistica, con la somma dei field goal per la chiave virtuale fg_made. */
-function statValue(stats, key) {
-    if (key === 'fg_made') {
-        // I dati 2026+ forniscono già il totale; le fasce si sommano solo per
-        // il vecchio schema NFL.com, che non aveva fg_made.
-        if (stats.fg_made != null) return stats.fg_made;
-        return ['fg_0_19', 'fg_20_29', 'fg_30_39', 'fg_0_39', 'fg_40_49', 'fg_50_plus']
-            .reduce((s, k) => s + (stats[k] || 0), 0);
-    }
-    return stats[key] || 0;
-}
-
-/** Le voci da mostrare per un giocatore: [{ testo, forte, zero }]. */
+/**
+ * Le voci da mostrare per un giocatore.
+ *
+ * Il CHE COSA mostrare sta in `ui/stat-ring.js`, condiviso col Night Recap.
+ * Qui resta l'unica cosa che e' del Live: prima del kickoff si mostra la riga
+ * PROIETTATA, perche' quella reale e' tutta a zero.
+ */
 function statVoci(p) {
-    let role = (p.position_in_team || p.position || '').toUpperCase();
-    if (role === 'W/R' || role === 'RB/WR' || role === 'FLEX') role = 'WR';
-    if (role === 'D/ST') role = 'DEF';
-    const keys = STATS_BY_ROLE[role] || STATS_BY_ROLE.WR;
-    // Prima del kickoff si mostra la riga proiettata: quella reale è tutta a zero.
-    const proj = pIsProjected(p);
-    const stats = (proj ? p.projected_stats : p.stats) || p.stats || {};
-    return keys.map(k => {
-        const raw = statValue(stats, k);
-        /*
-         * Interi per i conteggi, un decimale per le frazioni piccole — e vale
-         * per TUTTI i numeri, non solo per le proiezioni.
-         *
-         * L'arrotondamento prima toccava la sola proiezione, e il dato vero
-         * finiva sulla card cosi' com'era: basta che una somma passi per un
-         * float e ne esce la coda binaria (241.00000000000003). Sull'anello
-         * ogni carattere costa un pezzo di circonferenza, quindi diciassette
-         * cifre si mangiavano il giro intero e coprivano tutte le altre voci.
-         */
-        const v = Math.abs(raw) >= 10 ? Math.round(raw) : Math.round(raw * 10) / 10;
-        return { valore: v === 0 ? '–' : String(v), etichetta: shortStatLabel(k), zero: v === 0 };
-    });
+    const stats = (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {};
+    return vociAnello(stats, p.position_in_team || p.position);
 }
 
 /** Riquadro statistiche sotto la foto: due colonne, per la panchina. */
@@ -2877,35 +2838,10 @@ function statBoxHTML(p) {
  * testo segue la curva invece di stare dritto. Si parte dalle "40 di orologio"
  * e si prosegue in senso orario fin dove la stringa arriva.
  */
+/** L'anello, con la riga giusta (proiettata prima del kickoff). */
 function statRingHTML(p) {
-    const pezzi = [];
-    statVoci(p).forEach((v, i) => {
-        // separatore senza spazi: ogni carattere costa un pezzo di
-        // circonferenza, e tre caratteri per sei voci sarebbero mezzo giro
-        if (i) pezzi.push({ testo: '·', classe: 'live-ring-sep' });
-        pezzi.push({ testo: v.valore, classe: 'live-ring-num' + (v.zero ? ' live-stat--zero' : '') });
-        pezzi.push({ testo: ' ' + v.etichetta, classe: 'live-ring-lbl' + (v.zero ? ' live-stat--zero' : '') });
-    });
-
-    let n = 0;
-    return pezzi.map(({ testo, classe }) => [...testo].map(ch =>
-        // lo spazio non si può disegnare: occupa il suo passo e basta
-        `<i class="live-ring-ch ${classe}" style="--c:${n++}">${ch === ' ' ? '&nbsp;' : escAttr(ch)}</i>`
-    ).join('')).join('');
-}
-
-/** Etichetta corta per la card (quella lunga sta negli scontrini). */
-function shortStatLabel(k) {
-    return ({
-        pass_yds: 'PaYd', pass_td: 'PaTD', pass_int: 'INT',
-        rush_yds: 'RuYd', rush_td: 'RuTD',
-        rec: 'Rec', rec_yds: 'ReYd', rec_td: 'ReTD',
-        pass_att: 'Att', pass_comp: 'Cmp', rush_att: 'Car', targets: 'Tgt',
-        pat_made: 'XP', fg_made: 'FG', fg_att: 'FGA',
-        fg_0_39: 'FG0-39', fg_40_49: 'FG40', fg_50_plus: 'FG50+',
-        sack: 'Sck', def_int: 'INT', fum_rec: 'FR', def_td: 'TD',
-        safety: 'SAF', pts_allowed: 'PA', yds_allowed: 'YdA',
-    })[k] || k;
+    const stats = (pIsProjected(p) ? p.projected_stats : p.stats) || p.stats || {};
+    return anelloHTML(stats, p.position_in_team || p.position);
 }
 
 /** Slot giocatore sul campo — card con foto, nome, punti e statistiche. */

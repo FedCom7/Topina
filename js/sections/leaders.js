@@ -18,7 +18,7 @@
 
 import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=595';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=175';
+import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=176';
 import { TEAMS } from './team.js?v=840';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats } from '../data/projections.js?v=631';

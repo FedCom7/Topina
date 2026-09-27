@@ -217,6 +217,361 @@ Firebase resta l'archivio: settimane chiuse e stagioni 2019-2025.
 ### Team Name Mapping
 Firebase stores team names differently from display names (e.g., `riccardo97com` → `Oscurus`, `FedCom` → `Sommo`). Mapping lives in `data.js:TEAM_DISPLAY_NAMES`. Team keys, logos, and stadium images are in `js/data/team-config.js`.
 
+### Night Recap — il replay della notte, e il sipario che lo protegge
+
+Le partite del turno primetime finiscono alle cinque del mattino ora italiana:
+chi apre il sito la mattina trova il risultato già fatto. Il Night Recap glielo
+RACCONTA invece di comunicarglielo — i suoi titolari in campo, il tabellone NFL
+che avanza, i punti che salgono giocata per giocata, con gli effetti del Live
+(anello arancione quando la sua squadra ha la palla, rosso in red zone,
+coriandoli sul touchdown). Due file: `js/data/night-recap.js` (i conti, niente
+DOM e niente rete) e `js/sections/night-recap.js` (la scena).
+
+**Non è una sezione del router.** Sta in `js/sections/` per il peso che ha —
+orchestra fetch, tiene lo stato della riproduzione — ma non ha un hash, non è
+in `SECTIONS` e non espone un `initXxx()`. È un livello sopra tutto il sito, e
+`boot()` in `app.js` lo chiama PRIMA di `navigate()`.
+
+1. **Il sipario si alza in modo SINCRONO, e l'ordine in `boot()` è la
+   funzionalità.** Sotto, `navigate()` disegna la home, e la home mostra il
+   punteggio nel banner: tutta la suspense sta nel non averlo ancora visto.
+   `alzaSipario()` non fa una sola richiesta di rete e legge solo
+   `localStorage`; i dati arrivano dietro al sipario e, se non c'è niente da
+   rivedere, il sipario si abbassa da solo. Un `await` messo prima di quella
+   riga brucia la funzionalità senza rompere niente — non se ne accorgerebbe
+   nessun test.
+
+2. **"Di notte" è il KICKOFF in ora italiana, non il giorno della settimana.**
+   Dopo la mezzanotte: Thursday/Sunday/Monday Night sono alle 02:15 italiane, il
+   tardo pomeriggio USA alle 22:25, Londra alle 15:30. Il giorno della settimana
+   non basterebbe — a dicembre si gioca anche il sabato e a Natale. Verificato
+   che la regola regge anche nelle due settimane di fine ottobre in cui ET e
+   Roma sono sfasate di un'ora sola (il primetime scivola all'01:15, il
+   pomeriggio al 21:25: restano dalle parti giuste della mezzanotte).
+
+3. **Tre cancelli prima del sipario** (`valeTentare()`), e il terzo esiste per
+   non far lampeggiare un sipario a vuoto il mercoledì: una volta al giorno;
+   dopo le 7 italiane (prima, una partita può essere ancora in corso, e per
+   quello c'è il Live); e niente sipario se si sa già quando finisce la
+   prossima partita di notte e quel momento non è passato.
+   `prossimaFine` si misura **solo sulle partite di notte**: prendendo la
+   prossima partita qualunque, il venerdì mattina sarebbe la domenica
+   pomeriggio, e il replay del Thursday Night non lo si vedrebbe mai. E si
+   scrive **solo quando non c'era niente da rivedere**: scrivendolo anche
+   quando un replay c'è, chi chiude la pagina a metà se lo perderebbe in
+   silenzio.
+
+4. **La finestra di freschezza è 48 ore, e non è un dettaglio.** Il segnalibro
+   nasce vuoto: senza finestra, la prima apertura da un browser nuovo trova
+   "mai viste" TUTTE le partite di notte delle settimane in esame e le mette in
+   fila — provato, e il primo replay partiva dalla week 2 mentre era in corso
+   la 3. Le partite scadute non si buttano: si segnano come viste, così non
+   tornano a galla domani.
+
+5. **L'agganciamento fra una nostra rosa e una giocata NFL passa da
+   `espn_id`.** Il feed della lega e il play-by-play usano lo STESSO id atleta
+   (verificato: 4430807 è Bijan Robinson in entrambe le API), quindi il campo
+   è esposto da `normalizePlayer` in `espn-fantasy.js`. Non si usa
+   `PLAYER_ID_MAP`: è generata da dati vecchi e i rookie non ci sono. Non c'è
+   ripiego sul nome, e non è una dimenticanza — un contributo di `scorePlay`
+   porta l'id, non il nome. Per questo `raccogli()` esce se la lega non ha
+   draftato: le rose composte dalle scelte del draft non hanno l'id, e ne
+   uscirebbe un replay di zeri.
+
+6. **Il replay finisce ESATTAMENTE sul totale ufficiale.** Il ricalcolo per
+   giocata non è il punteggio ufficiale (stessa ragione di `costruisciRace` in
+   live-race.js), quindi in coda c'è un passo `assesta` che porta ogni titolare
+   sul suo numero vero. Senza, il replay finirebbe su un numero diverso da
+   quello che il sito mostra due secondi dopo.
+
+7. **Il ritmo è a budget, e i momenti obbligati non si tagliano.** Novanta
+   secondi in tutto, divisi fra i capitoli (una partita = un capitolo).
+   Touchdown, calci e palle perse restano sempre passi pieni; le giocate minori
+   si comprimono in blocchi `salta` che portano comunque i loro punti — il
+   totale non deve MAI saltare un pezzo — mentre il tabellone NFL corre.
+   Se anche così si sfora, `comprimi()` stringe i tempi con un pavimento per
+   tipo: quello del touchdown è il più alto perché il timbro di `live-fx.js`
+   resta cinque secondi, e comprimendolo si leggerebbe mezza parola.
+
+   `comprimiGiocate: false` spegne i blocchi e fa di OGNI azione un passo —
+   quelle senza i miei diventano passi `passa`, smorzati e rapidi. Si vede
+   tutta la partita e i tocchi mostrati passano da 16 a 69, ma la durata
+   triplica: su GB-DAL 2025 (221 giocate) sono 33 passi in 51s contro 222 in
+   180s, e col budget da 75s il pavimento schiaccia i `passa` a 172ms, dove il
+   testo non si legge più. Per ora vive solo nel banco di prova — il sito non
+   passa l'opzione e resta compresso.
+
+   Da lì è uscito un difetto che valeva per tutti: `contaSu` non si fermava
+   quando un conteggio più nuovo partiva sullo stesso numero, e i due se lo
+   riscrivevano a vicenda a ogni fotogramma. Con passi da 1,5 secondi non si
+   vedeva; con quelli veloci il tabellone NFL ballava. Ora ogni conteggio
+   marca l'elemento con un gettone e si ferma se viene superato, e la sua
+   durata non eccede mai quella del passo che l'ha chiesto.
+
+7-bis. **Il giocatore è un CERCHIO con le statistiche attorno, non una card.**
+   L'anello è quello del campo del Live, e dal 2026-09-27 sta in
+   `js/ui/stat-ring.js`, importato da tutti e due — `STATS_BY_ROLE`,
+   `statValue`, `statVoci` e `statRingHTML` erano dentro `sections/live.js` e
+   ora quel file li chiama da lì. La firma prende `(stats, role)` e non un
+   giocatore apposta: la scelta fra statistiche vere e proiettate è roba del
+   Live (prima del kickoff quelle vere sono tutte a zero) e resta là.
+
+   Due differenze rispetto al campo, volute: nel Live l'anello è **nascosto
+   sotto i 1000px** perché lì i giocatori sono nove e stretti, qui sono due o
+   tre con la foto grande e si vede sempre, telefono compreso; e il
+   riempimento del possesso **non è più un rettangolo** ma un alone attorno
+   alla foto — tolta la card, quel rettangolo ambra era esattamente la cornice
+   che si era appena tolta.
+
+7-ter. **Più partite si vedono INSIEME, non una dopo l'altra.** Una notte può
+   averne due (e a dicembre tre). Ogni gara ha il suo pannello — tabellone,
+   campo, cronaca — impilati, e `intreccia()` fonde le sequenze in UNA linea
+   del tempo ordinata sul cronometro di gara: si cammina da Q1 15:00 a Q4 0:00
+   una volta sola e a ogni passo tocca alla partita che in quel momento aveva
+   qualcosa da mostrare.
+
+   Il cronometro si aggiorna su TUTTI i pannelli a ogni passo, non solo su
+   quello che si è mosso: tenendolo per pannello, la partita ferma restava
+   all'ora della sua ultima giocata — misurato, due orologi a schermo con
+   quattro minuti di scarto, cioè esattamente la cosa che guardarle insieme
+   dovrebbe evitare. Una gara che finisce prima passa a FINAL mentre l'altra
+   continua. Il totale della squadra somma tutte le partite, perché i titolari
+   stanno di qua e di là. Gli stacchi di fine quarto si fondono in uno solo:
+   il quarto finisce per tutte nello stesso momento.
+
+7-quater. **Quando non ci stanno, i cerchi diventano righe** — foto piccola,
+   nome, statistiche, punti, come il confronto del Live — e le partite restano
+   tutte a schermo, che è la priorità. La soglia la misura `adattaDensita()`,
+   non una regola sul numero di partite: guarda la larghezza per giocatore
+   (sotto 104px l'anello è illeggibile) E l'altezza del palco (tre gare da tre
+   titolari sbordavano, e la terza finiva sotto il totale). Se non basta,
+   un secondo livello (`nr-show--fitto`) toglie il testo dell'azione.
+
+   La misura si ripete mentre il contenuto si assesta: al montaggio le foto
+   non sono arrivate e gli anelli sono vuoti, quindi il palco non sborda
+   ancora e una misura sola concludeva "ci stanno" — poi il contenuto cresceva
+   e la terza partita usciva dal bordo.
+
+   In riga il possesso illumina **tutta la riga** — ambra in campo, rossa in
+   red zone — non un filetto sul bordo: lì la riga È il giocatore, e un alone
+   attorno a una foto da 30px non si vede. Due trappole, tutt'e due già
+   pestate:
+
+   - il selettore porta `.nr-players` NON per decorazione ma per specificità:
+     la regola dei cerchi (`.nr-players .formation-slot.live-slot--onball`,
+     che spegne sfondo e bordo) sta più in basso nel file e a pari specificità
+     vinceva lei — la riga non si accendeva mai;
+   - il faro della festa (`is-festa`) abbassa gli altri al 30%, e una riga
+     sottile a quel livello sparisce insieme al suo colore. In riga è più
+     tenue (0.5): il protagonista si stacca lo stesso, restando l'unico a
+     piena luce.
+
+   Le statistiche non allargano la riga (`min-width: 0` + `overflow`):
+   `nowrap` da solo spingeva il pannello oltre il bordo dello schermo.
+
+7-quinquies. **Niente deve spostare le sezioni.** Con tre pannelli impilati
+   qualunque elemento che cambia altezza fa ballare tutta la scena, e succede
+   a ogni giocata. Due cose lo facevano:
+
+   - il testo dell'azione andava a tre righe quando la cronaca era lunga.
+     Ora `.nr-play` ha altezza FISSA (non `min-height`) e tronca coi puntini;
+   - `.nr-dd` (down & distance) misurava 13px da vuoto e 18.9px col testo,
+     perché `min-height: 1.1em` non corrispondeva all'interlinea ereditata
+     (1.6). Il tabellone della partita che non aveva ancora down & distance
+     era sei pixel più basso degli altri. Interlinea e altezza ora sono
+     dichiarate e uguali, su `.nr-dd` e `.nr-clock`.
+
+   Misurato: l'altezza della scena resta fissa a 817px per tutto il replay.
+   L'unica misura che ancora varia è quella della card del protagonista di una
+   festa (38 → 40.7px), ed è il `transform: scale(1.07)` del faro: non tocca
+   il layout, infatti il palco non si muove.
+
+7-sexies. **Stretti, la cronaca si RIASSUME invece di sparire.**
+   `riassunto()` ricostruisce la giocata dalle statistiche che il passo porta
+   già con sé — "Robinson · 17 yd catch", "Watson · 4 yd TD catch" — invece di
+   tagliare la frase di ESPN, che anche tagliata resta lunga. Entra insieme
+   alle righe compatte, cioè sulla stessa misura, e sta sempre in una riga
+   sola.
+
+8. **Il tabellone è quello della diretta, e il cronometro SCORRE.** Down,
+   distanza, punto del campo e freccia del possesso: sono tutti nel
+   play-by-play, e la posizione si scrive alla maniera TV ("GB 34") partendo da
+   `toEZ` — sotto le 50 yard la palla è nella metà di chi difende, sopra in
+   quella di chi attacca. Il cronometro non mostra l'ora della giocata ma ci
+   ARRIVA scendendo dentro il tempo del passo: mostrandola e basta stava fermo
+   e poi saltava. A quarto nuovo riparte da 15:00 (10:00 nei supplementari) e
+   scende fino alla prima azione, invece di comparire già a 13:43 perché è lì
+   che capita la prima giocata non compressa.
+
+   **Il tempo deve scorrere anche quando non succede niente**, ed è il motivo
+   per cui un blocco compresso NON ha una durata fissa (`durataSalto`). Ne
+   aveva una — 700 ms, che coprisse tre giocate o trentasei — e l'ultimo
+   blocco prima dell'intervallo inghiottiva dieci minuti di partita in mezzo
+   secondo: il cronometro sembrava saltare da 5:00 a HALFTIME. Ora il tempo a
+   schermo è proporzionale ai minuti coperti (`RITMO_SALTO`, con pavimento e
+   tetto), e il ritmo va da 40× a 147× invece che fino a 880×. Misurato a
+   schermo: 821 valori di cronometro distinti contro 63, e il salto massimo
+   fra due letture consecutive è di 12 secondi di partita. Costa una quindicina
+   di secondi sul totale, ed è il prezzo del cronometro che scorre.
+
+   **Durante una festa il cronometro si FERMA**, come in diretta: dopo un
+   touchdown, un fumble o un intercetto l'orologio è spento. Nel passo con la
+   festa il tempo corre solo per il tratto dell'azione (un quarto del passo,
+   al massimo 600 ms) e poi resta immobile finché l'animazione non è finita —
+   misurato: riparte 330 ms dopo che il timbro è sparito. Senza, il tempo
+   scorreva sotto i coriandoli e la festa sembrava succedere mentre si
+   giocava. Il cronometro fermo si dichiara col colore spento
+   (`.nr-clock.is-fermo`), o sembrerebbe un'animazione inceppata.
+
+   Da questo discende un vincolo: `DWELL.td/calcio/colpo` e i loro
+   `PAVIMENTO` **non scendono sotto la durata dell'animazione** (2250 ms: 350
+   di entrata + 1200 di tenuta + 700 di uscita del timbro). Se il passo
+   finisse prima, il tempo ripartirebbe coi coriandoli ancora per aria.
+   Toccando `FESTA_CORTA` vanno rifatti quei conti.
+
+   Il ritmo **non** è uniforme, ed è voluto: sui momenti dei tuoi giocatori
+   rallenta a 2-25×, sui vuoti corre. Renderlo davvero costante vorrebbe dire
+   un fast-forward di tre minuti senza momenti.
+
+   Un blocco non attraversa mai un cambio di quarto: `forseQuarto` lo chiude
+   prima di mettere in scena il cartello, o si vedeva "HALFTIME" e subito dopo
+   ancora azioni del secondo quarto.
+
+   Sotto, al posto della vecchia barra di avanzamento — un rettangolo che si
+   riempiva senza dire di cosa fosse la misura — c'è la **linea del tempo di
+   gara** con le tacche dei quattro quarti e il puntino che cammina: dice a
+   che punto della partita si è, che è quello che uno cerca guardando lì.
+
+   La fine di ogni quarto è uno stacco a schermo pieno (`END OF 1ST`,
+   `HALFTIME`, `END OF 3RD`). Non è decorazione: senza, il cronometro tocca
+   0:00 e riparte da 15:00 nello stesso respiro, e quindici minuti di partita
+   passano inosservati. La fine del quarto periodo non si segna — lì finisce la
+   partita, e a dirlo c'è già l'assestamento.
+
+8-bis. **Il testo dell'azione si scrive SOLO quando c'è dentro un mio
+   giocatore.** Il resto della partita si legge dal tabellone, e una riga su
+   un'azione che non mi riguarda toglie l'occhio proprio da lì.
+
+8-ter. **Il replay finisce su una SCHERMATA RIASSUNTIVA, e non si chiude da
+   solo.** Il punteggio della sfida, ogni giocata dei titolari su un campo
+   solo, e il pulsante per entrare nel sito. È l'ultima cosa che si guarda:
+   sparire da sé sarebbe la cosa sbagliata.
+
+   L'avversario di lega si mostra col suo totale VERO di giornata **più quanti
+   titolari deve ancora scendere in campo**. Dopo il Thursday Night è quasi
+   sempre a zero con nove da giocare, e quello zero senza avviso sembrerebbe
+   una vittoria schiacciante invece di una giornata appena cominciata.
+
+   Il campo è `js/ui/ngs-chart.js`, nello stile delle mappe di NFL Next Gen
+   Stats: tutte le giocate partono dalla linea di scrimmage, un colore per
+   giocatore.
+
+   **Cosa è vero e cosa è disegnato**, e la distinzione va tenuta:
+   - VERI la LUNGHEZZA (le yard del referto — verificate: 29 corse e 194 yard
+     di Bijan Robinson combaciano col tabellino ufficiale) e il VERSO, dalla
+     frase di ESPN, nel 96% delle giocate;
+   - DISEGNATA la FORMA. Il tracking con cui NGS fa le sue mappe non esiste in
+     nessuna API pubblica, quindi la curva è una route plausibile scelta da un
+     catalogo (slant, out, dig, comeback, corner, post) in base a ruolo,
+     profondità e direzione. **La nota sotto il grafico lo dichiara e non va
+     tolta**: senza, una curva inventata si legge come un dato.
+
+   Due linguaggi diversi, come i due grafici di NGS: i ricevitori SALGONO e
+   tagliano, i corridori SERPEGGIANO attorno alla linea prima di trovare il
+   varco. Una corsa da due yard disegnata come una route corta racconterebbe
+   una cosa che non è successa.
+
+   Le tracce non si sovrappongono mai, ed è misurato: 51 tracce, zero
+   duplicati esatti, zero coppie a distanza media sotto i 3px su 1275
+   confronti. Il punto di rottura di ogni route scivola con l'indice dentro la
+   sua famiglia, o venti route dello stesso tipo sarebbero venti copie.
+
+   **Selezionando un giocatore** gli altri si spengono e il colore cambia
+   significato: non più "di chi è la linea" — ce n'è una sola — ma quanto ha
+   reso, nelle tre fasce del Carry Chart (rosso perdita, giallo 0-5, verde 5+
+   o TD; le incomplete restano tratteggiate). Lo scambio lo fa il CSS leggendo
+   `data-f`, senza ridisegnare niente. La legenda delle fasce compare solo a
+   giocatore scelto: prima non significherebbe nulla.
+
+   Il parser della direzione sta in `direzioneGiocata` (field-strip.js), dove
+   già viveva: `corsia` è un campo in più accanto a `lato` e `profondita`, non
+   un secondo lettore dello stesso testo. Attenzione al ramo `incomplete`:
+   ESPN scrive "pass incomplete deep left", e senza quello tutti i passaggi
+   sbagliati restavano senza corsia — cioè proprio quelli che sul grafico si
+   vogliono vedere andare a vuoto.
+
+   Le perdite nel totale yard si **sottraggono**, non si azzerano: clampandole
+   a zero la serata risultava di 218 yard invece delle 213 vere.
+
+9. **Gli effetti sono quelli del Live, non una copia — ma accorciati.**
+   `live-slot--onball`,
+   `live-slot--redzone`, `is-festa`, `.live-fx`: a quelle liste di selettori è
+   stato aggiunto `.nr-players`, e la scena porta la classe `.live-stage`
+   apposta per ereditare il faro. Tre cose sono però tarate sul campo del Live,
+   che è largo quanto la pagina e alto il doppio, e nel recap vanno
+   riproporzionate (lo fa il CSS, scoped a `.nr-stage`): il bagliore è un
+   cerchio di 460px fissi e su un telefono diventava un rettangolo grigio su
+   tutta la scena; il lampo è bianco pieno e trasformava il touchdown in uno
+   schermo bianco; il timbro a `7.5vw` usciva da entrambi i lati.
+
+   `FESTA_CORTA` taglia le misure: il Live è in diretta e sotto non scorre
+   niente, qui il passo dopo arriva in due secondi e una festa da dieci
+   restava addosso alle giocate seguenti — che passavano senza vedersi. Una
+   sola ondata di coriandoli, un lampo solo (misurato: 206 ms, picco ~20% di
+   bianco a schermo), timbro 1,2 s, niente fumetto. Le tre misure sono
+   diventate campi della riga in `live-fx.js` (`tenuta`, `bolla`, `ondate`, e
+   `lampo` che accetta anche un oggetto) con i valori del Live come
+   predefiniti: chi non li passa vede esattamente quello che vedeva prima.
+
+   Il livello degli effetti sta a `z-index: 9`, davanti alle card. `is-festa`
+   porta il protagonista a 6 e il livello stava a 5: timbro e fumetto finivano
+   dietro proprio alla card di chi aveva segnato, cioè sparivano nel momento
+   in cui servivano.
+
+10. **Un solo stile di punteggio, e lo mette sempre la card.** Cifre luminose
+   senza riquadro — quello che prima si vedeva solo sul touchdown — accanto al
+   giocatore che li ha fatti, con la sola misura a cambiare fra un TD e una
+   ricezione da otto yard. Prima ce n'erano due: la pillola scura di
+   `.live-pop` per i punti normali e il numero di `live-fx` per chi segnava,
+   che per giunta vive nel livello degli effetti e finiva a mezzo schermo di
+   distanza dal suo giocatore. Per questo `sparaEffetto` viene chiamata con
+   `punti = 0`: il numero lo disegna `etichetta()`, non lei.
+
+Senza squadra del cuore scelta non si apre niente: non si saprebbe di chi è il
+replay.
+
+**Il banco di prova è `preview-night-recap.html`**, e serve perché il Night
+Recap va in onda solo quando si allineano tre cose — una partita di notte
+finita, un tuo titolare dentro, la prima apertura del sito quella mattina —
+cioè qualche martedì l'anno. Là lo si guarda a comando, su otto partite di
+notte VERE (scelte per coprire la sparatoria, il pareggio, la gara difensiva,
+quella di dicembre), scegliendo quanti giocatori mettere in campo e andando
+avanti un passo per volta. Tre cose da sapere:
+
+- **importa il modulo vero**, come `preview-stickers.html`: gli agganci
+  `anteprimaRecap` / `anteprimaPasso` / `anteprimaAuto` / `anteprimaChiudi`
+  mandano in onda la stessa scena del sito, e non toccano MAI il segnalibro —
+  provare non deve consumare il replay vero;
+- **non chiama `site.api.espn.com`**, che da localhost nega il CORS. Gli bastano
+  le giocate (`sports.core.api.espn.com`, che risponde anche in locale): i
+  "titolari" li pesca fra i protagonisti della partita invece che da una rosa
+  di lega, ed è l'unico pezzo finto della pagina;
+- **la scena vive dentro un iframe**, e il file ha due ruoli: senza parametri è
+  la pulsantiera, con `?embed=1` è il replay e basta. Non è un vezzo —
+  `@media (max-width: 560px)` e tutti i `clamp(…vw…)` di main.css guardano la
+  FINESTRA, non il riquadro che li contiene, quindi rimpicciolire un div
+  mostrerebbe una bugia: il layout da desktop, solo stretto. Dentro un iframe
+  largo 390px il viewport è davvero 390px e le media query scattano come sul
+  telefono (verificato: `matchMedia('(max-width:560px)')` è vero solo lì).
+  Stessa ragione per cui `preview.html` incornicia `index.html`. I comandi
+  passano per `postMessage`, e il telaio si scala per stare nella finestra
+  dichiarando la percentuale — se no si crederebbe di guardare un 1600px;
+- **"In contemporanea" prova la notte con più partite** (capita: giovedì e
+  sabato di dicembre, o il lunedì doppio). Diventano capitoli in fila, e il
+  budget si divide fra loro come fa il sito;
+- i punti ufficiali che passa al motore sono il ricostruito **più 0,4**, così il
+  passo `assesta` si vede invece di restare un ramo mai percorso.
+
 ### Area Draft — quattro sezioni sorelle
 
 Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:

@@ -2,17 +2,17 @@
  * Topina League — SPA Router & Init
  */
 import { initHome } from './sections/home.js?v=1101';
-import { initGameCenter } from './sections/game-center.js?v=849';
+import { initGameCenter } from './sections/game-center.js?v=850';
 
 import { initStandings, initPlayoffs } from './sections/standings.js?v=781';
-import { initDraft } from './sections/draft.js?v=817';
+import { initDraft } from './sections/draft.js?v=818';
 import { initDraftGrades } from './sections/draftgrades.js?v=829';
 import { initProjections } from './sections/projections.js?v=631';
 import { initManagerDna } from './sections/managerdna.js?v=59';
 import { initManagerDnaTeam } from './sections/managerdna-team.js?v=826';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=829';
 import { initPlayerPage } from './sections/player-page.js?v=1074';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1114';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1116';
 import { initPlayersSearch } from './sections/players-search.js?v=1003';
 import { initStats } from './sections/stats.js?v=924';
 import { initHistory } from './sections/history.js?v=764';
@@ -23,12 +23,13 @@ import { initTeam } from './sections/team.js?v=840';
 import { initTeams } from './sections/teams.js?v=746';
 import { initGame } from './sections/game.js?v=833';
 import { initAnalysis } from './sections/analysis.js?v=896';
-import { initLeaders } from './sections/leaders.js?v=126';
+import { initLeaders } from './sections/leaders.js?v=127';
 import { initWaivers } from './sections/waivers.js?v=128';
 import { initPlayerStats } from './sections/player-stats.js?v=16';
 
 import { initMagazine } from './sections/magazine.js?v=798';
-import { initLive } from './sections/live.js?v=1149';
+import { initLive } from './sections/live.js?v=1150';
+import { avviaNightRecap } from './sections/night-recap.js?v=21';
 import { initNavbar } from './ui/navbar.js?v=688';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
@@ -173,6 +174,19 @@ window.addEventListener('hashchange', navigate);
  * e la pagina iniziale resterebbe in "Loading...".
  */
 function boot() {
+    /*
+     * Il Night Recap PRIMA di tutto il resto.
+     *
+     * Alza un sipario opaco sopra la pagina, e dev'essere la prima cosa che
+     * accade: sotto, `navigate()` disegna la home, e la home mostra il
+     * punteggio nel banner. Tutta la suspense del replay sta nel non averlo
+     * ancora visto, quindi un solo `await` prima di questa riga la brucerebbe.
+     * `avviaNightRecap()` e' sincrona fino al sipario e non fa nessuna
+     * richiesta di rete: i dati arrivano dietro, e se non c'e' nulla da
+     * rivedere il sipario si abbassa da solo. Chi non ha scelto una squadra
+     * del cuore, o ha gia' guardato oggi, non se ne accorge nemmeno.
+     */
+    avviaNightRecap();
     initNavbar();
     startAutoAbbr();
     startLoadingArt();

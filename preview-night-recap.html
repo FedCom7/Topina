@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Night Recap preview — Topina League</title>
+    <!--
+        STRUMENTO DI SVILUPPO, non fa parte del sito.
+
+        Il Night Recap va in onda quando si allineano tre cose: una partita di
+        notte finita, un tuo titolare dentro, e la prima apertura del sito
+        quella mattina. Cioè qualche martedì l'anno, e solo se le rose ti hanno
+        dato qualcuno in quella gara. Non è un modo di guardare un'animazione.
+
+        Qui la si guarda a comando, su PARTITE VERE — play-by-play scaricato da
+        ESPN, punti ricalcolati con lo scoring della lega — scegliendo quante
+        partite, quanti giocatori e su che dispositivo.
+
+        ── Due ruoli in un file solo ──────────────────────────────────────
+        Senza `?embed=1` la pagina è la PULSANTIERA: comandi, elenco giocatori,
+        sequenza costruita. Con `?embed=1` è la SCENA e basta, e vive dentro
+        l'iframe che la pulsantiera dimensiona.
+
+        L'iframe non è un vezzo: `@media (max-width: 560px)` e tutti i
+        `clamp(…vw…)` di main.css guardano la FINESTRA, non il riquadro che li
+        contiene. Rimpicciolire un div qui dentro non farebbe scattare niente e
+        si vedrebbe una bugia: il layout "da telefono" resterebbe quello da
+        desktop, solo stretto. Dentro un iframe largo 390px il viewport è
+        davvero 390px, e le media query si comportano come sul telefono.
+        Stessa ragione per cui preview.html incornicia index.html.
+
+        ── Importa il modulo VERO ─────────────────────────────────────────
+        Come preview-stickers.html: nessuna copia di niente. La scena è
+        js/sections/night-recap.js e il CSS è quello del sito, quindi quello
+        che si vede qui è quello che andrà in onda.
+
+        ── Cosa è vero e cosa no ──────────────────────────────────────────
+        VERI: le partite, le giocate, il tabellone NFL, i punti fantasy
+        (ricalcolati da scorePlay con le regole della lega), i giocatori.
+        FINTO: che quei giocatori siano in una nostra rosa. Qui si prendono i
+        più coinvolti di ogni gara, che è il modo di avere sempre qualcosa da
+        guardare. Il totale in fondo è la somma di chi hai scelto, non un
+        punteggio di lega.
+
+        Le sole chiamate di rete sono a sports.core.api.espn.com, che risponde
+        anche da localhost. Il tabellone (site.api.espn.com) qui non serve, ed
+        è apposta: in locale quello nega il CORS.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
+        rel="stylesheet">
+    <!-- il CSS VERO del sito -->
+    <link rel="stylesheet" href="css/main.css?v=1367">
+    <style>
+        /* Cromatura del banco. Volutamente diversa dal sito: dev'essere ovvio
+           a colpo d'occhio che non si sta guardando la pagina vera. */
+        body {
+            margin: 0;
+            background: #0a0a0b;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+        }
+
+        /* Nella scena (?embed=1) non c'è nessuna cromatura: solo il replay,
+           su fondo nero, com'è nel sito. */
+        body.lab-embed {
+            overflow: hidden;
+        }
+
+        body:not(.lab-embed) {
+            padding-bottom: 96px;
+        }
+
+        .lab-head {
+            padding: 20px 20px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .12);
+        }
+
+        .lab-head h1 {
+            margin: 0 0 4px;
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            letter-spacing: .04em;
+        }
+
+        .lab-head p {
+            margin: 0;
+            max-width: 74ch;
+            font-size: .84rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .lab-tag {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #f59e0b;
+            color: #000;
+            font-family: var(--font-display);
+            font-size: .62rem;
+            font-weight: 900;
+            letter-spacing: .14em;
+            vertical-align: middle;
+        }
+
+        .labnav {
+            margin: 6px 0 10px;
+            font-size: .68rem;
+            color: var(--text-muted);
+        }
+
+        .labnav a { color: var(--text-muted); }
+        .labnav a:hover { color: var(--text-primary); }
+        .labnav .current { color: var(--text-primary); font-weight: 700; }
+
+        .lab-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 60;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 13px;
+            padding: 11px 16px;
+            background: rgba(10, 10, 11, .97);
+            border-top: 1px solid rgba(255, 255, 255, .16);
+            backdrop-filter: blur(10px);
+        }
+
+        .lab-f {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .lab-f > span {
+            font-family: var(--font-display);
+            font-size: .6rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lab-bar select,
+        .lab-bar input[type=number] {
+            padding: 6px 8px;
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 8px;
+            background: #16161a;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: .84rem;
+        }
+
+        .lab-bar button {
+            padding: 7px 14px;
+            border: 1px solid rgba(255, 255, 255, .22);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .08);
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-size: .75rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .lab-bar button:hover:not(:disabled) { background: rgba(255, 255, 255, .18); }
+        .lab-bar button:disabled { opacity: .35; cursor: default; }
+        .lab-bar button.on { background: #f59e0b; border-color: #f59e0b; color: #000; }
+
+        .lab-stato {
+            flex: 1 1 260px;
+            min-width: 220px;
+            font-size: .75rem;
+            line-height: 1.45;
+            color: var(--text-muted);
+        }
+
+        .lab-stato b { color: var(--text-primary); }
+
+        .lab-body {
+            display: grid;
+            grid-template-columns: minmax(230px, 300px) minmax(0, 1fr) minmax(250px, 330px);
+            gap: 20px;
+            padding: 18px 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 1150px) {
+            .lab-body { grid-template-columns: 1fr; }
+        }
+
+        .lab-pan h2 {
+            margin: 0 0 8px;
+            font-family: var(--font-display);
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lab-list {
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 10px;
+            max-height: 58vh;
+            overflow: auto;
+        }
+
+        .lab-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .07);
+            font-size: .79rem;
+        }
+
+        .lab-row:last-child { border-bottom: 0; }
+        .lab-row .n { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+
+        .lab-row .pos {
+            padding: 1px 6px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, .1);
+            font-family: var(--font-display);
+            font-size: .59rem;
+            font-weight: 800;
+        }
+
+        /* L'intestazione di una partita dentro l'elenco giocatori: con più
+           gare in una notte bisogna sapere di chi sono quei giocatori. */
+        .lab-cap {
+            padding: 7px 10px;
+            background: rgba(255, 255, 255, .05);
+            border-bottom: 1px solid rgba(255, 255, 255, .1);
+            font-family: var(--font-display);
+            font-size: .63rem;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .lab-passo {
+            display: grid;
+            grid-template-columns: 30px 56px 46px 1fr 50px;
+            gap: 7px;
+            align-items: baseline;
+            padding: 4px 9px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            font-size: .72rem;
+        }
+
+        .lab-passo .k {
+            font-family: var(--font-display);
+            font-size: .56rem;
+            font-weight: 800;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+        }
+
+        .lab-passo[data-tipo=td] .k { color: #22c55e; }
+        .lab-passo[data-tipo=calcio] .k { color: #f59e0b; }
+        .lab-passo[data-tipo=colpo] .k { color: #B8433A; }
+        .lab-passo[data-tipo=salto] .k { color: var(--text-muted); }
+        .lab-passo[data-tipo=passa] .k { color: var(--text-muted); }
+        .lab-passo[data-tipo=passa] { opacity: .55; }
+        .lab-passo[data-tipo=quarto] .k { color: #a855f7; }
+        .lab-passo[data-tipo=assesta] .k { color: #4f8cff; }
+
+        .lab-passo .t {
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lab-passo .d,
+        .lab-passo .p {
+            font-variant-numeric: tabular-nums;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .lab-passo.is-ora {
+            background: rgba(245, 158, 11, .16);
+            box-shadow: inset 2px 0 0 #f59e0b;
+        }
+
+        /* ── Il dispositivo ────────────────────────────────────────────── */
+        .lab-scena {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .lab-telaio {
+            position: relative;
+            max-width: 100%;
+            border: 1px solid rgba(255, 255, 255, .18);
+            border-radius: 14px;
+            background: #000;
+            overflow: hidden;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+        }
+
+        .lab-telaio iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        .lab-mis {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .68rem;
+            color: var(--text-muted);
+        }
+
+        .lab-nota {
+            margin: 10px 0 0;
+            font-size: .73rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .lab-err {
+            margin: 10px 0 0;
+            color: #ff8a80;
+            font-size: .79rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ══ LA PULSANTIERA (senza ?embed=1) ══════════════════════════════ -->
+    <div id="lab-ui" hidden>
+        <div class="lab-head">
+            <h1>Night Recap <span class="lab-tag">banco di prova</span></h1>
+            <p class="labnav">
+                <a href="preview.html">Preview hub</a> ·
+                <a href="preview-scorebug.html">Score-bug lab</a> ·
+                <a href="preview-player-card.html">Player card lab</a> ·
+                <a href="preview-field.html">Field lab</a> ·
+                <a href="preview-sb-logo.html">SB logo lab</a> ·
+                <a href="preview-stickers.html">Sticker lab</a> ·
+                <a href="preview-loaders.html">Loaders lab</a> ·
+                <span class="current">Night Recap lab</span> ·
+                <a href="index.html">Real site</a>
+            </p>
+            <p>
+                Il replay accelerato delle partite di notte, su gare vere e a comando.
+                Le giocate, il tabellone NFL e i punti sono quelli veri, ricalcolati con
+                lo scoring della lega. Finto è solo che quei giocatori siano in una nostra
+                rosa — qui si prendono i più coinvolti di ogni partita.
+                La scena è il modulo del sito, dentro un iframe della misura scelta: così
+                le media query e i <code>vw</code> vedono un viewport vero e l'adattamento
+                al dispositivo è quello che si vedrà davvero.
+            </p>
+        </div>
+
+        <div class="lab-body">
+            <div class="lab-pan">
+                <h2>Chi mandare in campo</h2>
+                <div class="lab-list" id="giocatori">
+                    <div class="lab-row">Carico…</div>
+                </div>
+                <p class="lab-nota" id="nota-giocatori"></p>
+            </div>
+
+            <div class="lab-pan lab-scena">
+                <div class="lab-telaio" id="telaio">
+                    <iframe id="scena" title="Night Recap"></iframe>
+                </div>
+                <span class="lab-mis" id="misure"></span>
+            </div>
+
+            <div class="lab-pan">
+                <h2>La sequenza costruita</h2>
+                <div class="lab-list" id="sequenza">
+                    <div class="lab-row">Niente ancora.</div>
+                </div>
+                <p class="lab-nota">
+                    <b>momento</b> = passo pieno, con testo dell'azione ed effetti.
+                    <b>salto</b> = blocco compresso: i punti arrivano lo stesso, senza festa,
+                    e dura quanto la fetta di partita che si mangia.
+                    <b>quarto</b> = lo stacco di fine periodo.
+                    <b>assesta</b> = lo scarto finale che porta ogni giocatore sul totale ufficiale.
+                    Con <b>Giocate: tutte</b> i blocchi spariscono e ogni azione diventa un passo:
+                    quelle senza i miei sono i <b>passa</b>, smorzati e velocissimi — alza il budget,
+                    o il pavimento le schiaccia sotto i due decimi di secondo.
+                </p>
+                <p class="lab-err" id="errore"></p>
+            </div>
+        </div>
+
+        <div class="lab-bar">
+            <label class="lab-f">
+                <span>Partita</span>
+                <select id="partita"></select>
+            </label>
+            <label class="lab-f">
+                <span>In contemporanea</span>
+                <select id="contemporanee"></select>
+            </label>
+            <label class="lab-f">
+                <span>Dispositivo</span>
+                <select id="device"></select>
+            </label>
+            <label class="lab-f">
+                <span>Giocatori</span>
+                <input type="number" id="quanti" min="1" max="6" value="3" style="width:60px">
+            </label>
+            <label class="lab-f">
+                <span>Budget (s)</span>
+                <input type="number" id="budget" min="15" max="300" step="5" value="90" style="width:68px">
+            </label>
+            <label class="lab-f" style="align-self:center">
+                <span>Giocate</span>
+                <span style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--text-secondary)">
+                    <input type="checkbox" id="tutte"> tutte
+                </span>
+            </label>
+            <button id="carica">Ricarica</button>
+            <button id="play" disabled>Riproduci</button>
+            <button id="passo" disabled>Passo ›</button>
+            <button id="auto" disabled>Auto</button>
+            <button id="chiudi" disabled>Chiudi</button>
+            <div class="lab-stato" id="stato">Pronto.</div>
+        </div>
+    </div>
+
+    <script type="module">
+        /* ═══════════════════════════════════════════════════════════════
+           Un file, due ruoli. `?embed=1` → la SCENA (dentro l'iframe).
+           Senza → la PULSANTIERA, che quell'iframe lo dimensiona e lo comanda.
+           ═══════════════════════════════════════════════════════════════ */
+        const P = new URLSearchParams(location.search);
+        const EMBED = P.get('embed') === '1';
+
+        /* Partite di NOTTE vere e concluse (kickoff dopo mezzanotte ora
+           italiana), scelte per coprire casi diversi: la sparatoria, il
+           pareggio, la gara difensiva, quella di dicembre. */
+        const PARTITE = [
+            { id: '401872948', anno: 2026, w: 3, away: 'ATL', home: 'GB', ris: '35-14', nota: 'Thursday Night' },
+            { id: '401872932', anno: 2026, w: 2, away: 'DET', home: 'BUF', ris: '31-41', nota: 'Thursday Night' },
+            { id: '401872945', anno: 2026, w: 2, away: 'IND', home: 'KC', ris: '30-33', nota: 'Sunday Night' },
+            { id: '401772921', anno: 2025, w: 4, away: 'GB', home: 'DAL', ris: '40-40', nota: 'pareggio, tanti TD' },
+            { id: '401772918', anno: 2025, w: 1, away: 'BAL', home: 'BUF', ris: '40-41', nota: 'sparatoria' },
+            { id: '401772933', anno: 2025, w: 15, away: 'MIN', home: 'DAL', ris: '34-26', nota: 'dicembre' },
+            { id: '401772960', anno: 2025, w: 18, away: 'BAL', home: 'PIT', ris: '24-26', nota: 'gara chiusa' },
+            { id: '401772938', anno: 2025, w: 4, away: 'SEA', home: 'ARI', ris: '23-20', nota: 'pochi punti' },
+        ];
+
+        const $ = (s) => document.querySelector(s);
+
+        if (EMBED) await scena(); else pulsantiera();
+
+        /* ═══ LA SCENA ══════════════════════════════════════════════════
+           Fa tutto il lavoro sui dati e manda in onda il replay. Racconta
+           fuori quello che costruisce, così la pulsantiera non deve rifarlo.
+           ═══════════════════════════════════════════════════════════════ */
+        async function scena() {
+            document.body.classList.add('lab-embed');
+            const { fetchPlays, resolveAthlete } = await import('./js/data/nfl-plays.js?v=572');
+            const { scorePlay } = await import('./js/data/scoring.js?v=592');
+            const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=9');
+            const { ESPN_TEAM_IDS } = await import('./js/data/player-map.js?v=513');
+            const { squadraPreferita, impostaSquadraPreferita } = await import('./js/utils/preferenze.js?v=1');
+            const rec = await import('./js/sections/night-recap.js?v=21');
+
+            const perId = new Map(Object.entries(ESPN_TEAM_IDS).map(([a, i]) => [String(i), a]));
+            const siglaDi = (id) => perId.get(String(id)) || '';
+            const parla = (m) => parent.postMessage({ nr: true, ...m }, '*');
+
+            if (!squadraPreferita()) impostaSquadraPreferita('sommo');
+            const nomeSquadra = () => ({ capi: 'Capi dei Pianeti', lasers: 'Lasers', oscurus: 'Oscurus', sommo: 'Sommo' })[squadraPreferita()] || 'Sommo';
+
+            const ids = (P.get('g') || PARTITE[0].id).split(',').filter(Boolean);
+            const quanti = Math.max(1, Math.min(6, Number(P.get('n')) || 3));
+            const budgetTot = Math.max(15, Number(P.get('b')) || 90) * 1000;
+            const comprimi = P.get('all') !== '1';
+            // La selezione manuale arriva come "indice:indice,…" per partita
+            const scelta = (P.get('sel') || '').split('|');
+
+            let capitoli = [];
+            try {
+                for (let k = 0; k < ids.length; k++) {
+                    const partita = PARTITE.find(p => p.id === ids[k]);
+                    if (!partita) continue;
+                    const giocate = await fetchPlays(partita.id, { all: true });
+                    if (!giocate.length) continue;
+
+                    // Chi ha prodotto punti, e quanti: la classifica da cui si pesca.
+                    const somma = new Map();
+                    for (const g of giocate) {
+                        for (const c of scorePlay(g)) {
+                            if (!c.espnId) continue;   // le difese non hanno un id atleta
+                            const v = somma.get(c.espnId) || { pts: 0, tocchi: 0, squadre: new Map() };
+                            v.pts += c.pts; v.tocchi++;
+                            const ab = siglaDi(c.role === 'sackedBy' ? g.defenseTeamId : g.offenseTeamId);
+                            if (ab) v.squadre.set(ab, (v.squadre.get(ab) || 0) + 1);
+                            somma.set(c.espnId, v);
+                        }
+                    }
+                    const top = [...somma.entries()].sort((a, b) => b[1].pts - a[1].pts).slice(0, 12);
+                    const candidati = [];
+                    for (const [espnId, v] of top) {
+                        const a = await resolveAthlete(espnId).catch(() => null);
+                        candidati.push({
+                            espn_id: String(espnId),
+                            name: a?.name || `#${espnId}`,
+                            position_in_team: (a?.pos || '').toUpperCase() || 'WR',
+                            nfl_team: [...v.squadre.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || '',
+                            pts: +v.pts.toFixed(2), tocchi: v.tocchi,
+                        });
+                    }
+                    capitoli.push({ partita, giocate, candidati });
+                }
+            } catch (e) {
+                parla({ tipo: 'errore', testo: e.message });
+                return;
+            }
+            if (!capitoli.length) { parla({ tipo: 'errore', testo: 'ESPN non ha dato le giocate.' }); return; }
+
+            /* Il budget si divide fra le partite, come fa il sito quando la
+               notte ne ha più di una. */
+            const perCapitolo = Math.floor(budgetTot / capitoli.length);
+
+            const pronti = capitoli.map((c, k) => {
+                const idx = (scelta[k] || '').split(',').filter(x => x !== '').map(Number);
+                const scelti = (idx.length ? idx.map(i => c.candidati[i]).filter(Boolean)
+                    : c.candidati.slice(0, quanti));
+                /* I "punti ufficiali" del banco: il ricostruito più uno scarto
+                   piccolo, così il passo `assesta` — che nel sito chiude la
+                   differenza col tabellino vero — si vede anche qui invece di
+                   restare un ramo mai percorso. */
+                const titolari = scelti.map(x => ({
+                    name: x.name, espn_id: x.espn_id,
+                    position_in_team: x.position_in_team, position: x.position_in_team,
+                    nfl_team: x.nfl_team,
+                    fantasy_points: +(x.pts + 0.4).toFixed(2),
+                }));
+                const perEspn = new Map(titolari.map(t => [String(t.espn_id), t]));
+                const chiE = (x) => (x.defTeamId ? null : perEspn.get(String(x.espnId)) || null);
+                const sequenza = costruisciSequenza({
+                    giocate: c.giocate, titolari, chiE,
+                    siglaDi, budget: perCapitolo, comprimiGiocate: comprimi,
+                });
+                return {
+                    partita: {
+                        eventId: c.partita.id, away: c.partita.away, home: c.partita.home,
+                        start: new Date(), end: new Date(),
+                    },
+                    titolari, week: c.partita.w,
+                    /* Nel banco l'avversario di lega non esiste: si finge, per
+                       poter guardare anche quel lato della schermata finale.
+                       Nel sito arriva vero da `squadraMia()`. */
+                    mia: {
+                        team: { name: nomeSquadra() },
+                        opp: { name: 'Lasers', score: '0.00',
+                            starters: Array.from({ length: 9 }, () => ({ game_state: 'pre' })) },
+                    },
+                    sequenza,
+                    giocateGrafico: giocateDeiMiei(c.giocate, chiE),
+                };
+            }).filter(c => c.sequenza.passi.length);
+
+            parla({
+                tipo: 'pronto',
+                capitoli: capitoli.map((c, k) => ({
+                    et: `${c.partita.anno} W${c.partita.w} · ${c.partita.away} ${c.partita.ris} ${c.partita.home}`,
+                    giocate: c.giocate.length,
+                    candidati: c.candidati,
+                    scelti: pronti[k]?.titolari.map(t => t.name) || [],
+                })),
+                sequenze: pronti.map(c => c.sequenza.passi.map(p => ({
+                    kind: p.kind, tipo: p.tipo, dwell: p.dwell,
+                    testo: p.kind === 'salta' ? `${p.saltate} giocate compresse` : (p.testo || '—'),
+                    pts: +p.tocchi.reduce((s, t) => s + t.pts, 0).toFixed(2),
+                }))),
+                durata: pronti.reduce((s, c) => s + c.sequenza.durata, 0),
+            });
+
+            const suPasso = (info) => parla({ tipo: 'passo', ...info, passo: {
+                kind: info.passo.kind, tipo: info.passo.tipo, dwell: info.passo.dwell,
+                away: info.passo.away, home: info.passo.home, attacco: info.passo.attacco,
+                redZone: info.passo.redZone, clock: info.passo.clock, periodo: info.passo.periodo,
+                tocchi: info.passo.tocchi.map(t => `${t.nome} ${t.pts > 0 ? '+' : ''}${t.pts}`),
+            } });
+
+            addEventListener('message', (e) => {
+                const c = e.data;
+                if (!c || c.nrCmd !== true) return;
+                if (c.cmd === 'play') rec.anteprimaRecap(pronti, { manuale: false, onPasso: suPasso });
+                if (c.cmd === 'manuale') { rec.anteprimaRecap(pronti, { manuale: true, onPasso: suPasso }); rec.anteprimaPasso(); }
+                if (c.cmd === 'passo') rec.anteprimaPasso();
+                if (c.cmd === 'auto') rec.anteprimaAuto(!!c.auto);
+                if (c.cmd === 'chiudi') rec.anteprimaChiudi();
+            });
+        }
+
+        /* ═══ LA PULSANTIERA ════════════════════════════════════════════ */
+        function pulsantiera() {
+            $('#lab-ui').hidden = false;
+
+            /* I dispositivi. La larghezza è quella vera del viewport, e dentro
+               l'iframe le media query la vedono davvero: 390px qui fa scattare
+               `@media (max-width: 560px)` esattamente come su un telefono. */
+            const DEVICE = [
+                ['Phone 390×844', 390, 844],
+                ['Phone L 430×932', 430, 932],
+                ['Tablet 768×1024', 768, 1024],
+                ['Laptop 1280×800', 1280, 800],
+                ['Desktop 1600×900', 1600, 900],
+            ];
+            DEVICE.forEach(([et], i) => $('#device').add(new Option(et, String(i))));
+            $('#device').value = '2';
+
+            $('#partita').innerHTML = PARTITE.map(p =>
+                `<option value="${p.id}">${p.anno} W${p.w} · ${p.away} ${p.ris} ${p.home} — ${p.nota}</option>`).join('');
+            for (let n = 1; n <= 3; n++) $('#contemporanee').add(new Option(n === 1 ? '1 partita' : `${n} partite`, String(n)));
+
+            let dati = null;      // { capitoli: [...], sequenze: [...] }
+            let capOra = 0;
+            let selezione = [];   // per partita: array di indici scelti
+
+            const dice = (h) => { $('#stato').innerHTML = h; };
+            const errore = (t) => { $('#errore').textContent = t || ''; };
+
+            /* Le partite in scena: quella scelta più le successive dell'elenco.
+               Serve a provare la notte con due gare — succede, e il replay le
+               mette in fila come capitoli. */
+            function partiteScelte() {
+                const n = Number($('#contemporanee').value) || 1;
+                const i = PARTITE.findIndex(p => p.id === $('#partita').value);
+                const out = [];
+                for (let k = 0; k < n; k++) out.push(PARTITE[(i + k) % PARTITE.length].id);
+                return out;
+            }
+
+            function misuraTelaio() {
+                const [et, w, h] = DEVICE[Number($('#device').value)];
+                const telaio = $('#telaio');
+                /* Non si sfora mai lo spazio disponibile, né in larghezza né in
+                   ALTEZZA: un telefono 390×844 dentro una finestra da 1000px
+                   usciva sotto la pulsantiera e se ne vedevano i due terzi.
+                   La misura VERA resta scritta sotto insieme alla percentuale,
+                   se no si crederebbe di star guardando un 1600px. */
+                const maxW = telaio.parentElement.clientWidth;
+                const cima = telaio.getBoundingClientRect().top + scrollY;
+                const maxH = Math.max(240, innerHeight - cima + scrollY - 118);
+                const scala = Math.min(1, maxW / w, maxH / h);
+                telaio.style.width = `${Math.round(w * scala)}px`;
+                telaio.style.height = `${Math.round(h * scala)}px`;
+                $('#scena').style.width = `${w}px`;
+                $('#scena').style.height = `${h}px`;
+                $('#scena').style.transformOrigin = 'top left';
+                $('#scena').style.transform = `scale(${scala})`;
+                $('#misure').textContent = `${et}${scala < 1 ? `  ·  mostrato al ${Math.round(scala * 100)}%` : ''}`;
+            }
+
+            function url() {
+                const q = new URLSearchParams({
+                    embed: '1', g: partiteScelte().join(','),
+                    n: $('#quanti').value, b: $('#budget').value,
+                    all: $('#tutte').checked ? '1' : '0',
+                });
+                if (selezione.some(s => s?.length)) q.set('sel', selezione.map(s => (s || []).join(',')).join('|'));
+                return `preview-night-recap.html?${q}`;
+            }
+
+            function ricarica({ tieniSelezione = false } = {}) {
+                if (!tieniSelezione) selezione = [];
+                errore('');
+                dati = null;
+                ['#play', '#passo', '#auto', '#chiudi'].forEach(s => { $(s).disabled = true; });
+                $('#auto').classList.remove('on');
+                dice('Scarico il play-by-play…');
+                $('#scena').src = url();
+            }
+
+            const cmd = (c, extra = {}) => $('#scena').contentWindow?.postMessage({ nrCmd: true, cmd: c, ...extra }, '*');
+
+            addEventListener('message', (e) => {
+                const m = e.data;
+                if (!m || m.nr !== true) return;
+                if (m.tipo === 'errore') { errore(m.testo); dice('Niente da mostrare.'); return; }
+                if (m.tipo === 'pronto') { dati = m; disegnaCandidati(); disegnaSequenza(0); riassunto(); return; }
+                if (m.tipo === 'passo') {
+                    if (m.cap !== capOra) disegnaSequenza(m.cap);
+                    document.querySelectorAll('.lab-passo').forEach(el =>
+                        el.classList.toggle('is-ora', Number(el.dataset.i) === m.i));
+                    document.querySelector('.lab-passo.is-ora')?.scrollIntoView({ block: 'nearest' });
+                    const p = m.passo;
+                    dice(`Capitolo <b>${m.cap + 1}/${dati.capitoli.length}</b> · passo <b>${m.i + 1}/${m.tot}</b>`
+                        + ` · ${p.kind === 'gioca' ? p.tipo : p.kind} · ${(p.dwell / 1000).toFixed(1)}s`
+                        + ` · NFL ${p.away}-${p.home}`
+                        + (p.attacco ? ` · palla a <b>${p.attacco}</b>${p.redZone ? ' (RED ZONE)' : ''}` : '')
+                        + (p.tocchi.length ? ` · ${p.tocchi.join(', ')}` : ''));
+                }
+            });
+
+            function riassunto() {
+                const n = (k, s) => s.filter(p => p.kind === k).length;
+                const tot = dati.sequenze.reduce((a, s) => a + s.length, 0);
+                const parti = dati.sequenze.map((s, i) =>
+                    `<b>${dati.capitoli[i].et.split(' · ')[1]}</b> ${s.length} passi`).join(' · ');
+                dice(`${dati.capitoli.length} ${dati.capitoli.length > 1 ? 'partite' : 'partita'} · ${parti}`
+                    + ` · ${tot} passi in tutto · durata <b>${(dati.durata / 1000).toFixed(0)}s</b>`);
+                ['#play', '#passo', '#auto'].forEach(s => { $(s).disabled = false; });
+            }
+
+            function disegnaCandidati() {
+                const n = Math.max(1, Math.min(6, Number($('#quanti').value) || 3));
+                $('#giocatori').innerHTML = dati.capitoli.map((c, k) => {
+                    const sel = selezione[k];
+                    return `<div class="lab-cap">${c.et}</div>` + c.candidati.map((x, i) => `
+                    <label class="lab-row">
+                        <input type="checkbox" data-c="${k}" data-i="${i}" ${(sel ? sel.includes(i) : i < n) ? 'checked' : ''}>
+                        <span class="pos">${x.position_in_team}</span>
+                        <span>${x.name}</span>
+                        <span class="n">${x.nfl_team} · ${x.pts.toFixed(1)} pt</span>
+                    </label>`).join('');
+                }).join('');
+                $('#giocatori').querySelectorAll('input').forEach(el => el.addEventListener('change', () => {
+                    selezione = dati.capitoli.map((_, k) =>
+                        [...$('#giocatori').querySelectorAll(`input[data-c="${k}"]:checked`)].map(x => Number(x.dataset.i)));
+                    ricarica({ tieniSelezione: true });
+                }));
+                $('#nota-giocatori').textContent =
+                    'I più coinvolti di ogni partita, in ordine di punti. Le caselle correggono la selezione: '
+                    + 'a ogni cambio la sequenza si ricostruisce.';
+            }
+
+            function disegnaSequenza(k) {
+                capOra = k;
+                const s = dati.sequenze[k] || [];
+                $('#sequenza').innerHTML = s.map((p, i) => `
+                    <div class="lab-passo" data-tipo="${p.tipo}" data-i="${i}">
+                        <span class="k">${i + 1}</span>
+                        <span class="k">${p.kind === 'gioca' ? p.tipo : p.kind}</span>
+                        <span class="d">${(p.dwell / 1000).toFixed(1)}s</span>
+                        <span class="t">${p.testo}</span>
+                        <span class="p">${p.pts.toFixed(2)}</span>
+                    </div>`).join('');
+            }
+
+            $('#device').addEventListener('change', misuraTelaio);
+            addEventListener('resize', misuraTelaio);
+            ['#partita', '#contemporanee', '#quanti', '#budget', '#tutte'].forEach(s =>
+                $(s).addEventListener('change', () => ricarica()));
+            $('#carica').addEventListener('click', () => ricarica());
+            $('#play').addEventListener('click', () => { cmd('play'); $('#chiudi').disabled = false; $('#auto').classList.add('on'); });
+            $('#passo').addEventListener('click', () => {
+                if ($('#chiudi').disabled) { cmd('manuale'); $('#chiudi').disabled = false; }
+                else { cmd('auto', { auto: false }); cmd('passo'); }
+                $('#auto').classList.remove('on');
+            });
+            $('#auto').addEventListener('click', () => {
+                const on = !$('#auto').classList.contains('on');
+                if ($('#chiudi').disabled) { cmd(on ? 'play' : 'manuale'); $('#chiudi').disabled = false; }
+                else cmd('auto', { auto: on });
+                $('#auto').classList.toggle('on', on);
+            });
+            $('#chiudi').addEventListener('click', () => {
+                cmd('chiudi'); $('#chiudi').disabled = true; $('#auto').classList.remove('on');
+            });
+
+            misuraTelaio();
+            ricarica();
+        }
+    </script>
+</body>
+
+</html>

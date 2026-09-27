@@ -25,7 +25,7 @@
  * squadra), e soprattutto la stessa ricostruzione fatta in due posti diverge.
  */
 
-import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=175';
+import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=176';
 import { TEAM_KEYS } from './team-config.js?v=535';
 import { buildSeasonModel } from '../sections/analysis.js?v=845';
 

@@ -20195,7 +20195,8 @@ td.ps-div-seed {
 /* Chi sta giocando ora: anello verde attorno alla foto, in campo e in
    panchina. È l'unico segnale — il pallino diceva la stessa cosa due volte. */
 .live-field-solo .formation-slot.live-slot--live .slot-photo,
-.live-bench .formation-slot.live-slot--live .slot-photo {
+.live-bench .formation-slot.live-slot--live .slot-photo,
+.nr-players .formation-slot.live-slot--live .slot-photo {
     border-color: var(--accent-green);
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent-green) 55%, transparent);
 }
@@ -20210,13 +20211,15 @@ td.ps-div-seed {
    specificità: sapere CHI ha la palla è più utile di sapere che la partita è
    in corso. */
 .live-field-solo .formation-slot.live-slot--onball .slot-photo,
-.live-bench .formation-slot.live-slot--onball .slot-photo {
+.live-bench .formation-slot.live-slot--onball .slot-photo,
+.nr-players .formation-slot.live-slot--onball .slot-photo {
     border-color: var(--accent-amber);
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent-amber) 55%, transparent);
 }
 
 .live-field-solo .formation-slot.live-slot--redzone .slot-photo,
-.live-bench .formation-slot.live-slot--redzone .slot-photo {
+.live-bench .formation-slot.live-slot--redzone .slot-photo,
+.nr-players .formation-slot.live-slot--redzone .slot-photo {
     border-color: var(--accent-red);
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent-red) 65%, transparent);
 }
@@ -28387,6 +28390,721 @@ body.nu-open .nu-panel {
 .nu-divider::before, .nu-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-card); }
 .nu-sec--done h3 { color: var(--text-muted); }
 .nu-row.is-done { opacity: 0.45; }
+
+/* ==========================================================================
+   NIGHT RECAP — il replay accelerato delle partite di notte (#night-recap)
+
+   Vive SOPRA tutto il sito, non dentro una sezione: il suo lavoro è coprire la
+   home prima che questa mostri il risultato. Per questo `position: fixed` e uno
+   z-index sopra la navbar.
+
+   Quello che NON è definito qui: l'anello arancione del possesso, il rosso
+   della red zone, il faro della festa, i coriandoli. Sono le classi
+   `live-slot--onball`, `live-slot--redzone`, `is-festa` e `.live-fx` del Live,
+   e le regole stanno dove stavano già — a quelle liste di selettori è stato
+   aggiunto `.nr-players`, e la scena porta `.live-stage` proprio per ereditare
+   il faro. Due copie di quei bagliori divergerebbero.
+   ========================================================================== */
+
+.nr-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 15%, #101418 0%, #000 65%);
+    font-family: var(--font-body);
+    animation: nr-in 0.3s var(--ease, ease) both;
+}
+
+@keyframes nr-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Il sito sotto non si scrolla mentre il sipario è alzato. */
+body.nr-open {
+    overflow: hidden;
+}
+
+/* ── Il sipario: quello che si vede mentre i dati arrivano ─────────────── */
+
+.nr-curtain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+.nr-kicker {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 4vw, 2.4rem);
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+
+/* ── La scena ─────────────────────────────────────────────────────────── */
+
+.nr-show {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.8vh, 20px);
+    width: min(1040px, 95vw);
+    max-height: 96vh;
+}
+
+/* Il palco: una partita per riga, impilate. Con due gare di notte si vedono
+   INSIEME — camminano sullo stesso cronometro (vedi `intreccia` in
+   data/night-recap.js), quindi metterle una dopo l'altra sarebbe stato
+   raccontarle male. */
+.nr-palco {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.6vh, 18px);
+    /* `flex: 1` + `min-height: 0` + `overflow: hidden` servono a `adattaDensita`:
+       senza di loro il palco cresce oltre `.nr-show` invece di sbordare, e
+       `scrollHeight > clientHeight` — cioè "le partite non ci stanno" — non
+       diventa mai vero. Il ritaglio non nasconde niente: quando scatta, la
+       densità passa alle righe e tutto rientra. */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.nr-game {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.1vh, 12px);
+    min-width: 0;
+}
+
+/* Più partite ci sono, meno spazio ha ciascuna: si stringe quello che si può
+   stringere senza perdere leggibilità. */
+.nr-show--2 .nr-stage,
+.nr-show--3 .nr-stage {
+    min-height: 0;
+    padding-top: clamp(8px, 1.6vh, 18px);
+    padding-bottom: clamp(6px, 1.2vh, 14px);
+}
+
+.nr-show--2 .nr-play,
+.nr-show--3 .nr-play {
+    height: 2.7em;
+    font-size: clamp(0.7rem, 1.5vw, 0.86rem);
+}
+
+.nr-show--3 .nr-board {
+    padding: clamp(5px, 0.8vh, 9px) clamp(10px, 2vw, 18px);
+}
+
+.nr-show--3 .nr-nfl {
+    font-size: clamp(1.2rem, 3.4vw, 1.7rem);
+}
+
+.nr-show--3 .nr-palco {
+    gap: clamp(6px, 1vh, 12px);
+}
+
+.nr-show--3 .nr-game {
+    gap: clamp(3px, 0.6vh, 7px);
+}
+
+.nr-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.nr-chapter {
+    font-family: var(--font-display);
+    font-size: clamp(0.72rem, 1.6vw, 0.95rem);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.nr-of {
+    color: var(--text-primary);
+    opacity: 0.55;
+}
+
+.nr-skip {
+    flex-shrink: 0;
+    padding: 6px 16px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--pill-radius, 999px);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+.nr-skip:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.nr-skip--curtain {
+    margin-top: 10px;
+}
+
+/* ── Il tabellone NFL, minimale: sigle, punteggio, quarto ──────────────── */
+
+.nr-board {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: clamp(10px, 3vw, 30px);
+    padding: clamp(10px, 1.8vh, 18px) clamp(12px, 3vw, 26px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.nr-side {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 2vw, 18px);
+    /* La barretta del colore NFL sta sul lato esterno di ogni squadra: dice di
+       chi è il punteggio senza aggiungere un logo da caricare. */
+    border-left: 4px solid var(--nfl);
+    padding-left: 10px;
+}
+
+.nr-side--home {
+    flex-direction: row-reverse;
+    border-left: 0;
+    border-right: 4px solid var(--nfl);
+    padding-left: 0;
+    padding-right: 10px;
+}
+
+.nr-abbr {
+    font-family: var(--font-display);
+    font-size: clamp(0.85rem, 2.2vw, 1.15rem);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+.nr-nfl {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 5.5vw, 2.8rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+/* La colonna centrale: cronometro sopra, down & distance sotto — come la
+   grafica della diretta. Altezza fissa sulla seconda riga: si svuota negli
+   stacchi di fine quarto, e senza quella il tabellone si accorciava di colpo
+   trascinandosi dietro tutta la pagina. */
+.nr-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.nr-clock {
+    font-family: var(--font-display);
+    /* Come `.nr-dd`: altezza riservata anche da vuoto, e uguale a quella che
+       avrà col testo. */
+    line-height: 1.35;
+    min-height: 1.35em;
+    /* Tabellare: senza, ogni secondo che scorre cambia larghezza al numero e
+       il cronometro trema. Con un orologio che scorre davvero si vede. */
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(0.72rem, 1.7vw, 0.92rem);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* Cronometro fermo: durante un touchdown, un fumble o un intercetto il tempo
+   si blocca, come in diretta. Si dichiara con un colore spento invece di
+   lasciare che sembri un'animazione inceppata. */
+.nr-clock.is-fermo {
+    color: var(--text-muted);
+}
+
+.nr-dd {
+    /* Interlinea e altezza DICHIARATE e uguali fra loro. `min-height: 1.1em`
+       con l'interlinea ereditata (1.6) dava 13px da vuoto e 18.9px col testo:
+       il tabellone della partita che non aveva ancora down & distance era sei
+       pixel più basso degli altri, e con tre pannelli impilati tutta la scena
+       saliva e scendeva a ogni giocata. */
+    line-height: 1.35;
+    min-height: 1.35em;
+    font-family: var(--font-display);
+    font-size: clamp(0.6rem, 1.35vw, 0.74rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* La freccia del possesso: c'è sempre, e si accende su chi attacca. Nascosta
+   con `visibility` e non con `display`, se no le due squadre si spostano di
+   lato ogni volta che la palla cambia mano. */
+.nr-poss {
+    visibility: hidden;
+    font-size: 0.7em;
+    line-height: 1;
+    color: var(--accent-amber);
+}
+
+.nr-side.ha-palla .nr-poss {
+    visibility: visible;
+}
+
+.nr-side.ha-palla .nr-abbr {
+    color: var(--text-primary);
+}
+
+/* ── Il palco coi miei giocatori ───────────────────────────────────────── */
+
+/* `.live-stage` (dal Live) porta `position: relative` e `overflow: hidden`:
+   servono al livello dei coriandoli, che si stende con `inset: 0` e ritaglia le
+   particelle ai propri bordi. Qui si aggiunge solo il respiro attorno, perché
+   i fuochi partono da sotto le card e senza margine uscirebbero dal ritaglio. */
+.nr-stage {
+    display: flex;
+    /* In ALTO, non al centro: al centro il gruppo dei giocatori galleggiava in
+       mezzo a due fasce vuote, e con più partite quello spazio serve. Sopra
+       resta solo la fascia che il timbro "TOUCHDOWN" deve occupare. */
+    align-items: flex-start;
+    justify-content: center;
+    /* Un'altezza minima ci vuole comunque: il timbro e il fumetto di
+       `live-fx.js` sono disegnati per il campo del Live, che è alto, e il
+       ritaglio del palco (`overflow: hidden`, serve ai coriandoli) li
+       taglierebbe a metà. */
+    min-height: clamp(190px, 30vh, 290px);
+    padding: clamp(8px, 1.8vh, 20px) 8px clamp(6px, 1.2vh, 14px);
+    margin-bottom: 0;
+}
+
+.nr-players {
+    display: flex;
+    /* Tutta la larghezza disponibile, non quella del contenuto: dentro
+       `.nr-stage` (che è flex) questa zona si dimensionava sul proprio
+       contenuto e si fermava PRIMA del bordo — su telefono 359px contro i 382
+       disponibili, e tre cerchi che ci stavano per otto pixel andavano a capo.
+       Con `width: 100%` la larghezza è quella vera e `justify-content: center`
+       continua a centrare le maglie dentro. */
+    width: 100%;
+    flex-wrap: wrap;
+    /* In alto e non al centro: quando le statistiche di uno vanno a capo e
+       quelle di un altro no, le card hanno altezze diverse e le foto devono
+       restare in linea fra loro. */
+    align-items: flex-start;
+    justify-content: center;
+    /* Due passi diversi: orizzontale stretto, verticale largo. L'anello sporge
+       dal cerchio e il nome+punti stanno sotto, quindi quando le maglie vanno
+       a capo (telefono, tre o più giocatori) la riga sotto arrivava addosso al
+       punteggio di quella sopra. */
+    column-gap: clamp(10px, 2.5vw, 28px);
+    row-gap: clamp(26px, 5vw, 40px);
+}
+
+/* Niente riquadro: solo il CERCHIO, con le statistiche attorno come sul campo
+   del Live. Il fondo e il bordo della `.formation-slot` si spengono — su nero
+   pieno una card attorno a una foto tonda è una cornice che non serve, e
+   toglieva lo spazio in cui l'anello deve girare. Restano le classi, perché
+   l'ambra del possesso e il faro della festa vengono da lì.
+   La larghezza è quella del cerchio PIÙ l'anello che sporge. */
+.nr-card {
+    position: relative;
+    width: clamp(118px, 22vw, 178px);
+    max-width: none;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+    /* Niente entrata a scorrimento: le card compaiono tutte insieme all'inizio
+       del capitolo, e tre animazioni sfalsate qui sembrerebbero un errore. */
+    animation: none;
+}
+
+.nr-card:hover {
+    transform: none;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+/* La foto è il centro della composizione, quindi è grande: l'anello le gira
+   attorno e ha bisogno di una circonferenza su cui stare. */
+.nr-card .slot-photo {
+    width: clamp(62px, 12vw, 92px);
+    height: clamp(62px, 12vw, 92px);
+}
+
+/* ── L'anello del recap ────────────────────────────────────────────────
+   Le regole di `.live-slot-stats--ring` (in alto nel file) sono tarate sul
+   campo del Live, dove i giocatori sono nove e stretti: là l'anello è
+   NASCOSTO sotto i 1000px, perché non ci starebbe. Qui i giocatori sono due o
+   tre e la foto è il doppio, quindi si vede sempre — anche su un telefono — e
+   il raggio segue la foto più grande. */
+.nr-players .live-slot-stats.live-slot-stats--ring {
+    display: block;
+    /* il raggio esce dal bordo della foto: metà foto + un margine */
+    --r: clamp(43px, 8.2vw, 63px);
+    --cstep: 4.2deg;
+}
+
+.nr-players .live-slot-stats.live-slot-stats--ring .live-ring-ch {
+    font-size: clamp(0.5rem, 1.05vw, 0.66rem);
+}
+
+/* L'anello gira attorno alla FOTO, non attorno a tutto lo slot: senza questo
+   si stenderebbe sull'intera altezza della card (foto + nome + punti) e il
+   cerchio diventerebbe un'ellisse schiacciata attorno al testo. */
+.nr-players .live-slot-stats.live-slot-stats--ring {
+    top: 0;
+    left: 50%;
+    width: clamp(62px, 12vw, 92px);
+    transform: translateX(-50%);
+}
+
+.nr-pos {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    /* Non `--text-muted`: sopra il riempimento ambra/rosso del possesso
+       spariva del tutto, ed e' proprio nei momenti in cui il giocatore e' in
+       campo che si guarda la card. */
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.nr-slot-pts {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 2.6vw, 1.45rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+/* I punti guadagnati: UN solo stile, quello che prima si vedeva solo sul
+   touchdown — cifre luminose, nessun riquadro. Non eredita più da `.live-pop`
+   del Live (pillola scura su fondo nero): due stili di punteggio sullo stesso
+   schermo si leggevano come due cose diverse, e non lo erano.
+   Sta sopra la card ma non sposta niente (`position: absolute`), centrato sul
+   suo giocatore: è di lui che parla. */
+.nr-pop {
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    transform: translateX(-50%);
+    z-index: 8;
+    font-family: var(--font-display);
+    font-size: clamp(0.9rem, 2.1vw, 1.25rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.nr-pop.pos {
+    color: var(--accent-green);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent-green) 75%, transparent),
+        0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.nr-pop.neg {
+    color: var(--accent-red);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent-red) 75%, transparent),
+        0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Il touchdown resta più grande di una ricezione da otto yard: stesso stile,
+   misura diversa. Ma va SOTTO la card, non sopra: lassù c'è il timbro
+   ("TOUCHDOWN"), e i due si accavallavano proprio nel momento in cui devono
+   leggersi tutti e due. Sotto non c'è niente che gli contenda il posto. */
+.nr-pop--grosso {
+    /* Interamente sotto la card, non a cavallo del bordo: con `bottom` negativo
+       la cifra rientrava dentro e si sovrapponeva all'ultima riga di
+       statistiche. */
+    top: 100%;
+    bottom: auto;
+    margin-top: 2px;
+    font-size: clamp(1.4rem, 3vw, 2.1rem);
+}
+
+/* ── Righe compatte, quando i cerchi non ci stanno ─────────────────────
+   Tre partite, o una partita con cinque titolari: i cerchi diventerebbero più
+   stretti del leggibile e l'anello delle statistiche illeggibile. Allora si
+   passa alle righe, come il confronto del Live — foto piccola, nome,
+   statistiche, punti — e le partite restano tutte a schermo.
+   La soglia la decide `adattaDensita()` misurando lo spazio vero, non il
+   numero di partite: tre gare con un titolare ciascuna stanno benissimo a
+   cerchi. */
+.nr-game--righe .nr-players {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    /* In riga il timbro cade sopra le righe invece che sopra i cerchi: gli
+       serve meno fascia, e quella che si risparmia è proprio quella che manca
+       quando le partite sono tre. */
+    padding-top: clamp(6px, 1.4vh, 16px);
+    row-gap: 2px;
+}
+
+/* In riga il palco non ha bisogno dell'altezza minima pensata per i cerchi:
+   tre righe occupano molto meno di tre cerchi con l'anello attorno. */
+.nr-game--righe .nr-stage {
+    min-height: 0;
+    padding-top: clamp(4px, 1vh, 10px);
+    padding-bottom: clamp(4px, 0.8vh, 8px);
+}
+
+.nr-game--righe .nr-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    /* `min-width: 0` + `max-width: 100%`: senza, un figlio `nowrap` (le
+       statistiche) allarga la riga oltre il pannello e il pannello oltre lo
+       schermo. Con questi la riga resta nei suoi limiti e a cedere è il
+       contenuto comprimibile. */
+    min-width: 0;
+    max-width: 100%;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm, 8px);
+    text-align: left;
+}
+
+.nr-game--righe .nr-card .slot-photo {
+    width: clamp(26px, 3.4vw, 34px);
+    height: clamp(26px, 3.4vw, 34px);
+    margin: 0;
+    flex-shrink: 0;
+}
+
+/* L'anello non gira più attorno a niente: in riga le statistiche tornano
+   testo dritto, in fila dopo il nome. I caratteri perdono la rotazione e il
+   posizionamento assoluto che li metteva sulla circonferenza. */
+/* L'ordine in riga: foto, nome, statistiche, punti. Va imposto perché nel
+   sorgente l'anello viene subito dopo la foto — lì gira attorno a lei e
+   dev'essere suo fratello immediato — mentre in riga le statistiche vanno
+   dopo il nome. Senza, si leggeva "foto · statistiche · nome · punti". */
+.nr-game--righe .nr-card .slot-photo { order: 1; }
+.nr-game--righe .nr-card .slot-name { order: 2; margin-right: 14px; }
+.nr-game--righe .live-slot-stats--ring { order: 3; }
+.nr-game--righe .nr-card .nr-slot-pts { order: 4; }
+
+/* Le statistiche in riga non allargano la riga: si restringono e, se proprio
+   non ci stanno, si tagliano. `nowrap` da solo le faceva spingere il pannello
+   oltre il bordo dello schermo — su tre pannelli stretti bastavano sei voci. */
+.nr-game--righe .live-slot-stats.live-slot-stats--ring {
+    position: static;
+    width: auto;
+    min-width: 0;
+    flex: 0 1 auto;
+    aspect-ratio: auto;
+    transform: none;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.nr-game--righe .live-slot-stats--ring .live-ring-ch {
+    position: static;
+    transform: none;
+    font-size: clamp(0.56rem, 1.1vw, 0.68rem);
+}
+
+.nr-game--righe .nr-card .slot-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    /* `nowrap` con i puntini: senza, un nome lungo andava a capo, la riga
+       cresceva di tre pixel e il pannello con lei. */
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: clamp(0.72rem, 1.4vw, 0.86rem);
+}
+
+.nr-game--righe .nr-pos {
+    display: inline;
+    margin-right: 5px;
+}
+
+.nr-game--righe .nr-slot-pts {
+    flex-shrink: 0;
+    width: 3.4em;
+    margin: 0 0 0 12px;
+    text-align: right;
+    font-size: clamp(0.9rem, 1.9vw, 1.15rem);
+}
+
+/* In riga il possesso illumina TUTTA la riga, non un filetto sul bordo: un
+   alone attorno a una foto da 30px non si vede, e la fascia sottile si perdeva
+   fra tre pannelli. Qui la riga È il giocatore, quindi è la riga che si
+   accende — stesso ruolo che ha il cerchio quando i cerchi ci sono. */
+/* `.nr-players` nel selettore non è decorativo: serve a battere in specificità
+   la regola dei CERCHI (`.nr-players .formation-slot.live-slot--onball`, più
+   in basso nel file) che spegne sfondo e bordo. A pari specificità vinceva
+   quella, e la riga non si accendeva mai. */
+.nr-game--righe .nr-players .formation-slot.live-slot--onball {
+    background: color-mix(in srgb, var(--accent-amber) 30%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-amber) 50%, transparent);
+}
+
+.nr-game--righe .nr-players .formation-slot.live-slot--redzone {
+    background: color-mix(in srgb, var(--accent-red) 38%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-red) 60%, transparent);
+}
+
+/* Illuminata la riga, l'alone attorno alla foto non serve più e anzi fa
+   doppione: si spegne. */
+.nr-game--righe .nr-players .formation-slot.live-slot--onball .slot-photo,
+.nr-game--righe .nr-players .formation-slot.live-slot--redzone .slot-photo {
+    box-shadow: none;
+}
+
+/* Il faro della festa, più tenue in riga.
+   Sul campo del Live abbassa gli altri giocatori al 30% e va bene: là il
+   protagonista è una card grande in mezzo all'erba. Qui le righe sono sottili
+   e a quel livello spariscono — e con loro il colore del possesso, che è
+   proprio il segnale che deve restare leggibile. Il protagonista si stacca
+   lo stesso: resta l'unico a piena luce. */
+.nr-game--righe .live-stage.is-festa .formation-slot {
+    opacity: 0.5;
+    filter: saturate(0.7) brightness(0.8);
+}
+
+.nr-game--righe .nr-pop {
+    left: auto;
+    right: 4.2em;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: clamp(0.8rem, 1.6vw, 1rem);
+}
+
+.nr-game--righe .nr-pop--grosso {
+    top: 50%;
+    bottom: auto;
+    margin-top: 0;
+    font-size: clamp(1rem, 2vw, 1.35rem);
+}
+
+/* Densità massima: nemmeno a righe ci si sta.
+   La cronaca non sparisce — si RIASSUME (`riassunto()` in sections/
+   night-recap.js): "Robinson · 17 yd catch" invece della frase intera di
+   ESPN, che su un pannello stretto sono due o tre righe e per tre pannelli
+   una sagra illeggibile. Qui la riga è una sola e l'altezza è bloccata: la
+   scena non si sposta mai, qualunque cosa succeda in campo.
+   Lo decide `adattaDensita()` misurando, non una soglia scritta a mano. */
+.nr-show--fitto .nr-play {
+    height: 1.35em;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    font-size: clamp(0.66rem, 1.35vw, 0.8rem);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.nr-show--fitto .nr-board {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.nr-show--fitto .nr-game--righe .nr-card {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+/* ── Il testo dell'azione ──────────────────────────────────────────────── */
+
+/* Altezza FISSA, non minima.
+   Con `min-height` una cronaca lunga andava a tre righe, il pannello cresceva
+   e tutte le sezioni sotto si spostavano a ogni giocata — la scena ballava.
+   Ora lo spazio è sempre quello (due righe) e il testo che non ci sta viene
+   troncato con i puntini. */
+.nr-play {
+    height: 2.7em;
+    margin: 0;
+    text-align: center;
+    font-size: clamp(0.78rem, 1.8vw, 0.98rem);
+    line-height: 1.35;
+    color: var(--text-secondary);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+/* Un blocco compresso non è un'azione da leggere: è il tempo che corre. Si
+   distingue subito da una giocata vera, altrimenti "12 plays" sembrerebbe il
+   titolo di qualcosa. */
+.nr-play--salto {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: clamp(0.62rem, 1.4vw, 0.75rem);
+    color: var(--text-muted);
+    opacity: 0.75;
+}
+
+/* Una giocata senza nessuno dei miei: si legge, ma smorzata. Esiste solo
+   quando la compressione è spenta, ed è il modo di far vedere che la partita
+   scorre senza far sembrare che stia succedendo qualcosa di mio. */
+.nr-play--passa {
+    opacity: 0.5;
+}
+
+/* ── Il totale e la barra di avanzamento ───────────────────────────────── */
+
+.nr-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.nr-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+}
+
+.nr-team {
+    font-family: var(--font-display);
+    font-size: clamp(0.7rem, 1.6vw, 0.9rem);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.nu-divider::before, .nu-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-card); }
+.nu-sec--done h3 { color: var(--text-muted); }
+.nu-row.is-done { opacity: 0.45; }
 .nu-row.is-done .nu-who b,
 .nu-row.is-done .nu-proj {
     text-decoration: line-through;
@@ -28415,3 +29133,870 @@ body.nu-open .nu-panel {
 .is-giornata .live-field-solo .live-slot--soon { opacity: 0.62; }
 .is-giornata .live-field-solo .live-slot--soon .slot-pts { color: #e6e3dc; }
 .live-field-solo .fsv-num { fill: rgba(255, 255, 255, 0.16); }
+
+.nr-pts {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 4.5vw, 2.3rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+/* ── La linea del TEMPO DI GARA ────────────────────────────────────────
+   Era una barra di avanzamento: un rettangolo che si riempiva sotto il nome
+   della squadra senza dire di cosa fosse la misura. Adesso è il tempo di
+   gioco, con i quattro quarti segnati — si legge senza etichetta, e dice la
+   cosa che uno cerca guardando lì: a che punto della partita siamo. */
+.nr-linea {
+    position: relative;
+    display: flex;
+    height: 20px;
+    border-radius: 3px;
+    overflow: visible;
+}
+
+.nr-q {
+    position: relative;
+    flex: 1;
+    border-top: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Il taglio fra un quarto e l'altro. Il primo non ce l'ha: è l'inizio. */
+.nr-q + .nr-q::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 0;
+    width: 1px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.nr-q i {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-display);
+    font-style: normal;
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+}
+
+.nr-linea-fatta {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--text-primary);
+    opacity: 0.75;
+    transition: width 0.3s linear;
+}
+
+/* Il puntino che cammina: dice DOVE siamo, non solo quanto è passato. */
+.nr-linea-ora {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    transition: left 0.3s linear;
+}
+
+/* ── Gli effetti del Live, riportati alla misura di questo palco ────────
+   Coriandoli, timbro e bagliore sono disegnati per il campo del Live, che è
+   largo quanto la pagina e alto il doppio. Qui il palco è una fascia, e due
+   pezzi vanno riproporzionati — senza toccare il Live, che sul suo campo sta
+   bene com'è. */
+
+/* Il bagliore è un cerchio di 460px fissi: su un telefono è più largo del
+   palco, quindi invece di un alone sotto il giocatore diventava un rettangolo
+   grigio su tutta la scena (il palco qui sta sul nero pieno, non sull'erba).
+   Legato alla larghezza della finestra resta un alone a ogni misura. */
+.nr-stage .live-fx-glow {
+    width: min(52vw, 460px);
+    height: min(52vw, 460px);
+    margin: calc(min(52vw, 460px) / -2) 0 0 calc(min(52vw, 460px) / -2);
+}
+
+/* Il timbro: `7.5vw` su schermo stretto dà una parola più larga dello schermo,
+   e "TOUCHDOWN" usciva da entrambi i lati. Qui si misura sul palco. */
+.nr-stage .live-fx-stamp {
+    /* Più piccolo che nel Live: là la parola attraversa un campo largo quanto
+       la pagina, qui deve stare in una fascia sopra tre card senza coprirle. */
+    font-size: clamp(1.2rem, 4vw, 3.1rem);
+    /* Più in alto che nel Live. Là il campo è alto e il timbro cade fra i
+       giocatori; qui c'è una sola fila di card al centro del palco, e a
+       metà altezza la parola ci finiva dietro. */
+    top: 20%;
+}
+
+/* Il livello degli effetti DAVANTI alle card.
+   `is-festa` porta il protagonista a `z-index: 6` per staccarlo dagli altri,
+   e il livello effetti stava a 5: timbro e fumetto finivano dietro proprio
+   alla card di chi aveva segnato — cioè sparivano nel momento in cui
+   servivano. Qui il livello passa davanti a tutto: la parola si legge sempre,
+   e i coriandoli cadono davanti ai giocatori invece che dietro. */
+.nr-stage .live-fx {
+    z-index: 9;
+}
+
+/* Le maglie lasciano una fascia libera in alto per il timbro: sovrapporlo e
+   basta lo renderebbe leggibile ma illeggibile il nome sotto. */
+.nr-players {
+    padding-top: clamp(14px, 3.4vh, 34px);
+}
+
+/* Il lampo copre tutto il livello ed è bianco pieno: sul campo del Live è un
+   guizzo sull'erba, qui il palco È la scena e il touchdown diventava un
+   schermo bianco. L'animazione (opacità, in JS) resta quella del Live: si
+   abbassa il bianco di partenza, così al colpo più forte resta un lampo e non
+   un abbaglio. */
+.nr-stage .live-fx-flash {
+    background: rgba(255, 255, 255, 0.42);
+}
+
+/* ── Lo stacco di fine quarto ──────────────────────────────────────────
+   Senza, il cronometro arriva a 0:00 e riparte da 15:00 dentro lo stesso
+   respiro, e quindici minuti di partita passano inosservati. */
+.nr-quarto {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.86);
+    backdrop-filter: blur(3px);
+    animation: nr-in 0.2s ease both;
+}
+
+.nr-quarto b {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 5vw, 2.6rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: var(--text-primary);
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.9);
+}
+
+/* ── Lo stacco fra due partite ─────────────────────────────────────────── */
+
+.nr-stacco {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.9);
+    animation: nr-in 0.25s ease both;
+}
+
+.nr-stacco span {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.nr-stacco b {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 3.5vw, 1.8rem);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+
+/* In pausa si dichiara, altrimenti sembra bloccato. */
+.nr-pausa .nr-bar i {
+    opacity: 0.25;
+}
+
+.nr-pausa .nr-stage::after {
+    content: 'Paused';
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Il possesso segue il CERCHIO, non un rettangolo.
+   Sul campo del Live il riempimento colora la card, che lì è un riquadro vero
+   appoggiato sull'erba. Qui la card non c'è più — c'è una foto tonda su nero —
+   e quel riempimento restava un rettangolo ambra disegnato attorno a un
+   cerchio, cioè la cornice che si era appena tolta. Il segnale resta lo
+   stesso e più forte: l'alone colorato attorno alla foto (`border-color` +
+   `box-shadow` sulla `.slot-photo`, che il Live definisce già più in alto),
+   con in più un bagliore diffuso che lo stacca dal fondo nero. */
+.nr-players .formation-slot.live-slot--onball,
+.nr-players .formation-slot.live-slot--redzone {
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.nr-players .formation-slot.live-slot--onball .slot-photo {
+    box-shadow:
+        0 0 18px color-mix(in srgb, var(--accent-amber) 70%, transparent),
+        0 0 46px color-mix(in srgb, var(--accent-amber) 28%, transparent);
+}
+
+.nr-players .formation-slot.live-slot--redzone .slot-photo {
+    box-shadow:
+        0 0 20px color-mix(in srgb, var(--accent-red) 78%, transparent),
+        0 0 52px color-mix(in srgb, var(--accent-red) 34%, transparent);
+}
+
+@media (max-width: 560px) {
+    .nr-show {
+        gap: 8px;
+        width: 100vw;
+    }
+
+    .nr-stage {
+        min-height: clamp(210px, 30vh, 290px);
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    /* TRE per riga anche su telefono. A 390px la fetta è ~120px, sopra il
+       minimo leggibile per l'anello (104px, la soglia di `adattaDensita`):
+       ci stanno, e tenerli su due file sprecava metà schermo in altezza —
+       che con due partite impilate è proprio quello che manca. */
+    .nr-card {
+        /* 29vw: tre maglie più i due stacchi stanno in 390px con un margine.
+           A 30vw ci stavano per un soffio e bastava un telefono da 375px per
+           farle andare a capo. */
+        width: clamp(92px, 29vw, 124px);
+    }
+
+    .nr-card .slot-photo {
+        width: clamp(52px, 15vw, 64px);
+        height: clamp(52px, 15vw, 64px);
+    }
+
+    .nr-players {
+        column-gap: 3px;
+        row-gap: clamp(18px, 4vw, 28px);
+        padding-top: clamp(10px, 2.6vh, 24px);
+    }
+
+    .nr-players .live-slot-stats.live-slot-stats--ring {
+        width: clamp(52px, 15vw, 64px);
+        --r: clamp(37px, 10.5vw, 45px);
+        --cstep: 4.6deg;
+    }
+
+    .nr-players .live-slot-stats--ring .live-ring-ch {
+        font-size: clamp(0.4rem, 1.15vw, 0.5rem);
+    }
+}
+
+/* ── Night Recap: la schermata finale ──────────────────────────────────
+   A partite finite il replay non si chiude da solo: mostra il punteggio
+   della sfida, ogni giocata dei titolari su un campo solo, e la porta per
+   entrare nel sito. È l'ultima cosa che si guarda, e nessuno vuole vedersela
+   sparire sotto gli occhi. */
+
+.nr-fine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(12px, 2.2vh, 24px);
+    width: min(720px, 94vw);
+    max-height: 96vh;
+    overflow-y: auto;
+    animation: nr-in 0.4s var(--ease, ease) both;
+}
+
+.nr-fine-kick {
+    font-family: var(--font-display);
+    font-size: clamp(0.62rem, 1.4vw, 0.76rem);
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* ── Il punteggio della sfida ──────────────────────────────────────── */
+
+.nr-sfida {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: clamp(14px, 4vw, 40px);
+    width: 100%;
+}
+
+.nr-sfida-lato {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.nr-sfida-lato--opp {
+    align-items: flex-start;
+}
+
+.nr-sfida-nome {
+    font-family: var(--font-display);
+    font-size: clamp(0.66rem, 1.5vw, 0.82rem);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.nr-sfida-pts {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 6.5vw, 3.4rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+/* "9 still to play" sotto il punteggio dell'avversario: dopo il Thursday
+   Night è quasi sempre a zero con nove titolari da scendere in campo, e
+   quello zero senza avviso sembrerebbe una vittoria schiacciante. */
+.nr-sfida-sotto {
+    font-size: clamp(0.58rem, 1.25vw, 0.7rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.85;
+}
+
+.nr-sfida-vs {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* ── Il campo in prospettiva ───────────────────────────────────────── */
+
+.nr-fine-campo {
+    width: 100%;
+}
+
+.ngs {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* Il manto: un blu-grigio appena più chiaro del fondo, come nella grafica
+   NGS. Senza, il trapezio è un buco nero e gli hash mark galleggiano. */
+.ngs-erba {
+    fill: #14181d;
+}
+
+/* Le sponde laterali, dove stanno i numeri delle yard. */
+.ngs-sponda {
+    fill: #2b3138;
+}
+
+.ngs-yard {
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 1;
+}
+
+/* Gli hash mark: due colonne a un terzo e due terzi, più i trattini sulle
+   sponde. Sono loro a dare profondità — senza, il trapezio sembra un
+   triangolo vuoto invece di un campo visto da dietro. */
+.ngs-hash {
+    stroke: rgba(255, 255, 255, 0.16);
+    stroke-width: 1;
+}
+
+.ngs-num {
+    fill: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.ngs-num--los {
+    fill: var(--accent-blue);
+}
+
+.ngs-los {
+    stroke: var(--accent-blue);
+    stroke-width: 2.5;
+}
+
+.ngs-linea {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 2.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.9;
+    transition: opacity var(--dur-fast, 0.15s) var(--ease, ease),
+        stroke var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+/* Un bersaglio a vuoto: si vede che c'è stata, ma tratteggiata e spenta —
+   è successo qualcosa che non ha prodotto niente. */
+.ngs-linea[data-f="vuota"] {
+    stroke-dasharray: 3 4;
+    opacity: 0.38;
+    stroke-width: 1.6;
+}
+
+/* ── A giocatore selezionato ────────────────────────────────────────────
+   Gli altri si spengono, e il colore cambia significato: non più "di chi è
+   la linea" — ce n'è una sola — ma quanto ha reso, nelle tre fasce del Carry
+   Chart. Lo scambio è tutto qui, senza ridisegnare niente. */
+.nr-fine-campo.is-sel .ngs-linea.is-spento,
+.nr-fine-campo.is-sel .ngs-td.is-spento {
+    opacity: 0.07;
+}
+
+.nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="persa"] { stroke: var(--accent-red); }
+.nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="corta"] { stroke: #f5c518; }
+.nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="lunga"] { stroke: var(--accent-green); }
+.nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="vuota"] { stroke: rgba(255, 255, 255, 0.55); }
+.nr-fine-campo.is-sel .ngs-td.is-mio { fill: var(--accent-green); }
+
+.nr-fine-campo.is-sel .ngs-linea.is-mio {
+    opacity: 1;
+    stroke-width: 2.6;
+}
+
+.ngs-td {
+    fill: var(--c);
+    stroke: #fff;
+    stroke-width: 1.5;
+}
+
+/* ── La legenda ────────────────────────────────────────────────────── */
+
+.nr-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px clamp(12px, 3vw, 26px);
+    margin-top: 8px;
+}
+
+/* La legenda è anche il selettore: si clicca. */
+.ngs-voce {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 4px 9px;
+    border: 1px solid transparent;
+    border-radius: var(--pill-radius, 999px);
+    background: none;
+    font-family: inherit;
+    font-size: clamp(0.66rem, 1.4vw, 0.78rem);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+.ngs-voce:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.ngs-voce.is-on {
+    border-color: color-mix(in srgb, var(--c) 55%, transparent);
+    background: color-mix(in srgb, var(--c) 14%, transparent);
+}
+
+/* Le altre voci si smorzano quando una è scelta: si vede a colpo d'occhio
+   di chi sono le linee rimaste. */
+.nr-fine-campo.is-sel .ngs-voce:not(.is-on) {
+    opacity: 0.4;
+}
+
+/* Le tre fasce, visibili solo a giocatore scelto — prima non
+   significherebbero niente, perché il colore dice il giocatore. */
+.ngs-fasce {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px 16px;
+    margin-top: 6px;
+    font-size: clamp(0.58rem, 1.2vw, 0.68rem);
+    color: var(--text-muted);
+}
+
+.ngs-fasce span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ngs-fasce i {
+    width: 14px;
+    height: 2.5px;
+    border-radius: 2px;
+}
+
+.ngs-fasce [data-f="persa"] i { background: var(--accent-red); }
+.ngs-fasce [data-f="corta"] i { background: #f5c518; }
+.ngs-fasce [data-f="lunga"] i { background: var(--accent-green); }
+.ngs-fasce [data-f="vuota"] i { background: rgba(255, 255, 255, 0.55); }
+
+.ngs-pallino {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--c);
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.ngs-voce b {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.ngs-pt {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: var(--c);
+}
+
+.nr-fine-nota {
+    margin: 10px 0 0;
+    max-width: 62ch;
+    margin-inline: auto;
+    text-align: center;
+    font-size: clamp(0.58rem, 1.2vw, 0.68rem);
+    line-height: 1.5;
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* ── La porta per il sito ──────────────────────────────────────────── */
+
+.nr-home {
+    padding: 11px 30px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--pill-radius, 999px);
+    background: var(--text-primary);
+    color: #000;
+    font-family: var(--font-display);
+    font-size: clamp(0.76rem, 1.6vw, 0.9rem);
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+.nr-home:hover {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 560px) {
+    .nr-fine {
+        width: 96vw;
+        gap: 12px;
+    }
+
+    .nr-sfida {
+        gap: 10px;
+    }
+
+    /* In verticale il campo ha bisogno di più altezza per non schiacciare le
+       linee corte le une sulle altre. */
+    .ngs {
+        min-height: 260px;
+    }
+}
+
+/* ─── Flip card di giornata (pagina squadra NFL) ──────────────────────────
+   Ricalcata sulla scheda che le squadre stampano il giorno della partita:
+   fascia nera col marchio, righe "slot → titolare e riserve", rosa numerica
+   sotto. La fascia resta scura in TUTTI E DUE i temi e il colore di squadra
+   entra come filetto a sinistra: su un fondo #D3BC8D (New Orleans) o #4495D2
+   (Tennessee) il testo bianco della card stampata non si leggerebbe. */
+
+.fc-weeks {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+}
+
+.fc-week {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 54px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color var(--dur-fast, 0.15s) var(--ease, ease), color var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+.fc-week b {
+    font-family: var(--font-display);
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.fc-week span {
+    font-size: 0.64rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fc-week:hover { border-color: var(--text-muted); }
+
+.fc-week.is-active {
+    border-color: var(--accent-red);
+    background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+}
+
+.fc-week.is-active span { color: var(--text-secondary); }
+
+.fc-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Intestazione: le due squadre ai lati, l'orario in mezzo. */
+.fc-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+}
+
+.fc-ht {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.fc-head > .fc-ht:last-child { flex-direction: row-reverse; text-align: right; }
+
+.fc-ht img { width: 36px; height: 36px; object-fit: contain; flex: 0 0 auto; }
+.fc-ht > div { min-width: 0; }
+
+.fc-ht b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-ht small { font-size: 0.7rem; color: var(--text-muted); }
+
+.fc-score {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-head-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.fc-head-mid b { font-family: var(--font-display); font-size: 0.8rem; color: var(--text-secondary); }
+.fc-at { font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase; }
+
+.fc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.fc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
+.fc-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.fc-panel {
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.fc-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 7px 10px 7px 12px;
+    background: #12100d;
+    border-left: 5px solid var(--fc-team, #12100d);
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #f5f0e8;
+}
+
+.fc-panel-title img { width: 18px; height: 18px; object-fit: contain; }
+.fc-panel-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.fc-rows { display: flex; flex-direction: column; }
+
+.fc-row {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    gap: 8px;
+    align-items: baseline;
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.fc-rows .fc-row:last-child { border-bottom: none; }
+
+.fc-pos {
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.fc-names { display: flex; flex-wrap: wrap; gap: 4px 14px; min-width: 0; }
+
+.fc-p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.fc-p b {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Le tre convenzioni della card stampata: titolare in nero, rookie
+   sottolineato, practice squad in corsivo. */
+.fc-p--s { font-weight: 700; color: var(--text-primary); }
+.fc-p--s b { color: var(--text-secondary); }
+.fc-p--rk { text-decoration: underline; text-underline-offset: 2px; }
+.fc-p--ps { font-style: italic; color: var(--text-muted); }
+
+.fc-inj {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 4px;
+    border-radius: var(--radius-xs);
+    background: color-mix(in srgb, var(--accent-amber) 22%, transparent);
+    color: var(--accent-amber);
+    font-size: 0.6rem;
+    font-style: normal;
+    font-weight: 800;
+    vertical-align: 1px;
+}
+
+.fc-star { margin-left: 5px; color: var(--accent-amber); font-size: 0.6rem; font-style: normal; }
+
+.fc-rlist { border-top: 1px solid var(--border-subtle); }
+.fc-rlist:first-of-type { border-top: none; }
+
+.fc-rlist > summary {
+    padding: 7px 10px;
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.fc-rlist[open] > summary { color: var(--text-primary); }
+.fc-rlist .pm-table-wrap { padding: 0 10px 10px; }
+
+.fc-officials {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+}
+
+.fc-officials ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 4px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fc-officials li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.74rem; }
+.fc-officials li span { color: var(--text-muted); }
+.fc-officials li b { color: var(--text-primary); font-weight: 600; }
+
+@media (max-width: 900px) {
+    .fc-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+    /* Stretti, l'orario e lo stadio vanno sotto le due squadre: in mezzo a
+       loro resterebbero due parole per riga. */
+    .fc-head { grid-template-columns: 1fr 1fr; }
+    .fc-head-mid { grid-row: 2; grid-column: 1 / -1; }
+    .fc-ht img { width: 28px; height: 28px; }
+    .fc-row { grid-template-columns: 38px 1fr; padding: 5px 8px; }
+    .fc-names { gap: 3px 10px; }
+    .fc-p { font-size: 0.74rem; }
+}

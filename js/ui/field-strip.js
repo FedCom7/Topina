@@ -928,7 +928,8 @@ function campoSVG(s, contenuto = '') {
         ${pali('r')}
         ${s.cartello ? cartello(s.cartello) : ''}
         ${contenuto}
-    </svg>`;
+    </svg>
+`;
 }
 
 /**
@@ -1118,11 +1119,40 @@ export function titoloGiocata(p) {
  * campo, la profondita' a dare una lunghezza agli incompleti — che di yard
  * ufficiali ne hanno zero, ma un "short" e un "deep" non si somigliano.
  */
+/**
+ * Dove è andata la giocata, letto dal referto.
+ *
+ * `lato` e `profondita` servono alla striscia del campo. `corsia` è più fine e
+ * serve al grafico NGS del Night Recap: un numero fra -1 (tutto a sinistra) e
+ * +1 (tutto a destra), perché ESPN distingue le sette porte della corsa —
+ * "left end" è molto più largo di "left guard" — e le tre corsie del
+ * passaggio. Sta qui e non in un secondo parser: è lo stesso testo, e due
+ * lettori dello stesso testo divergono.
+ *
+ * Null quando il referto non dice niente (calci, giocate speciali): chi
+ * disegna decide cosa farne invece di ricevere uno zero che sembra "centro".
+ */
+const CORSIE = [
+    [/left end/i, -0.92], [/left tackle/i, -0.62], [/left guard/i, -0.3],
+    [/up the middle|middle for|middle to/i, 0],
+    [/right guard/i, 0.3], [/right tackle/i, 0.62], [/right end/i, 0.92],
+    // `incomplete` in mezzo: ESPN scrive "pass incomplete deep left", e senza
+    // questo ramo tutti i passaggi sbagliati restavano senza corsia — che sono
+    // proprio quelli che sul grafico si vogliono vedere andare a vuoto.
+    [/pass (?:incomplete )?(?:short |deep )?left/i, -0.72],
+    [/pass (?:incomplete )?(?:short |deep )?middle/i, 0],
+    [/pass (?:incomplete )?(?:short |deep )?right/i, 0.72],
+    [/scrambles? left|left side/i, -0.72], [/scrambles? right|right side/i, 0.72],
+];
+
 export function direzioneGiocata(p) {
     const t = String(p?.text || '');
+    let corsia = null;
+    for (const [re, v] of CORSIE) if (re.test(t)) { corsia = v; break; }
     return {
         lato: /left/i.test(t) ? 'left' : /right/i.test(t) ? 'right' : 'middle',
         profondita: /deep/i.test(t) ? 'deep' : /short/i.test(t) ? 'short' : 'media',
+        corsia,
     };
 }
 
