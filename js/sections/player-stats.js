@@ -34,13 +34,13 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { getSeasonStats } from '../data/projections.js?v=631';
+import { getSeasonStats } from '../data/projections.js?v=632';
 import { getAdvancedPlayers } from '../data/context-score.js?v=683';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { teamLogoUrl } from '../data/player-search-core.js?v=623';
 import { canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=896';
+import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=897';
 import { LEAGUE_SCORING, scoreProjectedStats } from '../data/scoring.js?v=592';
 import {
     tassiLega, tdAttesi, puntiAttesi, costanza, lineaTitolare, calendario, alberi, MISURE_ALBERO,

@@ -8,12 +8,12 @@
 
 import { TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { TEAMS } from './team.js?v=840';
+import { TEAMS } from './team.js?v=841';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell, donutSeg } from '../ui/charts.js?v=9';
 import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1002';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=631';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=632';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -1263,9 +1263,26 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
  * `getUnrosteredScores`, spente e con l'asterisco, che e' esattamente cosa
  * sono — punti ricostruiti da statistiche NFL vere, mai un dato di lega.
  */
-export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null, teamOnBadge = false } = {}) {
+export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null, teamOnBadge = false, liveWeek = null } = {}) {
     const m = model || modelCache[year] || null;
-    const rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
+    let rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
+    // La giornata che si sta giocando, finche' Firebase non l'ha archiviata:
+    // chi ce l'ha e se e' titolare li dicono le rose ESPN di adesso (`liveWeek`
+    // da chi chiama), non il segnaposto scritto il martedi' prima del mercato.
+    // Si lavora su una copia: il modello e' condiviso con le altre pagine.
+    if (liveWeek?.week && !m?.playedWeeks?.has(liveWeek.week)) {
+        const wk = liveWeek.week;
+        const weeks = { ...rec.weeks };
+        const pending = { ...(rec.pending || {}) };
+        delete pending[wk];
+        if (liveWeek.teamKey) {
+            const prima = rec.weeks[wk] || rec.pending?.[wk] || { pts: 0, stats: {}, opponent: '' };
+            weeks[wk] = { ...prima, teamKey: liveWeek.teamKey, started: liveWeek.started };
+        } else {
+            delete weeks[wk];      // tagliato in settimana: quella giornata non e' di nessuno
+        }
+        rec = { ...rec, weeks, pending };
+    }
     const [infortuni, unros] = await Promise.all([
         playerWeekInjuries(rec.name, rec.position, year, m?.lastWeek ?? Infinity).catch(() => new Map()),
         getUnrosteredScores(rec.name, year).catch(() => new Map()),

@@ -20,7 +20,7 @@ import { canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { bindTabSwipe, centerActiveTab, nextTab } from '../ui/tab-swipe.js?v=1';
 import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
-import { getSeasonStats, normName } from '../data/projections.js?v=631';
+import { getSeasonStats, normName } from '../data/projections.js?v=632';
 import {
     campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
     yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
@@ -36,11 +36,11 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1074';
+} from './player-page.js?v=1075';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1108';
+} from './nfl-team-home.js?v=1109';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {

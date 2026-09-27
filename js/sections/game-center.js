@@ -3,9 +3,9 @@ import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=552';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=840';
+import { TEAMS } from './team.js?v=841';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
-import { initPlayerModal } from '../components/player-modal.js?v=789';
+import { initPlayerModal } from '../components/player-modal.js?v=790';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';

@@ -30,6 +30,16 @@ const STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // le stat storiche non cambiano
  * vecchia gia' salvata scade subito, senza bisogno di cambiare la chiave.
  */
 const STATS_TTL_LIVE_MS = 60 * 60 * 1000;
+/* Durante una giornata di partite l'ora era troppo: Players deve dare il
+   totale LIVE, e chi l'apriva alle 19 leggeva ancora i punti delle 18. Nelle
+   ore in cui si gioca (giovedi' sera → martedi' mattina, ora italiana) basta
+   un quarto d'ora; il resto della settimana resta l'ora. */
+const STATS_TTL_GIOCO_MS = 15 * 60 * 1000;
+function ttlStagioneInCorso() {
+    const d = new Date();
+    const g = d.getDay();   // 0 domenica … 4 giovedi'
+    return (g === 0 || g === 1 || g === 2 || g === 4 || g === 5 || g === 6) ? STATS_TTL_GIOCO_MS : STATS_TTL_LIVE_MS;
+}
 
 /** La stagione NFL in corso: da settembre a febbraio compreso. */
 function stagioneInCorso(year) {
@@ -170,7 +180,9 @@ export async function getSeasonProjections(year) {
  * "com'era andato l'anno prima" nell'analisi del draft.
  */
 export async function getSeasonStats(year) {
-    if (_memStats[year]) return _memStats[year];
+    const ttl = stagioneInCorso(year) ? ttlStagioneInCorso() : STATS_TTL_MS;
+    // anche la copia in memoria scade: la pagina resta aperta per ore
+    if (_memStats[year] && Date.now() - _memStats[year].t < ttl) return _memStats[year].map;
 
     // v6: aggiunto `raw` (stat grezze trimmate) — serve a decomposeSeason in
     // perf-explain.js per il pannello "Why" di Projections, stessi nomi-campo
@@ -181,8 +193,8 @@ export async function getSeasonStats(year) {
     // v7: le fasce dei punti concessi delle difese (KEPT_STATS). Senza cambiare
     // chiave, i blob v6 gia' salvati restavano senza per tutta la loro durata.
     const cacheKey = `topina_stats_v7_${year}`;
-    const hit = cacheGet(cacheKey, stagioneInCorso(year) ? STATS_TTL_LIVE_MS : STATS_TTL_MS);
-    if (hit) return (_memStats[year] = new Map(hit));
+    const hit = cacheGet(cacheKey, ttl);
+    if (hit) return tieni(year, new Map(hit));
 
     const res = await fetch(urlFor('stats', year));
     if (!res.ok) throw new Error(`Sleeper stats ${res.status}`);
@@ -200,7 +212,12 @@ export async function getSeasonStats(year) {
     await aggiungiGiornateInCorso(map, year, list);
 
     cacheSet(cacheKey, [...map.entries()].map(([k, e]) => [k, compact(e)]));
-    return (_memStats[year] = map);
+    return tieni(year, map);
+}
+
+function tieni(year, map) {
+    _memStats[year] = { t: Date.now(), map };
+    return map;
 }
 
 /** Una voce della mappa da una riga Sleeper (stagionale o di settimana). */
@@ -241,26 +258,32 @@ function voceStat(e) {
  * La giornata che si sta giocando, sommata a mano al totale di stagione.
  *
  * Sleeper tiene DUE endpoint: il totale di stagione (`/stats/nfl/2026`) e il
- * tabellino di ogni giornata (`/stats/nfl/2026/2`). Il primo lo ricalcola solo
- * a giornata chiusa — il martedì — quindi dal giovedì al lunedì i punti del
- * fine settimana in corso non ci sono: Josh Allen aveva giocato da sei ore e
- * su Players si leggeva ancora la sola week 1. Il secondo invece è aggiornato
- * mentre si gioca.
+ * tabellino di ogni giornata (`/stats/nfl/2026/2`). Il primo lo aggiorna in
+ * ritardo — non a fine partita — mentre il secondo segue la partita.
  *
- * Quali giornate aggiungere: quelle OLTRE la copertura del totale, cioè oltre
- * il massimo di `gp` visto (chi le gioca tutte le ha giocate tutte). Si va
- * avanti finché una giornata ha tabellini, al massimo tre — se ne mancassero
- * di più il totale sarebbe rotto, e un ciclo lungo su un endpoint da 700 KB
- * non è il modo di scoprirlo. In più un controllo sulla data: se il totale è
- * stato toccato DOPO l'ultimo tabellino della giornata, quella giornata è già
- * dentro e non si somma (se no si conterebbe due volte il martedì).
+ * La decisione e' GIOCATORE PER GIOCATORE. Prima era di lega: si sommavano le
+ * giornate oltre il massimo `gp` del totale. Il 27/09/2026 Sleeper aveva gia'
+ * messo nel totale il Thursday Night (Bijan Robinson a 3 partite) e quindi
+ * "la week 3 e' dentro" per tutti: a chi giocava la domenica restavano i punti
+ * di due partite, a Bijan quelli di tre.
+ *
+ * Ora per ogni giocatore si confrontano le date: se il suo totale e' stato
+ * riscritto DOPO il suo tabellino di quella giornata, la giornata e' gia'
+ * dentro e non si somma; altrimenti si somma. Si guardano la giornata prima
+ * della copertura (il martedi' il totale arriva a pezzi) fino a due oltre,
+ * fermandosi alla prima giornata non ancora cominciata.
  */
 async function aggiungiGiornateInCorso(map, year, listaStagione) {
     if (!stagioneInCorso(year)) return;
     const copertura = Math.max(0, ...listaStagione.map(e => +(e.stats?.gp || 0)));
-    const totaleAl = Math.max(0, ...listaStagione.map(e => +(e.last_modified || 0)));
+    // quando e' stato riscritto il totale di ciascuno
+    const totaleAl = new Map();
+    for (const e of listaStagione) {
+        const id = e.player_id ?? e.player?.player_id;
+        if (id != null) totaleAl.set(String(id), +(e.last_modified || 0));
+    }
 
-    for (let w = copertura + 1; w <= copertura + 3; w++) {
+    for (let w = Math.max(1, copertura - 1); w <= copertura + 2; w++) {
         let lista;
         try {
             const res = await fetch(urlFor('stats', `${year}/${w}`));
@@ -269,11 +292,12 @@ async function aggiungiGiornateInCorso(map, year, listaStagione) {
         } catch { return; }
 
         const conStat = (lista || []).filter(e => (e.stats?.gp || 0) > 0);
-        if (!conStat.length) return;                                   // giornata non ancora cominciata
-        const giornataAl = Math.max(...conStat.map(e => +(e.last_modified || 0)));
-        if (totaleAl >= giornataAl) return;                            // già dentro al totale
+        if (!conStat.length) { if (w > copertura) return; continue; }   // giornata non ancora cominciata
 
         for (const e of conStat) {
+            const id = e.player_id ?? e.player?.player_id;
+            const nelTotale = totaleAl.get(String(id));
+            if (nelTotale != null && nelTotale >= +(e.last_modified || 0)) continue;   // gia' dentro
             const voce = voceStat(e);
             if (!voce) continue;
             const key = `${normName(voce.name)}|${voce.pos}`;

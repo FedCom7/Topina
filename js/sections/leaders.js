@@ -19,13 +19,13 @@
 import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=595';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=176';
-import { TEAMS } from './team.js?v=840';
+import { TEAMS } from './team.js?v=841';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getSeasonStats } from '../data/projections.js?v=631';
+import { getSeasonStats } from '../data/projections.js?v=632';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=896';
+} from './analysis.js?v=897';
 import { getPlayerWeekly } from '../data/player-full.js?v=671';
 
 let initialized = false;
@@ -82,15 +82,20 @@ function renderPickRow() {
 async function roseVive(anno) {
     if (String(anno) !== String(CURRENT_SEASON)) return null;
     try {
-        const { matchups, drafted } = await fetchLeagueWeek(anno);
+        const { week, matchups, drafted } = await fetchLeagueWeek(anno);
         if (!drafted) return null;
         const out = new Map();
+        // la settimana delle rose: serve al dettaglio, che per quella giornata
+        // deve dire la squadra di adesso e non "Unrostered"
+        out.settimana = week;
         for (const m of matchups || []) {
             for (const t of [m.team1, m.team2]) {
                 const k = TEAM_KEYS[displayName(t?.name)] || null;
                 if (!k) continue;
-                for (const p of [...(t.starters || []), ...(t.bench || [])]) {
-                    if (p?.name && !p.placeholder) out.set(chiave(p.name), { key: k, nome: p.name });
+                for (const [lista, titolare] of [[t.starters || [], true], [t.bench || [], false]]) {
+                    for (const p of lista) {
+                        if (p?.name && !p.placeholder) out.set(chiave(p.name), { key: k, nome: p.name, titolare });
+                    }
                 }
             }
         }
@@ -348,7 +353,7 @@ async function load() {
         wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No player stats for ${anno}</p></div>`;
         return;
     }
-    stato = { stats, model, roseIdx: indiceRose(model, vive) };
+    stato = { stats, model, vive, roseIdx: indiceRose(model, vive) };
     render();
 }
 
@@ -468,8 +473,19 @@ async function apriDrill(row, idx) {
         // Il nome della lega se il giocatore e' passato da una rosa: il modello
         // lo conosce cosi' ("Kenneth Walker III"), non come lo scrive Sleeper.
         const nomeLega = stato.roseIdx.get(chiave(e.name))?.nome || e.name;
+        // La giornata in corso non e' ancora su Firebase — o c'e' solo il
+        // segnaposto del martedi', scritto prima delle prese del mercoledi':
+        // Bryce Young, preso da Oscurus in settimana, in week 3 risultava
+        // "Unrostered" mentre giocava titolare. Per quella giornata comandano
+        // le rose ESPN vive.
+        const viva = stato.vive?.settimana
+            ? { week: stato.vive.settimana, ...(stato.vive.get(chiave(e.name)) || {}) }
+            : null;
         righe = await playerSeasonDrill(anno, { name: nomeLega, position: e.pos, nflTeam: e.team },
-            { model: stato.model, extraScores, lastWeek: ultimaGiornata(), teamOnBadge: true });
+            {
+                model: stato.model, extraScores, lastWeek: ultimaGiornata(), teamOnBadge: true,
+                liveWeek: viva ? { week: viva.week, teamKey: viva.key || null, started: !!viva.titolare } : null,
+            });
     } catch { righe = ''; }
     // Nel frattempo si puo' aver cambiato anno o filtro: il contenitore di
     // allora non esiste piu', e scriverci dentro riempirebbe una riga che ora

@@ -12,7 +12,7 @@
 
 import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=623';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { TEAMS } from '../sections/team.js?v=840';
+import { TEAMS } from '../sections/team.js?v=841';
 import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
 
 const MOBILE_MQ = '(max-width: 768px)';
@@ -416,7 +416,7 @@ async function datiPeek(nome) {
     }
 
     if (nome === 'leaders') {
-        const { getSeasonStats } = await import('../data/projections.js?v=631');
+        const { getSeasonStats } = await import('../data/projections.js?v=632');
         const mappa = await getSeasonStats(CURRENT_SEASON);
         return [...mappa.values()]
             .filter(e => e.ptsLeague != null && e.pos !== 'DEF')
