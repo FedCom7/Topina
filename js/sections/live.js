@@ -1598,12 +1598,39 @@ function festeDaRivedere(eventi) {
         if (!campo?.querySelector(`[data-slot-player="${CSS.escape(ev.name)}"]`)) continue;
         for (const c of ev.changes || []) {
             if (!(c.delta > 0)) continue;
+            // i calci si contano a parte, sotto: ogni field goal porta DUE
+            // chiavi (fg_made e quella della distanza) e le feste raddoppiavano
+            if (CHIAVI_FG.includes(c.key)) continue;
             const spec = effettoPer({ changes: [c] });
             if (!spec) continue;
             for (let k = 0; k < Math.min(c.delta, 4); k++) out.push({ nome: ev.name, spec });
         }
+        const { lunghi, altri } = calciDi(ev);
+        const da = (chiave, n) => {
+            const spec = effettoPer({ changes: [{ key: chiave, delta: 1 }] });
+            for (let k = 0; spec && k < Math.min(n, 4); k++) out.push({ nome: ev.name, spec });
+        };
+        da('fg_50_plus', lunghi);
+        da('fg_made', altri);
     }
     return out.sort((a, b) => a.spec.rango - b.spec.rango);
+}
+
+/** Le chiavi di un field goal riuscito: il totale e le tre fasce di distanza. */
+const CHIAVI_FG = ['fg_made', 'fg_0_39', 'fg_40_49', 'fg_50_plus'];
+
+/**
+ * Quanti field goal ha segnato un giocatore fra due fotografie, UNA volta
+ * ciascuno. `fg_made` e' il totale; le fasce lo ripetono divise per distanza,
+ * quindi sommarle tutte contava ogni calcio due volte. Se il totale manca (una
+ * fonte che porta solo le fasce) si ricompone dalle fasce.
+ */
+function calciDi(ev) {
+    const d = (k) => Math.max(0, (ev.changes || []).find(c => c.key === k)?.delta || 0);
+    const fasce = d('fg_0_39') + d('fg_40_49') + d('fg_50_plus');
+    const tot = Math.max(d('fg_made'), fasce);
+    const lunghi = Math.min(d('fg_50_plus'), tot);
+    return { tot, lunghi, altri: tot - lunghi };
 }
 
 /**
@@ -1690,7 +1717,7 @@ function riassuntoRitorno(eventi) {
         .filter(c => chiavi.includes(c.key) && c.delta > 0).reduce((x, c) => x + c.delta, 0), 0);
     const fatti = [
         [conta(['pass_td', 'rush_td', 'rec_td', 'def_td', 'ret_td', 'fum_td', 'def_ret_td']), 'touchdown', 'touchdowns'],
-        [conta(['fg_made', 'fg_0_39', 'fg_40_49', 'fg_50_plus']), 'field goal', 'field goals'],
+        [eventi.reduce((a, e) => a + calciDi(e).tot, 0), 'field goal', 'field goals'],
         [conta(['sack']), 'sack', 'sacks'],
         [conta(['def_int']), 'interception', 'interceptions'],
         [conta(['pass_int', 'fum_lost']), 'turnover', 'turnovers'],
