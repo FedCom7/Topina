@@ -3763,8 +3763,8 @@ function nflGamesListHTML(team) {
         return `
         <div class="live-nfl-row${g.state === 'in' ? ' live-nfl-row--live' : ''}">
             <span class="live-nfl-teams">
-                ${g.state === 'in' ? '<i class="gb-live-dot"></i>' : ''}
                 ${escAttr(fuoriCasa ? `${g.sigla} @ ${avversario}` : `${avversario} @ ${g.sigla}`)}
+                ${g.state === 'in' ? '<i class="gb-live-dot"></i>' : ''}
             </span>
             ${punteggio}
             <span class="live-nfl-when">${escAttr(g.state === 'in' ? (g.detail || '') : g.state === 'post' ? 'Final' : '')}</span>

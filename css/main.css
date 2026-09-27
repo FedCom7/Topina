@@ -20820,8 +20820,9 @@ td.ps-div-seed {
     gap: 8px;
     padding: 12px 14px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-subtle);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-card);
+    /* nero pieno come il pannello che le contiene: a separarle basta il bordo */
+    background: var(--surface-card);
 }
 
 /* giocata da punti: bordo acceso sul lato, senza urlare */
@@ -21374,8 +21375,8 @@ td.ps-div-seed {
 
 .live-nfl-row:last-child { border-bottom: none; }
 
-/* partita in corso: si distingue dal fondo, non da un colore urlato */
-.live-nfl-row--live { background: rgba(255, 255, 255, 0.05); }
+/* partita in corso: fondo nero come le altre, la distingue il pallino verde */
+.live-nfl-row--live { background: var(--surface-card); }
 
 .live-nfl-teams {
     display: flex;
