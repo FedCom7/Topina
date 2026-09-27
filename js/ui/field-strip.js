@@ -833,7 +833,9 @@ function situazione(s) {
         ? `${s.down}${['st', 'nd', 'rd', 'th'][Math.min(s.down, 4) - 1]} & ${s.distance ?? 10}`
         : '';
     const dove = s.toEZ != null && s.possesso
-        ? ` at ${s.toEZ <= 50 ? esc(s[s.possesso === 'home' ? 'away' : 'home'].abbr) : esc(s[s.possesso].abbr)} ${s.toEZ <= 50 ? s.toEZ : 100 - s.toEZ}`
+        // in uno span suo: dove lo scorebug e' stretto (Inside the game, sul
+        // telefono) si toglie questo e resta il down & distance
+        ? `<span class="fst-dove"> at ${s.toEZ <= 50 ? esc(s[s.possesso === 'home' ? 'away' : 'home'].abbr) : esc(s[s.possesso].abbr)} ${s.toEZ <= 50 ? s.toEZ : 100 - s.toEZ}</span>`
         : '';
     // Il down & distance sta SOPRA: e' il dato che cambia a ogni giocata ed
     // e' quello che si guarda per primo; l'orologio fa da contorno.

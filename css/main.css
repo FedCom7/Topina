@@ -30000,3 +30000,9 @@ body.nr-open {
     .fc-names { gap: 3px 10px; }
     .fc-p { font-size: 0.74rem; }
 }
+
+/* Inside the game sul telefono: lo scorebug e' stretto e "at MIN 0" usciva
+   tagliato. Resta il down & distance, la posizione la dice il campo sotto. */
+@media (max-width: 700px) {
+    .live-deep .fst-dove { display: none; }
+}

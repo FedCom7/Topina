@@ -268,6 +268,15 @@ function riga(e, adv, togli = null) {
     // snap. `togli` e' la produzione di quelle partite (partiteSenzaSnap): le
     // misure PER SNAP la lasciano fuori finche' gli snap non arrivano; i
     // conteggi della tabella restano interi.
+    //
+    // Si toglie solo se la riga stagionale quelle partite le CONTIENE. Il
+    // 27/09/2026 il totale di chi giocava la domenica non aveva ancora la week
+    // 3 (la cache, o Sleeper in ritardo), ma la si toglieva lo stesso: TD
+    // negativi e "a touchdown every -62 min". Se togliendo qualcosa va sotto
+    // zero, quelle partite nella riga non ci sono e non c'e' niente da togliere.
+    const chiavi = [[rushAtt, 'rush_att'], [tgt, 'rec_tgt'], [rushTd, 'rush_td'], [recTd, 'rec_td'],
+        [passTd, 'pass_td'], [rushYd, 'rush_yd'], [recYd, 'rec_yd'], [passYd, 'pass_yd']];
+    if (togli && chiavi.some(([v, k]) => v - conta(togli[k]) < 0)) togli = null;
     const t = togli || {};
     const q = (v, k) => v - conta(t[k]);
     const sRushAtt = q(rushAtt, 'rush_att'), sTgt = q(tgt, 'rec_tgt');

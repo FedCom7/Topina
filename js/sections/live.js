@@ -20,7 +20,7 @@ import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { TEAMS } from './team.js?v=841';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
-import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=146';
+import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=147';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
@@ -1690,20 +1690,52 @@ function lanciaFestaRivista(f) {
         { durata: REPLICA_FESTA_MS });
 }
 
+/**
+ * I touchdown veri, non la somma delle statistiche: un passaggio da TD sta
+ * due volte nei dati — `pass_td` al quarterback e `rec_td` al ricevitore — e
+ * se li abbiamo tutti e due (anche in due squadre diverse) e' UN touchdown.
+ * Squadra NFL per squadra NFL: i TD ricevuti contano sempre, quelli lanciati
+ * solo per la parte che nessuno dei nostri ha preso.
+ */
+function touchdownDi(eventi) {
+    const d = (e, k) => Math.max(0, (e.changes || []).find(c => c.key === k)?.delta || 0);
+    const perSquadra = new Map();
+    let altri = 0;
+    for (const e of eventi) {
+        const nfl = canonAbbr(e.nfl || '') || teamAbbrFromName(e.name) || e.name;
+        const s = perSquadra.get(nfl) || { lanciati: 0, presi: 0 };
+        s.lanciati += d(e, 'pass_td');
+        s.presi += d(e, 'rec_td');
+        perSquadra.set(nfl, s);
+        altri += d(e, 'rush_td') + d(e, 'ret_td') + d(e, 'fum_td') + d(e, 'def_td') + d(e, 'def_ret_td');
+    }
+    let tot = altri;
+    for (const s of perSquadra.values()) tot += s.presi + Math.max(0, s.lanciati - s.presi);
+    return tot;
+}
+
 /** Cosa dire nel cartello: quanto ha fatto ognuna delle due squadre, e cosa e' successo. */
 function riassuntoRitorno(eventi) {
     const entry = teamEntries()[teamIdx];
-    const squadre = [entry?.team, entry?.opp].filter(Boolean).map(t => {
+    // Solo la squadra selezionata: e' la tua giornata che si riassume, non la
+    // sfida. L'avversario si vede comunque nel tabellone sotto.
+    const squadre = [entry?.team].filter(Boolean).map(t => {
         const titolari = new Set((t.starters || []).map(p => p.name));
         const punti = eventi.filter(e => e.team === t.name && titolari.has(e.name))
             .reduce((a, e) => a + e.ptsDelta, 0);
         return { nome: displayName(t.name), punti };
     });
-    const conta = (chiavi) => eventi.reduce((a, e) => a + (e.changes || [])
+    // I fatti sono quelli della squadra selezionata: solo i suoi titolari,
+    // quelli i cui punti stanno nel cartello. Prima si contava tutta la lega —
+    // panchine e l'altra sfida comprese — e i touchdown uscivano il doppio.
+    const inCampo = new Set([entry?.team].filter(Boolean)
+        .flatMap(t => (t.starters || []).map(p => `${t.name}|${p.name}`)));
+    const nostri = eventi.filter(e => inCampo.has(`${e.team}|${e.name}`));
+    const conta = (chiavi) => nostri.reduce((a, e) => a + (e.changes || [])
         .filter(c => chiavi.includes(c.key) && c.delta > 0).reduce((x, c) => x + c.delta, 0), 0);
     const fatti = [
-        [conta(['pass_td', 'rush_td', 'rec_td', 'def_td', 'ret_td', 'fum_td', 'def_ret_td']), 'touchdown', 'touchdowns'],
-        [eventi.reduce((a, e) => a + calciDi(e).tot, 0), 'field goal', 'field goals'],
+        [touchdownDi(nostri), 'touchdown', 'touchdowns'],
+        [nostri.reduce((a, e) => a + calciDi(e).tot, 0), 'field goal', 'field goals'],
         [conta(['sack']), 'sack', 'sacks'],
         [conta(['def_int']), 'interception', 'interceptions'],
         [conta(['pass_int', 'fum_lost']), 'turnover', 'turnovers'],
