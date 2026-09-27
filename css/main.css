@@ -20203,30 +20203,16 @@ td.ps-div-seed {
 /* Chi ha la palla adesso — arancio — e chi in più ce l'ha in red zone —
    rosso: lo stesso segnale dell'app Fantasy ESPN, che non sa quali 11 sono
    davvero in campo e quindi accende tutta la squadra che sta attaccando (o
-   difendendo, per un D/ST). Qui il campo/panchina non ha un riquadro suo
-   (vedi sopra, "senza card"): senza uno sfondo pieno da cui partire, un
-   contorno colorato si perdeva sull'erba. Vince sull'anello verde di sopra
-   perché arriva dopo nel foglio, a parità di specificità: sapere CHI ha la
-   palla è più utile di sapere che la partita è in corso, che qui vale
-   comunque (la palla non ce l'ha nessuno se il gioco è fermo). */
-.live-field-solo .formation-slot.live-slot--onball,
-.live-bench .formation-slot.live-slot--onball {
-    background: color-mix(in srgb, var(--accent-amber) 24%, transparent);
-    border-radius: 14px;
-    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent-amber) 55%, transparent) inset;
-}
-
+   difendendo, per un D/ST). Il segnale sta SOLO nell'anello attorno alla
+   foto: il riquadro colorato attorno a tutta la card e' stato tolto il
+   2026-09-27, un rettangolo sull'erba a strisce era di troppo. Vince
+   sull'anello verde di sopra perché arriva dopo nel foglio, a parità di
+   specificità: sapere CHI ha la palla è più utile di sapere che la partita è
+   in corso. */
 .live-field-solo .formation-slot.live-slot--onball .slot-photo,
 .live-bench .formation-slot.live-slot--onball .slot-photo {
     border-color: var(--accent-amber);
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent-amber) 55%, transparent);
-}
-
-.live-field-solo .formation-slot.live-slot--redzone,
-.live-bench .formation-slot.live-slot--redzone {
-    background: color-mix(in srgb, var(--accent-red) 32%, transparent);
-    border-radius: 14px;
-    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent-red) 65%, transparent) inset;
 }
 
 .live-field-solo .formation-slot.live-slot--redzone .slot-photo,
