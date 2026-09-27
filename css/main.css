@@ -19827,22 +19827,23 @@ td.ps-div-seed {
     color: var(--text-muted);
 }
 
-/* Il verde del prato del Live, in un posto solo.
-   Era quasi nero; ora e' un verde da campo vero, ancora scuro abbastanza da
-   reggere nomi bianchi e punteggi colorati sopra. Per schiarirlo o scurirlo
-   si toccano questi tre valori (alto, mezzo, fondo) e basta. */
+/* Il prato del Live ha i colori del campo del Game Center (field-gc-svg.js:
+   GRASS_A / GRASS_B), strisce alterne ogni 5 yard. Se cambiano la', vanno
+   cambiati qui. */
 .live-field-solo {
-    --fsv-turf-1: #2f4a3c;
-    --fsv-turf-2: #284033;
-    --fsv-turf-3: #1f342a;
+    --fsv-grass-a: #90b070;
+    --fsv-grass-b: #306040;
+    /* il velo opaco sopra tutto il prato: grigio, non nero, cosi' opacizza
+       invece di scurire */
+    --fsv-veil: rgba(58, 60, 56, 0.34);
 }
 
 .live-field-solo .field-svg {
     display: block;
     object-fit: fill;
-    /* annulla il brightness(0.62) di .field-bg, che serve ai wallpaper del
-       Game Center e non al campo disegnato del Live */
-    filter: none;
+    /* scurito come .field-bg nel Game Center (0.62), ma meno: qui il campo
+       riempie mezza pagina e a quel livello pesava troppo */
+    filter: brightness(0.78) saturate(0.75);
 }
 
 .fsv-num {
@@ -28136,3 +28137,294 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     font-variant-numeric: tabular-nums;
 }
 
+
+/* ============================================================
+   NEXT UP — linguetta a destra e pannello che ne esce (Live)
+   Sotto la scheda giocatore (1200): dal pannello si apre la
+   scheda, e deve stargli sopra.
+   ============================================================ */
+.nu-tab {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 7px;
+    border: 1px solid var(--bg-glass-border);
+    border-right: 0;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.25), var(--glass-sheen);
+    cursor: pointer;
+    font: 700 11px/1 var(--font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: padding-right 0.2s ease, background 0.2s ease;
+}
+.nu-tab[hidden] { display: none; }
+.nu-tab:hover { padding-right: 11px; background: var(--bg-card-hover); }
+.nu-tab:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.nu-tab-txt { writing-mode: vertical-rl; transform: rotate(180deg); }
+.nu-tab-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--pill-radius);
+    display: grid;
+    place-items: center;
+    font: 800 10px/1 var(--font-body);
+    letter-spacing: 0;
+    color: #fff;
+    background: var(--text-muted);
+}
+.nu-tab-badge[hidden] { display: none; }
+.nu-tab-badge--fix { background: var(--accent-red); }
+.nu-tab-badge--check { background: var(--accent-amber); }
+body.nu-open .nu-tab { visibility: hidden; }
+
+.nu-velo {
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+body.nu-open .nu-velo { opacity: 1; pointer-events: auto; }
+body.nu-open { overflow: hidden; }
+
+.nu-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1100;
+    width: min(400px, 92vw);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-left: 1px solid var(--bg-glass-border);
+    box-shadow: -18px 0 48px rgba(0, 0, 0, 0.35);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.3s;
+}
+body.nu-open .nu-panel {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+}
+/* la barra in cima non scorre: la X non finisce mai sopra la lista */
+.nu-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.nu-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-card);
+    background: var(--bg-glass);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+}
+.nu-close:hover { color: var(--text-primary); }
+.nu-body {
+    flex: 1;
+    overflow-y: auto;
+    /* barra di scorrimento nera e sottile, senza frecce */
+    scrollbar-width: thin;
+    scrollbar-color: #000 transparent;
+    overscroll-behavior: contain;
+    padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.nu-body::-webkit-scrollbar { width: 6px; }
+.nu-body::-webkit-scrollbar-track { background: transparent; }
+.nu-body::-webkit-scrollbar-thumb { background: #000; border: 1px solid var(--border-card); border-radius: 3px; }
+.nu-body::-webkit-scrollbar-button { display: none; }
+.nu-head { padding-top: 14px; }
+.nu-kicker {
+    font: 700 10px/1 var(--font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.nu-head h2 { margin: 0 0 4px; font: 800 20px/1.15 var(--font-display); }
+.nu-head p { margin: 0; font-size: 12px; color: var(--text-muted); }
+
+.nu-sec h3 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    font: 700 12px/1.2 var(--font-body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+.nu-sec h3 small {
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.nu-alerts, .nu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nu-alert {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-card);
+    border-left-width: 3px;
+    background: var(--bg-glass);
+    font-size: 13px;
+    line-height: 1.4;
+}
+.nu-alert.is-fix { border-left-color: var(--accent-red); }
+.nu-alert.is-check { border-left-color: var(--accent-amber); }
+.nu-alert-tag {
+    padding: 3px 7px;
+    border-radius: var(--radius-xs);
+    font: 800 10px/1 var(--font-body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+}
+.nu-alert.is-fix .nu-alert-tag { background: var(--accent-red); }
+.nu-alert.is-check .nu-alert-tag { background: var(--accent-amber); }
+.nu-alert-txt small {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.nu-ok {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-card);
+    border-left: 3px solid var(--accent-green);
+    background: var(--bg-glass);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.nu-row {
+    display: grid;
+    grid-template-columns: 36px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+.nu-row:hover { background: var(--bg-glass); }
+.nu-row.is-bench { opacity: 0.62; }
+.nu-row.is-fix { border-color: color-mix(in srgb, var(--accent-red) 55%, transparent); opacity: 1; }
+.nu-row.is-check { border-color: color-mix(in srgb, var(--accent-amber) 55%, transparent); opacity: 1; }
+.nu-photo {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-tertiary);
+}
+.nu-who { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nu-who b { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nu-who small { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nu-slot {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+    font-style: normal;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-card);
+}
+.nu-slot--bench { color: var(--text-muted); }
+.nu-inj {
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+    font: 800 10px/1.2 var(--font-body);
+    color: var(--accent-amber);
+    border: 1px solid currentColor;
+}
+.nu-proj {
+    min-width: 36px;
+    text-align: right;
+    font: 700 13px/1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+.nu-proj--real { color: var(--text-primary); }
+.nu-sec--live h3 { color: var(--accent-green); }
+.nu-row.is-live .nu-photo { box-shadow: 0 0 0 2px var(--accent-green); }
+
+/* Gia' giocati: barrati e spenti, perche' non c'e' piu' niente da decidere */
+.nu-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 -6px;
+    font: 700 10px/1 var(--font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.nu-divider::before, .nu-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-card); }
+.nu-sec--done h3 { color: var(--text-muted); }
+.nu-row.is-done { opacity: 0.45; }
+.nu-row.is-done .nu-who b,
+.nu-row.is-done .nu-proj {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    text-decoration-color: var(--text-secondary);
+}
+.nu-row.is-done .nu-photo { filter: grayscale(1); }
+
+@media (max-width: 600px) {
+    .nu-tab { padding: 12px 5px; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .nu-panel, body.nu-open .nu-panel, .nu-velo { transition: none; }
+}
+
+/* Sul prato a strisce (verde chiaro + velo) il blu della proiezione e il
+   grigio di chi deve ancora giocare si perdevano: qui si schiariscono e si
+   staccano con un'ombra piu' piena. Solo sul campo del Live. */
+.live-field-solo .live-slot .slot-pts .proj-pts {
+    color: #9cc3ff;
+    opacity: 1;
+}
+.live-field-solo .formation-slot.live-slot .slot-pts {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+.is-giornata .live-field-solo .live-slot--soon { opacity: 0.62; }
+.is-giornata .live-field-solo .live-slot--soon .slot-pts { color: #e6e3dc; }
+.live-field-solo .fsv-num { fill: rgba(255, 255, 255, 0.16); }

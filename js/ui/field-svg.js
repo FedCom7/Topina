@@ -57,6 +57,18 @@ function yardLines() {
     return out.join('');
 }
 
+/**
+ * Le strisce d'erba scura, una fascia si' e una no fra due yard line: la
+ * stessa alternanza del campo del Game Center (field-gc-svg.js, `erba()`).
+ */
+function strisce() {
+    const out = [];
+    for (let i = 0, y = EZ_H; y < VB_H; i++, y += YARD_GAP) {
+        if (i % 2 === 1) out.push(`<rect x="0" y="${y}" width="${VB_W}" height="${YARD_GAP}" fill="var(--fsv-grass-b, #306040)"/>`);
+    }
+    return out.join('');
+}
+
 /** I trattini al centro del campo, due file, uno ogni yard. */
 function hashMarks() {
     const out = [];
@@ -73,35 +85,22 @@ export function fieldSVG() {
     return `
     <svg class="field-bg field-svg" viewBox="0 0 ${VB_W} ${VB_H}"
          preserveAspectRatio="xMidYMin slice" aria-hidden="true" focusable="false">
-        <defs>
-            <!-- Prato: i tre toni stanno in altrettante variabili CSS
-                 (--fsv-turf-1/2/3, in main.css), cosi' il colore si corregge
-                 da li' senza rimettere mano al disegno. I valori scritti qui
-                 sono solo il ripiego. -->
-            <linearGradient id="fsv-turf" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="var(--fsv-turf-1, #2f4a3c)"/>
-                <stop offset="0.55" stop-color="var(--fsv-turf-2, #284033)"/>
-                <stop offset="1" stop-color="var(--fsv-turf-3, #1f342a)"/>
-            </linearGradient>
-            <linearGradient id="fsv-ez" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="var(--tc-sel, #b8433a)" stop-opacity="0.34"/>
-                <stop offset="1" stop-color="var(--tc-sel, #b8433a)" stop-opacity="0.12"/>
-            </linearGradient>
-            <!-- riga d'erba: il taglio del prato, appena percettibile -->
-            <pattern id="fsv-mow" width="1" height="${YARD_GAP * 2}" patternUnits="userSpaceOnUse">
-                <rect width="${VB_W}" height="${YARD_GAP}" fill="rgba(255,255,255,0.014)"/>
-            </pattern>
-        </defs>
-
-        <rect width="${VB_W}" height="${VB_H}" fill="url(#fsv-turf)"/>
-        <rect width="${VB_W}" height="${VB_H}" fill="url(#fsv-mow)"/>
+        <!-- Prato: le strisce del taglio, una ogni 5 yard, coi due verdi del
+             Game Center (--fsv-grass-a/b in main.css). Lo scurimento e' quello
+             del Game Center, come filtro CSS su tutto il disegno. -->
+        <rect width="${VB_W}" height="${VB_H}" fill="var(--fsv-grass-a, #90b070)"/>
+        ${strisce()}
 
         <!-- end zone: da bordo a bordo, senza cornice -->
-        <rect x="0" y="0" width="${VB_W}" height="${EZ_H}" fill="url(#fsv-ez)"/>
+        <rect x="0" y="0" width="${VB_W}" height="${EZ_H}" fill="var(--tc-sel, #cf3e38)"/>
         <line x1="0" y1="${EZ_H}" x2="${VB_W}" y2="${EZ_H}"
               stroke="rgba(255,255,255,0.28)" stroke-width="3"/>
 
         ${yardLines()}
         ${hashMarks()}
+
+        <!-- velo opaco: spegne la lucentezza di erba e end zone senza
+             scurirle troppo. Tono e forza in --fsv-veil (main.css). -->
+        <rect width="${VB_W}" height="${VB_H}" fill="var(--fsv-veil, transparent)"/>
     </svg>`;
 }

@@ -27,7 +27,7 @@ import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=574';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=175';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { fieldSVG } from '../ui/field-svg.js?v=28';
+import { fieldSVG } from '../ui/field-svg.js?v=30';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
 import { initPlayerModal } from '../components/player-modal.js?v=789';
@@ -38,6 +38,8 @@ import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { costruisciRace, asseVivo } from '../data/live-race.js?v=3';
+import { prossimiDi } from '../data/next-up.js?v=3';
+import { aggiornaPannello } from '../ui/next-up-panel.js?v=3';
 
 const POLL_MS = 30000;
 
@@ -1479,6 +1481,7 @@ function refreshInPlace(events = []) {
 
     // la race: i punteggi ufficiali sono cambiati, e con loro l'ultimo gradino
     aggiornaRace();
+    aggiornaProssimi();
 }
 
 /**
@@ -1839,6 +1842,138 @@ function chiEDellaRace(idx) {
 /** La partita NFL di un titolare (le difese hanno la squadra solo nel nome). */
 const partitaDi = (p) => liveSchedule?.get(canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name) || '') || null;
 
+/* ============================================================
+   NEXT UP — chi deve ancora giocare, e cosa sistemare prima
+   ============================================================ */
+
+const QUANDO_NU = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+const quandoNU = (ms) => QUANDO_NU.format(new Date(ms)).replace(',', '');
+
+/** "in 2h 05m" fino al kickoff: e' la scadenza, e va letta a colpo d'occhio. */
+function traQuanto(ms) {
+    const min = Math.round((ms - Date.now()) / 60000);
+    if (min <= 0) return 'kicking off now';
+    if (min < 60) return `in ${min} min`;
+    const h = Math.floor(min / 60), m = min % 60;
+    if (h < 24) return `in ${h}h ${String(m).padStart(2, '0')}m`;
+    return `in ${Math.floor(h / 24)}d ${h % 24}h`;
+}
+
+const statoCortoNU = (stato) => {
+    const k = String(stato).toLowerCase().replace(/[^a-z]+/g, '-');
+    return INJ_LABEL[k]?.[0] || '';
+};
+
+function prossimiHTML(dati, squadra) {
+    // chi compare in un avviso si riconosce anche nella lista, col suo colore
+    const segnati = new Map();
+    for (const a of dati.avvisi) {
+        for (const n of a.chi) if (!segnati.has(n) || a.livello === 'fix') segnati.set(n, a.livello);
+    }
+    const riga = (v) => {
+        const p = v.p;
+        // chi ha gia' giocato porta i punti veri, non piu' la proiezione
+        const fatto = v.gioca === 'post' || v.gioca === 'in';
+        const avv = String(p.opponent || '');
+        const vs = avv ? `${avv.startsWith('@') ? '@' : 'vs'} ${escAttr(avv.replace('@', ''))}` : '';
+        const inj = statoCortoNU(v.stato);
+        const segno = segnati.get(p.name);
+        return `
+        <li class="nu-row${v.titolare ? '' : ' is-bench'}${segno ? ` is-${segno}` : ''}${v.gioca === 'post' ? ' is-done' : ''}${v.gioca === 'in' ? ' is-live' : ''}" data-player-modal
+            data-player-name="${escAttr(p.name)}" data-pos="${escAttr(v.pos)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}">
+            <img class="nu-photo" src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
+                data-headshot data-player-name="${escAttr(p.name)}" data-team="${escAttr(p.nfl_team || '')}" data-pos="${escAttr(v.pos)}">
+            <span class="nu-who">
+                <b>${escAttr(p.name)}</b>
+                <small><em class="${v.titolare ? 'nu-slot' : 'nu-slot nu-slot--bench'}">${v.titolare ? escAttr(v.slot) : 'Bench'}</em>${v.pos}${vs ? ` · ${vs}` : ''}</small>
+            </span>
+            ${inj ? `<span class="nu-inj" title="${escAttr(v.stato)}">${inj}</span>` : '<span></span>'}
+            ${fatto
+                ? `<span class="nu-proj nu-proj--real" title="Fantasy points">${fmt(P(p.fantasy_points))}</span>`
+                : `<span class="nu-proj" title="Projected points">${v.proj != null ? v.proj.toFixed(1) : '—'}</span>`}
+        </li>`;
+    };
+
+    const avvisi = dati.avvisi.length ? `
+        <section class="nu-sec">
+            <h3>Before kickoff</h3>
+            <ol class="nu-alerts">${dati.avvisi.map(a => `
+                <li class="nu-alert is-${a.livello}">
+                    <span class="nu-alert-tag">${a.livello === 'fix' ? 'Fix' : 'Check'}</span>
+                    <span class="nu-alert-txt">${escAttr(a.testo)}
+                        <small>${a.scadenza ? `locks ${quandoNU(a.scadenza)} · ${traQuanto(a.scadenza)}` : 'this week'}</small></span>
+                </li>`).join('')}
+            </ol>
+        </section>` : `
+        <p class="nu-ok">Nothing to fix: every starter still to play is healthy, and no bench player projects
+           clearly more than the starter he could replace.</p>`;
+
+    const gruppi = dati.gruppi.map(g => `
+        <section class="nu-sec">
+            <h3>${quandoNU(g.kickoff)} <small>${traQuanto(g.kickoff)}</small></h3>
+            <ul class="nu-list">${g.giocatori.map(riga).join('')}</ul>
+        </section>`).join('');
+
+    const inCorso = dati.inCorso.length ? `
+        <section class="nu-sec nu-sec--live">
+            <h3>Playing now <small>locked</small></h3>
+            <ul class="nu-list">${dati.inCorso.map(riga).join('')}</ul>
+        </section>` : '';
+
+    // barrati, in fondo: servono a vedere la settimana intera, non a decidere
+    const giocati = dati.giocati.map(g => `
+        <section class="nu-sec nu-sec--done">
+            <h3>${quandoNU(g.kickoff)} <small>Final</small></h3>
+            <ul class="nu-list">${g.giocatori.map(riga).join('')}</ul>
+        </section>`).join('');
+
+    const bye = dati.bye.length ? `
+        <section class="nu-sec">
+            <h3>No game this week</h3>
+            <ul class="nu-list">${dati.bye.map(riga).join('')}</ul>
+        </section>` : '';
+
+    return `
+    <header class="nu-head">
+        <h2>${escAttr(displayName(squadra.name))}</h2>
+        <p>Lineups lock player by player, at the kickoff of his game. Italian time.</p>
+    </header>
+    ${avvisi}
+    ${inCorso}
+    ${gruppi}
+    ${bye}
+    ${giocati ? `<p class="nu-divider">Already played</p>${giocati}` : ''}`;
+}
+
+/**
+ * Riscrive la linguetta e il pannello. Si vede solo sul Live, a draft fatto e
+ * col calendario NFL in mano, e solo finche' qualcuno della squadra deve ancora
+ * giocare: a giornata cominciata per tutti non resta niente da decidere.
+ */
+function aggiornaProssimi() {
+    const suLive = (location.hash || '').replace('#', '') === 'live';
+    const entry = teamEntries()[teamIdx];
+    if (!suLive || !entry?.team || !leagueDrafted || !liveSchedule) {
+        aggiornaPannello({ visibile: false });
+        return;
+    }
+    const dati = prossimiDi(entry.team, (p) => {
+        const g = partitaDi(p);
+        return g ? { start: g.start, state: g.state } : null;
+    });
+    const visibile = dati.gruppi.length > 0 || dati.inCorso.length > 0 || dati.avvisi.length > 0;
+    const fix = dati.avvisi.filter(a => a.livello === 'fix').length;
+    aggiornaPannello({
+        visibile,
+        html: prossimiHTML(dati, entry.team),
+        badge: fix ? { n: fix, livello: 'fix' } : dati.avvisi.length ? { n: dati.avvisi.length, livello: 'check' } : null,
+        dopo: (corpo) => hydrateHeadshots(corpo),
+    });
+}
+
+// cambiando pagina la linguetta va via, tornando sul Live ricompare
+if (typeof window !== 'undefined') window.addEventListener('hashchange', () => aggiornaProssimi());
+
 /**
  * Dove va lo scarto di un titolare: all'ultima giocata della sua partita, che
  * a gara finita e' la fine e a gara in corso e' "adesso". Prima del kickoff
@@ -2107,6 +2242,7 @@ function render() {
     festeggiaSegnatura(root.querySelector('.fst'));
     // la race riparte coi nomi degli atleti che la mappa statica non conosce
     aggiornaRace();
+    aggiornaProssimi();
     // Il campo è stato riscritto: il livello effetti se n'è andato con lui,
     // e con esso qualunque festa in volo.
     fermaEffetti();
@@ -2927,7 +3063,7 @@ function fieldHTML(team) {
     return `
     <div class="live-stage${giornataCominciata ? ' is-giornata' : ''}${primaVolta ? '' : ' no-entrance'}">
         <div class="live-field-slider" data-swipe>
-            <div class="matchup-field-horizontal live-field-solo">
+            <div class="matchup-field-horizontal live-field-solo" style="--tc-sel:${teamOf(team.name)?.color || '#cf3e38'}">
                 ${fieldSVG()}
                 ${etichettaRound ? `<span class="live-field-week">${escAttr(etichettaRound)}</span>` : ''}
                 <div class="field-overlay">
