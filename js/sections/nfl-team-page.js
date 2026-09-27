@@ -15,7 +15,6 @@ import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=534';
 import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=683';
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
-import { getFlipCard } from '../data/nfl-flip-card.js?v=1';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { playerImageService } from '../services/player-image-service.js?v=533';
@@ -2932,17 +2931,26 @@ function bindFlipCard(section, ctx) {
         const g = st.games[i];
         const mio = st.abbr;
         const gettone = ++st.gettone;
-        const card = await getFlipCard({
+        // Import DINAMICO, non in testa al file: il 2026-09-27 il modulo e'
+        // arrivato importato ma non committato, e un import statico mancante
+        // fa cadere l'intero grafo dei moduli — app.js non partiva e tutto il
+        // sito restava su "Loading...". Cosi' al massimo si spegne questa tab.
+        let modulo = null;
+        try { modulo = await import('../data/nfl-flip-card.js?v=1'); } catch { modulo = null; }
+        const card = modulo ? await modulo.getFlipCard({
             eventId: g.eventId,
             homeAbbr: g.homeAway === 'home' ? mio : g.opp,
             awayAbbr: g.homeAway === 'home' ? g.opp : mio,
             completed: g.completed,
             weekText: g.weekText, weekNum: g.weekNum, seasonType: g.seasonType, date: g.date,
-        }).catch(() => null);
+        }).catch(() => null) : null;
         // Stato sostituito (cambio stagione) o pillola più nuova: si scarta.
         if (_flipState !== st || gettone !== st.gettone) return;
         const dopo = blocco.querySelector('#nfl-flip-body');
-        if (dopo) dopo.innerHTML = flipCardHtml(card, mio);
+        if (!dopo) return;
+        dopo.innerHTML = modulo
+            ? flipCardHtml(card, mio)
+            : '<p class="pm-note">The flip card is not available right now.</p>';
     };
 
     if (!blocco.dataset.flipBound) {
