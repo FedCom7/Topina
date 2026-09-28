@@ -29992,10 +29992,22 @@ body.nr-open {
 
 @media (max-width: 560px) {
     /* Stretti, l'orario e lo stadio vanno sotto le due squadre: in mezzo a
-       loro resterebbero due parole per riga. */
+       loro resterebbero due parole per riga. E ogni squadra si impila —
+       logo, nome, punteggio — perché in riga il nome veniva troncato a
+       "Pittsbu..." e il record andava a capo sotto il nome dell'allenatore. */
     .fc-head { grid-template-columns: 1fr 1fr; }
     .fc-head-mid { grid-row: 2; grid-column: 1 / -1; }
-    .fc-ht img { width: 28px; height: 28px; }
+    .fc-ht,
+    .fc-head > .fc-ht:last-child {
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        text-align: center;
+    }
+    .fc-ht img { width: 30px; height: 30px; }
+    .fc-ht b { font-size: 0.8rem; line-height: 1.15; white-space: normal; }
+    .fc-ht small { display: none; }
+    .fc-score { font-size: 1.3rem; }
     .fc-row { grid-template-columns: 38px 1fr; padding: 5px 8px; }
     .fc-names { gap: 3px 10px; }
     .fc-p { font-size: 0.74rem; }

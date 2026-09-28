@@ -1104,8 +1104,8 @@ function bindYearRepaint(section, ctx0) {
         set('#nfl-calendar', seasonRibbonBlock(wrap) + teamScheduleBlock(live, wrap));
         set('#nfl-roster', rosterBlock(seasonData.teamRoster));
         set('#nfl-depth', depthChartTab(live, year));
-        set('#nfl-flip', flipCardTab({ ...bctx, live }));
-        bindFlipCard(section, { abbr, live });
+        set('#nfl-flip', flipCardTab({ live }));
+        bindFlipCard(section, { abbr, live, year });
         set('#nfl-injuries', rosterStatusListsBlock({ teamRoster: seasonData.teamRoster, transactions: live.transactions }) + teamInjuriesBlock(wrap));
         set('#nfl-transactions', transactionsBlock(live));
         set('#nfl-news', newsBlock(live));
@@ -2675,17 +2675,14 @@ function depthChartTab(live, year) {
  * La scheda che le squadre stampano il giorno della partita: i due
  * schieramenti riga per riga, gli specialisti, la rosa numerica con la
  * practice squad, gli arbitri. Una per giornata, e si sceglie dalla barra
- * delle settimane in testa al blocco.
+ * delle settimane in testa al blocco. La giornata aperta per prima è la
+ * prossima da giocare, quindi la sezione avanza da sola ogni settimana.
  *
  * Due modi, gestiti dal modulo dati (vedi nfl-flip-card.js): la partita in
  * arrivo mostra il depth chart ufficiale ESPN, quella già giocata mostra chi
  * ha davvero giocato quel giorno — ESPN non conserva i depth chart storici, e
  * ristampare quello di oggi sopra una partita di ottobre sarebbe falso. La
  * nota sotto la card dichiara sempre quale dei due si sta guardando.
- *
- * Caricamento PIGRO: una card costa cinque-sette chiamate ESPN (due depth
- * chart, due rose, il summary) e la pagina squadra ne fa già una ventina
- * all'apertura. Si carica alla prima volta che si apre la tab, non prima.
  */
 
 const FLIP_PANELS = [
@@ -2694,7 +2691,19 @@ const FLIP_PANELS = [
     { key: 'special', label: 'Specialists' },
 ];
 
-let _flipState = null; // { abbr, games, sel, caricato, gettone }
+let _flipState = null; // { abbr, season, games, sel, caricato, gettone }
+
+/** Filetto della fascia: il colore primario, o il secondario quando il primario
+ *  è quasi nero (Pittsburgh #000000, Las Vegas #000000) — su una fascia scura
+ *  quel filetto non si vedrebbe, ed è l'unico segno di squadra della riga. */
+function flipTeamColor(identity) {
+    const hex = identity?.color || '';
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return identity?.color2 || '#888';
+    const n = parseInt(m[1], 16);
+    const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+    return lum < 0.12 ? (identity.color2 || '#888') : hex;
+}
 
 /** Voci di calendario buone per una card: una partita vera, con id evento. */
 function flipGames(live) {
@@ -2704,7 +2713,7 @@ function flipGames(live) {
 }
 
 /** La giornata da aprire per prima: la prossima da giocare, o l'ultima giocata.
- *  È questo che fa "aggiornarsi ogni settimana" la sezione, senza interventi. */
+ *  È questo che fa avanzare la sezione ogni settimana, senza interventi. */
 function flipDefaultIndex(games) {
     const i = games.findIndex(g => !g.completed);
     return i === -1 ? Math.max(0, games.length - 1) : i;
@@ -2773,7 +2782,7 @@ function flipTeamPanels(lato, mode) {
         if (!rows.length) return '';
         return `
         <div class="fc-panel">
-            <h3 class="fc-panel-title" style="--fc-team:${id?.color || '#111'}">
+            <h3 class="fc-panel-title" style="--fc-team:${flipTeamColor(id)}">
                 <img src="${teamLogo(lato.abbr)}" alt=""><span>${esc(id?.name || lato.abbr)} ${label}</span>
             </h3>
             <div class="fc-rows">${rows.map(r => flipRow(r, mode)).join('')}</div>
@@ -2808,7 +2817,7 @@ function flipRosterTable(list, mode) {
         </div>`;
 }
 
-/** Rose numeriche di una squadra: attivi aperti, le altre liste chiuse. */
+/** Rose numeriche di una squadra: la prima lista aperta, le altre chiuse. */
 function flipRosterLists(lato, mode) {
     const id = getTeamIdentity(lato.abbr);
     const gruppi = mode === 'played'
@@ -2821,7 +2830,7 @@ function flipRosterLists(lato, mode) {
         </details>`).join('');
     if (!blocchi) return '';
     return `<div class="fc-panel">
-        <h3 class="fc-panel-title" style="--fc-team:${id?.color || '#111'}">
+        <h3 class="fc-panel-title" style="--fc-team:${flipTeamColor(id)}">
             <img src="${teamLogo(lato.abbr)}" alt=""><span>${esc(id?.name || lato.abbr)} roster</span>
         </h3>
         ${blocchi}
@@ -2836,7 +2845,7 @@ function flipHeader(card) {
             <img src="${teamLogo(lato.abbr)}" alt="">
             <div>
                 <b>${esc(id?.name || lato.abbr)}</b>
-                <small>${[lato.record, lato.coach].filter(Boolean).map(esc).join(' · ') || ''}</small>
+                <small>${[lato.record, lato.coach].filter(Boolean).map(esc).join(' · ')}</small>
             </div>
             ${lato.score != null ? `<span class="fc-score">${esc(String(lato.score))}</span>` : ''}
         </div>`;
@@ -2850,7 +2859,7 @@ function flipHeader(card) {
     <header class="fc-head">
         ${squadra(card.away)}
         <div class="fc-head-mid">
-            <span class="fc-at">at</span>
+            <span class="fc-at">@</span>
             <b>${esc(card.week || '')}</b>
             ${quando ? `<span>${esc(quando)}</span>` : ''}
             ${dove ? `<span>${esc(dove)}</span>` : ''}
@@ -2875,19 +2884,19 @@ function flipCardHtml(card, abbr) {
     if (!card) {
         return `<p class="pm-note">ESPN has no depth chart or game roster for this game yet. The flip card appears as soon as one of the two exists.</p>`;
     }
+    const giocata = card.mode === 'played';
     const mia = card.home.abbr === abbr ? card.home : card.away;
     const sua = mia === card.home ? card.away : card.home;
-    const nota = card.mode === 'played'
-        ? `Already played: ESPN does not keep historical depth charts, so this card is rebuilt from <b>who actually dressed and started that day</b> — the 53 actives with the 22 starters in bold, and the inactives in their own list. Officials, venue and attendance are the real ones from that game. Height, weight, age and college come from today's roster, so a player released since then shows them empty.`
-        : `Upcoming game: the three panels are the <b>official ESPN depth chart</b> of the two teams — starter in bold, then the backups in order, exactly what the printed flip card carries. It is a live snapshot and it moves during the week. Officials appear only on game day: before that the league has not published them.`;
+    const nota = giocata
+        ? `Already played: ESPN does not keep historical depth charts, so this card is rebuilt from <b>who actually dressed and started that day</b> — the actives grouped by position with the 22 starters in bold, and the inactives in their own list. Officials, venue and attendance are the real ones from that game. Names and measurements come from today's ESPN roster where the player is still on it, otherwise from the nflverse roster of that season matched by jersey number — age is only in the first source, so on older cards that column is often empty.`
+        : `Upcoming game: the three panels are the <b>official ESPN depth chart</b> of the two teams — starter in bold, then the backups in order, which is what the printed flip card carries. It is a live snapshot and it moves during the week. Officials appear only on game day: before that the league has not published them.`;
     return `
     <div class="fc-card fc-card--${card.mode}">
         ${flipHeader(card)}
         <div class="fc-legend">
-            <span class="fc-p fc-p--s"><b>#</b> starter</span>
+            <span class="fc-p fc-p--s"><b>#</b> ${giocata ? 'started this game' : 'starter'}</span>
             <span class="fc-p fc-p--rk">rookie</span>
-            <span class="fc-p fc-p--ps">practice squad</span>
-            <span class="fc-p"><i class="fc-inj">O</i> injury status</span>
+            ${giocata ? '' : '<span class="fc-p fc-p--ps">practice squad</span><span class="fc-p"><i class="fc-inj">O</i> injury status</span>'}
         </div>
         <div class="fc-grid">
             <div class="fc-col">${flipTeamPanels(mia, card.mode)}</div>
@@ -2903,70 +2912,89 @@ function flipCardHtml(card, abbr) {
 }
 
 /**
- * Barra delle giornate + caricamento della card.
+ * Carica la card della giornata `i` dentro la tab.
  *
- * Lo stato vive nel modulo e non nella chiusura perché il cambio stagione
- * ridisegna `#nfl-flip` e ri-chiama questa funzione: i listener si attaccano
- * una volta sola (il contenitore resta), lo stato si sostituisce.
+ * Risolve `#nfl-flip` dal `section` a ogni chiamata invece di tenerselo in una
+ * chiusura: il contenitore viene ricreato a ogni render (cambio squadra) e il
+ * suo contenuto a ogni cambio stagione, e un riferimento vecchio scriverebbe
+ * dentro un nodo staccato dal documento — cioè la card non comparirebbe più.
+ */
+async function flipLoad(section, i) {
+    const st = _flipState;
+    const blocco = section.querySelector('#nfl-flip');
+    if (!st?.games?.length || !blocco) return;
+    st.sel = i;
+    st.caricato = true;
+    blocco.querySelectorAll('.fc-week').forEach(b => {
+        const on = +b.dataset.i === i;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const corpo = blocco.querySelector('#nfl-flip-body');
+    if (!corpo) return;
+    corpo.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+    const g = st.games[i];
+    const mio = st.abbr;
+    const gettone = ++st.gettone;
+    // Import DINAMICO, non in testa al file: il 2026-09-27 il modulo e'
+    // arrivato importato ma non committato, e un import statico mancante fa
+    // cadere l'intero grafo dei moduli — app.js non partiva e tutto il sito
+    // restava su "Loading...". Cosi' al massimo si spegne questa tab.
+    let modulo = null;
+    try { modulo = await import('../data/nfl-flip-card.js?v=2'); } catch { modulo = null; }
+    const card = modulo ? await modulo.getFlipCard({
+        eventId: g.eventId,
+        homeAbbr: g.homeAway === 'home' ? mio : g.opp,
+        awayAbbr: g.homeAway === 'home' ? g.opp : mio,
+        completed: g.completed,
+        season: st.season,
+        weekText: g.weekText, weekNum: g.weekNum, seasonType: g.seasonType, date: g.date,
+    }).catch(() => null) : null;
+    // Stato sostituito (altra squadra, altra stagione) o pillola più nuova: si scarta.
+    if (_flipState !== st || gettone !== st.gettone) return;
+    const dopo = section.querySelector('#nfl-flip #nfl-flip-body');
+    if (!dopo) return;
+    dopo.innerHTML = modulo
+        ? flipCardHtml(card, mio)
+        : '<p class="pm-note">The flip card is not available right now.</p>';
+}
+
+/**
+ * Barra delle giornate: stato e ascoltatori.
+ *
+ * Lo stato vive nel modulo e non in una chiusura perché il cambio stagione
+ * ridisegna `#nfl-flip` e ri-chiama questa funzione. I due ascoltatori hanno
+ * guardie DIVERSE: il click sta sul contenitore, che sopravvive al cambio
+ * stagione (`set('#nfl-flip', …)` ne sostituisce solo il contenuto), mentre
+ * quello sul cambio tab sta su `#nfl-team-page`, che sopravvive anche al
+ * passaggio da una squadra all'altra — senza la sua guardia se ne
+ * accumulerebbe uno per visita, tutti agganciati a contenitori ormai
+ * staccati, e la card smetterebbe di comparire dalla seconda squadra in poi.
  */
 function bindFlipCard(section, ctx) {
     const blocco = section.querySelector('#nfl-flip');
     if (!blocco) return;
     const games = flipGames(ctx.live);
-    _flipState = { abbr: ctx.abbr, games, sel: flipDefaultIndex(games), caricato: false, gettone: 0 };
+    _flipState = { abbr: ctx.abbr, season: ctx.year, games, sel: flipDefaultIndex(games), caricato: false, gettone: 0 };
     if (!games.length) return;
-
-    const carica = async (i) => {
-        const st = _flipState;
-        st.sel = i;
-        st.caricato = true;
-        blocco.querySelectorAll('.fc-week').forEach(b => {
-            const on = +b.dataset.i === i;
-            b.classList.toggle('is-active', on);
-            b.setAttribute('aria-selected', on ? 'true' : 'false');
-        });
-        const corpo = blocco.querySelector('#nfl-flip-body');
-        if (!corpo) return;
-        corpo.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-        const g = st.games[i];
-        const mio = st.abbr;
-        const gettone = ++st.gettone;
-        // Import DINAMICO, non in testa al file: il 2026-09-27 il modulo e'
-        // arrivato importato ma non committato, e un import statico mancante
-        // fa cadere l'intero grafo dei moduli — app.js non partiva e tutto il
-        // sito restava su "Loading...". Cosi' al massimo si spegne questa tab.
-        let modulo = null;
-        try { modulo = await import('../data/nfl-flip-card.js?v=1'); } catch { modulo = null; }
-        const card = modulo ? await modulo.getFlipCard({
-            eventId: g.eventId,
-            homeAbbr: g.homeAway === 'home' ? mio : g.opp,
-            awayAbbr: g.homeAway === 'home' ? g.opp : mio,
-            completed: g.completed,
-            weekText: g.weekText, weekNum: g.weekNum, seasonType: g.seasonType, date: g.date,
-        }).catch(() => null) : null;
-        // Stato sostituito (cambio stagione) o pillola più nuova: si scarta.
-        if (_flipState !== st || gettone !== st.gettone) return;
-        const dopo = blocco.querySelector('#nfl-flip-body');
-        if (!dopo) return;
-        dopo.innerHTML = modulo
-            ? flipCardHtml(card, mio)
-            : '<p class="pm-note">The flip card is not available right now.</p>';
-    };
 
     if (!blocco.dataset.flipBound) {
         blocco.dataset.flipBound = '1';
         blocco.addEventListener('click', (e) => {
             const b = e.target.closest('.fc-week');
-            if (b) carica(+b.dataset.i);
+            if (b) flipLoad(section, +b.dataset.i);
         });
-        // La tab si apre → si carica la prima card. Prima no: l'apertura della
-        // pagina squadra fa già una ventina di richieste.
+    }
+    if (!section.dataset.flipNavBound) {
+        section.dataset.flipNavBound = '1';
+        // Caricamento PIGRO: una card costa cinque-sette chiamate ESPN e non
+        // deve pesare sull'apertura della pagina, che ne fa già una ventina.
         section.addEventListener('nfl-sec', (e) => {
-            if (e.detail === 'flip' && !_flipState.caricato) carica(_flipState.sel);
+            if (e.detail === 'flip' && _flipState && !_flipState.caricato) flipLoad(section, _flipState.sel);
         });
     }
     // Cambio stagione con la tab già aperta: si ricarica subito.
-    if (!section.querySelector('.nfl-sec[data-secid="flip"]')?.hidden) carica(_flipState.sel);
+    if (!section.querySelector('.nfl-sec[data-secid="flip"]')?.hidden) flipLoad(section, _flipState.sel);
 }
 
 /** Rosa completa (tutti i giocatori con statistiche) da nflverse (teamRoster).

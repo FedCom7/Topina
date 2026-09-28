@@ -572,6 +572,58 @@ avanti un passo per volta. Tre cose da sapere:
 - i punti ufficiali che passa al motore sono il ricostruito **più 0,4**, così il
   passo `assesta` si vede invece di restare un ramo mai percorso.
 
+### Flip card — due modi, e non si mescolano
+
+La tab "Flip Card" della pagina squadra NFL (`js/data/nfl-flip-card.js` +
+i blocchi `flip*` in `sections/nfl-team-page.js`) rifà la scheda che le squadre
+stampano il giorno della partita: schieramenti riga per riga di ENTRAMBE le
+squadre, specialisti, rosa numerica con practice squad, arbitri. Una per
+giornata, dalla barra delle settimane in testa al blocco.
+
+1. **La card della settimana in arrivo e quella di una già giocata hanno
+   fonti diverse, e la nota lo dichiara.** ESPN non conserva i depth chart
+   storici (`/depthcharts` è solo la versione di oggi, e `/roster?season=2019`
+   risponde con liste vuote): ristampare quello di oggi sopra una partita di
+   ottobre sarebbe una bugia. Quindi il modo `projected` usa il depth chart
+   live, il modo `played` ricostruisce la card dal ROSTER DI GARA
+   (`competitors/{id}/roster`, che porta `starter` per i 22 titolari di quel
+   giorno e `didNotPlay` per gli inattivi) raggruppato per ruolo. Il modo si
+   decide sul dato, non sul calendario: se il roster di gara manca si ricade
+   sul depth chart dichiarandolo.
+2. **La tabella delle posizioni ESPN è incorporata, e deve restarci.** Il
+   roster di gara dà la posizione come `$ref` a `/positions/{id}`: risolverle
+   costerebbe fino a 110 richieste per aprire una card. `ESPN_POS` è quella
+   tabella (74 voci, immutabili — sono gli slot del football) con il reparto
+   già ricavato risalendo i `parent`.
+3. **Sulle stagioni passate i nomi arrivano da nflverse.** Il roster di gara
+   porta solo il cognome ("20 Johnson"), e la rosa ESPN esiste solo per oggi.
+   `roster_{Y}.json` riempie nome intero, college, altezza e peso agganciando
+   per NUMERO DI MAGLIA con il cognome a fare da controprova. Misurato su una
+   card 2024: 107 nomi interi su 110. L'età non c'è in nflverse e quella
+   colonna resta vuota.
+4. **`experience.years === 0` di ESPN è l'unico uso lecito di quel campo**
+   (rookie sottolineato, la convenzione della card stampata): conta le stagioni
+   attive e diverge da nflverse su chi ha saltato un anno, ma sui rookie le due
+   fonti coincidono sempre. Nel modo `played` il rookie si decide comunque su
+   `rookieYear` della STAGIONE DELLA PARTITA, o una card di due anni fa
+   sottolineerebbe i rookie di quest'anno.
+5. **Gli arbitri esistono solo dal giorno della partita.** `gameInfo.officials`
+   è vuoto sulle gare future e pieno da quella in corso: il blocco compare da
+   solo, non va inventato un ripiego.
+6. **La giornata aperta per prima è la prima non ancora giocata.** È questo, e
+   nient'altro, che fa avanzare la sezione ogni settimana.
+7. **Caricamento pigro, e due guardie diverse sugli ascoltatori.** La card
+   costa cinque-sette chiamate ESPN e parte solo all'apertura della tab
+   (evento `nfl-sec`, emesso da `bindSectionNav`). Il click sulle pillole è
+   agganciato a `#nfl-flip`, che sopravvive al cambio stagione; quello sul
+   cambio tab a `#nfl-team-page`, che sopravvive anche al passaggio da una
+   squadra all'altra — senza la sua guardia se ne accumulava uno per visita,
+   tutti su contenitori ormai staccati, e dalla seconda squadra in poi la card
+   non compariva più.
+
+In locale `site.api.espn.com` nega il CORS (vedi il banco del Night Recap):
+la tab si verifica intercettando quelle richieste e rifacendole da node.
+
 ### Area Draft — quattro sezioni sorelle
 
 Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:
