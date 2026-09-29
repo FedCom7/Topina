@@ -46,7 +46,7 @@ import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live
 import {
     partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei,
     fattoreSupplementari, segnalibro, segnaViste, segnaTentativo, valeTentare,
-} from '../data/night-recap.js?v=9';
+} from '../data/night-recap.js?v=10';
 import { ngsChartHTML, ngsLegendaHTML, ngsFasceHTML, bindNgsChart } from '../ui/ngs-chart.js?v=3';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

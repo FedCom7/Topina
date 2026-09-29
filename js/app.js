@@ -29,7 +29,7 @@ import { initPlayerStats } from './sections/player-stats.js?v=18';
 
 import { initMagazine } from './sections/magazine.js?v=799';
 import { initLive } from './sections/live.js?v=1153';
-import { avviaNightRecap } from './sections/night-recap.js?v=21';
+import { avviaNightRecap } from './sections/night-recap.js?v=22';
 import { initNavbar } from './ui/navbar.js?v=689';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';

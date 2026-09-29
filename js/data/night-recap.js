@@ -35,6 +35,18 @@ const NOTTE_DA = 0;
 const NOTTE_A = 7;
 
 /**
+ * Il pavimento del cancello 2 di `valeTentare`, SOLO per quando non si sa
+ * ancora quando finisce la partita in esame. Non e' `NOTTE_A`: quella
+ * delimita quali KICKOFF contano come "di notte" (vedi `eDiNotte`), questa
+ * stima quando una notte tipica FINISCE — due domande diverse che il valore
+ * 7 rispondeva entrambe per coincidenza. Un Monday Night delle 20:15 ET
+ * finisce verso le 5:30 italiane (kickoff + le 3h15 di `GAME_DURATION_MS`
+ * in nfl-schedule.js): 6 lascia mezz'ora di margine senza tenere il sipario
+ * chiuso fino alle 7 quando la partita e' finita da un pezzo.
+ */
+const CANCELLO_ORA_FLOOR = 6;
+
+/**
  * Quanto resta "rivedibile" una partita dopo che e' finita.
  *
  * Serve perche' il segnalibro nasce vuoto: senza questa finestra, la prima
@@ -176,23 +188,31 @@ export function segnaTentativo(prossimaFine = 0) {
  * Se vale la pena andare a vedere se c'e' un replay da fare — deciso SENZA
  * rete, perche' la risposta serve prima che la home disegni.
  *
- * Tre cancelli, e il terzo e' quello che evita il sipario a vuoto:
+ * Due cancelli, non tre: il vero controllo "e' ancora in corso?" non si puo'
+ * fare qui (ci vorrebbe il tabellone, cioe' una richiesta di rete, e questa
+ * funzione deve restare sincrona), ma se `prossimaFine` lo sa gia' — imparato
+ * durante una visita precedente, guardando quando finisce la prossima
+ * partita di notte ancora da giocare — ci si fida di quello ANCHE PRIMA
+ * dell'ora fissa:
  *
  *  1. una volta al giorno. Chi apre il sito sei volte in una mattina vede il
  *     replay la prima e poi piu';
- *  2. dopo le 7 italiane, cioe' a partite di notte finite. Prima di quell'ora
- *     una partita puo' essere ancora in corso, e li' c'e' il Live;
- *  3. se dall'ultima volta si e' imparato QUANDO finisce la prossima partita
- *     di notte, e quel momento non e' ancora passato, non c'e' niente di
- *     nuovo e non si apre nulla. E' il cancello che tiene il mercoledi'
- *     pulito: senza, ogni giorno ci sarebbe un lampo di sipario prima di
- *     scoprire che non c'era niente da rivedere.
+ *  2. se `prossimaFine` e' noto, decide lui e basta: partita ancora da
+ *     finire → non si apre nulla, qualunque ora sia; partita che per stima
+ *     dovrebbe essere gia' finita → si apre, anche alle 6:05. E' il cancello
+ *     che tiene il mercoledi' pulito (senza, ogni giorno ci sarebbe un lampo
+ *     di sipario prima di scoprire che non c'era niente da rivedere) ed e'
+ *     anche quello che smette di bloccare un Monday Night finito da un pezzo
+ *     solo perche' non sono ancora le 7.
+ *     Solo se `prossimaFine` non si sa ancora (prima volta, o segnalibro
+ *     azzerato) si ripiega sull'ora fissa (`CANCELLO_ORA_FLOOR`): prima di
+ *     quella, una partita puo' essere ancora in corso, e li' c'e' il Live.
  */
 export function valeTentare(ora = new Date()) {
     const s = segnalibro();
     if (s.tentato === giornoRomano(ora)) return false;
-    if (oraRomana(ora) < NOTTE_A) return false;
-    if (s.prossimaFine && ora.getTime() < s.prossimaFine) return false;
+    if (s.prossimaFine) return ora.getTime() >= s.prossimaFine;
+    if (oraRomana(ora) < CANCELLO_ORA_FLOOR) return false;
     return true;
 }
 

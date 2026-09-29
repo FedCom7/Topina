@@ -249,11 +249,18 @@ in `SECTIONS` e non espone un `initXxx()`. È un livello sopra tutto il sito, e
    Roma sono sfasate di un'ora sola (il primetime scivola all'01:15, il
    pomeriggio al 21:25: restano dalle parti giuste della mezzanotte).
 
-3. **Tre cancelli prima del sipario** (`valeTentare()`), e il terzo esiste per
-   non far lampeggiare un sipario a vuoto il mercoledì: una volta al giorno;
-   dopo le 7 italiane (prima, una partita può essere ancora in corso, e per
-   quello c'è il Live); e niente sipario se si sa già quando finisce la
-   prossima partita di notte e quel momento non è passato.
+3. **Due cancelli prima del sipario** (`valeTentare()`): una volta al giorno;
+   e — se `prossimaFine` lo sa già — niente sipario finché quel momento non è
+   passato, qualunque sia l'ora. Solo se `prossimaFine` non si sa ANCORA
+   (prima visita della settimana, o segnalibro azzerato) si ripiega su un'ora
+   fissa, le 6 italiane: prima, una partita può essere ancora in corso, e per
+   quello c'è il Live. Il conto vero (fine partita ≈ kickoff + 3h15) sta
+   comunque in `prossimaFine`, non nell'ora fissa: è quello che tiene chiuso
+   il sipario finché serve E lo riapre prima delle 7 quando il Monday Night è
+   già finito. Prima c'era un terzo cancello, l'ora fissa a 7 SEMPRE
+   applicata prima di guardare `prossimaFine`: bloccava un replay già pronto
+   per un'ora buona (successo il 2026-09-29, aperto alle 6:xx dopo un Monday
+   Night kickoff 02:15 finito verso le 5:30).
    `prossimaFine` si misura **solo sulle partite di notte**: prendendo la
    prossima partita qualunque, il venerdì mattina sarebbe la domenica
    pomeriggio, e il replay del Thursday Night non lo si vedrebbe mai. E si
