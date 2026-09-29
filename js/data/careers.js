@@ -17,7 +17,7 @@ import {
 } from '../data.js?v=594';
 import { TEAM_KEYS } from './team-config.js?v=535';
 import { getHonorsBundle } from './honors.js?v=724';
-import { normName } from './projections.js?v=611';
+import { normName } from './projections.js?v=634';
 
 let careersCache = null;
 

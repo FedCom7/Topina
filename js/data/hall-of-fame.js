@@ -11,7 +11,7 @@
 
 import { SEASONS, CURRENT_SEASON } from '../data.js?v=594';
 import { getHonorsBundle } from './honors.js?v=724';
-import { buildCareers } from './careers.js?v=643';
+import { buildCareers } from './careers.js?v=644';
 
 /* La prima classe è il 2026: nel 2025 non si è eletto nessuno. */
 export const FIRST_CLASS_YEAR = 2026;

@@ -45,7 +45,11 @@ All Firebase RTDB reads go through this module. Key exports:
 Firebase RTDB → `data.js` fetch/process → `sections/*.js` render to DOM
 
 **Chi scrive su Firebase: solo l'Action `espn-live.yml`**, il martedì dopo
-il Monday Night Football, due giri: alle 06:00 e alle 08:30 ora ITALIANA. Il
+il Monday Night Football, tre giri: alle 05:20, alle 06:00 e alle 08:30 ora
+ITALIANA. Quello delle 05:20 è tarato sul RITARDO di GitHub, misurato sulle
+esecuzioni del repo: i cron di notte partono in media 2,7 ore dopo (mediana
+1,75), quelli di mattina e di giorno 4,5-5 ore dopo — le 05:20 fanno arrivare
+il dato verso le 8, le altre due arrivano a metà giornata. Il
 cron di GitHub è in UTC e l'Italia cambia ora, quindi nel file ci sono gli
 orari di entrambe le stagioni e un primo passo lascia passare solo quelli
 giusti per l'offset di Roma di quel giorno. Il secondo giro è la rete del

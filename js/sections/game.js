@@ -17,16 +17,16 @@ import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '..
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
-import { buildCareers } from '../data/careers.js?v=643';
+import { buildCareers } from '../data/careers.js?v=644';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import {
     slotPairs, weekPosRanks, diffMakers, teamStatTotals, seasonAvg,
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=819';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=9';
-import { TEAMS } from './team.js?v=841';
+import { TEAMS } from './team.js?v=843';
 import { playerImageService } from '../services/player-image-service.js?v=533';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1002';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1003';
 
 const _fantasyCache = {};
 const fmt = (n) => (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

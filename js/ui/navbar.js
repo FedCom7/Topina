@@ -10,12 +10,14 @@
  * prende il posto del primo, con "Indietro" per tornare.
  */
 
-import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=623';
+import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=624';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { TEAMS } from '../sections/team.js?v=841';
+import { TEAMS } from '../sections/team.js?v=843';
 import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
 
-const MOBILE_MQ = '(max-width: 768px)';
+// Lo stesso limite della navbar mobile in main.css (max-width: 1099px): la
+// barra passa al menu a tendina prima della pagina, vedi il commento la'.
+const MOBILE_MQ = '(max-width: 1099px)';
 
 export function initNavbar() {
     const navbar = document.querySelector('.navbar');
@@ -416,7 +418,7 @@ async function datiPeek(nome) {
     }
 
     if (nome === 'leaders') {
-        const { getSeasonStats } = await import('../data/projections.js?v=632');
+        const { getSeasonStats } = await import('../data/projections.js?v=634');
         const mappa = await getSeasonStats(CURRENT_SEASON);
         return [...mappa.values()]
             .filter(e => e.ptsLeague != null && e.pos !== 'DEF')

@@ -13,12 +13,12 @@
  * delegato su document; DOM del modal creato pigramente una volta sola.
  */
 
-import { getCareer, getPlayerAwards } from '../data/careers.js?v=643';
-import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=632';
-import { TEAMS } from '../sections/team.js?v=841';
+import { getCareer, getPlayerAwards } from '../data/careers.js?v=644';
+import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=634';
+import { TEAMS } from '../sections/team.js?v=843';
 import { playerImageService } from '../services/player-image-service.js?v=533';
-import { getPlayerInfo } from '../data/player-full.js?v=671';
-import { getHallOfFameYear } from '../data/hall-of-fame.js?v=631';
+import { getPlayerInfo } from '../data/player-full.js?v=672';
+import { getHallOfFameYear } from '../data/hall-of-fame.js?v=632';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 
 const MAX_NFL_YEARS = 5;

@@ -19,17 +19,17 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=841';
-import { initPlayerModal } from '../components/player-modal.js?v=790';
-import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=632';
+import { TEAMS } from './team.js?v=843';
+import { initPlayerModal } from '../components/player-modal.js?v=792';
+import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=634';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { decorateTerms } from '../ui/glossary.js?v=4';
-import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=48';
+import { computeStrategy, simulateDraft, POSITION_COLORS, TAIL_COLORS, lastName, ordinal, roundOf } from '../data/draft-strategy.js?v=49';
 import { multiLine, dumbbell, donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
-import { renderPreDraft, resetPreDraft } from './predraft.js?v=67';
-import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=587';
-import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=1075';
-import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1002';
+import { renderPreDraft, resetPreDraft } from './predraft.js?v=68';
+import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=588';
+import { perfWaterfall, injuryLabelForSeason, injuryHistoryDetails, fmt0 } from './player-page.js?v=1077';
+import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1003';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 const POS_NAME = { QB: 'Quarterback', RB: 'Running back', WR: 'Wide receiver', TE: 'Tight end' };

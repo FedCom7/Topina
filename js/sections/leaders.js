@@ -18,15 +18,15 @@
 
 import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=595';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=176';
-import { TEAMS } from './team.js?v=841';
+import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=177';
+import { TEAMS } from './team.js?v=843';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getSeasonStats } from '../data/projections.js?v=632';
+import { getSeasonStats } from '../data/projections.js?v=634';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=897';
-import { getPlayerWeekly } from '../data/player-full.js?v=671';
+} from './analysis.js?v=900';
+import { getPlayerWeekly } from '../data/player-full.js?v=672';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -84,25 +84,64 @@ async function roseVive(anno) {
     try {
         const { week, matchups, drafted } = await fetchLeagueWeek(anno);
         if (!drafted) return null;
-        const out = new Map();
-        // la settimana delle rose: serve al dettaglio, che per quella giornata
-        // deve dire la squadra di adesso e non "Unrostered"
+        const out = rosePerNome(matchups);
+        // La settimana di ESPN e se e' gia' cominciata: servono al dettaglio
+        // per sapere quali giornate mostrare (vedi giornateNonArchiviate).
         out.settimana = week;
-        for (const m of matchups || []) {
-            for (const t of [m.team1, m.team2]) {
-                const k = TEAM_KEYS[displayName(t?.name)] || null;
-                if (!k) continue;
-                for (const [lista, titolare] of [[t.starters || [], true], [t.bench || [], false]]) {
-                    for (const p of lista) {
-                        if (p?.name && !p.placeholder) out.set(chiave(p.name), { key: k, nome: p.name, titolare });
-                    }
-                }
-            }
-        }
+        out.cominciata = (matchups || []).some(m => [m.team1, m.team2]
+            .some(t => (t?.starters || []).some(p => p.started)));
         return out.size ? out : null;
     } catch {
         return null;
     }
+}
+
+/** Nome → { key, nome, titolare } dalle formazioni di una giornata ESPN. */
+function rosePerNome(matchups) {
+    const out = new Map();
+    for (const m of matchups || []) {
+        for (const t of [m.team1, m.team2]) {
+            const k = TEAM_KEYS[displayName(t?.name)] || null;
+            if (!k) continue;
+            for (const [lista, titolare] of [[t.starters || [], true], [t.bench || [], false]]) {
+                for (const p of lista) {
+                    if (p?.name && !p.placeholder) out.set(chiave(p.name), { key: k, nome: p.name, titolare });
+                }
+            }
+        }
+    }
+    return out;
+}
+
+/**
+ * Le formazioni delle giornate GIOCATE che Firebase non ha ancora archiviato,
+ * lette da ESPN giornata per giornata: Map(settimana → rose).
+ *
+ * Due buchi, e questo li copre tutti e due:
+ *  - durante la giornata, Firebase ha solo il segnaposto del martedi', scritto
+ *    prima delle prese del mercoledi' (Young, preso da Oscurus in settimana,
+ *    in week 3 risultava "Unrostered" mentre giocava titolare);
+ *  - dal Monday Night all'archivio del martedi', ESPN e' gia' passata alla
+ *    settimana dopo: le rose di ADESSO sono quelle della week 4, e date alla
+ *    week 3 sbaglierebbero chi aveva chi quel giorno.
+ * La settimana di ESPN entra solo se una sua partita e' cominciata: prima non
+ * e' una giornata giocata, e nel dettaglio compariva una W4 da "Starter" a
+ * zero punti.
+ */
+async function giornateNonArchiviate(anno, model, vive) {
+    const out = new Map();
+    if (!vive?.settimana) return out;
+    const ultima = vive.cominciata ? vive.settimana : vive.settimana - 1;
+    const archiviate = model?.playedWeeks || new Set();
+    for (let w = 1; w <= ultima; w++) {
+        if (archiviate.has(w)) continue;
+        if (w === vive.settimana) { out.set(w, vive); continue; }
+        try {
+            const r = await fetchLeagueWeek(anno, w);
+            if (r?.drafted) out.set(w, rosePerNome(r.matchups));
+        } catch { /* quella giornata resta com'e' nel modello */ }
+    }
+    return out;
 }
 
 /**
@@ -353,7 +392,9 @@ async function load() {
         wrap.innerHTML = `<div class="empty-state"><p class="empty-state-text">No player stats for ${anno}</p></div>`;
         return;
     }
-    stato = { stats, model, vive, roseIdx: indiceRose(model, vive) };
+    const giornate = await giornateNonArchiviate(anno, model, vive);
+    if (String(currentYear) !== String(anno)) return;
+    stato = { stats, model, vive, giornate, roseIdx: indiceRose(model, vive) };
     render();
 }
 
@@ -451,7 +492,8 @@ async function giornateDaSleeper(e) {
 function ultimaGiornata() {
     let gp = 0;
     for (const e of stato?.stats?.values() || []) if ((e.gp || 0) > gp) gp = e.gp;
-    return Math.max(stato?.model?.lastPlayedWeek || 0, gp) || null;
+    const giocate = [...(stato?.giornate?.keys() || [])];
+    return Math.max(stato?.model?.lastPlayedWeek || 0, gp, ...giocate) || null;
 }
 
 /** Apre (o richiude) il dettaglio settimana per settimana sotto la riga. */
@@ -478,14 +520,12 @@ async function apriDrill(row, idx) {
         // Bryce Young, preso da Oscurus in settimana, in week 3 risultava
         // "Unrostered" mentre giocava titolare. Per quella giornata comandano
         // le rose ESPN vive.
-        const viva = stato.vive?.settimana
-            ? { week: stato.vive.settimana, ...(stato.vive.get(chiave(e.name)) || {}) }
-            : null;
+        const liveWeeks = [...(stato.giornate || new Map())].map(([week, rose]) => {
+            const r = rose.get(chiave(e.name));
+            return { week, teamKey: r?.key || null, started: !!r?.titolare };
+        });
         righe = await playerSeasonDrill(anno, { name: nomeLega, position: e.pos, nflTeam: e.team },
-            {
-                model: stato.model, extraScores, lastWeek: ultimaGiornata(), teamOnBadge: true,
-                liveWeek: viva ? { week: viva.week, teamKey: viva.key || null, started: !!viva.titolare } : null,
-            });
+            { model: stato.model, extraScores, lastWeek: ultimaGiornata(), teamOnBadge: true, liveWeeks });
     } catch { righe = ''; }
     // Nel frattempo si puo' aver cambiato anno o filtro: il contenitore di
     // allora non esiste piu', e scriverci dentro riempirebbe una riga che ora

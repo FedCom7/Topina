@@ -18,12 +18,12 @@ on:
         type: boolean
         default: false
   schedule:
-    # Twice on Tuesday, at 06:00 and 08:30 ITALIAN time, after Monday Night
+    # Three times on Tuesday, at 05:20, 06:00 and 08:30 ITALIAN time, after Monday Night
     # Football. Each run is a full rebuild, so the second one simply rewrites
     # the same data when the first already got the closed week — it is the
     # safety net for the first one being late or finding the week not closed.
     #
-    # Why four lines for two runs: GitHub cron is UTC, Italy is not. Italian
+    # Why two lines per run: GitHub cron is UTC, Italy is not. Italian
     # 06:00 is 04:00 UTC under summer time (CEST) and 05:00 UTC under winter
     # time (CET, from late October — most of the season). Both UTC slots are
     # scheduled, and the "fascia" step below lets through only the one that
@@ -37,6 +37,16 @@ on:
     # live scores from Firebase. It no longer does: the league is public, so the
     # browser reads the ESPN API directly (js/data/espn-fantasy.js) and Firebase
     # is back to being the archive.
+    #
+    # The 05:20 run (added 2026-09-29) is the one meant to land around 08:00.
+    # GitHub's delay was measured on this repo's own scheduled runs: the
+    # morning/day crons start 4.5-5 hours late (04:00-09:00 UTC slots, 43 runs),
+    # the night ones about 2.7 hours late on average (22:00 UTC, 15 runs, median
+    # 1.75h). 05:20 + ~2.7h ≈ 08:00 Italian. Off the hour on purpose: :00 is
+    # when GitHub queues the most jobs. Its earliest measured start (+1.3h,
+    # ≈06:40) is still after Monday Night Football ends (≈05:30 Italian).
+    - cron: '20 3 * * 2'   # 05:20 Italy, summer time
+    - cron: '20 4 * * 2'   # 05:20 Italy, winter time
     - cron: '0 4 * * 2'    # 06:00 Italy, summer time (CEST, UTC+2)
     - cron: '0 5 * * 2'    # 06:00 Italy, winter time (CET, UTC+1)
     - cron: '30 6 * * 2'   # 08:30 Italy, summer time
@@ -56,8 +66,8 @@ jobs:
       - name: Fascia oraria italiana
         id: fascia
         # Lascia passare solo il cron che corrisponde all'ora di Roma di oggi:
-        # +0200 (legale) le righe delle 04:00 e 06:30 UTC, +0100 (solare)
-        # quelle delle 05:00 e 07:30. L'avvio a mano passa sempre.
+        # +0200 (legale) le righe delle 03:20, 04:00 e 06:30 UTC, +0100
+        # (solare) quelle delle 04:20, 05:00 e 07:30. L'avvio a mano passa sempre.
         env:
           CRON: ${{ github.event.schedule }}
         run: |
@@ -68,8 +78,8 @@ jobs:
           # dati, che nessun giro.
           if [ -n "$CRON" ] && { [ "$offset" = "+0100" ] || [ "$offset" = "+0200" ]; }; then
             case "$offset:$CRON" in
-              "+0200:0 4 * * 2"|"+0200:30 6 * * 2") run=true ;;
-              "+0100:0 5 * * 2"|"+0100:30 7 * * 2") run=true ;;
+              "+0200:20 3 * * 2"|"+0200:0 4 * * 2"|"+0200:30 6 * * 2") run=true ;;
+              "+0100:20 4 * * 2"|"+0100:0 5 * * 2"|"+0100:30 7 * * 2") run=true ;;
               *) run=false ;;
             esac
           fi

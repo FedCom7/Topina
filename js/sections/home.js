@@ -38,32 +38,32 @@
 import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, flattenDraft, getPlayoffMatchups, getSuperBowlMatchup, CURRENT_SEASON } from '../data.js?v=595';
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
-import { electHallOfFame } from '../data/hall-of-fame.js?v=631';
-import { TEAMS } from './team.js?v=841';
-import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=790';
-import { teamsCardsHTML } from './teams.js?v=747';
+import { electHallOfFame } from '../data/hall-of-fame.js?v=632';
+import { TEAMS } from './team.js?v=843';
+import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=792';
+import { teamsCardsHTML } from './teams.js?v=749';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { teamSeasonDetail, numberSets, seasonStarted } from '../data/season-story.js?v=44';
 import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } from '../utils/motion.js?v=1';
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=38';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
-import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=8';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=176';
+import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=9';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=177';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { getWaiverMoves, accorpa } from '../data/waiver-moves.js?v=20';
+import { getWaiverMoves, accorpa } from '../data/waiver-moves.js?v=22';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=552';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
-import { getSeasonProjections } from '../data/projections.js?v=632';
-import { getHistoryIndex } from '../data/player-history.js?v=595';
-import { predictSeason } from '../data/draft-predictions.js?v=694';
+import { getSeasonProjections } from '../data/projections.js?v=634';
+import { getHistoryIndex } from '../data/player-history.js?v=596';
+import { predictSeason } from '../data/draft-predictions.js?v=695';
 import { evaluateLeague } from '../data/team-eval.js?v=596';
-import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=65';
+import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data/draft-grade.js?v=66';
 // Il motore di voto (computeGrades/makeEvaluator) vive in draftgrades.js, non
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=830';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=832';
 
 let initialized = false;
 
@@ -99,11 +99,15 @@ export async function initHome() {
         // proiezioni: un titolare che ha gia' cominciato la sua partita NFL.
         // Non una data, non il calendario: la lega e' viva quando si gioca.
         const corrente = league.seasons.find(s => String(s.year) === String(CURRENT_SEASON));
-        const viva = (!preview && corrente && !seasonStarted(corrente))
-            ? await liveWeekBugs(corrente) : null;
+        // La settimana ESPN si legge sempre sulla stagione in corso (e' in
+        // cache, la usano comunque le card delle sfide): serve anche a stagione
+        // cominciata, per sapere quale giornata e' gia' chiusa quando Firebase
+        // non l'ha ancora archiviata — vedi detectPhase.
+        const viva = (!preview && corrente) ? await liveWeekBugs(corrente) : null;
+        const vivaPrimaDelVia = corrente && !seasonStarted(corrente) ? viva : null;
 
         const season = (preview?.year && league.seasons.find(s => s.year === preview.year))
-            || (viva?.viva ? corrente : archivio);
+            || (vivaPrimaDelVia?.viva ? corrente : archivio);
         const bundle = await getHonorsBundle(season.year);
         // Solo quando conta davvero: a stagione chiusa (preseason/offseason) o
         // in preview di una di quelle due fasi. Nel resto dell'anno il
@@ -149,7 +153,7 @@ function detectPhase(season, bundle, preview, kickoffDays, viva) {
     }
     // Si gioca adesso, ma Firebase non ha ancora scritto niente: la settimana
     // la dice ESPN, perche' `lastPlayedWeek` leggerebbe l'archivio e darebbe 0.
-    if (viva?.viva) return { type: 'REGULAR_SEASON', week: viva.week };
+    if (viva?.viva && String(season.year) === viva.anno && !seasonStarted(season)) return { type: 'REGULAR_SEASON', week: viva.week };
     if (season.complete) {
         // A stagione chiusa la storia resta quella appena finita, ma nelle
         // settimane prima del via il countdown diventa la card principale.
@@ -158,7 +162,14 @@ function detectPhase(season, bundle, preview, kickoffDays, viva) {
     }
     if (bundle?.revealed) return { type: 'SB_WEEK' };
     if (bundle?.rsComplete) return { type: 'PLAYOFFS' };
-    return { type: 'REGULAR_SEASON', week: lastPlayedWeek(season) };
+    // L'ultima giornata CHIUSA. Firebase la scrive il martedi' mattina, ma ESPN
+    // passa alla settimana dopo appena finisce il Monday Night: in quelle ore
+    // l'archivio era fermo alla week 2 mentre ESPN proiettava gia' la 4, e la
+    // week 3 — appena finita — non la mostrava nessuno. Se ESPN e' avanti, la
+    // settimana prima della sua e' chiusa.
+    const archiviata = lastPlayedWeek(season);
+    const daEspn = String(season.year) === String(viva?.anno) && viva?.week ? viva.week - 1 : 0;
+    return { type: 'REGULAR_SEASON', week: Math.max(archiviata, daEspn), archiviata };
 }
 
 function lastPlayedWeek(season) {
@@ -993,7 +1004,36 @@ async function leggiSettimanaViva(season) {
 
     // `matchups` esce di qui perche' se lo rilegge anche la card delle
     // prestazioni: e' la stessa giornata, tanto vale scaricarla una volta.
-    return { week, bugs, viva, matchups };
+    return { anno: String(season.year), week, bugs, viva, matchups };
+}
+
+/**
+ * Una giornata qualunque letta da ESPN, per quando Firebase non l'ha ancora:
+ * il buco fra la fine del Monday Night e l'archivio del martedi'. In cache per
+ * anno e settimana, come la settimana viva.
+ */
+const cacheGiornateEspn = new Map();
+function giornataEspn(season, week) {
+    const k = `${season.year}|${week}`;
+    if (!cacheGiornateEspn.has(k)) {
+        cacheGiornateEspn.set(k, fetchLeagueWeek(season.year, week)
+            .then(r => (r?.drafted && r.matchups?.length ? r.matchups : null))
+            .catch(() => null));
+    }
+    return cacheGiornateEspn.get(k);
+}
+
+/** Il banner a giornata finita, dai punteggi ufficiali di ESPN. */
+function bugsDaEspn(matchups) {
+    return matchups.map(m => {
+        const s1 = P(m.team1.score), s2 = P(m.team2.score), tot = s1 + s2;
+        return currentScoreBugHTML({
+            left: bannerSide(m.team1.name, bannerScoreHTML(s1, null, 'l', false), s1 >= s2),
+            right: bannerSide(m.team2.name, bannerScoreHTML(s2, null, 'r', false), s2 >= s1),
+            mid: 'final',
+            probPct: tot > 0 ? (s1 / tot) * 100 : 50,
+        });
+    }).join('');
 }
 
 /**
@@ -1069,7 +1109,12 @@ function lastWeekBugs({ season, phase }) {
  * sfide, e in due card affiancate si vedrebbero due volte. Vince quella viva.
  */
 async function cardLastResults(ctx) {
-    const last = lastWeekBugs(ctx);
+    let last = lastWeekBugs(ctx);
+    // Giornata chiusa ma non ancora archiviata: i punteggi finali da ESPN.
+    if (!last && ctx.phase.type === 'REGULAR_SEASON' && ctx.phase.week) {
+        const partite = await giornataEspn(ctx.season, ctx.phase.week);
+        if (partite) last = { week: ctx.phase.week, bugs: bugsDaEspn(partite) };
+    }
     if (!last) return '';
     const live = await liveWeekBugs(ctx.season);
     if (live && live.week === last.week) return '';
@@ -1103,9 +1148,11 @@ async function cardLastResults(ctx) {
    settimana un riquadro "no moves" sarebbe un buco in mezzo al mosaico. */
 const WV_GROUPS = 6;
 
-async function cardWaivers({ season }) {
+async function cardWaivers({ season, phase }) {
     const { mosse } = await getWaiverMoves(season.year).catch(() => ({ mosse: [] }));
-    const settimanaMercato = lastPlayedWeek(season) + 1;
+    // la giornata chiusa della fase, non l'archivio: il martedi' mattina
+    // Firebase e' ancora indietro di una e mostrava il mercato della settimana prima
+    const settimanaMercato = (phase?.type === 'REGULAR_SEASON' && phase.week ? phase.week : lastPlayedWeek(season)) + 1;
     const diQuestaSettimana = mosse.filter(m => m.settimana === settimanaMercato);
     if (!diQuestaSettimana.length) return '';
 
@@ -1384,6 +1431,12 @@ async function prestazioniSettimana(season, week) {
     if (archivio.some(p => p.pts > 0)) return { perf: archivio, live: false };
 
     const viva = await liveWeekBugs(season);
+    // La settimana chiesta puo' non essere quella viva: chiusa su ESPN, non
+    // ancora su Firebase. I punti sono finali, quindi niente "live".
+    if (viva && viva.week !== Number(week)) {
+        const partite = await giornataEspn(season, week);
+        return { perf: titolariConPunti(partite).filter(p => p.pts > 0), live: false };
+    }
     const perf = titolariConPunti(viva?.matchups).filter(p => p.pts > 0);
     return { perf, live: perf.length > 0 };
 }

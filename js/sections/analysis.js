@@ -8,12 +8,12 @@
 
 import { TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { TEAMS } from './team.js?v=841';
+import { TEAMS } from './team.js?v=843';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell, donutSeg } from '../ui/charts.js?v=9';
-import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1002';
-import { getSeasonProjections, matchProjection } from '../data/projections.js?v=632';
+import { getPlayerInjuries, getPlayerInactive, getUnrosteredScores, getBestAvailable, getPlayerStatus, getSeasonAverages, seasonAverageOf } from '../data/nfl-team-extras.js?v=1003';
+import { getSeasonProjections, matchProjection } from '../data/projections.js?v=634';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -1263,23 +1263,23 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
  * `getUnrosteredScores`, spente e con l'asterisco, che e' esattamente cosa
  * sono — punti ricostruiti da statistiche NFL vere, mai un dato di lega.
  */
-export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null, teamOnBadge = false, liveWeek = null } = {}) {
+export async function playerSeasonDrill(year, { name, position, nflTeam }, { model = null, teamKey = null, extraScores = null, lastWeek = null, teamOnBadge = false, liveWeeks = [] } = {}) {
     const m = model || modelCache[year] || null;
     let rec = m?.players.get(name) || { name, position, nflTeam, weeks: {} };
-    // La giornata che si sta giocando, finche' Firebase non l'ha archiviata:
-    // chi ce l'ha e se e' titolare li dicono le rose ESPN di adesso (`liveWeek`
-    // da chi chiama), non il segnaposto scritto il martedi' prima del mercato.
-    // Si lavora su una copia: il modello e' condiviso con le altre pagine.
-    if (liveWeek?.week && !m?.playedWeeks?.has(liveWeek.week)) {
-        const wk = liveWeek.week;
+    // Le giornate giocate che Firebase non ha ancora archiviato: chi ce l'ha e
+    // se e' titolare li dicono le formazioni ESPN di QUELLA giornata
+    // (`liveWeeks` da chi chiama), non il segnaposto scritto il martedi' prima
+    // del mercato. Si lavora su una copia: il modello e' condiviso.
+    const vive = (liveWeeks || []).filter(l => l?.week && !m?.playedWeeks?.has(l.week));
+    if (vive.length) {
         const weeks = { ...rec.weeks };
         const pending = { ...(rec.pending || {}) };
-        delete pending[wk];
-        if (liveWeek.teamKey) {
-            const prima = rec.weeks[wk] || rec.pending?.[wk] || { pts: 0, stats: {}, opponent: '' };
-            weeks[wk] = { ...prima, teamKey: liveWeek.teamKey, started: liveWeek.started };
-        } else {
-            delete weeks[wk];      // tagliato in settimana: quella giornata non e' di nessuno
+        for (const l of vive) {
+            const wk = l.week;
+            const prima = rec.weeks[wk] || rec.pending?.[wk];
+            delete pending[wk];
+            if (l.teamKey) weeks[wk] = { ...(prima || { pts: 0, stats: {}, opponent: '' }), teamKey: l.teamKey, started: l.started };
+            else delete weeks[wk];      // in quella giornata non era di nessuno
         }
         rec = { ...rec, weeks, pending };
     }

@@ -25,9 +25,9 @@
  * squadra), e soprattutto la stessa ricostruzione fatta in due posti diverge.
  */
 
-import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=176';
+import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=177';
 import { TEAM_KEYS } from './team-config.js?v=535';
-import { buildSeasonModel } from '../sections/analysis.js?v=845';
+import { buildSeasonModel } from '../sections/analysis.js?v=900';
 
 // I tipi che ESPN dichiara sulla transazione. Quelli che non muovono un
 // giocatore fra le rose (i cambi di formazione) non sono mosse di mercato e
@@ -41,6 +41,11 @@ const TIPI = {
     TRADE_ACCEPT: 'Trade',
     TRADE: 'Trade',
     DRAFT: 'Draft',
+    // Un taglio SENZA presa: ESPN lo registra come ROSTER, lo stesso tipo dei
+    // cambi di formazione (quelli hanno solo voci LINEUP e qui sotto si
+    // perdono da soli). Waddle, tagliato da Capi il 28/09/2026 senza prendere
+    // nessuno, dalla pagina mancava per questo.
+    ROSTER: 'Drop',
 };
 
 /** Dal nome che mostra il sito alla chiave della squadra (da team-config: team.js sarebbe un anello). */

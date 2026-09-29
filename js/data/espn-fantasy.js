@@ -375,10 +375,11 @@ export async function fetchTransactions(year) {
     // un ordinamento che riconosce, e `sortDate` non lo e' — la richiesta
     // tornava 400 ("Limit request must be accompanied by a sort"), la pagina
     // Waivers ripiegava sulle rose di Firebase e non mostrava nessuna mossa.
-    // Il filtro sul tipo lascia fuori il draft (60 righe) e i cambi di
-    // formazione.
+    // Il filtro sul tipo lascia fuori il draft (60 righe). ROSTER serve per i
+    // tagli senza presa (un DROP da solo): porta con se' anche i cambi di
+    // formazione, che non hanno voci ADD/DROP e `righeDaEspn` scarta.
     const filtro = { transactions: {
-        filterType: { value: ['FREEAGENT', 'WAIVER', 'TRADE_ACCEPT'] } } };
+        filterType: { value: ['FREEAGENT', 'WAIVER', 'TRADE_ACCEPT', 'ROSTER'] } } };
 
     const leggi = async (periodo) => {
         const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);

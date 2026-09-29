@@ -59,7 +59,7 @@
  */
 
 import { replacementLevels, demandByPos, NUM_TEAMS } from './team-eval.js?v=596';
-import { NEED_TARGET, opponentPickProbs } from './draft-grade.js?v=65';
+import { NEED_TARGET, opponentPickProbs } from './draft-grade.js?v=66';
 
 export const STRATEGY_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 

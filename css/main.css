@@ -440,7 +440,7 @@ img {
 /* Barra strettina (portatile piccolo): restano quattro colonne — passare a due
    raddoppierebbe l'altezza del pannello e la barra aperta coprirebbe mezzo
    schermo. Si stringono testo e spazi, e i nomi lunghi si troncano. */
-@media (min-width: 769px) and (max-width: 1080px) {
+@media (min-width: 1100px) and (max-width: 1240px) {
     .nav-nfl-grid {
         gap: 12px 12px;
     }
@@ -510,7 +510,7 @@ img {
 :root[data-theme="light"] .nav-theme-sun { display: none; }
 :root[data-theme="light"] .nav-theme-moon { display: block; }
 
-@media (min-width: 769px) {
+@media (min-width: 1100px) {
     .nav-actions {
         display: flex;
         position: absolute;
@@ -3962,7 +3962,7 @@ body.nav-dd-open::after {
 /* Barra strettina (portatile piccolo): restano quattro colonne — passare a due
    raddoppierebbe l'altezza del pannello e la barra aperta coprirebbe mezzo
    schermo. Si stringono testo e spazi, e i nomi lunghi si troncano. */
-@media (min-width: 769px) and (max-width: 1080px) {
+@media (min-width: 1100px) and (max-width: 1240px) {
     .nav-nfl-grid {
         gap: 12px 12px;
     }
@@ -4032,7 +4032,7 @@ body.nav-dd-open::after {
 :root[data-theme="light"] .nav-theme-sun { display: none; }
 :root[data-theme="light"] .nav-theme-moon { display: block; }
 
-@media (min-width: 769px) {
+@media (min-width: 1100px) {
     .nav-actions {
         display: flex;
         position: absolute;
@@ -4129,7 +4129,7 @@ body.nav-dd-open::after {
     padding-top: var(--nav-height);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1099px) {
     /* L'assaggio della sezione, sotto le voci: stesse righe del pannello
        desktop, staccate da una riga sottile perche' qui non c'e' una colonna
        a dividerle dai link. */
@@ -4190,7 +4190,12 @@ body.nav-dd-open::after {
    RESPONSIVE
    ================================ */
 
-@media (max-width: 768px) {
+/* La NAVBAR passa al menu mobile sotto i 1100px, non sotto i 768 come la
+   pagina: le dieci voci piu' le due icone chiedono ~1065px, e piu' stretti le
+   voci andavano a capo ("Game / Center") e History finiva sotto le icone —
+   succedeva col telefono in orizzontale (844-932px) e sull'iPad (1024). Lo
+   stesso valore sta in MOBILE_MQ di js/ui/navbar.js: vanno cambiati insieme. */
+@media (max-width: 1099px) {
     /* Barra stile Apple: logo a sinistra, lente + hamburger a destra */
     .nav-inner {
         justify-content: space-between;
@@ -4505,6 +4510,10 @@ body.nav-dd-open::after {
         background: var(--bg-glass);
     }
 
+}
+
+/* Fine della navbar mobile. Da qui la pagina, che resta al suo 768. */
+@media (max-width: 768px) {
     .hero-title {
         font-size: clamp(2.5rem, 12vw, 4rem);
     }

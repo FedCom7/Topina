@@ -9,13 +9,13 @@
 
 import { getLeagueStandings, getLeaguePowerRankings, getNews, getLeagueLeaders } from '../data/nfl-team-live.js?v=645';
 import { CURRENT_SEASON } from '../data.js?v=595';
-import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=623';
+import { esc, teamLogoUrl, buildPlayerIndex, teamResults, playerResults, resultRow } from '../data/player-search-core.js?v=624';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
-import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=683';
+import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=684';
 import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=552';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=632';
-import { currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=634';
+import { currentNflSeason } from '../data/nfl-team-extras.js?v=1003';
 
 // ─── Selettore stagione · governa tutta la pagina (tabellone, classifiche,
 // confronto squadre, dashboard giocatori). Stessa logica di TEAM_HISTORY_YEARS

@@ -36,7 +36,7 @@ import { CURRENT_SEASON, displayName } from '../data.js?v=595';
 import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getWeekSchedule, getCurrentNflWeek, canonAbbr } from '../data/nfl-schedule.js?v=552';
-import { fetchLeagueWeek, teamAbbrFromName } from '../data/espn-fantasy.js?v=176';
+import { fetchLeagueWeek, teamAbbrFromName } from '../data/espn-fantasy.js?v=177';
 import { fetchPlays } from '../data/nfl-plays.js?v=572';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
@@ -46,7 +46,7 @@ import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live
 import {
     partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei,
     fattoreSupplementari, segnalibro, segnaViste, segnaTentativo, valeTentare,
-} from '../data/night-recap.js?v=10';
+} from '../data/night-recap.js?v=11';
 import { ngsChartHTML, ngsLegendaHTML, ngsFasceHTML, bindNgsChart } from '../ui/ngs-chart.js?v=3';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

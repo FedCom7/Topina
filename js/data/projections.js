@@ -268,8 +268,9 @@ function voceStat(e) {
  * di due partite, a Bijan quelli di tre.
  *
  * Ora per ogni giocatore si confrontano le date: se il suo totale e' stato
- * riscritto DOPO il suo tabellino di quella giornata, la giornata e' gia'
- * dentro e non si somma; altrimenti si somma. Si guardano la giornata prima
+ * riscritto DOPO l'inizio della sua partita di quella giornata
+ * (`inizioPartita`), la giornata e' gia' dentro e non si somma; altrimenti si
+ * somma. Si guardano la giornata prima
  * della copertura (il martedi' il totale arriva a pezzi) fino a due oltre,
  * fermandosi alla prima giornata non ancora cominciata.
  */
@@ -297,7 +298,7 @@ async function aggiungiGiornateInCorso(map, year, listaStagione) {
         for (const e of conStat) {
             const id = e.player_id ?? e.player?.player_id;
             const nelTotale = totaleAl.get(String(id));
-            if (nelTotale != null && nelTotale >= +(e.last_modified || 0)) continue;   // gia' dentro
+            if (nelTotale != null && nelTotale >= inizioPartita(e)) continue;   // gia' dentro
             const voce = voceStat(e);
             if (!voce) continue;
             const key = `${normName(voce.name)}|${voce.pos}`;
@@ -305,6 +306,24 @@ async function aggiungiGiornateInCorso(map, year, listaStagione) {
             map.set(key, base ? sommaVoci(base, voce, w) : { ...voce, liveWeeks: [w] });
         }
     }
+}
+
+/**
+ * Da quando il totale di stagione PUO' contenere la partita di questa riga: il
+ * giorno della gara (`date`, americano) alle 13:00 UTC, prima di qualunque
+ * kickoff di quel giorno — Londra comincia alle 13:30 UTC, il Thursday Night
+ * alle 00:15 UTC del giorno dopo. Un totale riscritto dopo quell'ora la
+ * contiene; uno riscritto prima no.
+ *
+ * Non la data della riga di giornata: Sleeper la ritocca anche giorni dopo
+ * (correzioni delle statistiche) — il 29/09/2026 i Buccaneers avevano la week 3
+ * ritoccata DOPO l'aggiornamento del totale, che la conteneva gia', e la si
+ * sommava una seconda volta: 4 partite, e nel dettaglio compariva una W4.
+ */
+function inizioPartita(e) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(e.date || ''));
+    if (!m) return +(e.last_modified || 0);
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], 13);
 }
 
 /** Campi che NON si sommano: sono classifiche, primati o medie. */

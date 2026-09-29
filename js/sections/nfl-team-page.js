@@ -13,14 +13,14 @@
 
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team-profile-extra.js?v=534';
-import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=683';
-import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1002';
+import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=684';
+import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1003';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { bindTabSwipe, centerActiveTab, nextTab } from '../ui/tab-swipe.js?v=1';
 import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
-import { getSeasonStats, normName } from '../data/projections.js?v=632';
+import { getSeasonStats, normName } from '../data/projections.js?v=634';
 import {
     campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
     yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
@@ -36,11 +36,11 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1075';
+} from './player-page.js?v=1077';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1109';
+} from './nfl-team-home.js?v=1111';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {
@@ -2941,7 +2941,7 @@ async function flipLoad(section, i) {
     // cadere l'intero grafo dei moduli — app.js non partiva e tutto il sito
     // restava su "Loading...". Cosi' al massimo si spegne questa tab.
     let modulo = null;
-    try { modulo = await import('../data/nfl-flip-card.js?v=2'); } catch { modulo = null; }
+    try { modulo = await import('../data/nfl-flip-card.js?v=3'); } catch { modulo = null; }
     const card = modulo ? await modulo.getFlipCard({
         eventId: g.eventId,
         homeAbbr: g.homeAway === 'home' ? mio : g.opp,
