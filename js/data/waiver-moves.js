@@ -27,7 +27,7 @@
 
 import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=177';
 import { TEAM_KEYS } from './team-config.js?v=535';
-import { buildSeasonModel } from '../sections/analysis.js?v=900';
+import { buildSeasonModel } from '../sections/analysis.js?v=902';
 
 // I tipi che ESPN dichiara sulla transazione. Quelli che non muovono un
 // giocatore fra le rose (i cambi di formazione) non sono mosse di mercato e

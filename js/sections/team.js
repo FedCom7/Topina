@@ -9,12 +9,12 @@ import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { computeTeamBadges } from '../data/badges.js?v=559';
 import { stickerSVG, champStickerSVG, fitStickerTexts } from '../ui/badge-svg.js?v=521';
 import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=792';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=794';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { apHalfFieldSvg, sbLineup } from '../ui/field-allpro.js?v=9';
 import { hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
 import { CURRENT_SEASON, fetchFantasyData, SEASONS_DESC, displayName } from '../data.js?v=595';
-import { getWaiverMoves } from '../data/waiver-moves.js?v=22';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=24';
 import { TEAM_PALETTE, TEAM_KEYS } from '../data/team-config.js?v=535';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 

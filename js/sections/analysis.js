@@ -8,7 +8,7 @@
 
 import { TEAM_PALETTE } from '../data/team-config.js?v=535';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { TEAMS } from './team.js?v=843';
+import { TEAMS } from './team.js?v=845';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell, donutSeg } from '../ui/charts.js?v=9';
@@ -1231,6 +1231,12 @@ function fullSeasonDrillRows(model, rec, teamKey, infortuni, calcScores = new Ma
         // pubblicato vuoto): si prende dalla partita per partita scaricata
         // per quel giocatore, se c'e'.
         if (w && !w.opponent && calcScores.get(wk)?.opponent) w = { ...w, opponent: calcScores.get(wk).opponent };
+        // Stessa cosa per le statistiche: l'archivio della lega non ha
+        // tentativi, completi e portate sulle stagioni passate (Lamar Jackson
+        // 2025 in rosa: "209 pass yds" e niente "comp"). Si riempiono le sole
+        // voci che mancano, dalla stessa partita; punti e numeri della lega
+        // restano quelli.
+        if (w?.stats && calcScores.get(wk)?.stats) w = { ...w, stats: { ...calcScores.get(wk).stats, ...w.stats } };
         if (!w && calcScores.has(wk)) {
             const c = calcScores.get(wk);
             w = { pts: c.pts, stats: c.stats, opponent: c.opponent, teamKey: null, started: null, calculated: true };
@@ -1293,7 +1299,15 @@ export async function playerSeasonDrill(year, { name, position, nflTeam }, { mod
     // Il file di lega ha comunque la precedenza — e' calcolato con le nostre
     // regole a partire da nflverse.
     const calcScores = new Map(extraScores || []);
-    for (const [w, v] of unros) calcScores.set(w, v);
+    for (const [w, v] of unros) {
+        // Il file comanda sui punti e sulle statistiche che ha, ma non le ha
+        // tutte: niente tentativi e completi per i QB, niente target e
+        // portate. Quelle mancanti si prendono dalla stessa partita vista da
+        // Sleeper, o la riga di un QB libero diceva "219 pass yds" senza il
+        // "18/27 comp" che hanno tutte le altre.
+        const altra = calcScores.get(w);
+        calcScores.set(w, altra?.stats ? { ...v, stats: { ...altra.stats, ...(v.stats || {}) } } : v);
+    }
 
     // Senza modello (stagione non ancora su Firebase) l'ultima giornata la
     // dicono i punteggi calcolati: e' l'unica cosa che sappiamo.
