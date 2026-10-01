@@ -800,7 +800,8 @@ function latoSegnato(lista, corrente, possesso, g) {
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-const logoImg = (t) => t.logo
+/** Esportata: il Night Recap la riusa per disegnare lo stesso scorebug. */
+export const logoImg = (t) => t.logo
     ? `<img class="fst-logo" src="${esc(t.logo)}" alt="" loading="lazy">`
     : `<span class="fst-logo fst-logo--vuoto">${esc(t.abbr || '')}</span>`;
 
@@ -812,8 +813,13 @@ const logoImg = (t) => t.logo
  * colorato, e un pallone rosso si sarebbe confuso con le tinte delle squadre.
  * Compare solo a partita in corso, perche' fuori da li' il possesso non vuol
  * dire niente.
+ *
+ * Esportata insieme a `logoImg`: il Night Recap la riusa per lo stesso
+ * scorebug. Il colore del pallone (`.fst-palla-corpo`/`-cuciture`) resta
+ * fisso qui — il Live sta sempre su fondo scuro — ma il Night Recap lo
+ * ricolora per il tema chiaro (vedi `.nr-board .fst-palla-corpo` in main.css).
  */
-const pallaPossesso = () => `
+export const pallaPossesso = () => `
     <svg class="fst-palla" viewBox="-6 -4 12 8" aria-hidden="true" focusable="false">
         <ellipse class="fst-palla-corpo" cx="0" cy="0" rx="4.2" ry="2.7"/>
         <g class="fst-palla-cuciture">

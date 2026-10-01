@@ -43,15 +43,19 @@ import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statRingHTML } from '../ui/stat-ring.js?v=1';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=38';
+import { logoImg, pallaPossesso } from '../ui/field-strip.js?v=148';
 import {
     partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei,
     fattoreSupplementari, segnalibro, segnaViste, segnaTentativo, valeTentare,
-} from '../data/night-recap.js?v=11';
+} from '../data/night-recap.js?v=12';
 import { ngsChartHTML, ngsLegendaHTML, ngsFasceHTML, bindNgsChart } from '../ui/ngs-chart.js?v=3';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const fmt = (n) => (+n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const ridotto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** Stesso logo del tabellone del Live (`LOGO_NFL` in sections/live.js): la
+ *  sigla basta, niente bisogno di una mappa locale. */
+const logoNFL = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;
 
 /**
  * Quanto dura il replay: due minuti per i sessanta minuti regolamentari.
@@ -501,20 +505,35 @@ function preparaPannello(cap, i) {
     const via = getTeamIdentity(partita.away), casa = getTeamIdentity(partita.home);
     const q = (sel) => pan.querySelector(sel);
 
+    /*
+     * Lo stesso scorebug di "Inside the game" nel Live (`fieldStripHTML` in
+     * field-strip.js): loghi, pallone del possesso, down & distance. Preso
+     * in prestito solo il VESTITO (classi `.fst-*`, `logoImg`,
+     * `pallaPossesso`) — l'aggiornamento resta quello di sempre, cronometro
+     * che scorre e punti che salgono, sugli stessi `data-nr-*` di prima.
+     * Non si può chiamare `fieldStripHTML` così com'è: quella si ridisegna
+     * di netto a ogni aggiornamento (va bene al Live, che aggiorna ogni
+     * 30s), e qui perderebbe esattamente le due animazioni per cui questo
+     * tabellone esiste.
+     */
     q('[data-nr-board]').innerHTML = `
-        <div class="nr-side" style="--nfl:${via?.color || '#555'}" data-nr-lato="${esc(partita.away)}">
-            <span class="nr-poss" aria-hidden="true">▶</span>
-            <span class="nr-abbr">${esc(partita.away)}</span>
-            <span class="nr-nfl" data-nr-away>0</span>
-        </div>
-        <div class="nr-mid">
-            <span class="nr-clock" data-nr-clock></span>
-            <span class="nr-dd" data-nr-dd></span>
-        </div>
-        <div class="nr-side nr-side--home" style="--nfl:${casa?.color || '#555'}" data-nr-lato="${esc(partita.home)}">
-            <span class="nr-nfl" data-nr-home>0</span>
-            <span class="nr-abbr">${esc(partita.home)}</span>
-            <span class="nr-poss" aria-hidden="true">◀</span>
+        <div class="fst-bug">
+            <div class="fst-lato" data-nr-lato="${esc(partita.away)}">
+                ${logoImg({ logo: logoNFL(partita.away), abbr: partita.away })}
+                <span class="fst-abbr">${esc(partita.away)}</span>
+                ${pallaPossesso()}
+            </div>
+            <div class="fst-col"><span class="fst-score" data-nr-away>0</span></div>
+            <div class="fst-mid">
+                <span class="fst-dd" data-nr-dd></span>
+                <span class="fst-quando nr-clock" data-nr-clock></span>
+            </div>
+            <div class="fst-col"><span class="fst-score" data-nr-home>0</span></div>
+            <div class="fst-lato fst-lato--r" data-nr-lato="${esc(partita.home)}">
+                ${logoImg({ logo: logoNFL(partita.home), abbr: partita.home })}
+                <span class="fst-abbr">${esc(partita.home)}</span>
+                ${pallaPossesso()}
+            </div>
         </div>`;
 
     q('[data-nr-players]').innerHTML = titolari.map(cardHTML).join('');
@@ -1014,7 +1033,7 @@ const secondiDa = (c) => {
 const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, '0')}`;
 
 /**
- * Down, distanza, punto del campo e la freccia del possesso — la riga che in
+ * Down, distanza, punto del campo e il pallone del possesso — la riga che in
  * TV sta sotto al punteggio. Vuota quando non si sa di chi è la palla (lo
  * stacco di fine quarto, l'assestamento): meglio niente che un "1st & 10"
  * rimasto lì dal passo prima.
@@ -1029,9 +1048,18 @@ function dirigiTabellone(pan, passo) {
             ? [`${ord} & ${quanto}`, passo.campo].filter(Boolean).join('  ·  ')
             : '';
     }
-    for (const lato of pan?.querySelectorAll('[data-nr-lato]') || []) {
-        lato.classList.toggle('ha-palla', !!passo.attacco && lato.dataset.nrLato === passo.attacco);
-    }
+    /* Away è sempre il primo `[data-nr-lato]` nel markup (vedi
+       preparaPannello), home il secondo: lo stesso ordine dei due
+       `[data-nr-away]`/`[data-nr-home]`, così il punteggio di chi attacca si
+       accende insieme al suo lato — comportamento di `.fst-score.is-pos`,
+       preso in prestito dal Live. */
+    const lati = [...(pan?.querySelectorAll('[data-nr-lato]') || [])];
+    lati.forEach((lato, idx) => {
+        const attacca = !!passo.attacco && lato.dataset.nrLato === passo.attacco;
+        lato.classList.toggle('ha-palla', attacca);
+        pan?.querySelector(idx === 0 ? '[data-nr-away]' : '[data-nr-home]')
+            ?.classList.toggle('is-pos', attacca);
+    });
 }
 
 /** Lo stacco di fine quarto: il campo si abbassa e resta il cartello. */

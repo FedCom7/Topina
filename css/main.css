@@ -20169,6 +20169,31 @@ td.ps-div-seed {
     text-shadow: none;
 }
 
+/* Stesso problema, stessa cura, per i cerchi del Night Recap: l'anello delle
+   statistiche e il nome sotto sono bianco fisso con alone scuro (pensati per
+   stare sul nero), e su un .nr-overlay diventato chiaro restavano scritte
+   chiare su un fondo chiaro — quasi invisibili. */
+:root[data-theme="light"] .nr-players .live-slot-stats--ring .live-ring-ch {
+    text-shadow: none;
+}
+
+:root[data-theme="light"] .nr-players .live-slot-stats--ring .live-ring-num {
+    color: #16140f;
+}
+
+:root[data-theme="light"] .nr-players .live-slot-stats--ring .live-ring-lbl {
+    color: rgba(22, 20, 15, 0.62);
+}
+
+:root[data-theme="light"] .nr-players .live-slot-stats--ring .live-ring-sep {
+    color: rgba(22, 20, 15, 0.3);
+}
+
+:root[data-theme="light"] .nr-card .slot-name {
+    color: var(--text-primary);
+    text-shadow: none;
+}
+
 /* Statistiche in un riquadro sotto la foto (panchina e resto del sito) */
 /* Riquadro statistiche identico per tutti: griglia fissa 2×3 (6 voci). */
 .live-slot-stats {
@@ -28564,7 +28589,7 @@ body.nr-open {
     padding: clamp(5px, 0.8vh, 9px) clamp(10px, 2vw, 18px);
 }
 
-.nr-show--3 .nr-nfl {
+.nr-show--3 .fst-score {
     font-size: clamp(1.2rem, 3.4vw, 1.7rem);
 }
 
@@ -28630,108 +28655,93 @@ body.nr-open {
     background: var(--nr-glass);
 }
 
-.nr-side {
-    display: flex;
-    align-items: center;
-    gap: clamp(8px, 2vw, 18px);
-    /* La barretta del colore NFL sta sul lato esterno di ogni squadra: dice di
-       chi è il punteggio senza aggiungere un logo da caricare. */
-    border-left: 4px solid var(--nfl);
-    padding-left: 10px;
+/*
+ * Lo scorebug è in prestito da `field-strip.js` (lo stesso di "Inside the
+ * game" nel Live): `.fst-bug`/`.fst-lato`/`.fst-abbr`/`.fst-col`/
+ * `.fst-score`/`.fst-mid`/`.fst-quando`/`.fst-dd`/`.fst-palla` arrivano già
+ * vestiti da lì — qui sotto solo le misure, più piccole perché quel pannello
+ * è largo quanto la pagina e questo sta in una card. L'aggiornamento (il
+ * cronometro che scorre, i punti che salgono) resta quello di Night Recap:
+ * vedi `dirigiTabellone`, `orologio`, `contaSu` più sotto, tutti ancora sugli
+ * stessi `data-nr-*`.
+ */
+.nr-board .fst-bug {
+    padding: 0;
+    gap: clamp(8px, 2.4vw, 20px);
 }
 
-.nr-side--home {
-    flex-direction: row-reverse;
-    border-left: 0;
-    border-right: 4px solid var(--nfl);
-    padding-left: 0;
-    padding-right: 10px;
+.nr-board .fst-logo {
+    width: clamp(28px, 6vw, 40px);
+    height: clamp(28px, 6vw, 40px);
 }
 
-.nr-abbr {
-    font-family: var(--font-display);
-    font-size: clamp(0.85rem, 2.2vw, 1.15rem);
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    color: var(--text-secondary);
+.nr-board .fst-abbr {
+    font-size: clamp(0.72rem, 1.8vw, 0.95rem);
 }
 
-.nr-nfl {
-    font-family: var(--font-display);
-    font-size: clamp(1.6rem, 5.5vw, 2.8rem);
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    color: var(--text-primary);
+.nr-board .fst-col {
+    margin-top: 0;
 }
 
-/* La colonna centrale: cronometro sopra, down & distance sotto — come la
-   grafica della diretta. Altezza fissa sulla seconda riga: si svuota negli
-   stacchi di fine quarto, e senza quella il tabellone si accorciava di colpo
-   trascinandosi dietro tutta la pagina. */
-.nr-mid {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
+.nr-board .fst-score {
+    font-size: clamp(1.5rem, 5vw, 2.4rem);
 }
 
-.nr-clock {
-    font-family: var(--font-display);
-    /* Come `.nr-dd`: altezza riservata anche da vuoto, e uguale a quella che
-       avrà col testo. */
+.nr-board .fst-mid {
+    margin: 0;
+}
+
+/* Altezza riservata anche da vuoto, uguale a quella che avranno col testo:
+   senza, il tabellone della partita senza ancora down & distance era più
+   basso degli altri, e con tre pannelli impilati la scena ballava a ogni
+   giocata (stessa ragione di `.fst-dd`/`.fst-quando` qui sotto). */
+.nr-board .fst-quando,
+.nr-board .fst-dd {
     line-height: 1.35;
     min-height: 1.35em;
+}
+
+.nr-board .fst-quando {
+    font-size: clamp(0.68rem, 1.6vw, 0.86rem);
     /* Tabellare: senza, ogni secondo che scorre cambia larghezza al numero e
        il cronometro trema. Con un orologio che scorre davvero si vede. */
     font-variant-numeric: tabular-nums;
-    font-size: clamp(0.72rem, 1.7vw, 0.92rem);
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    white-space: nowrap;
+}
+
+.nr-board .fst-dd {
+    font-size: clamp(0.58rem, 1.3vw, 0.7rem);
 }
 
 /* Cronometro fermo: durante un touchdown, un fumble o un intercetto il tempo
    si blocca, come in diretta. Si dichiara con un colore spento invece di
-   lasciare che sembri un'animazione inceppata. */
+   lasciare che sembri un'animazione inceppata. Il gancio resta `.nr-clock`
+   (lo stile vero lo dà `.fst-quando`, condiviso con lo scorebug del Live). */
 .nr-clock.is-fermo {
     color: var(--text-muted);
 }
 
-.nr-dd {
-    /* Interlinea e altezza DICHIARATE e uguali fra loro. `min-height: 1.1em`
-       con l'interlinea ereditata (1.6) dava 13px da vuoto e 18.9px col testo:
-       il tabellone della partita che non aveva ancora down & distance era sei
-       pixel più basso degli altri, e con tre pannelli impilati tutta la scena
-       saliva e scendeva a ogni giocata. */
-    line-height: 1.35;
-    min-height: 1.35em;
-    font-family: var(--font-display);
-    font-size: clamp(0.6rem, 1.35vw, 0.74rem);
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-
-/* La freccia del possesso: c'è sempre, e si accende su chi attacca. Nascosta
-   con `visibility` e non con `display`, se no le due squadre si spostano di
-   lato ogni volta che la palla cambia mano. */
-.nr-poss {
+/* Il pallone del possesso: c'è sempre nel markup (vedi `pallaPossesso()`),
+   nascosto con `visibility` e non `display` — altrimenti le due squadre si
+   spostano di lato ogni volta che la palla cambia mano. Colorato coi token
+   del recap: nel Live resta bianco su un fondo sempre scuro, qui a tema
+   chiaro un pallone bianco su un campo chiaro sparirebbe. */
+.nr-board .fst-palla {
     visibility: hidden;
-    font-size: 0.7em;
-    line-height: 1;
-    color: var(--accent-amber);
 }
 
-.nr-side.ha-palla .nr-poss {
+.nr-board .fst-lato.ha-palla .fst-palla {
     visibility: visible;
 }
 
-.nr-side.ha-palla .nr-abbr {
+.nr-board .fst-palla-corpo {
+    fill: var(--text-primary);
+}
+
+.nr-board .fst-palla-cuciture line {
+    stroke: var(--nr-cta-ink);
+}
+
+.nr-board .fst-lato.ha-palla .fst-abbr {
     color: var(--text-primary);
 }
 

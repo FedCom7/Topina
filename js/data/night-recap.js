@@ -28,7 +28,7 @@
  */
 
 import { scorePlay } from './scoring.js?v=592';
-import { direzioneGiocata } from '../ui/field-strip.js?v=146';
+import { direzioneGiocata } from '../ui/field-strip.js?v=148';
 
 /** Kickoff in questa fascia di ore italiane = turno di notte. */
 const NOTTE_DA = 0;
