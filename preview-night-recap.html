@@ -435,7 +435,16 @@
                     <input type="checkbox" id="tutte"> tutte
                 </span>
             </label>
+            <label class="lab-f">
+                <span>Tema</span>
+                <button type="button" id="tema">Dark</button>
+            </label>
             <button id="carica">Ricarica</button>
+            <!-- Il caricamento (.loading-state, lo stesso della home) non ha
+                 bisogno di partite scaricate: funziona anche a "Ricarica" non
+                 ancora premuto, perché è il PRIMO comando registrato nella
+                 scena (vedi scena() più sotto). -->
+            <button id="loading">Mostra caricamento</button>
             <button id="play" disabled>Riproduci</button>
             <button id="passo" disabled>Passo ›</button>
             <button id="auto" disabled>Auto</button>
@@ -476,19 +485,59 @@
            ═══════════════════════════════════════════════════════════════ */
         async function scena() {
             document.body.classList.add('lab-embed');
+            // Senza questa chiamata il banco non dipinge mai lo spinner: la
+            // regola `.loading-state:has(.spinner:not([data-tl-art]))` lo
+            // tiene invisibile finché qualcuno non lo marca — nel sito vero
+            // lo fa index.html prima ancora di app.js, qui dentro nessuno lo
+            // chiamava mai. Prima di montare qualunque `.spinner` (il banco
+            // ne crea uno nuovo ogni volta che si preme "Mostra caricamento"),
+            // l'osservatore deve già essere in piedi.
+            const { startLoadingArt } = await import('./js/ui/spinner.js?v=11');
+            startLoadingArt();
             const { fetchPlays, resolveAthlete } = await import('./js/data/nfl-plays.js?v=572');
             const { scorePlay } = await import('./js/data/scoring.js?v=592');
             const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=11');
             const { ESPN_TEAM_IDS } = await import('./js/data/player-map.js?v=513');
             const { squadraPreferita, impostaSquadraPreferita } = await import('./js/utils/preferenze.js?v=1');
-            const rec = await import('./js/sections/night-recap.js?v=25');
+            const rec = await import('./js/sections/night-recap.js?v=26');
 
             const perId = new Map(Object.entries(ESPN_TEAM_IDS).map(([a, i]) => [String(i), a]));
             const siglaDi = (id) => perId.get(String(id)) || '';
             const parla = (m) => parent.postMessage({ nr: true, ...m }, '*');
 
+            // Tema chiaro/scuro: si decide PRIMA di costruire qualunque cosa,
+            // come fa index.html — altrimenti si vedrebbe il lampo del tema
+            // sbagliato appena il CSS è pronto.
+            if (P.get('tema') === 'light') document.documentElement.dataset.theme = 'light';
+
             if (!squadraPreferita()) impostaSquadraPreferita('sommo');
             const nomeSquadra = () => ({ capi: 'Capi dei Pianeti', lasers: 'Lasers', oscurus: 'Oscurus', sommo: 'Sommo' })[squadraPreferita()] || 'Sommo';
+
+            /*
+             * Gli agganci ai comandi, registrati SUBITO: `loading` e `chiudi`
+             * non hanno bisogno delle partite scaricate, e devono rispondere
+             * anche se il fetch sta ancora girando (o è già fallito). `pronti`
+             * è una `let` esterna al blocco try/catch qui sotto: la chiusura
+             * la legge quando serve, cioè solo dopo che la pulsantiera ha
+             * ricevuto "pronto" e sbloccato i pulsanti di riproduzione.
+             */
+            let pronti = [];
+            const suPasso = (info) => parla({ tipo: 'passo', ...info, passo: {
+                kind: info.passo.kind, tipo: info.passo.tipo, dwell: info.passo.dwell,
+                away: info.passo.away, home: info.passo.home, attacco: info.passo.attacco,
+                redZone: info.passo.redZone, clock: info.passo.clock, periodo: info.passo.periodo,
+                tocchi: info.passo.tocchi.map(t => `${t.nome} ${t.pts > 0 ? '+' : ''}${t.pts}`),
+            } });
+            addEventListener('message', (e) => {
+                const c = e.data;
+                if (!c || c.nrCmd !== true) return;
+                if (c.cmd === 'loading') { rec.anteprimaCaricamento(); return; }
+                if (c.cmd === 'play') rec.anteprimaRecap(pronti, { manuale: false, onPasso: suPasso });
+                if (c.cmd === 'manuale') { rec.anteprimaRecap(pronti, { manuale: true, onPasso: suPasso }); rec.anteprimaPasso(); }
+                if (c.cmd === 'passo') rec.anteprimaPasso();
+                if (c.cmd === 'auto') rec.anteprimaAuto(!!c.auto);
+                if (c.cmd === 'chiudi') rec.anteprimaChiudi();
+            });
 
             const ids = (P.get('g') || PARTITE[0].id).split(',').filter(Boolean);
             const quanti = Math.max(1, Math.min(6, Number(P.get('n')) || 3));
@@ -541,7 +590,7 @@
                notte ne ha più di una. */
             const perCapitolo = Math.floor(budgetTot / capitoli.length);
 
-            const pronti = capitoli.map((c, k) => {
+            pronti = capitoli.map((c, k) => {
                 const idx = (scelta[k] || '').split(',').filter(x => x !== '').map(Number);
                 const scelti = (idx.length ? idx.map(i => c.candidati[i]).filter(Boolean)
                     : c.candidati.slice(0, quanti));
@@ -595,23 +644,6 @@
                 }))),
                 durata: pronti.reduce((s, c) => s + c.sequenza.durata, 0),
             });
-
-            const suPasso = (info) => parla({ tipo: 'passo', ...info, passo: {
-                kind: info.passo.kind, tipo: info.passo.tipo, dwell: info.passo.dwell,
-                away: info.passo.away, home: info.passo.home, attacco: info.passo.attacco,
-                redZone: info.passo.redZone, clock: info.passo.clock, periodo: info.passo.periodo,
-                tocchi: info.passo.tocchi.map(t => `${t.nome} ${t.pts > 0 ? '+' : ''}${t.pts}`),
-            } });
-
-            addEventListener('message', (e) => {
-                const c = e.data;
-                if (!c || c.nrCmd !== true) return;
-                if (c.cmd === 'play') rec.anteprimaRecap(pronti, { manuale: false, onPasso: suPasso });
-                if (c.cmd === 'manuale') { rec.anteprimaRecap(pronti, { manuale: true, onPasso: suPasso }); rec.anteprimaPasso(); }
-                if (c.cmd === 'passo') rec.anteprimaPasso();
-                if (c.cmd === 'auto') rec.anteprimaAuto(!!c.auto);
-                if (c.cmd === 'chiudi') rec.anteprimaChiudi();
-            });
         }
 
         /* ═══ LA PULSANTIERA ════════════════════════════════════════════ */
@@ -638,6 +670,7 @@
             let dati = null;      // { capitoli: [...], sequenze: [...] }
             let capOra = 0;
             let selezione = [];   // per partita: array di indici scelti
+            let temaChiaro = false;
 
             const dice = (h) => { $('#stato').innerHTML = h; };
             const errore = (t) => { $('#errore').textContent = t || ''; };
@@ -681,6 +714,7 @@
                     all: $('#tutte').checked ? '1' : '0',
                 });
                 if (selezione.some(s => s?.length)) q.set('sel', selezione.map(s => (s || []).join(',')).join('|'));
+                if (temaChiaro) q.set('tema', 'light');
                 return `preview-night-recap.html?${q}`;
             }
 
@@ -779,6 +813,22 @@
             });
             $('#chiudi').addEventListener('click', () => {
                 cmd('chiudi'); $('#chiudi').disabled = true; $('#auto').classList.remove('on');
+            });
+            // Il caricamento non ha bisogno di `dati`: è il primo comando che
+            // la scena registra (vedi scena()), quindi risponde anche a
+            // "Ricarica" non ancora premuto o fallito.
+            $('#loading').addEventListener('click', () => {
+                cmd('loading'); $('#chiudi').disabled = false; $('#auto').classList.remove('on');
+            });
+            // Il tema si decide dentro la scena PRIMA che disegni qualunque
+            // cosa (come index.html), quindi cambiarlo ricarica l'iframe:
+            // non c'è un modo pulito di ridipingere a caldo tutto quello che
+            // già c'è senza rifare esattamente quello che fa un reload.
+            $('#tema').addEventListener('click', () => {
+                temaChiaro = !temaChiaro;
+                $('#tema').textContent = temaChiaro ? 'Light' : 'Dark';
+                $('#tema').classList.toggle('on', temaChiaro);
+                ricarica({ tieniSelezione: true });
             });
 
             misuraTelaio();

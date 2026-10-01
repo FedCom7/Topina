@@ -28422,9 +28422,80 @@ body.nu-open .nu-panel {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(ellipse at 50% 15%, #101418 0%, #000 65%);
+    background: var(--nr-bg);
     font-family: var(--font-body);
     animation: nr-in 0.3s var(--ease, ease) both;
+
+    /*
+     * Tutto quello che il recap mostra (caricamento, tabellone, scena
+     * finale: sono tutti figli di .nr-overlay) è scritto quasi ovunque coi
+     * token del sito — --text-muted, --border-card, gli accenti — PIÙ una
+     * manciata di "vetro bianco su nero" scritti a mano perché il recap è
+     * sempre stato un palco scuro. A tema chiaro i primi cambiavano (il sito
+     * sotto diventa bianco) ma i secondi no: testo scurito sopra vetri e
+     * lampi pensati per il nero, cioè una copia spenta dello scuro invece di
+     * un tema chiaro vero. Qui sotto un set completo per entrambi i versi,
+     * sullo stesso modello di --live-bg/--live-card del Live.
+     */
+    --nr-bg: radial-gradient(ellipse at 50% 15%, #101418 0%, #000 65%);
+    --text-primary: #f5f0e8;
+    --text-secondary: #cccccc;
+    --text-muted: #888888;
+    --accent-blue: #4f8cff;
+    --accent-green: #22c55e;
+    --accent-red: #B8433A;
+    --accent-amber: #f59e0b;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-card: rgba(255, 255, 255, 0.12);
+
+    /* I "vetri" e i bagliori che prima erano rgba(255,255,255,…) scritti a
+       mano: bottone Skip, tabellone, tacche dei quarti, punto che cammina
+       sulla linea del tempo, lampo del touchdown, e gli stacchi a schermo
+       pieno fra un quarto/una partita e l'altra — quelli invece partivano da
+       nero pieno, l'opposto. */
+    --nr-glass: rgba(255, 255, 255, 0.04);
+    --nr-glass-2: rgba(255, 255, 255, 0.06);
+    --nr-glass-3: rgba(255, 255, 255, 0.14);
+    --nr-tick: rgba(255, 255, 255, 0.12);
+    --nr-tick-2: rgba(255, 255, 255, 0.22);
+    --nr-glow: rgba(255, 255, 255, 0.6);
+    --nr-flash: rgba(255, 255, 255, 0.42);
+    --nr-break: rgba(0, 0, 0, 0.86);
+    --nr-break-2: rgba(0, 0, 0, 0.9);
+    /* Le voci "vuote" del grafico di fine partita (bersaglio senza presa):
+       tratteggiate e spente apposta, non vanno confuse con una linea vera. */
+    --nr-muted-line: rgba(255, 255, 255, 0.55);
+    /* Il pulsante "Go to the site": fondo = --text-primary, quindi
+       l'inchiostro deve essere sempre il suo opposto per restare leggibile
+       — nero su un fondo chiaro scuro, bianco su uno chiaro. */
+    --nr-cta-ink: #000;
+}
+
+:root[data-theme="light"] .nr-overlay {
+    --nr-bg: radial-gradient(ellipse at 50% 18%, #f3f1ec 0%, #ffffff 65%);
+    --text-primary: #16140f;
+    --text-secondary: #3f3b35;
+    --text-muted: #6b665e;
+    --accent-blue: #2563eb;
+    --accent-green: #15803d;
+    --accent-red: #B8433A;
+    --accent-amber: #b45309;
+    --border-subtle: rgba(20, 18, 14, 0.08);
+    --border-card: rgba(20, 18, 14, 0.12);
+
+    --nr-glass: rgba(20, 18, 14, 0.035);
+    --nr-glass-2: rgba(20, 18, 14, 0.05);
+    --nr-glass-3: rgba(20, 18, 14, 0.1);
+    --nr-tick: rgba(20, 18, 14, 0.14);
+    --nr-tick-2: rgba(20, 18, 14, 0.28);
+    --nr-glow: rgba(20, 18, 14, 0.35);
+    /* Un lampo bianco su un fondo già chiaro non si vedrebbe: qui il
+       touchdown lampeggia d'ambra invece che di bianco. */
+    --nr-flash: rgba(245, 158, 11, 0.5);
+    --nr-break: rgba(255, 255, 255, 0.88);
+    --nr-break-2: rgba(255, 255, 255, 0.94);
+    --nr-muted-line: rgba(20, 18, 14, 0.38);
+    --nr-cta-ink: #fff;
 }
 
 @keyframes nr-in {
@@ -28531,7 +28602,7 @@ body.nr-open {
     padding: 6px 16px;
     border: 1px solid var(--border-card);
     border-radius: var(--pill-radius, 999px);
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--nr-glass-2);
     color: var(--text-primary);
     font-family: var(--font-display);
     font-size: 0.78rem;
@@ -28543,7 +28614,7 @@ body.nr-open {
 }
 
 .nr-skip:hover {
-    background: rgba(255, 255, 255, 0.14);
+    background: var(--nr-glass-3);
 }
 
 /* ── Il tabellone NFL, minimale: sigle, punteggio, quarto ──────────────── */
@@ -28556,7 +28627,7 @@ body.nr-open {
     padding: clamp(10px, 1.8vh, 18px) clamp(12px, 3vw, 26px);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md, 12px);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--nr-glass);
 }
 
 .nr-side {
@@ -29145,7 +29216,7 @@ body.nr-open {
 .nr-q {
     position: relative;
     flex: 1;
-    border-top: 2px solid rgba(255, 255, 255, 0.12);
+    border-top: 2px solid var(--nr-tick);
 }
 
 /* Il taglio fra un quarto e l'altro. Il primo non ce l'ha: è l'inizio. */
@@ -29156,7 +29227,7 @@ body.nr-open {
     left: 0;
     width: 1px;
     height: 10px;
-    background: rgba(255, 255, 255, 0.22);
+    background: var(--nr-tick-2);
 }
 
 .nr-q i {
@@ -29193,7 +29264,7 @@ body.nr-open {
     margin: -3.5px 0 0 -3.5px;
     border-radius: 50%;
     background: var(--text-primary);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 10px var(--nr-glow);
     transition: left 0.3s linear;
 }
 
@@ -29247,7 +29318,7 @@ body.nr-open {
    abbassa il bianco di partenza, così al colpo più forte resta un lampo e non
    un abbaglio. */
 .nr-stage .live-fx-flash {
-    background: rgba(255, 255, 255, 0.42);
+    background: var(--nr-flash);
 }
 
 /* ── Lo stacco di fine quarto ──────────────────────────────────────────
@@ -29260,7 +29331,7 @@ body.nr-open {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.86);
+    background: var(--nr-break);
     backdrop-filter: blur(3px);
     animation: nr-in 0.2s ease both;
 }
@@ -29285,7 +29356,7 @@ body.nr-open {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.9);
+    background: var(--nr-break-2);
     animation: nr-in 0.25s ease both;
 }
 
@@ -29566,7 +29637,7 @@ body.nr-open {
 .nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="persa"] { stroke: var(--accent-red); }
 .nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="corta"] { stroke: #f5c518; }
 .nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="lunga"] { stroke: var(--accent-green); }
-.nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="vuota"] { stroke: rgba(255, 255, 255, 0.55); }
+.nr-fine-campo.is-sel .ngs-linea.is-mio[data-f="vuota"] { stroke: var(--nr-muted-line); }
 .nr-fine-campo.is-sel .ngs-td.is-mio { fill: var(--accent-green); }
 
 .nr-fine-campo.is-sel .ngs-linea.is-mio {
@@ -29607,7 +29678,7 @@ body.nr-open {
 }
 
 .ngs-voce:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--nr-glass);
 }
 
 .ngs-voce.is-on {
@@ -29648,7 +29719,7 @@ body.nr-open {
 .ngs-fasce [data-f="persa"] i { background: var(--accent-red); }
 .ngs-fasce [data-f="corta"] i { background: #f5c518; }
 .ngs-fasce [data-f="lunga"] i { background: var(--accent-green); }
-.ngs-fasce [data-f="vuota"] i { background: rgba(255, 255, 255, 0.55); }
+.ngs-fasce [data-f="vuota"] i { background: var(--nr-muted-line); }
 
 .ngs-pallino {
     width: 9px;
@@ -29689,7 +29760,11 @@ body.nr-open {
     border: 1px solid var(--border-card);
     border-radius: var(--pill-radius, 999px);
     background: var(--text-primary);
-    color: #000;
+    /* Il fondo è --text-primary, quindi l'inchiostro deve essere il suo
+       opposto per restare leggibile: nero su un fondo chiaro-su-scuro,
+       bianco su un fondo scuro-su-chiaro — fisso a #000 il pulsante
+       spariva a tema chiaro (testo nero su fondo diventato quasi nero). */
+    color: var(--nr-cta-ink);
     font-family: var(--font-display);
     font-size: clamp(0.76rem, 1.6vw, 0.9rem);
     font-weight: 900;

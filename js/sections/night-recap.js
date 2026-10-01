@@ -1270,6 +1270,19 @@ export function avviaNightRecap() {
    ============================================================ */
 
 /**
+ * Mostra solo il caricamento — lo stesso `.loading-state` che vede chi apre
+ * il sito e un replay sta per deciderlo — senza risolvere niente. Resta a
+ * schermo finché non arriva `anteprimaChiudi()`: serve a guardare con calma
+ * cosa c'è PRIMA che `raccogli()` sappia se c'è un replay o no, cosa che nel
+ * sito dura solo una manciata di secondi.
+ */
+export function anteprimaCaricamento() {
+    if (overlay) chiudi();
+    montaOverlay();
+    return true;
+}
+
+/**
  * Manda in onda dei capitoli già pronti, a comando.
  *
  * @param {Array}    capitoli  [{ partita, titolari, week, mia, sequenza }]
