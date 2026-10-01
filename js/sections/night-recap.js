@@ -89,6 +89,17 @@ export function alzaSipario() {
 /**
  * Monta il sipario, senza chiedersi se sia il caso.
  *
+ * Niente "Last night": finché non si sa se c'è un replay, l'unico compito del
+ * sipario è coprire la home e il suo punteggio, non annunciarne uno. Uno
+ * "Last night" seguito da un rientro silenzioso nel sito si leggeva come un
+ * replay promesso e non mantenuto — e infatti non lo era: era solo il tempo
+ * di `raccogli()` per scoprire che stanotte non c'era nessun titolare in
+ * campo. Restano solo lo spinner (un buco nero per uno o due secondi sembra
+ * bloccato) e lo Skip, che qui non promette niente — è la via d'uscita se la
+ * rete è lenta (`raccogli()` incatena più timeout da 8-12s). Appena i dati
+ * arrivano, `riproduci()` sostituisce questo markup con la scena vera, oppure
+ * `chiudi()` lo toglie senza che sia mai comparsa una parola.
+ *
  * Staccato dai cancelli perché il banco di prova (`preview-night-recap.html`)
  * deve poter aprire la scena a comando: lì non c'è nessun risultato da
  * proteggere, e aspettare un martedì mattina per guardare un'animazione non è
@@ -98,10 +109,9 @@ function montaOverlay() {
     overlay = document.createElement('div');
     overlay.className = 'nr-overlay nr-overlay--sipario';
     overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-label', 'Last night replay');
+    overlay.setAttribute('aria-label', 'Loading');
     overlay.innerHTML = `
     <div class="nr-curtain">
-        <span class="nr-kicker">Last night</span>
         <div class="spinner"></div>
         <button type="button" class="nr-skip nr-skip--curtain">Skip</button>
     </div>`;
