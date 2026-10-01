@@ -28437,15 +28437,6 @@ body.nr-open {
     overflow: hidden;
 }
 
-/* ── Il sipario: quello che si vede mentre i dati arrivano ─────────────── */
-
-.nr-curtain {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-}
-
 /* ── La scena ─────────────────────────────────────────────────────────── */
 
 .nr-show {
@@ -28553,10 +28544,6 @@ body.nr-open {
 
 .nr-skip:hover {
     background: rgba(255, 255, 255, 0.14);
-}
-
-.nr-skip--curtain {
-    margin-top: 10px;
 }
 
 /* ── Il tabellone NFL, minimale: sigle, punteggio, quarto ──────────────── */

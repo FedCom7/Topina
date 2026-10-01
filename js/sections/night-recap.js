@@ -89,16 +89,18 @@ export function alzaSipario() {
 /**
  * Monta il sipario, senza chiedersi se sia il caso.
  *
- * Niente "Last night": finché non si sa se c'è un replay, l'unico compito del
- * sipario è coprire la home e il suo punteggio, non annunciarne uno. Uno
- * "Last night" seguito da un rientro silenzioso nel sito si leggeva come un
- * replay promesso e non mantenuto — e infatti non lo era: era solo il tempo
- * di `raccogli()` per scoprire che stanotte non c'era nessun titolare in
- * campo. Restano solo lo spinner (un buco nero per uno o due secondi sembra
- * bloccato) e lo Skip, che qui non promette niente — è la via d'uscita se la
- * rete è lenta (`raccogli()` incatena più timeout da 8-12s). Appena i dati
- * arrivano, `riproduci()` sostituisce questo markup con la scena vera, oppure
- * `chiudi()` lo toglie senza che sia mai comparsa una parola.
+ * Niente "Last night", niente Skip: finché non si sa se c'è un replay,
+ * annunciarne uno (o dare un pulsante per saltarlo) prometteva qualcosa che
+ * spesso non arrivava — se stanotte non c'era nessun titolare in campo, il
+ * sipario si alzava, parlava, e rientrava in silenzio nel sito.
+ *
+ * Il markup è lo STESSO `.loading-state` che la home mostra già mentre
+ * aspetta Firebase (vedi `#home-showcase` in index.html): a schermo questo
+ * non è "il sipario del Night Recap", è il caricamento del sito, punto. Chi
+ * apre il sito vede il solito spinner; poi o parte il replay, o il sipario
+ * sparisce e sotto c'era la home — mai un indizio di cosa stesse per
+ * succedere. `startLoadingArt()` lo dipinge da solo: osserva il DOM e
+ * riempie ogni `.spinner` che compare, questo incluso.
  *
  * Staccato dai cancelli perché il banco di prova (`preview-night-recap.html`)
  * deve poter aprire la scena a comando: lì non c'è nessun risultato da
@@ -111,13 +113,12 @@ function montaOverlay() {
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Loading');
     overlay.innerHTML = `
-    <div class="nr-curtain">
+    <div class="loading-state">
         <div class="spinner"></div>
-        <button type="button" class="nr-skip nr-skip--curtain">Skip</button>
+        <p>Loading...</p>
     </div>`;
     document.body.appendChild(overlay);
     document.body.classList.add('nr-open');
-    overlay.querySelector('.nr-skip')?.addEventListener('click', () => chiudi());
 }
 
 /** Abbassa il sipario e sgombra. `segna` = marca le partite come viste. */
