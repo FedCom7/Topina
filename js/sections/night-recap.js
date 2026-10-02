@@ -1081,11 +1081,23 @@ function dirigiTabellone(pan, passo) {
     });
 
     /*
-     * La barra di posizione campo: una tacca sulla yard ASSOLUTA (0 = end
-     * zone dell'ospite, 100 = end zone di casa — "l'ospite sta sempre a
-     * sinistra", la stessa convenzione di `yardAssoluta` in field-strip.js),
-     * con sopra l'etichetta che il tabellone scriveva finora in testo
-     * ("ATL 35" — `passo.campo`, già pronta da `contesto()`).
+     * La barra di posizione campo: una tacca sulla yard ASSOLUTA di GIOCO
+     * (0 = LINEA DI PORTA dell'ospite, 100 = linea di porta di casa —
+     * "l'ospite sta sempre a sinistra", la stessa convenzione di
+     * `yardAssoluta` in field-strip.js), con sopra l'etichetta che il
+     * tabellone scriveva finora in testo ("ATL 35" — `passo.campo`, già
+     * pronta da `contesto()`).
+     *
+     * Le 0-100 di `toEZ` sono SOLO il campo di gioco: zero è la linea di
+     * porta, non dentro l'end zone, che sta oltre e non è coperta da questa
+     * scala. Il tratto colorato alle due estremità della barra (CSS,
+     * `.nr-fieldbar-track`) rappresenta proprio quell'end zone — quindi non
+     * può stare dentro lo 0-100 della tacca, o yard di gioco vere (tipo
+     * "ATL 5") cadrebbero dentro il colore come se la squadra avesse già
+     * segnato. Si restringe lo spazio utile della tacca alla fascia centrale
+     * (`CAMPO_DA`-`CAMPO_A`), lasciando ai lati esattamente la larghezza del
+     * tratto colorato: a yard 0 la tacca tocca il bordo del colore (la linea
+     * di porta), mai più in là.
      */
     const barra = pan?.querySelector('[data-nr-fieldbar]');
     if (barra) {
@@ -1093,7 +1105,11 @@ function dirigiTabellone(pan, passo) {
         const valido = passo.toEZ != null && !!passo.attacco && abbrOspite != null;
         barra.classList.toggle('is-vuota', !valido);
         if (valido) {
-            const assoluta = passo.attacco === abbrOspite ? (100 - passo.toEZ) : passo.toEZ;
+            const assolutaCampo = passo.attacco === abbrOspite ? (100 - passo.toEZ) : passo.toEZ;
+            // Stessa proporzione end zone/campo del CSS (10 yard di end zone
+            // su 120 di campo totale): se cambia una, va cambiata l'altra.
+            const CAMPO_DA = 100 / 12, CAMPO_A = 100 - CAMPO_DA;
+            const assoluta = CAMPO_DA + (assolutaCampo / 100) * (CAMPO_A - CAMPO_DA);
             const tick = barra.querySelector('[data-nr-fieldbar-tick]');
             if (tick) tick.style.left = `${Math.max(0, Math.min(100, assoluta))}%`;
             const label = barra.querySelector('[data-nr-fieldbar-label]');

@@ -28790,6 +28790,11 @@ body.nr-open {
     line-height: 1.2;
 }
 
+/* 10 yard di end zone su 120 di campo totale (100 di gioco + 10 per lato) =
+   8.3333%: la STESSA proporzione che usa la tacca in sections/night-recap.js
+   per restringere le sue 0-100 al tratto centrale. Deve restare la stessa
+   frazione nei due posti — è il bordo del colore a dire dove comincia l'end
+   zone, e la tacca a yard 0 lo deve toccare esattamente, non superarlo. */
 .nr-fieldbar-track {
     position: relative;
     width: 100%;
@@ -28797,9 +28802,9 @@ body.nr-open {
     border-radius: 3px;
     overflow: visible;
     background: linear-gradient(to right,
-        var(--nr-fb-away) 0%, var(--nr-fb-away) 8%,
-        var(--border-subtle) 8%, var(--border-subtle) 92%,
-        var(--nr-fb-home) 92%, var(--nr-fb-home) 100%);
+        var(--nr-fb-away) 0%, var(--nr-fb-away) 8.3333%,
+        var(--border-subtle) 8.3333%, var(--border-subtle) 91.6667%,
+        var(--nr-fb-home) 91.6667%, var(--nr-fb-home) 100%);
 }
 
 .nr-fieldbar-tick {
