@@ -2619,7 +2619,7 @@ function statusBadgeHTML() {
              stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="3 17 9 11 13 15 21 7"></polyline>
             <polyline points="15 7 21 7 21 13"></polyline>
-        </svg> PROJECTED`;
+        </svg> <span class="live-proj-long">PROJECTED</span><span class="live-proj-short">PROJ</span>`;
     // niente etichetta: senza partite in corso e senza proiezioni non c'è
     // niente di vero da dichiarare, e "FINAL" su una settimana che deve ancora
     // cominciare diceva il falso
@@ -4158,7 +4158,8 @@ let deepScelto = false;
  * a due clic di distanza, senza nessun indizio che ci fossero.
  */
 function deepIdxIniziale(partite) {
-    const peso = (p) => ({ in: 0, post: 1 }[p.quadro?.info?.state] ?? 2);
+    // le partite in cui ho qualcuno vengono prima di qualunque altra
+    const peso = (p) => ({ in: 0, post: 1 }[p.quadro?.info?.state] ?? 2) + (p.altra ? 10 : 0);
     let best = 0;
     for (let i = 1; i < partite.length; i++) {
         if (peso(partite[i]) < peso(partite[best])) best = i;
@@ -4166,10 +4167,41 @@ function deepIdxIniziale(partite) {
     return best;
 }
 
-/** Le partite da mostrare, una per squadra NFL in cui ho qualcuno. */
+/**
+ * Il quadro di una partita senza tabellino (non ancora cominciata, o di cui
+ * il tabellino non e' arrivato): solo intestazione e stato, dal calendario.
+ */
+function quadroDaCalendario(sigla, g) {
+    return {
+        players: [],
+        info: {
+            team: sigla, teamName: teamNameFromAbbr(sigla), logo: '',
+            opponent: (g.opponent || '').replace('@', ''),
+            opponentName: (g.opponent || '').replace('@', ''),
+            home: !String(g.opponent || '').startsWith('@'),
+            score: g.score || 0, oppScore: g.oppScore || 0,
+            // A partita non cominciata l'etichetta e' l'orario, e va
+            // in ora italiana come nel tabellone qui sopra. In corso
+            // e' invece quarto e cronometro, che non si toccano.
+            detail: g.state === 'pre'
+                ? (oraItaliana(g.start) || g.detail || g.status || '')
+                : (g.detail || g.status || ''),
+            state: g.state || 'pre',
+        },
+    };
+}
+
+/**
+ * Le partite da mostrare: prima una per squadra NFL in cui ho qualcuno, poi
+ * TUTTE le altre della settimana (`altra: true`), con l'etichetta barrata —
+ * li' non ho nessuno, ma la partita si puo' guardare lo stesso.
+ */
 function deepGames(team) {
     const out = [];
+    const viste = new Set();      // eventId gia' in elenco
     for (const [sigla, miei] of sigleDeiNostri(team)) {
+        const g = liveSchedule?.get(sigla);
+        if (g?.eventId) viste.add(String(g.eventId));
         const quadro = boxData?.usage?.get(sigla);
         if (quadro?.info && quadro.players?.length) {
             out.push({ sigla, miei, quadro });
@@ -4178,35 +4210,34 @@ function deepGames(team) {
         // Partita non ancora cominciata (o tabellino non arrivato): la scheda
         // si mostra lo stesso, con i miei elencati come fermi. Sparire del
         // tutto farebbe pensare di non avere nessuno in quella squadra.
-        const g = liveSchedule?.get(sigla);
         if (!g) continue;
-        out.push({
-            sigla, miei,
-            quadro: {
-                players: [],
-                info: {
-                    team: sigla, teamName: teamNameFromAbbr(sigla), logo: '',
-                    opponent: (g.opponent || '').replace('@', ''),
-                    opponentName: (g.opponent || '').replace('@', ''),
-                    home: !String(g.opponent || '').startsWith('@'),
-                    score: g.score || 0, oppScore: g.oppScore || 0,
-                    // A partita non cominciata l'etichetta e' l'orario, e va
-                    // in ora italiana come nel tabellone qui sopra. In corso
-                    // e' invece quarto e cronometro, che non si toccano.
-                    detail: g.state === 'pre'
-                        ? (oraItaliana(g.start) || g.detail || g.status || '')
-                        : (g.detail || g.status || ''),
-                    state: g.state || 'pre',
-                },
-            },
+        out.push({ sigla, miei, quadro: quadroDaCalendario(sigla, g) });
+    }
+
+    // Le altre partite, una sola volta ciascuna (il calendario le ha per
+    // tutt'e due le squadre): si guarda la squadra di CASA, e l'etichetta e'
+    // "OSPITE@CASA" perche' di nessuna delle due ho qualcuno.
+    const altre = [];
+    for (const [sigla, g] of liveSchedule || []) {
+        if (!g?.eventId || viste.has(String(g.eventId))) continue;
+        if (String(g.opponent || '').startsWith('@')) continue;   // e' l'ospite: la prende la casa
+        viste.add(String(g.eventId));
+        const quadro = boxData?.usage?.get(sigla);
+        altre.push({
+            sigla, miei: [], altra: true,
+            etichetta: `${(g.opponent || '').replace('@', '')}@${sigla}`,
+            quadro: quadro?.info && quadro.players?.length ? quadro : quadroDaCalendario(sigla, g),
         });
     }
+
     // In corso per prime, poi le finite, poi quelle che devono cominciare: le
     // sigle in cima si leggono da sinistra, e a sinistra ci va quello che sta
     // succedendo adesso. Fra partite dello stesso stato resta l'ordine delle
-    // rose, che e' stabile fra un poll e l'altro.
+    // rose, che e' stabile fra un poll e l'altro. Le mie sempre prima delle altre.
     const peso = (g) => ({ in: 0, post: 1 }[g.quadro?.info?.state] ?? 2);
-    return out.sort((a, b) => peso(a) - peso(b));
+    const inizio = (g) => +(liveSchedule?.get(g.sigla)?.start || 0);
+    const perStato = (a, b) => peso(a) - peso(b) || inizio(a) - inizio(b);
+    return [...out.sort(perStato), ...altre.sort(perStato)];
 }
 
 /**
@@ -4274,7 +4305,7 @@ function confrontoHTML(quadro, sigla) {
     </div>`;
 }
 
-function deepGameHTML({ sigla, miei, quadro }) {
+function deepGameHTML({ sigla, miei, quadro, altra }) {
     const g = quadro.info;
     const nomiMiei = new Set(miei.map(p => normName(p.name)));
     const ruoloDi = (p) => (p.position_in_team || p.position || '').toUpperCase();
@@ -4295,6 +4326,11 @@ function deepGameHTML({ sigla, miei, quadro }) {
     const mio = (p) => nomiMiei.has(normName(p.name));
     const nostri = [...quadro.players.filter(mio).map(p => shortName({ name: p.name })),
         ...fermi.map(p => shortName(p))];
+    // Il punteggio sta nello scorebug del campo: ripeterlo nell'intestazione
+    // lo mostrava due volte, una sopra l'altra. Resta li' solo quando il
+    // campo non c'e'.
+    const st = statoCampo(sigla, quadro);
+    const striscia = st ? fieldStripHTML(st) : '';
 
     return `
     <article class="live-deep-game">
@@ -4302,13 +4338,15 @@ function deepGameHTML({ sigla, miei, quadro }) {
             ${g.logo ? `<img class="live-deep-logo" src="${g.logo}" alt="" loading="lazy">` : ''}
             <span class="live-deep-team">${escAttr(g.teamName || sigla)}</span>
             <span class="live-deep-vs">${g.home ? 'vs' : '@'} ${escAttr(g.opponentName || g.opponent || '')}</span>
-            ${g.state === 'pre' ? ''
+            ${g.state === 'pre' || striscia ? ''
                 : `<span class="live-deep-score">${g.score}<i>–</i>${g.oppScore}</span>`}
             <span class="live-deep-when">${escAttr(g.detail || '')}</span>
         </header>
-        ${(() => { const st = statoCampo(sigla, quadro); return st ? fieldStripHTML(st) : ''; })()}
-        <p class="live-deep-sub">${escAttr(g.teamName || sigla)} offense only${nostri.length
-            ? ` · yours: <b>${nostri.map(escAttr).join(', ')}</b>` : ''}</p>
+        ${striscia}
+        <p class="live-deep-sub">${altra && !quadro.players.length
+            ? 'None of your players in this game.'
+            : `${escAttr(g.teamName || sigla)} offense only${nostri.length
+                ? ` · yours: <b>${nostri.map(escAttr).join(', ')}</b>` : ''}`}</p>
         ${usoBloccoHTML('Targets and catches', ricevitori.map(p => usoRow(
             p.name, p.targets || 0, maxTgt,
             usoStats([[p.targets, 'tgt'], [p.rec, 'rec'], [p.rec_yds, 'yd'], [p.rec_td, 'TD']]),
@@ -4354,10 +4392,12 @@ function deepDiveHTML(team) {
                 // La sigla dice anche in che stato e' quella partita: un punto
                 // acceso se e' in corso, spento se deve ancora cominciare.
                 const st = p.quadro?.info?.state || 'pre';
-                return `<button class="live-deep-dot live-deep-dot--${st}${i === deepIdx ? ' active' : ''}"
+                // Barrata: una partita in cui non ho nessuno. Si apre lo
+                // stesso, ma si capisce a colpo d'occhio che non e' "mia".
+                return `<button class="live-deep-dot live-deep-dot--${st}${p.altra ? ' live-deep-dot--altra' : ''}${i === deepIdx ? ' active' : ''}"
                     type="button" data-deep-go="${i}"
-                    title="${st === 'in' ? 'In progress' : st === 'post' ? 'Final — plays available' : 'Not started'}"
-                    >${escAttr(p.sigla)}</button>`;
+                    title="${p.altra ? 'None of your players · ' : ''}${st === 'in' ? 'In progress' : st === 'post' ? 'Final — plays available' : 'Not started'}"
+                    >${escAttr(p.etichetta || p.sigla)}</button>`;
             }).join('')}
         </div>`;
 

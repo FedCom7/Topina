@@ -30206,3 +30206,25 @@ body.nr-open {
 @media (max-width: 700px) {
     .live-deep .fst-dove { display: none; }
 }
+
+/* Inside the game: le partite in cui non ho nessuno, in coda e barrate. */
+.live-deep-dot--altra {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    opacity: 0.6;
+}
+.live-deep-dot--altra.active { opacity: 1; }
+
+/* "PROJECTED" accorciato sul telefono: col nome di una squadra lunga nel
+   selettore (Capi dei Pianeti) l'intestazione del Live andava su due righe. */
+.live-proj-short { display: none; }
+@media (max-width: 560px) {
+    .live-proj-long { display: none; }
+    .live-proj-short { display: inline; }
+}
+/* Sui telefoni da 360px mancavano due pixel: si stringono gli spazi fra le
+   voci dell'intestazione invece di accorciare ancora le parole. */
+@media (max-width: 400px) {
+    .live-header { gap: 8px; }
+    .live-header-right { gap: 8px; }
+}

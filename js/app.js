@@ -28,7 +28,7 @@ import { initWaivers } from './sections/waivers.js?v=133';
 import { initPlayerStats } from './sections/player-stats.js?v=22';
 
 import { initMagazine } from './sections/magazine.js?v=803';
-import { initLive } from './sections/live.js?v=1157';
+import { initLive } from './sections/live.js?v=1158';
 import { avviaNightRecap } from './sections/night-recap.js?v=29';
 import { initNavbar } from './ui/navbar.js?v=694';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
