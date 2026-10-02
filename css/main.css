@@ -30228,3 +30228,278 @@ body.nr-open {
     .live-header { gap: 8px; }
     .live-header-right { gap: 8px; }
 }
+
+/* ============================================================
+   NFL HUB → "Every game" (#nfl-games): Inside the game a pagina
+   intera, per tutte le partite della giornata
+   ============================================================ */
+.ps-sb-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.ps-sb-full {
+    flex: none;
+    padding: 5px 12px;
+    border-radius: var(--pill-radius);
+    border: 1px solid var(--bg-glass-border);
+    color: var(--text-primary);
+    font: 700 0.72rem/1 var(--font-body);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ps-sb-full:hover { border-color: var(--accent-red); background: color-mix(in srgb, var(--accent-red) 14%, transparent); }
+.ps-sb-full:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+.ng { display: flex; flex-direction: column; gap: 16px; }
+.ng-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+.ng-title {
+    margin: 4px 0 0;
+    font: 900 clamp(1.8rem, 4vw, 2.6rem)/1 var(--font-display);
+    letter-spacing: -0.01em;
+}
+.ng-week { display: flex; align-items: center; gap: 8px; }
+.ng-week-label {
+    font: 700 0.85rem/1 var(--font-display);
+    min-width: 7.5rem;
+    text-align: center;
+}
+.ng-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--bg-glass-border);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+.ng-arrow:disabled { opacity: 0.3; cursor: default; }
+
+.ng-games {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #000 transparent;
+}
+.ng-pill {
+    flex: none;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 4px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: var(--font-display);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ng-pill:hover { color: var(--text-primary); }
+.ng-pill.active {
+    color: var(--text-primary);
+    border-color: var(--accent-red);
+    background: color-mix(in srgb, var(--accent-red) 16%, var(--surface-card));
+}
+.ng-pill-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+}
+.ng-pill-team img { width: 22px; height: 22px; object-fit: contain; }
+.ng-pill-team b { font-weight: 800; letter-spacing: 0.03em; }
+.ng-pill-team i { font-style: normal; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ng-pill-team.is-loser { opacity: 0.55; }
+.ng-pill-at { font-size: 0.7rem; color: var(--text-muted); }
+.ng-pill-st {
+    grid-column: 1 / -1;
+    font: 600 0.66rem/1 var(--font-body);
+    letter-spacing: 0.04em;
+    text-align: center;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.ng-pill--in .ng-pill-st { color: var(--accent-green); }
+.ng-pill--in .ng-pill-st::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    vertical-align: 1px;
+}
+
+.ng-game { display: flex; flex-direction: column; gap: 18px; }
+.ng-teams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.ng-team {
+    padding: 14px 16px 12px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+    min-width: 0;
+}
+.ng-team-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    font: 800 1rem/1.2 var(--font-display);
+}
+.ng-team-h img { width: 28px; height: 28px; object-fit: contain; }
+.ng-cmp {
+    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--bg-glass-border);
+    background: var(--surface-card);
+}
+.ng-cmp .live-cmpteam-head { grid-template-columns: 5rem 1fr 5rem; }
+.ng-cmp .live-cmpteam-head > :first-child,
+.ng-cmp .live-cmpteam-head > :last-child {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.ng-cmp .live-cmpteam-head > :last-child { justify-content: flex-end; }
+.ng-cmp .live-cmpteam-head img { width: 20px; height: 20px; object-fit: contain; }
+
+/* Niente colonna dei punti fantasy in questa pagina: le griglie del Live ne
+   hanno una in fondo, qui si toglie. */
+/* Qui il nome va per intero: c'e' una squadra per colonna e lo spazio
+   c'e'. Si stringe la barra, non il nome. */
+.ng .live-uso-row { grid-template-columns: 11.5rem minmax(24px, 1fr) auto; }
+.ng .live-uso-qb { grid-template-columns: 11.5rem 1fr; }
+@media (max-width: 560px) {
+    .ng .live-uso-row,
+    .ng .live-uso-qb { grid-template-columns: 1fr auto; }
+}
+
+@media (max-width: 760px) {
+    .ng-teams { grid-template-columns: 1fr; }
+    /* sul telefono il confronto si legge dai numeri: le barre colorate in
+       mezzo rubavano spazio alle etichette */
+    .ng-cmp .live-cmpteam-bar { display: none; }
+}
+
+/* Game day: i titolari in campo, undici d'attacco e undici di difesa */
+.ng-xi-title {
+    margin: 0 0 4px;
+    font: 800 0.8rem/1.2 var(--font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.ng-xi-note { margin: 0 0 10px; font-size: 0.78rem; color: var(--text-muted); }
+.ng-xi .ng-team { display: flex; flex-direction: column; gap: 8px; }
+.ng-xi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 12px 8px;
+    margin-bottom: 6px;
+}
+.ng-xi-p {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    text-align: center;
+}
+.ng-xi-foto {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--bg-glass-border);
+}
+.ng-xi-foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.ng-xi-pos {
+    font: 700 0.62rem/1 var(--font-body);
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.ng-xi-nome {
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+    .ng-xi-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+    .ng-xi-foto { width: 50px; height: 50px; }
+}
+
+/* Game day: la panchina, una riga per reparto */
+.ng-bench { display: flex; flex-direction: column; gap: 10px; }
+.ng-bench-row {
+    display: grid;
+    grid-template-columns: 2.4rem minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+}
+.ng-bench-ruolo {
+    font: 800 0.68rem/1 var(--font-display);
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+.ng-bench-fila {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #000 transparent;
+    padding-bottom: 2px;
+}
+.ng-bench-fila { align-items: flex-start; }
+.ng-bench-fila .ng-xi-p { flex: 0 0 78px; }
+.ng-bench-fila .ng-xi-foto { width: 50px; height: 50px; }
+.ng-bench-fila .ng-xi-nome { font-size: 0.7rem; }
+/* la panchina un passo indietro: foto piu' piccole e nome piu' spento */
+.ng-bench-fila .ng-xi-p.is-bench .ng-xi-foto { width: 42px; height: 42px; margin-top: 4px; }
+.ng-bench-fila .ng-xi-p.is-bench .ng-xi-nome { color: var(--text-secondary); font-weight: 500; }
+/* il confine fra titolari e panchina dello stesso ruolo */
+.ng-xi-sep {
+    flex: 0 0 1px;
+    align-self: stretch;
+    margin: 4px 4px;
+    background: var(--text-muted);
+    opacity: 0.6;
+}
+.ng-xi-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 2px 3.2rem;
+    font: 700 0.62rem/1 var(--font-body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.ng-xi-legend i { width: 1px; height: 12px; background: var(--text-muted); opacity: 0.6; }

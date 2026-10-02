@@ -449,3 +449,124 @@ export async function getFlipCard(game) {
         away: lato(away, rAway, unitsAway, mode === 'played' ? gameAway : null),
     };
 }
+
+/* ─── I titolari di una partita, con l'id ESPN per la foto ─────────────────
+ *
+ * Serve alla pagina delle partite dell'NFL Hub (#nfl-games), che mostra gli
+ * undici d'attacco e gli undici di difesa di tutt'e due le squadre. Usa le
+ * stesse due fonti della card, nello stesso ordine e con lo stesso criterio:
+ *  - `game`: il roster di GARA, coi 22 `starter` di quel giorno. ESPN lo
+ *    pubblica dal giorno della partita (verificato: 404 sulle gare future);
+ *  - `depth`: prima della partita, il primo nome di ogni slot del depth chart
+ *    ufficiale — chi DOVREBBE partire titolare, e la pagina lo dichiara.
+ */
+const ORDINE_TITOLARI = {
+    offense: ['QB', 'RB', 'HB', 'FB', 'WR', 'TE', 'LT', 'LG', 'C', 'RG', 'RT', 'T', 'OT', 'G', 'OG', 'OL'],
+    defense: ['LDE', 'DE', 'EDGE', 'LDT', 'DT', 'NT', 'RDT', 'RDE', 'DL', 'LOLB', 'OLB', 'WLB', 'LILB', 'MLB',
+        'ILB', 'LB', 'RILB', 'SLB', 'ROLB', 'LCB', 'CB', 'NB', 'RCB', 'DB', 'SS', 'S', 'FS'],
+};
+const perRuolo = (side) => (a, b) => {
+    const i = (p) => { const k = ORDINE_TITOLARI[side].indexOf(p.pos); return k === -1 ? 99 : k; };
+    return i(a) - i(b);
+};
+
+/* La panchina si legge per REPARTO, non per slot: "chi c'e' dietro ai
+   ricevitori", non "chi e' il terzo wr2". Questi sono i reparti, nell'ordine
+   in cui si mostrano. */
+const REPARTI = [
+    ['QB', ['QB']],
+    ['RB', ['RB', 'HB', 'FB', 'TB', 'LHB', 'RHB']],
+    ['WR', ['WR', 'FL', 'SE']],
+    ['TE', ['TE']],
+    ['OL', ['LT', 'LG', 'C', 'RG', 'RT', 'T', 'OT', 'G', 'OG', 'OL']],
+    ['DL', ['LDE', 'RDE', 'DE', 'EDGE', 'LDT', 'RDT', 'DT', 'NT', 'NG', 'DL']],
+    ['LB', ['LB', 'OLB', 'ILB', 'MLB', 'WLB', 'SLB', 'LOLB', 'ROLB', 'LILB', 'RILB', 'LLB', 'RLB']],
+    ['DB', ['CB', 'LCB', 'RCB', 'NB', 'DB', 'S', 'SS', 'FS']],
+    ['ST', ['PK', 'P', 'LS', 'H', 'KR', 'PR']],
+];
+const repartoDi = (pos) => REPARTI.find(([, l]) => l.includes(String(pos || '').toUpperCase()))?.[0] || null;
+function perReparto(lista) {
+    return REPARTI.map(([ruolo]) => ({
+        ruolo,
+        players: lista.filter(p => repartoDi(p.pos) === ruolo)
+            .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
+    })).filter(g => g.players.length);
+}
+
+/**
+ * Titolari e panchina insieme, reparto per reparto: per ogni ruolo prima chi
+ * parte titolare (nell'ordine del campo: LT, LG, C, RG, RT…) e poi chi
+ * aspetta. Un reparto senza nessuno non c'e'.
+ */
+function perRuoloInsieme(titolari, panchina) {
+    return REPARTI.map(([ruolo]) => ({
+        ruolo,
+        titolari: titolari.filter(p => repartoDi(p.pos) === ruolo),
+        panchina: (panchina.find(g => g.ruolo === ruolo)?.players) || [],
+    })).filter(g => g.titolari.length || g.panchina.length);
+}
+
+export async function getStarters(eventId, abbr) {
+    const sigla = canonAbbr(abbr || '');
+    const teamId = ESPN_TEAM_IDS[sigla];
+    if (!eventId || !teamId) return null;
+    const [gara, rosa] = await Promise.all([
+        gameRoster(eventId, teamId).catch(() => null),
+        teamRoster(sigla).catch(() => null),
+    ]);
+    const nome = (id, ripiego) => rosa?.byId?.[id]?.name || ripiego || '';
+
+    const titolari = (gara || []).filter(e => e.starter && !e.inactive && e.side);
+    if (titolari.length >= 18) {
+        const lato = (side) => titolari.filter(e => e.side === side)
+            .map(e => ({ id: e.id, name: nome(e.id, e.short), jersey: e.jersey, pos: e.pos }))
+            .sort(perRuolo(side));
+        // In panchina: gli attivi di quel giorno che non sono partiti titolari
+        // (gli inattivi non erano a disposizione, e non stanno qui).
+        const panchina = (gara || []).filter(e => !e.starter && !e.inactive && e.pos)
+            .map(e => ({ id: e.id, name: nome(e.id, e.short), jersey: e.jersey, pos: e.pos }));
+        const offense = lato('offense'), defense = lato('defense'), bench = perReparto(panchina);
+        return { fonte: 'game', offense, defense, bench, ruoli: perRuoloInsieme([...offense, ...defense], bench) };
+    }
+
+    const depth = await teamDepth(sigla).catch(() => null);
+    if (!depth) return null;
+    const lato = (side) => {
+        const visti = new Set();
+        const out = [];
+        for (const key of SLOT_ORDER[side]) {
+            const a = depth[side]?.[key]?.athletes?.[0];
+            if (!a?.id || visti.has(a.id)) continue;
+            visti.add(a.id);
+            out.push({ key, id: a.id, name: a.name || nome(a.id), jersey: rosa?.byId?.[a.id]?.jersey ?? null,
+                pos: depth[side][key].pos });
+        }
+        // Il depth chart ha slot in piu' degli undici (nickel, fullback, terzo
+        // ricevitore): si tolgono in quest'ordine, che e' quello dei giocatori
+        // che entrano solo in certe formazioni.
+        for (const via of ['nb', 'fb', 'wr3']) {
+            if (out.length <= 11) break;
+            const i = out.findIndex(p => p.key === via);
+            if (i >= 0) out.splice(i, 1);
+        }
+        return out.slice(0, 11).map(({ key, ...p }) => p).sort(perRuolo(side));
+    };
+    const offense = lato('offense'), defense = lato('defense');
+    // Prima della partita la panchina e' il resto del depth chart: ogni nome
+    // che non e' fra gli undici, una volta sola, specialisti compresi.
+    const titolariId = new Set([...offense, ...defense].map(p => p.id));
+    const visti = new Set();
+    const panchina = [];
+    for (const side of ['offense', 'defense', 'special']) {
+        for (const slot of Object.values(depth[side] || {})) {
+            for (const a of slot.athletes || []) {
+                if (!a.id || titolariId.has(a.id) || visti.has(a.id)) continue;
+                visti.add(a.id);
+                panchina.push({ id: a.id, name: a.name || nome(a.id), jersey: rosa?.byId?.[a.id]?.jersey ?? null,
+                    pos: rosa?.byId?.[a.id]?.pos || slot.pos });
+            }
+        }
+    }
+    const bench = perReparto(panchina);
+    return { fonte: 'depth', offense, defense, bench, ruoli: perRuoloInsieme([...offense, ...defense], bench) };
+}

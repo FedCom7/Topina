@@ -2941,7 +2941,7 @@ async function flipLoad(section, i) {
     // cadere l'intero grafo dei moduli — app.js non partiva e tutto il sito
     // restava su "Loading...". Cosi' al massimo si spegne questa tab.
     let modulo = null;
-    try { modulo = await import('../data/nfl-flip-card.js?v=3'); } catch { modulo = null; }
+    try { modulo = await import('../data/nfl-flip-card.js?v=6'); } catch { modulo = null; }
     const card = modulo ? await modulo.getFlipCard({
         eventId: g.eventId,
         homeAbbr: g.homeAway === 'home' ? mio : g.opp,

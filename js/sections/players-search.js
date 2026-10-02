@@ -1180,13 +1180,18 @@ async function initWeekScoreboard(container, year, isCurrent = () => true) {
 
     container.innerHTML = `
     <section class="pm-block pp-block ps-sb">
-        <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">${sbStepLabel(sel)} · ${year}</span></span>
+        <div class="ps-sb-top">
+            <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">${sbStepLabel(sel)} · ${year}</span></span>
+            <a class="ps-sb-full" id="ps-sb-full" href="#nfl-games/${year}/${sel.seasonType}/${sel.week}">Every game ›</a>
+        </div>
         <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml()}</div>
         <div class="ps-sb-body" id="ps-sb-body"><div class="loading-state"><div class="spinner"></div></div></div>
         <p class="pm-note">All ${year} games, regular season and playoffs, week by week (live from ESPN). Click a played or in-progress game to open the home team's page on that box score and play-by-play.</p>
     </section>`;
 
     const title = container.querySelector('#ps-sb-title');
+    // Il tasto porta alla pagina delle partite sulla giornata che si guarda.
+    const full = container.querySelector('#ps-sb-full');
     const weeks = container.querySelector('#ps-sb-weeks');
     const body = container.querySelector('#ps-sb-body');
     sbBindStrip(weeks);
@@ -1197,6 +1202,9 @@ async function initWeekScoreboard(container, year, isCurrent = () => true) {
         sel = SB_STEPS[idx];
         const mine = ++token;
         title.textContent = `${sbStepLabel(sel)} · ${year}`;
+        // sulla giornata in corso il link e' quello "sempre attuale", senza settimana
+        if (full) full.href = (now && now.year === year && sel.seasonType === 2 && sel.week === now.week)
+            ? '#nfl-games' : `#nfl-games/${year}/${sel.seasonType}/${sel.week}`;
         sbSetWeek(weeks, sel, painted);   // al primo giro senza animazione: la strip nasce già centrata
         painted = true;
         body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';

@@ -12,8 +12,9 @@ import { initManagerDna } from './sections/managerdna.js?v=64';
 import { initManagerDnaTeam } from './sections/managerdna-team.js?v=831';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=834';
 import { initPlayerPage } from './sections/player-page.js?v=1079';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1124';
-import { initPlayersSearch } from './sections/players-search.js?v=1005';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1127';
+import { initNflGames } from './sections/nfl-games.js?v=6';
+import { initPlayersSearch } from './sections/players-search.js?v=1007';
 import { initStats } from './sections/stats.js?v=929';
 import { initHistory } from './sections/history.js?v=769';
 import { initHonors } from './sections/honors.js?v=754';
@@ -28,7 +29,7 @@ import { initWaivers } from './sections/waivers.js?v=133';
 import { initPlayerStats } from './sections/player-stats.js?v=22';
 
 import { initMagazine } from './sections/magazine.js?v=803';
-import { initLive } from './sections/live.js?v=1158';
+import { initLive } from './sections/live.js?v=1160';
 import { avviaNightRecap } from './sections/night-recap.js?v=29';
 import { initNavbar } from './ui/navbar.js?v=694';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
@@ -84,6 +85,7 @@ function getSection() {
     if (hash.startsWith('managerdna/')) return hash; // #managerdna/{teamKey}
     if (hash.startsWith('player/')) return hash; // #player/{year}/{pos}/{nome}
     if (hash.startsWith('nfl-team/')) return hash; // #nfl-team/{abbr}/{anno?}
+    if (hash === 'nfl-games' || hash.startsWith('nfl-games/')) return hash; // #nfl-games/{anno}/{tipo}/{week}/{ev?}
     return SECTIONS[hash] ? hash : 'home';
 }
 
@@ -125,6 +127,7 @@ function navigate() {
     const isDnaTeam = active.startsWith('managerdna/');
     const isPlayer = active.startsWith('player/');
     const isNflTeam = active.startsWith('nfl-team/');
+    const isNflGames = active.startsWith('nfl-games');
     // La mappa hash -> sezione sta in js/utils/route.js, non qui: la usa anche
     // il caricamento a pagina piena in index.html, che gira prima di app.js.
     activateSection(sectionIdFor(active));
@@ -132,7 +135,7 @@ function navigate() {
     // Update nav — team pages mantengono "Teams" evidenziato,
     // le voci da dropdown evidenziano la voce madre
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : (isDGTeam || isDnaTeam) ? 'draft' : (isPlayer || isNflTeam) ? 'players' : (NAV_PARENT[active] || active);
+    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : (isDGTeam || isDnaTeam) ? 'draft' : (isPlayer || isNflTeam || isNflGames) ? 'players' : (NAV_PARENT[active] || active);
     document.querySelector(`.nav-link[data-section="${navTarget}"]`)?.classList.add('active');
 
     // Close mobile menu
@@ -151,6 +154,8 @@ function navigate() {
         initPlayerPage();
     } else if (isNflTeam) {
         initNflTeamPage();
+    } else if (isNflGames) {
+        initNflGames();
     } else {
         SECTIONS[active]?.();
     }
