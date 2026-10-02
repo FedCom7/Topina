@@ -28644,11 +28644,14 @@ body.nr-open {
 
 /* ── Il tabellone NFL, minimale: sigle, punteggio, quarto ──────────────── */
 
+/* Un solo figlio ormai (.fst-bug, lo scorebug preso dal Live): la grid a tre
+   colonne serviva alla vecchia struttura con tre elementi diretti (squadra
+   ospite/centro/squadra di casa) e con un figlio solo piazzava tutto nella
+   prima colonna, a sinistra. `.fst-bug` si centra già da sé. */
 .nr-board {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    justify-content: center;
     align-items: center;
-    gap: clamp(10px, 3vw, 30px);
     padding: clamp(10px, 1.8vh, 18px) clamp(12px, 3vw, 26px);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md, 12px);
@@ -28724,9 +28727,23 @@ body.nr-open {
    nascosto con `visibility` e non `display` — altrimenti le due squadre si
    spostano di lato ogni volta che la palla cambia mano. Colorato coi token
    del recap: nel Live resta bianco su un fondo sempre scuro, qui a tema
-   chiaro un pallone bianco su un campo chiaro sparirebbe. */
+   chiaro un pallone bianco su un campo chiaro sparirebbe.
+   Posizione SEMPRE sotto la sigla, non di fianco: la regola base di
+   field-strip.js mette il pallone a `right:-32px` dal bordo di `.fst-lato`,
+   pensata per il gap largo del pannello "Inside the game" nel Live. Qui il
+   gap fra squadra e punteggio è più stretto (il tabellone sta in una card,
+   non largo quanto la pagina), e da tablet in su il pallone finiva sopra il
+   punteggio. Sotto la sigla — la stessa posizione che field-strip già usa
+   sotto i 640px — c'è sempre spazio, a qualunque larghezza. */
 .nr-board .fst-palla {
     visibility: hidden;
+    top: auto;
+    bottom: -18px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 17px;
 }
 
 .nr-board .fst-lato.ha-palla .fst-palla {
