@@ -47,7 +47,7 @@ import { logoImg, pallaPossesso } from '../ui/field-strip.js?v=148';
 import {
     partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei,
     fattoreSupplementari, segnalibro, segnaViste, segnaTentativo, valeTentare,
-} from '../data/night-recap.js?v=12';
+} from '../data/night-recap.js?v=13';
 import { ngsChartHTML, ngsLegendaHTML, ngsFasceHTML, bindNgsChart } from '../ui/ngs-chart.js?v=3';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -525,7 +525,7 @@ function preparaPannello(cap, i) {
      * contenuto si ricentra da capo ogni volta che quel testo cambia.
      */
     q('[data-nr-board]').innerHTML = `
-        <div class="fst-bug">
+        <div class="fst-bug" style="--nr-fb-away:${via?.color || '#555'};--nr-fb-home:${casa?.color || '#555'}">
             <div class="nr-bug-side">
                 <div class="fst-lato" data-nr-lato="${esc(partita.away)}">
                     ${logoImg({ logo: logoNFL(partita.away), abbr: partita.away })}
@@ -537,6 +537,12 @@ function preparaPannello(cap, i) {
             <div class="fst-mid">
                 <span class="fst-dd" data-nr-dd></span>
                 <span class="fst-quando nr-clock" data-nr-clock></span>
+                <div class="nr-fieldbar" data-nr-fieldbar>
+                    <span class="nr-fieldbar-label" data-nr-fieldbar-label></span>
+                    <div class="nr-fieldbar-track">
+                        <div class="nr-fieldbar-tick" data-nr-fieldbar-tick></div>
+                    </div>
+                </div>
             </div>
             <div class="nr-bug-side nr-bug-side--r">
                 <div class="fst-col"><span class="fst-score" data-nr-home>0</span></div>
@@ -1045,10 +1051,10 @@ const secondiDa = (c) => {
 const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, '0')}`;
 
 /**
- * Down, distanza, punto del campo e il pallone del possesso — la riga che in
- * TV sta sotto al punteggio. Vuota quando non si sa di chi è la palla (lo
- * stacco di fine quarto, l'assestamento): meglio niente che un "1st & 10"
- * rimasto lì dal passo prima.
+ * Down, distanza, pallone del possesso e la barra di posizione campo — la
+ * riga che in TV sta sotto al punteggio. Vuoti quando non si sa di chi è la
+ * palla (lo stacco di fine quarto, l'assestamento): meglio niente che un
+ * "1st & 10" rimasto lì dal passo prima.
  */
 function dirigiTabellone(pan, passo) {
     const dd = pan?.querySelector('[data-nr-dd]');
@@ -1056,15 +1062,16 @@ function dirigiTabellone(pan, passo) {
         const conta = passo.down != null && passo.distanza != null;
         const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[passo.down] || '';
         const quanto = passo.goal ? 'Goal' : passo.distanza;
-        dd.textContent = conta && ord
-            ? [`${ord} & ${quanto}`, passo.campo].filter(Boolean).join('  ·  ')
-            : '';
+        // Solo down & distance: la posizione ("ATL 35") la dice ormai la
+        // barra sotto, non serve più ripeterla qui in testo.
+        dd.textContent = conta && ord ? `${ord} & ${quanto}` : '';
     }
     /* Away è sempre il primo `[data-nr-lato]` nel markup (vedi
        preparaPannello), home il secondo: lo stesso ordine dei due
        `[data-nr-away]`/`[data-nr-home]`, così il punteggio di chi attacca si
        accende insieme al suo lato — comportamento di `.fst-score.is-pos`,
-       preso in prestito dal Live. */
+       preso in prestito dal Live. La stessa posizione (0 = primo, 1 =
+       secondo) serve anche alla barra qui sotto per sapere chi è l'ospite. */
     const lati = [...(pan?.querySelectorAll('[data-nr-lato]') || [])];
     lati.forEach((lato, idx) => {
         const attacca = !!passo.attacco && lato.dataset.nrLato === passo.attacco;
@@ -1072,6 +1079,27 @@ function dirigiTabellone(pan, passo) {
         pan?.querySelector(idx === 0 ? '[data-nr-away]' : '[data-nr-home]')
             ?.classList.toggle('is-pos', attacca);
     });
+
+    /*
+     * La barra di posizione campo: una tacca sulla yard ASSOLUTA (0 = end
+     * zone dell'ospite, 100 = end zone di casa — "l'ospite sta sempre a
+     * sinistra", la stessa convenzione di `yardAssoluta` in field-strip.js),
+     * con sopra l'etichetta che il tabellone scriveva finora in testo
+     * ("ATL 35" — `passo.campo`, già pronta da `contesto()`).
+     */
+    const barra = pan?.querySelector('[data-nr-fieldbar]');
+    if (barra) {
+        const abbrOspite = lati[0]?.dataset.nrLato;
+        const valido = passo.toEZ != null && !!passo.attacco && abbrOspite != null;
+        barra.classList.toggle('is-vuota', !valido);
+        if (valido) {
+            const assoluta = passo.attacco === abbrOspite ? (100 - passo.toEZ) : passo.toEZ;
+            const tick = barra.querySelector('[data-nr-fieldbar-tick]');
+            if (tick) tick.style.left = `${Math.max(0, Math.min(100, assoluta))}%`;
+            const label = barra.querySelector('[data-nr-fieldbar-label]');
+            if (label) label.textContent = passo.campo || '';
+        }
+    }
 }
 
 /** Lo stacco di fine quarto: il campo si abbassa e resta il cartello. */

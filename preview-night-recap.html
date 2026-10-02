@@ -496,10 +496,10 @@
             startLoadingArt();
             const { fetchPlays, resolveAthlete } = await import('./js/data/nfl-plays.js?v=572');
             const { scorePlay } = await import('./js/data/scoring.js?v=592');
-            const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=12');
+            const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=13');
             const { ESPN_TEAM_IDS } = await import('./js/data/player-map.js?v=513');
             const { squadraPreferita, impostaSquadraPreferita } = await import('./js/utils/preferenze.js?v=1');
-            const rec = await import('./js/sections/night-recap.js?v=28');
+            const rec = await import('./js/sections/night-recap.js?v=29');
 
             const perId = new Map(Object.entries(ESPN_TEAM_IDS).map(([a, i]) => [String(i), a]));
             const siglaDi = (id) => perId.get(String(id)) || '';

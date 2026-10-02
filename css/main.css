@@ -28648,14 +28648,14 @@ body.nr-open {
    colonne serviva alla vecchia struttura con tre elementi diretti (squadra
    ospite/centro/squadra di casa) e con un figlio solo piazzava tutto nella
    prima colonna, a sinistra. `.fst-bug` si centra già da sé. */
+/* Niente riquadro: il tabellone galleggia sul palco, senza vetro né bordo —
+   con la barra di posizione campo sotto, il vecchio pannello sembrava un
+   secondo elemento invece che l'estensione naturale del tabellone. */
 .nr-board {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: clamp(10px, 1.8vh, 18px) clamp(12px, 3vw, 26px);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md, 12px);
-    background: var(--nr-glass);
 }
 
 /*
@@ -28751,6 +28751,67 @@ body.nr-open {
 
 .nr-board .fst-dd {
     font-size: clamp(0.58rem, 1.3vw, 0.7rem);
+}
+
+/*
+ * La barra di posizione campo: sostituisce la yard line che prima stava
+ * dentro il testo di `.fst-dd` ("2nd & 1 · ATL 5" → solo "2nd & 1" più
+ * questa). Striscia sottile, i due colori di squadra alle estremità (le
+ * rispettive end zone), una tacca sulla yard esatta con l'etichetta sopra.
+ * `--nr-fb-away`/`--nr-fb-home` arrivano come variabili inline su `.fst-bug`
+ * (preparaPannello in sections/night-recap.js), stessa idea di `--fst-casa`/
+ * `--fst-osp` nel campo del Live.
+ *
+ * `.is-vuota` nasconde con `visibility`, non `display`: lo spazio resta
+ * riservato anche senza dato (stacco di quarto, assestamento), altrimenti il
+ * tabellone cambierebbe altezza a ogni passo senza posizione — lo stesso
+ * principio già seguito per `.fst-dd`/`.fst-quando` qui sopra.
+ */
+.nr-fieldbar {
+    width: 100%;
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.nr-fieldbar.is-vuota {
+    visibility: hidden;
+}
+
+.nr-fieldbar-label {
+    font-family: var(--font-display);
+    font-size: clamp(0.56rem, 1.2vw, 0.68rem);
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    color: var(--text-primary);
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.nr-fieldbar-track {
+    position: relative;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    overflow: visible;
+    background: linear-gradient(to right,
+        var(--nr-fb-away) 0%, var(--nr-fb-away) 8%,
+        var(--border-subtle) 8%, var(--border-subtle) 92%,
+        var(--nr-fb-home) 92%, var(--nr-fb-home) 100%);
+}
+
+.nr-fieldbar-tick {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: 0;
+    width: 2.5px;
+    margin-left: -1.25px;
+    border-radius: 2px;
+    background: var(--text-primary);
+    transition: left 0.2s linear;
 }
 
 /* Cronometro fermo: durante un touchdown, un fumble o un intercetto il tempo

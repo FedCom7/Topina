@@ -417,6 +417,10 @@ function contesto(g, siglaDi) {
         goal: g.toEZ != null && g.distance != null && g.distance >= g.toEZ,
         campo,
         difesa,
+        // Il dato grezzo, oltre al testo già pronto: serve alla barra di
+        // posizione campo, che deve sapere la yard esatta e non solo la sua
+        // scrittura ("ATL 35") per piazzare la tacca.
+        toEZ: g.toEZ ?? null,
     };
 }
 
