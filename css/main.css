@@ -28790,21 +28790,45 @@ body.nr-open {
     line-height: 1.2;
 }
 
-/* 10 yard di end zone su 120 di campo totale (100 di gioco + 10 per lato) =
-   8.3333%: la STESSA proporzione che usa la tacca in sections/night-recap.js
-   per restringere le sue 0-100 al tratto centrale. Deve restare la stessa
-   frazione nei due posti — è il bordo del colore a dire dove comincia l'end
-   zone, e la tacca a yard 0 lo deve toccare esattamente, non superarlo. */
+/*
+ * Il colore delle due squadre è un segnalino FUORI dalla barra
+ * (`::before`/`::after`, posizionati con un offset negativo), non un tratto
+ * che consuma parte delle 0-100 su cui si muove la tacca. Un primo tentativo
+ * disegnava l'end zone DENTRO quella stessa scala (un tratto colorato agli
+ * estremi): per restarci dentro, la tacca doveva restringersi a una fascia
+ * centrale, e vicino alla porta — cioè in red zone, il momento che si guarda
+ * di più — i pochi pixel fra tacca e bordo del colore si leggevano come
+ * "dentro l'end zone" anche quando non lo era. Qui il colore sta OLTRE il
+ * bordo (`left:-9px`/`right:-9px`, mentre la tacca si muove in 0-100% della
+ * SOLA `.nr-fieldbar-track`): c'è sempre un distacco netto, a qualunque yard.
+ */
 .nr-fieldbar-track {
     position: relative;
     width: 100%;
     height: 6px;
     border-radius: 3px;
     overflow: visible;
-    background: linear-gradient(to right,
-        var(--nr-fb-away) 0%, var(--nr-fb-away) 8.3333%,
-        var(--border-subtle) 8.3333%, var(--border-subtle) 91.6667%,
-        var(--nr-fb-home) 91.6667%, var(--nr-fb-home) 100%);
+    background: var(--border-subtle);
+}
+
+.nr-fieldbar-track::before,
+.nr-fieldbar-track::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 7px;
+    border-radius: 2px;
+}
+
+.nr-fieldbar-track::before {
+    left: -9px;
+    background: var(--nr-fb-away);
+}
+
+.nr-fieldbar-track::after {
+    right: -9px;
+    background: var(--nr-fb-home);
 }
 
 .nr-fieldbar-tick {
