@@ -30267,23 +30267,6 @@ body.nr-open {
     font: 900 clamp(1.8rem, 4vw, 2.6rem)/1 var(--font-display);
     letter-spacing: -0.01em;
 }
-.ng-week { display: flex; align-items: center; gap: 8px; }
-.ng-week-label {
-    font: 700 0.85rem/1 var(--font-display);
-    min-width: 7.5rem;
-    text-align: center;
-}
-.ng-arrow {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid var(--bg-glass-border);
-    background: transparent;
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    cursor: pointer;
-}
-.ng-arrow:disabled { opacity: 0.3; cursor: default; }
 
 .ng-games {
     display: flex;

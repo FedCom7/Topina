@@ -31,10 +31,6 @@ const esc = (v) => String(v ?? '').replace(/[&<>"]/g,
 
 /* I turni di post-season dell'endpoint ESPN: gli stessi del tabellone dell'Hub. */
 const POST_ROUNDS = { 1: 'Wild Card', 2: 'Divisional', 3: 'Conference', 5: 'Super Bowl' };
-const STEPS = [
-    ...Array.from({ length: 18 }, (_, i) => ({ t: 2, w: i + 1 })),
-    ...[1, 2, 3, 5].map(w => ({ t: 3, w })),
-];
 const etichettaGiornata = (t, w) => (t === 3 ? POST_ROUNDS[w] || 'Playoffs' : `Week ${w}`);
 
 let stato = null;      // { anno, tipo, week, games, sel, box, plays, scelta, timer }
@@ -82,28 +78,15 @@ async function caricaGiornata(sez, anno, tipo, week, ev = null) {
     <div class="section-inner ng">
         <header class="ng-head">
             <div>
-                <span class="mc-kicker">NFL Hub · every game</span>
+                <span class="mc-kicker">NFL Hub · <span class="ng-week-label">${esc(etichettaGiornata(tipo, week))} · ${anno}</span></span>
                 <h1 class="ng-title">Game day</h1>
-            </div>
-            <div class="ng-week">
-                <button type="button" class="ng-arrow" data-ng-step="-1" aria-label="Previous week">‹</button>
-                <span class="ng-week-label">${esc(etichettaGiornata(tipo, week))} · ${anno}</span>
-                <button type="button" class="ng-arrow" data-ng-step="1" aria-label="Next week">›</button>
             </div>
         </header>
         <nav class="ng-games" aria-label="Games"></nav>
         <div class="ng-body"><div class="loading-state"><div class="spinner"></div><p>Loading games…</p></div></div>
     </div>`;
-    sez.querySelectorAll('[data-ng-step]').forEach(b => b.addEventListener('click', () => {
-        const i = STEPS.findIndex(s => s.t === tipo && s.w === week) + Number(b.dataset.ngStep);
-        const s = STEPS[i];
-        if (!s) return;
-        const eCorrente = s.t === 2 && s.w === corrente?.week && anno === corrente?.anno;
-        location.hash = eCorrente ? '#nfl-games' : `#nfl-games/${anno}/${s.t}/${s.w}`;
-    }));
-    const i0 = STEPS.findIndex(s => s.t === tipo && s.w === week);
-    sez.querySelector('[data-ng-step="-1"]').disabled = i0 <= 0;
-    sez.querySelector('[data-ng-step="1"]').disabled = i0 >= STEPS.length - 1;
+    // Niente selettore della giornata: la pagina e' quella della settimana in
+    // corso. Un'altra giornata ci arriva solo dal tabellone dell'NFL Hub.
 
     const dati = await getWeekGames(anno, week, tipo).catch(() => null);
     if (mio !== gettone) return;
