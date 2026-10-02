@@ -60,6 +60,12 @@ export async function initNflGames() {
     const anno = h.anno || corrente.anno;
     const tipo = h.tipo || 2;
     const week = h.week || corrente.week;
+    // Il titolo sta nella barra in alto (solo su questa pagina, vedi
+    // `pg-gameday`); nella pagina resta per lo schermo largo, dove la barra
+    // e' occupata dalle voci del menu. Si riscrive a ogni ingresso: uscendo,
+    // app.js lo nasconde.
+    const titolo = document.getElementById('nav-page-title');
+    if (titolo) { titolo.textContent = `Game Day · ${etichettaGiornata(tipo, week)}`; titolo.hidden = false; }
     // Stessa giornata gia' a schermo (si torna dalla scheda di una squadra):
     // non si rifa' niente, si riprende da dov'era.
     if (stato && stato.anno === anno && stato.tipo === tipo && stato.week === week && sez.querySelector('.ng-game')) {

@@ -30273,9 +30273,10 @@ body.nr-open {
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 4px;
-    scrollbar-width: thin;
-    scrollbar-color: #000 transparent;
+    /* la fila scorre col dito o col trackpad: la barra sotto non serve */
+    scrollbar-width: none;
 }
+.ng-games::-webkit-scrollbar { display: none; }
 .ng-pill {
     flex: none;
     display: grid;
@@ -30486,3 +30487,28 @@ body.nr-open {
     color: var(--text-muted);
 }
 .ng-xi-legend i { width: 1px; height: 12px; background: var(--text-muted); opacity: 0.6; }
+
+/* Game Day (#nfl-games): la barra in alto porta il titolo della giornata al
+   posto di impostazioni e ricerca. Solo su questa pagina: la classe la mette
+   app.js e la toglie uscendo. Il titolo sta nella barra solo quando la barra
+   e' quella mobile (sotto i 1100px): su schermo largo al suo posto ci sono le
+   voci del menu, e il titolo resta in testa alla pagina. */
+.nav-page-title { display: none; }
+body.pg-gameday .nav-prefs,
+body.pg-gameday .nav-search-btn { display: none !important; }
+@media (max-width: 1099px) {
+    /* qui il titolo prende il posto del logo, non gli sta accanto */
+    body.pg-gameday .nav-logo { display: none; }
+    body.pg-gameday .nav-page-title:not([hidden]) {
+        display: block;
+        margin-right: auto;
+        font: 800 0.95rem/1.1 var(--font-display);
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    body.pg-gameday .ng-head { display: none; }
+    .navbar:has(.nav-links.open) .nav-page-title { visibility: hidden; }
+}

@@ -23,7 +23,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1387">
+    <link rel="stylesheet" href="css/main.css?v=1390">
 </head>
 
 <body>
@@ -34,6 +34,9 @@
             <a href="#home" class="nav-logo">
                 <span class="logo-text">Topina</span>
             </a>
+            <!-- Titolo di pagina nella barra: solo su Game Day (#nfl-games), che
+                 lo riempie da js/sections/nfl-games.js. Altrove resta nascosto. -->
+            <span class="nav-page-title" id="nav-page-title" hidden></span>
             <button class="nav-back" id="nav-back" aria-label="Back" type="button">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="15 18 9 12 15 6"></polyline>
@@ -586,7 +589,7 @@
         // qui solo prima.
         startLoadingArt();
     </script>
-    <script type="module" src="js/app.js?v=1472"></script>
+    <script type="module" src="js/app.js?v=1474"></script>
 
 </body>
 

@@ -13,7 +13,7 @@ import { initManagerDnaTeam } from './sections/managerdna-team.js?v=831';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=834';
 import { initPlayerPage } from './sections/player-page.js?v=1079';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=1127';
-import { initNflGames } from './sections/nfl-games.js?v=7';
+import { initNflGames } from './sections/nfl-games.js?v=9';
 import { initPlayersSearch } from './sections/players-search.js?v=1007';
 import { initStats } from './sections/stats.js?v=929';
 import { initHistory } from './sections/history.js?v=769';
@@ -131,6 +131,10 @@ function navigate() {
     // La mappa hash -> sezione sta in js/utils/route.js, non qui: la usa anche
     // il caricamento a pagina piena in index.html, che gira prima di app.js.
     activateSection(sectionIdFor(active));
+    // Game Day ha una barra sua: titolo della giornata al posto di impostazioni
+    // e ricerca (vedi `body.pg-gameday` in main.css). Fuori di li' si toglie.
+    document.body.classList.toggle('pg-gameday', isNflGames);
+    if (!isNflGames) { const t = document.getElementById('nav-page-title'); if (t) t.hidden = true; }
 
     // Update nav — team pages mantengono "Teams" evidenziato,
     // le voci da dropdown evidenziano la voce madre
