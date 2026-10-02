@@ -28667,10 +28667,36 @@ body.nr-open {
  * cronometro che scorre, i punti che salgono) resta quello di Night Recap:
  * vedi `dirigiTabellone`, `orologio`, `contaSu` più sotto, tutti ancora sugli
  * stessi `data-nr-*`.
+ *
+ * Griglia 1fr/LARGHEZZA FISSA/1fr — non `auto` al centro, e non è un
+ * dettaglio: con `auto` il centro prende solo lo spazio che gli serve, ma
+ * quel poco che resta ai due lati (`1fr`) si ricalcola ogni volta che
+ * cambia — un down & distance più lungo ruba spazio alle colonne laterali
+ * e i loghi, ANCORATI al centro (`.nr-bug-side`), si spostavano comunque.
+ * Una larghezza dichiarata per il centro rende le due colonne `1fr`
+ * SEMPRE identiche, qualunque cosa ci sia scritto in mezzo; se il testo non
+ * ci sta, lo taglia `.fst-dd` da sé (`text-overflow: ellipsis`, già suo).
  */
 .nr-board .fst-bug {
+    display: grid;
+    grid-template-columns: 1fr clamp(100px, 30vw, 200px) 1fr;
+    align-items: center;
+    width: 100%;
     padding: 0;
+}
+
+.nr-bug-side {
+    display: flex;
+    align-items: center;
     gap: clamp(8px, 2.4vw, 20px);
+    /* Il lato ospite si accosta al centro (cioè sta a destra della sua
+       colonna); quello di casa fa lo stesso dall'altra parte — in mezzo
+       resta sempre lo stesso spazio, qualunque cosa ci sia scritta. */
+    justify-content: flex-end;
+}
+
+.nr-bug-side--r {
+    justify-content: flex-start;
 }
 
 .nr-board .fst-logo {
@@ -28688,10 +28714,22 @@ body.nr-open {
 
 .nr-board .fst-score {
     font-size: clamp(1.5rem, 5vw, 2.4rem);
+    /* Spazio riservato per DUE cifre sempre, anche a una sola: il gruppo
+       squadra+punteggio è ancorato al centro (`.nr-bug-side`), quindi se il
+       punteggio passa da una cifra a due (7 → 14) il gruppo si allarga e
+       trascina il logo con sé. Un punteggio NFL a tre cifre non è mai
+       successo. */
+    display: inline-block;
+    min-width: 2ch;
+    text-align: center;
 }
 
 .nr-board .fst-mid {
     margin: 0;
+    /* Centrato nella sua colonna, che ora ha una larghezza dichiarata (vedi
+       sopra) — il respiro qui dentro è solo per non far toccare il testo ai
+       due lati quando è quasi alla sua larghezza massima. */
+    padding: 0 clamp(8px, 2.4vw, 20px);
 }
 
 /* Altezza riservata anche da vuoto, uguale a quella che avranno col testo:

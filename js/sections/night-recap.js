@@ -515,24 +515,36 @@ function preparaPannello(cap, i) {
      * di netto a ogni aggiornamento (va bene al Live, che aggiorna ogni
      * 30s), e qui perderebbe esattamente le due animazioni per cui questo
      * tabellone esiste.
+     *
+     * `.nr-bug-side`/`.nr-bug-side--r` raggruppano squadra e punteggio in UN
+     * solo figlio per lato: la griglia del tabellone è 1fr/auto/1fr, e i due
+     * lati prendono una frazione FISSA della larghezza, non quella del loro
+     * contenuto. Senza questo, loghi e punteggi scorrevano a ogni giocata —
+     * il centro (`.fst-dd`) cambia lunghezza ad ogni down & distance diverso
+     * ("1st & 10" contro "2nd & 1 · ATL 5"), e un layout centrato sul
+     * contenuto si ricentra da capo ogni volta che quel testo cambia.
      */
     q('[data-nr-board]').innerHTML = `
         <div class="fst-bug">
-            <div class="fst-lato" data-nr-lato="${esc(partita.away)}">
-                ${logoImg({ logo: logoNFL(partita.away), abbr: partita.away })}
-                <span class="fst-abbr">${esc(partita.away)}</span>
-                ${pallaPossesso()}
+            <div class="nr-bug-side">
+                <div class="fst-lato" data-nr-lato="${esc(partita.away)}">
+                    ${logoImg({ logo: logoNFL(partita.away), abbr: partita.away })}
+                    <span class="fst-abbr">${esc(partita.away)}</span>
+                    ${pallaPossesso()}
+                </div>
+                <div class="fst-col"><span class="fst-score" data-nr-away>0</span></div>
             </div>
-            <div class="fst-col"><span class="fst-score" data-nr-away>0</span></div>
             <div class="fst-mid">
                 <span class="fst-dd" data-nr-dd></span>
                 <span class="fst-quando nr-clock" data-nr-clock></span>
             </div>
-            <div class="fst-col"><span class="fst-score" data-nr-home>0</span></div>
-            <div class="fst-lato fst-lato--r" data-nr-lato="${esc(partita.home)}">
-                ${logoImg({ logo: logoNFL(partita.home), abbr: partita.home })}
-                <span class="fst-abbr">${esc(partita.home)}</span>
-                ${pallaPossesso()}
+            <div class="nr-bug-side nr-bug-side--r">
+                <div class="fst-col"><span class="fst-score" data-nr-home>0</span></div>
+                <div class="fst-lato fst-lato--r" data-nr-lato="${esc(partita.home)}">
+                    ${logoImg({ logo: logoNFL(partita.home), abbr: partita.home })}
+                    <span class="fst-abbr">${esc(partita.home)}</span>
+                    ${pallaPossesso()}
+                </div>
             </div>
         </div>`;
 
