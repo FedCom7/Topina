@@ -54,7 +54,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
         rel="stylesheet">
     <!-- il CSS VERO del sito -->
-    <link rel="stylesheet" href="css/main.css?v=1390">
+    <link rel="stylesheet" href="css/main.css?v=1394">
     <style>
         /* Cromatura del banco. Volutamente diversa dal sito: dev'essere ovvio
            a colpo d'occhio che non si sta guardando la pagina vera. */
@@ -499,7 +499,7 @@
             const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=13');
             const { ESPN_TEAM_IDS } = await import('./js/data/player-map.js?v=513');
             const { squadraPreferita, impostaSquadraPreferita } = await import('./js/utils/preferenze.js?v=1');
-            const rec = await import('./js/sections/night-recap.js?v=31');
+            const rec = await import('./js/sections/night-recap.js?v=32');
 
             const perId = new Map(Object.entries(ESPN_TEAM_IDS).map(([a, i]) => [String(i), a]));
             const siglaDi = (id) => perId.get(String(id)) || '';

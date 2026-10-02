@@ -1098,7 +1098,8 @@ function dirigiTabellone(pan, passo) {
      * squadre ora è un accenno FUORI dalla barra (`.nr-fieldbar-track`,
      * `::before`/`::after`) — un segnalino, non una fascia che consuma
      * spazio della scala — quindi la tacca ha sempre tutta la risoluzione
-     * del campo, anche a un passo dalla linea di porta.
+     * del campo, anche a un passo dalla linea di porta. Sul touchdown fa
+     * l'eccezione apposta: vedi `passo.td` più sotto.
      */
     const barra = pan?.querySelector('[data-nr-fieldbar]');
     if (barra) {
@@ -1106,9 +1107,27 @@ function dirigiTabellone(pan, passo) {
         const valido = passo.toEZ != null && !!passo.attacco && abbrOspite != null;
         barra.classList.toggle('is-vuota', !valido);
         if (valido) {
-            const assoluta = passo.attacco === abbrOspite ? (100 - passo.toEZ) : passo.toEZ;
             const tick = barra.querySelector('[data-nr-fieldbar-tick]');
-            if (tick) tick.style.left = `${Math.max(0, Math.min(100, assoluta))}%`;
+            if (tick) {
+                if (passo.td) {
+                    /*
+                     * Touchdown: unica eccezione alla regola "la tacca non
+                     * tocca mai il colore" — qui ci deve entrare apposta, o
+                     * non si vedrebbe che quella giocata ha segnato. Va nel
+                     * segnalino di chi DIFENDE quella end zone, non di chi
+                     * attacca: se segna l'ospite finisce nel segnalino di
+                     * casa (a destra) e viceversa. Il centro dei due
+                     * segnalini è calc(100% + 6.5px) / -6.5px — stesso
+                     * numero del commento sopra `.nr-fieldbar-track` in
+                     * main.css, va cambiato in tutti e due i posti insieme.
+                     */
+                    const versoCasa = passo.attacco === abbrOspite;
+                    tick.style.left = versoCasa ? 'calc(100% + 6.5px)' : '-6.5px';
+                } else {
+                    const assoluta = passo.attacco === abbrOspite ? (100 - passo.toEZ) : passo.toEZ;
+                    tick.style.left = `${Math.max(0, Math.min(100, assoluta))}%`;
+                }
+            }
             const label = barra.querySelector('[data-nr-fieldbar-label]');
             if (label) label.textContent = passo.campo || '';
         }
