@@ -1129,7 +1129,11 @@ function dirigiTabellone(pan, passo) {
                 }
             }
             const label = barra.querySelector('[data-nr-fieldbar-label]');
-            if (label) label.textContent = passo.campo || '';
+            // Sul touchdown l'etichetta dice "TD" invece della yard di inizio
+            // giocata ("DAL 0"): la tacca è già dentro il colore, ma da sola
+            // potrebbe leggersi come un errore di posizione invece che come
+            // il segnale voluto.
+            if (label) label.textContent = passo.td ? 'TD' : (passo.campo || '');
         }
     }
 }
