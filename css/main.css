@@ -30546,3 +30546,387 @@ body.pg-gameday .nav-search-btn { display: none !important; }
     body.pg-gameday .ng-head { display: none; }
     .navbar:has(.nav-links.open) .nav-page-title { visibility: hidden; }
 }
+
+/* ============================================================
+   FINAL WHISTLE — hai vinto o hai perso (sections/week-result.js)
+   Fratello del Night Recap: stesso palco scuro, stesse facce.
+   ============================================================ */
+.wr-overlay {
+    position: fixed;
+    inset: 0;
+    /* un gradino sotto il Night Recap (4000): se partono insieme, il replay
+       della notte sta sopra e questa aspetta sotto, gia' a coprire la home */
+    z-index: 3990;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* barra di scorrimento nera e sottile, come nel pannello Next up */
+    scrollbar-width: thin;
+    scrollbar-color: #000 transparent;
+    background: var(--wr-bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    animation: nr-in 0.3s ease both;
+    --wr-bg: #000;
+    --wr-panel: rgba(255, 255, 255, 0.04);
+    --wr-line: rgba(255, 255, 255, 0.1);
+    --wr-bar: rgba(255, 255, 255, 0.1);
+    --text-primary: #f5f0e8;
+    --text-secondary: #cccccc;
+    --text-muted: #8a8a8a;
+    --wr-cta-bg: #f5f0e8;
+    --wr-cta-ink: #000;
+}
+:root[data-theme="light"] .wr-overlay {
+    --wr-bg: #ffffff;
+    --wr-panel: rgba(20, 18, 14, 0.035);
+    --wr-line: rgba(20, 18, 14, 0.1);
+    --wr-bar: rgba(20, 18, 14, 0.08);
+    --text-primary: #16140f;
+    --text-secondary: #3f3b35;
+    --text-muted: #6b665e;
+    --wr-cta-bg: #16140f;
+    --wr-cta-ink: #fff;
+}
+body.wr-open { overflow: hidden; }
+/* il sipario: lo stesso caricamento del sito, centrato */
+.wr-overlay--sipario { display: flex; align-items: center; justify-content: center; }
+.wr-overlay::-webkit-scrollbar { width: 8px; }
+.wr-overlay::-webkit-scrollbar-track { background: transparent; }
+.wr-overlay::-webkit-scrollbar-thumb { background: #000; border: 1px solid var(--wr-line); border-radius: 4px; }
+
+/* Il bagliore di fondo: il colore di chi ha vinto, dal suo lato. */
+.wr-glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+}
+.wr--win .wr-glow { background: radial-gradient(ellipse 70% 55% at 28% 18%, color-mix(in srgb, var(--wr-mia) 34%, transparent), transparent 70%); }
+.wr--loss .wr-glow { background: radial-gradient(ellipse 70% 55% at 72% 18%, color-mix(in srgb, var(--wr-loro) 22%, transparent), transparent 70%); }
+.wr--tie .wr-glow { background: radial-gradient(ellipse 70% 55% at 50% 18%, rgba(140, 140, 140, 0.18), transparent 70%); }
+.wr-overlay.is-verdict .wr-glow { opacity: 1; }
+
+.wr-fx { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+.wr-fx .live-fx { position: absolute; inset: 0; }
+/* Le gocce della sconfitta (canvas, vedi `pioggia` in week-result.js): sul
+   vetro, sopra tutto, e non intercettano i tocchi. */
+.wr-rain { position: absolute; inset: 0; pointer-events: none; animation: nr-in 0.4s ease both; }
+
+.wr-stage {
+    position: relative;
+    z-index: 1;
+    width: min(720px, 100% - 32px);
+    margin: 0 auto;
+    padding: clamp(28px, 7vh, 72px) 0 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+}
+
+.wr-kick {
+    font: 800 0.72rem/1 var(--font-body);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.wr-overlay.is-in .wr-kick,
+.wr-overlay.is-score .wr-kick { opacity: 1; }
+
+/* Il punteggio */
+.wr-score {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.wr-overlay.is-score .wr-score { opacity: 1; transform: none; }
+.wr-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    transition: opacity 0.6s ease;
+}
+.wr-logo { width: clamp(80px, 22vw, 120px); aspect-ratio: 1; display: grid; place-items: center; }
+.wr-logo img { width: 100%; height: 100%; object-fit: contain; }
+.wr-name {
+    font: 800 clamp(0.85rem, 2.6vw, 1.05rem)/1.15 var(--font-display);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.wr-pts {
+    font-family: "Archivo Black", var(--font-display), sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.5rem, 11vw, 4.6rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+.wr-dash {
+    align-self: center;
+    font: 900 clamp(1.4rem, 5vw, 2.2rem)/1 var(--font-display);
+    color: var(--text-muted);
+    padding-bottom: 0.4em;
+}
+/* a verdetto dato, chi ha perso fa un passo indietro */
+.wr-overlay.is-verdict .wr-side:not(.is-winner) { opacity: 0.42; }
+.wr-overlay.is-verdict.wr--tie .wr-side { opacity: 1; }
+.wr--win.is-verdict .wr-side--mia .wr-pts { color: var(--wr-mia); }
+
+/* Il verdetto */
+.wr-verdict {
+    font-family: "Archivo Black", var(--font-display), sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 15vw, 7.6rem);
+    line-height: 0.95;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    opacity: 0;
+    min-height: 1em;
+}
+.wr-overlay.is-verdict .wr-verdict { animation: wr-timbro 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.wr--win .wr-verdict { color: var(--wr-mia); text-shadow: 0 0 40px color-mix(in srgb, var(--wr-mia) 45%, transparent); }
+.wr--loss .wr-verdict { color: var(--text-muted); }
+.wr--tie .wr-verdict { color: var(--text-secondary); }
+@keyframes wr-timbro {
+    from { opacity: 0; transform: scale(1.7) rotate(-4deg); filter: blur(6px); }
+    to { opacity: 1; transform: scale(1) rotate(-2deg); filter: none; }
+}
+.wr--loss.is-verdict .wr-verdict { animation-name: wr-cade; }
+@keyframes wr-cade {
+    from { opacity: 0; transform: translateY(-24px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Il resto, che arriva dopo */
+.wr-line, .wr-notes, .wr-details, .wr-go {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.wr-overlay.is-details .wr-line,
+.wr-overlay.is-details .wr-notes,
+.wr-overlay.is-details .wr-details,
+.wr-overlay.is-details .wr-go { opacity: 1; transform: none; }
+.wr-overlay.is-details .wr-notes { transition-delay: 0.12s; }
+.wr-overlay.is-details .wr-details { transition-delay: 0.25s; }
+.wr-overlay.is-details .wr-go { transition-delay: 0.45s; }
+
+.wr-line { margin: 0; font-size: clamp(0.95rem, 3vw, 1.15rem); color: var(--text-secondary); }
+.wr-line b { color: var(--text-primary); }
+.wr-notes {
+    list-style: none;
+    margin: -6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+}
+.wr-notes li {
+    padding: 4px 10px;
+    border-radius: var(--pill-radius);
+    border: 1px solid var(--wr-line);
+    font: 700 0.7rem/1.2 var(--font-body);
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.wr-details { width: 100%; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+.wr-to { font-style: normal; color: var(--text-muted); margin: 0 2px; }
+/* Record e classifica: una riga sola, senza card, e i numeri che scattano
+   dal valore di prima a quello di dopo (classe .is-flip, dopo i dettagli). */
+.wr-moves {
+    display: flex;
+    justify-content: center;
+    gap: clamp(28px, 9vw, 64px);
+    padding: 4px 0 2px;
+}
+.wr-move {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+/* Il numero sta in asse con l'etichetta: la freccia gli sta accanto FUORI
+   dal flusso, cosi' non lo spinge di lato. */
+.wr-move-val { position: relative; display: inline-flex; }
+.wr-move-val .wr-move-arrow {
+    position: absolute;
+    left: calc(100% + 6px);
+    top: 50%;
+    margin-top: -0.6em;
+}
+.wr-move-k {
+    font: 700 0.62rem/1 var(--font-body);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.wr-flip {
+    position: relative;
+    display: inline-grid;
+    height: 1.15em;
+    overflow: hidden;
+    font: 900 clamp(1.7rem, 7vw, 2.4rem)/1.15 "Archivo Black", var(--font-display), sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+.wr-flip b {
+    grid-area: 1 / 1;
+    font: inherit;
+    text-align: center;
+    transition: transform 0.55s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.55s ease;
+}
+.wr-flip-new { transform: translateY(100%); opacity: 0; }
+.wr-overlay.is-flip .wr-flip-old { transform: translateY(-100%); opacity: 0; }
+.wr-overlay.is-flip .wr-flip-new { transform: none; opacity: 1; }
+.wr-overlay.is-flip .wr-move:last-child .wr-flip b { transition-delay: 0.35s; }
+.wr--win .wr-flip-new { color: var(--wr-mia); }
+/* valore che non cambia: niente scatto, si vede e basta */
+.wr-move.is-same .wr-flip-old { display: none; }
+.wr-move.is-same .wr-flip-new { transform: none; opacity: 1; color: inherit; }
+.wr-move-arrow {
+    font-size: 1rem;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.3s ease 0.9s, transform 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) 0.9s;
+}
+.wr-overlay.is-flip .wr-move-arrow { opacity: 1; transform: none; }
+/* Il tremito prima dello scatto: 1,6 secondi, rapido (25 colpi al secondo)
+   e sempre piu' forte (le ampiezze crescono nei fotogrammi qui sotto), poi
+   il numero cede. */
+.wr-overlay.is-shake .wr-move:not(.is-same) .wr-flip {
+    animation: wr-trema 1.6s linear both;
+}
+.wr-overlay.is-shake .wr-move:not(.is-same) .wr-flip-old { color: var(--text-primary); text-shadow: 0 0 14px color-mix(in srgb, var(--wr-mia) 35%, transparent); }
+@keyframes wr-trema {
+    0.0% { transform: translate(-0.48px, -0.19px) rotate(0.25deg); }
+    2.5% { transform: translate(0.57px, -0.19px) rotate(-0.25deg); }
+    5.0% { transform: translate(-0.52px, -0.15px) rotate(0.31deg); }
+    7.5% { transform: translate(0.48px, 0.15px) rotate(-0.34deg); }
+    10.0% { transform: translate(-0.62px, -0.22px) rotate(0.32deg); }
+    12.5% { transform: translate(0.65px, -0.23px) rotate(-0.29deg); }
+    15.0% { transform: translate(-0.56px, -0.24px) rotate(0.37deg); }
+    17.5% { transform: translate(0.64px, -0.25px) rotate(-0.41deg); }
+    20.0% { transform: translate(-0.6px, -0.26px) rotate(0.42deg); }
+    22.5% { transform: translate(0.66px, 0.31px) rotate(-0.41deg); }
+    25.0% { transform: translate(-0.79px, 0.24px) rotate(0.5deg); }
+    27.5% { transform: translate(0.78px, -0.21px) rotate(-0.42deg); }
+    30.0% { transform: translate(-0.77px, 0.35px) rotate(0.44deg); }
+    32.5% { transform: translate(0.95px, -0.33px) rotate(-0.44deg); }
+    35.0% { transform: translate(-0.82px, 0.33px) rotate(0.68deg); }
+    37.5% { transform: translate(0.78px, 0.33px) rotate(-0.55deg); }
+    40.0% { transform: translate(-0.97px, 0.28px) rotate(0.5deg); }
+    42.5% { transform: translate(0.95px, -0.29px) rotate(-0.73deg); }
+    45.0% { transform: translate(-1.15px, 0.37px) rotate(0.67deg); }
+    47.5% { transform: translate(1.23px, -0.6px) rotate(-0.7deg); }
+    50.0% { transform: translate(-1.28px, 0.35px) rotate(0.91deg); }
+    52.5% { transform: translate(1.14px, -0.48px) rotate(-1.03deg); }
+    55.0% { transform: translate(-1.38px, -0.53px) rotate(0.92deg); }
+    57.5% { transform: translate(1.66px, 0.72px) rotate(-0.85deg); }
+    60.0% { transform: translate(-1.5px, 0.69px) rotate(0.95deg); }
+    62.5% { transform: translate(1.48px, -0.51px) rotate(-0.93deg); }
+    65.0% { transform: translate(-1.57px, 0.84px) rotate(0.95deg); }
+    67.5% { transform: translate(1.69px, -0.69px) rotate(-1.12deg); }
+    70.0% { transform: translate(-1.97px, -0.86px) rotate(1.27deg); }
+    72.5% { transform: translate(2.11px, -0.78px) rotate(-1.58deg); }
+    75.0% { transform: translate(-2.48px, 0.79px) rotate(1.33deg); }
+    77.5% { transform: translate(2.23px, 0.63px) rotate(-1.15deg); }
+    80.0% { transform: translate(-2.12px, -0.69px) rotate(1.63deg); }
+    82.5% { transform: translate(2.13px, -1.01px) rotate(-1.99deg); }
+    85.0% { transform: translate(-2.7px, -1.29px) rotate(1.8deg); }
+    87.5% { transform: translate(2.38px, 1.41px) rotate(-1.88deg); }
+    90.0% { transform: translate(-2.82px, -1.4px) rotate(2.34deg); }
+    92.5% { transform: translate(2.95px, 1.04px) rotate(-1.61deg); }
+    95.0% { transform: translate(-3.39px, 1.22px) rotate(2.25deg); }
+    97.5% { transform: translate(3.28px, -1.68px) rotate(-2.18deg); }
+    100.0% { transform: translate(0px, 0px) rotate(0deg); }
+}
+.wr-su { font-style: normal; color: var(--accent-green, #22c55e); font-size: 0.8em; }
+.wr-giu { font-style: normal; color: var(--accent-red, #B8433A); font-size: 0.8em; }
+
+.wr-heroes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wr-hero {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--wr-panel);
+    border: 1px solid var(--wr-line);
+    border-left: 3px solid var(--wr-mia);
+}
+.wr-hero--loro { border-left-color: var(--wr-loro); }
+.wr-hero-foto { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: var(--wr-bar); }
+.wr-hero-foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.wr-hero-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wr-hero-k {
+    font: 700 0.6rem/1 var(--font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.wr-hero-txt b { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-hero-sub { font-size: 0.72rem; color: var(--text-muted); }
+.wr-hero-pts { font: 900 1.3rem/1 "Archivo Black", var(--font-display), sans-serif; font-variant-numeric: tabular-nums; }
+
+.wr-lineup {
+    padding: 14px;
+    border-radius: var(--radius-md);
+    background: var(--wr-panel);
+    border: 1px solid var(--wr-line);
+}
+.wr-lineup h3 {
+    margin: 0 0 8px;
+    font: 700 0.62rem/1 var(--font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.wr-lineup ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.wr-row {
+    display: grid;
+    grid-template-columns: 2.6rem minmax(0, 11rem) 1fr 3rem;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.84rem;
+}
+.wr-row-pos { font: 800 0.66rem/1 var(--font-display); color: var(--text-muted); letter-spacing: 0.04em; }
+.wr-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-row-bar { height: 6px; border-radius: 3px; background: var(--wr-bar); overflow: hidden; }
+.wr-row-bar i { display: block; height: 100%; border-radius: 3px; background: var(--wr-mia); }
+.wr-row-pts { text-align: right; font-variant-numeric: tabular-nums; }
+.wr-bench { margin: 10px 0 0; font-size: 0.78rem; color: var(--text-muted); text-align: right; }
+.wr-bench b { color: var(--text-secondary); }
+
+.wr-go {
+    margin-top: 6px;
+    padding: 12px 26px;
+    border: 0;
+    border-radius: var(--pill-radius);
+    background: var(--wr-cta-bg);
+    color: var(--wr-cta-ink);
+    font: 800 0.85rem/1 var(--font-body);
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+.wr-go:focus-visible { outline: 2px solid var(--wr-mia); outline-offset: 3px; }
+
+@media (max-width: 560px) {
+    .wr-heroes { grid-template-columns: 1fr; }
+    .wr-row { grid-template-columns: 2.4rem minmax(0, 1fr) 3.4rem 2.8rem; gap: 8px; font-size: 0.8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wr-overlay * { transition: none !important; animation: none !important; }
+}

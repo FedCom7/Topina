@@ -28,3 +28,7 @@ __pycache__/
 # Draft di prova: strumento locale, scrive sul nodo vero del draft.
 # Non va versionato — vedi CLAUDE.md, va cancellato a fine preseason.
 scripts/espn/draft_demo.py
+
+# Banco di prova della schermata Final Whistle (hai vinto / hai perso):
+# strumento locale per vedere la grafica prima di integrarla nel sito.
+preview-week-result.html

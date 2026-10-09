@@ -635,6 +635,37 @@ giornata, dalla barra delle settimane in testa al blocco.
 In locale `site.api.espn.com` nega il CORS (vedi il banco del Night Recap):
 la tab si verifica intercettando quelle richieste e rifacendole da node.
 
+### Final Whistle — hai vinto o hai perso
+
+La prima volta che si apre il sito dopo che una giornata e' stata chiusa su
+Firebase, una schermata racconta l'esito della squadra del cuore: i due
+punteggi che salgono insieme, il verdetto (Victory/Defeat/Tie), record e posto
+in classifica che tremano e poi scattano al valore nuovo, MVP, titolari.
+Fuochi per chi vince, pioggia sul vetro per chi perde. Due file: i conti in
+`js/data/week-result.js` (niente DOM ne' rete), la scena in
+`js/sections/week-result.js`.
+
+1. **Stesso schema del Night Recap, e parte DOPO di lui.** `boot()` chiama
+   `avviaEsitoSettimana()` subito dopo `avviaNightRecap()`: sipario sincrono
+   (il solito "Loading..."), dati dietro, sipario giu' se non c'e' niente. Il
+   suo z-index (3990) e' un gradino sotto quello del Night Recap (4000): se
+   partono tutti e due, il replay della notte va sopra e questa aspetta sotto
+   — guardando il DOM (`.nr-overlay`), non un evento: il Night Recap non sa
+   che questa esiste.
+2. **Quando coprire la pagina si decide senza rete** (`valeControllare`): una
+   giornata si chiude solo il martedi', quindi martedi' (dalle 6) e mercoledi'
+   si controlla al massimo una volta l'ora — il workflow arriva spesso tardi —
+   e negli altri giorni solo se dall'ultimo controllo e' passato un martedi'.
+3. **Mai due volte la stessa giornata sullo stesso dispositivo**: segnalibro
+   `topina-esito-v1` (non passa da storage.js, come quello del Night Recap: e'
+   stato di chi guarda, non una cache). Si segna vista quando si preme "Go to
+   the site". Alla prima apertura in assoluto si mostra solo di martedi' o
+   mercoledi', se no la giornata si segna vista in silenzio.
+
+Il banco di prova e' `preview-week-result.html`, **locale e nel .gitignore**:
+importa i moduli veri e manda in onda le giornate chiuse vere, per squadra,
+dispositivo e tema.
+
 ### Area Draft — quattro sezioni sorelle
 
 Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:

@@ -31,6 +31,7 @@ import { initPlayerStats } from './sections/player-stats.js?v=22';
 import { initMagazine } from './sections/magazine.js?v=803';
 import { initLive } from './sections/live.js?v=1160';
 import { avviaNightRecap } from './sections/night-recap.js?v=33';
+import { avviaEsitoSettimana } from './sections/week-result.js?v=1';
 import { initNavbar } from './ui/navbar.js?v=694';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
@@ -196,6 +197,13 @@ function boot() {
      * del cuore, o ha gia' guardato oggi, non se ne accorge nemmeno.
      */
     avviaNightRecap();
+    /*
+     * Subito dopo, e per la stessa ragione, Final Whistle: "hai vinto / hai
+     * perso" la prima volta che si entra dopo che una giornata e' stata
+     * chiusa. Anche lei alza il suo sipario in modo sincrono, ma SOTTO quello
+     * del Night Recap: se partono tutti e due, prima la notte, poi l'esito.
+     */
+    avviaEsitoSettimana();
     initNavbar();
     startAutoAbbr();
     startLoadingArt();
