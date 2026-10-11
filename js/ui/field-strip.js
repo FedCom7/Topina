@@ -835,10 +835,14 @@ function situazione(s) {
     if (s.stato === 'pre') return `<span class="fst-quando">${esc(s.orologio || 'Kickoff')}</span>`;
     if (s.stato === 'post') return '<span class="fst-quando">Final</span>';
     const q = s.periodo ? `${s.periodo}${['st', 'nd', 'rd', 'th'][Math.min(s.periodo, 4) - 1]}` : '';
-    const dd = s.down
-        ? `${s.down}${['st', 'nd', 'rd', 'th'][Math.min(s.down, 4) - 1]} & ${s.distance ?? 10}`
+    // Solo un down vero (1-4). ESPN manda down -1 e distanza 0 sui timeout
+    // ufficiali e sulle righe di servizio ("GAME"): scritto cosi' com'era usciva
+    // "-1undefined & 0 at CHI 0", che sbordava dal riquadro.
+    const downOk = Number.isInteger(s.down) && s.down >= 1 && s.down <= 4;
+    const dd = downOk
+        ? `${s.down}${['st', 'nd', 'rd', 'th'][s.down - 1]} & ${s.distance ?? 10}`
         : '';
-    const dove = s.toEZ != null && s.possesso
+    const dove = downOk && s.toEZ != null && s.possesso
         // in uno span suo: dove lo scorebug e' stretto (Inside the game, sul
         // telefono) si toglie questo e resta il down & distance
         ? `<span class="fst-dove"> at ${s.toEZ <= 50 ? esc(s[s.possesso === 'home' ? 'away' : 'home'].abbr) : esc(s[s.possesso].abbr)} ${s.toEZ <= 50 ? s.toEZ : 100 - s.toEZ}</span>`

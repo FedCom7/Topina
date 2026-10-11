@@ -43,11 +43,11 @@ import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statRingHTML } from '../ui/stat-ring.js?v=1';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=38';
-import { logoImg, pallaPossesso } from '../ui/field-strip.js?v=148';
+import { logoImg, pallaPossesso } from '../ui/field-strip.js?v=149';
 import {
     partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei,
     fattoreSupplementari, segnalibro, segnaViste, segnaTentativo, valeTentare,
-} from '../data/night-recap.js?v=13';
+} from '../data/night-recap.js?v=14';
 import { ngsChartHTML, ngsLegendaHTML, ngsFasceHTML, bindNgsChart } from '../ui/ngs-chart.js?v=3';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

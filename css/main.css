@@ -25434,42 +25434,24 @@ a.sb:hover {
     object-fit: contain;
 }
 
-/* Il pallone di chi attacca, accanto alla sigla sotto al logo. Bianco, con
-   le cuciture scure: sta su fondo nero accanto a loghi di ogni colore, e il
-   rosso della scena di caricamento ci si sarebbe confuso. */
-.fst-palla {
-    /* FUORI dal flusso: dentro la colonna allargava la sigla e spostava il
-       centro dello scorebug — il logo e il punteggio devono restare dove sono,
-       che ci sia la palla o no. Su schermo largo sta a destra del blocco,
-       vicino al punteggio; per la squadra di destra si specchia, se no
-       finirebbe fuori dalla card. */
-    position: absolute;
-    top: 50%;
-    right: -32px;
-    transform: translateY(-50%);
-    width: 26px;
-    height: 18px;
-}
+/* Il pallone di chi attacca, sotto la sigla della squadra (MIN) e sotto al
+   logo. Bianco, con le cuciture scure: sta su fondo nero accanto a loghi di
+   ogni colore, e il rosso della scena di caricamento ci si sarebbe confuso.
 
+   FUORI dal flusso: dentro la colonna allargava la sigla e spostava il
+   centro dello scorebug — logo e punteggio restano dove sono, che ci sia la
+   palla o no. Sotto la sigla su TUTTI gli schermi: prima su desktop e tablet
+   stava di fianco al blocco e finiva sopra al punteggio. */
+.fst-palla,
 .fst-lato--r .fst-palla {
+    position: absolute;
+    top: auto;
+    bottom: -18px;
+    left: 50%;
     right: auto;
-    left: -32px;
-}
-
-@media (max-width: 640px) {
-
-    /* Su telefono sotto la sigla della squadra: di fianco non c'e' spazio e
-       finirebbe addosso al punteggio. */
-    .fst-palla,
-    .fst-lato--r .fst-palla {
-        top: auto;
-        bottom: -18px;
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-        width: 24px;
-        height: 17px;
-    }
+    transform: translateX(-50%);
+    width: 24px;
+    height: 17px;
 }
 
 .fst-palla-corpo {
@@ -25573,6 +25555,16 @@ a.sb:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+}
+
+/* Telefono: il riquadro e' largo ~320px e loghi + punteggi da 3rem lasciavano
+   al centro 49px — "2nd & 7" usciva "2nd…" (iPhone 12 Pro). I punteggi
+   scendono un poco e il centro non si stringe mai sotto il suo testo. */
+@media (max-width: 560px) {
+    .fst-bug { gap: 7px; }
+    .fst-score { font-size: 2.35rem; }
+    .fst-mid { flex-shrink: 0; margin: 0 2px; }
+    .fst-dd { font-size: 0.84rem; }
 }
 
 .fst-campo {
@@ -30930,3 +30922,129 @@ body.wr-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
     .wr-overlay * { transition: none !important; animation: none !important; }
 }
+
+/* ── Scheda giocatore dal Live / Game Center: due pagine nello stesso blocco ──
+   "This game" e "Season" stanno affiancate in una fila che scorre di lato
+   (scroll-snap): col dito si passa dall'una all'altra e cambia solo il
+   contenuto sotto le linguette, la scheda resta ferma. */
+.pm-pager-tabs {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.pm-pager-tab {
+    padding: 0 0 8px;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: 700 0.7rem/1 var(--font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.pm-pager-tab.is-on { color: var(--text-primary); }
+.pm-pager-tab:focus-visible { outline: 2px solid var(--team-color, var(--accent-red)); outline-offset: 2px; }
+/* la lineetta sotto la linguetta accesa scivola insieme alla pagina */
+.pm-pager-bar {
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 50%;
+    height: 2px;
+    background: var(--team-color, var(--accent-red));
+    transform: translateX(calc(var(--pm-pg, 0) * 100%));
+    transition: transform 0.25s ease;
+}
+.pm-pager {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    align-items: start;
+}
+.pm-pager::-webkit-scrollbar { display: none; }
+.pm-page { scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }
+
+.pm-ssn-head {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 14px;
+}
+.pm-ssn-head div { display: flex; flex-direction: column; gap: 2px; }
+.pm-ssn-head b {
+    font: 800 1.35rem/1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+/* il colore di squadra schiarito: un petrolio o un bordeaux pieni sul nero
+   non si leggono (stessa ragione del ruolo `bright` della palette) */
+.pm-ssn-head div:first-child b { color: color-mix(in srgb, var(--team-color, var(--accent-red)) 55%, #fff); }
+:root[data-theme="light"] .pm-ssn-head div:first-child b { color: var(--team-color, var(--accent-red)); }
+.pm-ssn-head span {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+/* Le partite della stagione: una riga ciascuna, niente barre. */
+.pm-ssn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pm-ssn-row {
+    display: grid;
+    grid-template-columns: 2.1rem 3.6rem minmax(0, 1fr) 2.8rem;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.78rem;
+}
+.pm-ssn-row:last-child { border-bottom: 0; }
+.pm-ssn-w { font: 800 0.7rem/1 var(--font-display); color: var(--text-muted); }
+.pm-ssn-opp { font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.pm-ssn-st {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pm-ssn-pts {
+    text-align: right;
+    font: 800 0.95rem/1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.pm-ssn-row.is-best .pm-ssn-pts { color: color-mix(in srgb, var(--team-color, var(--accent-red)) 55%, #fff); }
+:root[data-theme="light"] .pm-ssn-row.is-best .pm-ssn-pts { color: var(--team-color, var(--accent-red)); }
+/* la partita che si sta guardando */
+.pm-ssn-row.is-now {
+    background: color-mix(in srgb, var(--team-color, var(--accent-red)) 12%, transparent);
+    border-radius: 6px;
+}
+.pm-ssn-row.is-now .pm-ssn-w { color: var(--text-primary); }
+.pm-ssn-row.is-live .pm-ssn-w::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 4px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    vertical-align: 1px;
+}
+.pm-ssn-row.is-bye { opacity: 0.5; }
+@media (max-width: 560px) {
+    /* stretti: le statistiche vanno sotto, a tutta riga */
+    .pm-ssn-row { grid-template-columns: 2.1rem 1fr 2.8rem; row-gap: 3px; }
+    .pm-ssn-st { grid-column: 2 / 4; grid-row: 2; white-space: normal; }
+    .pm-ssn-pts { grid-column: 3; grid-row: 1; }
+}
+.pm-ssn-note { margin: 10px 0 0; font-size: 0.68rem; color: var(--text-muted); }

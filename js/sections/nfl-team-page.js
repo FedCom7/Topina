@@ -24,7 +24,7 @@ import { getSeasonStats, normName } from '../data/projections.js?v=634';
 import {
     campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
     yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
-} from '../ui/field-strip.js?v=148';
+} from '../ui/field-strip.js?v=149';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,
@@ -36,11 +36,11 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1079';
+} from './player-page.js?v=1082';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1113';
+} from './nfl-team-home.js?v=1116';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {

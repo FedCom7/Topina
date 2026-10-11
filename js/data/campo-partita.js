@@ -9,7 +9,7 @@
  * niente rete: chi chiama passa squadre, stato e giocate.
  */
 
-import { titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=148';
+import { titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=149';
 import { headshotUrl } from './nfl-plays.js?v=572';
 import { teamNameFromAbbr } from './espn-fantasy.js?v=177';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
@@ -99,7 +99,9 @@ export function statoPartita({ sigla, home, away, stato, detail, tutte = [], sce
             // Il down e la distanza dicono il PESO della giocata: un passaggio
             // da otto yard al terzo e sette e uno al primo e dieci sono due
             // cose diverse, e scorrendo l'elenco non si distinguevano.
-            dd: x.down ? `${x.down}${['st', 'nd', 'rd', 'th'][Math.min(x.down, 4) - 1]} & ${x.distance ?? 10}` : '',
+            // solo i down veri: ESPN mette -1 sui timeout e sulle righe di servizio
+            dd: Number.isInteger(x.down) && x.down >= 1 && x.down <= 4
+                ? `${x.down}${['st', 'nd', 'rd', 'th'][x.down - 1]} & ${x.distance ?? 10}` : '',
             segna: !!x.scoring,
             persa: !!x.turnover,
         })).reverse(),

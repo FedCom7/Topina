@@ -32,3 +32,6 @@ scripts/espn/draft_demo.py
 # Banco di prova della schermata Final Whistle (hai vinto / hai perso):
 # strumento locale per vedere la grafica prima di integrarla nel sito.
 preview-week-result.html
+
+# Banco di prova della scheda giocatore (This game / Season), locale.
+preview-player-modal.html

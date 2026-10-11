@@ -15,9 +15,9 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=644';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=634';
-import { TEAMS } from '../sections/team.js?v=845';
+import { TEAMS } from '../sections/team.js?v=848';
 import { playerImageService } from '../services/player-image-service.js?v=533';
-import { getPlayerInfo } from '../data/player-full.js?v=672';
+import { getPlayerInfo, getPlayerWeekly } from '../data/player-full.js?v=672';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=632';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 
@@ -116,6 +116,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         dialog.style.setProperty('--team-color', color || '');
         content.innerHTML = html;
         appendContextBlocks(content, { game, pos, nfl, career, awards });
+        if (game) bindPager(content, { name, pos, year, game });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
         hydrateJersey(content, name, nfl, year);
@@ -140,6 +141,7 @@ export async function openPlayerModal({ name, pos, nfl, year, game = null }) {
         dialog.style.setProperty('--team-color', built.color || '');
         content.innerHTML = built.html;
         appendContextBlocks(content, { game, pos, nfl, career: built.career, awards: built.awards });
+        if (game) bindPager(content, { name, pos, year, game });
         appendFullStatsLink(content, { name, pos, year });
         hydrateHeadshot(content, name, nfl, pos, year);
         hydrateJersey(content, name, nfl, year);
@@ -292,7 +294,13 @@ function gameBlockHtml(game, pos, nfl) {
 
     return `
     <section class="pm-block pm-game">
-        <h3 class="pm-block-title">This game</h3>
+        <div class="pm-pager-tabs" role="tablist">
+            <button type="button" class="pm-pager-tab is-on" data-pm-pg="0" role="tab" aria-selected="true">This game</button>
+            <button type="button" class="pm-pager-tab" data-pm-pg="1" role="tab" aria-selected="false">Season</button>
+            <i class="pm-pager-bar" aria-hidden="true"></i>
+        </div>
+        <div class="pm-pager">
+        <div class="pm-page">
         <div class="pm-game-head">
             <span class="pm-game-pts">${pts.toFixed(2)}<small> pt</small>${projPts != null
                 ? `<small class="pm-proj" title="projected">${Number(projPts).toFixed(1)}</small>` : ''}</span>
@@ -301,7 +309,137 @@ function gameBlockHtml(game, pos, nfl) {
         </div>
         ${statoUtile ? `<p class="pm-game-status">${statoUtile}</p>` : ''}
         ${grid}
+        </div>
+        <div class="pm-page pm-season" data-pm-season>
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        </div>
     </section>`;
+}
+
+/* ─── La seconda pagina: i punti fantasy di tutta la stagione ──────────────
+ *
+ * Nella stessa scheda, non in un'altra: si scorre di lato DENTRO il blocco
+ * della partita (scroll-snap) e cambia solo cosa c'e' sotto le due linguette.
+ * La figurina, il titolo e tutto il resto restano fermi. Le linguette fanno
+ * la stessa cosa col clic, per chi non sa che si puo' scorrere.
+ */
+function bindPager(content, { name, pos, year, game }) {
+    const blocco = content.querySelector('.pm-game');
+    const pager = blocco?.querySelector('.pm-pager');
+    if (!pager) return;
+    const tabs = [...blocco.querySelectorAll('[data-pm-pg]')];
+    const segna = () => {
+        const i = Math.round(pager.scrollLeft / Math.max(1, pager.clientWidth));
+        tabs.forEach((t, k) => {
+            t.classList.toggle('is-on', k === i);
+            t.setAttribute('aria-selected', String(k === i));
+        });
+        blocco.style.setProperty('--pm-pg', String(i));
+    };
+    pager.addEventListener('scroll', segna, { passive: true });
+    tabs.forEach(t => t.addEventListener('click', () =>
+        pager.scrollTo({ left: Number(t.dataset.pmPg) * pager.clientWidth, behavior: 'smooth' })));
+    caricaStagione(blocco.querySelector('[data-pm-season]'), { name, pos, year, game });
+}
+
+async function caricaStagione(box, { name, pos, year, game }) {
+    if (!box) return;
+    const anno = String(year || game?.year || '');
+    let partite = null;
+    try {
+        const stats = await getSeasonStats(anno);
+        const ruolo = String(pos || '').toUpperCase().replace('D/ST', 'DEF');
+        const voce = stats.get(`${normName(name)}|${ruolo}`);
+        if (voce?.playerId) partite = await getPlayerWeekly(voce.playerId, anno, ruolo);
+    } catch { partite = null; }
+    if (!box.isConnected) return;
+    if (!partite?.length && !game?.week) {
+        box.innerHTML = '<p class="pm-game-empty">No games this season yet.</p>';
+        return;
+    }
+    box.innerHTML = stagioneHTML(partite || [], game, anno, pos);
+}
+
+/* Le statistiche di Sleeper hanno nomi loro (pass_yd, rec_tgt…): qui si
+   portano ai nomi della lega, gli stessi del blocco "This game", cosi' la
+   riga di una giornata passata e quella della giornata in corso si scrivono
+   allo stesso modo. */
+const SLEEPER_A_LEGA = {
+    pass_cmp: 'pass_comp', pass_att: 'pass_att', pass_yd: 'pass_yds', pass_td: 'pass_td', pass_int: 'pass_int',
+    rush_att: 'rush_att', rush_yd: 'rush_yds', rush_td: 'rush_td',
+    rec_tgt: 'targets', rec: 'rec', rec_yd: 'rec_yds', rec_td: 'rec_td',
+    fgm: 'fg_made', fga: 'fg_att', xpm: 'pat_made',
+    sack: 'sack', int: 'def_int', fum_rec: 'fum_rec', def_td: 'def_td', pts_allow: 'pts_allowed',
+};
+const statsLega = (s = {}) => Object.fromEntries(Object.entries(SLEEPER_A_LEGA)
+    .filter(([k]) => s[k] != null).map(([k, v]) => [v, s[k]]));
+
+/** La riga di statistiche di una partita, compatta, per ruolo. */
+function rigaStats(pos, s = {}) {
+    const n = (k) => Number(s[k]) || 0;
+    const parti = [];
+    const corsa = () => { if (n('rush_att') || n('rush_yds')) parti.push(`${n('rush_att')} car ${n('rush_yds')} yd${n('rush_td') ? ` ${n('rush_td')} TD` : ''}`); };
+    const presa = () => { if (n('targets') || n('rec')) parti.push(`${n('rec')}/${n('targets')} rec ${n('rec_yds')} yd${n('rec_td') ? ` ${n('rec_td')} TD` : ''}`); };
+    if (pos === 'QB') {
+        parti.push(`${n('pass_comp')}/${n('pass_att')} ${n('pass_yds')} yd ${n('pass_td')} TD${n('pass_int') ? ` ${n('pass_int')} INT` : ''}`);
+        corsa();
+    } else if (pos === 'RB') { corsa(); presa(); }
+    else if (pos === 'K') {
+        parti.push(`FG ${n('fg_made')}/${n('fg_att')}`, `XP ${n('pat_made')}`);
+    } else if (pos === 'DEF' || pos === 'D/ST') {
+        parti.push(`${n('sack')} sck`, `${n('def_int')} INT`, `${n('fum_rec')} FR`);
+        if (s.pts_allowed != null) parti.push(`${n('pts_allowed')} PA`);
+    } else { presa(); corsa(); }
+    return parti.join(' · ') || '—';
+}
+
+/**
+ * Tutte le partite della stagione, una riga ciascuna: giornata, avversario,
+ * statistiche e punti, dalla 1 a quella in corso. La giornata che si sta
+ * guardando prende punti e statistiche della scheda (dal vivo) invece di
+ * quelli di Sleeper, che arrivano dopo; le giornate senza partita sono "Bye".
+ */
+function stagioneHTML(partite, game, anno, pos) {
+    const ruolo = String(pos || '').toUpperCase();
+    const perWeek = new Map(partite.map(g => [g.week, g]));
+    const ultima = Math.max(game?.week || 0, ...partite.map(g => g.week));
+    const righe = [];
+    for (let w = 1; w <= ultima; w++) {
+        const g = perWeek.get(w);
+        const ora = game?.week === w;
+        const pts = ora ? Number(game.pts) || 0 : g ? Number(g.pts) || 0 : null;
+        const avv = ora ? String(game.opponent || '').replace(/^@/, '') : (g?.opponent || '');
+        const fuori = ora ? String(game.opponent || '').startsWith('@') : !!g?.isAway;
+        const st = ora ? (game.stats || {}) : statsLega(g?.stats);
+        righe.push({ w, pts, avv, fuori, ora, live: ora && game?.gameState === 'in', st });
+    }
+    const giocate = righe.filter(r => r.pts != null);
+    const tot = giocate.reduce((a, r) => a + r.pts, 0);
+    const media = giocate.length ? tot / giocate.length : 0;
+    const migliore = giocate.reduce((a, r) => (!a || r.pts > a.pts ? r : a), null);
+    const lista = righe.map(r => r.pts == null ? `
+        <li class="pm-ssn-row is-bye">
+            <span class="pm-ssn-w">W${r.w}</span>
+            <span class="pm-ssn-opp">Bye</span>
+            <span class="pm-ssn-st"></span>
+            <b class="pm-ssn-pts">–</b>
+        </li>` : `
+        <li class="pm-ssn-row${r.ora ? ' is-now' : ''}${r.live ? ' is-live' : ''}${migliore === r ? ' is-best' : ''}">
+            <span class="pm-ssn-w">W${r.w}</span>
+            <span class="pm-ssn-opp">${r.avv ? `${r.fuori ? '@' : 'vs'} ${r.avv}` : ''}</span>
+            <span class="pm-ssn-st">${rigaStats(ruolo, r.st)}</span>
+            <b class="pm-ssn-pts">${r.pts.toFixed(1)}</b>
+        </li>`).join('');
+    return `
+        <div class="pm-ssn-head">
+            <div><b>${tot.toFixed(1)}</b><span>${anno} total</span></div>
+            <div><b>${media.toFixed(1)}</b><span>per game</span></div>
+            <div><b>${migliore ? migliore.pts.toFixed(1) : '–'}</b><span>best${migliore ? ` · W${migliore.w}` : ''}</span></div>
+        </div>
+        <ol class="pm-ssn-list">${lista}</ol>
+        <p class="pm-ssn-note">Fantasy points with the league's scoring${game?.week
+            ? ` · W${game.week} ${game.gameState === 'in' ? 'live ' : ''}from this game` : ''}.</p>`;
 }
 
 /**
