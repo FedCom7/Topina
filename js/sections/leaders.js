@@ -21,12 +21,15 @@ import { TEAM_KEYS } from '../data/team-config.js?v=535';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=177';
 import { TEAMS } from './team.js?v=848';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getSeasonStats } from '../data/projections.js?v=634';
+import { getSeasonStats, normName } from '../data/projections.js?v=634';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
 } from './analysis.js?v=905';
 import { getPlayerWeekly } from '../data/player-full.js?v=672';
+import { squadraPreferita } from '../utils/preferenze.js?v=1';
+import { getAdvancedPlayers } from '../data/context-score.js?v=684';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -35,6 +38,9 @@ let currentYear = CURRENT_SEASON;
 let attivi = new Set(['QB', 'RB', 'WR', 'TE', 'K']);
 let ordine = 'total';      // 'total' | 'perGame'
 let soloLiberi = false;    // filtro "Available": solo chi non e' in nessuna rosa
+// Il confronto fra due giocatori: `a` e `b` sono chiavi di `stato.stats`
+// ("nome|ruolo"), `scegli` dice quale dei due posti si sta riempiendo.
+let confronto = { attivo: false, a: null, b: null, scegli: null, cerca: '' };
 
 // DEF resta fuori: Sleeper non pubblica le fasce di punti/yard subiti che il
 // nostro punteggio usa per le difese, quindi il loro totale sarebbe un numero
@@ -54,11 +60,19 @@ function renderPickRow() {
     const box = document.getElementById('ld-pick-row');
     if (!box) return;
     const items = SEASONS_DESC.map(y => ({ value: y, label: y }));
-    box.innerHTML = pickDropdownHTML('year', items, SEASONS_DESC.indexOf(String(currentYear)));
+    // Compare sta accanto all'anno: e' un modo di guardare la pagina, come
+    // l'anno, non un filtro della lista. Lo stesso bottone ci riporta.
+    // a sinistra dell'anno, che resta all'estremo destro come nelle altre pagine
+    box.innerHTML = `<button type="button" class="year-pill ld-cmp-btn${confronto.attivo ? ' is-on' : ''}" data-ld-cmp-toggle>${
+            confronto.attivo ? '← Back to the list' : 'Compare'}</button>
+        ${pickDropdownHTML('year', items, SEASONS_DESC.indexOf(String(currentYear)))}`;
+    box.querySelector('[data-ld-cmp-toggle]')?.addEventListener('click', () =>
+        azioneConfronto(confronto.attivo ? 'chiudi' : 'apri'));
     bindPickDropdown(box, (id, value) => {
         if (id !== 'year') return;
         currentYear = value;
         renderPickRow();
+        if (confronto.attivo) caricaContesto();
         load();
     });
 }
@@ -401,6 +415,7 @@ async function load() {
 function render() {
     const wrap = document.getElementById('leaders-content');
     if (!wrap || !stato) return;
+    if (confronto.attivo) { wrap.innerHTML = confrontoHTML(); dopoConfronto(wrap); return; }
     const lista = classifica(stato.stats, stato.roseIdx);
     stato.lista = lista;   // il data-ld-open della riga e' l'indice qui dentro
     wrap.innerHTML = `
@@ -557,6 +572,341 @@ function bindContent() {
 
         const apre = e.target.closest('[data-ld-open]');
         if (apre) { apriDrill(apre, Number(apre.dataset.ldOpen)); return; }
+
+        const cmp = e.target.closest('[data-ld-cmp]');
+        if (cmp) { azioneConfronto(cmp.dataset.ldCmp, cmp.dataset.key); return; }
+    });
+    // la ricerca del giocatore riscrive solo l'elenco, cosi' il campo non
+    // perde il fuoco a ogni lettera
+    wrap.addEventListener('input', (e) => {
+        if (!e.target.matches('[data-ld-cerca]')) return;
+        confronto.cerca = e.target.value;
+        const lista = wrap.querySelector('.ld-pick-list');
+        if (lista) { lista.innerHTML = sceltaListaHTML(); hydrateImages(lista); }
+    });
+}
+
+/* ============================================================
+   COMPARE — due giocatori uno contro l'altro
+   ============================================================ */
+
+/**
+ * Uso dei giocatori (quote di snap, bersagli, air yards, portate: nflverse) e
+ * statistiche delle squadre NFL, per l'anno a schermo. Si scaricano solo al
+ * primo "Compare": la lista non ne ha bisogno. Sono due file locali.
+ */
+let contesto = { anno: null, adv: null, squadre: null, promessa: null };
+function caricaContesto() {
+    const anno = currentYear;
+    if (contesto.anno === anno && contesto.promessa) return contesto.promessa;
+    contesto = { anno, adv: null, squadre: null, promessa: null };
+    contesto.promessa = Promise.all([
+        getAdvancedPlayers(anno).catch(() => []),
+        getTeamStats(anno).catch(() => null),
+    ]).then(([adv, squadre]) => {
+        if (contesto.anno !== anno) return;
+        contesto.adv = new Map((adv || []).map(r => [String(r.sleeper), r]));
+        contesto.squadre = squadre?.teams || {};
+        if (confronto.attivo) render();
+    });
+    return contesto.promessa;
+}
+
+function azioneConfronto(azione, chiaveGiocatore) {
+    if (azione === 'apri') {
+        caricaContesto();
+        confronto.attivo = true;
+        if (!confronto.a) confronto.scegli = 'a';
+    } else if (azione === 'chiudi') {
+        confronto.attivo = false;
+    } else if (azione === 'a' || azione === 'b') {
+        confronto.scegli = confronto.scegli === azione ? null : azione;
+        confronto.cerca = '';
+    } else if (azione === 'scegli' && confronto.scegli) {
+        confronto[confronto.scegli] = chiaveGiocatore;
+        // riempito il primo, si passa da solo al secondo se e' ancora vuoto
+        confronto.scegli = confronto.scegli === 'a' && !confronto.b ? 'b' : null;
+        confronto.cerca = '';
+    } else if (azione === 'scambia') {
+        [confronto.a, confronto.b] = [confronto.b, confronto.a];
+    }
+    if (azione === 'apri' || azione === 'chiudi') renderPickRow();
+    render();
+}
+
+const voce = (k) => (k ? stato.stats.get(k) : null);
+const chiaveVoce = (e) => `${normName(e.name)}|${e.pos}`;
+
+/** Il posto di un giocatore in testa al confronto: foto, nome, squadra. */
+function postoHTML(lato) {
+    const e = voce(confronto[lato]);
+    const attivo = confronto.scegli === lato;
+    if (!e) {
+        return `<button type="button" class="ld-cmp-slot is-empty${attivo ? ' is-on' : ''}" data-ld-cmp="${lato}">
+            <span class="ld-cmp-plus">+</span><span>Choose player</span></button>`;
+    }
+    const info = stato.roseIdx.get(chiave(e.name));
+    return `
+    <button type="button" class="ld-cmp-slot${attivo ? ' is-on' : ''}" data-ld-cmp="${lato}" title="Change player">
+        ${headshotImg({ name: e.name, position: e.pos, nflTeam: e.team }, 'ld-cmp-foto')}
+        <span class="ld-cmp-nome">${e.name}</span>
+        <span class="ld-cmp-sub">${posBadge(e.pos)}${e.team ? ` <span class="ld-nfl">${e.team}</span>` : ''}${targhettaRosa(info)}</span>
+        <span class="ld-cmp-cambia">Change</span>
+    </button>`;
+}
+
+/**
+ * Chi si puo' scegliere: prima i giocatori della squadra selezionata (la
+ * squadra del cuore, dalla barra in alto), poi tutti gli altri in ordine di
+ * punti. La ricerca filtra tutti e due i gruppi per nome.
+ */
+function sceltaListaHTML() {
+    const mia = squadraPreferita();
+    const q = normName(confronto.cerca || '');
+    const tutti = [...stato.stats.values()].filter(e => RUOLI.includes(e.pos) && e.ptsLeague != null);
+    const passa = (e) => !q || normName(e.name).includes(q);
+    const diMia = (e) => mia && stato.roseIdx.get(chiave(e.name))?.finale === mia;
+    const giaPreso = new Set([confronto.a, confronto.b].filter(Boolean));
+    const miei = tutti.filter(e => diMia(e) && passa(e)).sort((x, y) => y.ptsLeague - x.ptsLeague);
+    const altri = tutti.filter(e => !diMia(e) && passa(e) && (e.gp || 0) > 0)
+        .sort((x, y) => y.ptsLeague - x.ptsLeague).slice(0, q ? 40 : 60);
+    const riga = (e) => {
+        const k = chiaveVoce(e);
+        return `
+        <button type="button" class="ld-pick-row${giaPreso.has(k) ? ' is-taken' : ''}" data-ld-cmp="scegli" data-key="${k}">
+            ${headshotImg({ name: e.name, position: e.pos, nflTeam: e.team })}
+            <span class="ld-pick-name">${e.name} ${posBadge(e.pos)}${e.team ? ` <span class="ld-nfl">${e.team}</span>` : ''}${
+                targhettaRosa(stato.roseIdx.get(chiave(e.name))) || ' <span class="an-badge ld-free-badge">Unrostered</span>'}</span>
+            <span class="ld-pick-pts">${fmt(e.ptsLeague, 1)}</span>
+        </button>`;
+    };
+    const nomeMia = mia ? (TEAMS[mia]?.name || mia) : '';
+    return `
+        ${miei.length ? `<span class="ld-pick-group">Your team · ${nomeMia}</span>${miei.map(riga).join('')}` : ''}
+        <span class="ld-pick-group">${q ? 'Results' : 'All players'}</span>
+        ${altri.map(riga).join('') || '<p class="an-footnote">No player with that name.</p>'}`;
+}
+
+/* Le righe del confronto. `v` legge il valore dalla voce; `basso`: meglio
+   meno; `testo`: come si scrive (se no il numero con un decimale). */
+const pct = (a, b) => (b ? a / b : null);
+const RIGHE_COMUNI = [
+    { k: 'pts', label: 'Fantasy points', v: (e) => e.ptsLeague, dec: 1 },
+    { k: 'gp', label: 'Games', v: (e) => e.gp || 0, dec: 0 },
+    { k: 'ppg', label: 'Points per game', v: (e) => (e.gp ? e.ptsLeague / e.gp : 0), dec: 1 },
+];
+const RIGHE_RUOLO = {
+    QB: [
+        { k: 'cmp', label: 'Completion %', v: (e) => pct(e.raw?.pass_cmp || 0, e.passAtt || 0), perc: true,
+            testo: (e) => `${fmt(e.raw?.pass_cmp || 0)}/${fmt(e.passAtt || 0)}` },
+        { k: 'pyd', label: 'Passing yards', v: (e) => e.passYd || 0, dec: 0 },
+        { k: 'ptd', label: 'Passing TD', v: (e) => e.passTd || 0, dec: 0 },
+        { k: 'int', label: 'Interceptions', v: (e) => e.raw?.pass_int || 0, dec: 0, basso: true },
+        { k: 'ryd', label: 'Rushing yards', v: (e) => e.rushYd || 0, dec: 0 },
+        { k: 'rtd', label: 'Rushing TD', v: (e) => e.rushTd || 0, dec: 0 },
+    ],
+    RB: [
+        { k: 'car', label: 'Carries', v: (e) => e.rushAtt || 0, dec: 0 },
+        { k: 'ryd', label: 'Rushing yards', v: (e) => e.rushYd || 0, dec: 0 },
+        { k: 'ypc', label: 'Yards per carry', v: (e) => pct(e.rushYd || 0, e.rushAtt || 0), dec: 1 },
+        { k: 'rtd', label: 'Rushing TD', v: (e) => e.rushTd || 0, dec: 0 },
+        { k: 'tgt', label: 'Targets', v: (e) => e.tgt || 0, dec: 0 },
+        { k: 'rec', label: 'Receptions', v: (e) => e.rec || 0, dec: 0 },
+        { k: 'reyd', label: 'Receiving yards', v: (e) => e.recYd || 0, dec: 0 },
+        { k: 'retd', label: 'Receiving TD', v: (e) => e.recTd || 0, dec: 0 },
+    ],
+    WR: [
+        { k: 'tgt', label: 'Targets', v: (e) => e.tgt || 0, dec: 0 },
+        { k: 'rec', label: 'Receptions', v: (e) => e.rec || 0, dec: 0 },
+        { k: 'cat', label: 'Catch %', v: (e) => pct(e.rec || 0, e.tgt || 0), perc: true },
+        { k: 'reyd', label: 'Receiving yards', v: (e) => e.recYd || 0, dec: 0 },
+        { k: 'ypr', label: 'Yards per catch', v: (e) => pct(e.recYd || 0, e.rec || 0), dec: 1 },
+        { k: 'retd', label: 'Receiving TD', v: (e) => e.recTd || 0, dec: 0 },
+        { k: 'ryd', label: 'Rushing yards', v: (e) => e.rushYd || 0, dec: 0 },
+    ],
+    K: [
+        { k: 'fg', label: 'Field goal %', v: (e) => pct(e.fgm || 0, e.raw?.fga || 0), perc: true,
+            testo: (e) => `${fmt(e.fgm || 0)}/${fmt(e.raw?.fga || 0)}` },
+        { k: 'fg50', label: 'Field goals 50+', v: (e) => e.raw?.fgm_50p || 0, dec: 0 },
+        { k: 'xp', label: 'Extra points', v: (e) => e.xpm || 0, dec: 0 },
+    ],
+};
+RIGHE_RUOLO.TE = RIGHE_RUOLO.WR;
+
+/** Una riga a specchio: valore di A, etichetta con la barra, valore di B. */
+function rigaSpecchio(label, va, vb, { basso = false, neutro = false, scrivi = (v) => v } = {}) {
+    const na = Number(va), nb = Number(vb);
+    const validi = va != null && vb != null && Number.isFinite(na) && Number.isFinite(nb);
+    const tot = validi ? Math.abs(na) + Math.abs(nb) : 0;
+    const quota = tot > 0 ? Math.round((Math.abs(na) / tot) * 100) : 50;
+    const vinceA = neutro || !validi || na === nb ? null : basso ? na < nb : na > nb;
+    return `
+    <div class="live-cmpteam-row">
+        <span class="live-cmpteam-val${vinceA === true ? ' is-top' : ''}">${scrivi(va, 'a')}</span>
+        <span class="live-cmpteam-mid">
+            <span class="live-cmpteam-label">${label}${basso ? '<i class="live-cmpteam-giu" title="lower is better">↓</i>' : ''}</span>
+            <span class="live-cmpteam-bar"><i class="live-cmpteam-fill${basso ? ' is-inverse' : ''}" style="width:${quota}%"></i></span>
+        </span>
+        <span class="live-cmpteam-val live-cmpteam-val--r${vinceA === false ? ' is-top' : ''}">${scrivi(vb, 'b')}</span>
+    </div>`;
+}
+
+function righeStatisticheHTML(a, b) {
+    // Le righe comuni, poi quelle del ruolo di A e quelle in piu' del ruolo di
+    // B: un RB contro un WR si confrontano su corse E ricezioni.
+    const viste = new Set();
+    const righe = [...RIGHE_COMUNI, ...(RIGHE_RUOLO[a.pos] || []), ...(RIGHE_RUOLO[b.pos] || [])]
+        .filter(r => !viste.has(r.k) && viste.add(r.k));
+    return righe.map(r => {
+        const va = r.v(a), vb = r.v(b);
+        const scrivi = (v, lato) => {
+            if (r.testo) return `${r.testo(lato === 'a' ? a : b)}${v != null ? ` <small>${Math.round(v * 100)}%</small>` : ''}`;
+            if (v == null) return '–';
+            return r.perc ? `${Math.round(v * 100)}%` : fmt(v, r.dec ?? 1);
+        };
+        return rigaSpecchio(r.label, va ?? 0, vb ?? 0, { basso: r.basso, scrivi: (v, lato) => scrivi(lato === 'a' ? va : vb, lato) });
+    }).join('');
+}
+
+const quota = (v) => (v == null ? '–' : `${Math.round(v * 100)}%`);
+
+/**
+ * Quanto lo usa la sua squadra: la fetta di snap, bersagli, air yards e
+ * portate che gli arriva. E' il numero che separa chi fa punti perche' e' al
+ * centro dell'attacco da chi li fa con due palloni a partita. Da nflverse,
+ * aggiornato il martedi': durante la giornata e' indietro di una partita.
+ */
+function usoHTML(a, b) {
+    if (!contesto.adv) return `<section class="live-cmpteam ld-cmp-stats"><p class="an-footnote">Loading usage…</p></section>`;
+    const ua = contesto.adv.get(String(a.playerId)), ub = contesto.adv.get(String(b.playerId));
+    if (!ua && !ub) return '';
+    const righe = [
+        ['Snap share', 'snapPct'],
+        ['Target share', 'targetShare'],
+        ['Air yards share', 'airYardsShare'],
+        ['Rush share', 'rushShare'],
+        ['Targets per game', 'tgtPerGame', 1],
+        ['Carries per game', 'carriesPerGame', 1],
+    ].filter(([, k]) => (ua?.[k] || 0) > 0 || (ub?.[k] || 0) > 0)
+        .map(([label, k, dec]) => rigaSpecchio(label, ua?.[k] ?? null, ub?.[k] ?? null, {
+            scrivi: (v, lato) => {
+                const x = (lato === 'a' ? ua : ub)?.[k];
+                return x == null ? '–' : dec ? fmt(x, dec) : quota(x);
+            },
+        })).join('');
+    if (!righe) return '';
+    return `
+    <section class="live-cmpteam ld-cmp-stats">
+        <div class="live-cmpteam-head"><span></span><span class="live-cmpteam-title">Usage in their team</span><span></span></div>
+        ${righe}
+        <p class="an-footnote ld-cmp-nota">Share of the team's snaps, targets, air yards and carries (nflverse, updated every Tuesday).</p>
+    </section>`;
+}
+
+/**
+ * La squadra NFL di ciascuno: se segna, quanto muove la palla, quanto lancia.
+ * Ogni valore col suo posto fra le 32 (#1 = la migliore), cosi' si legge
+ * subito se uno gioca in un attacco che produce o in uno che fatica.
+ */
+function squadraHTML(a, b) {
+    if (!contesto.squadre) return '';
+    const ta = contesto.squadre[a.team], tb = contesto.squadre[b.team];
+    if (!ta && !tb) return '';
+    const rec = (t) => (t?.record ? `${t.record.w}–${t.record.l}${t.record.t ? `–${t.record.t}` : ''}` : '');
+    const logo = (abbr) => `<img class="ld-cmp-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png" alt="">`;
+    const voci = [
+        { label: 'Points per game', v: (t) => t?.offense?.ppg, r: (t) => t?.ranks?.offense?.ppg, dec: 1 },
+        { label: 'Yards per game', v: (t) => t?.offense?.totYdsPg, r: (t) => t?.ranks?.offense?.totYdsPg, dec: 0 },
+        { label: 'Passing yards per game', v: (t) => t?.offense?.passYdsPg, r: (t) => t?.ranks?.offense?.passYdsPg, dec: 0 },
+        { label: 'Rushing yards per game', v: (t) => t?.offense?.rushYdsPg, r: (t) => t?.ranks?.offense?.rushYdsPg, dec: 0 },
+        { label: 'Plays per game', v: (t) => t?.offense?.playsPg, r: (t) => t?.ranks?.offense?.playsPg, dec: 1 },
+        { label: 'Red zone plays per game', v: (t) => t?.offense?.rzPlaysPg, r: (t) => t?.ranks?.offense?.rzPlaysPg, dec: 1 },
+        { label: 'Pass rate', v: (t) => t?.offense?.passRate, perc: true, neutro: true },
+    ];
+    const righe = voci.map(x => rigaSpecchio(x.label, x.v(ta) ?? null, x.v(tb) ?? null, {
+        neutro: x.neutro,
+        scrivi: (v, lato) => {
+            const t = lato === 'a' ? ta : tb;
+            const val = x.v(t);
+            if (val == null) return '–';
+            const r = x.r ? x.r(t) : null;
+            return `${x.perc ? quota(val) : fmt(val, x.dec)}${r ? `<small class="ld-cmp-opp">#${r} of 32</small>` : ''}`;
+        },
+    })).join('');
+    return `
+    <section class="live-cmpteam ld-cmp-stats ld-cmp-team">
+        <div class="live-cmpteam-head">
+            <span>${logo(a.team)}${a.team || ''}<small>${rec(ta)}</small></span>
+            <span class="live-cmpteam-title">Their NFL team</span>
+            <span>${b.team || ''}${logo(b.team)}<small>${rec(tb)}</small></span>
+        </div>
+        ${righe}
+    </section>`;
+}
+
+function confrontoHTML() {
+    const a = voce(confronto.a), b = voce(confronto.b);
+    const scelta = confronto.scegli ? `
+    <div class="ld-pick">
+        <input type="search" class="ld-pick-search" data-ld-cerca placeholder="Search a player…" value="${(confronto.cerca || '').replace(/"/g, '&quot;')}" autocomplete="off">
+        <div class="ld-pick-list">${sceltaListaHTML()}</div>
+    </div>` : '';
+    const corpo = a && b && !confronto.scegli ? `
+    <section class="live-cmpteam ld-cmp-stats">
+        <div class="live-cmpteam-head"><span></span><span class="live-cmpteam-title">${currentYear} season</span><span></span></div>
+        ${righeStatisticheHTML(a, b)}
+    </section>
+    ${usoHTML(a, b)}
+    ${squadraHTML(a, b)}
+    <section class="live-cmpteam ld-cmp-weeks" data-ld-settimane>
+        <div class="live-cmpteam-head"><span></span><span class="live-cmpteam-title">Week by week</span><span></span></div>
+        <p class="an-footnote">Loading…</p>
+    </section>` : '';
+    return `
+    <div class="ld-cmp-head">
+        ${postoHTML('a')}
+        <button type="button" class="ld-cmp-vs" data-ld-cmp="scambia" title="Swap sides" ${a && b ? '' : 'disabled'}>vs</button>
+        ${postoHTML('b')}
+    </div>
+    ${scelta}
+    ${corpo}`;
+}
+
+/** Dopo il disegno: foto, fuoco sulla ricerca, e le settimane dei due. */
+function dopoConfronto(wrap) {
+    hydrateImages(wrap);
+    if (confronto.scegli) wrap.querySelector('[data-ld-cerca]')?.focus({ preventScroll: true });
+    const a = voce(confronto.a), b = voce(confronto.b);
+    if (!a || !b || confronto.scegli) return;
+    const anno = currentYear;
+    const settimane = (e) => (e.playerId ? getPlayerWeekly(e.playerId, anno, e.pos).catch(() => []) : Promise.resolve([]));
+    Promise.all([settimane(a), settimane(b)]).then(([ga, gb]) => {
+        const box = wrap.querySelector('[data-ld-settimane]');
+        if (!box || voce(confronto.a) !== a || voce(confronto.b) !== b) return;
+        const ma = new Map(ga.map(g => [g.week, g])), mb = new Map(gb.map(g => [g.week, g]));
+        const ultima = Math.max(0, ...ga.map(g => g.week), ...gb.map(g => g.week));
+        if (!ultima) { box.querySelector('.an-footnote').textContent = 'No games yet.'; return; }
+        const punti = (g) => (g ? Number(g.pts) || 0 : null);
+        const righe = [];
+        for (let w = 1; w <= ultima; w++) {
+            const xa = punti(ma.get(w)), xb = punti(mb.get(w));
+            const scrivi = (v, lato) => {
+                const g = (lato === 'a' ? ma : mb).get(w);
+                if (!g) return '<span class="ld-cmp-bye">bye</span>';
+                return `${fmt(v, 1)}<small class="ld-cmp-opp">${g.isAway ? '@' : 'vs'} ${g.opponent || ''}</small>`;
+            };
+            righe.push(rigaSpecchio(`Week ${w}`, xa ?? 0, xb ?? 0, { scrivi: (v, lato) => scrivi(lato === 'a' ? xa : xb, lato) }));
+        }
+        // quante settimane ha vinto ciascuno, contando solo quelle giocate da tutti e due
+        let va = 0, vb = 0;
+        for (let w = 1; w <= ultima; w++) {
+            const xa = punti(ma.get(w)), xb = punti(mb.get(w));
+            if (xa == null || xb == null || xa === xb) continue;
+            if (xa > xb) va++; else vb++;
+        }
+        box.innerHTML = `
+            <div class="live-cmpteam-head"><span>${va} won</span><span class="live-cmpteam-title">Week by week</span><span>${vb} won</span></div>
+            ${righe.join('')}`;
     });
 }
 

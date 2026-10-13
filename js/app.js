@@ -24,7 +24,7 @@ import { initTeam } from './sections/team.js?v=848';
 import { initTeams } from './sections/teams.js?v=754';
 import { initGame } from './sections/game.js?v=841';
 import { initAnalysis } from './sections/analysis.js?v=905';
-import { initLeaders } from './sections/leaders.js?v=135';
+import { initLeaders } from './sections/leaders.js?v=139';
 import { initWaivers } from './sections/waivers.js?v=136';
 import { initPlayerStats } from './sections/player-stats.js?v=25';
 
