@@ -15,7 +15,7 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=644';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=634';
-import { TEAMS } from '../sections/team.js?v=848';
+import { TEAMS } from '../sections/team.js?v=849';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { getPlayerInfo, getPlayerWeekly } from '../data/player-full.js?v=672';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=632';
@@ -343,6 +343,25 @@ function bindPager(content, { name, pos, year, game }) {
     caricaStagione(blocco.querySelector('[data-pm-season]'), { name, pos, year, game });
 }
 
+/**
+ * Il giocatore nella mappa di Sleeper. I nomi non coincidono sempre: la lega
+ * scrive "Kenneth Walker III", Sleeper "Kenneth Walker" — e la pagina Season
+ * restava tutta a "Bye" tranne la giornata in corso. Si prova il nome com'e',
+ * poi senza suffisso (Jr, Sr, II, III, IV, V), su tutti e due i lati.
+ */
+const senzaSuffisso = (n) => n.replace(/\s+(jr|sr|ii|iii|iv|v)$/, '');
+function voceSleeper(stats, name, ruolo) {
+    const n = normName(name);
+    const diretto = stats.get(`${n}|${ruolo}`) || stats.get(`${senzaSuffisso(n)}|${ruolo}`);
+    if (diretto) return diretto;
+    const cercato = senzaSuffisso(n);
+    for (const [k, e] of stats) {
+        const [nome, r] = k.split('|');
+        if (r === ruolo && senzaSuffisso(nome) === cercato) return e;
+    }
+    return null;
+}
+
 async function caricaStagione(box, { name, pos, year, game }) {
     if (!box) return;
     const anno = String(year || game?.year || '');
@@ -350,7 +369,7 @@ async function caricaStagione(box, { name, pos, year, game }) {
     try {
         const stats = await getSeasonStats(anno);
         const ruolo = String(pos || '').toUpperCase().replace('D/ST', 'DEF');
-        const voce = stats.get(`${normName(name)}|${ruolo}`);
+        const voce = voceSleeper(stats, name, ruolo);
         if (voce?.playerId) partite = await getPlayerWeekly(voce.playerId, anno, ruolo);
     } catch { partite = null; }
     if (!box.isConnected) return;

@@ -18,7 +18,7 @@
  * che importa questo modulo e non una sua copia.
  */
 
-import { TEAM_PALETTE, TEAM_LOGOS, TEAM_LOGO_SCALE } from '../data/team-config.js?v=535';
+import { TEAM_PALETTE, TEAM_LOGOS, TEAM_LOGO_SCALE, TEAM_KEYS } from '../data/team-config.js?v=535';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { montaLivello, razziDaiLati, coriandoliAttorno, fermaEffetti } from '../ui/live-fx.js?v=38';
 import { CURRENT_SEASON, fetchFantasyData, displayName } from '../data.js?v=595';
@@ -50,7 +50,7 @@ const VERDETTO = { win: 'Victory', loss: 'Defeat', tie: 'Tie' };
  * @param e          l'esito
  * @param onChiudi   richiamata quando si esce (dal pulsante o da `chiudiEsito`)
  */
-export function mostraEsito(e, { onChiudi = null } = {}) {
+export function mostraEsito(e, { onChiudi = null, pulsante = 'Go to the site' } = {}) {
     if (!e) return false;
     chiudiEsito({ silenzioso: true });
     quandoChiude = onChiudi;
@@ -63,7 +63,7 @@ export function mostraEsito(e, { onChiudi = null } = {}) {
     overlay.setAttribute('aria-label', `${e.etichetta} result`);
     overlay.style.cssText = `--wr-mia:${mia.bright || '#fff'};--wr-mia-ink:${mia.ink || '#222'};`
         + `--wr-loro:${loro.bright || '#888'};--wr-loro-ink:${loro.ink || '#222'}`;
-    overlay.innerHTML = scenaHTML(e);
+    overlay.innerHTML = scenaHTML(e, pulsante);
     document.body.appendChild(overlay);
     document.body.classList.add('wr-open');
     overlay.querySelector('.wr-go')?.addEventListener('click', () => chiudiEsito());
@@ -154,7 +154,7 @@ function scattoHTML(etichetta, prima, dopo, coda) {
     </div>`;
 }
 
-function scenaHTML(e) {
+function scenaHTML(e, pulsante = 'Go to the site') {
     const c = e.classifica;
     const scarto = Math.abs(e.margine);
     const frase = e.esito === 'win' ? `${esc(e.io.nome)} beat ${esc(e.loro.nome)} by <b>${fmt(scarto)}</b>`
@@ -193,7 +193,7 @@ function scenaHTML(e) {
                 <p class="wr-bench">Bench <b>${fmt(e.io.puntiPanchina)}</b> pts</p>
             </section>
         </div>
-        <button type="button" class="wr-go">Go to the site</button>
+        <button type="button" class="wr-go">${esc(pulsante)}</button>
     </div>`;
 }
 
@@ -416,18 +416,42 @@ let sipario = null;
  */
 export function avviaEsitoSettimana() {
     if (!squadraPreferita()) return;
-    if (!valeControllare()) return;
-    sipario = document.createElement('div');
-    sipario.className = 'wr-overlay wr-overlay--sipario';
-    sipario.setAttribute('role', 'dialog');
-    sipario.setAttribute('aria-label', 'Loading');
-    sipario.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>`;
-    document.body.appendChild(sipario);
-    document.body.classList.add('wr-open');
+    // Il cancello decide SOLO se coprire la pagina. Il controllo si fa sempre:
+    // costa niente (gli stessi dati che la home scarica comunque) e senza
+    // farlo, chi apriva il sito prima del workflow e ci tornava entro l'ora non
+    // vedeva mai la giornata appena chiusa (successo il 2026-10-13, week 5).
+    // Senza sipario la home puo' intravedersi per un attimo: meglio quello che
+    // non vedere la schermata affatto.
+    if (valeControllare()) {
+        sipario = document.createElement('div');
+        sipario.className = 'wr-overlay wr-overlay--sipario';
+        sipario.setAttribute('role', 'dialog');
+        sipario.setAttribute('aria-label', 'Loading');
+        sipario.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>`;
+        document.body.appendChild(sipario);
+        document.body.classList.add('wr-open');
+    }
+    controlla();
+    // Il sito resta aperto per ore: tornando sulla scheda si riguarda, al
+    // massimo ogni dieci minuti, cosi' la giornata chiusa nel frattempo si
+    // vede senza dover ricaricare.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        if (Date.now() - ultimoControllo < 10 * 60 * 1000) return;
+        controlla();
+    });
+}
+
+let ultimoControllo = 0;
+let inCorso = false;
+function controlla() {
+    if (inCorso || overlay) return;
+    inCorso = true;
+    ultimoControllo = Date.now();
     risolvi().catch(err => {
         console.warn('[final-whistle] interrotto:', err?.message || err);
         abbassaSipario();
-    });
+    }).finally(() => { inCorso = false; });
 }
 
 function abbassaSipario() {
@@ -480,4 +504,44 @@ function finitoNightRecap() {
         });
         oss.observe(document.body, { childList: true });
     });
+}
+
+
+/* ============================================================
+   DALLA GAME CENTER — l'esito prima dell'analisi della partita
+   ============================================================ */
+
+/*
+ * Toccando "Analysis" su una sfida della Game Center, prima dell'analisi va in
+ * onda questa stessa schermata per quella sfida. Solo da li': aprendo la
+ * pagina da un link o tornandoci col "indietro" del browser si va dritti
+ * all'analisi, se no la schermata ricomparirebbe a ogni passaggio.
+ *
+ * La Game Center PRENOTA (al clic sul banner) e la pagina della partita
+ * CONSUMA (quando ha i dati): due moduli diversi, e il filo che li lega e'
+ * questa variabile, che vive una volta sola perche' i due importano lo stesso
+ * file alla stessa versione.
+ */
+let prenotata = null;
+
+export function prenotaEsitoPartita(year, week, idx) {
+    prenotata = `${year}|${week}|${idx}`;
+}
+
+/**
+ * Se c'e' una prenotazione per questa sfida, la manda in onda e torna true.
+ * Il punto di vista: la squadra del cuore se gioca questa sfida, se no quella
+ * di sinistra del banner.
+ */
+export function mostraEsitoPartita(data, year, week, idx) {
+    const chiave = `${year}|${week}|${idx}`;
+    if (prenotata !== chiave) return false;
+    prenotata = null;
+    const m = data?.weeks?.[String(week)]?.matchups?.[idx];
+    if (!m?.team1 || !m?.team2) return false;
+    const k1 = TEAM_KEYS[displayName(m.team1.name)], k2 = TEAM_KEYS[displayName(m.team2.name)];
+    const mia = squadraPreferita();
+    const e = esitoSettimana(data, year, week, [k1, k2].includes(mia) ? mia : k1, displayName);
+    if (!e) return false;
+    return mostraEsito(e, { pulsante: 'See the analysis' });
 }

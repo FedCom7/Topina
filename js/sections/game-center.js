@@ -3,9 +3,10 @@ import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=552';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=848';
+import { TEAMS } from './team.js?v=849';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
-import { initPlayerModal } from '../components/player-modal.js?v=797';
+import { prenotaEsitoPartita } from './week-result.js?v=10';
+import { initPlayerModal } from '../components/player-modal.js?v=798';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
@@ -123,6 +124,15 @@ export async function initGameCenter() {
     loaded = true;
     initPlayerModal();
     renderPickRow();
+    // "Analysis" su una sfida: prima dell'analisi va in onda l'esito (Final
+    // Whistle) di quella sfida. Qui si prenota; la pagina della partita lo
+    // manda in onda appena ha i dati (vedi mostraEsitoPartita).
+    document.getElementById('gc-matchup-grid')?.addEventListener('click', (e) => {
+        const a = e.target.closest('a.gc-banner[href^="#game/"]');
+        if (!a) return;
+        const [, anno, week, idx] = a.getAttribute('href').slice(1).split('/');
+        prenotaEsitoPartita(anno, Number(week), Number(idx));
+    });
     await loadYear(CURRENT_SEASON);
 }
 
@@ -160,8 +170,28 @@ async function loadYear(year) {
     // Game Center mostrava la week 2 mentre si giocava la 3. I numeri veri di
     // quella giornata li prende `refreshOpenWeek` dall'API della lega.
     currentWeek = String(year) === String(CURRENT_SEASON) ? maxWeek : lastPlayedWeek(maxWeek);
+    // ...ma solo se in quella giornata si e' gia' giocato qualcosa. Il martedi'
+    // e il mercoledi' la giornata aperta e' la NUOVA, ancora tutta a zero (dal
+    // vivo di ESPN, non solo su Firebase): li' si apre sull'ultima giornata con
+    // dei punti, quella appena finita. Dal primo punto della nuova si torna a
+    // lei da soli.
+    let giaLetta = false;
+    if (String(year) === String(CURRENT_SEASON) && currentWeek > 1) {
+        await refreshOpenWeek();
+        giaLetta = true;
+        if (tuttaAZero(currentWeek)) {
+            const prima = lastPlayedWeek(currentWeek - 1);
+            if (!tuttaAZero(prima)) { currentWeek = prima; giaLetta = false; }
+        }
+    }
     renderPickRow(maxWeek);
-    await showMatchups();
+    await showMatchups({ refresh: !giaLetta });
+}
+
+/** Nessun punto per nessuno: giornata non ancora cominciata. */
+function tuttaAZero(w) {
+    const ms = currentData?.weeks?.[String(w)]?.matchups || [];
+    return !ms.some(m => (parseFloat(m.team1?.score) || 0) > 0 || (parseFloat(m.team2?.score) || 0) > 0);
 }
 
 /**

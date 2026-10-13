@@ -654,8 +654,13 @@ Fuochi per chi vince, pioggia sul vetro per chi perde. Due file: i conti in
    che questa esiste.
 2. **Quando coprire la pagina si decide senza rete** (`valeControllare`): una
    giornata si chiude solo il martedi', quindi martedi' (dalle 6) e mercoledi'
-   si controlla al massimo una volta l'ora — il workflow arriva spesso tardi —
+   si copre al massimo una volta l'ora — il workflow arriva spesso tardi —
    e negli altri giorni solo se dall'ultimo controllo e' passato un martedi'.
+   **Il cancello decide solo il sipario, non il controllo**: quello si fa a
+   ogni apertura (sono i dati che la home scarica comunque) e di nuovo
+   tornando sulla scheda, al massimo ogni 10 minuti. Prima il cancello
+   fermava anche il controllo, e il 2026-10-13 chi aveva aperto il sito prima
+   del workflow e ci era tornato entro l'ora non ha visto la week 5.
 3. **Mai due volte la stessa giornata sullo stesso dispositivo**: segnalibro
    `topina-esito-v1` (non passa da storage.js, come quello del Night Recap: e'
    stato di chi guarda, non una cache). Si segna vista quando si preme "Go to

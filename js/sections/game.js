@@ -15,6 +15,7 @@
 
 import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=595';
 import { TEAM_KEYS } from '../data/team-config.js?v=535';
+import { mostraEsitoPartita } from './week-result.js?v=10';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { buildCareers } from '../data/careers.js?v=644';
@@ -24,7 +25,7 @@ import {
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=819';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=9';
-import { TEAMS } from './team.js?v=848';
+import { TEAMS } from './team.js?v=849';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1003';
 
@@ -54,6 +55,10 @@ export async function initGame() {
             section.innerHTML = `<div class="section-inner"><div class="empty-state"><p class="empty-state-text">Matchup not found</p></div></div>`;
             return;
         }
+
+        // Arrivati dal banner della Game Center: prima l'esito della sfida,
+        // sopra la pagina, che intanto sotto si costruisce.
+        mostraEsitoPartita(data, year, week, idx);
 
         const [bundle, league, sched, careers] = await Promise.all([
             getHonorsBundle(year), getLeagueData(),
