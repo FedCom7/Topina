@@ -50,7 +50,7 @@ import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } f
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=9';
 import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=177';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
-import { getWaiverMoves, accorpa } from '../data/waiver-moves.js?v=28';
+import { getWaiverMoves, accorpa } from '../data/waiver-moves.js?v=29';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=552';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
@@ -1149,12 +1149,15 @@ async function cardLastResults(ctx) {
 const WV_GROUPS = 6;
 
 async function cardWaivers({ season, phase }) {
-    const { mosse } = await getWaiverMoves(season.year).catch(() => ({ mosse: [] }));
+    const { mosse, corse } = await getWaiverMoves(season.year).catch(() => ({ mosse: [], corse: [] }));
     // la giornata chiusa della fase, non l'archivio: il martedi' mattina
     // Firebase e' ancora indietro di una e mostrava il mercato della settimana prima
     const settimanaMercato = (phase?.type === 'REGULAR_SEASON' && phase.week ? phase.week : lastPlayedWeek(season)) + 1;
-    const diQuestaSettimana = mosse.filter(m => m.settimana === settimanaMercato);
-    if (!diQuestaSettimana.length) return '';
+    // Le richieste di waiver stanno nella corsa (un blocco, con le fallite); il
+    // resto del mercato si raggruppa come prima.
+    const corseDiQuesta = corse.filter(c => c.settimana === settimanaMercato);
+    const diQuestaSettimana = mosse.filter(m => m.settimana === settimanaMercato && !m.corsa);
+    if (!corseDiQuesta.length && !diQuestaSettimana.length) return '';
 
     const gruppi = accorpa(diQuestaSettimana).slice(0, WV_GROUPS).map(g => {
         const capo = g.entrate[0] || g.uscite[0];
@@ -1162,7 +1165,8 @@ async function cardWaivers({ season, phase }) {
             tipo: capo.tipo, bid: capo.bid, in: g.entrate, out: g.uscite };
     });
 
-    const tiles = gruppi.map(g => wvMoveHTML(g, season.year)).join('');
+    const tiles = corseDiQuesta.map(c => wvCorsaHTML(c)).join('')
+        + gruppi.map(g => wvMoveHTML(g, season.year)).join('');
     return card({
         span: 'wide', cls: 'mc-wv-card',
         kicker: 'The market',
@@ -1210,6 +1214,35 @@ function wvMoveHTML(g, year) {
             ${g.out.map(m => riga(m, 'out')).join('')}
         </div>
         <footer class="mc-wv-foot">${esc(g.tipo || '')}${g.bid ? ` · $${esc(g.bid)}` : ''}</footer>
+    </article>`;
+}
+
+/**
+ * La corsa di waiver come un riquadro solo: le richieste nell'ordine in cui
+ * ESPN le ha elaborate, con le fallite marcate col motivo. Stessa unità della
+ * pagina Waivers (`corsaHTML` lì), in forma compatta.
+ */
+function wvCorsaHTML(c) {
+    const fallite = c.transazioni.filter(t => t.esito === 'fallita').length;
+    const righe = c.transazioni.map(t => {
+        const nome = TEAMS[t.squadra]?.name || t.squadra || '';
+        const mosse = t.righe.map(m => `<span class="mc-wv-tx-${m.verso === 'in' ? 'in' : 'out'}">${m.verso === 'in' ? '+' : '−'} ${esc(m.nome)}</span>`).join(' ');
+        const motivo = t.esito === 'fallita'
+            ? `<em class="mc-wv-tx-fail">${esc(t.motivo)}${t.presoDa ? ` by ${esc(TEAMS[t.presoDa.squadra]?.name || t.presoDa.squadra)}` : ''}</em>` : '';
+        return `<li class="mc-wv-tx${t.esito === 'fallita' ? ' mc-wv-tx--fallita' : ''}">
+            <span class="mc-wv-tx-ord">${t.ordine}</span>
+            <span class="mc-wv-tx-team">${esc(nome)}</span>
+            <span class="mc-wv-tx-moves">${mosse}</span>${motivo}
+        </li>`;
+    }).join('');
+    return `
+    <article class="mc-wv-move mc-wv-move--corsa">
+        <header class="mc-wv-head">
+            <span class="mc-wv-team">Waiver run</span>
+            <span class="mc-wv-when">${esc(wvWhen({ settimana: c.settimana, data: c.quando }))}</span>
+        </header>
+        <ol class="mc-wv-tx-list">${righe}</ol>
+        <footer class="mc-wv-foot">${c.transazioni.length} claims${fallite ? ` · ${fallite} failed` : ''}</footer>
     </article>`;
 }
 

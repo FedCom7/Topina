@@ -8916,6 +8916,74 @@ a.mc-wv-p:hover .mc-wv-name {
     background: color-mix(in srgb, var(--accent-red) 14%, transparent);
 }
 
+/* La corsa di waiver occupa tutta la riga della griglia: le sue richieste sono
+   una lista, e in una tessera stretta non ci starebbero. */
+.mc-wv-move--corsa {
+    grid-column: 1 / -1;
+}
+
+.mc-wv-tx-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mc-wv-tx {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 0.9fr) minmax(0, 1.6fr) auto;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.8rem;
+}
+
+.mc-wv-tx-ord {
+    font-size: 0.66rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.mc-wv-tx-team {
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mc-wv-tx-moves {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
+}
+
+.mc-wv-tx-in {
+    color: var(--accent-green, #4ade80);
+    font-weight: 600;
+}
+
+.mc-wv-tx-out {
+    color: var(--accent-red);
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.mc-wv-tx-fail {
+    font-style: normal;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent-red);
+    white-space: nowrap;
+}
+
+.mc-wv-tx--fallita .mc-wv-tx-moves {
+    opacity: 0.55;
+}
+
 .mc-wv-foot {
     /* In fondo alla tessera, non sotto l'ultimo giocatore: le tessere di una
        riga sono alte uguale e con l'etichetta a mezz'aria si vedrebbero tre
@@ -26886,7 +26954,7 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 
 .wv-kpis {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 10px;
     margin: 4px 0 18px;
 }
@@ -27036,6 +27104,114 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     text-align: right;
 }
 
+/* Una corsa di waiver è UNA card: intestazione (quando, quante richieste),
+   poi le richieste nell'ordine in cui ESPN le ha elaborate. L'ordinale a
+   sinistra e' quell'ordine ("1st" come sul Waiver Report). Le fallite restano
+   leggibili ma spente, col motivo acceso. La card la stacca dalle altre mosse
+   del martedi', con cui altrimenti si confondeva. */
+.wv-run {
+    /* Esce di bordo+padding su ogni lato: le righe dentro cadono sulle stesse
+       verticali di quelle fuori dalla card. */
+    margin: 10px -15px;
+    padding: 14px 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.wv-run-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.wv-when--run {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.wv-run-title {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.wv-run-count {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.wv-run-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Le righe usano le stesse colonne di `.wv-row`, la lista fuori dalla card:
+   ordinale al posto della settimana, poi squadra, etichetta, foto e nome.
+   Il motivo di una fallita sta sotto, dalla colonna dell'etichetta in poi. */
+.wv-tx {
+    display: grid;
+    grid-template-columns: 64px minmax(120px, 0.9fr) 74px 40px minmax(160px, 1.4fr) minmax(90px, 0.6fr);
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    row-gap: 7px;
+}
+
+.wv-tx:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.wv-tx > .wv-tx-ord,
+.wv-tx > .wv-team {
+    grid-row: 1 / -1;
+}
+
+.wv-tx > .wv-dir { grid-column: 3; }
+.wv-tx > .wv-photo { grid-column: 4; }
+.wv-tx > .an-player-name { grid-column: 5 / -1; }
+
+.wv-tx-ord {
+    grid-column: 1;
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.wv-fail {
+    color: var(--accent-red);
+    background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+}
+
+.wv-tx-esito {
+    grid-column: 3 / -1;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.wv-tx-esito--fallita {
+    color: var(--accent-red);
+}
+
+.wv-tx--fallita > .an-player-name,
+.wv-tx--fallita > .wv-photo {
+    opacity: 0.7;
+}
+
 @media (max-width: 768px) {
     /* Sul telefono restano posizione, faccia, nome e punti: partite, media e
        statistiche non ci stavano e finivano schiacciate a larghezza zero,
@@ -27061,6 +27237,14 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
 
     .wv-kind { display: none; }
     .wv-kpis { gap: 6px; }
+
+    /* Nella corsa, sul telefono, il logo sta da solo e le richieste hanno tutto
+       il resto della riga. */
+    .wv-run { margin-inline: -12px; padding-inline: 11px; }
+    .wv-tx {
+        grid-template-columns: 44px 30px 62px 30px minmax(0, 1fr);
+        gap: 8px;
+    }
 
     /* Della squadra resta il solo logo: il nome scritto per intero prendeva un
        terzo della riga per dire quello che il logo dice da solo, e lo toglieva

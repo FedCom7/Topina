@@ -27,6 +27,7 @@
 
 import { fetchTransactions, fetchPlayerNames, fantasyTeamName } from './espn-fantasy.js?v=177';
 import { TEAM_KEYS } from './team-config.js?v=535';
+import { fetchFantasyData, displayName } from '../data.js?v=595';
 import { buildSeasonModel } from '../sections/analysis.js?v=906';
 
 // I tipi che ESPN dichiara sulla transazione. Quelli che non muovono un
@@ -48,6 +49,25 @@ const TIPI = {
     ROSTER: 'Drop',
 };
 
+/*
+ * Perché una richiesta di waiver è fallita, dalla parola che ESPN mette nello
+ * stato. `INVALIDPLAYERSOURCE` è il giocatore già preso da un'altra squadra
+ * nella stessa corsa: il caso "un giocatore era già stato preso".
+ */
+const MOTIVI_FALLITA = {
+    FAILED_INVALIDPLAYERSOURCE: 'Already taken',
+    FAILED_PLAYERALREADYDROPPED: 'Already dropped',
+    FAILED_ROSTERLIMIT: 'Roster full',
+};
+
+/*
+ * Una richiesta di waiver è di UNA corsa del martedì: tutte quelle che ESPN
+ * elabora insieme hanno lo stesso `proposedDate`, e la settimana le separa
+ * dalle corse precedenti. Le richieste ritirate prima della corsa (CANCELED)
+ * non sono mai avvenute né fallite: restano fuori.
+ */
+const corsaDi = (tx) => `${tx.scoringPeriodId ?? ''}|${tx.proposedDate ?? ''}`;
+
 /** Dal nome che mostra il sito alla chiave della squadra (da team-config: team.js sarebbe un anello). */
 const chiaveDaNome = (nome) => TEAM_KEYS[nome] || nome || null;
 
@@ -67,10 +87,16 @@ const chiaveDaNome = (nome) => TEAM_KEYS[nome] || nome || null;
 export function righeDaEspn(tx, nomi) {
     const tipo = TIPI[tx.type] || null;
     if (!tipo || tipo === 'Draft') return [];
-    // Le richieste di waiver perse restano nello storico con lo stato del
-    // fallimento: non sono mosse avvenute.
-    if (tx.status && tx.status !== 'EXECUTED') return [];
-    const quando = tx.proposedDate || tx.processDate || null;
+    // Una richiesta di waiver persa resta, col motivo: nella corsa si vede che
+    // un giocatore era già stato preso. Le altre richieste perse (ritirate,
+    // ecc.) non sono mosse avvenute e restano fuori.
+    const fallita = !!tx.status && tx.status !== 'EXECUTED';
+    if (fallita && !(tx.type === 'WAIVER' && tx.status.startsWith('FAILED_'))) return [];
+    // La data di una corsa di waiver è quella in cui ESPN la elabora: il
+    // `proposedDate` è l'inizio della corsa, uguale per tutte le richieste.
+    const quando = (tx.type === 'WAIVER' ? tx.processDate : null) || tx.proposedDate || tx.processDate || null;
+    const esito = fallita ? 'fallita' : 'ok';
+    const motivo = fallita ? (MOTIVI_FALLITA[tx.status] || 'Failed') : null;
 
     const voce = (it) => {
         const p = nomi.get(String(it.playerId)) || {};
@@ -80,6 +106,9 @@ export function righeDaEspn(tx, nomi) {
             data: quando,
             verso: it.type === 'ADD' ? 'in' : 'out',
             tipo,
+            esito,
+            motivo,
+            corsa: tx.type === 'WAIVER' ? corsaDi(tx) : null,
             // ESPN da' il suo teamId: qui dentro le squadre viaggiano
             // sempre con la CHIAVE Topina, o logo e filtro non
             // funzionerebbero sulle righe che arrivano da li'.
@@ -204,8 +233,177 @@ export function accorpa(lista) {
 }
 
 /**
+ * La priorità di waiver di ogni squadra a una certa settimana: la classifica
+ * ROVESCIATA (l'ultimo ha la prima scelta), con la classifica che c'era prima
+ * di quella giornata. Il Map dà a ogni chiave squadra la sua posizione, 0 = per
+ * prima.
+ *
+ * Gli spareggi non sono quelli del sito. `processStandings` ordina a pari
+ * vittorie per punti fatti; ESPN guarda prima lo scontro diretto. Il 30/09/2026
+ * Oscurus, Sommo e Capi erano tutte 2-1: per punti Capi sarebbe l'ultima, ma
+ * ESPN ha dato la prima scelta a Sommo, cioè ha messo Capi sopra. Qui si prova
+ * lo scontro diretto fra le due squadre e poi i punti fatti: nei giri che si
+ * conoscono torna, ma in un pareggio a tre con scontri incrociati è una stima.
+ */
+export function prioritaDaRisultati(fantasyData, settimana) {
+    const sq = new Map();
+    const scheda = (n) => {
+        if (!sq.has(n)) sq.set(n, { n, w: 0, pf: 0, h2h: new Map() });
+        return sq.get(n);
+    };
+    for (let w = 1; w < settimana; w++) {
+        for (const m of fantasyData?.weeks?.[String(w)]?.matchups || []) {
+            if (!m.team1 || !m.team2) continue;
+            const s1 = parseFloat(m.team1.score) || 0, s2 = parseFloat(m.team2.score) || 0;
+            const a = scheda(displayName(m.team1.name)), b = scheda(displayName(m.team2.name));
+            if (s1 <= 0 && s2 <= 0) continue;   // partita senza dati: non c'è
+            a.pf += s1; b.pf += s2;
+            if (s1 > s2) { a.w++; a.h2h.set(b.n, (a.h2h.get(b.n) || 0) + 1); }
+            else if (s2 > s1) { b.w++; b.h2h.set(a.n, (b.h2h.get(a.n) || 0) + 1); }
+        }
+    }
+    const tutte = [...sq.values()];
+    // Migliore per primo, come ESPN: vittorie, poi lo scontro diretto fra le due
+    // squadre, poi i punti fatti. Il confronto a coppie non è un ordine
+    // coerente quando tre squadre si battono in cerchio, e lì il risultato
+    // dipende da come si parte: si parte dall'ordine dei team id di ESPN.
+    tutte.sort((x, y) => y.w - x.w
+        || (y.h2h.get(x.n) || 0) - (x.h2h.get(y.n) || 0)
+        || y.pf - x.pf);
+    // poi si rovescia: l'ultimo in classifica ha la prima scelta
+    tutte.reverse();
+    return new Map(tutte.map((t, i) => [chiaveDaNome(t.n), i]));
+}
+
+/**
+ * Le corse di waiver, con dentro tutte le richieste nell'ordine in cui ESPN le
+ * ha elaborate — anche quelle fallite, che è il punto di tenerle.
+ *
+ * L'ordine NON si legge dai dati: `processDate` è in millisecondi ma fra
+ * squadre diverse non è affidabile (il 30/09/2026 la fallita di Capi ha un
+ * millisecondo più alto della sua richiesta riuscita, ma ESPN la mostra prima).
+ * Si ricostruisce con la regola delle waiver a turni, confrontata col Waiver
+ * Report di ESPN su due corse (23/09 e 30/09):
+ *
+ *  - ogni squadra ha una lista di preferenze; si va in ordine di priorità, e a
+ *    ogni giro la squadra applica la prima che riesce;
+ *  - una richiesta fallita non consuma il turno: la squadra la prova subito
+ *    prima della prossima riuscita. Compare quindi nel primo turno utile dopo
+ *    la richiesta che l'ha fatta fallire (il giocatore preso, o tagliato, da
+ *    un'altra richiesta);
+ *  - dentro una squadra l'ordine delle riuscite è quello del `processDate`,
+ *    che lì invece regge; a pari millisecondo vale l'ordine di arrivo.
+ *
+ * L'ordine di preferenza di una fallita non è nei dati, e questa è l'ipotesi
+ * più semplice che spiega i due Waiver Report visti: se in una corsa futura
+ * ESPN mostra un ordine diverso, è qui che si corregge.
+ *
+ * Le squadre vanno nell'ordine del loro primo `processDate`; a pari millisecondo
+ * decide `priorita(settimana)`, la mappa squadra → posizione
+ * (`prioritaDaRisultati`). Senza, vale l'ordine di arrivo.
+ *
+ * @returns {Array<{chiave: string, settimana: number|null, quando: number,
+ *   transazioni: Array<{id, ordine, quando, esito, motivo, squadra, righe, presoDa?}>}>}
+ *   più recente in alto.
+ */
+export function corseDaEspn(perTx, priorita = () => null) {
+    const corse = new Map();
+    for (const { tx, righe } of perTx) {
+        if (tx.type !== 'WAIVER' || !righe.length) continue;
+        const chiave = corsaDi(tx);
+        const c = corse.get(chiave) || { chiave, settimana: tx.scoringPeriodId ?? null, transazioni: [] };
+        const capo = righe[0];
+        c.transazioni.push({
+            id: String(tx.id),
+            quando: Number(tx.processDate) || Number(tx.proposedDate) || 0,
+            esito: capo.esito,
+            motivo: capo.motivo,
+            squadra: capo.squadra,
+            bid: capo.bid,
+            righe,
+            arrivo: c.transazioni.length,
+        });
+        corse.set(chiave, c);
+    }
+
+    for (const c of corse.values()) {
+        const tutte = c.transazioni;
+        const riuscite = tutte.filter(t => t.esito === 'ok');
+        const nomeIn = (t) => t.righe.find(r => r.verso === 'in')?.nome;
+
+        // Chi ha fatto fallire ogni fallita: la richiesta riuscita che ha preso
+        // (o tagliato) il giocatore. Per "rosa piena" non c'è un colpevole
+        // preciso: arriva dopo le riuscite della sua squadra.
+        for (const f of tutte) {
+            if (f.esito !== 'fallita') continue;
+            if (f.motivo === MOTIVI_FALLITA.FAILED_INVALIDPLAYERSOURCE) {
+                f.blocca = riuscite.find(t => nomeIn(t) === nomeIn(f)) || null;
+            } else if (f.motivo === MOTIVI_FALLITA.FAILED_PLAYERALREADYDROPPED) {
+                const tagliato = f.righe.find(r => r.verso === 'out')?.nome;
+                f.blocca = riuscite.find(t => t.righe.some(r => r.verso === 'out' && r.nome === tagliato)) || null;
+            } else {
+                f.blocca = [...riuscite].reverse().find(t => t.squadra === f.squadra) || null;
+            }
+        }
+
+        // L'ordine delle squadre: dal primo millisecondo di ciascuna, che nelle due
+        // corse confrontate con ESPN coincide con la sua priorità. La classifica
+        // (`priorita`) decide solo a pari millisecondo: da sola non basta, perché
+        // con tre squadre pari e scontri incrociati il suo ordine è una stima.
+        const pri = priorita(c.settimana);
+        const primoMs = (s) => Math.min(...riuscite.filter(t => t.squadra === s).map(t => t.quando), Infinity);
+        const squadre = [...new Set(tutte.map(t => t.squadra))]
+            .sort((x, y) => primoMs(x) - primoMs(y)
+                || (pri?.get?.(x) ?? 99) - (pri?.get?.(y) ?? 99)
+                || tutte.findIndex(t => t.squadra === x) - tutte.findIndex(t => t.squadra === y));
+        const coda = new Map(squadre.map(s => [s, riuscite.filter(t => t.squadra === s)
+            .sort((a, b) => a.quando - b.quando || a.arrivo - b.arrivo)]));
+        const attese = new Map(squadre.map(s => [s, tutte.filter(t => t.squadra === s && t.esito === 'fallita')]));
+
+        const fatte = new Set();
+        const ordine = [];
+        const emetti = (t) => { fatte.add(t); ordine.push(t); };
+        let resta = tutte.length;
+        while (resta > 0) {
+            const prima = ordine.length;
+            for (const s of squadre) {
+                // le fallite pronte si provano prima della prossima riuscita
+                for (const f of [...attese.get(s)]) {
+                    if (!f.blocca || fatte.has(f.blocca)) {
+                        attese.get(s).splice(attese.get(s).indexOf(f), 1);
+                        emetti(f);
+                    }
+                }
+                const prossima = coda.get(s).shift();
+                if (prossima) emetti(prossima);
+            }
+            resta = tutte.length - ordine.length;
+            if (ordine.length === prima) {   // non succede: se un legame è circolare, chiude per arrivo
+                tutte.filter(t => !fatte.has(t)).sort((a, b) => a.arrivo - b.arrivo).forEach(emetti);
+                break;
+            }
+        }
+        ordine.forEach((t, i) => { t.ordine = i + 1; });
+        c.transazioni = ordine;
+
+        // "già preso": da chi, e con quale richiesta
+        for (const f of ordine) {
+            if (f.esito === 'fallita' && f.motivo === MOTIVI_FALLITA.FAILED_INVALIDPLAYERSOURCE && f.blocca) {
+                f.presoDa = { squadra: f.blocca.squadra, ordine: f.blocca.ordine };
+            }
+        }
+        c.quando = Math.min(...ordine.map(t => t.quando));
+    }
+    return [...corse.values()].sort((a, b) => (b.settimana ?? -1) - (a.settimana ?? -1));
+}
+
+/**
  * Tutte le mosse di una stagione, già ordinate (più recente in alto).
- * @returns {Promise<{mosse: Array, fonte: 'espn'|'rose'}>}
+ *
+ * `mosse` sono solo le mosse avvenute: chi ne ha bisogno per contare o per
+ * elencare (pagina squadra, conteggi) non vede le fallite. `corse` contiene
+ * le corse di waiver con anche le richieste fallite, per la vista a blocco.
+ * @returns {Promise<{mosse: Array, corse: Array, fonte: 'espn'|'rose'}>}
  */
 export async function getWaiverMoves(year) {
     // ESPN prima: se ha le transazioni vere sono meglio di qualunque
@@ -214,11 +412,22 @@ export async function getWaiverMoves(year) {
         const tx = await fetchTransactions(year);
         if (tx.length) {
             const nomi = await fetchPlayerNames(year).catch(() => new Map());
-            const mosse = tx.flatMap(t => righeDaEspn(t, nomi));
-            if (mosse.length) return { mosse: ordina(mosse), fonte: 'espn' };
+            const perTx = tx.map(t => ({ tx: t, righe: righeDaEspn(t, nomi) })).filter(x => x.righe.length);
+            const mosse = perTx.flatMap(x => x.righe).filter(r => r.esito === 'ok');
+            if (mosse.length) {
+                // la priorità serve solo a spezzare le parità: se i risultati non
+                // arrivano, la corsa si ordina comunque (per ordine di arrivo)
+                const fd = await fetchFantasyData(year).catch(() => null);
+                const cache = new Map();
+                const priorita = (w) => {
+                    if (!cache.has(w)) cache.set(w, fd ? prioritaDaRisultati(fd, w) : null);
+                    return cache.get(w);
+                };
+                return { mosse: ordina(mosse), corse: corseDaEspn(perTx, priorita), fonte: 'espn' };
+            }
         }
     } catch { /* stagione non su ESPN, o ESPN muta: si ripiega sulle rose */ }
 
     const model = await buildSeasonModel(year).catch(() => null);
-    return { mosse: ordina(righeDaRose(model)), fonte: 'rose' };
+    return { mosse: ordina(righeDaRose(model)), corse: [], fonte: 'rose' };
 }

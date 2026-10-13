@@ -14,7 +14,7 @@ import { playerImageService } from '../services/player-image-service.js?v=533';
 import { apHalfFieldSvg, sbLineup } from '../ui/field-allpro.js?v=9';
 import { hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
 import { CURRENT_SEASON, fetchFantasyData, SEASONS_DESC, displayName } from '../data.js?v=595';
-import { getWaiverMoves } from '../data/waiver-moves.js?v=28';
+import { getWaiverMoves } from '../data/waiver-moves.js?v=29';
 import { TEAM_PALETTE, TEAM_KEYS } from '../data/team-config.js?v=535';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 

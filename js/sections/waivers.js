@@ -24,7 +24,7 @@
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
 import { TEAMS } from './team.js?v=849';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getWaiverMoves, ordina, accorpa } from '../data/waiver-moves.js?v=28';
+import { getWaiverMoves, ordina, accorpa } from '../data/waiver-moves.js?v=29';
 import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=906';
 
 
@@ -150,6 +150,65 @@ function chi(m, n, etichetta, classe, spento) {
         m.pos ? posBadge(m.pos) : ''}${m.nfl ? ` <span class="ld-nfl">${m.nfl}</span>` : ''}</span>`;
 }
 
+const ordinale = (n) => {
+    const r = n % 100;
+    if (r >= 11 && r <= 13) return `${n}th`;
+    return `${n}${{ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'}`;
+};
+
+/** Il motivo di una richiesta fallita, e quando è un "già preso" anche da chi. */
+function motivoFallita(t) {
+    if (!t.presoDa) return t.motivo;
+    return `${t.motivo} by ${nomeSquadra(t.presoDa.squadra)} (${ordinale(t.presoDa.ordine)})`;
+}
+
+/**
+ * Una corsa di waiver è UNA card: tutte le richieste che ESPN ha elaborato
+ * insieme il martedì, nell'ordine di elaborazione, staccate dalle altre mosse
+ * della settimana (free agent, tagli) che le stavano accanto e si
+ * confondevano. L'ordine si legge come sul Waiver Report di ESPN
+ * ("Priority: 1st"). Le fallite restano, col motivo — un giocatore già preso
+ * da un'altra squadra è la cosa che si vuole vedere.
+ */
+function corsaHTML(c) {
+    const fallite = c.transazioni.filter(t => t.esito === 'fallita').length;
+    const righe = c.transazioni.map(t => {
+        const logo = logoSquadra(t.squadra);
+        const ok = t.esito !== 'fallita';
+        // Le caselle stanno nelle STESSE colonne di `.wv-row` (la lista fuori
+        // dalla card): così etichetta, foto e nome cadono sulla stessa verticale
+        // e la pagina non sembra fatta da due layout. Come lì, quante righe
+        // servano lo sa il markup.
+        const linee = ok
+            ? t.righe.map(m => ({ m, etichetta: m.verso === 'in' ? 'Added' : 'Dropped',
+                classe: m.verso === 'in' ? 'wv-in' : 'wv-out', spento: m.verso !== 'in' }))
+            : t.righe.filter(m => m.verso === 'in')
+                .map(m => ({ m, etichetta: 'Claimed', classe: 'wv-fail', spento: false }));
+        const n = linee.length + (ok ? 0 : 1);
+        const giocatori = linee.map((l, i) => chi(l.m, i + 1, l.etichetta, l.classe, l.spento)).join('');
+        const motivo = ok ? ''
+            : `<span class="wv-tx-esito wv-tx-esito--fallita" style="grid-row:${n}">${motivoFallita(t)}</span>`;
+        return `
+        <li class="wv-tx${ok ? '' : ' wv-tx--fallita'}" style="grid-template-rows: repeat(${n}, auto)">
+            <span class="wv-tx-ord" title="Order in which the league processed this claim">${ordinale(t.ordine)}</span>
+            <span class="wv-team">${logo
+                ? `<img src="${logo}" alt="${escAttr(nomeSquadra(t.squadra))}" class="an-team-pill-logo">` : ''}<span
+                class="wv-team-nome">${nomeSquadra(t.squadra)}</span></span>
+            ${giocatori}
+            ${motivo}
+        </li>`;
+    }).join('');
+    return `
+    <section class="wv-run">
+        <header class="wv-run-head">
+            <span class="wv-run-title">Waiver run</span>
+            <span class="wv-when wv-when--run">${c.settimana != null ? `W${c.settimana}` : ''}${c.quando ? `<i>${dataBreve(c.quando)}</i>` : ''}</span>
+            <span class="wv-run-count">${c.transazioni.length} claims${fallite ? ` · ${fallite} failed` : ''}</span>
+        </header>
+        <ol class="wv-run-list">${righe}</ol>
+    </section>`;
+}
+
 /** Quando e chi: valgono per tutta la transazione, quindi stanno al centro. */
 function intestazione(m) {
     const logo = logoSquadra(m.squadra);
@@ -178,7 +237,7 @@ function riga(r) {
     </div>`;
 }
 
-let stato = null;   // { mosse, fonte }
+let stato = null;   // { mosse, corse, fonte }
 
 async function load() {
     const wrap = document.getElementById('waivers-content');
@@ -188,10 +247,10 @@ async function load() {
 
     // La scelta della fonte e la ricostruzione stanno in data/waiver-moves.js:
     // le usa anche la pagina squadra.
-    const { mosse, fonte } = await getWaiverMoves(anno);
+    const { mosse, corse, fonte } = await getWaiverMoves(anno);
     if (String(currentYear) !== String(anno)) return;   // anno cambiato nel frattempo
 
-    stato = { mosse, fonte };
+    stato = { mosse, corse, fonte };
     render();
 }
 
@@ -201,8 +260,14 @@ function render() {
 
     const chiaveTeam = currentTeam === 'all' ? null : currentTeam;
     const lista = ordina(stato.mosse.filter(m => !chiaveTeam || m.squadra === chiaveTeam));
+    // Le corse restano solo con le richieste della squadra scelta; una corsa
+    // senza nessuna sua richiesta non compare.
+    const corse = stato.corse
+        .map(c => ({ ...c, transazioni: c.transazioni.filter(t => !chiaveTeam || t.squadra === chiaveTeam) }))
+        .filter(c => c.transazioni.length);
+    const fallite = corse.reduce((n, c) => n + c.transazioni.filter(t => t.esito === 'fallita').length, 0);
 
-    if (!lista.length) {
+    if (!lista.length && !corse.length) {
         wrap.innerHTML = `
         <div class="empty-state">
             <p class="empty-state-text">No moves${chiaveTeam ? ` for ${nomeSquadra(chiaveTeam)}` : ''} in ${currentYear}</p>
@@ -212,7 +277,9 @@ function render() {
     }
 
     const nota = stato.fonte === 'espn'
-        ? `Every transaction of the season, straight from the league: date, type and the team that made it.`
+        ? `Every transaction of the season, straight from the league: date, type and the team that made it.
+           Waiver claims are shown one block per waiver run, in the order the league processed them. A claim
+           that failed says why: "Already taken" means another team got the player earlier in the same run.`
         : `Reconstructed from the weekly rosters: for these seasons nobody recorded the transactions, but a player
            who is on a roster in one week and was not in the previous one was picked up in between. The week is
            exact, the day is not available — and a move that happened and was undone inside the same week leaves
@@ -221,14 +288,25 @@ function render() {
            apart — and who took whose spot was never recorded, so it is not guessed here. Players traded between
            two teams keep a block of their own: that much the rosters do say.`;
 
+    // Le richieste di waiver stanno nelle corse; il resto si raggruppa come prima.
+    const fuoriCorsa = lista.filter(m => !m.corsa);
+    const blocchi = [
+        ...corse.map(c => ({ quando: c.quando, settimana: c.settimana ?? -1, html: corsaHTML(c) })),
+        ...accorpa(fuoriCorsa).map(g => {
+            const m = g.entrate[0] || g.uscite[0];
+            return { quando: Number(m.data) || 0, settimana: m.settimana ?? -1, html: riga(g) };
+        }),
+    ].sort((a, b) => b.quando - a.quando || b.settimana - a.settimana);
+
     const inn = lista.filter(m => m.verso === 'in').length;
     wrap.innerHTML = `
     <div class="wv-kpis">
         <div class="pm-tile"><b>${lista.length}</b><span>moves</span></div>
         <div class="pm-tile"><b>${inn}</b><span>players added</span></div>
         <div class="pm-tile"><b>${lista.length - inn}</b><span>players dropped</span></div>
+        <div class="pm-tile"><b>${fallite}</b><span>failed claims</span></div>
     </div>
-    <div class="wv-list">${limitedRows(accorpa(lista).map(riga), VISIBILI, 'waivers')}</div>
+    <div class="wv-list">${limitedRows(blocchi.map(b => b.html), VISIBILI, 'waivers')}</div>
     <p class="an-footnote">${nota}</p>`;
     hydrateImages(wrap);
 }
