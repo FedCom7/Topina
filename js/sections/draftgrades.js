@@ -34,8 +34,8 @@
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=595';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=849';
+import { TEAM_KEYS } from '../data/team-config.js?v=538';
+import { TEAMS } from './team.js?v=862';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { getSeasonProjections, matchProjection } from '../data/projections.js?v=634';
 import { getHistoryIndex, blendValue, riskFlag, trendBadge, historyLine } from '../data/player-history.js?v=596';
@@ -156,6 +156,41 @@ async function loadYear() {
         console.error('[draftgrades]', e);
         content.innerHTML = `<div class="empty-state"><p class="empty-state-text">Error computing the grades</p></div>`;
     }
+}
+
+/**
+ * Il Draft Grade di una stagione, per chi lo deve solo MOSTRARE (la pagina
+ * squadra, una tessera per anno). Stesso percorso di loadPostDraftGrades in
+ * home.js e loadDraftEdition in magazine.js — proiezioni dell'anno, storico,
+ * ADP, soglie — così la lettera è la stessa delle Pagelle: il voto è uno solo.
+ * Senza TSI, Monte Carlo e SOS+, che non toccano il voto e costano.
+ * In cache la promessa, una per anno. null se manca il draft o un dato.
+ */
+const _seasonGrades = {};
+export function seasonDraftGrade(year) {
+    if (_seasonGrades[year]) return _seasonGrades[year];
+    _seasonGrades[year] = (async () => {
+        try {
+            const picks = flattenDraft(await fetchDraftData(year));
+            if (picks.length < 4) return null;
+            const [proj, histIndex, adpDisp, calib] = await Promise.all([
+                getSeasonProjections(year),
+                getHistoryIndex(year).catch(() => null),
+                getAdpDispersion(year).catch(() => null),
+                getDraftGradeCalib().catch(() => null),
+            ]);
+            const evaluator = makeEvaluator(proj, histIndex, year);
+            const grades = computeGrades(picks, evaluator.valueOf, {
+                mode: 'proj', proj, seasonPlayed: false, actualPlayers: {},
+                detailOf: evaluator.detailOf,
+            });
+            return computeDraftGrade(grades, proj, { adpDisp, calib });
+        } catch (e) {
+            console.warn(`[draftgrades] voto ${year} non disponibile:`, e.message);
+            return null;
+        }
+    })();
+    return _seasonGrades[year];
 }
 
 // ─── Motore di valutazione ───────────────────────────────────────

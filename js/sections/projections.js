@@ -18,8 +18,8 @@
  */
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=849';
+import { TEAM_KEYS } from '../data/team-config.js?v=538';
+import { TEAMS } from './team.js?v=862';
 import { initPlayerModal } from '../components/player-modal.js?v=798';
 import { getSeasonProjections, getSeasonStats, matchProjection, normName } from '../data/projections.js?v=634';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';

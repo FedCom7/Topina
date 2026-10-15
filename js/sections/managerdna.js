@@ -23,8 +23,8 @@ import { getManagerDNA, CONFIDENCE_LABEL, CONFIDENCE_NOTE } from '../data/manage
 import { stripPlot } from '../ui/strip-plot.js?v=1';
 import { dumbbell, scatter, multiLine, inkFor } from '../ui/charts.js?v=9';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { TEAMS } from './team.js?v=849';
-import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=535';
+import { TEAMS } from './team.js?v=862';
+import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=538';
 
 const KEYS = ['capi', 'lasers', 'oscurus', 'sommo'];
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');

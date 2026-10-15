@@ -6,9 +6,9 @@
  * (reali / draftati / ottimali / persi in panchina).
  */
 
-import { TEAM_PALETTE } from '../data/team-config.js?v=535';
+import { TEAM_PALETTE } from '../data/team-config.js?v=538';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { TEAMS } from './team.js?v=849';
+import { TEAMS } from './team.js?v=862';
 import { playerImageService } from '../services/player-image-service.js?v=533';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { dotPlot, dumbbell, donutSeg } from '../ui/charts.js?v=9';

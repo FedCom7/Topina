@@ -6,7 +6,7 @@ import { initGameCenter } from './sections/game-center.js?v=861';
 
 import { initStandings, initPlayoffs } from './sections/standings.js?v=790';
 import { initDraft } from './sections/draft.js?v=827';
-import { initDraftGrades } from './sections/draftgrades.js?v=838';
+import { initDraftGrades } from './sections/draftgrades.js?v=839';
 import { initProjections } from './sections/projections.js?v=640';
 import { initManagerDna } from './sections/managerdna.js?v=68';
 import { initManagerDnaTeam } from './sections/managerdna-team.js?v=835';
@@ -20,7 +20,7 @@ import { initHistory } from './sections/history.js?v=773';
 import { initHonors } from './sections/honors.js?v=758';
 import { initAllPro } from './sections/allpro.js?v=771';
 import { initHallOfFame } from './sections/halloffame.js?v=785';
-import { initTeam } from './sections/team.js?v=849';
+import { initTeam } from './sections/team.js?v=862';
 import { initTeams } from './sections/teams.js?v=755';
 import { initGame } from './sections/game.js?v=843';
 import { initAnalysis } from './sections/analysis.js?v=906';

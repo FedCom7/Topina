@@ -10,7 +10,7 @@
  */
 
 import { displayName } from '../data.js?v=594';
-import { TEAM_KEYS } from './team-config.js?v=535';
+import { TEAM_KEYS } from './team-config.js?v=538';
 import { TEAM_KEY_LIST } from './league-data.js?v=586';
 
 const toKey = (rawName) => TEAM_KEYS[displayName(rawName)] || null;

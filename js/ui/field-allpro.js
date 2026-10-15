@@ -392,8 +392,11 @@ const HF_U = AP_FD.vbW / AP_FD.spanX;          // pixel per unità di schieramen
 const HF_EZ = AP_FD.ez * HF_U;                 // profondità della end zone
 const HF_HALF = AP_FD.spanX / 2;               // la linea delle 50, in unità
 
-const hfU = (u) => HF_EZ + (HF_HALF - u) * HF_U;     // unità di schieramento → Y
-const hfYd = (yd) => HF_EZ + yd * 0.36 * HF_U;       // yard dalla goal line → Y
+/* `k` comprime le sole distanze VERTICALI (end zone, yard, file della
+   formazione): dischi e scritte restano tondi e dritti. 1 è il campo della
+   home; la pagina squadra lo accorcia perché stia alto quanto la panchina. */
+const hfU = (u, k = 1) => (HF_EZ + (HF_HALF - u) * HF_U) * k;   // unità di schieramento → Y
+const hfYd = (yd, k = 1) => (HF_EZ + yd * 0.36 * HF_U) * k;     // yard dalla goal line → Y
 
 /* Il campo finisce dove finisce la formazione, non alle 50: i giocatori più
    arretrati sono K e DEF, e sotto di loro restavano centoquaranta unità di
@@ -404,30 +407,30 @@ const AP_HF = { vbW: AP_FD.vbH, vbH: hfU(HF_DEEP_U) + 46 };
 const hfX = (fx) => (fx / AP_FD.W) * AP_HF.vbW;       // laterale: identico ad apY
 
 /** Un giocatore sul mezzo campo verticale, con le coordinate del Pro Set. */
-function hfMarker({ fx, fy, label, player, abbr, year, clipId }) {
+function hfMarker({ fx, fy, label, player, abbr, year, clipId, r, k = 1 }) {
     return fieldMarker({
-        x: hfX(fx), y: hfU(apDepthFrac(fy) * (AP_FD.spanX / 2)),
-        label, player, side: 'first', abbr, year, clipId,
+        x: hfX(fx), y: hfU(apDepthFrac(fy) * (AP_FD.spanX / 2), k),
+        label, player, side: 'first', abbr, year, clipId, r,
     });
 }
 
 /** Bande, yard line, numeri e hash — le stesse del campo disteso, in verticale. */
-function hfMarkings() {
+function hfMarkings(turfH = AP_HF.vbH, k = 1) {
     let s = '';
-    const lastYd = Math.floor((AP_HF.vbH - HF_EZ) / (0.36 * HF_U));
+    const lastYd = Math.floor((turfH / k - HF_EZ) / (0.36 * HF_U));
     for (let y = 0; y < lastYd; y += 10) {                   // bande di prato alternate
-        const y1 = hfYd(y + 5), y2 = Math.min(hfYd(y + 10), AP_HF.vbH);
+        const y1 = hfYd(y + 5, k), y2 = Math.min(hfYd(y + 10, k), turfH);
         if (y2 <= y1) break;
         s += `<rect x="0" y="${y1.toFixed(1)}" width="${AP_HF.vbW}" height="${(y2 - y1).toFixed(1)}" class="nfl-fd2-band"/>`;
     }
     for (let y = 0; y <= lastYd; y += 5) {
-        const yy = hfYd(y).toFixed(1);
+        const yy = hfYd(y, k).toFixed(1);
         s += `<line x1="0" y1="${yy}" x2="${AP_HF.vbW}" y2="${yy}" class="nfl-fd2-yl"${y % 10 ? ' opacity="0.6"' : ''}/>`;
     }
     const tick = 9;
     for (let y = 1; y < lastYd; y++) {
         if (y % 5 === 0) continue;                           // dove c'è già la yard line
-        const yy = hfYd(y).toFixed(1);
+        const yy = hfYd(y, k).toFixed(1);
         for (const fx of [23.58, 29.72]) {                   // le due file interne, misure NFL
             const x = hfX(fx);
             s += `<line x1="${(x - tick / 2).toFixed(1)}" y1="${yy}" x2="${(x + tick / 2).toFixed(1)}" y2="${yy}" class="nfl-fd2-hash"/>`;
@@ -439,12 +442,12 @@ function hfMarkings() {
 }
 
 /** I numeri di campo, girati verso la propria linea laterale come su un campo vero. */
-function hfYardNumbers() {
-    const FS = 26, gap = FS * 0.42;
+function hfYardNumbers(k = 1) {
+    const FS = 26 * Math.min(1, k + 0.08), gap = FS * 0.42;   // compresso, si stringono anche i numeri
     let s = '';
     for (let y = 10; y <= 40; y += 10) {
         const num = String(y).padStart(2, '0');
-        const cy = hfYd(y);
+        const cy = hfYd(y, k);
         for (const [fx, rot] of [[9, 90], [AP_FD.W - 9, -90]]) {
             const cx = hfX(fx);
             /* Ruotati verso la propria laterale: le cifre restano in piedi per
@@ -472,45 +475,52 @@ function hfYardNumbers() {
  * @param {Object} o.team       - { lineup, name, color, logo }
  * @param {Array}  [o.bench]    - i riservisti, sulla fascia di fuoricampo
  * @param {string} [o.benchName]
+ * @param {number} [o.r]        - raggio dei dischi dei giocatori. 19 è la misura
+ *        del campo della home; la pagina squadra, dove il campo è da solo e
+ *        largo, chiede dischi più grandi perché le foto si riconoscano.
+ *        Con il Pro Set il massimo che non fa toccare niente è circa 28.
+ * @param {number} [o.olR]      - raggio dei quattro dischi vuoti della linea:
+ *        più piccoli dei giocatori, così lasciano spazio ai dischi grandi.
+ * @param {number} [o.depth]    - quanto comprimere il campo in verticale (1 =
+ *        com'è). Sotto ~0.7 il cognome del QB arriva sulla fila dei RB.
  */
-export function apHalfFieldSvg({ team, bench = null, year, clipId, cls = '', label, benchName }) {
+export function apHalfFieldSvg({ team, bench = null, year, clipId, cls = '', label, benchName, r = 19, olR = r, depth = 1 }) {
+    const k = depth;
     const benchList = bench?.length ? bench : null;
-    const vbH = AP_HF.vbH + (benchList ? AP_BENCH_H : 0);
+    /* Sotto K e DEF ci stanno cognome e ruolo, a r+24 dal centro: con dischi
+       più grandi del normale il prato si allunga di quanto è cresciuto il
+       raggio, o le due scritte escono dal fondo. */
+    const turfH = hfU(HF_DEEP_U, k) + 46 + Math.max(0, r - 19) * 1.6;
+    const vbH = turfH + (benchList ? AP_BENCH_H : 0);
     const set = team.set || AP_PRO_SET;
     const men = (team.lineup || []).map(({ slot, player }, i) =>
-        set.slots[i] ? hfMarker({ ...set.slots[i], label: slot, player, abbr: player?.nfl, year, clipId }) : '').join('');
-    const ol = set.emptyOL.map(pos => hfMarker({ ...pos, label: 'OL', player: null, clipId })).join('');
-    const ezH = hfYd(0), ezY = 0;   // la end zone è la fascia in cima
-    /* La linea delle 50 è il fondo del proprio mezzo campo, cioè `spanX/2`
-       unità dalla propria end line. `AP_FD.losY` è invece una PROFONDITÀ di
-       schieramento, e passata qui piazzava la riga tratteggiata in mezzo alla
-       formazione. */
-    const losY = hfU(AP_FD.spanX / 2);
+        set.slots[i] ? hfMarker({ ...set.slots[i], label: slot, player, abbr: player?.nfl, year, clipId, r, k }) : '').join('');
+    const ol = set.emptyOL.map(pos => hfMarker({ ...pos, label: 'OL', player: null, clipId, r: olR, k })).join('');
+    const ez = HF_EZ * k;            // la end zone è la fascia in cima
     return `
     <div class="nfl-fd2 nfl-fd2--half ${cls}">
         <svg class="nfl-fd2-svg" viewBox="0 0 ${AP_HF.vbW} ${vbH.toFixed(1)}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(label)}">
-            <defs>${fieldClipDefs(clipId)}</defs>
-            <rect x="0" y="0" width="${AP_HF.vbW}" height="${AP_HF.vbH.toFixed(1)}" class="nfl-fd2-turf"/>
-            ${hfMarkings()}
-            ${hfYardNumbers()}
+            <defs>${fieldClipDefs(clipId, r)}</defs>
+            <rect x="0" y="0" width="${AP_HF.vbW}" height="${turfH.toFixed(1)}" class="nfl-fd2-turf"/>
+            ${hfMarkings(turfH, k)}
+            ${hfYardNumbers(k)}
             <g class="mc-duel-ez" style="--team-color:${team.color || 'var(--accent-red)'}">
-                <rect x="0" y="0" width="${AP_HF.vbW}" height="${HF_EZ.toFixed(1)}" class="mc-duel-ez-fill"/>
-                <line x1="0" y1="${HF_EZ.toFixed(1)}" x2="${AP_HF.vbW}" y2="${HF_EZ.toFixed(1)}" class="mc-duel-ez-goal"/>
+                <rect x="0" y="0" width="${AP_HF.vbW}" height="${ez.toFixed(1)}" class="mc-duel-ez-fill"/>
+                <line x1="0" y1="${ez.toFixed(1)}" x2="${AP_HF.vbW}" y2="${ez.toFixed(1)}" class="mc-duel-ez-goal"/>
                 ${/* In piedi la scritta si legge dritta: niente rotazione, e
                       niente fitEndZones — il nome si dimensiona qui una volta
                       sola, sulla larghezza del campo. */''}
-                ${hfEzMark(team, HF_EZ / 2)}
+                ${hfEzMark(team, ez / 2, ez)}
             </g>
             ${ol}${men}
-            ${benchList ? apBench(benchList, { year, clipId, name: benchName, y0: AP_HF.vbH, w: AP_HF.vbW }) : ''}
+            ${benchList ? apBench(benchList, { year, clipId, name: benchName, y0: turfH, w: AP_HF.vbW }) : ''}
         </svg>
     </div>`;
 }
 
 /** Logo e nome dentro la propria end zone, in orizzontale. */
-function hfEzMark(team, cy) {
+function hfEzMark(team, cy, depth = HF_EZ) {
     const name = (team.name || '').toUpperCase();
-    const depth = HF_EZ;
     const LOGO = depth * 0.72, GAP = LOGO * 0.24;
     const FS = Math.min(depth * 0.5, (AP_HF.vbW * 0.9 - LOGO - GAP) / apTextEm(name));
     const x = (AP_HF.vbW - (LOGO + GAP + apTextEm(name) * FS)) / 2;

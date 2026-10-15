@@ -497,6 +497,33 @@ export async function fetchLeagueWeek(year, week = null, games = new Map()) {
     return { week, matchups, drafted: draftIsDone(data), draftDate: draftDate(data) };
 }
 
+/**
+ * Il calendario della regular season e dei playoff, tutto: giornata e le due
+ * squadre di ogni partita. Su Firebase le giornate future non ci sono (l'Action
+ * pubblica solo quella successiva, e solo a giornata chiusa), quindi chi deve
+ * sapere quante sfide restano lo chiede qui. `mMatchupScore` porta lo
+ * schedule senza le rose: pochi KB invece del mezzo mega della lega intera.
+ * In cache la promessa, una per stagione: il calendario non cambia.
+ *
+ * Ritorna [{ week, home, away }] coi nomi delle squadre come su Firebase.
+ */
+const _schedules = {};
+export function fetchSeasonSchedule(year) {
+    if (_schedules[year]) return _schedules[year];
+    _schedules[year] = (async () => {
+        const url = new URL(`${HOST}/seasons/${year}/segments/0/leagues/${LEAGUE_ID}`);
+        url.searchParams.append('view', 'mMatchupScore');
+        const data = await fetchWithTimeout(url);
+        return (data.schedule || []).map(m => ({
+            week: m.matchupPeriodId,
+            home: fantasyTeamName(m.home?.teamId),
+            away: fantasyTeamName(m.away?.teamId),
+        })).filter(m => m.home && m.away);
+    })();
+    _schedules[year].catch(() => { delete _schedules[year]; });
+    return _schedules[year];
+}
+
 // ─── Proiezioni per giocatori fuori dalle rose ESPN ──────────────
 
 /**

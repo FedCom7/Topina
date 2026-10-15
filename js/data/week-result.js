@@ -9,7 +9,7 @@
  */
 
 import { getSeasonConfig } from '../data.js?v=595';
-import { TEAM_KEYS } from './team-config.js?v=535';
+import { TEAM_KEYS } from './team-config.js?v=538';
 
 const P = (v) => Number.parseFloat(v) || 0;
 const chiaveDi = (nomeVisto) => TEAM_KEYS[nomeVisto] || null;

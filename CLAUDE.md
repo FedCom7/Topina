@@ -848,6 +848,61 @@ a mano da nessuna parte**: si aggiunge un ruolo alla palette. La pagina squadra
 mostra i tre colori col loro codice esadecimale proprio per poterli correggere
 lì e vederli cambiare ovunque.
 
+Dal 2026-10-14 ogni squadra ha anche `secondary` e `tertiary`: sono il secondo
+e il terzo colore della DIVISA, tinte diverse e non varianti di `identity` come
+`bright` e `ink`. Sommo usa i tre degli Eagles (midnight green `#004C54`,
+silver, black); le altre seguono la stessa struttura — il colore della
+squadra, un neutro, uno scuro — su un abbinamento NFL: Capi arancio + navy +
+bianco (Broncos), Lasers oro + bianco + nero (Saints), Oscurus bordeaux + oro
++ nero (Commanders). Il colore della squadra (`identity`) non si tocca: è
+quello di tutto il sito. `throwback` è il colore della quarta divisa, quella
+storica: il kelly green per Sommo, per le altre il colore delle loro prime
+divise del 2019 (blu royal, antracite, rosso). `teamPaletteVars()` espone
+secondario e terzo come `--team-2` e `--team-3`.
+
+Anche le quattro divise di ogni squadra seguono lo schema di Sommo: Home nel
+colore della squadra, Away bianca, terza, quarta storica col taglio del Kelly
+(`cut: 'throwback'`). La terza è nera solo per Sommo; le altre hanno un Color
+Rush a tinta unita nel colore della squadra.
+
+**Le divise sono SVG** (`js/ui/uniform-svg.js`), non più i JPG di
+`Team Uniform/`, che restano nella cartella ma non li legge più nessuno. Quattro
+set per squadra, e ognuno è tre pezzi separati (casco, maglia, pantaloni con
+calzettoni): la pagina squadra li lascia mescolare. Al posto dei marchi NFL e
+Nike niente; al posto dell'aquila sulle maniche il logo della squadra.
+
+Le FORME non si disegnano a mano: `js/ui/uniform-shapes.js` è **generato** da
+`scripts/uniforms/trace-uniforms.py`, che le estrae pixel per pixel dalla
+tavola delle divise Eagles 2026 di Wikipedia (PNG trasparente, non nel repo).
+Per correggere una sagoma si corregge lo script e lo si rilancia. Sommo
+riproduce la tavola uno a uno, le altre squadre ne usano la sagoma con le loro
+tinte. Il Kelly Green ha pezzi suoi (`K*`: colletto e numeri), perché sulla
+tavola ha un taglio diverso. Tutti i caschi sono a tinta unita col logo della
+squadra sul fianco (niente ali, anelli o raggi), Sommo compreso: la casella del
+logo si scala con `TEAM_LOGO_SCALE`, così i quattro loghi hanno la stessa
+altezza disegnata. Le cifre del numero sono tratti su una griglia
+100×200 (`DIGITS` in `uniform-svg.js`): nessun font somigliava al blocco degli
+Eagles, che ha lo 0 rettangolare. Le sole tinte scritte nel
+file sono il bianco e il nero; tutto il resto si legge da `TEAM_PALETTE`.
+
+### Pagina squadra — capitoli sotto l'hero
+
+`#team-{key}` (`sections/team.js`): l'hero resta com'era, sotto ci sono sette
+capitoli con una barra fissa (This Season, Trophy Room, Year by Year, Roster,
+Draft & Manager, Rivalries, Identity). La barra usa **bottoni che scorrono, non
+link `#tp-…`**: il router è a hash e un link porterebbe via dalla pagina.
+
+- Testo e linee sottili nel colore della squadra usano `--team-bright`, mai
+  `--team-color`: midnight green e bordeaux su nero non si leggono.
+- I voti del draft arrivano da `seasonDraftGrade(year)` in `draftgrades.js`,
+  lo stesso percorso della home e del magazine, quindi coincidono con le
+  Pagelle. Il modulo si importa in modo dinamico, solo quando il capitolo entra
+  a schermo, e con la **stessa `?v=`** degli import statici: con una versione
+  diversa il browser lo caricherebbe due volte, con due cache.
+- I record di franchigia si calcolano per tutte e quattro le squadre, così il
+  badge "League record" si decide confrontandoli. Quelli di stagione guardano
+  solo le stagioni chiuse.
+
 ### Sticker dell'hero squadra — due tinte, e l'impaginato dice il tipo
 
 Gli adesivi della pagina squadra (`js/ui/badge-svg.js`) sono ricalcati sugli

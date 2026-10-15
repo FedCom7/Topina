@@ -45,26 +45,40 @@ export const TEAM_KEYS = {
  *    `--team-color` e tinge hero, sticker, card e bordi.
  *  - `bright`   — lo stesso colore reso leggibile SU FONDO NERO. Per Capi e
  *    Lasers coincide con l'identità; per Oscurus e Sommo no, ed è il motivo per
- *    cui il secondo set esisteva: un bordeaux #800020 e un petrolio #1c4750 su
+ *    cui il secondo set esisteva: un bordeaux #800020 e un midnight green #004C54 su
  *    un grafico nero spariscono. Va usato per linee, punti e testo su scuro.
  *  - `ink`      — la versione cupa, per i pieni grandi e i fondali: una
  *    campitura larga del colore d'identità copre troppo.
+ *
+ *  - `secondary` / `tertiary` — il secondo e il terzo colore della divisa
+ *    (`identity` è il primo). Non sono varianti di `identity` come bright e
+ *    ink: sono tinte diverse, quelle di bordi, numeri e strisce. Le usano la
+ *    pagina squadra e le divise SVG (`js/ui/uniform-svg.js`). Sommo prende i
+ *    tre colori dei Philadelphia Eagles (midnight green, silver, black). Le
+ *    altre seguono la stessa idea — il colore della squadra, un neutro, uno
+ *    scuro — con un abbinamento NFL che lo regge: Capi arancio + navy + bianco
+ *    (Broncos), Lasers oro + bianco + nero (Saints), Oscurus bordeaux + oro +
+ *    nero (Commanders).
+ *  - `throwback` — il colore della quarta divisa, quella storica, che non è
+ *    dei tre: il kelly green degli Eagles pre-1996 per Sommo; per le altre il
+ *    colore delle loro prime divise del 2019 (il blu royal di Capi,
+ *    l'antracite dei Lasers, il rosso di Oscurus).
  *
  * Cambiando un valore qui cambia ovunque. Le altre tinte (i colori dei
  * grafici) NON vanno reintrodotte altrove: si legge da qui.
  */
 export const TEAM_PALETTE = {
-    capi: { identity: '#FF6600', bright: '#FF6600', ink: '#7a3000' },
-    lasers: { identity: '#D4AF37', bright: '#D4AF37', ink: '#6b5416' },
-    oscurus: { identity: '#800020', bright: '#d4506a', ink: '#4d0013' },
-    sommo: { identity: '#1c4750', bright: '#4fa3b8', ink: '#0e2429' },
+    capi: { identity: '#FF6600', secondary: '#0B1F3A', tertiary: '#FFFFFF', bright: '#FF6600', ink: '#7a3000', throwback: '#1F57B4' },
+    lasers: { identity: '#D4AF37', secondary: '#FFFFFF', tertiary: '#101010', bright: '#D4AF37', ink: '#6b5416', throwback: '#4A4D52' },
+    oscurus: { identity: '#800020', secondary: '#C9A13B', tertiary: '#111111', bright: '#d4506a', ink: '#4d0013', throwback: '#C8102E' },
+    sommo: { identity: '#004C54', secondary: '#A5ACAF', tertiary: '#000000', bright: '#3FA6AE', ink: '#00262A', throwback: '#2A8B4E' },
 };
 
 /** Le tre tinte come variabili CSS, da appendere a un contenitore. */
 export function teamPaletteVars(key) {
     const p = TEAM_PALETTE[key];
     if (!p) return '';
-    return `--team-color:${p.identity};--team-bright:${p.bright};--team-ink:${p.ink}`;
+    return `--team-color:${p.identity};--team-2:${p.secondary};--team-3:${p.tertiary};--team-bright:${p.bright};--team-ink:${p.ink}`;
 }
 
 // Team logo paths

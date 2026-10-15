@@ -16,7 +16,7 @@
 
 import { LEAGUE_SCORING } from './scoring.js?v=592';
 import { ROSTER_SLOTS, FLEX_ELIGIBLE } from './league-rules.js?v=528';
-import { TEAM_KEYS } from './team-config.js?v=535';
+import { TEAM_KEYS } from './team-config.js?v=538';
 
 const S = LEAGUE_SCORING;
 const n = (v) => (v == null || Number.isNaN(Number(v)) ? 0 : Number(v));

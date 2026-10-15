@@ -39,7 +39,7 @@ import { displayName, teamNameHTML, teamAbbr, fetchFantasyData, fetchDraftData, 
 import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { electHallOfFame } from '../data/hall-of-fame.js?v=632';
-import { TEAMS } from './team.js?v=849';
+import { TEAMS } from './team.js?v=862';
 import { paniniCard, hydratePaniniBadges, initPlayerModal } from '../components/player-modal.js?v=798';
 import { teamsCardsHTML } from './teams.js?v=755';
 import { playerImageService } from '../services/player-image-service.js?v=533';
@@ -48,7 +48,7 @@ import { revealOnScroll, countUpWithin, recountWithin, parallax, spotlight } fro
 import { coriandoliAttorno, razziDaiLati, FESTA_PIENA } from '../ui/live-fx.js?v=38';
 import { fieldMarker, fieldClipDefs, hydrateFieldPhotos, hydrateFieldJerseys } from '../ui/field-formation.js?v=3';
 import { apFieldSvg, sbLineup, fitEndZones } from '../ui/field-allpro.js?v=9';
-import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=177';
+import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js?v=178';
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWaiverMoves, accorpa } from '../data/waiver-moves.js?v=29';
 import { getWeekSchedule, getNextKickoffDate } from '../data/nfl-schedule.js?v=552';
@@ -63,7 +63,7 @@ import { computeDraftGrade, getDraftGradeCalib, getAdpDispersion } from '../data
 // in un modulo dati: si importa da lì invece di riscriverlo, per non avere
 // due pipeline di voto che possono scollarsi. Unico caso nel file in cui una
 // sezione ne legge un'altra — vedi loadPostDraftGrades().
-import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=838';
+import { computeGrades, makeEvaluator, gradeLetterHTML } from './draftgrades.js?v=839';
 
 let initialized = false;
 

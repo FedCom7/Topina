@@ -33,10 +33,10 @@
  */
 
 import { CURRENT_SEASON, displayName } from '../data.js?v=595';
-import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=535';
+import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=538';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getWeekSchedule, getCurrentNflWeek, canonAbbr } from '../data/nfl-schedule.js?v=552';
-import { fetchLeagueWeek, teamAbbrFromName } from '../data/espn-fantasy.js?v=177';
+import { fetchLeagueWeek, teamAbbrFromName } from '../data/espn-fantasy.js?v=178';
 import { fetchPlays } from '../data/nfl-plays.js?v=572';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';

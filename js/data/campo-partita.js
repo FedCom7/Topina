@@ -11,7 +11,7 @@
 
 import { titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=149';
 import { headshotUrl } from './nfl-plays.js?v=572';
-import { teamNameFromAbbr } from './espn-fantasy.js?v=177';
+import { teamNameFromAbbr } from './espn-fantasy.js?v=178';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';
 
 /** Sigla NFL da id ESPN: la mappa esiste solo nel verso opposto. */

@@ -7,7 +7,7 @@ import {
     fetchFantasyData, fetchDraftData, processStandings, getSuperBowlMatchup,
     getSeasonConfig, flattenDraft, displayName, SEASONS
 } from '../data.js?v=594';
-import { TEAM_KEYS } from './team-config.js?v=535';
+import { TEAM_KEYS } from './team-config.js?v=538';
 
 export const TEAM_KEY_LIST = ['capi', 'lasers', 'oscurus', 'sommo'];
 

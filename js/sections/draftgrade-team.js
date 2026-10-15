@@ -14,8 +14,8 @@
  */
 
 import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=595';
-import { TEAM_KEYS } from '../data/team-config.js?v=535';
-import { TEAMS } from './team.js?v=849';
+import { TEAM_KEYS } from '../data/team-config.js?v=538';
+import { TEAMS } from './team.js?v=862';
 import { decorateTerms } from '../ui/glossary.js?v=4';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=634';
@@ -26,7 +26,7 @@ import { pickSeeded } from '../data/magazine-voices.js?v=519';
 import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,
-} from './draftgrades.js?v=838';
+} from './draftgrades.js?v=839';
 import { getContextScore, getDraftModel, FIXED_WEIGHTS } from '../data/context-score.js?v=684';
 import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=596';
 import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=66';
