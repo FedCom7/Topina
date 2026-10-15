@@ -28902,9 +28902,8 @@ body.nr-open {
 
 .nr-board .fst-mid {
     margin: 0;
-    /* Centrato nella sua colonna, che ora ha una larghezza dichiarata (vedi
-       sopra) — il respiro qui dentro è solo per non far toccare il testo ai
-       due lati quando è quasi alla sua larghezza massima. */
+    /* Centrato nella sua colonna `auto`, che si allarga e si stringe da sola
+       col testo — i due lati non se ne accorgono, sono colonne a sé. */
     padding: 0 clamp(8px, 2.4vw, 20px);
 }
 
@@ -30192,7 +30191,9 @@ body.nr-open {
     gap: 14px;
 }
 
-/* Intestazione: le due squadre ai lati, l'orario in mezzo. */
+/* Intestazione: le due squadre ai lati, l'orario in mezzo. È un <button> —
+   apre la card stampata a tutto schermo (flip-card-print.js) — quindi qui
+   sopra ai valori del layout si resettano anche i default del bottone. */
 .fc-head {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -30201,7 +30202,31 @@ body.nr-open {
     padding: 12px;
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
+    width: 100%;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    position: relative;
+    transition: border-color var(--dur-fast, 0.15s) var(--ease, ease);
 }
+
+.fc-head:hover, .fc-head:focus-visible { border-color: var(--text-muted); outline: none; }
+
+.fc-head-hint {
+    position: absolute;
+    right: 10px;
+    bottom: 6px;
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.55;
+    transition: opacity var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+.fc-head:hover .fc-head-hint, .fc-head:focus-visible .fc-head-hint { opacity: 1; }
 
 .fc-ht {
     display: flex;
@@ -30395,6 +30420,7 @@ body.nr-open {
        "Pittsbu..." e il record andava a capo sotto il nome dell'allenatore. */
     .fc-head { grid-template-columns: 1fr 1fr; }
     .fc-head-mid { grid-row: 2; grid-column: 1 / -1; }
+    .fc-head-hint { display: none; }
     .fc-ht,
     .fc-head > .fc-ht:last-child {
         flex-direction: column;
@@ -30410,6 +30436,298 @@ body.nr-open {
     .fc-names { gap: 3px 10px; }
     .fc-p { font-size: 0.74rem; }
 }
+
+/* ─── Flip card a tutto schermo — la vista "stampata" a due facciate ─────
+   (js/ui/flip-card-print.js). Riusa apposta le classi `fc-row`/`fc-p*` della
+   card in pagina per i sei pannelli centrali: stessa convenzione (rookie
+   sottolineato, practice squad in corsivo), non va duplicata con nomi
+   diversi.
+
+   Tutto sta a schermo insieme, come una pagina di PDF vista in "adatta alla
+   finestra": `.fcp-stage` si disegna alla sua taglia NATURALE (le regole qui
+   sotto), poi `flip-card-print.js` la scala con un `transform` per farla
+   entrare nella finestra — niente breakpoint qui, la scala fa il lavoro che
+   altrove fanno le media query. Sotto una soglia di leggibilità la scala si
+   ferma (`SCALA_MIN` nel JS) e torna lo scorrimento come ripiego, sui telefoni
+   più stretti. */
+
+.fcp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+body.fcp-locked { overflow: hidden; }
+
+.fcp-close, .fcp-arrow {
+    position: fixed;
+    z-index: 1501;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-card);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: opacity var(--dur-fast, 0.15s) var(--ease, ease), border-color var(--dur-fast, 0.15s) var(--ease, ease);
+}
+
+.fcp-close { top: 14px; right: 14px; width: 38px; height: 38px; font-size: 1rem; }
+
+/* L'unica cosa che si spegne da sola: le frecce restano sempre visibili. */
+.fcp-overlay.fcp-idle .fcp-close { opacity: 0; pointer-events: none; }
+
+.fcp-arrow { top: 50%; width: 44px; height: 44px; font-size: 1.4rem; transform: translateY(-50%); }
+.fcp-arrow--left { left: 14px; }
+.fcp-arrow--right { right: 14px; }
+.fcp-arrow:hover, .fcp-close:hover { border-color: var(--text-muted); }
+
+.fcp-pageind {
+    position: fixed;
+    z-index: 1501;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.fcp-book {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+/* Sotto la scala minima (vedi `adattaAllaFinestra` in flip-card-print.js):
+   centrare un contenuto più grande del contenitore sposta lo zero dello
+   scroll al centro della pagina invece che al suo inizio. Allineato in alto
+   a sinistra, `scrollTo(0, 0)` torna a funzionare come ci si aspetta. */
+.fcp-book--scroll { align-items: flex-start; justify-content: flex-start; }
+
+/* La taglia vera (già scalata) la impone il JS in `style`: è quello che fa
+   funzionare `overflow` su `.fcp-book` — vedi il commento in testa al file
+   dati JS su `adattaAllaFinestra`. */
+.fcp-stage-wrap { flex: 0 0 auto; }
+
+/* L'interlinea di tutto il sito è 1.6× (pensata per prosa, non per righe di
+   tabella): ereditata qui com'era, un ruolino da 55 nomi si portava via il
+   40% dell'altezza naturale solo in spazio vuoto fra una riga e l'altra.
+   Stretta qui una volta, invece che rincorsa riga per riga: è lo spazio che
+   si libera per scrivere il testo più grande. */
+.fcp-stage { transform-origin: top left; line-height: 1.2; }
+
+.fcp-cols3 {
+    display: grid;
+    grid-template-columns: 220px 1fr 220px;
+    gap: 14px;
+    width: 1500px;
+}
+
+.fcp-outer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.84rem;
+    line-height: 1.05;
+    border-right: 1px solid var(--border-subtle);
+    padding-right: 8px;
+}
+
+.fcp-cols3 > .fcp-outer:last-child {
+    border-right: none;
+    border-left: 1px solid var(--border-subtle);
+    padding-right: 0;
+    padding-left: 8px;
+}
+
+.fcp-col-team {
+    margin: 0 0 4px;
+    font-family: var(--font-display);
+    font-size: 1.04rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fcp-team, var(--text-primary));
+}
+
+.fcp-col-hd {
+    display: grid;
+    grid-template-columns: 24px 1fr 38px;
+    gap: 4px;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--border-card);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fcp-col-list { display: flex; flex-direction: column; }
+
+.fcp-oline {
+    display: grid;
+    grid-template-columns: 24px 1fr 38px;
+    gap: 4px;
+    padding: 1px 0;
+    color: var(--text-secondary);
+}
+
+.fcp-oline b { font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.fcp-oline span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcp-oline i { font-style: normal; color: var(--text-muted); }
+
+.fcp-col-sec {
+    margin-top: 5px;
+    padding-top: 3px;
+    border-top: 1px solid var(--border-card);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fcp-mid { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.fcp-gameinfo {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+}
+
+.fcp-team { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.fcp-gameinfo > .fcp-team:last-child { flex-direction: row-reverse; text-align: right; }
+.fcp-team img { width: 40px; height: 40px; object-fit: contain; flex: 0 0 auto; }
+
+.fcp-team b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: var(--fcp-team, var(--text-primary));
+    white-space: nowrap;
+}
+
+.fcp-team small { font-size: 0.76rem; color: var(--text-muted); }
+.fcp-score { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; margin-left: 10px; font-variant-numeric: tabular-nums; }
+
+.fcp-gameinfo-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.fcp-gameinfo-mid b { font-family: var(--font-display); font-size: 0.92rem; color: var(--text-secondary); }
+.fcp-at { font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase; }
+
+.fcp-depthgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.fcp-depth { border: 1px solid var(--border-card); border-radius: var(--radius-md); overflow: hidden; }
+.fcp-depth--empty { border: none; }
+
+.fcp-depth-title {
+    margin: 0;
+    padding: 4px 8px;
+    background: #12100d;
+    border-left: 5px solid var(--fcp-team, #12100d);
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f5f0e8;
+}
+
+.fcp-legend { margin: 0; font-size: 0.66rem; color: var(--text-muted); }
+
+.fcp-foot3 { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 10px; align-items: start; }
+
+.fcp-pron h5, .fcp-officials h5 {
+    margin: 0 0 4px;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fcp-note { margin: 0; font-size: 0.68rem; font-style: italic; color: var(--text-muted); }
+
+.fcp-officials { padding: 7px 10px; border: 1px solid var(--border-card); border-radius: var(--radius-md); }
+.fcp-officials-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.fcp-officials-list li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.7rem; }
+.fcp-officials-list li span { color: var(--text-muted); }
+.fcp-officials-list li b { color: var(--text-primary); font-weight: 600; }
+
+.fcp-mid--rosters { flex-direction: row; gap: 10px; }
+.fcp-teamroster { flex: 1 1 0; min-width: 0; }
+
+/* Le due rose intere hanno otto colonne, college compreso, e sono le più
+   alte delle due facciate (fino a 70 righe per squadra): più larga della
+   facciata 1 apposta, per lasciare spazio al college senza tagliarlo, e più
+   dense (vedi sotto) per non spingere l'altezza naturale così in alto da
+   forzare la scala minima su uno schermo normale. */
+.fcp-cols3--wide { width: 1620px; grid-template-columns: 220px 1fr 220px; }
+
+/* Densità da programma di gara vero: qui il testo è già scalato dal JS, e
+   partire più compatti (come nel PDF di riferimento) lascia più margine per
+   scrivere più grande senza toccare `SCALA_MIN`. Scoped a `.fcp-teamroster`:
+   la stessa tabella (`pm-table`) altrove nel sito (pagina giocatore, roster
+   della squadra) resta alla sua densità normale. */
+.fcp-teamroster .pm-table { font-size: 0.8rem; }
+.fcp-teamroster .pm-table th { padding: 1px 6px 2px 0; }
+.fcp-teamroster .pm-table td { padding: 0.5px 6px 0.5px 0; }
+
+.fcp-teamname {
+    margin: 0 0 3px;
+    font-family: var(--font-display);
+    font-size: 1.04rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fcp-team, var(--text-primary));
+}
+
+.fcp-roster-sub {
+    margin: 4px 0 2px;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fcp-roster-sub:first-of-type { margin-top: 0; }
+.fcp-coach { margin: 5px 0 0; font-size: 0.72rem; color: var(--text-secondary); }
+.fcp-coach b { color: var(--text-primary); }
+
+/* Densità dei sei pannelli centrali della facciata 1: scoped, stessa ragione
+   della tabella qui sopra — la card in pagina (non a tutto schermo) tiene le
+   sue righe più comode. */
+.fcp-depth .fc-row { padding: 2px 8px; }
+.fcp-depth .fc-p { font-size: 0.88rem; }
+.fcp-depth .fc-pos { font-size: 0.8rem; }
 
 /* Inside the game sul telefono: lo scorebug e' stretto e "at MIN 0" usciva
    tagliato. Resta il down & distance, la posizione la dice il campo sotto. */

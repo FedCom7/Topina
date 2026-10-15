@@ -2856,7 +2856,7 @@ function flipHeader(card) {
         : '';
     const dove = [card.venue, card.city].filter(Boolean).join(' · ');
     return `
-    <header class="fc-head">
+    <button type="button" class="fc-head" data-fc-open aria-label="Open the printed flip card, full screen">
         ${squadra(card.away)}
         <div class="fc-head-mid">
             <span class="fc-at">@</span>
@@ -2866,7 +2866,8 @@ function flipHeader(card) {
             <span>${[card.status, card.broadcast, card.attendance ? `${card.attendance.toLocaleString('en-US')} att.` : ''].filter(Boolean).map(esc).join(' · ')}</span>
         </div>
         ${squadra(card.home)}
-    </header>`;
+        <span class="fc-head-hint">⛶ Full screen</span>
+    </button>`;
 }
 
 /** Arbitri della gara: ESPN li pubblica dal giorno della partita, non prima. */
@@ -2952,6 +2953,7 @@ async function flipLoad(section, i) {
     }).catch(() => null) : null;
     // Stato sostituito (altra squadra, altra stagione) o pillola più nuova: si scarta.
     if (_flipState !== st || gettone !== st.gettone) return;
+    st.card = card;
     const dopo = section.querySelector('#nfl-flip #nfl-flip-body');
     if (!dopo) return;
     dopo.innerHTML = modulo
@@ -2982,7 +2984,13 @@ function bindFlipCard(section, ctx) {
         blocco.dataset.flipBound = '1';
         blocco.addEventListener('click', (e) => {
             const b = e.target.closest('.fc-week');
-            if (b) flipLoad(section, +b.dataset.i);
+            if (b) { flipLoad(section, +b.dataset.i); return; }
+            const openBtn = e.target.closest('[data-fc-open]');
+            if (openBtn && _flipState?.card) {
+                // Import dinamico, stessa ragione del modulo dati (vedi sopra):
+                // la vista stampa non deve poter spegnere il resto della pagina.
+                import('../ui/flip-card-print.js?v=4').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
+            }
         });
     }
     if (!section.dataset.flipNavBound) {
