@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-14T14:10:07.191Z",
+ "generatedAt": "2026-10-15T13:47:16.540Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -1728,7 +1728,7 @@
     "takeaways": 8,
     "passDefended": 22,
     "tacklesForLoss": 18,
-    "qbHits": 36,
+    "qbHits": 37,
     "blockedKicks": 0
    },
    "fpa": {
@@ -2754,7 +2754,7 @@
      "takeaways": 6,
      "passDefended": 15,
      "tacklesForLoss": 25,
-     "qbHits": 11
+     "qbHits": 12
     }
    },
    "schedule": [
@@ -2933,7 +2933,7 @@
     "takeaways": 9,
     "passDefended": 21,
     "tacklesForLoss": 30,
-    "qbHits": 33,
+    "qbHits": 34,
     "blockedKicks": 0
    },
    "fpa": {
@@ -2995,7 +2995,7 @@
      "takeaways": 3,
      "passDefended": 21,
      "tacklesForLoss": 3,
-     "qbHits": 12
+     "qbHits": 11
     }
    },
    "schedule": [
@@ -3477,7 +3477,7 @@
      "takeaways": 22,
      "passDefended": 8,
      "tacklesForLoss": 17,
-     "qbHits": 7
+     "qbHits": 9
     }
    },
    "schedule": [
@@ -4882,7 +4882,7 @@
     },
     "TE": {
      "pgLeague": 14.2,
-     "pgHalf": 10.9,
+     "pgHalf": 11.1,
      "rank": 15
     },
     "K": {
@@ -4892,7 +4892,7 @@
     },
     "DEF": {
      "pgLeague": 7.2,
-     "pgHalf": 9,
+     "pgHalf": 9.2,
      "rank": 12
     }
    },
@@ -7271,7 +7271,7 @@
     "takeaways": 7,
     "passDefended": 25,
     "tacklesForLoss": 29,
-    "qbHits": 36,
+    "qbHits": 38,
     "blockedKicks": 1
    },
    "fpa": {
@@ -7333,7 +7333,7 @@
      "takeaways": 11,
      "passDefended": 11,
      "tacklesForLoss": 7,
-     "qbHits": 9
+     "qbHits": 7
     }
    },
    "schedule": [
