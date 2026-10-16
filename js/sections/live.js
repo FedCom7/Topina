@@ -1263,6 +1263,10 @@ function playersByName() {
  * piccolo, quello che era previsto.
  */
 function ptsHTML(p) {
+    // In bye non c'e' niente da contare: ne' punti ne' proiezione. Uno zero
+    // direbbe "ha giocato e non ha fatto niente" — a dire perche' c'e' il
+    // timbro BYE sulla foto.
+    if (inBye(p)) return `<span class="pts-val pts-bye" title="Bye week">–</span>`;
     const val = fmt(effPts(p));
     if (pIsProjected(p)) return `<span class="pts-val proj-pts">${val}</span>`;
     /*
@@ -1290,6 +1294,23 @@ function ptsHTML(p) {
         : `<small class="pts-proj" title="projected">${fmt(P(p.projected_points))}</small>`;
     return `<span class="pts-val">${val}</span>${previsto}`;
 }
+
+/**
+ * Questa settimana la sua squadra NFL non gioca. Lo si dice solo se il
+ * calendario c'e' davvero (una giornata ha almeno 13 partite, quindi 26
+ * squadre): senza, ognuno risulterebbe in bye. Chi non ha una squadra NFL
+ * riconosciuta (svincolato, sigla vuota) non e' in bye — e' un'altra cosa.
+ */
+function inBye(p) {
+    if (!p || p.placeholder || simDemo || !liveSchedule || liveSchedule.size < 20) return false;
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name);
+    if (!ab || !(ESPN_TEAM_IDS[ab] || ESPN_TEAM_IDS[String(p.nfl_team || '').toUpperCase()])) return false;
+    return !liveSchedule.has(ab);
+}
+
+/** Classe e timbro della foto di chi e' in bye. Il timbro e' un ::after sul
+ *  contenitore della foto (vedi `.is-bye` in main.css). */
+const byeFoto = (p) => (inBye(p) ? ' is-bye' : '');
 
 /** La sua partita è cominciata? (se non si sa nulla, si suppone di sì) */
 function daGiocare(p) {
@@ -1386,6 +1407,8 @@ function refreshInPlace(events = []) {
         el.classList.toggle('live-slot--done', gameOver(p));
         el.classList.toggle('live-slot--live', liveNow(p));
         el.classList.toggle('live-slot--soon', !daGiocare(p));
+        el.classList.toggle('live-slot--bye', inBye(p));
+        el.querySelector('.slot-photo, .live-chip-photo')?.classList.toggle('is-bye', inBye(p));
         // il puntino "sta giocando": prima compariva solo ridisegnando la
         // pagina, quindi una partita che cominciava non lo accendeva mai
         const redzone = inRedZoneOra(p);
@@ -2766,11 +2789,11 @@ function chip(p, side) {
     const live = liveNow(p);
     const injury = injuryOf(p);
     return `
-    <div class="live-chip${live ? ' live-chip--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
+    <div class="live-chip${live ? ' live-chip--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${inBye(p) ? ' live-slot--bye' : ''}${injury ? ' live-chip--injury' : ''}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
-        <span class="live-chip-photo">
+        <span class="live-chip-photo${byeFoto(p)}">
             <img src="${cachedHeadshot(p.name)}" alt="" loading="lazy"
                  data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}">
         </span>
@@ -2906,11 +2929,11 @@ function fieldSlot(p, extraClass = '') {
     const injury = injuryOf(p);
     const zona = inRedZoneOra(p) ? ' live-slot--redzone' : (inCampoOra(p) ? ' live-slot--onball' : '');
     return `
-    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${daGiocare(p) ? '' : ' live-slot--soon'}${zona}${extraClass}" data-player-modal
+    <div class="formation-slot live-slot${live ? ' live-slot--live' : ''}${gameOver(p) ? ' live-slot--done' : ''}${daGiocare(p) ? '' : ' live-slot--soon'}${inBye(p) ? ' live-slot--bye' : ''}${zona}${extraClass}" data-player-modal
          data-slot-player="${escAttr(p.name)}"
          data-player-name="${escAttr(p.name)}" data-pos="${escAttr(role)}" data-nfl="${escAttr(p.nfl_team || '')}" data-year="${CURRENT_SEASON}"
          ${gameAttr(p)}>
-        <span class="slot-photo"><img src="${cachedHeadshot(p.name)}" alt=""
+        <span class="slot-photo${byeFoto(p)}"><img src="${cachedHeadshot(p.name)}" alt=""
             data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>
         <span class="slot-name">${numeroHTML(p)}${nomeCampoHTML(p, shortName(p))}${
         injury ? `<span class="slot-inj">${injuryTagHTML(p, true)}</span>` : ''}</span>
@@ -3074,7 +3097,7 @@ function benchHTML(team) {
 function comparePhoto(p) {
     if (!p) return '<span class="live-cmp-photo live-cmp-photo--empty"></span>';
     const role = (p.position_in_team || p.position || '').toUpperCase();
-    return `<span class="live-cmp-photo"><img src="${cachedHeadshot(p.name)}" alt=""
+    return `<span class="live-cmp-photo${byeFoto(p)}"><img src="${cachedHeadshot(p.name)}" alt=""
         data-headshot data-player-name="${p.name}" data-team="${p.nfl_team || ''}" data-pos="${role}"></span>`;
 }
 
@@ -3157,10 +3180,13 @@ function compareName(p, side) {
 function compareStatsBlock(p, win, side) {
     // Anche senza giocatore il blocco tiene le sue colonne, altrimenti la riga
     // si stringe e i punteggi non sono più incolonnati con quelli sopra e sotto.
-    const inner = p
+    // In bye le statistiche sarebbero tutte a zero: colonne vuote, e niente
+    // chiave, cosi' l'aggiornamento in posto non le riempie.
+    const conStats = p && !inBye(p);
+    const inner = conStats
         ? compareStatsHTML(p, side)
         : `<span class="live-cmp-mini live-cmp-mini--pad"></span>`.repeat(CMP_STAT_COLS);
-    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}"${p ? ` data-cmp-stats="${escAttr(p.name)}" data-cmp-side="${side}"` : ''}>${inner}</span>`;
+    return `<span class="live-cmp-stats live-cmp-stats--${side}${win ? ' live-cmp-stats--win' : ''}"${conStats ? ` data-cmp-stats="${escAttr(p.name)}" data-cmp-side="${side}"` : ''}>${inner}</span>`;
 }
 
 /**

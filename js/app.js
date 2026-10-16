@@ -29,7 +29,7 @@ import { initWaivers } from './sections/waivers.js?v=138';
 import { initPlayerStats } from './sections/player-stats.js?v=26';
 
 import { initMagazine } from './sections/magazine.js?v=807';
-import { initLive } from './sections/live.js?v=1165';
+import { initLive } from './sections/live.js?v=1166';
 import { avviaNightRecap } from './sections/night-recap.js?v=34';
 import { avviaEsitoSettimana } from './sections/week-result.js?v=10';
 import { initNavbar } from './ui/navbar.js?v=698';

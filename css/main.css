@@ -22654,6 +22654,84 @@ td.ps-div-seed {
     display: none;
 }
 
+/* IN BYE: questa settimana non gioca. Ne' acceso come chi ha punti, ne'
+   spento come chi deve ancora scendere in campo, ne' in bianco e nero e a
+   zero come chi ha finito — prima sembrava proprio questo, una partita
+   chiusa senza punti. Un sigillo sulla foto lo dice, e al posto del
+   punteggio c'e' un trattino.
+
+   Il sigillo e' bianco e ha due pezzi: l'ANELLO (::before), due cerchi con
+   "BYE WEEK ★ NO GAME ★" che gira in mezzo, un po' storto come un timbro
+   vero; e BYE dritto al centro (::after). L'anello e' una maschera SVG e il
+   colore lo mette il background: dentro un'immagine-maschera i web font non
+   arrivano, per questo la scritta che gira e' in Arial Black. Tutti e due
+   portano la stessa maschera di rumore, l'inchiostro che non ha preso
+   dappertutto.
+
+   Il contenitore della foto di solito ritaglia (overflow: hidden) per fare
+   il cerchio: qui il ritaglio passa all'immagine, se no l'anello, che
+   sborda, verrebbe tagliato. Le misure sono in `cqw`, in proporzione alla
+   foto: la stessa regola vale per il campo, la panchina e il confronto.
+
+   I selettori nominano i tre contenitori e non `.is-bye` da solo: la stessa
+   classe la usa la lista Season della scheda giocatore (.pm-ssn-row.is-bye),
+   che il sigillo non lo deve avere. Le proposte scartate stanno nel banco
+   preview-bye-stamp.html. */
+.slot-photo.is-bye,
+.live-chip-photo.is-bye,
+.live-cmp-photo.is-bye {
+    position: relative;
+    overflow: visible;
+    container-type: size;
+}
+
+:is(.slot-photo, .live-chip-photo, .live-cmp-photo).is-bye > img {
+    border-radius: 50%;
+    filter: grayscale(1);
+    opacity: 0.3;
+}
+
+:is(.slot-photo, .live-chip-photo, .live-cmp-photo).is-bye::before {
+    content: '';
+    position: absolute;
+    inset: -7cqw;
+    z-index: 1;
+    pointer-events: none;
+    background: #f5f2ea;
+    transform: rotate(-16deg);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.6 0 0 0 2.35'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 40px 40px, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpath id='c' d='M50 50 m-37 0 a37 37 0 1 1 74 0 a37 37 0 1 1 -74 0'/%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='47.5' fill='none' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='33.5' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ctext font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='8.6' letter-spacing='0.6'%3E%3CtextPath href='%23c' textLength='228' lengthAdjust='spacing'%3EBYE WEEK %E2%98%85 NO GAME %E2%98%85 BYE WEEK %E2%98%85 NO GAME %E2%98%85%3C/textPath%3E%3C/text%3E%3C/svg%3E") center / 100% 100% no-repeat;
+    -webkit-mask-composite: source-in;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.6 0 0 0 2.35'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 40px 40px, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpath id='c' d='M50 50 m-37 0 a37 37 0 1 1 74 0 a37 37 0 1 1 -74 0'/%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='47.5' fill='none' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='33.5' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ctext font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='8.6' letter-spacing='0.6'%3E%3CtextPath href='%23c' textLength='228' lengthAdjust='spacing'%3EBYE WEEK %E2%98%85 NO GAME %E2%98%85 BYE WEEK %E2%98%85 NO GAME %E2%98%85%3C/textPath%3E%3C/text%3E%3C/svg%3E") center / 100% 100% no-repeat;
+    mask-composite: intersect;
+}
+
+:is(.slot-photo, .live-chip-photo, .live-cmp-photo).is-bye::after {
+    content: 'BYE';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    color: #f5f2ea;
+    font: 400 max(7px, 24cqw)/1 'Archivo Black', var(--font-display), sans-serif;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    pointer-events: none;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.6 0 0 0 2.35'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 40px 40px;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.6 0 0 0 2.35'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 40px 40px;
+}
+
+.live-slot--bye .pts-val.pts-bye,
+.live-cmp-pts .pts-bye {
+    color: var(--text-muted);
+}
+
+/* le statistiche attorno alla foto sarebbero tutte a zero */
+.live-slot--bye .live-slot-stats,
+.live-slot--bye .pts-proj {
+    visibility: hidden;
+}
+
 
 /* ── Statistiche FUORI dal cerchio (da 1000px) ────────────────────
    Con abbastanza larghezza la scritta gira attorno alla foto senza coprirla.
