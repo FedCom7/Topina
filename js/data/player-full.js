@@ -98,6 +98,34 @@ export async function getPlayerInfo(playerId) {
     return info;
 }
 
+/*
+ * Da nome-campo di Sleeper a nome-campo di Firebase.
+ *
+ * `keyStatLine` (analysis.js) parla la lingua di Firebase; il game log di
+ * Sleeper usa un'altra lingua per le stesse cose (`rec_yd` invece di
+ * `rec_yds`, `fgm_40_49` invece di `fg_40_49`). Senza questa traduzione le
+ * righe uscivano con tutti zeri senza sbagliare niente. Sta qui, accanto a
+ * `getPlayerWeekly`, perche' la usano Players e Analysis: prima era una copia
+ * dentro leaders.js.
+ */
+const STAT_SLEEPER_A_LEGA = {
+    pass_yd: 'pass_yds', pass_td: 'pass_td', pass_int: 'pass_int',
+    pass_att: 'pass_att', pass_cmp: 'pass_comp',
+    rush_yd: 'rush_yds', rush_td: 'rush_td', rush_att: 'rush_att',
+    rec: 'rec', rec_yd: 'rec_yds', rec_td: 'rec_td', rec_tgt: 'targets',
+    fgm_0_19: 'fg_0_19', fgm_20_29: 'fg_20_29', fgm_30_39: 'fg_30_39',
+    fgm_40_49: 'fg_40_49', fgm_50p: 'fg_50_plus', xpm: 'pat_made',
+    sack: 'sack', int: 'def_int', fum_rec: 'fum_rec', def_td: 'def_td',
+};
+
+export function statsSleeperALega(s) {
+    const out = {};
+    for (const [da, a] of Object.entries(STAT_SLEEPER_A_LEGA)) {
+        if (s?.[da] != null) out[a] = s[da];
+    }
+    return out;
+}
+
 function weeklyTtl(season) {
     // Stagione in corso: un'ora, come la classifica di Players
     // (projections.js). Con sei ore il dettaglio di un giocatore aperto a meta'
@@ -112,7 +140,7 @@ function weeklyTtl(season) {
  * Array vuoto se il giocatore non ha giocato quella stagione.
  */
 export async function getPlayerWeekly(playerId, season, pos) {
-    const key = `topina_pweek_v2_${season}_${playerId}`;
+    const key = `topina_pweek_v3_${season}_${playerId}`;
     const hit = cached(key, weeklyTtl(season));
     if (hit) return hit;
 
@@ -140,7 +168,7 @@ export async function getPlayerWeekly(playerId, season, pos) {
 
 /** Totali stagionali raw ({ stats, pts, posRank }) o null se stagione vuota. */
 export async function getPlayerSeasonTotals(playerId, season, pos) {
-    const key = `topina_pseason_v2_${season}_${playerId}`;
+    const key = `topina_pseason_v3_${season}_${playerId}`;
     const hit = cached(key, weeklyTtl(season));
     if (hit) return hit.empty ? null : hit;
 

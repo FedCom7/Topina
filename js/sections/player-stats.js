@@ -33,18 +33,19 @@
  * sempre il numero esatto, gli snap per TD, e la "i" spiega il conto.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=595';
-import { getSeasonStats } from '../data/projections.js?v=634';
+import { montaGhiera } from '../ui/ghiera.js?v=1';
+import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=596';
+import { getSeasonStats } from '../data/projections.js?v=635';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { teamLogoUrl } from '../data/player-search-core.js?v=624';
 import { canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=906';
-import { LEAGUE_SCORING, scoreProjectedStats } from '../data/scoring.js?v=592';
+import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=914';
+import { LEAGUE_SCORING, scoreProjectedStats } from '../data/scoring.js?v=593';
 import {
     tassiLega, tdAttesi, puntiAttesi, costanza, lineaTitolare, calendario, alberi, MISURE_ALBERO,
-} from '../data/player-signals.js?v=3';
+} from '../data/player-signals.js?v=4';
 
 const RUOLI = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
@@ -184,7 +185,24 @@ export function initPlayerStats() {
     renderPickRow();
     bindContent();
     load();
+    // I due grafici SVG si disegnano in due misure (vedi `stretto`): girando
+    // il telefono si passa dall'una all'altra, e vanno ridisegnati.
+    STRETTO.addEventListener?.('change', () => { if (stato) render(); });
 }
+
+/*
+ * Telefono. I due grafici SVG (Consistency, Usage vs production) erano
+ * disegnati a 820 di larghezza e rimpiccioliti dentro lo schermo: nomi e
+ * numeri uscivano a 4-5 pixel. Sul telefono si disegnano su una tela stretta
+ * (360), cosi' il testo resta quasi alla sua misura vera.
+ */
+const STRETTO = window.matchMedia('(max-width: 560px)');
+const stretto = () => STRETTO.matches;
+/** "Jaxon Smith-Njigba" → "J. Smith-Njigba": il cognome e' cio' che si riconosce. */
+const nomeCorto = (n) => {
+    const p = String(n).trim().split(/\s+/);
+    return p.length < 2 ? n : `${p[0][0]}. ${p.slice(1).join(' ')}`;
+};
 
 /* ============================================================
    DATI
@@ -884,7 +902,7 @@ const SCHEDE = [
 /** Le pillole della scheda Teams: un ruolo per il "1" di squadra e per il calendario. */
 function pilloleSquadre() {
     const pill = (p) => `<button class="an-avg-pill${ruoloSquadre === p ? ' active' : ''}" data-ps-depth="${p}">${pillolaUno(p)}</button>`;
-    return `<div class="an-avg-toggle ps-pos-bar">${RUOLI.map(pill).join('')}</div>`;
+    return `<div class="ghiera"><div class="an-avg-toggle ps-pos-bar ghiera-riga">${RUOLI.map(pill).join('')}</div></div>`;
 }
 
 /** Il segnale non esiste per kicker e difese: meglio dirlo che mostrare una scheda vuota. */
@@ -981,11 +999,11 @@ function bloccoTd() {
         .sort((a, b) => b[chiave].scarto - a[chiave].scarto).slice(0, 8);
     const sotto = [...q].filter(r => r[chiave].scarto < -0.05)
         .sort((a, b) => a[chiave].scarto - b[chiave].scarto).slice(0, 8);
-    // ogni TD vale 6 punti di lega (4 se lanciato): il segnale in punti si legge meglio
-    const puntiTd = (r) => (ruolo === 'QB' ? 4 : 6);
+    // il segnale in punti si legge meglio: lo scarto pesato pezzo per pezzo
+    // (4 un TD lanciato, 6 uno su corsa o ricezione — vedi tdAttesi)
     const riga = (r) => {
         const t = r[chiave];
-        return `<b>${segno(t.scarto, uno)} TD</b><small>${t.veri} scored · ${uno(t.attesi)} expected · ≈ ${segno(t.scarto * puntiTd(r), (v) => Math.round(v))} pts</small>`;
+        return `<b>${segno(t.scarto, uno)} TD</b><small>${t.veri} scored · ${uno(t.attesi)} expected · ≈ ${segno(t.punti, (v) => Math.round(v))} pts</small>`;
     };
     return `
     <div class="ps-rate-grid">
@@ -1016,7 +1034,13 @@ function bloccoUso() {
 
     // Stessa scala sui due assi: la diagonale deve stare a 45°, se no "sopra la
     // linea" non vorrebbe dire "piu' punti di quanti ne valga l'uso".
-    const W = 820, H = 440, L = 52, R = 18, T = 14, B = 44;
+    const tel = stretto();
+    const W = tel ? 360 : 820, H = tel ? 340 : 440, L = tel ? 40 : 52, R = tel ? 10 : 18, T = 14, B = tel ? 40 : 44;
+    // sul telefono le etichette sono tre per parte, o si accavallano
+    if (tel) {
+        etichettati.clear();
+        for (const p of [...sopra.slice(0, 3), ...sotto.slice(0, 3)]) etichettati.add(p.r);
+    }
     const max = Math.max(...punti.map(p => Math.max(p.x, p.y)), 1);
     const tk = tacche(max);
     const top = tk[tk.length - 1];
@@ -1036,7 +1060,7 @@ function bloccoUso() {
         </circle>`;
     const nome = (p) => {
         const cognome = p.r.name.split(' ').slice(1).join(' ') || p.r.name;
-        const aDestra = x(p.x) < W - 150;
+        const aDestra = x(p.x) < W - (tel ? 90 : 150);
         return `<text x="${(x(p.x) + (aDestra ? 8 : -8)).toFixed(1)}" y="${(y(p.y) + 4).toFixed(1)}"
             class="ps-dot-lbl" text-anchor="${aDestra ? 'start' : 'end'}">${escAttr(cognome)}</text>`;
     };
@@ -1048,14 +1072,14 @@ function bloccoUso() {
     return `
     ${sottoTitolo('ps-uso', 'Usage vs production')}
     ${legenda}
-    <div class="an-chart ps-scatter">
+    <div class="an-chart ps-scatter${tel ? ' is-stretto' : ''}">
         <svg viewBox="0 0 ${W} ${H}" class="an-svg" role="img" aria-label="Expected points from usage against actual points, per game">
             ${griglia}
             <line x1="${x(0)}" y1="${y(0)}" x2="${x(top)}" y2="${y(top)}" class="ps-diag"/>
             <text x="${x(top) - 6}" y="${y(top) + 16}" class="ps-diag-lbl" text-anchor="end">as expected</text>
             ${punti.map(punto).join('')}
             ${punti.filter(p => etichettati.has(p.r)).map(nome).join('')}
-            <text x="${(L + W - R) / 2}" y="${H - 8}" class="ps-axis" text-anchor="middle">Points his usage is worth, per game</text>
+            <text x="${(L + W - R) / 2}" y="${H - 8}" class="ps-axis" text-anchor="middle">${tel ? 'Usage is worth, per game' : 'Points his usage is worth, per game'}</text>
             <text x="14" y="${(T + H - B) / 2}" class="ps-axis" text-anchor="middle" transform="rotate(-90 14 ${(T + H - B) / 2})">Points he made, per game</text>
         </svg>
     </div>
@@ -1161,7 +1185,8 @@ function bloccoCostanza() {
     // Una corsia per giocatore: i punti partita per partita, la banda fra
     // pavimento e tetto, la mediana, e la tacca tratteggiata della linea da
     // titolare del suo ruolo.
-    const W = 820, L = 170, R = 96, T = 10, B = 30, CORSIA = 30;
+    const tel = stretto();
+    const W = tel ? 360 : 820, L = tel ? 92 : 170, R = tel ? 50 : 96, T = 10, B = 30, CORSIA = tel ? 32 : 30;
     const H = T + B + lista.length * CORSIA;
     const max = Math.max(...lista.flatMap(r => r.settimane), 1);
     const tk = tacche(max, 6);
@@ -1186,8 +1211,12 @@ function bloccoCostanza() {
             ${l != null ? `<line x1="${x(l).toFixed(1)}" y1="${(cy - 12).toFixed(1)}" x2="${x(l).toFixed(1)}" y2="${(cy + 12).toFixed(1)}" class="ps-lane-line"/>` : ''}
             ${dots}
             <line x1="${x(c.mediana).toFixed(1)}" y1="${(cy - 10).toFixed(1)}" x2="${x(c.mediana).toFixed(1)}" y2="${(cy + 10).toFixed(1)}" class="ps-lane-med"/>
-            <text x="${L - 10}" y="${(cy + 4).toFixed(1)}" class="ps-lane-name" text-anchor="end">${escAttr(r.name)}<title>${escAttr(r.name)} — ${c.n} games · average ${uno(c.media)} · floor ${uno(c.p25)} · median ${uno(c.mediana)} · ceiling ${uno(c.p75)}</title></text>
-            <text x="${W - R + 10}" y="${(cy + 4).toFixed(1)}" class="ps-lane-val">${r.starts == null ? '' : `${Math.round(r.starts * 100)}%`}<tspan class="ps-lane-sub"> · ${uno(c.media)}</tspan></text>
+            <text x="${L - (tel ? 6 : 10)}" y="${(cy + 4).toFixed(1)}" class="ps-lane-name" text-anchor="end">${escAttr(tel ? nomeCorto(r.name) : r.name)}<title>${escAttr(r.name)} — ${c.n} games · average ${uno(c.media)} · floor ${uno(c.p25)} · median ${uno(c.mediana)} · ceiling ${uno(c.p75)}</title></text>
+            ${tel
+                // sul telefono le due cifre una sopra l'altra: affiancate non ci stanno
+                ? `<text x="${W - R + 6}" y="${(cy - 1).toFixed(1)}" class="ps-lane-val">${r.starts == null ? '–' : `${Math.round(r.starts * 100)}%`}</text>
+            <text x="${W - R + 6}" y="${(cy + 11).toFixed(1)}" class="ps-lane-sub">${uno(c.media)}</text>`
+                : `<text x="${W - R + 10}" y="${(cy + 4).toFixed(1)}" class="ps-lane-val">${r.starts == null ? '' : `${Math.round(r.starts * 100)}%`}<tspan class="ps-lane-sub"> · ${uno(c.media)}</tspan></text>`}
         </g>`;
     }).join('');
 
@@ -1196,10 +1225,10 @@ function bloccoCostanza() {
     return `
     ${sottoTitolo('ps-cost', 'Consistency')}
     <div class="an-avg-toggle ps-board-bar"><span class="an-avg-label">Sort:</span>${ORDINI_COSTANZA.map(pill).join('')}</div>
-    <div class="an-chart ps-lanes">
+    <div class="an-chart ps-lanes${tel ? ' is-stretto' : ''}">
         <svg viewBox="0 0 ${W} ${H}" class="an-svg" role="img" aria-label="Fantasy points game by game">
             ${griglia}
-            <text x="${W - R + 10}" y="${T + 2}" class="ps-lane-head">starts · avg</text>
+            <text x="${W - R + (tel ? 6 : 10)}" y="${T + 2}" class="ps-lane-head">${tel ? 'st% · avg' : 'starts · avg'}</text>
             ${corsie}
         </svg>
     </div>
@@ -1368,13 +1397,15 @@ function render() {
     // li' conta un ruolo solo (un "All1" o un "RB/WR1" di squadra non esistono),
     // e due file di ruoli una sopra l'altra non si capiva quale comandasse.
     wrap.innerHTML = `
-    ${vista === 'teams' ? pilloleSquadre() : `<div class="an-avg-toggle ps-pos-bar">${FILTRI.map(pill).join('')}</div>`}
+    ${vista === 'teams' ? pilloleSquadre() : `<div class="ghiera"><div class="an-avg-toggle ps-pos-bar ghiera-riga">${FILTRI.map(pill).join('')}</div></div>`}
     ${poche ? `<p class="an-footnote ps-sample">${anno} · ${stato.maxGp} game${stato.maxGp === 1 ? '' : 's'} played so far:
         every rate on this page is built on a small sample, and will move a lot week to week.</p>` : ''}
     ${stato.snapInRitardo ? `<p class="an-footnote ps-sample">Snap counts come out the day after a game, the stats right away:
         for ${stato.snapInRitardo} player${stato.snapInRitardo === 1 ? '' : 's'} the latest game has no snaps yet, so every
         per-snap rate leaves that game out until they arrive. Totals in the tables include it.</p>` : ''}
     ${corpo}`;
+    // sul telefono i ruoli stanno su una ghiera, come le tab di Analysis
+    montaGhiera(wrap.querySelector('.ps-pos-bar'));
     hydrateImages(wrap);
 }
 

@@ -26,6 +26,14 @@ const SLEEPER_MAP = {
     sack: 'sack', int: 'def_int', fum_rec: 'fum_rec',
     def_td: 'def_td', def_st_td: 'def_ret_td', safe: 'safety',
     def_2pt: 'def_two_pt_ret',
+    // TD di un GIOCATORE su ritorno di kickoff o punt: la lega lo paga 6
+    // (`ret_td`). Sleeper lo mette in `st_td` — `kr_td`/`pr_td` restano vuoti —
+    // e senza questa riga i ritornatori perdevano 6 punti a ritorno: Myles
+    // Price 2026 risultava 5.8 invece di 11.8 (controllato contro i punti di
+    // nflverse con lo stesso regolamento: 308 giocatori su 317 identici, e
+    // questo era l'unico scarto da 6). Le difese non lo mandano mai: per loro
+    // c'e' `def_st_td`, gia' sopra, quindi niente doppio conteggio.
+    st_td: 'ret_td',
 };
 
 /**

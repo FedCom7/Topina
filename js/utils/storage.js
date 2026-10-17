@@ -58,14 +58,14 @@ const BUDGET_CHARS = 2 * 1024 * 1024;
  */
 const FAMILIES = [
     { current: 'topina_proj_v5_',      stale: /^topina_proj_v\d+_/,       tier: 0 },
-    { current: 'topina_stats_v7_',     stale: /^topina_stats_v\d+_/,      tier: 0 },
+    { current: 'topina_stats_v8_',     stale: /^topina_stats_v\d+_/,      tier: 0 },
     { current: 'topina_predraft_v1_',  stale: /^topina_predraft_v\d+_/,   tier: 0 },
     { current: 'nfl-sched4-',          stale: /^nfl-sched\d*-/,           tier: 1 },
     { current: 'nfl-weekgames1-',      stale: /^nfl-weekgames\d*-/,       tier: 1 },
     { current: 'topina_pbp_v1_',       stale: /^topina_pbp_v\d+_/,        tier: 1 },
     { current: 'topina_livesnap_v1_',  stale: /^topina_livesnap_v\d+_/,   tier: 0 },
-    { current: 'topina_pweek_v2_',     stale: /^topina_pweek_v\d+_/,      tier: 2 },
-    { current: 'topina_pseason_v2_',   stale: /^topina_pseason_v\d+_/,    tier: 2 },
+    { current: 'topina_pweek_v3_',     stale: /^topina_pweek_v\d+_/,      tier: 2 },
+    { current: 'topina_pseason_v3_',   stale: /^topina_pseason_v\d+_/,    tier: 2 },
     { current: 'topina_pinfo_v1_',     stale: /^topina_pinfo_v\d+_/,      tier: 2 },
     { current: 'topina-espn-athletes', stale: /^topina-espn-athletes$/,   tier: 3 },
     { current: 'topina_player_ids_v4', stale: /^topina_player_ids_v\d+$/, tier: 3 },

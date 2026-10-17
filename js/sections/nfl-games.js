@@ -22,7 +22,7 @@ import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { fieldStripHTML, bindFieldStrip } from '../ui/field-strip.js?v=149';
 import { statoPartita, drivesDi } from '../data/campo-partita.js?v=3';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
-import { CURRENT_SEASON } from '../data.js?v=595';
+import { CURRENT_SEASON } from '../data.js?v=596';
 
 const POLL_MS = 30000;
 const LOGO = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;

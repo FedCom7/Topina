@@ -13,9 +13,9 @@
  * in più: i dati erano già tutti in pagina.
  */
 
-import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=595';
+import { fetchFantasyData, displayName, teamNameHTML, getSeasonConfig } from '../data.js?v=596';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
-import { mostraEsitoPartita } from './week-result.js?v=10';
+import { mostraEsitoPartita } from './week-result.js?v=11';
 import { getLeagueData } from '../data/league-data.js?v=586';
 import { getHonorsBundle } from '../data/honors.js?v=724';
 import { buildCareers } from '../data/careers.js?v=644';
@@ -25,8 +25,8 @@ import {
     playerComment, playerNotes, recapArticle,
 } from '../data/matchup-analysis.js?v=819';
 import { dumbbell, dotPlot, multiLine, inkFor } from '../ui/charts.js?v=9';
-import { TEAMS } from './team.js?v=862';
-import { playerImageService } from '../services/player-image-service.js?v=533';
+import { TEAMS } from './team.js?v=864';
+import { playerImageService } from '../services/player-image-service.js?v=534';
 import { getPlayerInjuries } from '../data/nfl-team-extras.js?v=1003';
 
 const _fantasyCache = {};

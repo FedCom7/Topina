@@ -120,6 +120,12 @@ html {
 :root[data-theme="light"] {
     color-scheme: light;
 
+    /* le card del Lineup in Analysis: nere nel tema scuro, bianche qui */
+    --lineup-card: #ffffff;
+    --lineup-line: rgba(20, 18, 14, 0.12);
+    --lineup-ink: #16140f;
+    --lineup-muted: #6b665e;
+
     --bg-primary: #ffffff;
     --bg-secondary: #f7f7f5;
     --bg-tertiary: #efefeb;
@@ -10296,6 +10302,96 @@ a.mc-wv-p:hover .mc-wv-name {
     margin: 32px 0 24px;
 }
 
+/* GHIERA (telefono) — js/ui/ghiera.js. Una fila di pastiglie che non sta in
+   una riga andava a capo su due: qui resta in fila su un rullo che si gira
+   col dito, e la voce che si ferma sotto la tacca si apre. Le altre si
+   piegano (--d, distanza dal centro con segno) e sbiadiscono (--ad) come su
+   una ghiera vera. La usano le tab della vista squadra in Analysis e i ruoli
+   di Player Stats. I due ::before/::after della riga sono spaziatori larghi
+   mezza riga: cosi' anche la prima e l'ultima voce arrivano al centro. */
+.ghiera {
+    position: relative;
+}
+
+@media (max-width: 700px) {
+    .an-ghiera {
+        margin: 24px 0 18px;
+    }
+
+    /* la tacca: un piccolo triangolo nella tinta della pagina, fermo al
+       centro mentre il rullo scorre */
+    .ghiera::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: -2px;
+        width: 0;
+        height: 0;
+        border: 6px solid transparent;
+        border-bottom-color: var(--an-tinta, var(--accent-red));
+        transform: translateX(-50%);
+        pointer-events: none;
+    }
+
+    .ghiera .ghiera-riga {
+        display: flex;
+        width: 100%;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 4px;
+        margin: 0;
+        padding: 6px 0 12px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        perspective: 520px;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%);
+    }
+
+    .ghiera .ghiera-riga::-webkit-scrollbar {
+        display: none;
+    }
+
+    .ghiera .ghiera-riga::before,
+    .ghiera .ghiera-riga::after {
+        content: '';
+        flex: 0 0 calc(50% - 2px);
+    }
+
+    .ghiera .ghiera-riga > button {
+        flex: 0 0 auto;
+        scroll-snap-align: center;
+        transform: rotateY(calc(var(--d, 0) * 34deg)) scale(calc(1 - var(--ad, 0) * 0.14));
+        opacity: calc(1 - var(--ad, 0) * 0.45);
+        transition: background var(--dur-med) var(--ease), color var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease);
+    }
+
+    /* quella sotto la tacca si legge piena anche prima di aprirsi */
+    .ghiera .ghiera-riga > button.is-centro:not(.active) {
+        color: var(--text-primary);
+        border-color: var(--an-tinta, var(--accent-red));
+    }
+}
+
+/* Nomi dei giocatori in Analysis (nomeGiocatore in analysis.js): intero su
+   schermo largo, iniziale puntata + cognome sul telefono — "J. Smith-Njigba".
+   Intero andava a capo o veniva tagliato, e il cognome e' cio' che si
+   riconosce. */
+.an-nm-c {
+    display: none;
+}
+
+@media (max-width: 560px) {
+    .an-nm-l {
+        display: none;
+    }
+
+    .an-nm-c {
+        display: inline;
+    }
+}
+
 /* KPI strip */
 .an-kpi {
     padding: 24px 0 8px;
@@ -10622,6 +10718,77 @@ a.mc-wv-p:hover .mc-wv-name {
     color: var(--accent-blue);
 }
 
+/* Quanto del totale viene dalle settimane da svincolato ("Unrostered pts"
+   acceso): stesso viola tenue delle righe calcolate, mai un dato di lega. */
+.an-badge-liberi {
+    background: rgba(167, 139, 250, 0.12);
+    color: #a78bfa;
+}
+
+/* "Unrostered pts", accanto a squadra e anno: un interruttore, non una
+   tendina — si accende e si spegne. Il pallino dice lo stato anche senza
+   colore. */
+#an-pick-row .an-liberi {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    white-space: nowrap;
+}
+
+.an-liberi-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    flex-shrink: 0;
+}
+
+#an-pick-row .an-liberi.is-on {
+    color: #fff;
+    border-color: transparent;
+    background: var(--an-tinta, var(--accent-red));
+}
+
+.an-liberi.is-on .an-liberi-dot {
+    background: currentColor;
+}
+
+/* Sul telefono sta nella stessa riga di squadra e anno: via "pts" e un po'
+   di margine, o andava a capo da solo sotto le altre due. */
+@media (max-width: 560px) {
+    #an-pick-row {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    #an-pick-row .an-liberi {
+        gap: 6px;
+        padding: 8px 10px;
+        font-size: 0.74rem;
+    }
+
+    .an-liberi-pts {
+        display: none;
+    }
+
+    /* tre capsule in fila: meno imbottitura, e il nome della squadra resta su
+       una riga (con i puntini se proprio non ci sta) invece di andare a capo
+       dentro la capsula — "Capi dei Pianeti" ne faceva tre */
+    #an-pick-row .pick-dd {
+        min-width: 0;
+    }
+
+    #an-pick-row .pick-dd .pick-dd-btn {
+        padding-left: 12px;
+        padding-right: 12px;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 .an-badge-round {
     background: rgba(255, 255, 255, 0.07);
     color: var(--text-secondary);
@@ -10734,10 +10901,13 @@ a.mc-wv-p:hover .mc-wv-name {
     gap: 14px;
 }
 
+/* Card NERE nel tema scuro, BIANCHE nel chiaro. Hanno variabili loro
+   (--lineup-*, ridefinite nel blocco del tema chiaro) e non quelle generiche:
+   il nero pieno non e' nessuna delle superfici del tema. */
 .an-lineup-card {
     position: relative;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-subtle);
+    background: var(--lineup-card, #000);
+    border: 1px solid var(--lineup-line, rgba(255, 255, 255, 0.1));
     border-radius: var(--radius-md, 12px);
     padding: 16px 14px 14px;
     text-align: center;
@@ -10773,7 +10943,7 @@ a.mc-wv-p:hover .mc-wv-name {
 .an-lineup-name {
     font-weight: 700;
     font-size: 0.85rem;
-    color: var(--text-primary);
+    color: var(--lineup-ink, #f5f2ea);
     line-height: 1.2;
 }
 
@@ -10788,7 +10958,7 @@ a.mc-wv-p:hover .mc-wv-name {
 
 .an-lineup-nfl {
     font-size: 0.68rem;
-    color: var(--text-muted);
+    color: var(--lineup-muted, #8b8b8b);
     font-weight: 700;
 }
 
@@ -10796,24 +10966,43 @@ a.mc-wv-p:hover .mc-wv-name {
     margin-top: 8px;
     font-size: 1.3rem;
     font-weight: 900;
-    color: var(--text-primary);
+    color: var(--lineup-ink, #f5f2ea);
     font-variant-numeric: tabular-nums;
 }
 
 .an-lineup-pts span {
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--lineup-muted, #8b8b8b);
 }
 
 .an-lineup-avg {
     font-size: 0.68rem;
-    color: var(--text-muted);
+    color: var(--lineup-muted, #8b8b8b);
     margin-top: 2px;
 }
 
 .an-lineup-card--empty {
     opacity: 0.4;
+}
+
+/* La panchina sotto il lineup: stesse card, un filo piu' spente — sono
+   fuori dalla formazione — con l'etichetta BN al posto del ruolo. */
+.an-lineup-grid--bench {
+    margin-top: 4px;
+}
+
+.an-lineup-card--bench {
+    background: var(--lineup-card, #000);
+    border-style: dashed;
+}
+
+.an-lineup-card--bench .an-lineup-slot {
+    color: var(--lineup-muted, #8b8b8b);
+}
+
+.an-lineup-card--bench .an-lineup-headshot {
+    opacity: 0.85;
 }
 
 /* --- League view: charts --- */
@@ -28742,6 +28931,50 @@ text.dna-strip-label.dna-tier-noise { fill: var(--text-muted); }
     font-size: 10.5px;
     font-weight: 600;
     fill: var(--text-muted);
+}
+
+/* Sul telefono i due grafici si disegnano su una tela stretta (360 invece di
+   820, vedi `stretto` in player-stats.js): le misure qui sono in unita' della
+   tela, che sullo schermo valgono quasi un pixel l'una. */
+.ps-lanes.is-stretto .ps-lane-name { font-size: 11px; }
+.ps-lanes.is-stretto .ps-lane-val { font-size: 11.5px; }
+.ps-lanes.is-stretto .ps-lane-sub,
+.ps-lanes.is-stretto .ps-lane-head { font-size: 9.5px; }
+.ps-lanes.is-stretto .an-tick,
+.ps-scatter.is-stretto .an-tick { font-size: 10px; }
+.ps-scatter.is-stretto .ps-dot-lbl { font-size: 11px; }
+.ps-scatter.is-stretto .ps-axis,
+.ps-scatter.is-stretto .ps-diag-lbl { font-size: 10px; }
+
+/* Righe delle carte sul telefono: il dettaglio ("8 scored · 3.1 expected")
+   scende sotto il nome invece di stargli accanto, dove si mangiava tutta la
+   riga e il nome usciva come "Josh …". Il numero grande resta a destra. */
+@media (max-width: 560px) {
+    .ps-rate-val {
+        display: contents;
+    }
+
+    .ps-rate-n,
+    .ps-rate-who {
+        grid-row: 1;
+    }
+
+    .ps-rate-val b {
+        grid-column: 3;
+        grid-row: 1;
+        text-align: right;
+    }
+
+    .ps-rate-val small {
+        grid-column: 2 / 4;
+        grid-row: 2;
+        text-align: left;
+        margin-top: -2px;
+    }
+
+    .ps-rate-bar {
+        grid-row: 3;
+    }
 }
 
 /* ── calendario ── */

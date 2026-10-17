@@ -190,9 +190,11 @@ export async function getSeasonStats(year) {
     // stat per stat senza rimappare nulla. Bumpare qui NON basta — la versione
     // va cambiata anche in FAMILIES.current dentro utils/storage.js, altrimenti
     // i blob v5 restano lì per sempre.
+    // v8: i TD su ritorno dei giocatori (`st_td` in scoring.js): `ptsLeague`
+    // si calcola qui e finisce in cache, quindi i blob v7 avevano i punti vecchi.
     // v7: le fasce dei punti concessi delle difese (KEPT_STATS). Senza cambiare
     // chiave, i blob v6 gia' salvati restavano senza per tutta la loro durata.
-    const cacheKey = `topina_stats_v7_${year}`;
+    const cacheKey = `topina_stats_v8_${year}`;
     const hit = cacheGet(cacheKey, ttl);
     if (hit) return tieni(year, new Map(hit));
 

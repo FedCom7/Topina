@@ -16,17 +16,17 @@
  * dicono le rose ESPN LIVE; per le stagioni chiuse il modello di Firebase.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=595';
+import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=596';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=178';
-import { TEAMS } from './team.js?v=862';
+import { TEAMS } from './team.js?v=864';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getSeasonStats, normName } from '../data/projections.js?v=634';
+import { getSeasonStats, normName } from '../data/projections.js?v=635';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=906';
-import { getPlayerWeekly } from '../data/player-full.js?v=672';
+} from './analysis.js?v=914';
+import { getPlayerWeekly, statsSleeperALega } from '../data/player-full.js?v=674';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
@@ -448,31 +448,8 @@ function render() {
    DRILL DI STAGIONE — si apre sotto la riga
    ============================================================ */
 
-/*
- * Da nome-campo di Sleeper a nome-campo di Firebase.
- *
- * Il drill disegna le statistiche con `keyStatLine`, che parla la lingua di
- * Firebase; il game log di Sleeper usa un'altra lingua per le stesse cose
- * (`rec_yd` invece di `rec_yds`, `fgm_40_49` invece di `fg_40_49`). Senza
- * questa traduzione la riga usciva con tutti zeri senza sbagliare niente.
- */
-const STAT_SLEEPER_A_LEGA = {
-    pass_yd: 'pass_yds', pass_td: 'pass_td', pass_int: 'pass_int',
-    pass_att: 'pass_att', pass_cmp: 'pass_comp',
-    rush_yd: 'rush_yds', rush_td: 'rush_td', rush_att: 'rush_att',
-    rec: 'rec', rec_yd: 'rec_yds', rec_td: 'rec_td', rec_tgt: 'targets',
-    fgm_0_19: 'fg_0_19', fgm_20_29: 'fg_20_29', fgm_30_39: 'fg_30_39',
-    fgm_40_49: 'fg_40_49', fgm_50p: 'fg_50_plus', xpm: 'pat_made',
-    sack: 'sack', int: 'def_int', fum_rec: 'fum_rec', def_td: 'def_td',
-};
-
-function statsTradotte(s) {
-    const out = {};
-    for (const [da, a] of Object.entries(STAT_SLEEPER_A_LEGA)) {
-        if (s?.[da] != null) out[a] = s[da];
-    }
-    return out;
-}
+// La traduzione dei nomi-campo Sleeper → lega sta in player-full.js
+// (`statsSleeperALega`), condivisa con Analysis.
 
 /**
  * Le giornate di un giocatore prese da Sleeper.
@@ -490,7 +467,7 @@ async function giornateDaSleeper(e) {
         if (!log?.length) return null;
         return new Map(log.map(g => [g.week, {
             pts: g.pts ?? 0,
-            stats: statsTradotte(g.stats),
+            stats: statsSleeperALega(g.stats),
             opponent: g.opponent ? `${g.isAway ? '@' : ''}${g.opponent}` : '',
         }]));
     } catch {

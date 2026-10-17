@@ -12,7 +12,7 @@
 
 import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=624';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { TEAMS } from '../sections/team.js?v=862';
+import { TEAMS } from '../sections/team.js?v=864';
 import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
 
 // Lo stesso limite della navbar mobile in main.css (max-width: 1099px): la
@@ -393,7 +393,7 @@ const n1 = (v) => Number(v || 0).toLocaleString('it-IT', { minimumFractionDigits
 
 /** I numeri di ogni sezione, ognuno dalla fonte che usa la sezione stessa. */
 async function datiPeek(nome) {
-    const dati = await import('../data.js?v=595');
+    const dati = await import('../data.js?v=596');
     const { CURRENT_SEASON, fetchFantasyData, processStandings, displayName } = dati;
 
     if (nome === 'standings' || nome === 'teams') {
@@ -418,7 +418,7 @@ async function datiPeek(nome) {
     }
 
     if (nome === 'leaders') {
-        const { getSeasonStats } = await import('../data/projections.js?v=634');
+        const { getSeasonStats } = await import('../data/projections.js?v=635');
         const mappa = await getSeasonStats(CURRENT_SEASON);
         return [...mappa.values()]
             .filter(e => e.ptsLeague != null && e.pos !== 'DEF')

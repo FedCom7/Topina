@@ -15,14 +15,14 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=595';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=596';
 import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=538';
-import { TEAMS } from './team.js?v=862';
+import { TEAMS } from './team.js?v=864';
 import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=149';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
-import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=592';
+import { scorePlay, scoreWeeklyStats } from '../data/scoring.js?v=593';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=574';
 import { fetchLeagueWeek, teamAbbrFromName, teamNameFromAbbr, fillMissingProjections } from '../data/espn-fantasy.js?v=178';
@@ -31,10 +31,10 @@ import { fieldSVG } from '../ui/field-svg.js?v=30';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statoPartita, drivesDi } from '../data/campo-partita.js?v=3';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
-import { initPlayerModal } from '../components/player-modal.js?v=798';
+import { initPlayerModal } from '../components/player-modal.js?v=800';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=38';
-import { playerImageService } from '../services/player-image-service.js?v=533';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=17';
+import { playerImageService } from '../services/player-image-service.js?v=534';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=18';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';

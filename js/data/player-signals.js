@@ -89,10 +89,16 @@ export function tdAttesi(riga, tassi, conPassaggi = riga.pos === 'QB') {
     if (!t) return null;
     const occ = n(riga.rzTgt) + n(riga.rushRzAtt) + (conPassaggi ? n(riga.passRzAtt) : 0);
     if (!occ) return null;
-    const attesi = n(riga.rzTgt) * t.tdPerRzTgt + n(riga.rushRzAtt) * t.tdPerRzCarry
-        + (conPassaggi ? n(riga.passRzAtt) * t.tdPerRzPass : 0);
+    const attRec = n(riga.rzTgt) * t.tdPerRzTgt, attRush = n(riga.rushRzAtt) * t.tdPerRzCarry;
+    const attPass = conPassaggi ? n(riga.passRzAtt) * t.tdPerRzPass : 0;
+    const attesi = attRec + attRush + attPass;
     const veri = n(riga.recTd) + n(riga.rushTd) + (conPassaggi ? n(riga.passTd) : 0);
-    return { attesi, veri, scarto: veri - attesi, occasioni: occ };
+    // Lo scarto in PUNTI, pezzo per pezzo: un TD lanciato vale 4, uno su corsa
+    // o ricezione 6. Prima per un QB valevano tutti 4, e i suoi TD di corsa
+    // risultavano sottopesati di un terzo.
+    const punti = (n(riga.recTd) - attRec) * S.rec_td + (n(riga.rushTd) - attRush) * S.rush_td
+        + (conPassaggi ? (n(riga.passTd) - attPass) * S.pass_td : 0);
+    return { attesi, veri, scarto: veri - attesi, punti, occasioni: occ };
 }
 
 /* ============================================================

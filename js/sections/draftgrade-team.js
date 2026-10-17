@@ -13,20 +13,20 @@
  * Come game.js: nessun guard `initialized`, si ri-parsa l'hash a ogni chiamata.
  */
 
-import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=595';
+import { fetchDraftData, flattenDraft, fetchFantasyData, getSeasonConfig, displayName } from '../data.js?v=596';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
-import { TEAMS } from './team.js?v=862';
+import { TEAMS } from './team.js?v=864';
 import { decorateTerms } from '../ui/glossary.js?v=4';
 import { getHonorsBundle } from '../data/honors.js?v=724';
-import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=634';
+import { getSeasonProjections, getSeasonStats, matchProjection } from '../data/projections.js?v=635';
 import { getHistoryIndex, trendBadge, historyLine, peakNote } from '../data/player-history.js?v=596';
-import { initPlayerModal } from '../components/player-modal.js?v=798';
-import { playerImageService } from '../services/player-image-service.js?v=533';
+import { initPlayerModal } from '../components/player-modal.js?v=800';
+import { playerImageService } from '../services/player-image-service.js?v=534';
 import { pickSeeded } from '../data/magazine-voices.js?v=519';
 import {
     computeGrades, makeEvaluator, gradeBand, strategyLine,
     outcomeBadge, computeSeasonDelivery,
-} from './draftgrades.js?v=839';
+} from './draftgrades.js?v=841';
 import { getContextScore, getDraftModel, FIXED_WEIGHTS } from '../data/context-score.js?v=684';
 import { evaluateLeague, TSI_WEIGHTS, TSI_LABELS, pickStarters, replacementLevels } from '../data/team-eval.js?v=596';
 import { computeDraftGrade, getAdpDispersion, getDraftGradeCalib, pickWhy } from '../data/draft-grade.js?v=66';

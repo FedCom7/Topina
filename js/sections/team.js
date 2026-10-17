@@ -17,11 +17,11 @@ import { getLeagueData, TEAM_KEY_LIST } from '../data/league-data.js?v=586';
 import { computeTeamBadges } from '../data/badges.js?v=559';
 import { stickerSVG, champStickerSVG, fitStickerTexts } from '../ui/badge-svg.js?v=521';
 import { superBowlLogoSVG, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';
-import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=798';
-import { playerImageService } from '../services/player-image-service.js?v=533';
+import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=800';
+import { playerImageService } from '../services/player-image-service.js?v=534';
 import { apHalfFieldSvg, sbLineup } from '../ui/field-allpro.js?v=13';
 import { hydrateFieldPhotos } from '../ui/field-formation.js?v=3';
-import { CURRENT_SEASON, fetchFantasyData, SEASONS, SEASONS_DESC, displayName, getSeasonConfig } from '../data.js?v=595';
+import { CURRENT_SEASON, fetchFantasyData, SEASONS, SEASONS_DESC, displayName, getSeasonConfig } from '../data.js?v=596';
 import { getWaiverMoves } from '../data/waiver-moves.js?v=29';
 import { TEAM_PALETTE, TEAM_KEYS, teamPaletteVars } from '../data/team-config.js?v=538';
 import { teamLoader } from '../ui/loading-page.js?v=6';
@@ -34,7 +34,7 @@ import { fetchSeasonSchedule } from '../data/espn-fantasy.js?v=178';
 // schermo: sono proiezioni di sette stagioni, e chi guarda la classifica in
 // cima non deve pagarle. La versione è la stessa degli altri import di
 // draftgrades.js, o il modulo verrebbe caricato due volte con due cache.
-const loadDraftGrades = () => import('./draftgrades.js?v=839');
+const loadDraftGrades = () => import('./draftgrades.js?v=841');
 
 // Converte numero in romano per gli sticker Super Bowl (stagione 2019 = I, 2020 = II, …)
 function _toRoman(n) {

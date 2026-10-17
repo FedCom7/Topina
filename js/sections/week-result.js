@@ -19,9 +19,9 @@
  */
 
 import { TEAM_PALETTE, TEAM_LOGOS, TEAM_LOGO_SCALE, TEAM_KEYS } from '../data/team-config.js?v=538';
-import { playerImageService } from '../services/player-image-service.js?v=533';
+import { playerImageService } from '../services/player-image-service.js?v=534';
 import { montaLivello, razziDaiLati, coriandoliAttorno, fermaEffetti } from '../ui/live-fx.js?v=38';
-import { CURRENT_SEASON, fetchFantasyData, displayName } from '../data.js?v=595';
+import { CURRENT_SEASON, fetchFantasyData, displayName } from '../data.js?v=596';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import {
     esitoSettimana, ultimaGiornataChiusa, segnalibroEsito, segnaEsitoVisto, segnaControllato,
