@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-15T13:47:16.540Z",
+ "generatedAt": "2026-10-18T12:55:20.109Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -3914,7 +3914,7 @@
     "WR": {
      "pgLeague": 29.7,
      "pgHalf": 24.8,
-     "rank": 20
+     "rank": 21
     },
     "TE": {
      "pgLeague": 16.7,
@@ -6804,9 +6804,9 @@
      "rank": 28
     },
     "WR": {
-     "pgLeague": 29.1,
+     "pgLeague": 30.3,
      "pgHalf": 25,
-     "rank": 22
+     "rank": 20
     },
     "TE": {
      "pgLeague": 15.7,
@@ -7047,7 +7047,7 @@
     "WR": {
      "pgLeague": 29.3,
      "pgHalf": 24.6,
-     "rank": 21
+     "rank": 22
     },
     "TE": {
      "pgLeague": 16.6,
