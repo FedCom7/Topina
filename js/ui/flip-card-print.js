@@ -17,7 +17,7 @@
  * duplicata due volte con nomi diversi.
  */
 
-import { esc, teamLogo } from '../sections/player-page.js?v=1085';
+import { esc, teamLogo } from '../sections/player-page.js?v=1086';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 
 /** Filetto di squadra: uguale a `flipTeamColor` di nfl-team-page.js, duplicato

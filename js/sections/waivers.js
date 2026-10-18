@@ -22,10 +22,10 @@
  */
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=596';
-import { TEAMS } from './team.js?v=864';
+import { TEAMS } from './team.js?v=865';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getWaiverMoves, ordina, accorpa } from '../data/waiver-moves.js?v=29';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=914';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=915';
 
 
 /** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */

@@ -36,11 +36,11 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1085';
+} from './player-page.js?v=1086';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1119';
+} from './nfl-team-home.js?v=1120';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {
@@ -2989,7 +2989,7 @@ function bindFlipCard(section, ctx) {
             if (openBtn && _flipState?.card) {
                 // Import dinamico, stessa ragione del modulo dati (vedi sopra):
                 // la vista stampa non deve poter spegnere il resto della pagina.
-                import('../ui/flip-card-print.js?v=6').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
+                import('../ui/flip-card-print.js?v=7').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
             }
         });
     }

@@ -32438,6 +32438,20 @@ body.wr-open { overflow: hidden; }
     vertical-align: 1px;
 }
 .pm-ssn-row.is-bye { opacity: 0.5; }
+/* giornata in cui la squadra ha giocato e lui no (infortunio, inattivo):
+   l'avversario c'e', i punti no, e la targhetta lo dice — prima era "Bye" */
+.pm-ssn-row.is-dnp { opacity: 0.6; }
+.pm-ssn-dnp {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.14);
+    color: var(--accent-red);
+    font-size: 0.66rem;
+    font-weight: 800;
+    font-style: normal;
+    letter-spacing: 0.06em;
+}
 @media (max-width: 560px) {
     /* stretti: le statistiche vanno sotto, a tutta riga */
     .pm-ssn-row { grid-template-columns: 2.1rem 1fr 2.8rem; row-gap: 3px; }

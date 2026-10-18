@@ -15,9 +15,10 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=644';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=635';
-import { TEAMS } from '../sections/team.js?v=864';
+import { TEAMS } from '../sections/team.js?v=865';
 import { playerImageService } from '../services/player-image-service.js?v=534';
 import { getPlayerInfo, getPlayerWeekly } from '../data/player-full.js?v=674';
+import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=632';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 
@@ -365,19 +366,48 @@ function voceSleeper(stats, name, ruolo) {
 async function caricaStagione(box, { name, pos, year, game }) {
     if (!box) return;
     const anno = String(year || game?.year || '');
-    let partite = null;
+    let partite = null, squadra = '';
+    // Il calendario NFL serve a dire PERCHE' una giornata e' vuota: bye solo se
+    // la sua squadra quella settimana non giocava. Prima ogni giornata senza
+    // partita su Sleeper era "Bye", e un giocatore fermo per infortunio ne
+    // collezionava due o tre (DeVonta Smith 2026).
+    const calendarioP = getTeamStats(anno).catch(() => null);
     try {
         const stats = await getSeasonStats(anno);
         const ruolo = String(pos || '').toUpperCase().replace('D/ST', 'DEF');
         const voce = voceSleeper(stats, name, ruolo);
+        squadra = voce?.team || '';
         if (voce?.playerId) partite = await getPlayerWeekly(voce.playerId, anno, ruolo);
     } catch { partite = null; }
+    const calendario = await calendarioP;
     if (!box.isConnected) return;
     if (!partite?.length && !game?.week) {
         box.innerHTML = '<p class="pm-game-empty">No games this season yet.</p>';
         return;
     }
-    box.innerHTML = stagioneHTML(partite || [], game, anno, pos);
+    box.innerHTML = stagioneHTML(partite || [], game, anno, pos, { calendario, squadra });
+}
+
+/** Le sigle che il calendario e Sleeper scrivono diverse per la stessa squadra. */
+const SIGLA = { WSH: 'WAS', JAC: 'JAX', LA: 'LAR', OAK: 'LV', SD: 'LAC' };
+const sigla = (a) => { const s = String(a || '').toUpperCase(); return SIGLA[s] || s; };
+
+/**
+ * Che cosa e' stata una giornata senza partita del giocatore: la sua squadra
+ * quella settimana era ferma (bye) o giocava senza di lui (DNP). La squadra e'
+ * quella della partita piu' vicina PRIMA di quella giornata (o la prima dopo):
+ * chi e' stato scambiato ha avuto due calendari. Senza calendario non si dice
+ * niente — meglio nessuna etichetta che una sbagliata.
+ */
+function giornataVuota(w, partite, calendario, squadra) {
+    const prima = [...partite].filter(g => g.week < w && g.team).sort((a, b) => b.week - a.week)[0];
+    const dopo = [...partite].filter(g => g.week > w && g.team).sort((a, b) => a.week - b.week)[0];
+    const sq = sigla(prima?.team || dopo?.team || squadra);
+    const sched = calendario?.teams?.[sq]?.schedule;
+    if (!sq || !Array.isArray(sched) || !sched.length) return { tipo: 'ignoto' };
+    const g = sched.find(x => Number(x.week) === w);
+    if (!g) return { tipo: 'bye' };
+    return { tipo: 'dnp', avv: g.opp || '', fuori: g.home === false, giocata: g.result != null };
 }
 
 /* Le statistiche di Sleeper hanno nomi loro (pass_yd, rec_tgt…): qui si
@@ -419,7 +449,7 @@ function rigaStats(pos, s = {}) {
  * guardando prende punti e statistiche della scheda (dal vivo) invece di
  * quelli di Sleeper, che arrivano dopo; le giornate senza partita sono "Bye".
  */
-function stagioneHTML(partite, game, anno, pos) {
+function stagioneHTML(partite, game, anno, pos, { calendario = null, squadra = '' } = {}) {
     const ruolo = String(pos || '').toUpperCase();
     const perWeek = new Map(partite.map(g => [g.week, g]));
     const ultima = Math.max(game?.week || 0, ...partite.map(g => g.week));
@@ -431,19 +461,33 @@ function stagioneHTML(partite, game, anno, pos) {
         const avv = ora ? String(game.opponent || '').replace(/^@/, '') : (g?.opponent || '');
         const fuori = ora ? String(game.opponent || '').startsWith('@') : !!g?.isAway;
         const st = ora ? (game.stats || {}) : statsLega(g?.stats);
-        righe.push({ w, pts, avv, fuori, ora, live: ora && game?.gameState === 'in', st });
+        const vuota = pts == null ? giornataVuota(w, partite, calendario, squadra) : null;
+        righe.push({ w, pts, avv, fuori, ora, live: ora && game?.gameState === 'in', st, vuota });
     }
     const giocate = righe.filter(r => r.pts != null);
     const tot = giocate.reduce((a, r) => a + r.pts, 0);
     const media = giocate.length ? tot / giocate.length : 0;
     const migliore = giocate.reduce((a, r) => (!a || r.pts > a.pts ? r : a), null);
-    const lista = righe.map(r => r.pts == null ? `
+    const vuota = (r) => {
+        const v = r.vuota || { tipo: 'ignoto' };
+        if (v.tipo === 'bye') return `
         <li class="pm-ssn-row is-bye">
             <span class="pm-ssn-w">W${r.w}</span>
             <span class="pm-ssn-opp">Bye</span>
             <span class="pm-ssn-st"></span>
             <b class="pm-ssn-pts">–</b>
-        </li>` : `
+        </li>`;
+        // la squadra ha giocato (o deve ancora giocare) e lui non c'e'
+        const contro = v.avv ? `${v.fuori ? '@' : 'vs'} ${v.avv}` : '';
+        return `
+        <li class="pm-ssn-row is-dnp">
+            <span class="pm-ssn-w">W${r.w}</span>
+            <span class="pm-ssn-opp">${contro}</span>
+            <span class="pm-ssn-st">${v.tipo === 'dnp' && v.giocata ? '<i class="pm-ssn-dnp" title="Did not play">DNP</i>' : ''}</span>
+            <b class="pm-ssn-pts">–</b>
+        </li>`;
+    };
+    const lista = righe.map(r => r.pts == null ? vuota(r) : `
         <li class="pm-ssn-row${r.ora ? ' is-now' : ''}${r.live ? ' is-live' : ''}${migliore === r ? ' is-best' : ''}">
             <span class="pm-ssn-w">W${r.w}</span>
             <span class="pm-ssn-opp">${r.avv ? `${r.fuori ? '@' : 'vs'} ${r.avv}` : ''}</span>

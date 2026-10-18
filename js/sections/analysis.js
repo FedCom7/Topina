@@ -8,7 +8,7 @@
 
 import { TEAM_PALETTE } from '../data/team-config.js?v=538';
 import { fetchFantasyData, fetchDraftData, displayName, getSeasonConfig, SEASONS, SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=596';
-import { TEAMS } from './team.js?v=864';
+import { TEAMS } from './team.js?v=865';
 import { playerImageService } from '../services/player-image-service.js?v=534';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { montaGhiera } from '../ui/ghiera.js?v=1';

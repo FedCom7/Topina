@@ -19,13 +19,13 @@
 import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=596';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=178';
-import { TEAMS } from './team.js?v=864';
+import { TEAMS } from './team.js?v=865';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats, normName } from '../data/projections.js?v=635';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=914';
+} from './analysis.js?v=915';
 import { getPlayerWeekly, statsSleeperALega } from '../data/player-full.js?v=674';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
