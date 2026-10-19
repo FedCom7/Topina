@@ -9,7 +9,7 @@
  * niente rete: chi chiama passa squadre, stato e giocate.
  */
 
-import { titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=149';
+import { titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=150';
 import { headshotUrl } from './nfl-plays.js?v=572';
 import { teamNameFromAbbr } from './espn-fantasy.js?v=178';
 import { ESPN_TEAM_IDS } from './player-map.js?v=513';

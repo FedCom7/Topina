@@ -608,7 +608,7 @@ function tratto(g, possesso, corrente, lato, attr = '') {
  * le altre smorzate — la stessa lettura del campo di NFL Hub. Cambiando drive
  * si azzera e si riparte, perche' il disegno e' costruito da capo ogni volta.
  */
-function tracciaGiocate(lista, corrente, possesso, g) {
+function tracciaGiocate(lista, corrente, possesso, g, esito = null) {
     if (!lista?.length) return '';
     const f = (n) => n.toFixed(1);
     // Solo le giocate FINO a quella scelta: quelle successive raccontano un
@@ -690,11 +690,55 @@ function tracciaGiocate(lista, corrente, possesso, g) {
     const los = `
         <line class="fst-los-ombra" x1="${f(lx1)}" y1="${f(ly1)}" x2="${f(lx2)}" y2="${f(ly2)}"/>
         <line class="fst-los" x1="${f(lx1)}" y1="${f(ly1)}" x2="${f(lx2)}" y2="${f(ly2)}"/>`;
+    /*
+     * L'esito scritto in fondo alla giocata ("+17", "TD", "INT"): solo il
+     * Night Recap lo chiede (vedi `tracceRecapSVG`), il Live no. Sta sul
+     * prato appena davanti al punto d'arrivo, sotto l'asta del ritratto,
+     * così non le finisce addosso.
+     */
+    const xE = cur.xFine != null ? cur.xFine : fx2;
+    const etichettaEsito = !esito?.testo ? '' : `
+        <g class="fst-esito fst-esito--${esito.cls || 'none'}" transform="translate(${f(Math.max(40, Math.min(VB_W - 40, xE)))},${f(cur.y2 + 30)})">
+            <rect x="-34" y="-17" width="68" height="30" rx="15"/>
+            <text x="0" y="5">${esc(esito.testo)}</text>
+        </g>`;
     return `
     ${los}
     ${pezzi.map(x => x.svg).join('')}
     ${segno}
-    ${foto}`;
+    ${foto}
+    ${etichettaEsito}`;
+}
+
+/**
+ * Le tracce del Night Recap: il drive fino alla giocata corrente (le prime
+ * spente), più due cose che il Live non disegna e che vengono da Madden —
+ * la riga GIALLA del primo down e l'esito in fondo alla giocata.
+ *
+ * Ritorna solo il contenuto da mettere dentro un campo già disegnato con
+ * `campoHTML`: il recap cambia giocata più volte al secondo, e ridisegnare
+ * ogni volta erba, loghi e pali faceva lampeggiare le immagini. Si prende un
+ * suffisso d'istanza nuovo a ogni chiamata, perché i ritratti hanno
+ * `clipPath` con id propri e due pannelli a schermo non devono pestarseli.
+ *
+ * @param s      lo stato di `statoPartita` (data/campo-partita.js)
+ * @param esito  { testo, cls } da scrivere in fondo alla giocata, o null
+ */
+export function tracceRecapSVG(s, esito = null) {
+    ID = String(++nIstanza);
+    if (!s?.giocate?.length) return '';
+    const g = s.giocate[s.giocataIdx] || s.giocate[s.giocate.length - 1];
+    let primo = '';
+    const da = g.tipo === 'kick' ? null : yardAssoluta(g.toEZ, g.possesso || s.possesso);
+    // Niente riga gialla su un "& Goal": il primo down sarebbe dentro la end
+    // zone, e la riga lì non vuol dire niente.
+    if (da != null && s.down >= 1 && s.down <= 4 && s.distance > 0 && s.distance < g.toEZ) {
+        const y = da + versoDi(g.possesso || s.possesso) * s.distance;
+        const [x1, y1] = P(uDaYard(y), LINEA_DA), [x2, y2] = P(uDaYard(y), LINEA_A);
+        const f = (n) => n.toFixed(1);
+        primo = `<line class="fst-primo" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/>`;
+    }
+    return primo + tracciaGiocate(s.giocate, s.giocataIdx ?? 0, s.possesso, s.giocata, esito);
 }
 
 /**

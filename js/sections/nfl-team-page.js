@@ -24,7 +24,7 @@ import { getSeasonStats, normName } from '../data/projections.js?v=635';
 import {
     campoHTML, tracceDrive, titoloGiocata, tipoGiocata, direzioneGiocata,
     yardCalcio, yardStimate, fgBuono, azioneAnnullata, volodelCalcio, testoAzione,
-} from '../ui/field-strip.js?v=149';
+} from '../ui/field-strip.js?v=150';
 import {
     getTeamProfile, getTeamPowerIndex, getTeamScheduleLive, getTeamScheduleFull,
     getTeamTransactions, getTeamSeasonStats, getTeamFutures, getLeagueStandings,

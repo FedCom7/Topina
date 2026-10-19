@@ -54,7 +54,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;800;900&display=swap"
         rel="stylesheet">
     <!-- il CSS VERO del sito -->
-    <link rel="stylesheet" href="css/main.css?v=1426">
+    <link rel="stylesheet" href="css/main.css?v=1427">
     <style>
         /* Cromatura del banco. Volutamente diversa dal sito: dev'essere ovvio
            a colpo d'occhio che non si sta guardando la pagina vera. */
@@ -436,6 +436,21 @@
                 </span>
             </label>
             <label class="lab-f">
+                <span>Sfida</span>
+                <select id="sfida">
+                    <option value="normale">Mio replay</option>
+                    <option value="decisiva">Mio + margine (decisiva)</option>
+                    <option value="rivale">Avversario (decisiva)</option>
+                </select>
+            </label>
+            <label class="lab-f">
+                <span>Giocata</span>
+                <select id="giocata">
+                    <option value="campo">Campo</option>
+                    <option value="testo">Testo (vecchio)</option>
+                </select>
+            </label>
+            <label class="lab-f">
                 <span>Tema</span>
                 <button type="button" id="tema">Dark</button>
             </label>
@@ -465,6 +480,7 @@
            italiana), scelte per coprire casi diversi: la sparatoria, il
            pareggio, la gara difensiva, quella di dicembre. */
         const PARTITE = [
+            { id: '401872995', anno: 2026, w: 6, away: 'SEA', home: 'DEN', ris: '14-17', nota: 'overtime' },
             { id: '401872948', anno: 2026, w: 3, away: 'ATL', home: 'GB', ris: '35-14', nota: 'Thursday Night' },
             { id: '401872932', anno: 2026, w: 2, away: 'DET', home: 'BUF', ris: '31-41', nota: 'Thursday Night' },
             { id: '401872945', anno: 2026, w: 2, away: 'IND', home: 'KC', ris: '30-33', nota: 'Sunday Night' },
@@ -496,10 +512,10 @@
             startLoadingArt();
             const { fetchPlays, resolveAthlete } = await import('./js/data/nfl-plays.js?v=572');
             const { scorePlay } = await import('./js/data/scoring.js?v=593');
-            const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=14');
+            const { costruisciSequenza, giocateDeiMiei } = await import('./js/data/night-recap.js?v=19');
             const { ESPN_TEAM_IDS } = await import('./js/data/player-map.js?v=513');
             const { squadraPreferita, impostaSquadraPreferita } = await import('./js/utils/preferenze.js?v=1');
-            const rec = await import('./js/sections/night-recap.js?v=35');
+            const rec = await import('./js/sections/night-recap.js?v=49');
 
             const perId = new Map(Object.entries(ESPN_TEAM_IDS).map(([a, i]) => [String(i), a]));
             const siglaDi = (id) => perId.get(String(id)) || '';
@@ -532,8 +548,11 @@
                 const c = e.data;
                 if (!c || c.nrCmd !== true) return;
                 if (c.cmd === 'loading') { rec.anteprimaCaricamento(); return; }
-                if (c.cmd === 'play') rec.anteprimaRecap(pronti, { manuale: false, onPasso: suPasso });
-                if (c.cmd === 'manuale') { rec.anteprimaRecap(pronti, { manuale: true, onPasso: suPasso }); rec.anteprimaPasso(); }
+                // Il campo della giocata è il predefinito, come nel sito;
+                // `campo=0` rimette la frase di ESPN per confrontarle.
+                const campo = P.get('campo') !== '0';
+                if (c.cmd === 'play') rec.anteprimaRecap(pronti, { manuale: false, onPasso: suPasso, campo });
+                if (c.cmd === 'manuale') { rec.anteprimaRecap(pronti, { manuale: true, onPasso: suPasso, campo }); rec.anteprimaPasso(); }
                 if (c.cmd === 'passo') rec.anteprimaPasso();
                 if (c.cmd === 'auto') rec.anteprimaAuto(!!c.auto);
                 if (c.cmd === 'chiudi') rec.anteprimaChiudi();
@@ -598,17 +617,64 @@
                    piccolo, così il passo `assesta` — che nel sito chiude la
                    differenza col tabellino vero — si vede anche qui invece di
                    restare un ramo mai percorso. */
-                const titolari = scelti.map(x => ({
+                const comeTitolare = (x) => ({
                     name: x.name, espn_id: x.espn_id,
                     position_in_team: x.position_in_team, position: x.position_in_team,
                     nfl_team: x.nfl_team,
                     fantasy_points: +(x.pts + 0.4).toFixed(2),
-                }));
-                const perEspn = new Map(titolari.map(t => [String(t.espn_id), t]));
-                const chiE = (x) => (x.defTeamId ? null : perEspn.get(String(x.espnId)) || null);
+                });
+                const titolari = scelti.map(comeTitolare);
+                const aggancia = (lista) => {
+                    const perEspn = new Map(lista.map(t => [String(t.espn_id), t]));
+                    return (x) => (x.defTeamId ? null : perEspn.get(String(x.espnId)) || null);
+                };
+                const chiE = aggancia(titolari);
+                /* La sfida del banco (`sfida=`), come la decide `raccogli()`:
+                   - normale: replay mio, la sfida non si decide stanotte;
+                   - decisiva: replay mio, e due protagonisti della stessa
+                     partita fanno da titolari dell'avversario — salgono nel
+                     margine senza card;
+                   - rivale: i titolari in scena sono i SUOI, io non ho nessuno.
+                   I totali sono costruiti perché finisca in volata: l'avversario
+                   vince di 1,8 punti. Nel modo `rivale` per strada c'è anche
+                   il sorpasso, perché io parto dal mio totale intero. */
+                const modo = P.get('sfida') || 'normale';
+                const somma = (l) => l.reduce((t, x) => t + x.fantasy_points, 0);
+                // Due protagonisti della stessa partita fanno da titolari
+                // dell'avversario in ogni modo tranne `rivale` (dove in scena
+                // ci sono già i suoi): come nel sito, i loro punti salgono
+                // nella race senza card.
+                const rivali = modo !== 'rivale'
+                    ? c.candidati.filter(x => !scelti.includes(x)).slice(0, 2).map(comeTitolare) : [];
+                const inScena = somma(titolari);
+                const nomeOpp = nomeSquadra() === 'Lasers' ? 'Oscurus' : 'Lasers';
+                const finiti = (l) => l.map(t => ({ ...t, game_state: 'post' }));
+                const riempi = (l, stato) => [...l,
+                    ...Array.from({ length: Math.max(0, 9 - l.length) }, () => ({ game_state: stato }))];
+                const mia = modo === 'rivale' ? {
+                    team: { name: nomeSquadra(), score: '95.00', starters: riempi([], 'post') },
+                    opp: { name: nomeOpp, score: (95 + 1.8).toFixed(2), starters: riempi(finiti(titolari), 'post') },
+                } : modo === 'decisiva' ? {
+                    team: { name: nomeSquadra(), score: (inScena + 70).toFixed(2), starters: riempi(finiti(titolari), 'post') },
+                    opp: { name: nomeOpp, score: (inScena + 70 + 1.8).toFixed(2), starters: riempi(finiti(rivali), 'post') },
+                } : {
+                    /* Il totale di giornata è la notte più 31,6 punti
+                       inventati di prima, così il riassunto mostra due numeri
+                       diversi in grande e in piccolo; l'avversario ha un
+                       titolare nella stessa partita, per vedere anche il suo
+                       "tonight". */
+                    team: {
+                        name: nomeSquadra(),
+                        score: (inScena + 31.6).toFixed(2),
+                        starters: riempi(finiti(titolari), 'pre'),
+                    },
+                    opp: { name: nomeOpp, score: (somma(rivali) + 20).toFixed(2),
+                        starters: riempi(finiti(rivali), 'pre') },
+                };
                 const sequenza = costruisciSequenza({
                     giocate: c.giocate, titolari, chiE,
                     siglaDi, budget: perCapitolo, comprimiGiocate: comprimi,
+                    rivali: rivali.length ? { titolari: rivali, chiE: aggancia(rivali) } : null,
                 });
                 return {
                     partita: {
@@ -616,15 +682,16 @@
                         start: new Date(), end: new Date(),
                     },
                     titolari, week: c.partita.w,
-                    /* Nel banco l'avversario di lega non esiste: si finge, per
-                       poter guardare anche quel lato della schermata finale.
-                       Nel sito arriva vero da `squadraMia()`. */
-                    mia: {
-                        team: { name: nomeSquadra() },
-                        opp: { name: 'Lasers', score: '0.00',
-                            starters: Array.from({ length: 9 }, () => ({ game_state: 'pre' })) },
-                    },
+                    /* Nel banco la sfida di lega non esiste: si finge (vedi
+                       sopra). Nel sito arriva vera da `squadraMia()`. */
+                    mia,
+                    lato: modo === 'rivale' ? 'suo' : 'mio',
+                    decisiva: modo !== 'normale',
+                    rivali,
                     sequenza,
+                    // Le giocate grezze: il campo della giocata le ridisegna
+                    // passo per passo (nel sito le mette `raccogli()`).
+                    giocate: c.giocate,
                     giocateGrafico: giocateDeiMiei(c.giocate, chiE),
                 };
             }).filter(c => c.sequenza.passi.length);
@@ -712,6 +779,8 @@
                     embed: '1', g: partiteScelte().join(','),
                     n: $('#quanti').value, b: $('#budget').value,
                     all: $('#tutte').checked ? '1' : '0',
+                    sfida: $('#sfida').value,
+                    campo: $('#giocata').value === 'campo' ? '1' : '0',
                 });
                 if (selezione.some(s => s?.length)) q.set('sel', selezione.map(s => (s || []).join(',')).join('|'));
                 if (temaChiaro) q.set('tema', 'light');
@@ -824,6 +893,8 @@
             // cosa (come index.html), quindi cambiarlo ricarica l'iframe:
             // non c'è un modo pulito di ridipingere a caldo tutto quello che
             // già c'è senza rifare esattamente quello che fa un reload.
+            $('#sfida').addEventListener('change', () => ricarica({ tieniSelezione: true }));
+            $('#giocata').addEventListener('change', () => ricarica({ tieniSelezione: true }));
             $('#tema').addEventListener('click', () => {
                 temaChiaro = !temaChiaro;
                 $('#tema').textContent = temaChiaro ? 'Light' : 'Dark';

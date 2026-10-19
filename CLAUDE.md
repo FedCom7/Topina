@@ -463,13 +463,42 @@ in `SECTIONS` e non espone un `initXxx()`. È un livello sopra tutto il sito, e
    giocatore.** Il resto della partita si legge dal tabellone, e una riga su
    un'azione che non mi riguarda toglie l'occhio proprio da lì.
 
+   **Al posto della frase di ESPN c'è il CAMPO della giocata**, quello in
+   prospettiva del Live: erba, end zone e loghi si disegnano una volta per
+   pannello, e a ogni passo cambiano solo le tracce (`tracceRecapSVG` in
+   field-strip.js, sullo stato di `statoPartita` come nel Live). Il drive
+   fin lì resta spento dietro; in più, alla Madden, la scrimmage BLU (nel
+   Live è rossa, ma qui il rosso è la perdita), la riga gialla del primo
+   down e l'esito in fondo al tratto ("+17", "INC", "TD"). La frase resta
+   come riga corta (`riassunto`) solo sulle giocate dei miei, che sono anche
+   le sole con le foto. Tre cose da sapere:
+   - l'animazione del Live dura 1,5 s fissi; qui segue il passo
+     (`--nr-trat`), e le giocate vecchie del drive non si rianimano;
+   - il campo è `height: auto` con un tetto: ad altezza fissa, sul telefono
+     restava centrato in un riquadro più alto, con un vuoto sopra e sotto;
+   - con tre partite su telefono non ci sta (`nr-show--fitto`) e torna la
+     riga. Il banco può spegnerlo (`campo=0`) per confrontarlo col testo.
+
+   **Sul telefono, sotto il campo, la RACE** (`js/ui/race-recap.js`): i due
+   totali di giornata che salgono col replay, la "Score race" del Live in
+   piccolo, coi badge TD. Asse = tempo di gioco, scala FISSA dal primo passo
+   (i totali finali si sanno già). Per avere la linea dell'avversario i suoi
+   titolari in campo stanotte si contano in OGNI replay (`rivali`, con
+   `rivaliTd` per il badge), non solo nella notte decisiva. Su desktop non
+   c'è; `adattaDensita` la toglie per prima se non ci sta. Il piede dice
+   "tonight" accanto al nome: sopra la race mostra i totali di giornata, e
+   due numeri diversi nello stesso colore si leggevano come un errore.
+
 8-ter. **Il replay finisce su una SCHERMATA RIASSUNTIVA, e non si chiude da
    solo.** Il punteggio della sfida, ogni giocata dei titolari su un campo
    solo, e il pulsante per entrare nel sito. È l'ultima cosa che si guarda:
    sparire da sé sarebbe la cosa sbagliata.
 
-   L'avversario di lega si mostra col suo totale VERO di giornata **più quanti
-   titolari deve ancora scendere in campo**. Dopo il Thursday Night è quasi
+   Tutte e due le squadre si mostrano col totale VERO di giornata, e sotto in
+   piccolo i punti fatti stanotte **più quanti titolari devono ancora scendere
+   in campo**. Prima a sinistra c'erano i soli punti della notte contro il
+   totale dell'avversario: due misure diverse una contro l'altra. Il "da
+   giocare" serve soprattutto all'avversario: dopo il Thursday Night è quasi
    sempre a zero con nove da giocare, e quello zero senza avviso sembrerebbe
    una vittoria schiacciante invece di una giornata appena cominciata.
 
@@ -513,6 +542,26 @@ in `SECTIONS` e non espone un `initXxx()`. È un livello sopra tutto il sito, e
 
    Le perdite nel totale yard si **sottraggono**, non si azzerano: clampandole
    a zero la serata risultava di 218 yard invece delle 213 vere.
+
+8-quater. **Nella notte DECISIVA conta il margine, e il replay può essere
+   dell'avversario.** Decisiva vuol dire che dopo stanotte nessun titolare
+   delle due squadre ha più da giocare (`eDecisiva`, sullo stato NFL di ogni
+   titolare) — non "l'ultima partita della settimana": se lunedì non gioca
+   nessuno dei nostri, la decisiva è il Sunday Night. In quella notte:
+   - **se gioco io**, il replay è il solito, ma il piede mostra il mio totale,
+     il suo e il margine; i suoi titolari della stessa partita salgono
+     insieme ai miei senza card (`rivali` in `costruisciSequenza`, che dà a
+     ogni passo la sua quota in `passo.rivali` e li assesta anch'essi sul
+     referto);
+   - **se gioco solo lui**, il replay è il SUO: i suoi titolari in scena, la
+     scena tinta nel colore della sua squadra (`.nr-overlay--rivale`,
+     `--nr-rivale`), "Opponent watch" in testa. Il mio lato è spento, perché
+     il mio numero non si muoverà.
+   Ogni lato parte dal totale di giornata meno i punti che il replay sta per
+   rimettere, quindi l'ultimo passo coincide coi totali ufficiali. Il margine
+   è sempre dal MIO punto di vista, verde avanti e rosso dietro: per questo la
+   scena dell'avversario non è rossa, o il rosso vorrebbe dire due cose. Una
+   notte NON decisiva in cui gioca solo lui non si racconta.
 
 9. **Gli effetti sono quelli del Live, non una copia — ma accorciati.**
    `live-slot--onball`,

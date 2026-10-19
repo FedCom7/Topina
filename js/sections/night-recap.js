@@ -43,11 +43,13 @@ import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statRingHTML } from '../ui/stat-ring.js?v=1';
 import { playerImageService } from '../services/player-image-service.js?v=534';
 import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=38';
-import { logoImg, pallaPossesso } from '../ui/field-strip.js?v=149';
+import { logoImg, pallaPossesso, campoHTML, tracceRecapSVG } from '../ui/field-strip.js?v=150';
+import { statoPartita } from '../data/campo-partita.js?v=4';
+import { raceRecapSVG, secondiGiocati } from '../ui/race-recap.js?v=3';
 import {
-    partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei,
+    partiteDiNotte, eDiNotte, eFresca, costruisciSequenza, intreccia, giocateDeiMiei, eDecisiva, tempoDiGioco,
     fattoreSupplementari, segnalibro, segnaViste, segnaTentativo, valeTentare,
-} from '../data/night-recap.js?v=14';
+} from '../data/night-recap.js?v=19';
 import { ngsChartHTML, ngsLegendaHTML, ngsFasceHTML, bindNgsChart } from '../ui/ngs-chart.js?v=3';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -225,15 +227,43 @@ async function raccogli() {
         const mia = squadraMia(lega.matchups, chiave);
         if (!mia) continue;
 
-        for (const partita of notturne) {
-            const titolari = (mia.team.starters || []).filter(p => {
-                const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name) || '';
-                return ab === partita.home || ab === partita.away;
+        /*
+         * Di chi è il replay.
+         *
+         * Se stanotte giocava qualcuno dei miei, è il mio — come sempre. Se no,
+         * e la sfida si decideva stanotte (`eDecisiva`: dopo, nessuno dei
+         * nostri ha più da giocare), è il replay dell'AVVERSARIO: i suoi
+         * titolari in campo, la scena nel suo colore, e in fondo il margine
+         * fra i due totali. Una partita qualunque dell'avversario invece non
+         * si racconta — un giovedì in cui gioca solo lui non decide niente.
+         *
+         * Nella notte decisiva il margine compare anche nel replay normale.
+         * I punti dell'avversario nelle partite di stanotte salgono comunque
+         * insieme ai miei (`rivali`), senza card: servono alla race, che
+         * mostra i due totali in ogni replay.
+         */
+        const decisiva = eDecisiva(mia.team, mia.opp);
+        const suoi = (partita) => (mia.opp?.starters || []).filter(p => giocaIn(p, partita));
+        const miei = notturne
+            .map(partita => ({ partita, titolari: (mia.team.starters || []).filter(p => giocaIn(p, partita)) }))
+            .filter(c => c.titolari.length);
+        const lato = miei.length ? 'mio' : 'suo';
+        const scelti = miei.length ? miei
+            : decisiva ? notturne.map(partita => ({ partita, titolari: suoi(partita) })).filter(c => c.titolari.length)
+                : [];
+        for (const c of scelti) {
+            capitoli.push({
+                ...c, week: w, mia, notturne, lato, decisiva,
+                rivali: lato === 'mio' ? suoi(c.partita) : [],
             });
-            if (!titolari.length) continue;
-            capitoli.push({ partita, titolari, week: w, mia });
         }
     }
+
+    // Due settimane con due modi diversi nella stessa apertura non si
+    // mescolano: vince il replay dei miei, l'altro resta "visto".
+    const scartati = capitoli.some(c => c.lato === 'mio')
+        ? capitoli.filter(c => c.lato === 'suo') : [];
+    for (const c of scartati) capitoli.splice(capitoli.indexOf(c), 1);
 
     if (!capitoli.length) return { capitoli: [], prossimaFine };
 
@@ -273,6 +303,7 @@ async function raccogli() {
             // Ogni azione della partita è un passo: si vede tutta la gara
             // scorrere, non solo i momenti dei miei.
             comprimiGiocate: false,
+            rivali: cap.rivali?.length ? { titolari: cap.rivali, chiE: agganciatore(cap.rivali) } : null,
         });
         // Le stesse giocate, nella forma che serve al campo del riassunto.
         cap.giocateGrafico = giocateDeiMiei(cap.giocate, chiE);
@@ -282,7 +313,11 @@ async function raccogli() {
     // ESPN non dà il play-by-play di quella partita. Resta comunque "visto",
     // altrimenti il sipario si rialzerebbe domani per la stessa gara.
     const buoni = capitoli.filter(c => c.sequenza?.passi?.length);
-    return { capitoli: buoni, vuoti: capitoli.filter(c => !buoni.includes(c)), prossimaFine };
+    return {
+        capitoli: buoni,
+        vuoti: [...capitoli.filter(c => !buoni.includes(c)), ...scartati],
+        prossimaFine,
+    };
 }
 
 /** La sfida in cui gioca la squadra del cuore, dal suo punto di vista. */
@@ -381,6 +416,45 @@ export async function risolviNightRecap() {
         esito.prossimaFine || 0);
 }
 
+/**
+ * I due totali della sfida durante il replay. Servono alla race in ogni
+ * replay; il MARGINE nel piede invece si mostra solo se stanotte la sfida si
+ * decideva (`margine`, da `decisiva`) — le altre notti il piede resta quello
+ * di sempre.
+ *
+ * Ogni lato parte dal suo totale di giornata MENO i punti che il replay sta
+ * per rimettere — cioè da quanto aveva prima di stanotte — e ci torna sopra
+ * giocata per giocata. Alla fine, assestamento compreso, i due numeri sono i
+ * totali ufficiali.
+ */
+function sfidaDi(capitoli) {
+    const c0 = capitoli[0];
+    if (!c0?.mia?.opp) return null;
+    const { mia, lato } = c0;
+    const somma = (lista) => lista.reduce((s, p) => s + (Number.parseFloat(p.fantasy_points) || 0), 0);
+    const inScena = capitoli.flatMap(c => c.titolari);
+    const contati = capitoli.flatMap(c => c.rivali || []);
+    const [mieiStanotte, suoiStanotte] = lato === 'mio' ? [inScena, contati] : [[], inScena];
+    const chiaveSua = TEAM_KEYS[displayName(mia.opp.name)];
+    return {
+        lato,
+        margine: capitoli.every(c => c.decisiva),
+        rivaliCorr: 0,
+        mio: {
+            nome: displayName(mia.team.name),
+            base: (Number.parseFloat(mia.team.score) || 0) - somma(mieiStanotte),
+            gioca: mieiStanotte.length > 0,
+            tinta: TEAM_PALETTE[squadraPreferita()]?.bright || '#fff',
+        },
+        suo: {
+            nome: displayName(mia.opp.name),
+            base: (Number.parseFloat(mia.opp.score) || 0) - somma(suoiStanotte),
+            gioca: suoiStanotte.length > 0,
+            tinta: TEAM_PALETTE[chiaveSua]?.bright || '#f5f0e8',
+        },
+    };
+}
+
 /** Il replay dall'inizio: un capitolo per partita. */
 function riproduci(capitoli, daSegnare, prossimaFine = 0, opz = {}) {
     /*
@@ -394,10 +468,36 @@ function riproduci(capitoli, daSegnare, prossimaFine = 0, opz = {}) {
         passo: 0, trascorso: 0, durata: linea.durata,
         spento: false, timer: null,
         manuale: !!opz.manuale, onPasso: opz.onPasso || null,
+        sfida: sfidaDi(capitoli),
+        // Il campo al posto della frase di ESPN. È il predefinito; il banco di
+        // prova può spegnerlo (`anteprimaRecap(…, { campo: false })`) per
+        // confrontarlo col vecchio testo.
+        campo: opz.campo ?? true,
     };
 
     overlay.classList.remove('nr-overlay--sipario');
+    /* Il replay dell'avversario si riconosce prima di leggere una parola: la
+       scena prende il SUO colore. Il rosso resta al margine quando sono
+       sotto, così non significa due cose. */
+    const rivale = attivo.sfida?.lato === 'suo';
+    overlay.classList.toggle('nr-overlay--rivale', rivale);
+    if (rivale) overlay.style.setProperty('--nr-rivale', attivo.sfida.suo.tinta);
     overlay.innerHTML = scenaHTML(capitoli);
+    overlay.querySelector('.nr-show')?.classList.toggle('nr-show--campo', attivo.campo);
+    /* La race parte dai totali di prima di stanotte e la scala la fissano i
+       totali ufficiali, che si sanno già: vedi `raceRecapSVG`. */
+    const sf = attivo.sfida;
+    attivo.race = sf ? {
+        ora: 0,
+        durata: Math.max(...capitoli.map(c => tempoDiGioco(c.giocate || []))),
+        lati: [
+            { nome: sf.mio.nome, tinta: sf.mio.tinta, base: sf.mio.base, punti: [],
+                finale: Number.parseFloat(capitoli[0].mia.team.score) || sf.mio.base },
+            { nome: sf.suo.nome, tinta: sf.suo.tinta, base: sf.suo.base, punti: [],
+                finale: Number.parseFloat(capitoli[0].mia.opp.score) || sf.suo.base },
+        ],
+    } : null;
+    if (attivo.race) overlay.querySelector('[data-nr-race]').innerHTML = raceRecapSVG(attivo.race);
     overlay.querySelector('.nr-skip')?.addEventListener('click', () => fine());
     overlay.querySelector('.nr-palco')?.addEventListener('click', () => pausa());
     document.addEventListener('keydown', tasti);
@@ -459,10 +559,12 @@ function scenaHTML(capitoli) {
                 <div class="nr-stage live-stage" data-nr-stage>
                     <div class="nr-players" data-nr-players></div>
                 </div>
+                <div class="nr-campo" data-nr-campo></div>
                 <p class="nr-play" data-nr-play></p>
             </section>`).join('')}
         </div>
         <footer class="nr-foot">
+            <div class="nr-race" data-nr-race></div>
             <div class="nr-total" data-nr-total></div>
             ${lineaHTML()}
         </footer>
@@ -556,19 +658,49 @@ function preparaPannello(cap, i) {
 
     q('[data-nr-players]').innerHTML = titolari.map(cardHTML).join('');
 
+    /*
+     * Il campo della giocata, se acceso: erba, end zone e loghi si disegnano
+     * UNA volta qui, e a ogni passo cambiano solo le tracce dentro
+     * `[data-nr-tracce]` — ridisegnare tutto più volte al secondo faceva
+     * lampeggiare i loghi. Lo stato di ogni passo lo calcola `statoPartita`,
+     * la stessa del Live: drive, giocate fin lì, possesso.
+     */
+    if (attivo.campo) {
+        const squadra = (abbr, id) => ({
+            abbr, logo: logoNFL(abbr), color: id?.color || '', color2: id?.color2 || '',
+        });
+        cap.campoSquadre = { away: squadra(partita.away, via), home: squadra(partita.home, casa) };
+        cap.ordinate = [...(cap.giocate || [])].sort((a, b) => (a.seq || 0) - (b.seq || 0));
+        cap.indiceDi = new Map(cap.ordinate.map((g, k) => [String(g.id), k]));
+        q('[data-nr-campo]').innerHTML = campoHTML(
+            { ...cap.campoSquadre, statico: false }, '<g data-nr-tracce></g>');
+        /* Il riquadro del Live tiene 80 unità di cielo sopra la parabola più
+           alta, per lo scorebug che lì gli sta sopra. Qui sopra ci sono i
+           giocatori: il cielo vuoto rimpiccioliva il campo e basta. Il
+           disegno non si taglia comunque (`overflow: visible`). */
+        q('[data-nr-campo] .fst-campo')?.setAttribute('viewBox', '0 80 1000 240');
+    }
+
     // L'intestazione è una sola per tutto il replay: con più partite dice la
     // settimana, non i nomi delle squadre — quelli stanno già nei tabelloni.
     const testa = overlay.querySelector('[data-nr-chapter]');
+    const sfida = attivo.sfida;
     if (testa && i === 0) {
-        testa.textContent = attivo.capitoli.length > 1
-            ? `Week ${week} · ${attivo.capitoli.length} night games`
-            : `Week ${week} · ${via?.name || partita.away} at ${casa?.name || partita.home}`;
+        testa.textContent = sfida?.lato === 'suo'
+            ? `Opponent watch · ${sfida.suo.nome} · Week ${week}`
+            : attivo.capitoli.length > 1
+                ? `Week ${week} · ${attivo.capitoli.length} night games`
+                : `Week ${week} · ${via?.name || partita.away} at ${casa?.name || partita.home}`;
     }
     if (i === 0) {
         const tinta = TEAM_PALETTE[squadraPreferita()]?.bright || '#fff';
-        overlay.querySelector('[data-nr-total]').innerHTML =
-            `<span class="nr-team">${esc(displayName(cap.mia.team.name))}</span>`
+        const piede = overlay.querySelector('[data-nr-total]');
+        const margine = sfida?.margine ? sfida : null;
+        piede.classList.toggle('nr-total--sfida', !!margine);
+        piede.innerHTML = margine ? margineHTML(margine)
+            : `<span class="nr-team">${esc(displayName(cap.mia.team.name))}<span class="nr-team-notte">tonight</span></span>`
             + `<b class="nr-pts" style="color:${tinta}"><span class="pts-val">0.0</span></b>`;
+        if (margine) contaMargine(piede.querySelector('[data-nr-diff]'), sfida.mio.base - sfida.suo.base, 0);
         attivo.clockSec = null;
         attivo.clockPeriodo = null;
     }
@@ -606,7 +738,10 @@ function mostraRiassunto() {
             punti.set(p.name, (punti.get(p.name) || 0) + (cap.correnti?.get(p.name) || 0));
         }
     }
-    const mioTot = [...punti.values()].reduce((s, v) => s + v, 0);
+    // Nel replay dell'avversario i giocatori in scena sono i SUOI: i miei
+    // stanotte non giocavano, per definizione.
+    const rivale = attivo.sfida?.lato === 'suo';
+    const mioTot = rivale ? 0 : [...punti.values()].reduce((s, v) => s + v, 0);
 
     const tinta = TEAM_PALETTE[squadraPreferita()]?.bright || '#fff';
     const grafico = ngsChartHTML(giocate, nomi);
@@ -616,9 +751,11 @@ function mostraRiassunto() {
     el.className = 'nr-fine';
     el.innerHTML = `
         <header class="nr-fine-testa">
-            <span class="nr-fine-kick">Last night · your starters</span>
+            <span class="nr-fine-kick">${rivale
+        ? `Last night · ${esc(genitivo(attivo.sfida.suo.nome))} starters`
+        : 'Last night · your starters'}</span>
         </header>
-        ${sfidaHTML(mia, mioTot, tinta)}
+        ${sfidaHTML(mia, mioTot, tinta, capitoli[0]?.notturne || capitoli.map(c => c.partita), attivo.sfida?.margine ? attivo.sfida.suo.tinta : '')}
         ${grafico ? `
         <div class="nr-fine-campo">
             ${grafico}
@@ -636,32 +773,64 @@ function mostraRiassunto() {
     bindNgsChart(el);
 }
 
+/** "Lasers'" e "Sommo's": il genitivo inglese di un nome di squadra. */
+const genitivo = (nome) => (/s$/i.test(nome) ? `${nome}'` : `${nome}'s`);
+
+/** Il titolare gioca in quella partita NFL? */
+function giocaIn(p, partita) {
+    const ab = canonAbbr(p.nfl_team || '') || teamAbbrFromName(p.name) || '';
+    return ab === partita.home || ab === partita.away;
+}
+
 /**
  * Il punteggio della sfida.
  *
- * L'avversario si mostra col suo totale VERO di giornata e con quanti
- * titolari deve ancora scendere in campo: dopo il Thursday Night è quasi
- * sempre a zero con nove da giocare, e quello zero senza avviso sembrerebbe
- * una vittoria schiacciante invece di una giornata appena cominciata.
+ * In grande il totale VERO di giornata di tutte e due le squadre — è il
+ * punteggio della sfida, quello che il sito mostra due secondi dopo — e sotto,
+ * in piccolo, quanto ne è arrivato stanotte e quanti titolari devono ancora
+ * scendere in campo. Prima a sinistra c'erano i soli punti della notte e a
+ * destra il totale dell'avversario: due misure diverse una contro l'altra, e
+ * da mercoledì in poi il confronto non voleva dire niente.
+ *
+ * Il "da giocare" resta per tutti e due: dopo il Thursday Night l'avversario è
+ * quasi sempre a zero con nove da giocare, e quello zero senza avviso
+ * sembrerebbe una vittoria schiacciante invece di una giornata appena
+ * cominciata.
+ *
+ * @param {number} mioNotte  i punti della notte dei miei, gia' assestati sul
+ *                           referto: servono anche da ripiego se la lega non
+ *                           ha il totale.
  */
-function sfidaHTML(mia, mioTot, tinta) {
+function sfidaHTML(mia, mioNotte, tinta, partite, tintaSua = '') {
     const opp = mia?.opp;
-    const daGiocare = (opp?.starters || []).filter(p => p.game_state !== 'post').length;
+    const diNotte = (squadra) => (squadra?.starters || [])
+        .filter(p => partite.some(g => giocaIn(p, g)))
+        .reduce((s, p) => s + (Number(p.fantasy_points) || 0), 0);
+    const daGiocare = (squadra) => (squadra?.starters || []).filter(p => p.game_state !== 'post').length;
+    const sotto = (notte, squadra) => {
+        const n = daGiocare(squadra);
+        // "+0.0 tonight" sotto chi stanotte non aveva nessuno in campo (il
+        // replay dell'avversario) sembrerebbe una serata andata male.
+        const inCampo = (squadra?.starters || []).some(p => partite.some(g => giocaIn(p, g)));
+        // Due righe e non una: su telefono "· 6 still to play" andava a capo
+        // a metà frase.
+        return `<span class="nr-sfida-sotto">${inCampo ? `+${notte.toFixed(1)} tonight` : 'No one tonight'}</span>
+            <span class="nr-sfida-sotto">${n ? `${n} still to play` : 'week done'}</span>`;
+    };
+    const mioTot = Number.parseFloat(mia?.team?.score);
     const oppTot = Number.parseFloat(opp?.score) || 0;
     return `
     <div class="nr-sfida">
         <div class="nr-sfida-lato">
             <span class="nr-sfida-nome">${esc(displayName(mia?.team?.name || ''))}</span>
-            <b class="nr-sfida-pts" style="color:${tinta}">${mioTot.toFixed(1)}</b>
-            <span class="nr-sfida-sotto">tonight</span>
+            <b class="nr-sfida-pts" style="color:${tinta}">${(Number.isFinite(mioTot) ? mioTot : mioNotte).toFixed(1)}</b>
+            ${sotto(mioNotte, mia?.team)}
         </div>
         <span class="nr-sfida-vs">vs</span>
         <div class="nr-sfida-lato nr-sfida-lato--opp">
             <span class="nr-sfida-nome">${esc(opp ? displayName(opp.name) : '—')}</span>
-            <b class="nr-sfida-pts">${opp ? oppTot.toFixed(1) : '—'}</b>
-            <span class="nr-sfida-sotto">${opp
-        ? (daGiocare ? `${daGiocare} still to play` : 'week done')
-        : ''}</span>
+            <b class="nr-sfida-pts"${tintaSua ? ` style="color:${tintaSua}"` : ''}>${opp ? oppTot.toFixed(1) : '—'}</b>
+            ${opp ? sotto(diNotte(opp), opp) : ''}
         </div>
     </div>`;
 }
@@ -729,6 +898,10 @@ function adattaDensita() {
 
     const show = overlay.querySelector('.nr-show');
     show?.classList.remove('nr-show--fitto');
+    // La race sta nello spazio che AVANZA: è la prima cosa che si toglie,
+    // prima di ridurre i giocatori a righe.
+    show?.classList.remove('nr-show--senza-race');
+    if (sborda()) show?.classList.add('nr-show--senza-race');
     if (stretto || sborda()) for (const pan of tutti) pan.classList.add('nr-game--righe');
 
     /*
@@ -811,6 +984,7 @@ function avanza() {
     // `gioco` è null solo per lo stacco di fine quarto, che vale per tutte.
     const cap = passo.gioco == null ? null : attivo.capitoli[passo.gioco];
     mostra(cap, passo);
+    aggiornaRace(passo);
     orologiGlobali(passo);
     attivo.onPasso?.({
         cap: passo.gioco ?? 0, i: attivo.passo, tot: attivo.linea.passi.length, passo,
@@ -831,10 +1005,12 @@ function linea(passo) {
     const fatta = overlay?.querySelector('[data-nr-linea]');
     const ora = overlay?.querySelector('[data-nr-ora]');
     if (!fatta) return;
-    // Quota di partita giocata: quattro quarti da 900 secondi.
+    // Quota di partita giocata: quattro quarti da 900 secondi. I
+    // supplementari stanno in fondo alla linea: col solo `min(4, …)` l'OT a
+    // 9:55 si disegnava come il 4° quarto a 9:55, e il puntino tornava indietro.
     const q = Math.min(4, Math.max(1, passo.periodo || 1));
     const sec = secondiDa(passo.clock);
-    const giocato = passo.kind === 'assesta'
+    const giocato = passo.kind === 'assesta' || passo.periodo >= 5
         ? 3600
         : (q - 1) * 900 + (sec == null ? 0 : 900 - sec);
     const pct = Math.min(100, Math.max(0, (giocato / 3600) * 100));
@@ -872,6 +1048,7 @@ function mostra(cap, passo) {
         : null;
 
     dirigiTabellone(pan, passo);
+    if (attivo.campo) campoGiocata(cap, pan, passo);
 
     // ── Il testo dell'azione ────────────────────────────────────────────
     /*
@@ -891,7 +1068,7 @@ function mostra(cap, passo) {
     play.classList.toggle('nr-play--salto', passo.kind === 'salta');
     play.textContent = passo.kind === 'salta'
         ? `${passo.saltate} play${passo.saltate > 1 ? 's' : ''}`
-        : (mia ? (stretti ? riassunto(passo.tocchi) : passo.testo) : '');
+        : (mia ? ((stretti || attivo.campo) ? riassunto(passo.tocchi) : passo.testo) : '');
 
     // ── Chi ha la palla: arancione, e rosso in red zone ─────────────────
     // Stessa lettura del Live (`inCampoOra`/`inRedZoneOra`): si accende tutta
@@ -939,7 +1116,10 @@ function mostra(cap, passo) {
             contaSu(card.querySelector('.nr-slot-pts'), a, 1, breve);
         }
     }
-    if (passo.tocchi.length) totale(cap, Math.min(1100, passo.dwell * 0.7));
+    if (attivo.sfida && passo.rivali) {
+        attivo.sfida.rivaliCorr = +(attivo.sfida.rivaliCorr + passo.rivali).toFixed(2);
+    }
+    if (passo.tocchi.length || (attivo.sfida && passo.rivali)) totale(cap, Math.min(1100, passo.dwell * 0.7));
 
     // ── La festa, con gli effetti del Live ──────────────────────────────
     if (festa && protagonista) festeggia(pan, festa, protagonista, passo.dwell);
@@ -996,7 +1176,7 @@ function orologio(pan, passo, congela = false) {
     const a = secondiDa(passo.clock);
     const q = passo.periodo;
     const scrivi = (sec) => {
-        el.textContent = [q ? `Q${q}` : '', sec == null ? passo.clock : mmss(sec)]
+        el.textContent = [nomePeriodo(q), sec == null ? passo.clock : mmss(sec)]
             .filter(Boolean).join(' · ');
     };
 
@@ -1043,6 +1223,9 @@ function orologio(pan, passo, congela = false) {
     requestAnimationFrame(step);
 }
 let _genClock = 0;
+
+/** Come la TV scrive il periodo: Q1-Q4, poi OT (e 2OT ai playoff), mai "Q5". */
+const nomePeriodo = (q) => (!q ? '' : q <= 4 ? `Q${q}` : q === 5 ? 'OT' : `${q - 4}OT`);
 
 const secondiDa = (c) => {
     const m = String(c || '').match(/^(\d+):(\d{2})$/);
@@ -1140,7 +1323,11 @@ function dirigiTabellone(pan, passo) {
 
 /** Lo stacco di fine quarto: il campo si abbassa e resta il cartello. */
 function cartelloQuarto(passo) {
-    const show = overlay?.querySelector('.nr-palco');
+    /* Sull'overlay, non sul palco: coprendo solo il riquadro della scena il
+       velo scuro aveva i bordi netti, e il bagliore del replay
+       dell'avversario restava tagliato a metà da una riga orizzontale. A
+       schermo pieno la tinta si abbassa tutta insieme. */
+    const show = overlay?.querySelector('.nr-palco') ? overlay : null;
     if (!show) return;
     show.querySelector('.nr-quarto')?.remove();
     const el = document.createElement('div');
@@ -1165,6 +1352,47 @@ function cartelloQuarto(passo) {
  * Il protagonista è chi ha mosso più punti: su un passaggio da touchdown sono
  * in due, e quello che conta è chi l'ha segnato.
  */
+function campoGiocata(cap, pan, passo) {
+    const tracce = pan.querySelector('[data-nr-tracce]');
+    const k = passo.gid != null ? cap.indiceDi?.get(String(passo.gid)) : null;
+    if (!tracce || k == null) return;
+    const st = statoPartita({
+        sigla: '', ...cap.campoSquadre, stato: 'in', tutte: cap.ordinate, scelta: k,
+    });
+    // Timeout, two-minute warning, fine quarto: niente da disegnare. Resta
+    // a schermo l'ultima giocata invece di un campo vuoto per un attimo.
+    if (!st.giocate?.length) return;
+    /*
+     * Le facce solo sulle giocate dei miei: sono la cosa che più attira
+     * l'occhio, e su una giocata che non mi riguarda lo porterebbero dove non
+     * c'è niente di mio. Il tratto resta, spento (`nr-campo--altri`).
+     */
+    const mia = passo.tocchi.length > 0;
+    if (!mia && st.giocate[st.giocataIdx]) {
+        st.giocate = st.giocate.map((g, i) => (i === st.giocataIdx ? { ...g, fotoDa: '', fotoA: '' } : g));
+    }
+    const campo = pan.querySelector('[data-nr-campo]');
+    campo.classList.toggle('nr-campo--altri', !mia);
+    /* L'animazione del Live dura un secondo e mezzo fisso; qui un passo può
+       durarne 0,4. Il tratto si disegna in poco più di metà del passo, e
+       l'esito compare prima che il passo finisca. */
+    campo.style.setProperty('--nr-trat', `${Math.round(Math.min(1500, Math.max(220, passo.dwell * 0.55)))}ms`);
+    tracce.innerHTML = tracceRecapSVG(st, esitoGiocata(st.giocate[st.giocataIdx]));
+}
+
+/** "+17", "TD", "INT": l'esito di una giocata, da scrivere in fondo al tratto. */
+function esitoGiocata(g) {
+    if (!g) return null;
+    if (g.segna) return { testo: g.tipo === 'fg' ? 'FG' : 'TD', cls: 'sc' };
+    if (g.persa) return { testo: /intercept/i.test(g.testo) ? 'INT' : /fumble/i.test(g.testo) ? 'FUM' : 'TO', cls: 'to' };
+    if (g.tipo === 'fg') return { testo: g.buono ? 'FG' : 'NO GOOD', cls: g.buono ? 'sc' : 'to' };
+    if (g.tipo === 'incomplete') return { testo: 'INC', cls: 'none' };
+    if (g.tipo === 'kick') return null;           // il volo del calcio si legge da sé
+    if (g.penalita) return { testo: 'FLAG', cls: 'pen' };
+    const y = Math.round(Number(g.yards) || 0);
+    return { testo: y > 0 ? `+${y}` : y < 0 ? `\u2212${-y}` : '0', cls: y > 0 ? 'gain' : y < 0 ? 'loss' : 'none' };
+}
+
 function riassunto(tocchi) {
     const t = [...tocchi].sort((a, b) => Math.abs(b.pts) - Math.abs(a.pts))[0];
     if (!t) return '';
@@ -1204,7 +1432,101 @@ function totale(cap, ms) {
        ballerebbe fra i due parziali. */
     const somma = attivo.capitoli.reduce(
         (s, c) => s + [...(c.correnti?.values() || [])].reduce((a, v) => a + v, 0), 0);
-    contaSu(el, somma, 1, ms);
+    const sfida = attivo.sfida;
+    if (!sfida?.margine) { contaSu(el, somma, 1, ms); return; }
+
+    // Col margine i totali sono due, e quello in scena è di chi ha i titolari
+    // in campo: il mio, o il suo nel replay dell'avversario.
+    const { mio, suo } = totaliCorrenti();
+    contaSu(overlay.querySelector('[data-nr-tot-mio]'), mio, 1, ms);
+    contaSu(overlay.querySelector('[data-nr-tot-suo]'), suo, 1, ms);
+    contaMargine(overlay.querySelector('[data-nr-diff]'), mio - suo, ms);
+}
+
+/** I due totali di giornata a questo punto del replay. */
+function totaliCorrenti() {
+    const sfida = attivo.sfida;
+    const somma = attivo.capitoli.reduce(
+        (s, c) => s + [...(c.correnti?.values() || [])].reduce((a, v) => a + v, 0), 0);
+    return {
+        mio: sfida.mio.base + (sfida.lato === 'mio' ? somma : 0),
+        suo: sfida.suo.base + (sfida.lato === 'mio' ? sfida.rivaliCorr : somma),
+    };
+}
+
+/**
+ * La race: i due totali che salgono col replay, sotto il campo. Un gradino
+ * nuovo solo quando un totale cambia; la linea intanto si allunga fino al
+ * cronometro del passo. L'assestamento finale sta a fine partita.
+ */
+function aggiornaRace(passo) {
+    const box = overlay?.querySelector('[data-nr-race]');
+    const race = attivo.race;
+    if (!box || !race) return;
+    const t = passo.kind === 'assesta' ? race.durata : secondiGiocati(passo.periodo, passo.clock);
+    if (t == null) return;
+    race.ora = Math.max(race.ora, t);
+    const { mio, suo } = totaliCorrenti();
+    // Chi ha segnato un touchdown in questo passo: i titolari in scena li
+    // dicono i tocchi, gli altri `rivaliTd` della sequenza.
+    const tdTocchi = passo.tocchi.some(t => Object.entries(t.stats || {}).some(([k, v]) => /_td$/.test(k) && v > 0));
+    const td = attivo.sfida.lato === 'mio' ? [tdTocchi, !!passo.rivaliTd] : [false, tdTocchi];
+    [mio, suo].forEach((v, i) => {
+        const l = race.lati[i];
+        const prima = l.punti.length ? l.punti[l.punti.length - 1].v : l.base;
+        if (Math.abs(v - prima) > 0.004) l.punti.push({ t: race.ora, v, td: td[i] });
+    });
+    box.innerHTML = raceRecapSVG(race);
+}
+
+/**
+ * Il piede quando conta la sfida: il mio totale, il margine, il suo.
+ *
+ * Il margine sta in mezzo ed è dal MIO punto di vista sempre, anche nel
+ * replay dell'avversario: "+3.2" è quanto sono avanti io. La squadra che
+ * stanotte non ha nessuno in campo è spenta — il suo numero non si muoverà.
+ */
+function margineHTML(sfida) {
+    const lato = (t, attr, r = false) => `
+        <div class="nr-m-lato${r ? ' nr-m-lato--r' : ''}${t.gioca ? '' : ' is-fermo'}">
+            <span class="nr-team">${esc(t.nome)}</span>
+            <b class="nr-pts" style="color:${t.tinta}" ${attr}><span class="pts-val">${fmt(t.base)}</span></b>
+        </div>`;
+    return `
+        ${lato(sfida.mio, 'data-nr-tot-mio')}
+        <div class="nr-m-centro">
+            <b class="nr-m-diff" data-nr-diff></b>
+            <span class="nr-m-et">Margin</span>
+        </div>
+        ${lato(sfida.suo, 'data-nr-tot-suo', true)}`;
+}
+
+/**
+ * Il margine che scorre, col segno. Non passa da `contaSu` perché il segno
+ * cambia a metà strada quando c'è un sorpasso, e il colore con lui: verde
+ * avanti, rosso dietro, neutro in parità.
+ */
+function contaMargine(el, a, ms = 700) {
+    if (!el) return;
+    const da = Number(el.dataset.v ?? a);
+    const scrivi = (v) => {
+        const r = Math.round(v * 10) / 10;
+        el.textContent = r > 0 ? `+${fmt(r)}` : r < 0 ? `\u2212${fmt(-r)}` : '0.0';
+        el.classList.toggle('is-avanti', r > 0);
+        el.classList.toggle('is-dietro', r < 0);
+    };
+    el.dataset.v = String(a);
+    const mio = String(++_gen);
+    el.dataset.gen = mio;
+    if (da === a || ridotto() || !ms) { scrivi(a); return; }
+    const t0 = performance.now();
+    const step = (ora) => {
+        if (!attivo || attivo.spento || el.dataset.gen !== mio) return;
+        const k = Math.min(1, (ora - t0) / ms);
+        scrivi(da + (a - da) * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
 }
 
 /**
@@ -1393,12 +1715,12 @@ export function anteprimaCaricamento() {
  * @param {boolean}  manuale   true = un passo per volta (`anteprimaPasso`)
  * @param {Function} onPasso   richiamata a ogni passo mandato in scena
  */
-export function anteprimaRecap(capitoli, { manuale = false, onPasso = null } = {}) {
+export function anteprimaRecap(capitoli, { manuale = false, onPasso = null, campo = true } = {}) {
     if (!capitoli?.length) return false;
     if (overlay) chiudi();
     montaOverlay();
     overlay.classList.remove('nr-overlay--sipario');
-    riproduci(capitoli, [], 0, { manuale, onPasso });
+    riproduci(capitoli, [], 0, { manuale, onPasso, campo });
     return true;
 }
 

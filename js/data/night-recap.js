@@ -27,8 +27,8 @@
  * italiane, quindi la finestra si chiude la' senza tagliare niente.
  */
 
-import { scorePlay } from './scoring.js?v=592';
-import { direzioneGiocata } from '../ui/field-strip.js?v=149';
+import { scorePlay } from './scoring.js?v=593';
+import { direzioneGiocata } from '../ui/field-strip.js?v=150';
 
 /** Kickoff in questa fascia di ore italiane = turno di notte. */
 const NOTTE_DA = 0;
@@ -284,11 +284,24 @@ const RITMO_SALTO = 110;
 const SALTO_MIN = 520;
 const SALTO_MAX = 4200;
 
-/** Secondi di partita ancora da giocare a quella giocata (per misurare le distanze). */
+/**
+ * Secondi di partita ancora da giocare a quella giocata (per misurare le
+ * distanze, e per ORDINARE le giocate in `intreccia`).
+ *
+ * Nei supplementari il numero va sotto zero, e deve: è "dopo la fine del
+ * tempo regolamentare". Prima c'era un `Math.max(0, …)` che dava a una
+ * giocata dell'OT a 9:17 la stessa chiave di una del 4° quarto a 9:17, e
+ * `intreccia` le mescolava — successo il 2026-10-16 su SEA-DEN (17-14 in OT):
+ * il tabellone saltava fra 3-14 e 14-14 a ogni passo, e il replay finiva a
+ * Q4 0:00 perché l'overtime era già andato in onda dentro il quarto.
+ * Ogni periodo supplementare vale 900 secondi qualunque sia la sua durata
+ * (10 minuti in stagione, 15 ai playoff): basta per l'ordine, e un OT da
+ * dieci minuti comincia a −300 invece che a 0.
+ */
 function restante(g) {
     const m = String(g.clock || '').match(/^(\d+):(\d{2})$/);
     if (!m || g.period == null) return null;
-    return Math.max(0, 4 - g.period) * 900 + Number(m[1]) * 60 + Number(m[2]);
+    return (4 - g.period) * 900 + Number(m[1]) * 60 + Number(m[2]);
 }
 
 /** Quanto sta a schermo un blocco, dati i secondi di partita che copre. */
@@ -351,6 +364,20 @@ export function tempoDiGioco(giocate) {
 export function fattoreSupplementari(perPartita) {
     const q = (perPartita || []).map(g => tempoDiGioco(g) / REGOLAMENTARE);
     return q.length ? Math.max(1, ...q) : 1;
+}
+
+/**
+ * La sfida si decide stanotte? Vero se, a partite di notte finite, nessun
+ * titolare di nessuna delle due squadre ha ancora da giocare (o sta giocando).
+ *
+ * Non è "l'ultima partita della settimana NFL": se lunedì non gioca nessuno
+ * dei nostri, la decisiva è il Sunday Night. Guarda lo stato del tabellone
+ * NFL di ogni titolare (`game_state`); chi non ha partita (bye, slot vuoto)
+ * ha lo stato vuoto e non tiene aperto niente.
+ */
+export function eDecisiva(...squadre) {
+    return !squadre.some(t => (t?.starters || [])
+        .some(p => p.game_state === 'pre' || p.game_state === 'in'));
 }
 
 /** Quanti momenti "pieni" al massimo, prima di comprimere. */
@@ -461,8 +488,15 @@ function cambiamenti(tocchi) {
  * @param {Function} chiE     (contributo di scorePlay) → titolare | null
  * @param {Function} siglaDi  (id squadra ESPN) → sigla, per sapere chi attacca
  * @param {number}   budget   millisecondi a disposizione
+ * @param {Object}   [rivali] `{ titolari, chiE }` dell'ALTRA squadra della
+ *                   sfida, quando a schermo c'è il margine: i loro punti si
+ *                   contano giocata per giocata (`passo.rivali`, la quota di
+ *                   quel passo) ma non diventano mai momenti né card — il
+ *                   replay resta di chi è. Anche loro finiscono assestati sul
+ *                   totale ufficiale, o il margine dell'ultimo passo non
+ *                   sarebbe quello vero.
  */
-export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = BUDGET_MS, comprimiGiocate = true }) {
+export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = BUDGET_MS, comprimiGiocate = true, rivali = null }) {
     const ordinate = [...(giocate || [])].sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
     // Primo giro: ogni giocata con dentro i MIEI diventa un candidato.
@@ -470,7 +504,14 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
     let away = 0, home = 0;
     for (const g of ordinate) {
         const tocchi = [];
+        let suoi = 0, suoiTd = false;
         for (const c of scorePlay(g)) {
+            if (rivali?.chiE(c)) {
+                suoi += c.pts;
+                // Il touchdown dell'avversario: la race lo segna col badge.
+                if (Object.entries(c.stats || {}).some(([k, v]) => /_td$/.test(k) && v > 0)) suoiTd = true;
+                continue;
+            }
             const chi = chiE(c);
             if (!chi) continue;
             const gia = tocchi.find(t => t.nome === chi.name);
@@ -485,7 +526,7 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
         home = g.homeScore || home;
         const { peso, tipo } = classifica(tocchi);
         grezzi.push({
-            g, tocchi, peso, tipo, away, home,
+            g, tocchi, peso, tipo, away, home, rivali: +suoi.toFixed(2), rivaliTd: suoiTd,
             // Una giocata senza i miei non e' mai un momento, per quanto bella
             // sia stata: questo replay racconta la MIA giornata, non la partita.
             candidato: tocchi.length > 0 && (peso >= 100 || tocchi.some(t => t.pts !== 0)),
@@ -512,6 +553,7 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
     // blocchi saltati tutto quello che non e' diventato un momento.
     const passi = [];
     const ricostruiti = new Map();
+    let rivaliRicostruiti = 0;
     let blocco = null;
     const conta = (tocchi) => {
         for (const t of tocchi) ricostruiti.set(t.nome, +((ricostruiti.get(t.nome) || 0) + t.pts).toFixed(2));
@@ -535,14 +577,15 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
      * inosservato. Il cartello dà il tempo di registrarlo.
      *
      * Si inserisce quando il periodo CAMBIA, quindi racconta la fine di quello
-     * appena concluso. La fine del quarto periodo non si segna: lì finisce la
-     * partita, e a dirlo c'è già l'assestamento.
+     * appena concluso. La fine della partita non si segna (a dirlo c'è già
+     * l'assestamento), ma la fine del 4° quarto sì quando si va ai
+     * supplementari: "END OF REGULATION", e il cronometro riparte da 10:00.
      */
     let periodoPrima = null;
     const forseQuarto = (g) => {
         const p = g.period;
         if (p == null) return;
-        if (periodoPrima != null && p !== periodoPrima && periodoPrima < 4) {
+        if (periodoPrima != null && p !== periodoPrima) {
             // Il blocco aperto si chiude QUI: se no il cartello finiva in
             // mezzo alla sequenza prima del blocco che lo precede, e si
             // vedeva "HALFTIME" e poi ancora azioni del secondo quarto.
@@ -555,7 +598,7 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
                 away: ultimo?.away ?? 0, home: ultimo?.home ?? 0,
                 attacco: '', redZone: false, down: null, distanza: null, goal: false,
                 campo: '', difesa: '',
-                tocchi: [], cambi: [], td: false, dwell: DWELL.quarto,
+                tocchi: [], cambi: [], td: false, dwell: DWELL.quarto, rivali: 0,
             });
         }
         periodoPrima = p;
@@ -568,6 +611,7 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
         // che la prima azione del nuovo quarto è già andata in scena.
         if (momenti.has(r) || !comprimiGiocate) chiudi();
         forseQuarto(r.g);
+        rivaliRicostruiti += r.rivali;
 
         /*
          * Senza compressione non esistono blocchi: ogni giocata e' un passo.
@@ -582,11 +626,11 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
             const suo = r.tocchi.length > 0;
             passi.push({
                 kind: suo ? 'gioca' : 'passa', tipo: suo ? 'normale' : 'passa',
-                testo: r.g.text || r.g.type || '', periodo: r.g.period, clock: r.g.clock,
+                testo: r.g.text || r.g.type || '', periodo: r.g.period, clock: r.g.clock, gid: r.g.id,
                 away: r.away, home: r.home, attacco, redZone,
                 ...contesto(r.g, siglaDi),
                 tocchi: r.tocchi, cambi: suo ? cambiamenti(r.tocchi) : [],
-                td: false, dwell: suo ? DWELL.normale : DWELL.passa,
+                td: false, dwell: suo ? DWELL.normale : DWELL.passa, rivali: r.rivali, rivaliTd: r.rivaliTd,
             });
             continue;
         }
@@ -595,11 +639,11 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
             conta(r.tocchi);
             passi.push({
                 kind: 'gioca', tipo: r.tipo,
-                testo: r.g.text || r.g.type || '', periodo: r.g.period, clock: r.g.clock,
+                testo: r.g.text || r.g.type || '', periodo: r.g.period, clock: r.g.clock, gid: r.g.id,
                 away: r.away, home: r.home, attacco, redZone,
                 ...contesto(r.g, siglaDi),
                 tocchi: r.tocchi, cambi: cambiamenti(r.tocchi),
-                td: r.tipo === 'td', dwell: DWELL[r.tipo],
+                td: r.tipo === 'td', dwell: DWELL[r.tipo], rivali: r.rivali, rivaliTd: r.rivaliTd,
             });
             continue;
         }
@@ -607,18 +651,20 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
         conta(r.tocchi);
         if (!blocco) {
             blocco = {
-                kind: 'salta', tipo: 'salto', testo: '', periodo: r.g.period, clock: r.g.clock,
+                kind: 'salta', tipo: 'salto', testo: '', periodo: r.g.period, clock: r.g.clock, gid: r.g.id,
                 away: r.away, home: r.home, attacco, redZone,
                 ...contesto(r.g, siglaDi),
-                tocchi: [], cambi: [], td: false, dwell: DWELL.salto, saltate: 0,
+                tocchi: [], cambi: [], td: false, dwell: DWELL.salto, saltate: 0, rivali: 0,
                 // Da dove parte l'orologio: serve a misurare quanta partita
                 // si sta per comprimere, e quindi quanto tenerla a schermo.
                 daRestante: restanteDelPassoPrima(passi, r.g),
             };
         }
         blocco.saltate++;
+        blocco.rivali = +(blocco.rivali + r.rivali).toFixed(2);
+        blocco.rivaliTd = blocco.rivaliTd || r.rivaliTd;
         blocco.away = r.away; blocco.home = r.home;
-        blocco.periodo = r.g.period; blocco.clock = r.g.clock;
+        blocco.periodo = r.g.period; blocco.clock = r.g.clock; blocco.gid = r.g.id;
         blocco.attacco = attacco; blocco.redZone = redZone;
         blocco.restanteFine = restante(r.g);
         Object.assign(blocco, contesto(r.g, siglaDi));
@@ -638,13 +684,16 @@ export function costruisciSequenza({ giocate, titolari, chiE, siglaDi, budget = 
         if (Math.abs(scarto) < SOGLIA_SCARTO) continue;
         assesta.push({ nome: p.name, pts: scarto, riga: 'official total', stats: {} });
     }
-    if (assesta.length) {
+    const rivaliUfficiali = (rivali?.titolari || [])
+        .reduce((s, p) => s + (parseFloat(p.fantasy_points) || 0), 0);
+    const scartoRivali = rivali ? +(rivaliUfficiali - rivaliRicostruiti).toFixed(2) : 0;
+    if (assesta.length || Math.abs(scartoRivali) >= SOGLIA_SCARTO) {
         const ultimo = passi[passi.length - 1];
         passi.push({
             kind: 'assesta', tipo: 'assesta', testo: 'Settled with the official box score',
             periodo: ultimo?.periodo ?? null, clock: null,
             away: ultimo?.away ?? 0, home: ultimo?.home ?? 0, attacco: '', redZone: false,
-            tocchi: assesta, cambi: [], td: false, dwell: DWELL.assesta,
+            tocchi: assesta, cambi: [], td: false, dwell: DWELL.assesta, rivali: scartoRivali,
         });
     }
 
@@ -700,6 +749,8 @@ function restanteDelPassoPrima(passi, primaDelBlocco) {
 /** Come la TV chiama la fine di un periodo. */
 function etichettaQuarto(p) {
     if (p === 2) return 'HALFTIME';
+    if (p === 4) return 'END OF REGULATION';
+    if (p >= 5) return p === 5 ? 'END OF OT' : `END OF ${p - 4}OT`;
     return `END OF ${({ 1: '1ST', 3: '3RD', 4: '4TH' })[p] || `Q${p}`}`;
 }
 
@@ -787,15 +838,21 @@ export function intreccia(sequenze) {
     // Chiave d'ordine: quanto manca alla fine della partita. Più alto = prima.
     // L'assestamento non sta nel tempo di gioco: va in fondo a tutto.
     const chiave = (p) => (p.kind === 'assesta'
-        ? -1
+        ? -Infinity
         : (restante({ period: p.periodo, clock: p.clock }) ?? 0));
+    // NB: nei supplementari `restante` è negativo, quindi l'assestamento sta
+    // a −Infinity e non a −1, o finirebbe prima dell'overtime.
 
     tutti.sort((a, b) => {
         const d = chiave(b) - chiave(a);
         if (d) return d;
-        // A parità di momento: prima gli stacchi di quarto (chiudono il
-        // periodo), poi le partite in ordine.
-        if ((a.kind === 'quarto') !== (b.kind === 'quarto')) return a.kind === 'quarto' ? -1 : 1;
+        // A parità di momento lo stacco di quarto sta FRA i due periodi: Q1
+        // 0:00 e Q2 15:00 hanno la stessa chiave, e il cartello va dopo
+        // l'ultima giocata del suo periodo e prima della prima del successivo.
+        if ((a.kind === 'quarto') !== (b.kind === 'quarto')) {
+            const [stacco, altro, segno] = a.kind === 'quarto' ? [a, b, -1] : [b, a, 1];
+            return (altro.periodo > stacco.periodo ? 1 : -1) * segno;
+        }
         return a.gioco - b.gioco;
     });
 

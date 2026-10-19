@@ -19,8 +19,8 @@ import { fetchPlays, headshotUrl } from '../data/nfl-plays.js?v=572';
 import { getStarters } from '../data/nfl-flip-card.js?v=6';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=574';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
-import { fieldStripHTML, bindFieldStrip } from '../ui/field-strip.js?v=149';
-import { statoPartita, drivesDi } from '../data/campo-partita.js?v=3';
+import { fieldStripHTML, bindFieldStrip } from '../ui/field-strip.js?v=150';
+import { statoPartita, drivesDi } from '../data/campo-partita.js?v=4';
 import { oraItaliana } from '../utils/ora-italiana.js?v=1';
 import { CURRENT_SEASON } from '../data.js?v=596';
 
