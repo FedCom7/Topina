@@ -18,6 +18,7 @@
         "build-manager-dna": "node scripts/build-manager-dna.mjs",
         "build-nfl-tactics": "node --max-old-space-size=6000 scripts/build-nfl-tactics.mjs",
         "build-nfl-depth": "node scripts/build-nfl-depth.mjs",
+        "build-nfl-advfull": "node scripts/build-nfl-advfull.mjs",
         "build-nfl-plays": "node --max-old-space-size=8000 scripts/build-nfl-plays.mjs",
         "build-app-icon": "node scripts/build-app-icon.mjs"
     },

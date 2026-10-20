@@ -36,7 +36,7 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1086';
+} from './player-page.js?v=1088';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
@@ -2997,7 +2997,7 @@ function bindFlipCard(section, ctx) {
             if (openBtn && _flipState?.card) {
                 // Import dinamico, stessa ragione del modulo dati (vedi sopra):
                 // la vista stampa non deve poter spegnere il resto della pagina.
-                import('../ui/flip-card-print.js?v=10').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
+                import('../ui/flip-card-print.js?v=11').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
             }
         });
     }

@@ -33672,3 +33672,17 @@ body.wr-open { overflow: hidden; }
 }
 .fcz-field:hover { border-color: #f5f0e8; }
 @media (max-width: 700px) { .fcz-field { margin-left: auto; } }
+
+/* Pagina giocatore: tutte le colonne di Next Gen Stats e PFR (player-advfull.js). */
+.pp-af-box { margin-top: 8px; border: 1px solid var(--border-card); border-radius: var(--radius-md); background: var(--bg-card); }
+.pp-af-box > summary { padding: 10px 14px; cursor: pointer; font-size: 0.9rem; }
+.pp-af-box > summary small { color: var(--text-muted); margin-left: 6px; }
+.pp-af-body { padding: 0 10px 12px; }
+.pp-af-h { margin: 14px 0 6px; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.pp-af-table { font-size: 0.76rem; }
+.pp-af-table thead th { white-space: normal; min-width: 62px; max-width: 110px; vertical-align: bottom; font-size: 0.64rem; line-height: 1.2; }
+.pp-af-table td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pp-af-table td:first-child, .pp-af-table th:first-child { position: sticky; left: 0; background: var(--bg-card); font-weight: 700; z-index: 1; }
+.pp-af-years { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 4px; }
+.pp-af-year { padding: 4px 12px; border: 1px solid var(--border-subtle); border-radius: var(--pill-radius); background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.pp-af-year.is-active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }

@@ -164,6 +164,13 @@ jobs:
         run: node --max-old-space-size=8000 scripts/build-nfl-plays.mjs
         continue-on-error: true   # fonte di rete: se nflverse e' giu' restano i dati precedenti
 
+      # Pagina giocatore: TUTTE le colonne di Next Gen Stats e PFR advanced,
+      # per stagione e per partita (advfull/advweek). Separato da
+      # adv_players_*.json, che alimenta il modello e non va allargato.
+      - name: NGS + PFR completi (pagina giocatore)
+        run: node scripts/build-nfl-advfull.mjs ${{ steps.yrs.outputs.seasons }}
+        continue-on-error: true   # fonte di rete: se nflverse e' giu' restano i dati precedenti
+
       - name: Genera combine + draft NFL reale + contratti (storico, poco costoso)
         if: steps.giro.outputs.leggero != '1'
         run: node scripts/build-nfl-combine-draft.mjs
@@ -211,7 +218,8 @@ jobs:
                    data/nfl/combine_draft.json data/nfl/team_trades.json \
                    data/nfl/unrostered_scores_*.json data/nfl/best_available_*.json \
                    data/nfl/player_status_*.json data/nfl/inactives_*.json \
-                   data/nfl/depth/*.json data/nfl/tactics/*/*.json data/nfl/plays/*/*.json; do
+                   data/nfl/depth/*.json data/nfl/tactics/*/*.json data/nfl/plays/*/*.json \
+                   data/nfl/advfull/*.json data/nfl/advweek/*.json; do
             [ -e "$p" ] && git add "$p"
           done
           # Ogni JSON porta dentro `generatedAt`, quindi risulterebbe sempre

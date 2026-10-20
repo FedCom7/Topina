@@ -29,6 +29,7 @@ import { resolvePlayerIds } from '../data/nfl-player-ids.js?v=501';
 import { enrichBio, getPlayerAwardsEspn, getPlayerContractEspn, getPlayerOverview, getPlayerEspnExtra, getPlayerRecordsEspn, getPlayerSplits, getPlayerQBR } from '../data/player-bio-extra.js?v=505';
 import { decomposeSeason, seasonVerdict, getPerfCauses, describeCauses } from '../data/perf-explain.js?v=588';
 import { bindTabSwipe, centerActiveTab, nextTab } from '../ui/tab-swipe.js?v=1';
+import { advFullBlock, bindAdvFull } from './player-advfull.js?v=2';
 
 export const POS_LIST = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 // Da 2019 alla stagione NFL corrente (calcolata dalla data): così l'anno nuovo
@@ -273,6 +274,7 @@ function renderPlayerPage(section, ctx) {
         <div class="pp-tab-panel" role="tabpanel" data-panel="analysis" hidden>
             ${advancedRadarBlock(ctx)}
             ${advancedNflverseBlock(advSeasons, pos)}
+            ${advFullBlock(advSeasons)}
             ${advancedSlopeBlock(ctx)}
             ${draftScatterBlock(ctx)}
             ${similarPlayersBlock(ctx)}
@@ -317,6 +319,7 @@ function renderPlayerPage(section, ctx) {
     bindSimilarPlayers(section);
     marcaMigliori(section, pos);
     bindTabs(section);
+    bindAdvFull(section, advSeasons);
 }
 
 /**

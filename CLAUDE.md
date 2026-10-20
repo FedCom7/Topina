@@ -687,6 +687,23 @@ si tocca**.
    giocatore NON usa ancora tutte le colonne NGS/PFR (vedi la tabella nella
    conversazione del 2026-10-19): da completare a parte.
 
+### Pagina giocatore — tutte le colonne NGS e PFR
+
+Il blocco "Advanced metrics" mostra poche colonne scelte per ruolo: sono le
+stesse di `adv_players_{Y}.json`, che alimenta il modello (Player Context
+Score, SOS+, Draft Grades) e **non va allargato**. Il blocco "Every Next Gen
+Stats and PFR column" (`js/sections/player-advfull.js`) mostra tutto il
+resto, con i nomi delle fonti, per stagione e per partita. I dati stanno in
+`data/nfl/advfull/{Y}.json` e `advweek/{Y}.json` (`scripts/build-nfl-advfull.mjs`,
+giro giornaliero), si scaricano solo all'apertura del blocco e il file delle
+partite solo scegliendo l'anno. Le fonti mescolano percentuali 0–100 e
+frazioni 0–1 con nomi quasi uguali (`drop_pct` stagione è 0–100,
+`drop_percent` è 0–1): quali sono frazioni sta in `FRAZIONI`, scritto sui
+dati — chi aggiunge colonne lo ricontrolla. Le righe si cercano per `gsis`
+(NGS) e `pfr` (PFR) della riga di `adv_players`: i giocatori senza id e le
+stagioni provvisorie non hanno il blocco. Resta fuori solo l'IDP, che il sito
+non ha.
+
 ### Flip card — due modi, e non si mescolano
 
 La tab "Flip Card" della pagina squadra NFL (`js/data/nfl-flip-card.js` +
