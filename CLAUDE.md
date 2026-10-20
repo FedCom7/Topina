@@ -632,6 +632,61 @@ avanti un passo per volta. Tre cose da sapere:
 - i punti ufficiali che passa al motore sono il ricostruito **più 0,4**, così il
   passo `assesta` si vede invece di restare un ramo mai percorso.
 
+### Tactics (#nfl-tactics) — tutti i dati di schema di nflverse
+
+Come gioca ogni squadra NFL, attacco e difesa, stagioni 2016–oggi. Si entra
+dalla pagina NFL Hub (riquadro sotto il tabellone) e dalla barra della pagina
+squadra NFL: **il pannello del menu NFL Hub con le 32 squadre per division non
+si tocca**.
+
+1. **Una dimensione si definisce in UN posto**: `js/data/tactics-catalog.js`
+   (filtro, valore, etichetta, fonte). Lo leggono il builder
+   `scripts/build-nfl-tactics.mjs` e la pagina `js/sections/nfl-tactics.js`.
+   Il builder salva somme grezze per valore (giocate, EPA, successi, yard,
+   primi down, TD, palle perse, esplosive) e i rank fra le 32; la pagina
+   divide e basta.
+2. **Le fonti hanno anni diversi e la pagina lo dichiara**: pbp sempre,
+   participation 2016–2025 (quella dell'anno in corso esce a fine stagione),
+   FTN dal 2022, PFR dal 2018. Una dimensione senza fonte non si disegna
+   vuota: dice perché manca.
+3. **In difesa l'EPA è concesso**: buono = basso, e rank e colori si leggono
+   al contrario (`rankBuono`). Sotto le 30 giocate un valore resta spento.
+4. **Solo regular season** negli aggregati.
+5. "Chi esegue" mostra TUTTE le colonne di NGS, PFR e snap count. In PFR chi
+   ha cambiato squadra ha righe per squadra più una 2TM: si tengono le prime.
+6. **Sala video** (`#nfl-tactics/{SIGLA}/{ANNO}/film/{game_id}`,
+   `js/sections/nfl-film.js`, caricato solo quando la si apre): ogni snap con
+   OGNI campo di pbp (372), participation (`part_*`) e FTN (`ftn_*`), da
+   `scripts/build-nfl-plays.mjs` → `data/nfl/plays/{Y}/{game_id}.json` +
+   `index.json` coi nomi di colonna. **Solo dal 2023** (deciso con l'utente:
+   prima la participation non ha i 22 per nome, e il peso raddoppia). Formato
+   a colonne `{k}` costante / `{s}` sparsa / `{a}` piena, decimali a 4: ~420 KB
+   a partita, 45 KB compressi, ~120 MB a stagione nel repo — il sito
+   pubblicato sta sui 500 MB, il limite di GitHub Pages è 1 GB. I filtri
+   sono le dimensioni del catalogo applicate alla giocata, quindi le righe
+   decodificate restano STRINGHE come nel CSV. Il campo sotto la giocata è
+   uno schema (lunghezze e direzioni vere, forma disegnata) e la didascalia
+   lo dichiara. Sul kickoff `posteam` è chi riceve: il calcio va a sinistra.
+7. **Study of the Game** (`#nfl-tactics/{ATT}/{ANNO}/study/{DIF}`,
+   `js/sections/nfl-study.js`, caricato solo quando lo si apre): due depth
+   chart ESPN di OGGI (`getStudyDepth` in nfl-flip-card.js) uno contro
+   l'altro. Personnel → chi entra, formazione → dove; fronte da ESPN (3-4 /
+   4-3) con le sue varianti, pacchetto (nickel 4-3: esce il SAM; nickel
+   3-4: esce il NT → 2-4-5; dime: entra il CB di riserva), copertura, blitz,
+   protezione. Il motore assegna: a zona le zone sotto per ordine da sinistra
+   a destra (così la SS del Cover 3 scende da sé), a uomo coppie al costo
+   minimo tipo-ricevitore × famiglia-difensore, in protezione per vicinanza
+   (chi resta libero è "hot"). Le frequenze vengono da Tactics, stagione
+   scelta o la precedente se manca la participation. **Veri** giocatori,
+   profondità, fronte base, misure, frequenze; **da manuale** allineamenti e
+   regole: la nota sotto il campo lo dice, e anche che la scala vicino alla
+   palla è allargata (in scala vera i lineman si coprono). Dal riquadro
+   aperto della flip card a tutto schermo, "On the field ›" porta qui con
+   le due squadre della partita (e chiude l'overlay).
+8. Nel giro giornaliero di `build-nflverse.yml` (stagione in corso). La pagina
+   giocatore NON usa ancora tutte le colonne NGS/PFR (vedi la tabella nella
+   conversazione del 2026-10-19): da completare a parte.
+
 ### Flip card — due modi, e non si mescolano
 
 La tab "Flip Card" della pagina squadra NFL (`js/data/nfl-flip-card.js` +
@@ -650,6 +705,23 @@ giornata, dalla barra delle settimane in testa al blocco.
    giorno e `didNotPlay` per gli inattivi) raggruppato per ruolo. Il modo si
    decide sul dato, non sul calendario: se il roster di gara manca si ricade
    sul depth chart dichiarandolo.
+   Il depth chart si legge dall'API **core**
+   (`sports.core.api.espn.com/…/seasons/{Y}/teams/{id}/depthcharts`), non da
+   `site.api…/teams/{id}/depthcharts`: quella risponde senza
+   `Access-Control-Allow-Origin` (dal 2026-10 circa), il browser la scarta e
+   la card della partita in arrivo spariva. Nel core i tre WR stanno sotto
+   una chiave `wr` e si ridividono per `slot`; i nomi li mette la rosa.
+1-bis. **Dal 2025 la card giocata ha le stesse righe di quella in arrivo.**
+   nflverse fotografa il depth chart ESPN due volte al giorno
+   (`depth_charts_{Y}.csv`); `scripts/build-nfl-depth.mjs` prende l'ultima
+   foto prima di ogni kickoff → `data/nfl/depth/{Y}_{TEAM}.json` (chiave =
+   id evento ESPN), nel giro GIORNALIERO di `build-nflverse.yml`. Sopra il
+   depth chart il roster di gara mette il grassetto (chi è partito titolare,
+   una volta sola e mai negli special teams) e il barrato (chi non era a
+   referto). Un titolare che la foto non aveva va in coda alla riga della sua
+   famiglia di ruolo. Serve il file per TUTTE E DUE le squadre, se no la card
+   resta per ruolo; prima del 2025 il formato nflverse è un altro e resta per
+   ruolo di proposito.
 2. **La tabella delle posizioni ESPN è incorporata, e deve restarci.** Il
    roster di gara dà la posizione come `$ref` a `/positions/{id}`: risolverle
    costerebbe fino a 110 richieste per aprire una card. `ESPN_POS` è quella

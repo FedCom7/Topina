@@ -587,6 +587,9 @@ function render(section, ctx) {
             <button type="button" data-sec="transactions">Transactions</button>
             <button type="button" data-sec="news">News</button>
             <button type="button" data-sec="franchigia">Franchise</button>
+            <!-- Non è una tab: porta alla sezione Tactics sulla stessa squadra e
+                 stagione (l'anno lo riallinea bindYearRepaint). -->
+            <a class="nfl-secnav-out" id="nfl-tactics-link" href="#nfl-tactics/${abbr}/${year}">Tactics ›</a>
         </nav>
 
         <div class="nfl-sec" data-secid="home">
@@ -1106,6 +1109,8 @@ function bindYearRepaint(section, ctx0) {
         set('#nfl-depth', depthChartTab(live, year));
         set('#nfl-flip', flipCardTab({ live }));
         bindFlipCard(section, { abbr, live, year });
+        const tx = section.querySelector('#nfl-tactics-link');
+        if (tx) tx.href = `#nfl-tactics/${abbr}/${year}`;
         set('#nfl-injuries', rosterStatusListsBlock({ teamRoster: seasonData.teamRoster, transactions: live.transactions }) + teamInjuriesBlock(wrap));
         set('#nfl-transactions', transactionsBlock(live));
         set('#nfl-news', newsBlock(live));
@@ -2767,9 +2772,10 @@ function flipCardTab(ctx) {
 function flipRow(row, mode) {
     const players = row.players.map((p, i) => {
         const titolare = mode === 'played' ? !!p.starter : i === 0;
-        const cls = ['fc-p', titolare ? 'fc-p--s' : '', p.rookie ? 'fc-p--rk' : '', p.practice ? 'fc-p--ps' : ''].filter(Boolean).join(' ');
+        const cls = ['fc-p', titolare ? 'fc-p--s' : '', p.rookie ? 'fc-p--rk' : '', p.practice ? 'fc-p--ps' : '', p.inactive ? 'fc-p--out' : ''].filter(Boolean).join(' ');
         const inj = p.injury ? `<i class="fc-inj" title="${esc(p.injury)}">${esc(flipInjTag(p.injury))}</i>` : '';
-        return `<span class="${cls}">${p.jersey != null ? `<b>${p.jersey}</b> ` : ''}${esc(p.name)}${inj}</span>`;
+        const tit = p.inactive ? ' title="Did not dress for this game"' : '';
+        return `<span class="${cls}"${tit}>${p.jersey != null ? `<b>${p.jersey}</b> ` : ''}${esc(p.name)}${inj}</span>`;
     }).join('');
     return `<div class="fc-row"><span class="fc-pos">${esc(row.pos || '')}</span><span class="fc-names">${players}</span></div>`;
 }
@@ -2888,7 +2894,9 @@ function flipCardHtml(card, abbr) {
     const giocata = card.mode === 'played';
     const mia = card.home.abbr === abbr ? card.home : card.away;
     const sua = mia === card.home ? card.away : card.home;
-    const nota = giocata
+    const nota = giocata && card.depthDay
+        ? `Already played: the three panels are the <b>official ESPN depth chart as it stood on game day</b> (snapshot of ${esc(new Date(card.depthDay).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}, archived by nflverse) — slot by slot, backups in depth order. On top of it, the game roster: <b>bold</b> is who actually started, <s>struck through</s> who did not dress. A starter the morning chart did not list is added at the end of his position's row. Officials, venue and attendance are the real ones from that game.`
+        : giocata
         ? `Already played: ESPN does not keep historical depth charts, so this card is rebuilt from <b>who actually dressed and started that day</b> — the actives grouped by position with the 22 starters in bold, and the inactives in their own list. Officials, venue and attendance are the real ones from that game. Names and measurements come from today's ESPN roster where the player is still on it, otherwise from the nflverse roster of that season matched by jersey number — age is only in the first source, so on older cards that column is often empty.`
         : `Upcoming game: the three panels are the <b>official ESPN depth chart</b> of the two teams — starter in bold, then the backups in order, which is what the printed flip card carries. It is a live snapshot and it moves during the week. Officials appear only on game day: before that the league has not published them.`;
     return `
@@ -2897,7 +2905,7 @@ function flipCardHtml(card, abbr) {
         <div class="fc-legend">
             <span class="fc-p fc-p--s"><b>#</b> ${giocata ? 'started this game' : 'starter'}</span>
             <span class="fc-p fc-p--rk">rookie</span>
-            ${giocata ? '' : '<span class="fc-p fc-p--ps">practice squad</span><span class="fc-p"><i class="fc-inj">O</i> injury status</span>'}
+            ${giocata ? (card.depthDay ? '<span class="fc-p fc-p--out">did not dress</span>' : '') : '<span class="fc-p fc-p--ps">practice squad</span><span class="fc-p"><i class="fc-inj">O</i> injury status</span>'}
         </div>
         <div class="fc-grid">
             <div class="fc-col">${flipTeamPanels(mia, card.mode)}</div>
@@ -2942,7 +2950,7 @@ async function flipLoad(section, i) {
     // cadere l'intero grafo dei moduli — app.js non partiva e tutto il sito
     // restava su "Loading...". Cosi' al massimo si spegne questa tab.
     let modulo = null;
-    try { modulo = await import('../data/nfl-flip-card.js?v=6'); } catch { modulo = null; }
+    try { modulo = await import('../data/nfl-flip-card.js?v=9'); } catch { modulo = null; }
     const card = modulo ? await modulo.getFlipCard({
         eventId: g.eventId,
         homeAbbr: g.homeAway === 'home' ? mio : g.opp,
@@ -2989,7 +2997,7 @@ function bindFlipCard(section, ctx) {
             if (openBtn && _flipState?.card) {
                 // Import dinamico, stessa ragione del modulo dati (vedi sopra):
                 // la vista stampa non deve poter spegnere il resto della pagina.
-                import('../ui/flip-card-print.js?v=7').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
+                import('../ui/flip-card-print.js?v=10').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
             }
         });
     }

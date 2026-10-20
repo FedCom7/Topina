@@ -12,9 +12,10 @@ import { initManagerDna } from './sections/managerdna.js?v=71';
 import { initManagerDnaTeam } from './sections/managerdna-team.js?v=838';
 import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=841';
 import { initPlayerPage } from './sections/player-page.js?v=1086';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1137';
-import { initNflGames } from './sections/nfl-games.js?v=12';
-import { initPlayersSearch } from './sections/players-search.js?v=1008';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1142';
+import { initNflGames } from './sections/nfl-games.js?v=13';
+import { initNflTactics } from './sections/nfl-tactics.js?v=11';
+import { initPlayersSearch } from './sections/players-search.js?v=1010';
 import { initStats } from './sections/stats.js?v=942';
 import { initHistory } from './sections/history.js?v=776';
 import { initHonors } from './sections/honors.js?v=761';
@@ -87,6 +88,7 @@ function getSection() {
     if (hash.startsWith('player/')) return hash; // #player/{year}/{pos}/{nome}
     if (hash.startsWith('nfl-team/')) return hash; // #nfl-team/{abbr}/{anno?}
     if (hash === 'nfl-games' || hash.startsWith('nfl-games/')) return hash; // #nfl-games/{anno}/{tipo}/{week}/{ev?}
+    if (hash === 'nfl-tactics' || hash.startsWith('nfl-tactics/')) return hash; // #nfl-tactics/{sigla}/{anno}
     return SECTIONS[hash] ? hash : 'home';
 }
 
@@ -129,6 +131,7 @@ function navigate() {
     const isPlayer = active.startsWith('player/');
     const isNflTeam = active.startsWith('nfl-team/');
     const isNflGames = active.startsWith('nfl-games');
+    const isNflTactics = active.startsWith('nfl-tactics');
     // La mappa hash -> sezione sta in js/utils/route.js, non qui: la usa anche
     // il caricamento a pagina piena in index.html, che gira prima di app.js.
     activateSection(sectionIdFor(active));
@@ -140,7 +143,7 @@ function navigate() {
     // Update nav — team pages mantengono "Teams" evidenziato,
     // le voci da dropdown evidenziano la voce madre
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : (isDGTeam || isDnaTeam) ? 'draft' : (isPlayer || isNflTeam || isNflGames) ? 'players' : (NAV_PARENT[active] || active);
+    const navTarget = isTeam ? 'teams' : isGame ? 'game-center' : (isDGTeam || isDnaTeam) ? 'draft' : (isPlayer || isNflTeam || isNflGames || isNflTactics) ? 'players' : (NAV_PARENT[active] || active);
     document.querySelector(`.nav-link[data-section="${navTarget}"]`)?.classList.add('active');
 
     // Close mobile menu
@@ -161,6 +164,8 @@ function navigate() {
         initNflTeamPage();
     } else if (isNflGames) {
         initNflGames();
+    } else if (isNflTactics) {
+        initNflTactics();
     } else {
         SECTIONS[active]?.();
     }

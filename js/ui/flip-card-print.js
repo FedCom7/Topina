@@ -83,18 +83,18 @@ function outerColumn(lato, mode, alpha) {
 function panelRow(row, mode) {
     const players = row.players.map((p, i) => {
         const titolare = mode === 'played' ? !!p.starter : i === 0;
-        const cls = ['fc-p', titolare ? 'fc-p--s' : '', p.rookie ? 'fc-p--rk' : '', p.practice ? 'fc-p--ps' : ''].filter(Boolean).join(' ');
+        const cls = ['fc-p', titolare ? 'fc-p--s' : '', p.rookie ? 'fc-p--rk' : '', p.practice ? 'fc-p--ps' : '', p.inactive ? 'fc-p--out' : ''].filter(Boolean).join(' ');
         return `<span class="${cls}">${p.jersey != null ? `<b>${p.jersey}</b> ` : ''}${esc(p.name)}</span>`;
     }).join('');
     return `<div class="fc-row"><span class="fc-pos">${esc(row.pos || '')}</span><span class="fc-names">${players}</span></div>`;
 }
 
 /** Uno dei sei pannelli (attacco/difesa/specialisti di una squadra). */
-function depthPanel(lato, key, label, mode) {
+function depthPanel(lato, key, label, mode, chi) {
     const rows = lato.units?.[key] || [];
     if (!rows.length) return '<div class="fcp-depth fcp-depth--empty"></div>';
     return `
-    <div class="fcp-depth">
+    <div class="fcp-depth" data-zoom="${chi}:${key}" role="button" tabindex="0" aria-label="${esc(teamNick(lato.abbr))} ${label}: open full screen">
         <h4 class="fcp-depth-title" style="--fcp-team:${teamColor(getTeamIdentity(lato.abbr))}">${esc(teamNick(lato.abbr))} ${label}</h4>
         <div class="fc-rows">${rows.map(r => panelRow(r, mode)).join('')}</div>
     </div>`;
@@ -163,14 +163,16 @@ function page1Html(card, mia, sua) {
         <div class="fcp-mid">
             ${gameInfoBlock(card)}
             <div class="fcp-depthgrid">
-                ${depthPanel(mia, 'offense', 'Offense', card.mode)}
-                ${depthPanel(mia, 'defense', 'Defense', card.mode)}
-                ${depthPanel(sua, 'offense', 'Offense', card.mode)}
-                ${depthPanel(sua, 'defense', 'Defense', card.mode)}
-                ${depthPanel(mia, 'special', 'Specialists', card.mode)}
-                ${depthPanel(sua, 'special', 'Specialists', card.mode)}
+                ${depthPanel(mia, 'offense', 'Offense', card.mode, 'mia')}
+                ${depthPanel(mia, 'defense', 'Defense', card.mode, 'mia')}
+                ${depthPanel(sua, 'offense', 'Offense', card.mode, 'sua')}
+                ${depthPanel(sua, 'defense', 'Defense', card.mode, 'sua')}
+                ${depthPanel(mia, 'special', 'Specialists', card.mode, 'mia')}
+                ${depthPanel(sua, 'special', 'Specialists', card.mode, 'sua')}
             </div>
-            <p class="fcp-legend">NOTE: Rookies are <u>underlined</u>, Practice Squad players are <i>italicized</i>.</p>
+            <p class="fcp-legend">NOTE: Rookies are <u>underlined</u>, ${card.depthDay
+                ? 'game-day depth chart: starters in <b>bold</b>, players who did not dress are <s>struck through</s>.'
+                : 'Practice Squad players are <i>italicized</i>.'}</p>
             ${officialsRow(card, mia, sua)}
         </div>
         ${outerColumn(sua, card.mode, false)}
@@ -241,9 +243,146 @@ function page2Html(card, mia, sua) {
     </div>`;
 }
 
+// ─── Zoom su un pannello ────────────────────────────────────────────────
+//
+// Cliccando uno dei sei pannelli della facciata 1 quel pannello si apre a
+// tutto schermo, per leggere nomi e numeri di UNA squadra e UN reparto. I
+// pannelli della facciata non cambiano: lo zoom è un livello sopra, e
+// ridisegna le STESSE righe (`lato.units[key]`, nessun ricalcolo) in forma di
+// tabella — una riga per slot, una colonna per livello di profondità — con
+// le convenzioni della card (titolare in grassetto, rookie sottolineato,
+// practice squad in corsivo, barrato chi non era a referto). Le righe si
+// dividono l'altezza della finestra, così un reparto intero sta a schermo
+// senza scorrere; sotto i 700px diventano righe che vanno a capo, e scorre.
+
+/** Ordine in cui ‹ › passano da un pannello all'altro. */
+const ZOOM_ORDINE = [['mia', 'offense'], ['mia', 'defense'], ['mia', 'special'], ['sua', 'offense'], ['sua', 'defense'], ['sua', 'special']];
+const ZOOM_LABEL = { offense: 'Offense', defense: 'Defense', special: 'Specialists' };
+const LIVELLI = ['Starter', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+
+/** Sigla dell'infortunio — uguale a `flipInjTag` di nfl-team-page.js,
+ *  duplicata di proposito (vedi commento in testa al file). */
+const injTag = (s) => {
+    const t = String(s || '');
+    if (/injur|^ir$|reserve/i.test(t)) return 'IR';
+    if (/^out/i.test(t)) return 'O';
+    if (/doubt/i.test(t)) return 'D';
+    if (/question/i.test(t)) return 'Q';
+    if (/pup|non.?football/i.test(t)) return 'P';
+    return '!';
+};
+
+function zoomCell(p, i, mode) {
+    const titolare = mode === 'played' ? !!p.starter : i === 0;
+    const cls = ['fcz-p', titolare ? 'fc-p--s' : '', p.rookie ? 'fc-p--rk' : '', p.practice ? 'fc-p--ps' : '', p.inactive ? 'fc-p--out' : ''].filter(Boolean).join(' ');
+    const inj = p.injury ? `<i class="fc-inj" title="${esc(p.injury)}">${esc(injTag(p.injury))}</i>` : '';
+    return `<div class="${cls}"${p.inactive ? ' title="Did not dress for this game"' : ''}>
+        <b class="fcz-num">${p.jersey ?? '—'}</b><span class="fcz-name">${esc(p.name || '—')}</span>${inj}</div>`;
+}
+
+/** Il laboratorio Study of the Game con queste due squadre: chi ha il
+ *  reparto aperto in attacco attacca, se no difende. Le depth chart del
+ *  laboratorio sono quelle di oggi, quindi la stagione è quella in corso. */
+function laboratorio(card, lato, key) {
+    const altro = lato === card.home ? card.away : card.home;
+    const d = new Date();
+    const anno = d.getMonth() + 1 >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+    const [att, dif] = key === 'offense' ? [lato.abbr, altro.abbr] : [altro.abbr, lato.abbr];
+    return `#nfl-tactics/${att}/${anno}/study/${dif}`;
+}
+
+function zoomHtml(card, lato, key) {
+    const id = getTeamIdentity(lato.abbr);
+    const rows = lato.units?.[key] || [];
+    const cols = Math.min(LIVELLI.length, Math.max(1, ...rows.map(r => r.players.length)));
+    const altro = lato === card.home ? card.away : card.home;
+    const sotto = [card.week, `${lato === card.home ? 'vs' : '@'} ${altro.abbr}`].filter(Boolean).join(' · ');
+    const giocata = card.mode === 'played';
+    const legenda = [
+        `<span class="fc-p fc-p--s">${giocata ? 'started this game' : 'starter'}</span>`,
+        '<span class="fc-p fc-p--rk">rookie</span>',
+        giocata ? (card.depthDay ? '<span class="fc-p fc-p--out">did not dress</span>' : '') : '<span class="fc-p fc-p--ps">practice squad</span><span class="fc-p"><i class="fc-inj">O</i> injury status</span>',
+    ].join('');
+    return `
+    <div class="fcz-head" style="--fcz-team:${teamColor(id)}">
+        <img src="${teamLogo(lato.abbr)}" alt="">
+        <div class="fcz-title"><b>${esc(id?.name || lato.abbr)}</b><span>${ZOOM_LABEL[key]}</span></div>
+        <small>${esc(sotto)}</small>
+        ${key !== 'special' ? `<a class="fcz-field" data-fcz-campo href="${laboratorio(card, lato, key)}">On the field ›</a>` : ''}
+    </div>
+    <div class="fcz-grid" style="--fcz-cols:${cols};--fcz-rows:${rows.length};--fcz-team:${teamColor(id)}">
+        <div class="fcz-hrow"><span></span>${LIVELLI.slice(0, cols).map(l => `<span>${l}</span>`).join('')}</div>
+        ${rows.map(r => {
+            // Celle vuote fino al numero di colonne: le righe sono `display:
+            // contents`, e senza riempitivo la riga dopo risalirebbe a
+            // occupare i buchi di quella corta.
+            const celle = r.players.slice(0, cols).map((p, i) => zoomCell(p, i, card.mode));
+            while (celle.length < cols) celle.push('<span class="fcz-vuoto"></span>');
+            return `<div class="fcz-row"><span class="fcz-pos">${esc(r.pos || '')}</span>${celle.join('')}</div>`;
+        }).join('')}
+    </div>
+    <div class="fcz-legend">${legenda}</div>`;
+}
+
+function disegnaZoom() {
+    const box = document.querySelector('.fcp-overlay .fcz');
+    if (!box || !_st?.zoom) return;
+    const { mia, sua } = laFaccia(_st.card, _st.abbr);
+    const [chi, key] = _st.zoom;
+    box.querySelector('.fcz-body').innerHTML = zoomHtml(_st.card, chi === 'mia' ? mia : sua, key);
+    const i = ZOOM_ORDINE.findIndex(([c, k]) => c === chi && k === key);
+    box.querySelector('.fcz-ind').textContent = `${i + 1} / ${ZOOM_ORDINE.length}`;
+    box.querySelector('.fcz-body').scrollTo(0, 0);
+}
+
+function apriZoom(chi, key) {
+    const overlay = document.querySelector('.fcp-overlay');
+    if (!overlay || !_st) return;
+    _st.zoom = [chi, key];
+    let box = overlay.querySelector('.fcz');
+    if (!box) {
+        box = document.createElement('div');
+        box.className = 'fcz';
+        box.innerHTML = `
+            <button type="button" class="fcz-close" aria-label="Back to the flip card">✕</button>
+            <button type="button" class="fcp-arrow fcz-arrow fcp-arrow--left" aria-label="Previous panel">‹</button>
+            <div class="fcz-body"></div>
+            <button type="button" class="fcp-arrow fcz-arrow fcp-arrow--right" aria-label="Next panel">›</button>
+            <div class="fcp-pageind fcz-ind"></div>`;
+        overlay.appendChild(box);
+        box.querySelector('.fcz-close').addEventListener('click', chiudiZoom);
+        // Il link cambia pagina: la flip card a tutto schermo va chiusa,
+        // se no resterebbe sopra al laboratorio.
+        box.addEventListener('click', (e) => { if (e.target.closest('[data-fcz-campo]')) closeFlipPrint(); });
+        box.querySelector('.fcp-arrow--left').addEventListener('click', () => scorriZoom(-1));
+        box.querySelector('.fcp-arrow--right').addEventListener('click', () => scorriZoom(1));
+    }
+    overlay.classList.add('fcp-zooming');
+    disegnaZoom();
+}
+
+function chiudiZoom() {
+    const overlay = document.querySelector('.fcp-overlay');
+    overlay?.querySelector('.fcz')?.remove();
+    overlay?.classList.remove('fcp-zooming');
+    if (_st) _st.zoom = null;
+}
+
+/** Al pannello dopo/prima, saltando quelli vuoti (una squadra senza depth chart). */
+function scorriZoom(dir) {
+    if (!_st?.zoom) return;
+    const { mia, sua } = laFaccia(_st.card, _st.abbr);
+    let i = ZOOM_ORDINE.findIndex(([c, k]) => c === _st.zoom[0] && k === _st.zoom[1]);
+    for (let n = 0; n < ZOOM_ORDINE.length; n++) {
+        i = (i + dir + ZOOM_ORDINE.length) % ZOOM_ORDINE.length;
+        const [c, k] = ZOOM_ORDINE[i];
+        if ((c === 'mia' ? mia : sua).units?.[k]?.length) { _st.zoom = [c, k]; disegnaZoom(); return; }
+    }
+}
+
 // ─── Controller del overlay ─────────────────────────────────────────────
 
-let _st = null; // { card, abbr, page }
+let _st = null; // { card, abbr, page, zoom: [chi, key] | null }
 
 function laFaccia(card, abbr) {
     const mia = card.home.abbr === abbr ? card.home : card.away;
@@ -326,6 +465,19 @@ function giraPagina() {
 
 function onKey(e) {
     if (!_st) return;
+    // Con un pannello aperto le frecce scorrono i pannelli ed Esc torna alla card.
+    if (_st.zoom) {
+        if (e.key === 'Escape') chiudiZoom();
+        else if (e.key === 'ArrowLeft') scorriZoom(-1);
+        else if (e.key === 'ArrowRight') scorriZoom(1);
+        return;
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target?.closest?.('.fcp-depth[data-zoom]')) {
+        e.preventDefault();
+        const [chi, key] = e.target.closest('.fcp-depth[data-zoom]').dataset.zoom.split(':');
+        apriZoom(chi, key);
+        return;
+    }
     if (e.key === 'Escape') closeFlipPrint();
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') giraPagina();
 }
@@ -348,7 +500,7 @@ export function closeFlipPrint() {
 export function openFlipPrint(card, abbr) {
     if (!card?.home || !card?.away) return;
     closeFlipPrint();
-    _st = { card, abbr, page: 1 };
+    _st = { card, abbr, page: 1, zoom: null };
     const overlay = document.createElement('div');
     overlay.className = 'fcp-overlay';
     overlay.innerHTML = `
@@ -364,6 +516,13 @@ export function openFlipPrint(card, abbr) {
     overlay.querySelector('.fcp-arrow--right').addEventListener('click', giraPagina);
     // Il tocco/click sullo sfondo (non sulla card) chiude, come un lightbox.
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeFlipPrint(); });
+    // Clic su uno dei sei pannelli della facciata 1: quel pannello a tutto schermo.
+    overlay.querySelector('.fcp-stage').addEventListener('click', (e) => {
+        const pan = e.target.closest('.fcp-depth[data-zoom]');
+        if (!pan) return;
+        const [chi, key] = pan.dataset.zoom.split(':');
+        apriZoom(chi, key);
+    });
     document.addEventListener('keydown', onKey);
     // La finestra può cambiare taglia (resize, rotazione del telefono) a
     // overlay aperto: si riadatta invece di restare tarata sulla misura di

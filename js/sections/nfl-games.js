@@ -16,7 +16,7 @@
 
 import { getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=552';
 import { fetchPlays, headshotUrl } from '../data/nfl-plays.js?v=572';
-import { getStarters } from '../data/nfl-flip-card.js?v=6';
+import { getStarters } from '../data/nfl-flip-card.js?v=9';
 import { fetchBoxscoreTotals, normName } from '../data/espn-boxscore.js?v=574';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { fieldStripHTML, bindFieldStrip } from '../ui/field-strip.js?v=150';

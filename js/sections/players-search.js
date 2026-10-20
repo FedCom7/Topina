@@ -946,6 +946,13 @@ function render(section, year) {
             </div>
         </div>
         <div id="ps-scoreboard" class="ps-sb-wrap"></div>
+        <!-- Le sezioni di studio: si entra da qui e dalla pagina squadra NFL,
+             il menu delle 32 squadre per division resta com'è. -->
+        <a class="ps-study" href="#nfl-tactics">
+            <span class="mc-kicker">Study the game</span>
+            <b>Tactics · Film room · Study of the Game</b>
+            <span>How every team plays (formations, personnel, motion, play action, coverages, blitzes, routes, situations — every scheme stat nflverse publishes, 2016 to today), every snap of every game since 2023, and a lab to line up two real depth charts against each other.</span>
+        </a>
         <div id="ps-divisions" class="ps-div-block"></div>
         <div id="ps-results" class="ps-results"></div>
         <div id="ps-league" class="ps-league">

@@ -149,30 +149,66 @@ function teamRoster(abbr) {
     });
 }
 
-/** Depth chart ufficiale ESPN, per slot e in ordine di profondità. */
+/** Stagione NFL in corso: a gennaio e febbraio si giocano ancora i playoff
+ *  della stagione dell'anno prima. */
+const stagioneInCorso = () => { const d = new Date(); return d.getUTCMonth() < 2 ? d.getUTCFullYear() - 1 : d.getUTCFullYear(); };
+
+/**
+ * Depth chart ufficiale ESPN, per slot e in ordine di profondità.
+ *
+ * Dall'API CORE, non da `site.api…/teams/{id}/depthcharts`: quella risponde
+ * ma SENZA `Access-Control-Allow-Origin` (verificato il 2026-10-19, mentre
+ * roster e summary dello stesso host ce l'hanno), quindi il browser buttava
+ * la risposta e ogni partita da giocare finiva sulla nota "no depth chart".
+ * Le partite giocate non se ne accorgevano: usano il roster di gara.
+ *
+ * Il core dà gli atleti come `$ref` (l'id sta nell'URL) senza nome né
+ * infortuni: quelli li mette la rosa (`teamRoster().byId`), che si scarica
+ * comunque. E i tre ricevitori stanno sotto UNA chiave `wr`, distinti dal
+ * campo `slot`: si ridividono in `wr1/wr2/wr3` nell'ordine degli slot, che è
+ * come li espone il sito e come li legge `SLOT_ORDER`.
+ */
 function teamDepth(abbr) {
     const teamId = ESPN_TEAM_IDS[abbr];
     if (!teamId) return Promise.resolve(null);
     return cached(`depth-${teamId}`, async () => {
-        const d = await fetchJson(`${SITE}/teams/${teamId}/depthcharts`);
-        if (!d?.depthchart?.length) return null;
+        const d = await fetchJson(`${CORE}/seasons/${stagioneInCorso()}/teams/${teamId}/depthcharts`);
+        if (!d?.items?.length) return null;
         const out = { scheme: null, offense: {}, defense: {}, special: {} };
-        for (const unit of d.depthchart) {
+        const idDa = (a) => String(a.athlete?.$ref || '').match(/athletes\/(\d+)/)?.[1] || '';
+        for (const unit of d.items) {
             const base = /^Base (\d-\d) D$/.exec(unit.name || '');
             const side = unit.name === 'Special Teams' ? 'special' : base ? 'defense' : 'offense';
             if (base) out.scheme = base[1];
             for (const [key, slot] of Object.entries(unit.positions || {})) {
                 if (!slot.athletes?.length) continue;
-                out[side][key] = {
-                    pos: slot.position?.abbreviation || key.toUpperCase(),
-                    athletes: slot.athletes.map(a => ({
-                        id: String(a.id || ''),
-                        name: a.displayName || '',
-                        injury: (a.injuries || [])[0]?.status || null,
-                    })),
-                };
+                const pos = slot.position?.abbreviation || key.toUpperCase();
+                const perSlot = {};
+                for (const a of slot.athletes) (perSlot[a.slot ?? 0] ??= []).push(a);
+                const slots = Object.keys(perSlot).map(Number).sort((x, y) => x - y);
+                slots.forEach((s, i) => {
+                    out[side][slots.length > 1 ? `${key}${i + 1}` : key] = {
+                        pos: slots.length > 1 ? `${pos}${i + 1}` : pos,
+                        athletes: perSlot[s]
+                            .sort((x, y) => (x.rank ?? 99) - (y.rank ?? 99))
+                            .map(a => ({ id: idDa(a), name: '', injury: null }))
+                            .filter(a => a.id),
+                    };
+                });
             }
         }
+        // Chi sta nel depth chart ma non nella rosa ESPN (visto: Jordan Davis,
+        // NT titolare di PHI, il 2026-10-19) resterebbe "—": il nome si prende
+        // dalla scheda atleta del core, una richiesta per assente.
+        const rosa = await teamRoster(abbr).catch(() => null);
+        const mancanti = [...new Set(['offense', 'defense', 'special']
+            .flatMap(s => Object.values(out[s]).flatMap(sl => sl.athletes))
+            .map(a => a.id).filter(id => !rosa?.byId?.[id]))].slice(0, 12);
+        const nomi = Object.fromEntries(await Promise.all(mancanti.map(async id =>
+            [id, (await fetchJson(`${CORE}/seasons/${stagioneInCorso()}/athletes/${id}`))?.displayName || ''])));
+        for (const s of ['offense', 'defense', 'special'])
+            for (const sl of Object.values(out[s]))
+                for (const a of sl.athletes) a.name = nomi[a.id] || '';
         return out;
     });
 }
@@ -322,7 +358,7 @@ function projectedUnits(depth, roster) {
             pos: slot.pos,
             players: slot.athletes.map(a => {
                 const r = roster?.byId?.[a.id];
-                return { name: a.name, jersey: r?.jersey ?? null, rookie: !!r?.rookie, practice: !!r?.practice, injury: a.injury || null };
+                return { name: a.name || r?.name || '—', jersey: r?.jersey ?? null, rookie: !!r?.rookie, practice: !!r?.practice, injury: a.injury || r?.injury || null };
             }),
         }));
     return {
@@ -330,6 +366,101 @@ function projectedUnits(depth, roster) {
         defense: [...riga('defense'), ...extra('defense')],
         special: [...riga('special'), ...extra('special')],
     };
+}
+
+/**
+ * Depth chart della MATTINA della partita, precalcolato da
+ * scripts/build-nfl-depth.mjs sulle foto che nflverse fa del depth chart ESPN.
+ * Esiste dal 2025: prima la card resta per ruolo (`playedUnits`).
+ */
+const PRIMA_STAGIONE_DEPTH = 2025;
+function depthDelGiorno(abbr, season, eventId) {
+    if (!(+season >= PRIMA_STAGIONE_DEPTH)) return Promise.resolve(null);
+    return cached(`dday-${season}-${abbr}`, () => fetchJson(`data/nfl/depth/${season}_${abbr}.json`))
+        .then(f => (f?.games?.[eventId] ? { ...f.games[eventId], names: f.names || {} } : null));
+}
+
+/** Famiglia di ruolo, per mettere un titolare che il depth chart non aveva
+ *  nella riga giusta (LT/RT/T → T, LCB/NB/CB → CB…). */
+const famiglia = (pos) => {
+    const p = String(pos || '').toUpperCase().replace(/\d+$/, '');
+    if (/^(L|R)?(OT|T)$/.test(p)) return 'T';
+    if (/^(L|R)?(OG|G)$/.test(p)) return 'G';
+    if (/^(L|R)?DE$|^EDGE$/.test(p)) return 'DE';
+    if (/^(L|R)?DT$|^NT$|^DL$/.test(p)) return 'DT';
+    if (/LB$/.test(p)) return 'LB';
+    if (/^(L|R)?CB$|^NB$|^DB$/.test(p)) return 'CB';
+    if (/^(SS|FS|S)$/.test(p)) return 'S';
+    if (/^(RB|HB|FB|TB)$/.test(p)) return 'RB';
+    return p;
+};
+
+/**
+ * Righe nel modo `played` quando c'è il depth chart del giorno: le stesse
+ * della card in arrivo (slot per slot, in ordine di profondità), con sopra
+ * quello che il roster di gara dice davvero — `starter` per chi è partito
+ * titolare, `inactive` per chi non era a disposizione (inattivo o del tutto
+ * assente dal roster di gara: IR, tagliato in settimana).
+ *
+ * Un titolare che il depth chart della mattina non aveva (un rientro
+ * dell'ultima ora, un promosso dalla practice squad) non deve sparire: va in
+ * coda alla prima riga della sua famiglia di ruolo, o in una riga sua.
+ */
+function playedDepthUnits(dg, entries) {
+    const perId = Object.fromEntries(entries.map(e => [e.id, e]));
+    const visti = new Set();
+    // `starter` (il grassetto) vale una volta sola e solo in attacco/difesa:
+    // il flag di ESPN dice "in campo al primo snap", non in quale slot — chi
+    // il depth chart mette sotto C e RG sarebbe in grassetto due volte, e un
+    // titolare della difesa lo sarebbe anche sulla riga dei ritornatori.
+    // Si accende sulla riga della sua famiglia di ruolo (dal roster di gara),
+    // o sulla prima in cui compare se nessuna combacia.
+    const evidenziati = new Set();
+    const voce = (id, pos, side) => {
+        const e = perId[id];
+        visti.add(id);
+        return {
+            id,
+            name: e?.name || dg.names[id] || '—',
+            jersey: e?.jersey ?? null,
+            rookie: !!e?.rookie,
+            practice: false,
+            injury: null,
+            starter: false,
+            titolareGara: side !== 'special' && !!e?.starter,
+            famigliaGara: famiglia(e?.pos),
+            famigliaRiga: famiglia(pos),
+            inactive: !e || !!e.inactive,
+        };
+    };
+    const out = {};
+    for (const side of ['offense', 'defense', 'special']) {
+        const slots = dg[side] || {};
+        const chiavi = [...SLOT_ORDER[side].filter(k => slots[k]), ...Object.keys(slots).filter(k => !SLOT_ORDER[side].includes(k))];
+        out[side] = chiavi.map(k => {
+            const pos = k.toUpperCase();
+            return { pos, players: slots[k].map(id => voce(id, pos, side)) };
+        });
+    }
+    for (const e of entries) {
+        if (!e.starter || visti.has(e.id) || !e.side || !out[e.side]) continue;
+        const riga = out[e.side].find(r => famiglia(r.pos) === famiglia(e.pos));
+        if (riga) riga.players.push(voce(e.id, riga.pos, e.side));
+        else out[e.side].push({ pos: e.pos, players: [voce(e.id, e.pos, e.side)] });
+    }
+    const tutte = (side) => out[side].flatMap(r => r.players);
+    for (const side of ['offense', 'defense']) {
+        for (const p of tutte(side)) {
+            if (p.titolareGara && !evidenziati.has(p.id) && p.famigliaRiga === p.famigliaGara) { p.starter = true; evidenziati.add(p.id); }
+        }
+        for (const p of tutte(side)) {
+            if (p.titolareGara && !evidenziati.has(p.id)) { p.starter = true; evidenziati.add(p.id); }
+        }
+    }
+    for (const side of Object.keys(out)) {
+        for (const p of tutte(side)) { delete p.id; delete p.titolareGara; delete p.famigliaGara; delete p.famigliaRiga; }
+    }
+    return out;
 }
 
 /** Righe nel modo `played`: una per RUOLO, titolari di quella partita in testa. */
@@ -383,7 +514,7 @@ export async function getFlipCard(game) {
     // Il modo si decide sul DATO, non sul calendario: una gara finita di cui
     // ESPN non espone il roster di gara ricade sul depth chart dichiarandolo.
     let mode = 'projected', unitsHome = null, unitsAway = null;
-    let gameHome = null, gameAway = null;
+    let gameHome = null, gameAway = null, depthDay = null;
     if (game.completed) {
         [gameHome, gameAway] = await Promise.all([
             gameRoster(eventId, ESPN_TEAM_IDS[home]).catch(() => null),
@@ -391,15 +522,25 @@ export async function getFlipCard(game) {
         ]);
         if (gameHome?.length && gameAway?.length) {
             const season = game.season || (game.date ? new Date(game.date).getUTCFullYear() : null);
-            const [nvHome, nvAway] = await Promise.all([
+            const [nvHome, nvAway, ddHome, ddAway] = await Promise.all([
                 nflverseByJersey(home, season).catch(() => null),
                 nflverseByJersey(away, season).catch(() => null),
+                depthDelGiorno(home, season, eventId).catch(() => null),
+                depthDelGiorno(away, season, eventId).catch(() => null),
             ]);
             gameHome = gameHome.map(e => completaVoce(e, rHome, nvHome, season));
             gameAway = gameAway.map(e => completaVoce(e, rAway, nvAway, season));
             mode = 'played';
-            unitsHome = playedUnits(gameHome);
-            unitsAway = playedUnits(gameAway);
+            // Depth chart del giorno solo se c'è per TUTTE E DUE: una card con
+            // un lato per slot e l'altro per ruolo non si confronterebbe.
+            if (ddHome && ddAway) {
+                depthDay = ddHome.dt;
+                unitsHome = playedDepthUnits(ddHome, gameHome);
+                unitsAway = playedDepthUnits(ddAway, gameAway);
+            } else {
+                unitsHome = playedUnits(gameHome);
+                unitsAway = playedUnits(gameAway);
+            }
         }
     }
     if (mode === 'projected') {
@@ -435,6 +576,7 @@ export async function getFlipCard(game) {
 
     return {
         mode,
+        depthDay,
         eventId,
         week: game.weekText || (game.weekNum != null ? `Week ${game.weekNum}` : null),
         seasonType: game.seasonType ?? 2,
@@ -539,7 +681,7 @@ export async function getStarters(eventId, abbr) {
             if (!a?.id || visti.has(a.id)) continue;
             visti.add(a.id);
             out.push({ key, id: a.id, name: a.name || nome(a.id), jersey: rosa?.byId?.[a.id]?.jersey ?? null,
-                pos: depth[side][key].pos });
+                pos: depth[side][key].pos.replace(/\d+$/, '') }); // WR1 → WR: l'ordine dei ruoli non ha gli slot
         }
         // Il depth chart ha slot in piu' degli undici (nickel, fullback, terzo
         // ricevitore): si tolgono in quest'ordine, che e' quello dei giocatori
@@ -563,10 +705,34 @@ export async function getStarters(eventId, abbr) {
                 if (!a.id || titolariId.has(a.id) || visti.has(a.id)) continue;
                 visti.add(a.id);
                 panchina.push({ id: a.id, name: a.name || nome(a.id), jersey: rosa?.byId?.[a.id]?.jersey ?? null,
-                    pos: rosa?.byId?.[a.id]?.pos || slot.pos });
+                    pos: rosa?.byId?.[a.id]?.pos || slot.pos.replace(/\d+$/, '') });
             }
         }
     }
     const bench = perReparto(panchina);
     return { fonte: 'depth', offense, defense, bench, ruoli: perRuoloInsieme([...offense, ...defense], bench) };
+}
+
+/* ─── Depth chart di oggi, per il laboratorio Study of the Game ───────────
+ *
+ * Stesse due fonti della card in arrivo (depth chart del core ESPN + rosa
+ * del sito per nome, numero, misure e infortunio), restituite per slot con
+ * tutto quello che serve a mettere i giocatori in campo e a confrontarli.
+ * Nessuna richiesta in più se la flip card le ha già scaricate (cache).
+ */
+export async function getStudyDepth(abbr) {
+    const a = canonAbbr(abbr || '');
+    const [d, r] = await Promise.all([teamDepth(a).catch(() => null), teamRoster(a).catch(() => null)]);
+    if (!d) return null;
+    const voce = (x, pos) => {
+        const p = r?.byId?.[x.id] || {};
+        return { id: x.id, name: x.name || p.name || '—', jersey: p.jersey ?? null, pos: p.pos || pos,
+            ht: p.ht || null, wt: p.wt ?? null, age: p.age ?? null, exp: p.exp ?? null, college: p.college || null,
+            rookie: !!p.rookie, injury: x.injury || p.injury || null };
+    };
+    const out = { abbr: a, scheme: d.scheme, offense: {}, defense: {}, special: {} };
+    for (const side of ['offense', 'defense', 'special']) {
+        for (const [k, slot] of Object.entries(d[side] || {})) out[side][k] = slot.athletes.map(x => voce(x, slot.pos.replace(/\d+$/, '')));
+    }
+    return out;
 }
