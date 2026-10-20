@@ -128,6 +128,42 @@ jobs:
         run: node scripts/build-nfl-team-stats.mjs ${{ steps.yrs.outputs.seasons }}
         continue-on-error: true   # fonte di rete: se Sleeper e' giu' restano i dati precedenti
 
+      # Depth chart della mattina di ogni partita, per la flip card delle gare
+      # giocate (righe WR1/WR2/WR3, TE1… invece di un gruppo per ruolo). ESPN
+      # ha solo quello di oggi; nflverse lo fotografa due volte al giorno.
+      # Giornaliero perche' ogni giorno di partita aggiunge una foto; nel giro
+      # leggero solo la stagione in corso (il CSV pesa 50-60 MB a stagione).
+      - name: Depth chart del giorno della partita
+        run: |
+          if [ "${{ steps.giro.outputs.leggero }}" = "1" ]; then
+            node scripts/build-nfl-depth.mjs
+          else
+            node scripts/build-nfl-depth.mjs ${{ steps.yrs.outputs.seasons }}
+          fi
+        continue-on-error: true   # fonte di rete: se nflverse o ESPN sono giu' restano i dati precedenti
+
+      # Tactics (#nfl-tactics): schemi e stile di ogni squadra da play-by-play,
+      # participation, FTN, NGS, PFR e snap count. Giornaliero perche' pbp e
+      # FTN della stagione in corso si aggiornano dopo ogni giornata; nel giro
+      # leggero solo la stagione in corso (il pbp pesa ~30 MB a stagione).
+      - name: Tactics (schemi per squadra)
+        run: |
+          if [ "${{ steps.giro.outputs.leggero }}" = "1" ]; then
+            node --max-old-space-size=6000 scripts/build-nfl-tactics.mjs
+          else
+            node --max-old-space-size=6000 scripts/build-nfl-tactics.mjs ${{ steps.yrs.outputs.seasons }}
+          fi
+        continue-on-error: true   # fonte di rete: se nflverse e' giu' restano i dati precedenti
+
+      # Sala video (#nfl-tactics/…/film): una partita per file con OGNI campo
+      # di pbp, participation e FTN. Solo la stagione in corso, ogni giorno:
+      # le stagioni chiuse (2023+) si rigenerano a mano. I file senza
+      # generatedAt cambiano solo se cambiano i dati, quindi il commit tocca
+      # le partite nuove o corrette.
+      - name: Sala video (giocate della stagione in corso)
+        run: node --max-old-space-size=8000 scripts/build-nfl-plays.mjs
+        continue-on-error: true   # fonte di rete: se nflverse e' giu' restano i dati precedenti
+
       - name: Genera combine + draft NFL reale + contratti (storico, poco costoso)
         if: steps.giro.outputs.leggero != '1'
         run: node scripts/build-nfl-combine-draft.mjs
@@ -174,7 +210,8 @@ jobs:
                    data/nfl/team_stats_*.json \
                    data/nfl/combine_draft.json data/nfl/team_trades.json \
                    data/nfl/unrostered_scores_*.json data/nfl/best_available_*.json \
-                   data/nfl/player_status_*.json data/nfl/inactives_*.json; do
+                   data/nfl/player_status_*.json data/nfl/inactives_*.json \
+                   data/nfl/depth/*.json data/nfl/tactics/*/*.json data/nfl/plays/*/*.json; do
             [ -e "$p" ] && git add "$p"
           done
           # Ogni JSON porta dentro `generatedAt`, quindi risulterebbe sempre
