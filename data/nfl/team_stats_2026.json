@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-21T14:13:41.730Z",
+ "generatedAt": "2026-10-22T14:13:32.926Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -1003,7 +1003,7 @@
     "defTds": 0,
     "safeties": 1,
     "takeaways": 10,
-    "passDefended": 23,
+    "passDefended": 24,
     "tacklesForLoss": 20,
     "qbHits": 48,
     "blockedKicks": 1
@@ -1065,7 +1065,7 @@
      "fumblesForced": 1,
      "defTds": 14,
      "takeaways": 2,
-     "passDefended": 23,
+     "passDefended": 21,
      "tacklesForLoss": 27,
      "qbHits": 3
     }
@@ -1547,7 +1547,7 @@
      "fumblesForced": 7,
      "defTds": 16,
      "takeaways": 14,
-     "passDefended": 21,
+     "passDefended": 22,
      "tacklesForLoss": 10,
      "qbHits": 21
     }
@@ -1728,7 +1728,7 @@
     "takeaways": 9,
     "passDefended": 23,
     "tacklesForLoss": 20,
-    "qbHits": 40,
+    "qbHits": 41,
     "blockedKicks": 0
    },
    "fpa": {
@@ -1790,7 +1790,7 @@
      "takeaways": 5,
      "passDefended": 24,
      "tacklesForLoss": 28,
-     "qbHits": 12
+     "qbHits": 11
     }
    },
    "schedule": [
@@ -1969,7 +1969,7 @@
     "takeaways": 5,
     "passDefended": 21,
     "tacklesForLoss": 32,
-    "qbHits": 29,
+    "qbHits": 28,
     "blockedKicks": 1
    },
    "fpa": {
@@ -2031,7 +2031,7 @@
      "takeaways": 26,
      "passDefended": 29,
      "tacklesForLoss": 8,
-     "qbHits": 24
+     "qbHits": 26
     }
    },
    "schedule": [
@@ -2995,7 +2995,7 @@
      "takeaways": 1,
      "passDefended": 10,
      "tacklesForLoss": 6,
-     "qbHits": 11
+     "qbHits": 12
     }
    },
    "schedule": [
@@ -3413,9 +3413,9 @@
     "defTds": 0,
     "safeties": 0,
     "takeaways": 6,
-    "passDefended": 36,
+    "passDefended": 37,
     "tacklesForLoss": 26,
-    "qbHits": 43,
+    "qbHits": 42,
     "blockedKicks": 1
    },
    "fpa": {
@@ -3477,7 +3477,7 @@
      "takeaways": 21,
      "passDefended": 2,
      "tacklesForLoss": 18,
-     "qbHits": 8
+     "qbHits": 9
     }
    },
    "schedule": [
@@ -4198,7 +4198,7 @@
      "fumblesForced": 22,
      "defTds": 26,
      "takeaways": 27,
-     "passDefended": 22,
+     "passDefended": 23,
      "tacklesForLoss": 13,
      "qbHits": 4
     }
@@ -5102,7 +5102,7 @@
     "takeaways": 3,
     "passDefended": 20,
     "tacklesForLoss": 24,
-    "qbHits": 27,
+    "qbHits": 28,
     "blockedKicks": 0
    },
    "fpa": {
@@ -5164,7 +5164,7 @@
      "takeaways": 31,
      "passDefended": 31,
      "tacklesForLoss": 22,
-     "qbHits": 28
+     "qbHits": 27
     }
    },
    "schedule": [
@@ -5646,7 +5646,7 @@
      "takeaways": 24,
      "passDefended": 11,
      "tacklesForLoss": 30,
-     "qbHits": 27
+     "qbHits": 28
     }
    },
    "schedule": [
@@ -5887,7 +5887,7 @@
      "takeaways": 32,
      "passDefended": 12,
      "tacklesForLoss": 32,
-     "qbHits": 25
+     "qbHits": 24
     }
    },
    "schedule": [
@@ -6128,7 +6128,7 @@
      "takeaways": 25,
      "passDefended": 28,
      "tacklesForLoss": 4,
-     "qbHits": 9
+     "qbHits": 8
     }
    },
    "schedule": [
@@ -7574,7 +7574,7 @@
      "takeaways": 12,
      "passDefended": 9,
      "tacklesForLoss": 19,
-     "qbHits": 26
+     "qbHits": 25
     }
    },
    "schedule": [
