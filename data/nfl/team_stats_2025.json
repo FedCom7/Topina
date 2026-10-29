@@ -1,6 +1,6 @@
 {
  "season": 2025,
- "generatedAt": "2026-10-18T12:55:28.420Z",
+ "generatedAt": "2026-10-29T15:43:26.257Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -12,7 +12,7 @@
     "t": 1
    },
    "offense": {
-    "ppg": 27.7,
+    "ppg": 27.2,
     "totYdsPg": 400,
     "passYdsPg": 278.5,
     "rushYdsPg": 121.5,
@@ -28,7 +28,7 @@
     "snapsPg": 66.5
    },
    "defense": {
-    "papg": 30.1,
+    "papg": 29.9,
     "totYdsAllowedPg": 377,
     "passYdsAllowedPg": 265.9,
     "rushYdsAllowedPg": 125.4,
@@ -78,7 +78,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 7,
+     "ppg": 6,
      "totYdsPg": 2,
      "passYdsPg": 1,
      "rushYdsPg": 12,
@@ -111,136 +111,136 @@
      "week": 1,
      "opp": "PHI",
      "home": false,
-     "pf": 20,
      "pa": 24,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "NYG",
-     "home": true,
-     "pf": 40,
+     "home": false,
      "pa": 37,
+     "pf": 40,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "CHI",
      "home": false,
-     "pf": 14,
      "pa": 31,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "GB",
-     "home": true,
-     "pf": 40,
+     "home": false,
      "pa": 40,
+     "pf": 40,
      "result": "T"
     },
     {
      "week": 5,
      "opp": "NYJ",
      "home": false,
-     "pf": 37,
      "pa": 22,
+     "pf": 37,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "CAR",
      "home": false,
-     "pf": 27,
      "pa": 30,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "WAS",
-     "home": true,
-     "pf": 44,
-     "pa": 22,
+     "home": false,
+     "pa": 20,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "DEN",
      "home": false,
-     "pf": 24,
      "pa": 44,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "ARI",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 27,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "LV",
      "home": false,
-     "pf": 33,
      "pa": 16,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "PHI",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 21,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "KC",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 28,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "DET",
      "home": false,
-     "pf": 30,
      "pa": 44,
+     "pf": 30,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "MIN",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 34,
+     "pf": 26,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "LAC",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 34,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "WAS",
      "home": false,
-     "pf": 30,
      "pa": 23,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "NYG",
      "home": false,
-     "pf": 17,
      "pa": 34,
+     "pf": 17,
      "result": "L"
     }
    ]
@@ -248,12 +248,12 @@
   "PHI": {
    "games": 17,
    "record": {
-    "w": 11,
+    "w": 9,
     "l": 6,
-    "t": 0
+    "t": 1
    },
    "offense": {
-    "ppg": 22.3,
+    "ppg": 21.9,
     "totYdsPg": 324.7,
     "passYdsPg": 205.8,
     "rushYdsPg": 118.9,
@@ -269,7 +269,7 @@
     "snapsPg": 58.1
    },
    "defense": {
-    "papg": 19.1,
+    "papg": 19,
     "totYdsAllowedPg": 314.2,
     "passYdsAllowedPg": 204.5,
     "rushYdsAllowedPg": 123.9,
@@ -319,7 +319,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 19,
+     "ppg": 18,
      "totYdsPg": 24,
      "passYdsPg": 23,
      "rushYdsPg": 16,
@@ -333,7 +333,7 @@
      "passInt": 1
     },
     "defense": {
-     "papg": 5,
+     "papg": 7,
      "totYdsAllowedPg": 13,
      "passYdsAllowedPg": 7,
      "rushYdsAllowedPg": 22,
@@ -351,137 +351,137 @@
     {
      "week": 1,
      "opp": "DAL",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 20,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "KC",
      "home": false,
-     "pf": 20,
      "pa": 17,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "LAR",
-     "home": true,
-     "pf": 33,
+     "home": false,
      "pa": 26,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "TB",
      "home": false,
+     "pa": 23,
      "pf": 31,
-     "pa": 25,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "DEN",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 21,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "NYG",
      "home": false,
-     "pf": 17,
      "pa": 34,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "MIN",
      "home": false,
-     "pf": 28,
      "pa": 22,
-     "result": "W"
+     "pf": 22,
+     "result": "T"
     },
     {
      "week": 8,
      "opp": "NYG",
-     "home": true,
-     "pf": 38,
+     "home": false,
      "pa": 20,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "GB",
      "home": false,
-     "pf": 10,
      "pa": 7,
+     "pf": 10,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "DET",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 9,
+     "pf": 16,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "DAL",
      "home": false,
-     "pf": 21,
      "pa": 24,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "CHI",
-     "home": true,
-     "pf": 15,
+     "home": false,
      "pa": 24,
+     "pf": 15,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "LAC",
      "home": false,
-     "pf": 19,
      "pa": 22,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "LV",
-     "home": true,
+     "home": false,
+     "pa": null,
      "pf": 31,
-     "pa": 0,
-     "result": "W"
+     "result": null
     },
     {
      "week": 16,
      "opp": "WAS",
      "home": false,
-     "pf": 29,
      "pa": 18,
+     "pf": 29,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "BUF",
      "home": false,
-     "pf": 13,
      "pa": 12,
+     "pf": 13,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "WAS",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 24,
+     "pf": 17,
      "result": "L"
     }
    ]
@@ -490,8 +490,8 @@
    "games": 17,
    "record": {
     "w": 6,
-    "l": 11,
-    "t": 0
+    "l": 9,
+    "t": 1
    },
    "offense": {
     "ppg": 21.3,
@@ -510,7 +510,7 @@
     "snapsPg": 61.7
    },
    "defense": {
-    "papg": 19.3,
+    "papg": 18.7,
     "totYdsAllowedPg": 301.5,
     "passYdsAllowedPg": 205.1,
     "rushYdsAllowedPg": 105.4,
@@ -593,137 +593,137 @@
      "week": 1,
      "opp": "LAC",
      "home": false,
-     "pf": 21,
      "pa": 27,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "PHI",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 20,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "NYG",
      "home": false,
-     "pf": 22,
      "pa": 9,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "BAL",
-     "home": true,
-     "pf": 37,
+     "home": false,
      "pa": 20,
+     "pf": 37,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "JAX",
      "home": false,
+     "pa": 25,
      "pf": 28,
-     "pa": 31,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 6,
      "opp": "DET",
-     "home": true,
-     "pf": 30,
+     "home": false,
      "pa": 17,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "LV",
-     "home": true,
+     "home": false,
+     "pa": null,
      "pf": 31,
-     "pa": 0,
-     "result": "W"
+     "result": null
     },
     {
      "week": 8,
      "opp": "WAS",
-     "home": true,
-     "pf": 28,
+     "home": false,
      "pa": 7,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "BUF",
      "home": false,
-     "pf": 21,
      "pa": 28,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "DEN",
      "home": false,
-     "pf": 19,
      "pa": 22,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "IND",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "DAL",
      "home": false,
-     "pf": 28,
      "pa": 31,
+     "pf": 28,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "HOU",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 20,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "LAC",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 16,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "TEN",
      "home": false,
+     "pa": 24,
      "pf": 9,
-     "pa": 26,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "DEN",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 20,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "LV",
      "home": false,
+     "pa": 12,
      "pf": 12,
-     "pa": 14,
-     "result": "L"
+     "result": "T"
     }
    ]
   },
@@ -735,7 +735,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 21.6,
+    "ppg": 21.5,
     "totYdsPg": 354.1,
     "passYdsPg": 232.5,
     "rushYdsPg": 121.6,
@@ -751,7 +751,7 @@
     "snapsPg": 63.1
    },
    "defense": {
-    "papg": 20,
+    "papg": 19.3,
     "totYdsAllowedPg": 285.2,
     "passYdsAllowedPg": 194.9,
     "rushYdsAllowedPg": 105.2,
@@ -801,7 +801,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 20,
+     "ppg": 19,
      "totYdsPg": 10,
      "passYdsPg": 15,
      "rushYdsPg": 11,
@@ -833,137 +833,137 @@
     {
      "week": 1,
      "opp": "KC",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 21,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "LV",
      "home": false,
-     "pf": 20,
      "pa": 9,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "DEN",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "NYG",
      "home": false,
-     "pf": 18,
      "pa": 21,
+     "pf": 18,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "WAS",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 27,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "MIA",
      "home": false,
-     "pf": 29,
      "pa": 27,
+     "pf": 29,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "IND",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 38,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "MIN",
-     "home": true,
-     "pf": 37,
+     "home": false,
      "pa": 10,
+     "pf": 37,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "TEN",
      "home": false,
+     "pa": 14,
      "pf": 27,
-     "pa": 20,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "PIT",
-     "home": true,
-     "pf": 25,
+     "home": false,
      "pa": 10,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "JAX",
      "home": false,
-     "pf": 6,
      "pa": 35,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "LV",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 14,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "PHI",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 19,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "KC",
      "home": false,
-     "pf": 16,
      "pa": 13,
+     "pf": 16,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "DAL",
      "home": false,
-     "pf": 34,
      "pa": 17,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "HOU",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 20,
+     "pf": 16,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "DEN",
      "home": false,
+     "pa": 13,
      "pf": 3,
-     "pa": 19,
      "result": "L"
     }
    ]
@@ -976,7 +976,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 25.7,
+    "ppg": 25.4,
     "totYdsPg": 361.1,
     "passYdsPg": 254,
     "rushYdsPg": 107.1,
@@ -992,7 +992,7 @@
     "snapsPg": 66.1
    },
    "defense": {
-    "papg": 21.8,
+    "papg": 21.4,
     "totYdsAllowedPg": 340.2,
     "passYdsAllowedPg": 241.8,
     "rushYdsAllowedPg": 107.8,
@@ -1042,7 +1042,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 10,
+     "ppg": 9,
      "totYdsPg": 8,
      "passYdsPg": 6,
      "rushYdsPg": 24,
@@ -1056,7 +1056,7 @@
      "passInt": 27
     },
     "defense": {
-     "papg": 13,
+     "papg": 12,
      "totYdsAllowedPg": 20,
      "passYdsAllowedPg": 23,
      "rushYdsAllowedPg": 11,
@@ -1075,136 +1075,136 @@
      "week": 1,
      "opp": "SEA",
      "home": false,
-     "pf": 17,
      "pa": 13,
+     "pf": 17,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "NO",
      "home": false,
-     "pf": 26,
      "pa": 21,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "ARI",
-     "home": true,
+     "home": false,
+     "pa": 13,
      "pf": 16,
-     "pa": 15,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "JAX",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 26,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "LAR",
      "home": false,
-     "pf": 26,
      "pa": 23,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "TB",
      "home": false,
-     "pf": 19,
      "pa": 30,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "ATL",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 10,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "HOU",
      "home": false,
-     "pf": 15,
      "pa": 26,
+     "pf": 15,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "NYG",
      "home": false,
-     "pf": 34,
      "pa": 24,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "LAR",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 42,
+     "pf": 26,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "ARI",
      "home": false,
-     "pf": 41,
      "pa": 22,
+     "pf": 41,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "CAR",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 9,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "CLE",
      "home": false,
-     "pf": 26,
      "pa": 8,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "TEN",
-     "home": true,
-     "pf": 37,
+     "home": false,
      "pa": 24,
+     "pf": 37,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "IND",
      "home": false,
-     "pf": 48,
      "pa": 27,
+     "pf": 42,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "CHI",
-     "home": true,
+     "home": false,
+     "pa": 32,
      "pf": 42,
-     "pa": 38,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "SEA",
-     "home": true,
-     "pf": 3,
+     "home": false,
      "pa": 13,
+     "pf": 3,
      "result": "L"
     }
    ]
@@ -1212,12 +1212,12 @@
   "SEA": {
    "games": 17,
    "record": {
-    "w": 14,
+    "w": 13,
     "l": 3,
     "t": 0
    },
    "offense": {
-    "ppg": 28.4,
+    "ppg": 27.4,
     "totYdsPg": 362.3,
     "passYdsPg": 239,
     "rushYdsPg": 123.3,
@@ -1233,7 +1233,7 @@
     "snapsPg": 62.6
    },
    "defense": {
-    "papg": 17.2,
+    "papg": 16.8,
     "totYdsAllowedPg": 285.9,
     "passYdsAllowedPg": 212.9,
     "rushYdsAllowedPg": 91.9,
@@ -1283,7 +1283,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 3,
+     "ppg": 5,
      "totYdsPg": 7,
      "passYdsPg": 9,
      "rushYdsPg": 9,
@@ -1315,137 +1315,137 @@
     {
      "week": 1,
      "opp": "SF",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 17,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "PIT",
      "home": false,
-     "pf": 31,
      "pa": 17,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "NO",
-     "home": true,
-     "pf": 44,
+     "home": false,
      "pa": 13,
+     "pf": 44,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "ARI",
      "home": false,
-     "pf": 23,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "TB",
-     "home": true,
-     "pf": 35,
+     "home": false,
      "pa": 38,
+     "pf": 35,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "JAX",
      "home": false,
-     "pf": 20,
      "pa": 12,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "HOU",
-     "home": true,
+     "home": false,
+     "pa": 13,
      "pf": 27,
-     "pa": 19,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "WAS",
      "home": false,
-     "pf": 38,
      "pa": 14,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "ARI",
-     "home": true,
-     "pf": 44,
+     "home": false,
      "pa": 22,
+     "pf": 32,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "LAR",
      "home": false,
-     "pf": 19,
      "pa": 21,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "TEN",
      "home": false,
-     "pf": 30,
      "pa": 24,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "MIN",
-     "home": true,
-     "pf": 26,
-     "pa": 0,
-     "result": "W"
+     "home": false,
+     "pa": null,
+     "pf": 20,
+     "result": null
     },
     {
      "week": 14,
      "opp": "ATL",
      "home": false,
-     "pf": 37,
      "pa": 9,
+     "pf": 37,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "IND",
-     "home": true,
-     "pf": 18,
+     "home": false,
      "pa": 16,
+     "pf": 18,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "LAR",
-     "home": true,
-     "pf": 38,
+     "home": false,
      "pa": 37,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "CAR",
      "home": false,
-     "pf": 27,
      "pa": 10,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "SF",
      "home": false,
-     "pf": 13,
      "pa": 3,
+     "pf": 13,
      "result": "W"
     }
    ]
@@ -1458,7 +1458,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 28.3,
+    "ppg": 28.2,
     "totYdsPg": 388.7,
     "passYdsPg": 268.6,
     "rushYdsPg": 120.1,
@@ -1474,7 +1474,7 @@
     "snapsPg": 60.4
    },
    "defense": {
-    "papg": 24.3,
+    "papg": 24.2,
     "totYdsAllowedPg": 331.9,
     "passYdsAllowedPg": 236.9,
     "rushYdsAllowedPg": 114.5,
@@ -1524,7 +1524,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 4,
+     "ppg": 2,
      "totYdsPg": 5,
      "passYdsPg": 3,
      "rushYdsPg": 13,
@@ -1538,7 +1538,7 @@
      "passInt": 4
     },
     "defense": {
-     "papg": 22,
+     "papg": 23,
      "totYdsAllowedPg": 18,
      "passYdsAllowedPg": 21,
      "rushYdsAllowedPg": 14,
@@ -1557,136 +1557,136 @@
      "week": 1,
      "opp": "GB",
      "home": false,
-     "pf": 13,
      "pa": 27,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "CHI",
-     "home": true,
-     "pf": 52,
+     "home": false,
      "pa": 21,
+     "pf": 52,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "BAL",
      "home": false,
-     "pf": 38,
      "pa": 30,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "CLE",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 10,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "CIN",
      "home": false,
-     "pf": 37,
      "pa": 24,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "KC",
      "home": false,
-     "pf": 17,
      "pa": 30,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "TB",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 9,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "MIN",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 27,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "WAS",
      "home": false,
-     "pf": 44,
      "pa": 22,
+     "pf": 44,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "PHI",
      "home": false,
-     "pf": 9,
      "pa": 16,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "NYG",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 27,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "GB",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 31,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "DAL",
-     "home": true,
-     "pf": 44,
+     "home": false,
      "pa": 30,
+     "pf": 44,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "LAR",
      "home": false,
-     "pf": 34,
      "pa": 41,
+     "pf": 34,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "PIT",
-     "home": true,
+     "home": false,
+     "pa": 27,
      "pf": 24,
-     "pa": 29,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "MIN",
      "home": false,
-     "pf": 10,
      "pa": 23,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "CHI",
      "home": false,
-     "pf": 19,
      "pa": 16,
+     "pf": 19,
      "result": "W"
     }
    ]
@@ -1765,7 +1765,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 16,
+     "ppg": 14,
      "totYdsPg": 16,
      "passYdsPg": 18,
      "rushYdsPg": 14,
@@ -1797,137 +1797,137 @@
     {
      "week": 1,
      "opp": "DET",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 13,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "WAS",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 18,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "CLE",
      "home": false,
-     "pf": 10,
      "pa": 13,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "DAL",
      "home": false,
-     "pf": 40,
      "pa": 40,
+     "pf": 40,
      "result": "T"
     },
     {
      "week": 6,
      "opp": "CIN",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 18,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "ARI",
      "home": false,
-     "pf": 27,
      "pa": 23,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "PIT",
      "home": false,
-     "pf": 35,
      "pa": 25,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "CAR",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 16,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "PHI",
-     "home": true,
-     "pf": 7,
+     "home": false,
      "pa": 10,
+     "pf": 7,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "NYG",
      "home": false,
-     "pf": 27,
      "pa": 20,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "MIN",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 6,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "DET",
      "home": false,
-     "pf": 31,
      "pa": 24,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "CHI",
-     "home": true,
-     "pf": 28,
+     "home": false,
      "pa": 21,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "DEN",
      "home": false,
-     "pf": 26,
      "pa": 34,
+     "pf": 26,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "CHI",
      "home": false,
-     "pf": 16,
      "pa": 22,
+     "pf": 16,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "BAL",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 41,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "MIN",
      "home": false,
-     "pf": 3,
      "pa": 16,
+     "pf": 3,
      "result": "L"
     }
    ]
@@ -1936,11 +1936,11 @@
    "games": 17,
    "record": {
     "w": 3,
-    "l": 14,
-    "t": 0
+    "l": 11,
+    "t": 1
    },
    "offense": {
-    "ppg": 14.2,
+    "ppg": 14.1,
     "totYdsPg": 272.3,
     "passYdsPg": 195,
     "rushYdsPg": 77.3,
@@ -1956,7 +1956,7 @@
     "snapsPg": 54.8
    },
    "defense": {
-    "papg": 25.4,
+    "papg": 24.9,
     "totYdsAllowedPg": 317.8,
     "passYdsAllowedPg": 214.4,
     "rushYdsAllowedPg": 115.2,
@@ -2039,137 +2039,137 @@
      "week": 1,
      "opp": "NE",
      "home": false,
-     "pf": 20,
      "pa": 13,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "LAC",
-     "home": true,
-     "pf": 9,
+     "home": false,
      "pa": 20,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "WAS",
      "home": false,
-     "pf": 24,
      "pa": 41,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "CHI",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 25,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "IND",
      "home": false,
-     "pf": 6,
      "pa": 40,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "TEN",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 10,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "KC",
      "home": false,
-     "pf": 0,
      "pa": 31,
-     "result": "L"
+     "pf": null,
+     "result": null
     },
     {
      "week": 9,
      "opp": "JAX",
-     "home": true,
-     "pf": 29,
+     "home": false,
      "pa": 30,
+     "pf": 29,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "DEN",
      "home": false,
-     "pf": 7,
      "pa": 10,
+     "pf": 7,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "DAL",
-     "home": true,
+     "home": false,
+     "pa": 31,
      "pf": 16,
-     "pa": 33,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "CLE",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 24,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "LAC",
      "home": false,
-     "pf": 14,
      "pa": 31,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "DEN",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 24,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "PHI",
      "home": false,
-     "pf": 0,
      "pa": 31,
-     "result": "L"
+     "pf": null,
+     "result": null
     },
     {
      "week": 16,
      "opp": "HOU",
      "home": false,
+     "pa": 17,
      "pf": 21,
-     "pa": 23,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 17,
      "opp": "NYG",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 34,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "KC",
-     "home": true,
-     "pf": 14,
+     "home": false,
      "pa": 12,
-     "result": "W"
+     "pf": 12,
+     "result": "T"
     }
    ]
   },
@@ -2181,7 +2181,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 28.8,
+    "ppg": 28,
     "totYdsPg": 391.2,
     "passYdsPg": 262.3,
     "rushYdsPg": 128.9,
@@ -2197,7 +2197,7 @@
     "snapsPg": 60.9
    },
    "defense": {
-    "papg": 18.8,
+    "papg": 18.5,
     "totYdsAllowedPg": 295.2,
     "passYdsAllowedPg": 206.4,
     "rushYdsAllowedPg": 102.5,
@@ -2247,7 +2247,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 2,
+     "ppg": 3,
      "totYdsPg": 4,
      "passYdsPg": 4,
      "rushYdsPg": 6,
@@ -2261,7 +2261,7 @@
      "passInt": 5
     },
     "defense": {
-     "papg": 4,
+     "papg": 5,
      "totYdsAllowedPg": 8,
      "passYdsAllowedPg": 9,
      "rushYdsAllowedPg": 7,
@@ -2279,137 +2279,137 @@
     {
      "week": 1,
      "opp": "LV",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 20,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "MIA",
      "home": false,
-     "pf": 33,
      "pa": 27,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "PIT",
-     "home": true,
-     "pf": 14,
+     "home": false,
      "pa": 21,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "CAR",
-     "home": true,
-     "pf": 42,
+     "home": false,
      "pa": 13,
+     "pf": 42,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "BUF",
      "home": false,
-     "pf": 23,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "NO",
      "home": false,
-     "pf": 25,
      "pa": 19,
+     "pf": 25,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "TEN",
      "home": false,
-     "pf": 31,
      "pa": 13,
+     "pf": 25,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "CLE",
-     "home": true,
-     "pf": 32,
+     "home": false,
      "pa": 13,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "ATL",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 23,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "TB",
      "home": false,
-     "pf": 28,
      "pa": 23,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "NYJ",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 14,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "CIN",
      "home": false,
-     "pf": 26,
-     "pa": 20,
+     "pa": 14,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "NYG",
-     "home": true,
-     "pf": 33,
+     "home": false,
      "pa": 15,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "BUF",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 35,
+     "pf": 31,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "BAL",
      "home": false,
-     "pf": 28,
      "pa": 24,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "NYJ",
      "home": false,
-     "pf": 42,
      "pa": 10,
+     "pf": 42,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "MIA",
-     "home": true,
-     "pf": 38,
+     "home": false,
      "pa": 10,
+     "pf": 38,
      "result": "W"
     }
    ]
@@ -2417,12 +2417,12 @@
   "ARI": {
    "games": 17,
    "record": {
-    "w": 3,
-    "l": 14,
+    "w": 2,
+    "l": 15,
     "t": 0
    },
    "offense": {
-    "ppg": 20.9,
+    "ppg": 20.1,
     "totYdsPg": 347.6,
     "passYdsPg": 254.5,
     "rushYdsPg": 93.1,
@@ -2438,7 +2438,7 @@
     "snapsPg": 63.4
    },
    "defense": {
-    "papg": 28.7,
+    "papg": 28,
     "totYdsAllowedPg": 357.7,
     "passYdsAllowedPg": 242.8,
     "rushYdsAllowedPg": 126.9,
@@ -2488,7 +2488,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 22,
+     "ppg": 25,
      "totYdsPg": 14,
      "passYdsPg": 5,
      "rushYdsPg": 31,
@@ -2502,7 +2502,7 @@
      "passInt": 13
     },
     "defense": {
-     "papg": 29,
+     "papg": 30,
      "totYdsAllowedPg": 27,
      "passYdsAllowedPg": 24,
      "rushYdsAllowedPg": 25,
@@ -2521,136 +2521,136 @@
      "week": 1,
      "opp": "NO",
      "home": false,
-     "pf": 20,
      "pa": 13,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "CAR",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 22,
-     "result": "W"
+     "pf": 21,
+     "result": "L"
     },
     {
      "week": 3,
      "opp": "SF",
      "home": false,
-     "pf": 15,
      "pa": 16,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "SEA",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "TEN",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 22,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "IND",
      "home": false,
-     "pf": 27,
      "pa": 31,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "GB",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 27,
+     "pf": 23,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "DAL",
      "home": false,
-     "pf": 27,
      "pa": 17,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "SEA",
      "home": false,
+     "pa": 32,
      "pf": 22,
-     "pa": 44,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "SF",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 41,
+     "pf": 22,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "JAX",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 27,
+     "pf": 18,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "TB",
      "home": false,
-     "pf": 17,
      "pa": 20,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "LAR",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 45,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "HOU",
      "home": false,
-     "pf": 20,
      "pa": 40,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "ATL",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 26,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "CIN",
      "home": false,
-     "pf": 14,
      "pa": 37,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "LAR",
      "home": false,
-     "pf": 20,
      "pa": 37,
+     "pf": 20,
      "result": "L"
     }
    ]
@@ -2663,7 +2663,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 18,
+    "ppg": 16.9,
     "totYdsPg": 331.2,
     "passYdsPg": 236.9,
     "rushYdsPg": 94.3,
@@ -2679,7 +2679,7 @@
     "snapsPg": 62.1
    },
    "defense": {
-    "papg": 22.5,
+    "papg": 22.2,
     "totYdsAllowedPg": 299.8,
     "passYdsAllowedPg": 196.2,
     "rushYdsAllowedPg": 120.6,
@@ -2729,7 +2729,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 28,
+     "ppg": 29,
      "totYdsPg": 22,
      "passYdsPg": 10,
      "rushYdsPg": 28,
@@ -2761,137 +2761,137 @@
     {
      "week": 1,
      "opp": "ARI",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 20,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "SF",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 26,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "SEA",
      "home": false,
-     "pf": 13,
      "pa": 44,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "BUF",
      "home": false,
-     "pf": 19,
      "pa": 31,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "NYG",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 14,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "NE",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 25,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "CHI",
      "home": false,
-     "pf": 14,
      "pa": 26,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "TB",
-     "home": true,
+     "home": false,
+     "pa": 17,
      "pf": 3,
-     "pa": 23,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "LAR",
      "home": false,
-     "pf": 10,
      "pa": 34,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "CAR",
      "home": false,
-     "pf": 17,
      "pa": 7,
+     "pf": 17,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "ATL",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 24,
+     "pf": 4,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "MIA",
      "home": false,
-     "pf": 17,
      "pa": 21,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "TB",
      "home": false,
-     "pf": 24,
      "pa": 20,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "CAR",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 17,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "NYJ",
-     "home": true,
-     "pf": 29,
+     "home": false,
      "pa": 6,
+     "pf": 29,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "TEN",
      "home": false,
-     "pf": 34,
      "pa": 26,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "ATL",
      "home": false,
-     "pf": 17,
      "pa": 19,
+     "pf": 17,
      "result": "L"
     }
    ]
@@ -2899,12 +2899,12 @@
   "ATL": {
    "games": 17,
    "record": {
-    "w": 8,
+    "w": 7,
     "l": 9,
     "t": 0
    },
    "offense": {
-    "ppg": 20.8,
+    "ppg": 20.4,
     "totYdsPg": 343.6,
     "passYdsPg": 217.8,
     "rushYdsPg": 125.8,
@@ -2920,7 +2920,7 @@
     "snapsPg": 60.8
    },
    "defense": {
-    "papg": 23.6,
+    "papg": 22.9,
     "totYdsAllowedPg": 326.6,
     "passYdsAllowedPg": 221.9,
     "rushYdsAllowedPg": 126.4,
@@ -2970,7 +2970,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 24,
+     "ppg": 23,
      "totYdsPg": 17,
      "passYdsPg": 20,
      "rushYdsPg": 8,
@@ -2984,7 +2984,7 @@
      "passInt": 6
     },
     "defense": {
-     "papg": 19,
+     "papg": 18,
      "totYdsAllowedPg": 15,
      "passYdsAllowedPg": 15,
      "rushYdsAllowedPg": 24,
@@ -3002,137 +3002,137 @@
     {
      "week": 1,
      "opp": "TB",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "MIN",
      "home": false,
-     "pf": 22,
      "pa": 6,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "CAR",
      "home": false,
-     "pf": 0,
-     "pa": 30,
-     "result": "L"
+     "pa": 24,
+     "pf": null,
+     "result": null
     },
     {
      "week": 4,
      "opp": "WAS",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 27,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "BUF",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 14,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "SF",
      "home": false,
-     "pf": 10,
      "pa": 20,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "MIA",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 34,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "NE",
      "home": false,
-     "pf": 23,
      "pa": 24,
+     "pf": 23,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "IND",
      "home": false,
-     "pf": 25,
      "pa": 31,
+     "pf": 25,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "CAR",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 30,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "NO",
      "home": false,
+     "pa": 4,
      "pf": 24,
-     "pa": 10,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "NYJ",
      "home": false,
-     "pf": 24,
      "pa": 27,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "SEA",
-     "home": true,
-     "pf": 9,
+     "home": false,
      "pa": 37,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "TB",
      "home": false,
-     "pf": 29,
      "pa": 28,
+     "pf": 29,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "ARI",
      "home": false,
-     "pf": 26,
      "pa": 19,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "LAR",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 24,
-     "result": "W"
+     "pf": 21,
+     "result": "L"
     },
     {
      "week": 18,
      "opp": "NO",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 17,
+     "pf": 19,
      "result": "W"
     }
    ]
@@ -3140,12 +3140,12 @@
   "TB": {
    "games": 17,
    "record": {
-    "w": 8,
-    "l": 9,
+    "w": 7,
+    "l": 10,
     "t": 0
    },
    "offense": {
-    "ppg": 22.4,
+    "ppg": 21.5,
     "totYdsPg": 335.4,
     "passYdsPg": 220.9,
     "rushYdsPg": 114.5,
@@ -3161,7 +3161,7 @@
     "snapsPg": 66.7
    },
    "defense": {
-    "papg": 24.2,
+    "papg": 23.8,
     "totYdsAllowedPg": 337.2,
     "passYdsAllowedPg": 254.8,
     "rushYdsAllowedPg": 101.1,
@@ -3211,7 +3211,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 17,
+     "ppg": 20,
      "totYdsPg": 21,
      "passYdsPg": 19,
      "rushYdsPg": 21,
@@ -3225,7 +3225,7 @@
      "passInt": 14
     },
     "defense": {
-     "papg": 20,
+     "papg": 21,
      "totYdsAllowedPg": 19,
      "passYdsAllowedPg": 27,
      "rushYdsAllowedPg": 5,
@@ -3244,136 +3244,136 @@
      "week": 1,
      "opp": "ATL",
      "home": false,
-     "pf": 23,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "HOU",
      "home": false,
-     "pf": 20,
      "pa": 19,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "NYJ",
-     "home": true,
-     "pf": 29,
+     "home": false,
      "pa": 27,
-     "result": "W"
+     "pf": 23,
+     "result": "L"
     },
     {
      "week": 4,
      "opp": "PHI",
-     "home": true,
-     "pf": 25,
+     "home": false,
      "pa": 31,
+     "pf": 23,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "SEA",
      "home": false,
-     "pf": 38,
      "pa": 35,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "SF",
-     "home": true,
-     "pf": 30,
+     "home": false,
      "pa": 19,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "DET",
      "home": false,
-     "pf": 9,
      "pa": 24,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "NO",
      "home": false,
-     "pf": 23,
      "pa": 3,
+     "pf": 17,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "NE",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 28,
+     "pf": 23,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "BUF",
      "home": false,
-     "pf": 32,
      "pa": 44,
+     "pf": 32,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "LAR",
      "home": false,
+     "pa": 28,
      "pf": 7,
-     "pa": 34,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "ARI",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 17,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "NO",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 24,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "ATL",
-     "home": true,
-     "pf": 28,
+     "home": false,
      "pa": 29,
+     "pf": 28,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "CAR",
      "home": false,
-     "pf": 20,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "MIA",
      "home": false,
-     "pf": 17,
      "pa": 20,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "CAR",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 14,
+     "pf": 16,
      "result": "W"
     }
    ]
@@ -3382,11 +3382,11 @@
    "games": 17,
    "record": {
     "w": 5,
-    "l": 12,
+    "l": 11,
     "t": 0
    },
    "offense": {
-    "ppg": 20.9,
+    "ppg": 20.8,
     "totYdsPg": 330.5,
     "passYdsPg": 195.8,
     "rushYdsPg": 134.7,
@@ -3402,7 +3402,7 @@
     "snapsPg": 57.9
    },
    "defense": {
-    "papg": 26.5,
+    "papg": 26.2,
     "totYdsAllowedPg": 384,
     "passYdsAllowedPg": 257.1,
     "rushYdsAllowedPg": 139.6,
@@ -3452,7 +3452,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 23,
+     "ppg": 22,
      "totYdsPg": 23,
      "passYdsPg": 24,
      "rushYdsPg": 4,
@@ -3466,7 +3466,7 @@
      "passInt": 20
     },
     "defense": {
-     "papg": 27,
+     "papg": 28,
      "totYdsAllowedPg": 32,
      "passYdsAllowedPg": 28,
      "rushYdsAllowedPg": 30,
@@ -3484,137 +3484,137 @@
     {
      "week": 1,
      "opp": "NYG",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 6,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "GB",
      "home": false,
-     "pf": 18,
      "pa": 27,
+     "pf": 18,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "LV",
-     "home": true,
-     "pf": 41,
+     "home": false,
      "pa": 24,
+     "pf": 41,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "ATL",
      "home": false,
-     "pf": 27,
      "pa": 34,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "LAC",
      "home": false,
-     "pf": 27,
      "pa": 10,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "CHI",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 25,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "DAL",
      "home": false,
-     "pf": 22,
-     "pa": 44,
+     "pa": 38,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "KC",
      "home": false,
-     "pf": 7,
      "pa": 28,
+     "pf": 7,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "SEA",
-     "home": true,
-     "pf": 14,
+     "home": false,
      "pa": 38,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "DET",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 44,
+     "pf": 22,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "MIA",
      "home": false,
-     "pf": 13,
      "pa": 16,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "DEN",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 27,
+     "pf": 26,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "MIN",
      "home": false,
-     "pf": 0,
      "pa": 31,
-     "result": "L"
+     "pf": null,
+     "result": null
     },
     {
      "week": 15,
      "opp": "NYG",
      "home": false,
-     "pf": 29,
      "pa": 21,
+     "pf": 29,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "PHI",
-     "home": true,
-     "pf": 18,
+     "home": false,
      "pa": 29,
+     "pf": 18,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "DAL",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 30,
+     "pf": 23,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "PHI",
      "home": false,
-     "pf": 24,
      "pa": 17,
+     "pf": 24,
      "result": "W"
     }
    ]
@@ -3627,7 +3627,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 22.4,
+    "ppg": 22.1,
     "totYdsPg": 347.7,
     "passYdsPg": 217.8,
     "rushYdsPg": 129.9,
@@ -3643,7 +3643,7 @@
     "snapsPg": 63.1
    },
    "defense": {
-    "papg": 25.8,
+    "papg": 25.5,
     "totYdsAllowedPg": 359.5,
     "passYdsAllowedPg": 229.9,
     "rushYdsAllowedPg": 144.4,
@@ -3693,7 +3693,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 18,
+     "ppg": 17,
      "totYdsPg": 13,
      "passYdsPg": 21,
      "rushYdsPg": 5,
@@ -3726,136 +3726,136 @@
      "week": 1,
      "opp": "WAS",
      "home": false,
-     "pf": 6,
      "pa": 21,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "DAL",
      "home": false,
-     "pf": 37,
      "pa": 40,
+     "pf": 37,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "KC",
-     "home": true,
-     "pf": 9,
+     "home": false,
      "pa": 22,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "LAC",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 18,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "NO",
      "home": false,
+     "pa": 20,
      "pf": 14,
-     "pa": 26,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "PHI",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 17,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "DEN",
      "home": false,
-     "pf": 32,
      "pa": 33,
+     "pf": 32,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "PHI",
      "home": false,
-     "pf": 20,
      "pa": 38,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "SF",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 34,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "CHI",
      "home": false,
-     "pf": 20,
      "pa": 24,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "GB",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 27,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "DET",
      "home": false,
-     "pf": 27,
      "pa": 34,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "NE",
      "home": false,
-     "pf": 15,
      "pa": 33,
+     "pf": 15,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "WAS",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 29,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "MIN",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 16,
+     "pf": 7,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "LV",
      "home": false,
-     "pf": 34,
      "pa": 10,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "DAL",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 17,
+     "pf": 34,
      "result": "W"
     }
    ]
@@ -3863,12 +3863,12 @@
   "BAL": {
    "games": 17,
    "record": {
-    "w": 8,
+    "w": 7,
     "l": 9,
     "t": 0
    },
    "offense": {
-    "ppg": 24.9,
+    "ppg": 24.2,
     "totYdsPg": 349.2,
     "passYdsPg": 192.8,
     "rushYdsPg": 156.4,
@@ -3884,7 +3884,7 @@
     "snapsPg": 56.6
    },
    "defense": {
-    "papg": 23.4,
+    "papg": 23.1,
     "totYdsAllowedPg": 354.5,
     "passYdsAllowedPg": 259,
     "rushYdsAllowedPg": 106.6,
@@ -3948,7 +3948,7 @@
      "passInt": 15
     },
     "defense": {
-     "papg": 18,
+     "papg": 19,
      "totYdsAllowedPg": 24,
      "passYdsAllowedPg": 29,
      "rushYdsAllowedPg": 10,
@@ -3967,136 +3967,136 @@
      "week": 1,
      "opp": "BUF",
      "home": false,
-     "pf": 40,
      "pa": 41,
+     "pf": 40,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "CLE",
-     "home": true,
-     "pf": 41,
+     "home": false,
      "pa": 17,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "DET",
-     "home": true,
-     "pf": 30,
+     "home": false,
      "pa": 38,
+     "pf": 30,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "KC",
      "home": false,
-     "pf": 20,
      "pa": 37,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "HOU",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 44,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "LAR",
-     "home": true,
-     "pf": 3,
+     "home": false,
      "pa": 17,
+     "pf": 3,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "CHI",
-     "home": true,
-     "pf": 30,
+     "home": false,
      "pa": 16,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "MIA",
      "home": false,
-     "pf": 28,
      "pa": 6,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "MIN",
      "home": false,
-     "pf": 27,
      "pa": 19,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "CLE",
      "home": false,
+     "pa": 10,
      "pf": 23,
-     "pa": 16,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "NYJ",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 10,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "CIN",
-     "home": true,
-     "pf": 14,
+     "home": false,
      "pa": 32,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "PIT",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 27,
+     "pf": 22,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "CIN",
      "home": false,
-     "pf": 24,
-     "pa": 0,
-     "result": "W"
+     "pa": null,
+     "pf": 18,
+     "result": null
     },
     {
      "week": 16,
      "opp": "NE",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 28,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "GB",
      "home": false,
-     "pf": 41,
      "pa": 24,
+     "pf": 41,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "PIT",
      "home": false,
-     "pf": 24,
      "pa": 26,
+     "pf": 24,
      "result": "L"
     }
    ]
@@ -4104,12 +4104,12 @@
   "BUF": {
    "games": 17,
    "record": {
-    "w": 12,
-    "l": 5,
+    "w": 11,
+    "l": 6,
     "t": 0
    },
    "offense": {
-    "ppg": 28.3,
+    "ppg": 27.6,
     "totYdsPg": 393.8,
     "passYdsPg": 234.2,
     "rushYdsPg": 159.6,
@@ -4175,7 +4175,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 5,
+     "ppg": 4,
      "totYdsPg": 3,
      "passYdsPg": 13,
      "rushYdsPg": 1,
@@ -4189,7 +4189,7 @@
      "passInt": 12
     },
     "defense": {
-     "papg": 12,
+     "papg": 13,
      "totYdsAllowedPg": 7,
      "passYdsAllowedPg": 1,
      "rushYdsAllowedPg": 28,
@@ -4207,137 +4207,137 @@
     {
      "week": 1,
      "opp": "BAL",
-     "home": true,
-     "pf": 41,
+     "home": false,
      "pa": 40,
+     "pf": 41,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "NYJ",
      "home": false,
-     "pf": 30,
      "pa": 10,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "MIA",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 21,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "NO",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 19,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "NE",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "ATL",
      "home": false,
-     "pf": 14,
      "pa": 24,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "CAR",
      "home": false,
-     "pf": 40,
      "pa": 9,
+     "pf": 40,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "KC",
-     "home": true,
-     "pf": 28,
+     "home": false,
      "pa": 21,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "MIA",
      "home": false,
-     "pf": 13,
      "pa": 30,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "TB",
-     "home": true,
-     "pf": 44,
+     "home": false,
      "pa": 32,
+     "pf": 44,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "HOU",
      "home": false,
-     "pf": 19,
      "pa": 23,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "PIT",
      "home": false,
-     "pf": 26,
      "pa": 7,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "CIN",
-     "home": true,
-     "pf": 39,
+     "home": false,
      "pa": 34,
-     "result": "W"
+     "pf": 33,
+     "result": "L"
     },
     {
      "week": 15,
      "opp": "NE",
      "home": false,
-     "pf": 35,
      "pa": 31,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "CLE",
      "home": false,
-     "pf": 23,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "PHI",
-     "home": true,
-     "pf": 12,
+     "home": false,
      "pa": 13,
+     "pf": 12,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "NYJ",
-     "home": true,
-     "pf": 35,
+     "home": false,
      "pa": 8,
+     "pf": 35,
      "result": "W"
     }
    ]
@@ -4345,12 +4345,12 @@
   "CAR": {
    "games": 17,
    "record": {
-    "w": 8,
+    "w": 7,
     "l": 9,
     "t": 0
    },
    "offense": {
-    "ppg": 18.3,
+    "ppg": 17.6,
     "totYdsPg": 310.6,
     "passYdsPg": 194.4,
     "rushYdsPg": 116.3,
@@ -4366,7 +4366,7 @@
     "snapsPg": 62.4
    },
    "defense": {
-    "papg": 22.4,
+    "papg": 22,
     "totYdsAllowedPg": 327.2,
     "passYdsAllowedPg": 215.1,
     "rushYdsAllowedPg": 123.3,
@@ -4449,136 +4449,136 @@
      "week": 1,
      "opp": "JAX",
      "home": false,
-     "pf": 10,
      "pa": 26,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "ARI",
      "home": false,
+     "pa": 21,
      "pf": 22,
-     "pa": 27,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 3,
      "opp": "ATL",
-     "home": true,
-     "pf": 30,
-     "pa": 0,
-     "result": "W"
+     "home": false,
+     "pa": null,
+     "pf": 24,
+     "result": null
     },
     {
      "week": 4,
      "opp": "NE",
      "home": false,
-     "pf": 13,
      "pa": 42,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "MIA",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 24,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "DAL",
-     "home": true,
-     "pf": 30,
+     "home": false,
      "pa": 27,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "NYJ",
      "home": false,
-     "pf": 13,
      "pa": 6,
+     "pf": 13,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "BUF",
-     "home": true,
-     "pf": 9,
+     "home": false,
      "pa": 40,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "GB",
      "home": false,
-     "pf": 16,
      "pa": 13,
+     "pf": 16,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "NO",
-     "home": true,
-     "pf": 7,
+     "home": false,
      "pa": 17,
+     "pf": 7,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "ATL",
      "home": false,
-     "pf": 30,
      "pa": 27,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "SF",
      "home": false,
-     "pf": 9,
      "pa": 20,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "LAR",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 28,
-     "result": "W"
+     "pf": 25,
+     "result": "L"
     },
     {
      "week": 15,
      "opp": "NO",
      "home": false,
-     "pf": 17,
      "pa": 20,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "TB",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 20,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "SEA",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 27,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "TB",
      "home": false,
-     "pf": 14,
      "pa": 16,
+     "pf": 14,
      "result": "L"
     }
    ]
@@ -4586,12 +4586,12 @@
   "JAX": {
    "games": 17,
    "record": {
-    "w": 13,
-    "l": 4,
+    "w": 12,
+    "l": 5,
     "t": 0
    },
    "offense": {
-    "ppg": 27.9,
+    "ppg": 27.1,
     "totYdsPg": 351.9,
     "passYdsPg": 236.8,
     "rushYdsPg": 115.1,
@@ -4607,7 +4607,7 @@
     "snapsPg": 64.1
    },
    "defense": {
-    "papg": 19.8,
+    "papg": 19.1,
     "totYdsAllowedPg": 303.6,
     "passYdsAllowedPg": 231.4,
     "rushYdsAllowedPg": 85.6,
@@ -4657,7 +4657,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 6,
+     "ppg": 7,
      "totYdsPg": 11,
      "passYdsPg": 11,
      "rushYdsPg": 20,
@@ -4689,137 +4689,137 @@
     {
      "week": 1,
      "opp": "CAR",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 10,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "CIN",
      "home": false,
-     "pf": 27,
      "pa": 31,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "HOU",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 10,
+     "pf": 17,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "SF",
      "home": false,
-     "pf": 26,
      "pa": 21,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "KC",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 28,
-     "result": "W"
+     "pf": 25,
+     "result": "L"
     },
     {
      "week": 6,
      "opp": "SEA",
-     "home": true,
-     "pf": 12,
+     "home": false,
      "pa": 20,
+     "pf": 12,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "LAR",
-     "home": true,
-     "pf": 7,
+     "home": false,
      "pa": 35,
+     "pf": 7,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "LV",
      "home": false,
-     "pf": 30,
      "pa": 29,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "HOU",
      "home": false,
+     "pa": 30,
      "pf": 29,
-     "pa": 36,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "LAC",
-     "home": true,
-     "pf": 35,
+     "home": false,
      "pa": 6,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "ARI",
      "home": false,
+     "pa": 18,
      "pf": 27,
-     "pa": 24,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "TEN",
      "home": false,
-     "pf": 25,
      "pa": 3,
+     "pf": 25,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "IND",
-     "home": true,
-     "pf": 36,
+     "home": false,
      "pa": 19,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "NYJ",
-     "home": true,
-     "pf": 48,
+     "home": false,
      "pa": 20,
+     "pf": 48,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "DEN",
      "home": false,
-     "pf": 34,
      "pa": 20,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "IND",
      "home": false,
-     "pf": 23,
      "pa": 17,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "TEN",
-     "home": true,
-     "pf": 41,
+     "home": false,
      "pa": 7,
+     "pf": 35,
      "result": "W"
     }
    ]
@@ -4827,12 +4827,12 @@
   "CIN": {
    "games": 17,
    "record": {
-    "w": 6,
-    "l": 11,
+    "w": 8,
+    "l": 8,
     "t": 0
    },
    "offense": {
-    "ppg": 24.4,
+    "ppg": 24,
     "totYdsPg": 343.2,
     "passYdsPg": 249.6,
     "rushYdsPg": 93.6,
@@ -4848,7 +4848,7 @@
     "snapsPg": 61.4
    },
    "defense": {
-    "papg": 28.9,
+    "papg": 25.6,
     "totYdsAllowedPg": 380.9,
     "passYdsAllowedPg": 245.6,
     "rushYdsAllowedPg": 146.8,
@@ -4912,7 +4912,7 @@
      "passInt": 28
     },
     "defense": {
-     "papg": 30,
+     "papg": 27,
      "totYdsAllowedPg": 31,
      "passYdsAllowedPg": 25,
      "rushYdsAllowedPg": 32,
@@ -4931,149 +4931,149 @@
      "week": 1,
      "opp": "CLE",
      "home": false,
-     "pf": 17,
      "pa": 16,
+     "pf": 17,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "JAX",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 27,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "MIN",
      "home": false,
+     "pa": 36,
      "pf": 10,
-     "pa": 48,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "DEN",
      "home": false,
-     "pf": 3,
      "pa": 28,
+     "pf": 3,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "DET",
-     "home": true,
+     "home": false,
+     "pa": 35,
      "pf": 24,
-     "pa": 37,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "GB",
      "home": false,
-     "pf": 18,
      "pa": 27,
+     "pf": 18,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "PIT",
-     "home": true,
-     "pf": 33,
+     "home": false,
      "pa": 31,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "NYJ",
-     "home": true,
-     "pf": 38,
+     "home": false,
      "pa": 39,
+     "pf": 38,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "CHI",
-     "home": true,
-     "pf": 42,
+     "home": false,
      "pa": 47,
+     "pf": 42,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "PIT",
      "home": false,
+     "pa": 22,
      "pf": 12,
-     "pa": 34,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "NE",
-     "home": true,
-     "pf": 20,
-     "pa": 26,
+     "home": false,
+     "pa": 20,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "BAL",
      "home": false,
-     "pf": 32,
      "pa": 14,
+     "pf": 32,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "BUF",
      "home": false,
+     "pa": 33,
      "pf": 34,
-     "pa": 39,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 15,
      "opp": "BAL",
-     "home": true,
-     "pf": 0,
-     "pa": 24,
-     "result": "L"
+     "home": false,
+     "pa": 18,
+     "pf": null,
+     "result": null
     },
     {
      "week": 16,
      "opp": "MIA",
      "home": false,
-     "pf": 45,
      "pa": 21,
+     "pf": 45,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "ARI",
-     "home": true,
-     "pf": 37,
+     "home": false,
      "pa": 14,
+     "pf": 37,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "CLE",
-     "home": true,
+     "home": false,
+     "pa": 8,
      "pf": 18,
-     "pa": 20,
-     "result": "L"
+     "result": "W"
     }
    ]
   },
   "CLE": {
    "games": 17,
    "record": {
-    "w": 5,
-    "l": 12,
+    "w": 4,
+    "l": 13,
     "t": 0
    },
    "offense": {
-    "ppg": 16.4,
+    "ppg": 15,
     "totYdsPg": 282.4,
     "passYdsPg": 185.4,
     "rushYdsPg": 97,
@@ -5089,7 +5089,7 @@
     "snapsPg": 60.6
    },
    "defense": {
-    "papg": 22.3,
+    "papg": 21.8,
     "totYdsAllowedPg": 283.6,
     "passYdsAllowedPg": 189.4,
     "rushYdsAllowedPg": 116.4,
@@ -5171,138 +5171,138 @@
     {
      "week": 1,
      "opp": "CIN",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 17,
+     "pf": 16,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "BAL",
      "home": false,
+     "pa": 35,
      "pf": 17,
-     "pa": 41,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "GB",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 10,
+     "pf": 13,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "DET",
      "home": false,
-     "pf": 10,
      "pa": 34,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "MIN",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 21,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "PIT",
      "home": false,
-     "pf": 9,
      "pa": 23,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "MIA",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 6,
+     "pf": 25,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "NE",
      "home": false,
+     "pa": 30,
      "pf": 13,
-     "pa": 32,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "NYJ",
      "home": false,
-     "pf": 20,
      "pa": 27,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "BAL",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 23,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "LV",
      "home": false,
-     "pf": 24,
      "pa": 10,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "SF",
-     "home": true,
-     "pf": 8,
+     "home": false,
      "pa": 26,
+     "pf": 8,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "TEN",
-     "home": true,
-     "pf": 29,
+     "home": false,
      "pa": 31,
+     "pf": 29,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "CHI",
      "home": false,
-     "pf": 3,
      "pa": 31,
+     "pf": 3,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "BUF",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "PIT",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 6,
+     "pf": 13,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "CIN",
      "home": false,
-     "pf": 20,
      "pa": 18,
-     "result": "W"
+     "pf": 8,
+     "result": "L"
     }
    ]
   },
@@ -5314,7 +5314,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 27.4,
+    "ppg": 27.1,
     "totYdsPg": 357.2,
     "passYdsPg": 239.4,
     "rushYdsPg": 117.9,
@@ -5330,7 +5330,7 @@
     "snapsPg": 59.2
    },
    "defense": {
-    "papg": 24.2,
+    "papg": 23.4,
     "totYdsAllowedPg": 349.8,
     "passYdsAllowedPg": 262.5,
     "rushYdsAllowedPg": 101.9,
@@ -5394,7 +5394,7 @@
      "passInt": 25
     },
     "defense": {
-     "papg": 21,
+     "papg": 20,
      "totYdsAllowedPg": 23,
      "passYdsAllowedPg": 31,
      "rushYdsAllowedPg": 6,
@@ -5412,137 +5412,137 @@
     {
      "week": 1,
      "opp": "MIA",
-     "home": true,
-     "pf": 33,
+     "home": false,
      "pa": 8,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "DEN",
-     "home": true,
-     "pf": 29,
+     "home": false,
      "pa": 28,
+     "pf": 29,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "TEN",
      "home": false,
-     "pf": 41,
      "pa": 20,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "LAR",
      "home": false,
-     "pf": 20,
      "pa": 27,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "LV",
-     "home": true,
-     "pf": 40,
+     "home": false,
      "pa": 6,
+     "pf": 40,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "ARI",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 27,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "LAC",
      "home": false,
-     "pf": 38,
      "pa": 24,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "TEN",
-     "home": true,
-     "pf": 38,
+     "home": false,
      "pa": 14,
+     "pf": 38,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "PIT",
      "home": false,
-     "pf": 20,
      "pa": 27,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "ATL",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 25,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "KC",
      "home": false,
-     "pf": 20,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "HOU",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 20,
+     "pf": 16,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "JAX",
      "home": false,
+     "pa": 34,
      "pf": 19,
-     "pa": 36,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "SEA",
      "home": false,
-     "pf": 16,
      "pa": 18,
+     "pf": 16,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "SF",
-     "home": true,
+     "home": false,
+     "pa": 42,
      "pf": 27,
-     "pa": 48,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "JAX",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 23,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "HOU",
      "home": false,
+     "pa": 32,
      "pf": 30,
-     "pa": 38,
      "result": "L"
     }
    ]
@@ -5571,7 +5571,7 @@
     "snapsPg": 54.5
    },
    "defense": {
-    "papg": 24.9,
+    "papg": 24.6,
     "totYdsAllowedPg": 348.8,
     "passYdsAllowedPg": 230.6,
     "rushYdsAllowedPg": 132.4,
@@ -5621,7 +5621,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 25,
+     "ppg": 24,
      "totYdsPg": 26,
      "passYdsPg": 25,
      "rushYdsPg": 15,
@@ -5654,136 +5654,136 @@
      "week": 1,
      "opp": "IND",
      "home": false,
-     "pf": 8,
      "pa": 33,
+     "pf": 8,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "NE",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 33,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "BUF",
      "home": false,
-     "pf": 21,
      "pa": 31,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "NYJ",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 21,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "CAR",
      "home": false,
-     "pf": 24,
      "pa": 27,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "LAC",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 29,
+     "pf": 27,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "CLE",
      "home": false,
+     "pa": 25,
      "pf": 6,
-     "pa": 31,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "ATL",
      "home": false,
-     "pf": 34,
      "pa": 10,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "BAL",
-     "home": true,
-     "pf": 6,
+     "home": false,
      "pa": 28,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "BUF",
-     "home": true,
-     "pf": 30,
+     "home": false,
      "pa": 13,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "WAS",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 13,
+     "pf": 16,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "NO",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 17,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "NYJ",
      "home": false,
-     "pf": 34,
      "pa": 10,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "PIT",
      "home": false,
-     "pf": 15,
      "pa": 28,
+     "pf": 15,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "CIN",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 45,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "TB",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 17,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "NE",
      "home": false,
-     "pf": 10,
      "pa": 38,
+     "pf": 10,
      "result": "L"
     }
    ]
@@ -5791,12 +5791,12 @@
   "LAR": {
    "games": 17,
    "record": {
-    "w": 12,
-    "l": 5,
+    "w": 14,
+    "l": 3,
     "t": 0
    },
    "offense": {
-    "ppg": 30.5,
+    "ppg": 30.1,
     "totYdsPg": 403.5,
     "passYdsPg": 276.9,
     "rushYdsPg": 126.6,
@@ -5812,7 +5812,7 @@
     "snapsPg": 62.4
    },
    "defense": {
-    "papg": 20.4,
+    "papg": 19.6,
     "totYdsAllowedPg": 327.5,
     "passYdsAllowedPg": 232.9,
     "rushYdsAllowedPg": 110.9,
@@ -5894,137 +5894,137 @@
     {
      "week": 1,
      "opp": "HOU",
-     "home": true,
-     "pf": 14,
+     "home": false,
      "pa": 9,
+     "pf": 14,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "TEN",
      "home": false,
-     "pf": 33,
      "pa": 19,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 3,
      "opp": "PHI",
      "home": false,
-     "pf": 26,
      "pa": 33,
+     "pf": 26,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "IND",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 20,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "SF",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 26,
+     "pf": 23,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "BAL",
      "home": false,
-     "pf": 17,
      "pa": 3,
+     "pf": 17,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "JAX",
      "home": false,
-     "pf": 35,
      "pa": 7,
+     "pf": 35,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "NO",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 10,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "SF",
      "home": false,
-     "pf": 42,
      "pa": 26,
+     "pf": 42,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "SEA",
-     "home": true,
-     "pf": 21,
+     "home": false,
      "pa": 19,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "TB",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 7,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "CAR",
      "home": false,
+     "pa": 25,
      "pf": 28,
-     "pa": 31,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 14,
      "opp": "ARI",
      "home": false,
-     "pf": 45,
      "pa": 17,
+     "pf": 45,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "DET",
-     "home": true,
-     "pf": 41,
+     "home": false,
      "pa": 34,
+     "pf": 41,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "SEA",
      "home": false,
-     "pf": 37,
      "pa": 38,
+     "pf": 37,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "ATL",
      "home": false,
+     "pa": 21,
      "pf": 24,
-     "pa": 27,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 18,
      "opp": "ARI",
-     "home": true,
-     "pf": 37,
+     "home": false,
      "pa": 20,
+     "pf": 37,
      "result": "W"
     }
    ]
@@ -6032,12 +6032,12 @@
   "HOU": {
    "games": 17,
    "record": {
-    "w": 12,
-    "l": 5,
+    "w": 10,
+    "l": 6,
     "t": 0
    },
    "offense": {
-    "ppg": 23.8,
+    "ppg": 22.4,
     "totYdsPg": 341.6,
     "passYdsPg": 232.7,
     "rushYdsPg": 108.9,
@@ -6103,7 +6103,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 13,
+     "ppg": 15,
      "totYdsPg": 19,
      "passYdsPg": 14,
      "rushYdsPg": 22,
@@ -6136,136 +6136,136 @@
      "week": 1,
      "opp": "LAR",
      "home": false,
-     "pf": 9,
      "pa": 14,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "TB",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 20,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "JAX",
      "home": false,
-     "pf": 10,
      "pa": 17,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "TEN",
-     "home": true,
+     "home": false,
+     "pa": null,
      "pf": 26,
-     "pa": 0,
-     "result": "W"
+     "result": null
     },
     {
      "week": 5,
      "opp": "BAL",
      "home": false,
-     "pf": 44,
      "pa": 10,
+     "pf": 44,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "SEA",
      "home": false,
-     "pf": 19,
      "pa": 27,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "SF",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 15,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "DEN",
-     "home": true,
-     "pf": 15,
+     "home": false,
      "pa": 18,
+     "pf": 15,
      "result": "L"
     },
     {
      "week": 10,
      "opp": "JAX",
-     "home": true,
-     "pf": 36,
+     "home": false,
      "pa": 29,
+     "pf": 30,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "TEN",
      "home": false,
-     "pf": 16,
      "pa": 13,
+     "pf": 16,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "BUF",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 19,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "IND",
      "home": false,
-     "pf": 20,
      "pa": 16,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "KC",
      "home": false,
-     "pf": 20,
      "pa": 10,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "ARI",
-     "home": true,
-     "pf": 40,
+     "home": false,
      "pa": 20,
+     "pf": 40,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "LV",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 21,
-     "result": "W"
+     "pf": 17,
+     "result": "L"
     },
     {
      "week": 17,
      "opp": "LAC",
      "home": false,
-     "pf": 20,
      "pa": 16,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "IND",
-     "home": true,
-     "pf": 38,
+     "home": false,
      "pa": 30,
+     "pf": 32,
      "result": "W"
     }
    ]
@@ -6274,11 +6274,11 @@
    "games": 17,
    "record": {
     "w": 3,
-    "l": 14,
+    "l": 13,
     "t": 0
    },
    "offense": {
-    "ppg": 16.7,
+    "ppg": 16.2,
     "totYdsPg": 284.1,
     "passYdsPg": 190.6,
     "rushYdsPg": 93.5,
@@ -6294,7 +6294,7 @@
     "snapsPg": 58.9
    },
    "defense": {
-    "papg": 28.1,
+    "papg": 26.7,
     "totYdsAllowedPg": 345.1,
     "passYdsAllowedPg": 248.3,
     "rushYdsAllowedPg": 114.6,
@@ -6358,7 +6358,7 @@
      "passInt": 8
     },
     "defense": {
-     "papg": 28,
+     "papg": 29,
      "totYdsAllowedPg": 21,
      "passYdsAllowedPg": 26,
      "rushYdsAllowedPg": 15,
@@ -6377,136 +6377,136 @@
      "week": 1,
      "opp": "DEN",
      "home": false,
-     "pf": 12,
      "pa": 20,
+     "pf": 12,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "LAR",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 33,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "IND",
-     "home": true,
+     "home": false,
+     "pa": 35,
      "pf": 20,
-     "pa": 41,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "HOU",
      "home": false,
-     "pf": 0,
      "pa": 26,
-     "result": "L"
+     "pf": null,
+     "result": null
     },
     {
      "week": 5,
      "opp": "ARI",
      "home": false,
-     "pf": 22,
      "pa": 21,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "LV",
      "home": false,
-     "pf": 10,
      "pa": 20,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "NE",
-     "home": true,
+     "home": false,
+     "pa": 25,
      "pf": 13,
-     "pa": 31,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "IND",
      "home": false,
-     "pf": 14,
      "pa": 38,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "LAC",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 27,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "HOU",
-     "home": true,
-     "pf": 13,
+     "home": false,
      "pa": 16,
+     "pf": 13,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "SEA",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 30,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "JAX",
-     "home": true,
-     "pf": 3,
+     "home": false,
      "pa": 25,
+     "pf": 3,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "CLE",
      "home": false,
-     "pf": 31,
      "pa": 29,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "SF",
      "home": false,
-     "pf": 24,
      "pa": 37,
+     "pf": 24,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "KC",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 9,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "NO",
-     "home": true,
+     "home": false,
+     "pa": 28,
      "pf": 26,
-     "pa": 34,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "JAX",
      "home": false,
+     "pa": 35,
      "pf": 7,
-     "pa": 41,
      "result": "L"
     }
    ]
@@ -6519,7 +6519,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 23.6,
+    "ppg": 23.2,
     "totYdsPg": 347.4,
     "passYdsPg": 231.2,
     "rushYdsPg": 116.1,
@@ -6535,7 +6535,7 @@
     "snapsPg": 63.6
    },
    "defense": {
-    "papg": 18.3,
+    "papg": 18.2,
     "totYdsAllowedPg": 278.2,
     "passYdsAllowedPg": 212.1,
     "rushYdsAllowedPg": 90.9,
@@ -6585,7 +6585,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 14,
+     "ppg": 13,
      "totYdsPg": 15,
      "passYdsPg": 17,
      "rushYdsPg": 19,
@@ -6617,137 +6617,137 @@
     {
      "week": 1,
      "opp": "TEN",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 12,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "IND",
      "home": false,
-     "pf": 28,
      "pa": 29,
+     "pf": 28,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "LAC",
      "home": false,
-     "pf": 20,
      "pa": 23,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 4,
      "opp": "CIN",
-     "home": true,
-     "pf": 28,
+     "home": false,
      "pa": 3,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 5,
      "opp": "PHI",
      "home": false,
-     "pf": 21,
      "pa": 17,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "NYJ",
      "home": false,
+     "pa": 9,
      "pf": 13,
-     "pa": 11,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "NYG",
-     "home": true,
-     "pf": 33,
+     "home": false,
      "pa": 32,
+     "pf": 33,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "DAL",
-     "home": true,
-     "pf": 44,
+     "home": false,
      "pa": 24,
+     "pf": 44,
      "result": "W"
     },
     {
      "week": 9,
      "opp": "HOU",
      "home": false,
-     "pf": 18,
      "pa": 15,
+     "pf": 18,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "LV",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 7,
+     "pf": 10,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "KC",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 19,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "WAS",
      "home": false,
-     "pf": 27,
      "pa": 26,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "LV",
      "home": false,
-     "pf": 24,
      "pa": 17,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "GB",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 26,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "JAX",
-     "home": true,
-     "pf": 20,
+     "home": false,
      "pa": 34,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "KC",
      "home": false,
-     "pf": 20,
      "pa": 13,
+     "pf": 20,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "LAC",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 3,
+     "pf": 13,
      "result": "W"
     }
    ]
@@ -6755,12 +6755,12 @@
   "NYJ": {
    "games": 17,
    "record": {
-    "w": 3,
-    "l": 14,
+    "w": 4,
+    "l": 13,
     "t": 0
    },
    "offense": {
-    "ppg": 17.6,
+    "ppg": 17.5,
     "totYdsPg": 286.9,
     "passYdsPg": 163.6,
     "rushYdsPg": 123.3,
@@ -6776,7 +6776,7 @@
     "snapsPg": 58.8
    },
    "defense": {
-    "papg": 29.6,
+    "papg": 29.2,
     "totYdsAllowedPg": 355.6,
     "passYdsAllowedPg": 226.4,
     "rushYdsAllowedPg": 139.3,
@@ -6826,7 +6826,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 29,
+     "ppg": 28,
      "totYdsPg": 29,
      "passYdsPg": 32,
      "rushYdsPg": 10,
@@ -6858,137 +6858,137 @@
     {
      "week": 1,
      "opp": "PIT",
-     "home": true,
-     "pf": 32,
+     "home": false,
      "pa": 34,
+     "pf": 32,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "BUF",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 30,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "TB",
      "home": false,
+     "pa": 23,
      "pf": 27,
-     "pa": 29,
-     "result": "L"
+     "result": "W"
     },
     {
      "week": 4,
      "opp": "MIA",
      "home": false,
-     "pf": 21,
      "pa": 27,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "DAL",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 37,
+     "pf": 22,
      "result": "L"
     },
     {
      "week": 6,
      "opp": "DEN",
-     "home": true,
-     "pf": 11,
+     "home": false,
      "pa": 13,
+     "pf": 9,
      "result": "L"
     },
     {
      "week": 7,
      "opp": "CAR",
-     "home": true,
-     "pf": 6,
+     "home": false,
      "pa": 13,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "CIN",
      "home": false,
-     "pf": 39,
      "pa": 38,
+     "pf": 39,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "CLE",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 20,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "NE",
      "home": false,
-     "pf": 14,
      "pa": 27,
+     "pf": 14,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "BAL",
      "home": false,
-     "pf": 10,
      "pa": 23,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "ATL",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 24,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "MIA",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 34,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "JAX",
      "home": false,
-     "pf": 20,
      "pa": 48,
+     "pf": 20,
      "result": "L"
     },
     {
      "week": 16,
      "opp": "NO",
      "home": false,
-     "pf": 6,
      "pa": 29,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 17,
      "opp": "NE",
-     "home": true,
-     "pf": 10,
+     "home": false,
      "pa": 42,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "BUF",
      "home": false,
-     "pf": 8,
      "pa": 35,
+     "pf": 8,
      "result": "L"
     }
    ]
@@ -7001,7 +7001,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 23.4,
+    "ppg": 22.2,
     "totYdsPg": 316.9,
     "passYdsPg": 213.6,
     "rushYdsPg": 103.3,
@@ -7017,7 +7017,7 @@
     "snapsPg": 56.2
    },
    "defense": {
-    "papg": 22.8,
+    "papg": 22.3,
     "totYdsAllowedPg": 356.9,
     "passYdsAllowedPg": 261,
     "rushYdsAllowedPg": 112.9,
@@ -7067,7 +7067,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 15,
+     "ppg": 16,
      "totYdsPg": 25,
      "passYdsPg": 22,
      "rushYdsPg": 26,
@@ -7100,136 +7100,136 @@
      "week": 1,
      "opp": "NYJ",
      "home": false,
-     "pf": 34,
      "pa": 32,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "SEA",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 31,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "NE",
      "home": false,
-     "pf": 21,
      "pa": 14,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "MIN",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 21,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "CLE",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 9,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "CIN",
      "home": false,
-     "pf": 31,
      "pa": 33,
+     "pf": 31,
      "result": "L"
     },
     {
      "week": 8,
      "opp": "GB",
-     "home": true,
-     "pf": 25,
+     "home": false,
      "pa": 35,
+     "pf": 25,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "IND",
-     "home": true,
-     "pf": 27,
+     "home": false,
      "pa": 20,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "LAC",
      "home": false,
+     "pa": 23,
      "pf": 10,
-     "pa": 25,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "CIN",
-     "home": true,
-     "pf": 34,
+     "home": false,
      "pa": 12,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "CHI",
      "home": false,
-     "pf": 28,
      "pa": 31,
+     "pf": 22,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "BUF",
-     "home": true,
+     "home": false,
+     "pa": 20,
      "pf": 7,
-     "pa": 26,
      "result": "L"
     },
     {
      "week": 14,
      "opp": "BAL",
      "home": false,
-     "pf": 27,
      "pa": 22,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 15,
      "opp": "MIA",
-     "home": true,
-     "pf": 28,
+     "home": false,
      "pa": 15,
+     "pf": 28,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "DET",
      "home": false,
-     "pf": 29,
      "pa": 24,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "CLE",
      "home": false,
-     "pf": 6,
      "pa": 13,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "BAL",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 24,
+     "pf": 26,
      "result": "W"
     }
    ]
@@ -7242,7 +7242,7 @@
     "t": 0
    },
    "offense": {
-    "ppg": 25.9,
+    "ppg": 25.2,
     "totYdsPg": 378.9,
     "passYdsPg": 234.8,
     "rushYdsPg": 144.2,
@@ -7258,7 +7258,7 @@
     "snapsPg": 64.6
    },
    "defense": {
-    "papg": 24.4,
+    "papg": 24.1,
     "totYdsAllowedPg": 361.8,
     "passYdsAllowedPg": 239.2,
     "rushYdsAllowedPg": 134.5,
@@ -7308,7 +7308,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 9,
+     "ppg": 10,
      "totYdsPg": 6,
      "passYdsPg": 12,
      "rushYdsPg": 3,
@@ -7322,7 +7322,7 @@
      "passInt": 3
     },
     "defense": {
-     "papg": 23,
+     "papg": 22,
      "totYdsAllowedPg": 29,
      "passYdsAllowedPg": 22,
      "rushYdsAllowedPg": 27,
@@ -7340,137 +7340,137 @@
     {
      "week": 1,
      "opp": "MIN",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 27,
+     "pf": 18,
      "result": "L"
     },
     {
      "week": 2,
      "opp": "DET",
      "home": false,
-     "pf": 21,
      "pa": 52,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "DAL",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 14,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "LV",
      "home": false,
-     "pf": 25,
      "pa": 24,
+     "pf": 25,
      "result": "W"
     },
     {
      "week": 6,
      "opp": "WAS",
      "home": false,
-     "pf": 25,
      "pa": 24,
+     "pf": 25,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "NO",
-     "home": true,
-     "pf": 26,
+     "home": false,
      "pa": 14,
+     "pf": 26,
      "result": "W"
     },
     {
      "week": 8,
      "opp": "BAL",
      "home": false,
-     "pf": 16,
      "pa": 30,
+     "pf": 16,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "CIN",
      "home": false,
-     "pf": 47,
      "pa": 42,
+     "pf": 47,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "NYG",
-     "home": true,
-     "pf": 24,
+     "home": false,
      "pa": 20,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 11,
      "opp": "MIN",
      "home": false,
-     "pf": 19,
      "pa": 17,
+     "pf": 19,
      "result": "W"
     },
     {
      "week": 12,
      "opp": "PIT",
-     "home": true,
+     "home": false,
+     "pa": 22,
      "pf": 31,
-     "pa": 28,
      "result": "W"
     },
     {
      "week": 13,
      "opp": "PHI",
      "home": false,
-     "pf": 24,
      "pa": 15,
+     "pf": 24,
      "result": "W"
     },
     {
      "week": 14,
      "opp": "GB",
      "home": false,
-     "pf": 21,
      "pa": 28,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 15,
      "opp": "CLE",
-     "home": true,
-     "pf": 31,
+     "home": false,
      "pa": 3,
+     "pf": 31,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "GB",
-     "home": true,
-     "pf": 22,
+     "home": false,
      "pa": 16,
+     "pf": 22,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "SF",
      "home": false,
-     "pf": 38,
      "pa": 42,
+     "pf": 32,
      "result": "L"
     },
     {
      "week": 18,
      "opp": "DET",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 19,
+     "pf": 16,
      "result": "L"
     }
    ]
@@ -7478,12 +7478,12 @@
   "MIN": {
    "games": 17,
    "record": {
-    "w": 9,
-    "l": 8,
-    "t": 0
+    "w": 8,
+    "l": 6,
+    "t": 1
    },
    "offense": {
-    "ppg": 20.2,
+    "ppg": 19.5,
     "totYdsPg": 296.7,
     "passYdsPg": 188.7,
     "rushYdsPg": 108,
@@ -7499,7 +7499,7 @@
     "snapsPg": 54.9
    },
    "defense": {
-    "papg": 19.6,
+    "papg": 18.2,
     "totYdsAllowedPg": 282.6,
     "passYdsAllowedPg": 177.7,
     "rushYdsAllowedPg": 123,
@@ -7563,7 +7563,7 @@
      "passInt": 32
     },
     "defense": {
-     "papg": 7,
+     "papg": 4,
      "totYdsAllowedPg": 3,
      "passYdsAllowedPg": 2,
      "rushYdsAllowedPg": 20,
@@ -7582,136 +7582,136 @@
      "week": 1,
      "opp": "CHI",
      "home": false,
+     "pa": 18,
      "pf": 27,
-     "pa": 24,
      "result": "W"
     },
     {
      "week": 2,
      "opp": "ATL",
-     "home": true,
-     "pf": 6,
+     "home": false,
      "pa": 22,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 3,
      "opp": "CIN",
-     "home": true,
-     "pf": 48,
+     "home": false,
      "pa": 10,
+     "pf": 36,
      "result": "W"
     },
     {
      "week": 4,
      "opp": "PIT",
      "home": false,
-     "pf": 21,
      "pa": 24,
+     "pf": 21,
      "result": "L"
     },
     {
      "week": 5,
      "opp": "CLE",
      "home": false,
-     "pf": 21,
      "pa": 17,
+     "pf": 21,
      "result": "W"
     },
     {
      "week": 7,
      "opp": "PHI",
-     "home": true,
+     "home": false,
+     "pa": 22,
      "pf": 22,
-     "pa": 28,
-     "result": "L"
+     "result": "T"
     },
     {
      "week": 8,
      "opp": "LAC",
      "home": false,
-     "pf": 10,
      "pa": 37,
+     "pf": 10,
      "result": "L"
     },
     {
      "week": 9,
      "opp": "DET",
      "home": false,
-     "pf": 27,
      "pa": 24,
+     "pf": 27,
      "result": "W"
     },
     {
      "week": 10,
      "opp": "BAL",
-     "home": true,
-     "pf": 19,
+     "home": false,
      "pa": 27,
+     "pf": 19,
      "result": "L"
     },
     {
      "week": 11,
      "opp": "CHI",
-     "home": true,
-     "pf": 17,
+     "home": false,
      "pa": 19,
+     "pf": 17,
      "result": "L"
     },
     {
      "week": 12,
      "opp": "GB",
      "home": false,
-     "pf": 6,
      "pa": 23,
+     "pf": 6,
      "result": "L"
     },
     {
      "week": 13,
      "opp": "SEA",
      "home": false,
-     "pf": 0,
-     "pa": 26,
-     "result": "L"
+     "pa": 20,
+     "pf": null,
+     "result": null
     },
     {
      "week": 14,
      "opp": "WAS",
-     "home": true,
+     "home": false,
+     "pa": null,
      "pf": 31,
-     "pa": 0,
-     "result": "W"
+     "result": null
     },
     {
      "week": 15,
      "opp": "DAL",
      "home": false,
-     "pf": 34,
      "pa": 26,
+     "pf": 34,
      "result": "W"
     },
     {
      "week": 16,
      "opp": "NYG",
      "home": false,
+     "pa": 7,
      "pf": 16,
-     "pa": 13,
      "result": "W"
     },
     {
      "week": 17,
      "opp": "DET",
-     "home": true,
-     "pf": 23,
+     "home": false,
      "pa": 10,
+     "pf": 23,
      "result": "W"
     },
     {
      "week": 18,
      "opp": "GB",
-     "home": true,
-     "pf": 16,
+     "home": false,
      "pa": 3,
+     "pf": 16,
      "result": "W"
     }
    ]
