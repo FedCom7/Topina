@@ -809,6 +809,38 @@ Il banco di prova e' `preview-week-result.html`, **locale e nel .gitignore**:
 importa i moduli veri e manda in onda le giornate chiuse vere, per squadra,
 dispositivo e tema.
 
+### Game Day ha un'icona sua sulla schermata Home
+
+Aggiungendo `#nfl-games` alla Home dell'iPhone l'icona e' lo Scoreboard
+(`icons/gameday-*.png`) e il nome "Game Day": `js/utils/identita-app.js`, da
+`navigate()`, cambia `apple-touch-icon`, manifesto
+(`manifest-gameday.webmanifest`) e `apple-mobile-web-app-title`, e li rimette
+uscendo. Il sito e' una pagina sola e iOS legge il `<head>` quando si crea il
+collegamento. `start_url` ha una query (`?app=gameday`) perche' il `#` non
+distingue due manifesti. I PNG si rifanno dalla proposta in
+`preview-gameday-icon.html` (locale, nel .gitignore), e un collegamento gia'
+creato non si aggiorna: va ricreato.
+
+### Aprendo l'app mentre si gioca si va sul Live
+
+`js/utils/apertura-live.js`, chiamato da `boot()` dopo i due sipari. Se c'e' una
+partita NFL in corso della nostra stagione, l'apertura finisce su `#live`.
+
+1. **Solo l'apertura.** Indirizzo vuoto o `#home`, caricamento vero: un link
+   diretto porta dove dice, ricaricare resta dov'e', e Home dal menu durante la
+   partita e' una scelta (cambio di hash: qui non passa).
+2. **Si decide PRIMA di disegnare**, o la home lampeggerebbe. `boot()` tiene
+   fermo `navigate()` per la risposta, con un tetto di 1,5 s
+   (`getPartiteOra`): se ESPN non arriva si apre la home, e niente salto
+   dopo. Il redirect e' un `replaceState`, cosi' indietro non riporta a una home
+   mai vista. I sipari di Night Recap e Final Whistle restano sincroni: non
+   va messo un `await` prima di loro.
+3. **Fuori partita non si paga niente.** `topina_apertura_v1` ricorda quando
+   riguardare: il prossimo kickoff, mai oltre 12 ore. Fino ad allora
+   `controllaApertura()` risponde senza rete e senza attesa.
+4. Contano le partite di tutta la NFL, non solo quelle dei nostri: restano
+   fuori preseason, playoff NFL e le settimane oltre il Super Bowl della lega.
+
 ### Area Draft — quattro sezioni sorelle
 
 Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:

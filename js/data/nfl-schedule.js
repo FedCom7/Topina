@@ -230,6 +230,40 @@ export async function getCurrentNflWeek() {
 }
 
 /**
+ * Il tabellone di adesso, in breve: { year, type, week, inCorso,
+ * prossimoKickoff } — `type` 2 e' la regular season, `prossimoKickoff` (ms) il
+ * primo fra quelli che devono ancora cominciare, o null. Lo legge l'apertura
+ * dell'app, che intanto tiene la pagina ferma: per questo il tetto e' di
+ * un secondo e mezzo e non degli 8 delle altre chiamate. Null se ESPN non
+ * risponde in tempo.
+ */
+export async function getPartiteOra(timeoutMs = 1500) {
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), timeoutMs);
+    try {
+        const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard', { signal: stop.signal });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const stato = (ev) => ev.competitions?.[0]?.status?.type?.state || ev.status?.type?.state || 'pre';
+        const eventi = data.events || [];
+        const kickoff = eventi.filter(ev => stato(ev) === 'pre')
+            .map(ev => new Date(ev.competitions?.[0]?.date || ev.date).getTime())
+            .filter(Number.isFinite);
+        return {
+            year: data.season?.year ?? null,
+            type: data.season?.type ?? null,
+            week: data.week?.number ?? 0,
+            inCorso: eventi.some(ev => stato(ev) === 'in'),
+            prossimoKickoff: kickoff.length ? Math.min(...kickoff) : null,
+        };
+    } catch {
+        return null;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
  * Data di kickoff della week 1 di una stagione, dal tabellone vero (prima
  * gara in assoluto, `getWeekGames` le ordina già per orario) — non un giorno
  * indovinato. Serve al countdown della home. Null se il calendario non è

@@ -32,16 +32,16 @@
  * partita, ognuno col suo tabellone e i suoi giocatori.
  */
 
-import { CURRENT_SEASON, displayName } from '../data.js?v=596';
+import { CURRENT_SEASON, displayName } from '../data.js?v=597';
 import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=538';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
-import { getWeekSchedule, getCurrentNflWeek, canonAbbr } from '../data/nfl-schedule.js?v=552';
+import { getWeekSchedule, getCurrentNflWeek, canonAbbr } from '../data/nfl-schedule.js?v=557';
 import { fetchLeagueWeek, teamAbbrFromName } from '../data/espn-fantasy.js?v=178';
 import { fetchPlays } from '../data/nfl-plays.js?v=572';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
 import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statRingHTML } from '../ui/stat-ring.js?v=1';
-import { playerImageService } from '../services/player-image-service.js?v=534';
+import { playerImageService } from '../services/player-image-service.js?v=535';
 import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=38';
 import { logoImg, pallaPossesso, campoHTML, tracceRecapSVG } from '../ui/field-strip.js?v=150';
 import { statoPartita } from '../data/campo-partita.js?v=4';

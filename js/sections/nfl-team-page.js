@@ -16,8 +16,8 @@ import { getTeamTrades, getTeamATS, getFranchiseHistory } from '../data/nfl-team
 import { getTeamDraftHistory, getTeamUsage, getLeagueReceivers, getLeagueTeamsAdvanced, getLeagueTeamFantasy } from '../data/context-score.js?v=684';
 import { getTeamDepthChart, currentNflSeason } from '../data/nfl-team-extras.js?v=1003';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
-import { canonAbbr } from '../data/nfl-schedule.js?v=552';
-import { playerImageService } from '../services/player-image-service.js?v=534';
+import { canonAbbr } from '../data/nfl-schedule.js?v=557';
+import { playerImageService } from '../services/player-image-service.js?v=535';
 import { bindTabSwipe, centerActiveTab, nextTab } from '../ui/tab-swipe.js?v=1';
 import { donutPoint, donutSeg, donutLabel } from '../ui/charts.js?v=9';
 import { getSeasonStats, normName } from '../data/projections.js?v=635';
@@ -36,11 +36,11 @@ import {
     teamHistoryBlock, teamExtrasBlock, rosterTableDetails, rankBadge, meterBar,
     teamYearPicker, fetchTeamSeasonData, fetchTeamHistory, hydrateCharts,
     sampleTag, smallSampleNote,
-} from './player-page.js?v=1088';
+} from './player-page.js?v=1089';
 import {
     calendarBlocksBlock, draftBlock, preseasonWeek,
     divisionStandingsBlock, formationFieldBlock, hydrateFormationPhotos,
-} from './nfl-team-home.js?v=1120';
+} from './nfl-team-home.js?v=1121';
 import { teamLoader } from '../ui/loading-page.js?v=6';
 
 export async function initNflTeamPage() {
@@ -2997,7 +2997,7 @@ function bindFlipCard(section, ctx) {
             if (openBtn && _flipState?.card) {
                 // Import dinamico, stessa ragione del modulo dati (vedi sopra):
                 // la vista stampa non deve poter spegnere il resto della pagina.
-                import('../ui/flip-card-print.js?v=11').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
+                import('../ui/flip-card-print.js?v=12').then(m => m.openFlipPrint(_flipState.card, _flipState.abbr)).catch(() => {});
             }
         });
     }

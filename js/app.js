@@ -1,41 +1,43 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=1114';
-import { initGameCenter } from './sections/game-center.js?v=864';
+import { initHome } from './sections/home.js?v=1115';
+import { initGameCenter } from './sections/game-center.js?v=865';
 
-import { initStandings, initPlayoffs } from './sections/standings.js?v=793';
-import { initDraft } from './sections/draft.js?v=830';
-import { initDraftGrades } from './sections/draftgrades.js?v=842';
-import { initProjections } from './sections/projections.js?v=643';
-import { initManagerDna } from './sections/managerdna.js?v=71';
-import { initManagerDnaTeam } from './sections/managerdna-team.js?v=838';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=841';
-import { initPlayerPage } from './sections/player-page.js?v=1088';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1143';
-import { initNflGames } from './sections/nfl-games.js?v=13';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=794';
+import { initDraft } from './sections/draft.js?v=831';
+import { initDraftGrades } from './sections/draftgrades.js?v=843';
+import { initProjections } from './sections/projections.js?v=644';
+import { initManagerDna } from './sections/managerdna.js?v=72';
+import { initManagerDnaTeam } from './sections/managerdna-team.js?v=839';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=842';
+import { initPlayerPage } from './sections/player-page.js?v=1089';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1144';
+import { initNflGames } from './sections/nfl-games.js?v=14';
 import { initNflTactics } from './sections/nfl-tactics.js?v=11';
-import { initPlayersSearch } from './sections/players-search.js?v=1010';
-import { initStats } from './sections/stats.js?v=942';
-import { initHistory } from './sections/history.js?v=776';
-import { initHonors } from './sections/honors.js?v=761';
-import { initAllPro } from './sections/allpro.js?v=774';
-import { initHallOfFame } from './sections/halloffame.js?v=788';
-import { initTeam } from './sections/team.js?v=865';
-import { initTeams } from './sections/teams.js?v=758';
-import { initGame } from './sections/game.js?v=846';
-import { initAnalysis } from './sections/analysis.js?v=915';
-import { initLeaders } from './sections/leaders.js?v=149';
-import { initWaivers } from './sections/waivers.js?v=147';
-import { initPlayerStats } from './sections/player-stats.js?v=36';
+import { initPlayersSearch } from './sections/players-search.js?v=1011';
+import { initStats } from './sections/stats.js?v=943';
+import { initHistory } from './sections/history.js?v=777';
+import { initHonors } from './sections/honors.js?v=762';
+import { initAllPro } from './sections/allpro.js?v=775';
+import { initHallOfFame } from './sections/halloffame.js?v=789';
+import { initTeam } from './sections/team.js?v=866';
+import { initTeams } from './sections/teams.js?v=759';
+import { initGame } from './sections/game.js?v=847';
+import { initAnalysis } from './sections/analysis.js?v=916';
+import { initLeaders } from './sections/leaders.js?v=150';
+import { initWaivers } from './sections/waivers.js?v=148';
+import { initPlayerStats } from './sections/player-stats.js?v=37';
 
-import { initMagazine } from './sections/magazine.js?v=810';
-import { initLive } from './sections/live.js?v=1170';
-import { avviaNightRecap } from './sections/night-recap.js?v=49';
-import { avviaEsitoSettimana } from './sections/week-result.js?v=11';
-import { initNavbar } from './ui/navbar.js?v=701';
+import { initMagazine } from './sections/magazine.js?v=811';
+import { initLive } from './sections/live.js?v=1171';
+import { avviaNightRecap } from './sections/night-recap.js?v=50';
+import { avviaEsitoSettimana } from './sections/week-result.js?v=12';
+import { initNavbar } from './ui/navbar.js?v=702';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
+import { controllaApertura, siGiocaOra } from './utils/apertura-live.js?v=2';
+import { identitaApp } from './utils/identita-app.js?v=2';
 import { sectionIdFor, activateSection } from './utils/route.js?v=2';
 
 const SECTIONS = {
@@ -138,6 +140,7 @@ function navigate() {
     // Game Day ha una barra sua: titolo della giornata al posto di impostazioni
     // e ricerca (vedi `body.pg-gameday` in main.css). Fuori di li' si toglie.
     document.body.classList.toggle('pg-gameday', isNflGames);
+    identitaApp(isNflGames);
     if (!isNflGames) { const t = document.getElementById('nav-page-title'); if (t) t.hidden = true; }
 
     // Update nav — team pages mantengono "Teams" evidenziato,
@@ -212,7 +215,24 @@ function boot() {
     initNavbar();
     startAutoAbbr();
     startLoadingArt();
-    navigate();
+    /*
+     * Mentre si gioca, aprendo l'app si va sul Live (utils/apertura-live.js).
+     * Si decide prima di disegnare, o la home lampeggerebbe e partirebbero i
+     * suoi caricamenti per niente. `replaceState` e non `location.hash`: il
+     * tasto indietro non deve riportare a una home mai vista. I due sipari
+     * sopra sono gia' alzati e non dipendono da questa risposta.
+     */
+    if (!controllaApertura()) {
+        navigate();
+        return;
+    }
+    const hash = location.hash;
+    siGiocaOra().catch(() => false).then((live) => {
+        // nel frattempo ha toccato una voce del menu: ha gia' scelto lui
+        if (location.hash !== hash) return;
+        if (live) history.replaceState(null, '', '#live');
+        navigate();
+    });
 }
 
 if (document.readyState === 'loading') {

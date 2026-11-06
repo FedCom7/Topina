@@ -15,8 +15,8 @@
 
 import { getCareer, getPlayerAwards } from '../data/careers.js?v=644';
 import { getSeasonStats, getSeasonProjections, matchProjection, normName } from '../data/projections.js?v=635';
-import { TEAMS } from '../sections/team.js?v=865';
-import { playerImageService } from '../services/player-image-service.js?v=534';
+import { TEAMS } from '../sections/team.js?v=866';
+import { playerImageService } from '../services/player-image-service.js?v=535';
 import { getPlayerInfo, getPlayerWeekly } from '../data/player-full.js?v=674';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { getHallOfFameYear } from '../data/hall-of-fame.js?v=632';

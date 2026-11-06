@@ -21,11 +21,11 @@
  * mostra la cronologia in chiaro, risponde 401 senza i cookie di login.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=596';
-import { TEAMS } from './team.js?v=865';
+import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=597';
+import { TEAMS } from './team.js?v=866';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getWaiverMoves, ordina, accorpa } from '../data/waiver-moves.js?v=29';
-import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=915';
+import { posBadge, headshotImg, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=916';
 
 
 /** I nomi arrivano da ESPN: si scrivono nel markup, quindi si ripuliscono. */

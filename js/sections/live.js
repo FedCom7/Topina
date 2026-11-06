@@ -15,10 +15,10 @@
  * Non si inventano mai dati: se non c'è niente da mostrare si dice.
  */
 
-import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=596';
+import { fetchFantasyData, fetchDraftData, displayName, teamNameHTML, CURRENT_SEASON, getSeasonConfig } from '../data.js?v=597';
 import { TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=538';
-import { TEAMS } from './team.js?v=865';
-import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=552';
+import { TEAMS } from './team.js?v=866';
+import { getWeekSchedule, canonAbbr } from '../data/nfl-schedule.js?v=557';
 import { fetchPlays, resolveAthlete, headshotUrl, fetchSituation } from '../data/nfl-plays.js?v=572';
 import { fieldStripHTML, bindFieldStrip, titoloGiocata, tipoGiocata, direzioneGiocata, yardStimate, yardCalcio, fgBuono, tagDrive, eDiServizio, volodelCalcio, testoAzione, azioneAnnullata, cartelloGiocata } from '../ui/field-strip.js?v=150';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
@@ -31,10 +31,10 @@ import { fieldSVG } from '../ui/field-svg.js?v=30';
 import { PLAYER_ID_MAP, ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statoPartita, drivesDi } from '../data/campo-partita.js?v=4';
 import { slotPairs } from '../data/matchup-analysis.js?v=819';
-import { initPlayerModal } from '../components/player-modal.js?v=801';
+import { initPlayerModal } from '../components/player-modal.js?v=802';
 import { mountFx, effettoPer, sparaEffetto, fermaEffetti, montaLivello, festaAttorno } from '../ui/live-fx.js?v=38';
-import { playerImageService } from '../services/player-image-service.js?v=534';
-import { cacheGet, cacheSet } from '../utils/storage.js?v=18';
+import { playerImageService } from '../services/player-image-service.js?v=535';
+import { cacheGet, cacheSet } from '../utils/storage.js?v=19';
 import { currentScoreBugHTML } from '../ui/score-bug-current.js?v=3';
 import { getWinProbCalib, matchupWinProb } from '../data/win-prob.js?v=1';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';

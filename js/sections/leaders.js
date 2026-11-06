@@ -16,16 +16,16 @@
  * dicono le rose ESPN LIVE; per le stagioni chiuse il modello di Firebase.
  */
 
-import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=596';
+import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=597';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=178';
-import { TEAMS } from './team.js?v=865';
+import { TEAMS } from './team.js?v=866';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { getSeasonStats, normName } from '../data/projections.js?v=635';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=915';
+} from './analysis.js?v=916';
 import { getPlayerWeekly, statsSleeperALega } from '../data/player-full.js?v=674';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
