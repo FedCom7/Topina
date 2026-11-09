@@ -280,6 +280,10 @@ function rigaLeader(e, i, info) {
     const rec = { name: e.name, position: e.pos, nflTeam: e.team };
     const gp = e.gp || 0;
     const avg = gp ? e.ptsLeague / gp : 0;
+    // Il numero in evidenza e' quello per cui la lista e' ordinata. Sul telefono
+    // resta visibile solo lui: con "Points per game" mostrava il totale, e la
+    // lista ordinata per media sembrava in disordine.
+    const perPartita = ordine === 'perGame';
     // Un clic apre sotto la riga la stagione giornata per giornata — lo stesso
     // dettaglio della pagina squadra e del Best Available qui sotto. La scheda
     // completa resta raggiungibile da un link in fondo al dettaglio.
@@ -289,8 +293,11 @@ function rigaLeader(e, i, info) {
         ${headshotImg(rec)}
         <span class="an-player-name">${e.name} ${posBadge(e.pos)}${e.team ? ` <span class="ld-nfl">${e.team}</span>` : ''}${targhettaRosa(info)}</span>
         <span class="an-cell">${gp || '—'}</span>
+        ${perPartita ? `
+        <span class="an-cell an-pts">${fmt(avg, 2)}<small class="ld-pts-base">${fmt(e.ptsLeague, 1)} / ${gp} G</small></span>
+        <span class="an-cell">${fmt(e.ptsLeague, 2)}</span>` : `
         <span class="an-cell an-pts">${fmt(e.ptsLeague, 2)}</span>
-        <span class="an-cell">${fmt(avg, 1)}</span>
+        <span class="an-cell">${fmt(avg, 1)}</span>`}
         <span class="an-keystats">${statLine(e)}</span>
         <span class="an-chevron">›</span>
     </div>
@@ -332,24 +339,7 @@ function pillsRuolo() {
 const MASSIMO = 100;
 
 /** Ordina e taglia: la lista intera sono migliaia di righe, e nessuno le legge. */
-/**
- * Quante partite servono per entrare nella classifica "Per Game".
- *
- * Era un 4 fisso, pensato a stagione avviata: sotto le quattro presenze una
- * media dice solo che uno ha giocato poco. Ma alla week 1 nessuno ne ha piu' di
- * una, e il filtro svuotava la lista intera — "No player matches", a qualunque
- * ruolo. La soglia ora segue la stagione: meta' delle giornate giocate finora,
- * mai sotto 1 e mai sopra 4. Alla week 1-2 basta una partita, alla 4 ne servono
- * due, dall'ottava in poi torna la regola di sempre.
- */
-function minPartite(stats) {
-    let max = 0;
-    for (const e of stats.values()) if ((e.gp || 0) > max) max = e.gp;
-    return Math.min(4, Math.max(1, Math.ceil(max / 2)));
-}
-
 function classifica(stats, roseIdx) {
-    const soglia = minPartite(stats);
     const fuori = [];
     for (const e of stats.values()) {
         if (!attivi.has(e.pos)) continue;
@@ -358,9 +348,9 @@ function classifica(stats, roseIdx) {
         // e' stato tagliato resta dentro, con la targhetta "Dropped by".
         if (soloLiberi && roseIdx.get(chiave(e.name))?.finale) continue;
         const gp = e.gp || 0;
-        // Per-partita su chi ha giocato una gara sola non è una media, è un
-        // caso: sotto le quattro presenze il numero dice solo che ha giocato poco.
-        if (ordine === 'perGame' && gp < soglia) continue;
+        // Punti totali diviso partite giocate, per TUTTI quelli che ne hanno
+        // giocata almeno una: chi non ha partite non ha una media.
+        if (ordine === 'perGame' && !gp) continue;
         fuori.push({ e, chiave: ordine === 'perGame' ? (gp ? e.ptsLeague / gp : 0) : e.ptsLeague });
     }
     fuori.sort((a, b) => b.chiave - a.chiave);
@@ -376,7 +366,7 @@ function listaHTML(lista, roseIdx) {
     const righe = lista.map((e, i) => rigaLeader(e, i, roseIdx.get(chiave(e.name))));
     return `
     <div class="an-list-head ld-head">
-        <span></span><span></span><span>Player</span><span>G</span><span>Points</span><span>Avg</span><span class="an-head-stats">Stats</span><span></span>
+        <span></span><span></span><span>Player</span><span>G</span>${ordine === 'perGame' ? '<span>Avg</span><span>Points</span>' : '<span>Points</span><span>Avg</span>'}<span class="an-head-stats">Stats</span><span></span>
     </div>
     ${limitedRows(righe, VISIBILI, 'leaders')}`;
 }
@@ -425,8 +415,7 @@ function render() {
        selected positions. The badge on the right says whether one of the four teams has him now, or had him.
        "Available" keeps only players on none of the four latest rosters on file: dropped players included,
        the most recent pickups only once the league data is updated.
-       "Per Game" only ranks players with at least ${minPartite(stato.stats)} game${minPartite(stato.stats) === 1 ? '' : 's'}
-       — half the weeks played so far, up to 4: below that an average says nothing.
+       "Points per game" is total points divided by games played, for everyone with at least one game.
        Defenses are missing: the source doesn't publish the points/yards-allowed brackets our scoring needs.</p>
     <p class="an-footnote ld-legend">In the week-by-week detail, <sup>*</sup> marks weeks no team in the league
        had him: those points are calculated from real NFL stats with our scoring, not a league number.
