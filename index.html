@@ -10,19 +10,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <meta name="description" content="Topina League — Fantasy NFL Statistics, Standings, Draft History and More">
     <title>Topina League</title>
-    <!-- Icona: quattro barrette nei colori dei team (ordine fisso, lo stesso del marchio
-         in navbar), generata da scripts/build-app-icon.mjs. Chiara o scura secondo
-         il tema del dispositivo: l'SVG lo fa da solo, i PNG con media. -->
+    <!-- Icona: quattro pennellate, generata da scripts/build-app-icon.mjs (dall'alto il campione
+         dell'anno scorso, poi la classifica). Le versioni a barrette stanno in icons/archivio/. -->
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" media="(prefers-color-scheme: dark)">
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32-light.png" media="(prefers-color-scheme: light)">
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" id="apple-icon">
-    <!-- iOS non legge media su apple-touch-icon e la fissa quando si aggiunge alla Home:
-         si sceglie qui, col tema di quel momento. -->
-    <script>
-        try { if (matchMedia('(prefers-color-scheme: light)').matches)
-            document.getElementById('apple-icon').href = 'icons/apple-touch-icon-light.png'; } catch (e) {}
-    </script>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
     <!-- Su Game Day icona, manifesto e nome cambiano: js/utils/identita-app.js -->
     <meta name="apple-mobile-web-app-title" content="Topina">

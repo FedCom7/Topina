@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<style>@media (prefers-color-scheme: dark){.bg{fill:#17181b}.b0{fill:#d4506a}.b1{fill:#FF6600}.b2{fill:#D4AF37}.b3{fill:#3FA6AE}}</style>
+<rect class="bg" width="1024" height="1024" rx="224" fill="#f4f4f6"/><rect x="212" y="242" width="120" height="540" rx="30" fill="#800020" class="b0"/><rect x="372" y="242" width="120" height="540" rx="30" fill="#FF6600" class="b1"/><rect x="532" y="242" width="120" height="540" rx="30" fill="#D4AF37" class="b2"/><rect x="692" y="242" width="120" height="540" rx="30" fill="#004C54" class="b3"/>
+</svg>

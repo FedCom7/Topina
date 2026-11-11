@@ -250,8 +250,9 @@ img {
     color: var(--text-primary);
 }
 
-/* Il marchio: quattro barrette nei colori dei team, come l'icona dell'app
-   (scripts/build-app-icon.mjs, stesso ordine fisso). Sul tema scuro le tinte
+/* Il marchio: quattro barrette nei colori dei team, ordine fisso Oscurus,
+   Capi, Lasers, Sommo (le icone a barrette corrispondenti stanno in
+   icons/archivio/; l'icona dell'app in uso sono le pennellate). Sul tema scuro le tinte
    `bright` della palette, sul chiaro quelle `identity`: bordeaux e petrolio
    pieni sul nero non si vedono. Misure di Election Desk: barrette 7x20,
    spazio e raggio 2. */
