@@ -817,9 +817,11 @@ Aggiungendo `#nfl-games` alla Home dell'iPhone l'icona e' lo Scoreboard
 (`manifest-gameday.webmanifest`) e `apple-mobile-web-app-title`, e li rimette
 uscendo. Il sito e' una pagina sola e iOS legge il `<head>` quando si crea il
 collegamento. `start_url` ha una query (`?app=gameday`) perche' il `#` non
-distingue due manifesti. I PNG si rifanno dalla proposta in
-`preview-gameday-icon.html` (locale, nel .gitignore), e un collegamento gia'
-creato non si aggiorna: va ricreato.
+distingue due manifesti. L'icona e' il tabellone TV "NE 3 - ATL 28, 3rd
+2:17" (Super Bowl LI), disegnata in SVG da `scripts/build-gameday-icon.mjs`
+(font Avenir Next di macOS); lo Scoreboard ambra di prima e' in
+`icons/archivio/gameday-scoreboard/`. Un collegamento gia' creato non si
+aggiorna: va ricreato.
 
 ### Aprendo l'app mentre si gioca si va sul Live
 

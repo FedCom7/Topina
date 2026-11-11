@@ -20,3 +20,6 @@ Cartelle:
   `npm run build-app-icon`, spostare i `*-light.png` in `icons/` e rimettere nel
   `<head>` di index.html le righe con `media="(prefers-color-scheme: ...)"` e lo
   script che sceglie l'apple-touch-icon chiara (vedi quel commit).
+- `gameday-scoreboard/` — la prima icona di Game Day (Scoreboard ambra 21-17),
+  sostituita dal tabellone NE 3 - ATL 28 di `scripts/build-gameday-icon.mjs`.
+  Per rimetterla basta ricopiare i tre PNG in `icons/`.

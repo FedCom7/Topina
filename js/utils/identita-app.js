@@ -8,8 +8,8 @@
  * query in `start_url` c'e' perche' un `id` calcolato ignorerebbe il `#`, e le
  * due app risulterebbero la stessa.
  *
- * Uscendo da Game Day si torna ai valori di index.html. L'icona e' disegnata
- * in preview-gameday-icon.html (proposta Scoreboard).
+ * Uscendo da Game Day si torna ai valori di index.html. L'icona (il tabellone
+ * NE 3 - ATL 28) la disegna scripts/build-gameday-icon.mjs.
  */
 
 const GAME_DAY = {
