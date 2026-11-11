@@ -253,18 +253,19 @@ img {
 /* Il marchio: quattro barrette nei colori dei team, come l'icona dell'app
    (scripts/build-app-icon.mjs, stesso ordine fisso). Sul tema scuro le tinte
    `bright` della palette, sul chiaro quelle `identity`: bordeaux e petrolio
-   pieni sul nero non si vedono. */
+   pieni sul nero non si vedono. Misure di Election Desk: barrette 7x20,
+   spazio e raggio 2. */
 .brand-mark {
     display: flex;
-    gap: 2.5px;
+    gap: 2px;
     --bm-1: #d4506a; --bm-2: #FF6600; --bm-3: #D4AF37; --bm-4: #3FA6AE;
 }
 :root[data-theme="light"] .brand-mark {
     --bm-1: #800020; --bm-4: #004C54;
 }
 .brand-mark i {
-    width: 6px;
-    height: 22px;
+    width: 7px;
+    height: 20px;
     border-radius: 2px;
     background: var(--bm-1);
 }
