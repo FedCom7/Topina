@@ -37,7 +37,7 @@ import { initNavbar } from './ui/navbar.js?v=703';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
 import { controllaApertura, siGiocaOra } from './utils/apertura-live.js?v=2';
-import { identitaApp } from './utils/identita-app.js?v=2';
+import { identitaApp } from './utils/identita-app.js?v=3';
 import { sectionIdFor, activateSection } from './utils/route.js?v=2';
 
 const SECTIONS = {

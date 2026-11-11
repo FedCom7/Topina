@@ -13,8 +13,8 @@
  */
 
 const GAME_DAY = {
-    icona: 'icons/gameday-180.png',
-    manifesto: 'manifest-gameday.webmanifest',
+    icona: 'icons/gameday-180.png?v=2',
+    manifesto: 'manifest-gameday.webmanifest?v=2',
     nome: 'Game Day',
 };
 let base = null;
