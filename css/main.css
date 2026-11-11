@@ -246,16 +246,38 @@ img {
     display: none;
     align-items: center;
     gap: 8px;
-    font-weight: 800;
-    font-size: 1.2rem;
-    letter-spacing: -0.02em;
+    text-decoration: none;
+    color: var(--text-primary);
 }
 
+/* Il marchio: quattro barrette nei colori dei team, come l'icona dell'app
+   (scripts/build-app-icon.mjs, stesso ordine fisso). Sul tema scuro le tinte
+   `bright` della palette, sul chiaro quelle `identity`: bordeaux e petrolio
+   pieni sul nero non si vedono. */
+.brand-mark {
+    display: flex;
+    gap: 2.5px;
+    --bm-1: #d4506a; --bm-2: #FF6600; --bm-3: #D4AF37; --bm-4: #3FA6AE;
+}
+:root[data-theme="light"] .brand-mark {
+    --bm-1: #800020; --bm-4: #004C54;
+}
+.brand-mark i {
+    width: 6px;
+    height: 22px;
+    border-radius: 2px;
+    background: var(--bm-1);
+}
+.brand-mark i:nth-child(2) { background: var(--bm-2); }
+.brand-mark i:nth-child(3) { background: var(--bm-3); }
+.brand-mark i:nth-child(4) { background: var(--bm-4); }
+
 .logo-text {
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.08em;
 }
 
 .nav-links {
