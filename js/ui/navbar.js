@@ -14,6 +14,7 @@ import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, e
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 import { TEAMS } from '../sections/team.js?v=866';
 import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
+import { TEAM_PALETTE } from '../data/team-config.js?v=538';
 
 // Lo stesso limite della navbar mobile in main.css (max-width: 1099px): la
 // barra passa al menu a tendina prima della pagina, vedi il commento la'.
@@ -32,6 +33,28 @@ export function initNavbar() {
     initSearch(navbar);
     initTheme();
     initPreferenze();
+    coloraTeams(navbar);
+}
+
+/**
+ * La voce "Teams" del menu prende il colore della squadra del cuore. Le tinte
+ * vengono da TEAM_PALETTE come variabili sulla barra (`bright` per lo scuro,
+ * `identity` per il chiaro: la scelta la fa il CSS col tema); senza squadra
+ * l'attributo sparisce e la voce torna normale.
+ */
+function coloraTeams(navbar) {
+    const applica = () => {
+        const p = TEAM_PALETTE[squadraPreferita()];
+        if (p) {
+            navbar.dataset.fav = '';
+            navbar.style.setProperty('--fav-bright', p.bright);
+            navbar.style.setProperty('--fav-identity', p.identity);
+        } else {
+            delete navbar.dataset.fav;
+        }
+    };
+    applica();
+    window.addEventListener('topina:squadra', applica);
 }
 
 /**

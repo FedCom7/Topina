@@ -324,6 +324,18 @@ img {
     content: none;
 }
 
+/* "Teams" nel colore della squadra del cuore (ui/navbar.js, coloraTeams). Il
+   selettore porta .navbar[data-fav] anche per specificita': deve battere
+   `.nav-links .nav-link` del menu mobile. */
+.navbar[data-fav] .nav-link[data-section="teams"],
+.navbar[data-fav] .nav-link[data-section="teams"]:hover {
+    color: var(--fav-bright);
+}
+:root[data-theme="light"] .navbar[data-fav] .nav-link[data-section="teams"],
+:root[data-theme="light"] .navbar[data-fav] .nav-link[data-section="teams"]:hover {
+    color: var(--fav-identity);
+}
+
 /* --------------------------------
    Dropdown Menu — Apple style
    La navbar si espande verso il basso; il panel è dentro .navbar
