@@ -14,10 +14,28 @@
          dell'anno scorso, poi la classifica). Le versioni a barrette stanno in icons/archivio/. -->
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <link rel="manifest" href="manifest.webmanifest">
-    <!-- Su Game Day icona, manifesto e nome cambiano: js/utils/identita-app.js -->
-    <meta name="apple-mobile-web-app-title" content="Topina">
+    <!-- Icona, manifesto e nome per la schermata Home: quelli di Topina, o
+         quelli di Game Day se la pagina si APRE su Game Day (`?app=gameday` o
+         `#nfl-games`). Si decide qui, durante il caricamento, e non dopo: da
+         Safari 15 WebKit tiene per tutta la vita della pagina il PRIMO
+         manifesto che trova, e cambiarlo con JavaScript entrando in Game Day
+         dava l'icona giusta ma il collegamento ripartiva dalla home di Topina.
+         Se iOS toglie il `#` allo start_url resta la query: qui la si
+         riporta su `#nfl-games`. -->
+    <script>
+        (function () {
+            var gd = /(^|[?&])app=gameday(&|$)/.test(location.search) || /^#nfl-games/.test(location.hash);
+            if (gd && !location.hash) history.replaceState(null, '', location.pathname + location.search + '#nfl-games');
+            function metti(tag, attr) {
+                var el = document.createElement(tag);
+                for (var k in attr) el.setAttribute(k, attr[k]);
+                document.head.appendChild(el);
+            }
+            metti('link', { rel: 'apple-touch-icon', href: gd ? 'icons/gameday-180.png' : 'icons/apple-touch-icon.png' });
+            metti('link', { rel: 'manifest', href: gd ? 'manifest-gameday.webmanifest' : 'manifest.webmanifest' });
+            metti('meta', { name: 'apple-mobile-web-app-title', content: gd ? 'Game Day' : 'Topina' });
+        })();
+    </script>
     <meta name="theme-color" content="#17181b">
     <!-- Tema: si decide PRIMA che arrivi il CSS, altrimenti chi ha scelto il
          chiaro vedrebbe un lampo nero a ogni apertura. La scelta sta in
@@ -604,7 +622,7 @@
         // qui solo prima.
         startLoadingArt();
     </script>
-    <script type="module" src="js/app.js?v=1528"></script>
+    <script type="module" src="js/app.js?v=1529"></script>
 
 </body>
 

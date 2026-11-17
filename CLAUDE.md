@@ -811,17 +811,29 @@ dispositivo e tema.
 
 ### Game Day ha un'icona sua sulla schermata Home
 
-Aggiungendo `#nfl-games` alla Home dell'iPhone l'icona e' lo Scoreboard
-(`icons/gameday-*.png`) e il nome "Game Day": `js/utils/identita-app.js`, da
-`navigate()`, cambia `apple-touch-icon`, manifesto
-(`manifest-gameday.webmanifest`) e `apple-mobile-web-app-title`, e li rimette
-uscendo. Il sito e' una pagina sola e iOS legge il `<head>` quando si crea il
-collegamento. `start_url` ha una query (`?app=gameday`) perche' il `#` non
-distingue due manifesti. L'icona e' il tabellone TV "NE 3 - ATL 28, 3rd
-2:17" (Super Bowl LI), disegnata in SVG da `scripts/build-gameday-icon.mjs`
-(font Avenir Next di macOS); lo Scoreboard ambra di prima e' in
-`icons/archivio/gameday-scoreboard/`. Un collegamento gia' creato non si
-aggiorna: va ricreato.
+Aggiungendo Game Day alla Home dell'iPhone l'icona e' lo Scoreboard
+(`icons/gameday-*.png`), il nome "Game Day" e il collegamento riapre Game
+Day. Icona, manifesto (`manifest-gameday.webmanifest`) e
+`apple-mobile-web-app-title` li decide uno script nel `<head>` di
+`index.html`, DURANTE il caricamento: Game Day se la pagina si apre con
+`?app=gameday` o su `#nfl-games`, Topina altrimenti.
+
+1. **Non si cambiano dopo.** Da Safari 15 WebKit tiene il PRIMO manifesto
+   della pagina per tutta la sua vita. La prima versione li scambiava con
+   JavaScript entrando in Game Day: l'icona passava (iOS la legge quando si
+   crea il collegamento), il manifesto no, e il collegamento ripartiva dalla
+   home di Topina (2026-11-17).
+2. **Per questo Game Day si apre ricaricando.** I link "Every game ›"
+   dell'NFL Hub puntano a `./?app=gameday#nfl-games…`: la query fa un
+   caricamento vero e il documento nasce col manifesto giusto. Da li' il
+   menu porta altrove con un semplice cambio di hash, e quel documento
+   resta "Game Day" finche' non si ricarica: un collegamento creato da li'
+   riapre Game Day.
+3. **Se iOS toglie il `#` allo `start_url`** resta `?app=gameday`, e lo
+   stesso script riporta l'indirizzo su `#nfl-games`.
+
+I PNG si rifanno dalla proposta in `preview-gameday-icon.html` (locale, nel
+.gitignore). Un collegamento gia' creato non si aggiorna: va ricreato.
 
 ### Aprendo l'app mentre si gioca si va sul Live
 

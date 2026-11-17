@@ -17,6 +17,14 @@ import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
 import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=635';
 import { currentNflSeason } from '../data/nfl-team-extras.js?v=1003';
 
+/*
+ * Game Day si apre come DOCUMENTO a se', non come cambio di hash: la query
+ * fa ricaricare la pagina, e cosi' il suo <head> nasce col manifesto di Game
+ * Day (vedi lo script in index.html). E' l'unico modo perche' "Aggiungi alla
+ * schermata Home" riapra Game Day e non la home di Topina.
+ */
+const GAME_DAY = './?app=gameday';
+
 // ─── Selettore stagione · governa tutta la pagina (tabellone, classifiche,
 // confronto squadre, dashboard giocatori). Stessa logica di TEAM_HISTORY_YEARS
 // (player-page.js): da 2019 alla stagione NFL corrente, così l'anno nuovo
@@ -1189,7 +1197,7 @@ async function initWeekScoreboard(container, year, isCurrent = () => true) {
     <section class="pm-block pp-block ps-sb">
         <div class="ps-sb-top">
             <span class="mc-kicker">NFL Scoreboard · <span id="ps-sb-title">${sbStepLabel(sel)} · ${year}</span></span>
-            <a class="ps-sb-full" id="ps-sb-full" href="#nfl-games/${year}/${sel.seasonType}/${sel.week}">Every game ›</a>
+            <a class="ps-sb-full" id="ps-sb-full" href="${GAME_DAY}#nfl-games/${year}/${sel.seasonType}/${sel.week}">Every game ›</a>
         </div>
         <div class="ps-sb-weeks" id="ps-sb-weeks">${sbWeeksHtml()}</div>
         <div class="ps-sb-body" id="ps-sb-body"><div class="loading-state"><div class="spinner"></div></div></div>
@@ -1211,7 +1219,7 @@ async function initWeekScoreboard(container, year, isCurrent = () => true) {
         title.textContent = `${sbStepLabel(sel)} · ${year}`;
         // sulla giornata in corso il link e' quello "sempre attuale", senza settimana
         if (full) full.href = (now && now.year === year && sel.seasonType === 2 && sel.week === now.week)
-            ? '#nfl-games' : `#nfl-games/${year}/${sel.seasonType}/${sel.week}`;
+            ? `${GAME_DAY}#nfl-games` : `${GAME_DAY}#nfl-games/${year}/${sel.seasonType}/${sel.week}`;
         sbSetWeek(weeks, sel, painted);   // al primo giro senza animazione: la strip nasce già centrata
         painted = true;
         body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';

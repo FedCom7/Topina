@@ -15,7 +15,7 @@ import { initPlayerPage } from './sections/player-page.js?v=1089';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=1144';
 import { initNflGames } from './sections/nfl-games.js?v=14';
 import { initNflTactics } from './sections/nfl-tactics.js?v=11';
-import { initPlayersSearch } from './sections/players-search.js?v=1011';
+import { initPlayersSearch } from './sections/players-search.js?v=1012';
 import { initStats } from './sections/stats.js?v=943';
 import { initHistory } from './sections/history.js?v=777';
 import { initHonors } from './sections/honors.js?v=762';
@@ -37,7 +37,6 @@ import { initNavbar } from './ui/navbar.js?v=703';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
 import { controllaApertura, siGiocaOra } from './utils/apertura-live.js?v=2';
-import { identitaApp } from './utils/identita-app.js?v=3';
 import { sectionIdFor, activateSection } from './utils/route.js?v=2';
 
 const SECTIONS = {
@@ -140,7 +139,6 @@ function navigate() {
     // Game Day ha una barra sua: titolo della giornata al posto di impostazioni
     // e ricerca (vedi `body.pg-gameday` in main.css). Fuori di li' si toglie.
     document.body.classList.toggle('pg-gameday', isNflGames);
-    identitaApp(isNflGames);
     if (!isNflGames) { const t = document.getElementById('nav-page-title'); if (t) t.hidden = true; }
 
     // Update nav — team pages mantengono "Teams" evidenziato,
