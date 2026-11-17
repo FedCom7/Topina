@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-16T19:02:08.891Z",
+ "generatedAt": "2026-11-17T18:10:51.838Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -63,7 +63,7 @@
     "TE": {
      "pgLeague": 10.8,
      "pgHalf": 8.1,
-     "rank": 24
+     "rank": 25
     },
     "K": {
      "pgLeague": 6.7,
@@ -81,8 +81,8 @@
      "ppg": 14,
      "totYdsPg": 15,
      "passYdsPg": 19,
-     "rushYdsPg": 14,
-     "playsPg": 15,
+     "rushYdsPg": 15,
+     "playsPg": 14,
      "ydsPerPlay": 17,
      "rzPlaysPg": 20,
      "passTd": 12,
@@ -100,7 +100,7 @@
      "interceptions": 7,
      "fumblesForced": 16,
      "defTds": 16,
-     "takeaways": 16,
+     "takeaways": 17,
      "passDefended": 21,
      "tacklesForLoss": 1,
      "qbHits": 6
@@ -248,7 +248,7 @@
     "TE": {
      "pgLeague": 10.3,
      "pgHalf": 7.9,
-     "rank": 28
+     "rank": 29
     },
     "K": {
      "pgLeague": 8.6,
@@ -269,11 +269,11 @@
      "rushYdsPg": 16,
      "playsPg": 21,
      "ydsPerPlay": 7,
-     "rzPlaysPg": 29,
+     "rzPlaysPg": 28,
      "passTd": 7,
      "rushTd": 22,
      "turnovers": 32,
-     "sacksAllowed": 19,
+     "sacksAllowed": 18,
      "passInt": 30
     },
     "defense": {
@@ -282,12 +282,12 @@
      "passYdsAllowedPg": 27,
      "rushYdsAllowedPg": 14,
      "sacks": 6,
-     "interceptions": 10,
+     "interceptions": 11,
      "fumblesForced": 17,
      "defTds": 3,
      "takeaways": 21,
-     "passDefended": 23,
-     "tacklesForLoss": 10,
+     "passDefended": 24,
+     "tacklesForLoss": 11,
      "qbHits": 8
     }
    },
@@ -428,7 +428,7 @@
     "WR": {
      "pgLeague": 33.6,
      "pgHalf": 27.8,
-     "rank": 12
+     "rank": 11
     },
     "TE": {
      "pgLeague": 12.8,
@@ -452,7 +452,7 @@
      "totYdsPg": 1,
      "passYdsPg": 9,
      "rushYdsPg": 3,
-     "playsPg": 24,
+     "playsPg": 25,
      "ydsPerPlay": 1,
      "rzPlaysPg": 14,
      "passTd": 4,
@@ -467,13 +467,13 @@
      "passYdsAllowedPg": 15,
      "rushYdsAllowedPg": 2,
      "sacks": 28,
-     "interceptions": 11,
+     "interceptions": 12,
      "fumblesForced": 3,
      "defTds": 1,
      "takeaways": 8,
-     "passDefended": 26,
+     "passDefended": 28,
      "tacklesForLoss": 29,
-     "qbHits": 14
+     "qbHits": 15
     }
    },
    "schedule": [
@@ -610,7 +610,7 @@
     "TE": {
      "pgLeague": 10.8,
      "pgHalf": 8.2,
-     "rank": 25
+     "rank": 26
     },
     "K": {
      "pgLeague": 9.1,
@@ -628,12 +628,12 @@
      "ppg": 11,
      "totYdsPg": 6,
      "passYdsPg": 8,
-     "rushYdsPg": 9,
+     "rushYdsPg": 8,
      "playsPg": 2,
      "ydsPerPlay": 8,
      "rzPlaysPg": 5,
      "passTd": 8,
-     "rushTd": 4,
+     "rushTd": 5,
      "turnovers": 25,
      "sacksAllowed": 6,
      "passInt": 28
@@ -647,9 +647,9 @@
      "interceptions": 5,
      "fumblesForced": 2,
      "defTds": 17,
-     "takeaways": 9,
+     "takeaways": 10,
      "passDefended": 3,
-     "tacklesForLoss": 17,
+     "tacklesForLoss": 18,
      "qbHits": 26
     }
    },
@@ -814,12 +814,12 @@
      "totYdsPg": 23,
      "passYdsPg": 12,
      "rushYdsPg": 31,
-     "playsPg": 18,
+     "playsPg": 17,
      "ydsPerPlay": 22,
      "rzPlaysPg": 9,
      "passTd": 5,
      "rushTd": 23,
-     "turnovers": 19,
+     "turnovers": 18,
      "sacksAllowed": 9,
      "passInt": 23
     },
@@ -829,13 +829,13 @@
      "passYdsAllowedPg": 21,
      "rushYdsAllowedPg": 31,
      "sacks": 17,
-     "interceptions": 12,
+     "interceptions": 13,
      "fumblesForced": 1,
      "defTds": 18,
      "takeaways": 3,
-     "passDefended": 27,
+     "passDefended": 29,
      "tacklesForLoss": 26,
-     "qbHits": 10
+     "qbHits": 11
     }
    },
    "schedule": [
@@ -995,7 +995,7 @@
    },
    "ranks": {
     "offense": {
-     "ppg": 31,
+     "ppg": 32,
      "totYdsPg": 28,
      "passYdsPg": 31,
      "rushYdsPg": 17,
@@ -1006,15 +1006,15 @@
      "rushTd": 17,
      "turnovers": 15,
      "sacksAllowed": 24,
-     "passInt": 11
+     "passInt": 10
     },
     "defense": {
      "papg": 18,
      "totYdsAllowedPg": 10,
      "passYdsAllowedPg": 5,
-     "rushYdsAllowedPg": 17,
-     "sacks": 31,
-     "interceptions": 13,
+     "rushYdsAllowedPg": 18,
+     "sacks": 32,
+     "interceptions": 14,
      "fumblesForced": 18,
      "defTds": 4,
      "takeaways": 23,
@@ -1152,7 +1152,7 @@
     "WR": {
      "pgLeague": 32.1,
      "pgHalf": 27.2,
-     "rank": 16
+     "rank": 15
     },
     "TE": {
      "pgLeague": 16.1,
@@ -1173,14 +1173,14 @@
    "ranks": {
     "offense": {
      "ppg": 29,
-     "totYdsPg": 26,
+     "totYdsPg": 25,
      "passYdsPg": 22,
      "rushYdsPg": 25,
      "playsPg": 8,
      "ydsPerPlay": 29,
      "rzPlaysPg": 3,
      "passTd": 17,
-     "rushTd": 29,
+     "rushTd": 30,
      "turnovers": 12,
      "sacksAllowed": 26,
      "passInt": 25
@@ -1192,11 +1192,11 @@
      "rushYdsAllowedPg": 28,
      "sacks": 18,
      "interceptions": 25,
-     "fumblesForced": 12,
+     "fumblesForced": 14,
      "defTds": 19,
      "takeaways": 28,
      "passDefended": 18,
-     "tacklesForLoss": 11,
+     "tacklesForLoss": 12,
      "qbHits": 24
     }
    },
@@ -1284,105 +1284,105 @@
    ]
   },
   "LAC": {
-   "games": 8,
+   "games": 9,
    "record": {
-    "w": 0,
+    "w": 1,
     "l": 8,
     "t": 0
    },
    "offense": {
-    "ppg": 15.1,
-    "totYdsPg": 316.4,
-    "passYdsPg": 201.9,
-    "rushYdsPg": 114.5,
-    "playsPg": 62.3,
-    "ydsPerPlay": 5.08,
-    "passRate": 0.52,
-    "rzPlaysPg": 6.9,
+    "ppg": 16,
+    "totYdsPg": 313.3,
+    "passYdsPg": 193.8,
+    "rushYdsPg": 119.6,
+    "playsPg": 61.3,
+    "ydsPerPlay": 5.11,
+    "passRate": 0.5,
+    "rzPlaysPg": 6.7,
     "turnovers": 19,
-    "sacksAllowed": 31,
+    "sacksAllowed": 33,
     "passTd": 7,
-    "rushTd": 4,
+    "rushTd": 6,
     "passInt": 11,
-    "snapsPg": 66.4
+    "snapsPg": 65.3
    },
    "defense": {
-    "papg": 27.1,
-    "totYdsAllowedPg": 343.3,
-    "passYdsAllowedPg": 230.6,
-    "rushYdsAllowedPg": 121.6,
-    "sacks": 13,
-    "interceptions": 7,
-    "fumblesForced": 7,
-    "fumbleRecoveries": 4,
+    "papg": 26.3,
+    "totYdsAllowedPg": 343.7,
+    "passYdsAllowedPg": 242.8,
+    "rushYdsAllowedPg": 109.9,
+    "sacks": 15,
+    "interceptions": 8,
+    "fumblesForced": 8,
+    "fumbleRecoveries": 5,
     "defTds": 0,
     "safeties": 0,
-    "takeaways": 11,
-    "passDefended": 28,
-    "tacklesForLoss": 28,
-    "qbHits": 51,
+    "takeaways": 13,
+    "passDefended": 38,
+    "tacklesForLoss": 33,
+    "qbHits": 60,
     "blockedKicks": 0
    },
    "fpa": {
     "QB": {
-     "pgLeague": 16.2,
-     "pgHalf": 17,
-     "rank": 21
+     "pgLeague": 15.7,
+     "pgHalf": 16.5,
+     "rank": 22
     },
     "RB": {
-     "pgLeague": 22.5,
-     "pgHalf": 20.9,
-     "rank": 13
+     "pgLeague": 23.1,
+     "pgHalf": 21.1,
+     "rank": 12
     },
     "WR": {
-     "pgLeague": 36.6,
-     "pgHalf": 30.8,
-     "rank": 4
+     "pgLeague": 35.6,
+     "pgHalf": 29.8,
+     "rank": 7
     },
     "TE": {
-     "pgLeague": 9.7,
-     "pgHalf": 7.7,
-     "rank": 31
+     "pgLeague": 11.2,
+     "pgHalf": 8.8,
+     "rank": 24
     },
     "K": {
-     "pgLeague": 9.9,
-     "pgHalf": 9.8,
-     "rank": 5
+     "pgLeague": 9.7,
+     "pgHalf": 9.6,
+     "rank": 8
     },
     "DEF": {
-     "pgLeague": 10.5,
-     "pgHalf": 12.4,
+     "pgLeague": 9.6,
+     "pgHalf": 11.4,
      "rank": 1
     }
    },
    "ranks": {
     "offense": {
-     "ppg": 32,
-     "totYdsPg": 25,
+     "ppg": 31,
+     "totYdsPg": 26,
      "passYdsPg": 25,
-     "rushYdsPg": 15,
-     "playsPg": 13,
+     "rushYdsPg": 11,
+     "playsPg": 20,
      "ydsPerPlay": 26,
-     "rzPlaysPg": 27,
+     "rzPlaysPg": 29,
      "passTd": 30,
-     "rushTd": 30,
+     "rushTd": 24,
      "turnovers": 29,
-     "sacksAllowed": 30,
+     "sacksAllowed": 31,
      "passInt": 29
     },
     "defense": {
-     "papg": 29,
+     "papg": 28,
      "totYdsAllowedPg": 21,
-     "passYdsAllowedPg": 12,
-     "rushYdsAllowedPg": 20,
-     "sacks": 32,
-     "interceptions": 14,
-     "fumblesForced": 13,
+     "passYdsAllowedPg": 20,
+     "rushYdsAllowedPg": 15,
+     "sacks": 30,
+     "interceptions": 8,
+     "fumblesForced": 11,
      "defTds": 20,
-     "takeaways": 17,
-     "passDefended": 31,
-     "tacklesForLoss": 32,
-     "qbHits": 21
+     "takeaways": 9,
+     "passDefended": 22,
+     "tacklesForLoss": 31,
+     "qbHits": 12
     }
    },
    "schedule": [
@@ -1449,6 +1449,14 @@
      "pa": 44,
      "pf": 22,
      "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "BAL",
+     "home": false,
+     "pa": 20,
+     "pf": 23,
+     "result": "W"
     }
    ]
   },
@@ -1535,12 +1543,12 @@
      "rzPlaysPg": 19,
      "passTd": 28,
      "rushTd": 18,
-     "turnovers": 20,
+     "turnovers": 19,
      "sacksAllowed": 4,
-     "passInt": 12
+     "passInt": 11
     },
     "defense": {
-     "papg": 28,
+     "papg": 29,
      "totYdsAllowedPg": 31,
      "passYdsAllowedPg": 32,
      "rushYdsAllowedPg": 21,
@@ -1548,9 +1556,9 @@
      "interceptions": 6,
      "fumblesForced": 29,
      "defTds": 21,
-     "takeaways": 10,
-     "passDefended": 30,
-     "tacklesForLoss": 13,
+     "takeaways": 11,
+     "passDefended": 31,
+     "tacklesForLoss": 14,
      "qbHits": 25
     }
    },
@@ -1707,17 +1715,17 @@
      "totYdsPg": 17,
      "passYdsPg": 18,
      "rushYdsPg": 20,
-     "playsPg": 26,
-     "ydsPerPlay": 11,
+     "playsPg": 27,
+     "ydsPerPlay": 10,
      "rzPlaysPg": 26,
      "passTd": 20,
-     "rushTd": 27,
+     "rushTd": 28,
      "turnovers": 8,
-     "sacksAllowed": 31,
+     "sacksAllowed": 30,
      "passInt": 3
     },
     "defense": {
-     "papg": 23,
+     "papg": 24,
      "totYdsAllowedPg": 16,
      "passYdsAllowedPg": 6,
      "rushYdsAllowedPg": 30,
@@ -1726,8 +1734,8 @@
      "fumblesForced": 4,
      "defTds": 22,
      "takeaways": 18,
-     "passDefended": 24,
-     "tacklesForLoss": 18,
+     "passDefended": 25,
+     "tacklesForLoss": 19,
      "qbHits": 22
     }
    },
@@ -1892,7 +1900,7 @@
      "totYdsPg": 20,
      "passYdsPg": 16,
      "rushYdsPg": 24,
-     "playsPg": 17,
+     "playsPg": 16,
      "ydsPerPlay": 18,
      "rzPlaysPg": 31,
      "passTd": 27,
@@ -1903,17 +1911,17 @@
     },
     "defense": {
      "papg": 13,
-     "totYdsAllowedPg": 13,
+     "totYdsAllowedPg": 14,
      "passYdsAllowedPg": 8,
      "rushYdsAllowedPg": 26,
      "sacks": 7,
      "interceptions": 15,
      "fumblesForced": 5,
      "defTds": 23,
-     "takeaways": 11,
+     "takeaways": 12,
      "passDefended": 10,
      "tacklesForLoss": 2,
-     "qbHits": 11
+     "qbHits": 13
     }
    },
    "schedule": [
@@ -2053,12 +2061,12 @@
     "WR": {
      "pgLeague": 32.5,
      "pgHalf": 26.3,
-     "rank": 15
+     "rank": 14
     },
     "TE": {
      "pgLeague": 10.8,
      "pgHalf": 8.7,
-     "rank": 26
+     "rank": 27
     },
     "K": {
      "pgLeague": 6.9,
@@ -2076,8 +2084,8 @@
      "ppg": 4,
      "totYdsPg": 10,
      "passYdsPg": 11,
-     "rushYdsPg": 12,
-     "playsPg": 25,
+     "rushYdsPg": 13,
+     "playsPg": 26,
      "ydsPerPlay": 5,
      "rzPlaysPg": 8,
      "passTd": 2,
@@ -2091,14 +2099,14 @@
      "totYdsAllowedPg": 9,
      "passYdsAllowedPg": 17,
      "rushYdsAllowedPg": 6,
-     "sacks": 23,
+     "sacks": 24,
      "interceptions": 3,
      "fumblesForced": 30,
      "defTds": 5,
      "takeaways": 4,
      "passDefended": 15,
      "tacklesForLoss": 30,
-     "qbHits": 16
+     "qbHits": 17
     }
    },
    "schedule": [
@@ -2230,12 +2238,12 @@
     "WR": {
      "pgLeague": 36.1,
      "pgHalf": 29.1,
-     "rank": 6
+     "rank": 5
     },
     "TE": {
      "pgLeague": 10.1,
      "pgHalf": 8,
-     "rank": 30
+     "rank": 31
     },
     "K": {
      "pgLeague": 5.7,
@@ -2254,20 +2262,20 @@
      "totYdsPg": 14,
      "passYdsPg": 2,
      "rushYdsPg": 32,
-     "playsPg": 19,
-     "ydsPerPlay": 12,
+     "playsPg": 18,
+     "ydsPerPlay": 11,
      "rzPlaysPg": 11,
      "passTd": 6,
-     "rushTd": 24,
+     "rushTd": 25,
      "turnovers": 22,
-     "sacksAllowed": 20,
+     "sacksAllowed": 19,
      "passInt": 19
     },
     "defense": {
      "papg": 14,
      "totYdsAllowedPg": 11,
      "passYdsAllowedPg": 11,
-     "rushYdsAllowedPg": 15,
+     "rushYdsAllowedPg": 16,
      "sacks": 4,
      "interceptions": 2,
      "fumblesForced": 19,
@@ -2446,13 +2454,13 @@
      "rushTd": 31,
      "turnovers": 9,
      "sacksAllowed": 21,
-     "passInt": 13
+     "passInt": 12
     },
     "defense": {
      "papg": 1,
      "totYdsAllowedPg": 2,
      "passYdsAllowedPg": 2,
-     "rushYdsAllowedPg": 16,
+     "rushYdsAllowedPg": 17,
      "sacks": 1,
      "interceptions": 4,
      "fumblesForced": 25,
@@ -2592,7 +2600,7 @@
     "WR": {
      "pgLeague": 33.9,
      "pgHalf": 28.2,
-     "rank": 11
+     "rank": 10
     },
     "TE": {
      "pgLeague": 12.6,
@@ -2621,7 +2629,7 @@
      "rzPlaysPg": 6,
      "passTd": 18,
      "rushTd": 1,
-     "turnovers": 21,
+     "turnovers": 20,
      "sacksAllowed": 11,
      "passInt": 20
     },
@@ -2769,17 +2777,17 @@
     "WR": {
      "pgLeague": 36.2,
      "pgHalf": 30,
-     "rank": 5
+     "rank": 4
     },
     "TE": {
      "pgLeague": 10.7,
      "pgHalf": 8.3,
-     "rank": 27
+     "rank": 28
     },
     "K": {
      "pgLeague": 9.9,
      "pgHalf": 9.7,
-     "rank": 6
+     "rank": 5
     },
     "DEF": {
      "pgLeague": 3.1,
@@ -2793,11 +2801,11 @@
      "totYdsPg": 12,
      "passYdsPg": 3,
      "rushYdsPg": 29,
-     "playsPg": 16,
+     "playsPg": 15,
      "ydsPerPlay": 9,
      "rzPlaysPg": 21,
      "passTd": 9,
-     "rushTd": 25,
+     "rushTd": 26,
      "turnovers": 1,
      "sacksAllowed": 10,
      "passInt": 1
@@ -2806,7 +2814,7 @@
      "papg": 19,
      "totYdsAllowedPg": 20,
      "passYdsAllowedPg": 31,
-     "rushYdsAllowedPg": 12,
+     "rushYdsAllowedPg": 11,
      "sacks": 2,
      "interceptions": 23,
      "fumblesForced": 21,
@@ -2989,9 +2997,9 @@
      "fumblesForced": 26,
      "defTds": 6,
      "takeaways": 30,
-     "passDefended": 28,
+     "passDefended": 30,
      "tacklesForLoss": 24,
-     "qbHits": 15
+     "qbHits": 16
     }
    },
    "schedule": [
@@ -3123,7 +3131,7 @@
     "WR": {
      "pgLeague": 33.1,
      "pgHalf": 26.8,
-     "rank": 13
+     "rank": 12
     },
     "TE": {
      "pgLeague": 22.9,
@@ -3146,12 +3154,12 @@
      "ppg": 5,
      "totYdsPg": 2,
      "passYdsPg": 5,
-     "rushYdsPg": 6,
+     "rushYdsPg": 5,
      "playsPg": 6,
      "ydsPerPlay": 6,
      "rzPlaysPg": 2,
      "passTd": 11,
-     "rushTd": 5,
+     "rushTd": 6,
      "turnovers": 3,
      "sacksAllowed": 14,
      "passInt": 5
@@ -3167,7 +3175,7 @@
      "defTds": 28,
      "takeaways": 25,
      "passDefended": 16,
-     "tacklesForLoss": 8,
+     "tacklesForLoss": 9,
      "qbHits": 4
     }
    },
@@ -3295,7 +3303,7 @@
     "RB": {
      "pgLeague": 19.9,
      "pgHalf": 18.4,
-     "rank": 23
+     "rank": 24
     },
     "WR": {
      "pgLeague": 37.5,
@@ -3305,7 +3313,7 @@
     "TE": {
      "pgLeague": 10.3,
      "pgHalf": 8.2,
-     "rank": 29
+     "rank": 30
     },
     "K": {
      "pgLeague": 10.1,
@@ -3326,12 +3334,12 @@
      "rushYdsPg": 28,
      "playsPg": 23,
      "ydsPerPlay": 32,
-     "rzPlaysPg": 28,
+     "rzPlaysPg": 27,
      "passTd": 24,
      "rushTd": 20,
      "turnovers": 10,
      "sacksAllowed": 29,
-     "passInt": 14
+     "passInt": 13
     },
     "defense": {
      "papg": 20,
@@ -3477,7 +3485,7 @@
     "WR": {
      "pgLeague": 33,
      "pgHalf": 26.6,
-     "rank": 14
+     "rank": 13
     },
     "TE": {
      "pgLeague": 20.2,
@@ -3500,12 +3508,12 @@
      "ppg": 20,
      "totYdsPg": 18,
      "passYdsPg": 20,
-     "rushYdsPg": 11,
+     "rushYdsPg": 12,
      "playsPg": 11,
      "ydsPerPlay": 19,
      "rzPlaysPg": 30,
      "passTd": 15,
-     "rushTd": 28,
+     "rushTd": 29,
      "turnovers": 4,
      "sacksAllowed": 15,
      "passInt": 2
@@ -3514,15 +3522,15 @@
      "papg": 22,
      "totYdsAllowedPg": 24,
      "passYdsAllowedPg": 28,
-     "rushYdsAllowedPg": 13,
-     "sacks": 22,
+     "rushYdsAllowedPg": 12,
+     "sacks": 23,
      "interceptions": 21,
      "fumblesForced": 8,
      "defTds": 7,
      "takeaways": 7,
      "passDefended": 20,
-     "tacklesForLoss": 14,
-     "qbHits": 17
+     "tacklesForLoss": 15,
+     "qbHits": 18
     }
    },
    "schedule": [
@@ -3659,7 +3667,7 @@
     "TE": {
      "pgLeague": 13,
      "pgHalf": 10.2,
-     "rank": 16
+     "rank": 15
     },
     "K": {
      "pgLeague": 6.2,
@@ -3691,9 +3699,9 @@
      "papg": 12,
      "totYdsAllowedPg": 5,
      "passYdsAllowedPg": 3,
-     "rushYdsAllowedPg": 19,
-     "sacks": 24,
-     "interceptions": 8,
+     "rushYdsAllowedPg": 20,
+     "sacks": 25,
+     "interceptions": 9,
      "fumblesForced": 28,
      "defTds": 8,
      "takeaways": 19,
@@ -3831,12 +3839,12 @@
     "WR": {
      "pgLeague": 35.7,
      "pgHalf": 30,
-     "rank": 7
+     "rank": 6
     },
     "TE": {
      "pgLeague": 13.2,
      "pgHalf": 10.4,
-     "rank": 14
+     "rank": 13
     },
     "K": {
      "pgLeague": 9.2,
@@ -3859,10 +3867,10 @@
      "ydsPerPlay": 13,
      "rzPlaysPg": 4,
      "passTd": 3,
-     "rushTd": 7,
+     "rushTd": 8,
      "turnovers": 13,
      "sacksAllowed": 7,
-     "passInt": 15
+     "passInt": 14
     },
     "defense": {
      "papg": 30,
@@ -3871,12 +3879,12 @@
      "rushYdsAllowedPg": 32,
      "sacks": 14,
      "interceptions": 27,
-     "fumblesForced": 11,
+     "fumblesForced": 12,
      "defTds": 30,
      "takeaways": 29,
-     "passDefended": 22,
-     "tacklesForLoss": 15,
-     "qbHits": 18
+     "passDefended": 23,
+     "tacklesForLoss": 16,
+     "qbHits": 19
     }
    },
    "schedule": [
@@ -4059,8 +4067,8 @@
      "fumblesForced": 22,
      "defTds": 9,
      "takeaways": 22,
-     "passDefended": 25,
-     "tacklesForLoss": 12,
+     "passDefended": 26,
+     "tacklesForLoss": 13,
      "qbHits": 23
     }
    },
@@ -4183,7 +4191,7 @@
     "QB": {
      "pgLeague": 16,
      "pgHalf": 16.6,
-     "rank": 22
+     "rank": 21
     },
     "RB": {
      "pgLeague": 27.3,
@@ -4222,16 +4230,16 @@
      "rzPlaysPg": 12,
      "passTd": 13,
      "rushTd": 14,
-     "turnovers": 18,
+     "turnovers": 17,
      "sacksAllowed": 28,
-     "passInt": 16
+     "passInt": 15
     },
     "defense": {
-     "papg": 24,
+     "papg": 25,
      "totYdsAllowedPg": 15,
      "passYdsAllowedPg": 7,
      "rushYdsAllowedPg": 23,
-     "sacks": 30,
+     "sacks": 31,
      "interceptions": 22,
      "fumblesForced": 31,
      "defTds": 10,
@@ -4375,7 +4383,7 @@
     "TE": {
      "pgLeague": 13.1,
      "pgHalf": 10.9,
-     "rank": 15
+     "rank": 14
     },
     "K": {
      "pgLeague": 10.1,
@@ -4398,7 +4406,7 @@
      "ydsPerPlay": 31,
      "rzPlaysPg": 22,
      "passTd": 31,
-     "rushTd": 6,
+     "rushTd": 7,
      "turnovers": 30,
      "sacksAllowed": 22,
      "passInt": 31
@@ -4410,12 +4418,12 @@
      "rushYdsAllowedPg": 29,
      "sacks": 15,
      "interceptions": 32,
-     "fumblesForced": 14,
+     "fumblesForced": 15,
      "defTds": 11,
      "takeaways": 31,
      "passDefended": 8,
-     "tacklesForLoss": 31,
-     "qbHits": 19
+     "tacklesForLoss": 32,
+     "qbHits": 20
     }
    },
    "schedule": [
@@ -4502,70 +4510,70 @@
    ]
   },
   "BAL": {
-   "games": 9,
+   "games": 10,
    "record": {
     "w": 4,
-    "l": 5,
+    "l": 6,
     "t": 0
    },
    "offense": {
-    "ppg": 21,
-    "totYdsPg": 342.4,
-    "passYdsPg": 204.7,
-    "rushYdsPg": 137.8,
-    "playsPg": 59.4,
-    "ydsPerPlay": 5.76,
-    "passRate": 0.48,
-    "rzPlaysPg": 8.4,
-    "turnovers": 11,
-    "sacksAllowed": 23,
+    "ppg": 20.9,
+    "totYdsPg": 343.8,
+    "passYdsPg": 218.2,
+    "rushYdsPg": 125.6,
+    "playsPg": 60.1,
+    "ydsPerPlay": 5.72,
+    "passRate": 0.51,
+    "rzPlaysPg": 8.5,
+    "turnovers": 13,
+    "sacksAllowed": 25,
     "passTd": 10,
-    "rushTd": 11,
-    "passInt": 5,
-    "snapsPg": 62.3
+    "rushTd": 13,
+    "passInt": 6,
+    "snapsPg": 63
    },
    "defense": {
-    "papg": 25.6,
-    "totYdsAllowedPg": 329.7,
-    "passYdsAllowedPg": 241.9,
-    "rushYdsAllowedPg": 99.7,
-    "sacks": 17,
+    "papg": 25.3,
+    "totYdsAllowedPg": 325.4,
+    "passYdsAllowedPg": 230.6,
+    "rushYdsAllowedPg": 105.7,
+    "sacks": 19,
     "interceptions": 4,
-    "fumblesForced": 7,
+    "fumblesForced": 8,
     "fumbleRecoveries": 5,
     "defTds": 0,
     "safeties": 0,
     "takeaways": 9,
-    "passDefended": 35,
-    "tacklesForLoss": 44,
-    "qbHits": 55,
+    "passDefended": 36,
+    "tacklesForLoss": 51,
+    "qbHits": 62,
     "blockedKicks": 1
    },
    "fpa": {
     "QB": {
-     "pgLeague": 17.6,
-     "pgHalf": 18,
+     "pgLeague": 17.4,
+     "pgHalf": 17.8,
      "rank": 15
     },
     "RB": {
-     "pgLeague": 19.9,
-     "pgHalf": 17.9,
-     "rank": 24
+     "pgLeague": 20,
+     "pgHalf": 18.1,
+     "rank": 23
     },
     "WR": {
-     "pgLeague": 34,
-     "pgHalf": 27.9,
-     "rank": 10
+     "pgLeague": 32.1,
+     "pgHalf": 26.4,
+     "rank": 16
     },
     "TE": {
-     "pgLeague": 13.8,
-     "pgHalf": 11.5,
-     "rank": 13
+     "pgLeague": 12.9,
+     "pgHalf": 10.7,
+     "rank": 16
     },
     "K": {
-     "pgLeague": 9.8,
-     "pgHalf": 10,
-     "rank": 8
+     "pgLeague": 9.9,
+     "pgHalf": 10.1,
+     "rank": 6
     },
     "DEF": {
      "pgLeague": 6.7,
@@ -4577,30 +4585,30 @@
     "offense": {
      "ppg": 22,
      "totYdsPg": 16,
-     "passYdsPg": 24,
-     "rushYdsPg": 5,
-     "playsPg": 28,
-     "ydsPerPlay": 10,
-     "rzPlaysPg": 17,
+     "passYdsPg": 23,
+     "rushYdsPg": 9,
+     "playsPg": 24,
+     "ydsPerPlay": 12,
+     "rzPlaysPg": 16,
      "passTd": 26,
-     "rushTd": 8,
-     "turnovers": 17,
-     "sacksAllowed": 18,
-     "passInt": 10
+     "rushTd": 4,
+     "turnovers": 21,
+     "sacksAllowed": 20,
+     "passInt": 16
     },
     "defense": {
-     "papg": 25,
-     "totYdsAllowedPg": 14,
-     "passYdsAllowedPg": 20,
-     "rushYdsAllowedPg": 11,
-     "sacks": 25,
+     "papg": 23,
+     "totYdsAllowedPg": 12,
+     "passYdsAllowedPg": 12,
+     "rushYdsAllowedPg": 13,
+     "sacks": 22,
      "interceptions": 28,
-     "fumblesForced": 15,
+     "fumblesForced": 13,
      "defTds": 31,
      "takeaways": 26,
-     "passDefended": 29,
-     "tacklesForLoss": 19,
-     "qbHits": 13
+     "passDefended": 27,
+     "tacklesForLoss": 7,
+     "qbHits": 10
     }
    },
    "schedule": [
@@ -4675,6 +4683,14 @@
      "pa": 33,
      "pf": 10,
      "result": "L"
+    },
+    {
+     "week": 10,
+     "opp": "LAC",
+     "home": false,
+     "pa": 23,
+     "pf": 20,
+     "result": "L"
     }
    ]
   },
@@ -4727,7 +4743,7 @@
     "RB": {
      "pgLeague": 22.8,
      "pgHalf": 19.5,
-     "rank": 12
+     "rank": 13
     },
     "WR": {
      "pgLeague": 31.7,
@@ -4755,7 +4771,7 @@
      "ppg": 18,
      "totYdsPg": 19,
      "passYdsPg": 21,
-     "rushYdsPg": 13,
+     "rushYdsPg": 14,
      "playsPg": 12,
      "ydsPerPlay": 20,
      "rzPlaysPg": 24,
@@ -4767,17 +4783,17 @@
     },
     "defense": {
      "papg": 7,
-     "totYdsAllowedPg": 12,
+     "totYdsAllowedPg": 13,
      "passYdsAllowedPg": 29,
      "rushYdsAllowedPg": 3,
      "sacks": 8,
      "interceptions": 19,
      "fumblesForced": 6,
      "defTds": 12,
-     "takeaways": 12,
+     "takeaways": 13,
      "passDefended": 4,
-     "tacklesForLoss": 7,
-     "qbHits": 12
+     "tacklesForLoss": 8,
+     "qbHits": 14
     }
    },
    "schedule": [
@@ -4931,11 +4947,11 @@
     "offense": {
      "ppg": 25,
      "totYdsPg": 21,
-     "passYdsPg": 23,
-     "rushYdsPg": 8,
-     "playsPg": 27,
+     "passYdsPg": 24,
+     "rushYdsPg": 7,
+     "playsPg": 28,
      "ydsPerPlay": 14,
-     "rzPlaysPg": 16,
+     "rzPlaysPg": 17,
      "passTd": 21,
      "rushTd": 10,
      "turnovers": 31,
@@ -4946,7 +4962,7 @@
      "papg": 21,
      "totYdsAllowedPg": 28,
      "passYdsAllowedPg": 24,
-     "rushYdsAllowedPg": 18,
+     "rushYdsAllowedPg": 19,
      "sacks": 21,
      "interceptions": 30,
      "fumblesForced": 9,
@@ -5118,7 +5134,7 @@
      "totYdsPg": 24,
      "passYdsPg": 32,
      "rushYdsPg": 1,
-     "playsPg": 14,
+     "playsPg": 13,
      "ydsPerPlay": 24,
      "rzPlaysPg": 13,
      "passTd": 32,
@@ -5295,11 +5311,11 @@
      "totYdsPg": 7,
      "passYdsPg": 1,
      "rushYdsPg": 30,
-     "playsPg": 20,
+     "playsPg": 19,
      "ydsPerPlay": 3,
      "rzPlaysPg": 10,
      "passTd": 1,
-     "rushTd": 26,
+     "rushTd": 27,
      "turnovers": 14,
      "sacksAllowed": 8,
      "passInt": 18
@@ -5313,10 +5329,10 @@
      "interceptions": 24,
      "fumblesForced": 7,
      "defTds": 14,
-     "takeaways": 13,
+     "takeaways": 14,
      "passDefended": 17,
-     "tacklesForLoss": 16,
-     "qbHits": 20
+     "tacklesForLoss": 17,
+     "qbHits": 21
     }
    },
    "schedule": [
@@ -5487,12 +5503,12 @@
      "passYdsAllowedPg": 23,
      "rushYdsAllowedPg": 24,
      "sacks": 12,
-     "interceptions": 9,
+     "interceptions": 10,
      "fumblesForced": 23,
      "defTds": 15,
-     "takeaways": 14,
+     "takeaways": 15,
      "passDefended": 9,
-     "tacklesForLoss": 9,
+     "tacklesForLoss": 10,
      "qbHits": 2
     }
    },
@@ -5648,7 +5664,7 @@
      "ppg": 7,
      "totYdsPg": 4,
      "passYdsPg": 7,
-     "rushYdsPg": 7,
+     "rushYdsPg": 6,
      "playsPg": 22,
      "ydsPerPlay": 2,
      "rzPlaysPg": 7,
@@ -5667,7 +5683,7 @@
      "interceptions": 20,
      "fumblesForced": 24,
      "defTds": 32,
-     "takeaways": 15,
+     "takeaways": 16,
      "passDefended": 6,
      "tacklesForLoss": 6,
      "qbHits": 27
