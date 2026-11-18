@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-17T18:10:51.838Z",
+ "generatedAt": "2026-11-18T17:40:46.376Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -71,9 +71,9 @@
      "rank": 28
     },
     "DEF": {
-     "pgLeague": 6.9,
-     "pgHalf": 8.3,
-     "rank": 11
+     "pgLeague": 7,
+     "pgHalf": 8.4,
+     "rank": 9
     }
    },
    "ranks": {
@@ -643,7 +643,7 @@
      "totYdsAllowedPg": 3,
      "passYdsAllowedPg": 4,
      "rushYdsAllowedPg": 9,
-     "sacks": 16,
+     "sacks": 17,
      "interceptions": 5,
      "fumblesForced": 2,
      "defTds": 17,
@@ -764,7 +764,7 @@
     "totYdsAllowedPg": 385.1,
     "passYdsAllowedPg": 247.8,
     "rushYdsAllowedPg": 149.5,
-    "sacks": 21,
+    "sacks": 22,
     "interceptions": 7,
     "fumblesForced": 14,
     "fumbleRecoveries": 9,
@@ -773,7 +773,7 @@
     "takeaways": 16,
     "passDefended": 35,
     "tacklesForLoss": 38,
-    "qbHits": 60,
+    "qbHits": 61,
     "blockedKicks": 1
    },
    "fpa": {
@@ -828,7 +828,7 @@
      "totYdsAllowedPg": 30,
      "passYdsAllowedPg": 21,
      "rushYdsAllowedPg": 31,
-     "sacks": 17,
+     "sacks": 14,
      "interceptions": 13,
      "fumblesForced": 1,
      "defTds": 18,
@@ -1706,7 +1706,7 @@
     "DEF": {
      "pgLeague": 7,
      "pgHalf": 7.7,
-     "rank": 9
+     "rank": 10
     }
    },
    "ranks": {
@@ -3323,7 +3323,7 @@
     "DEF": {
      "pgLeague": 7,
      "pgHalf": 7.4,
-     "rank": 10
+     "rank": 11
     }
    },
    "ranks": {
@@ -3877,7 +3877,7 @@
      "totYdsAllowedPg": 32,
      "passYdsAllowedPg": 25,
      "rushYdsAllowedPg": 32,
-     "sacks": 14,
+     "sacks": 15,
      "interceptions": 27,
      "fumblesForced": 12,
      "defTds": 30,
@@ -4416,7 +4416,7 @@
      "totYdsAllowedPg": 26,
      "passYdsAllowedPg": 18,
      "rushYdsAllowedPg": 29,
-     "sacks": 15,
+     "sacks": 16,
      "interceptions": 32,
      "fumblesForced": 15,
      "defTds": 11,
