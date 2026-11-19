@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-18T17:40:46.376Z",
+ "generatedAt": "2026-11-19T17:50:10.413Z",
  "weeks": 18,
  "scheduleOnly": false,
  "teams": {
@@ -3528,7 +3528,7 @@
      "fumblesForced": 8,
      "defTds": 7,
      "takeaways": 7,
-     "passDefended": 20,
+     "passDefended": 19,
      "tacklesForLoss": 15,
      "qbHits": 18
     }
@@ -4423,7 +4423,7 @@
      "takeaways": 31,
      "passDefended": 8,
      "tacklesForLoss": 32,
-     "qbHits": 20
+     "qbHits": 21
     }
    },
    "schedule": [
@@ -4906,7 +4906,7 @@
     "defTds": 1,
     "safeties": 0,
     "takeaways": 9,
-    "passDefended": 40,
+    "passDefended": 39,
     "tacklesForLoss": 44,
     "qbHits": 71,
     "blockedKicks": 1
@@ -4968,7 +4968,7 @@
      "fumblesForced": 9,
      "defTds": 13,
      "takeaways": 27,
-     "passDefended": 19,
+     "passDefended": 20,
      "tacklesForLoss": 20,
      "qbHits": 5
     }
@@ -5270,7 +5270,7 @@
     "takeaways": 12,
     "passDefended": 42,
     "tacklesForLoss": 45,
-    "qbHits": 52,
+    "qbHits": 53,
     "blockedKicks": 0
    },
    "fpa": {
@@ -5332,7 +5332,7 @@
      "takeaways": 14,
      "passDefended": 17,
      "tacklesForLoss": 17,
-     "qbHits": 21
+     "qbHits": 20
     }
    },
    "schedule": [
