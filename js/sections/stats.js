@@ -1,8 +1,8 @@
 import { fetchFantasyData, displayName, SEASONS, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=597';
 import { TEAM_LOGOS, TEAM_KEYS, TEAM_PALETTE } from '../data/team-config.js?v=538';
-import { TEAMS } from './team.js?v=866';
+import { TEAMS } from './team.js?v=868';
 import { buildSeasonModel, pointsComparison, marketView,
-    sottoTitolo, apriInfo, registraInfo, BASE_RUOLI } from './analysis.js?v=916';
+    sottoTitolo, apriInfo, registraInfo, BASE_RUOLI } from './analysis.js?v=918';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
 
 let loaded = false;

@@ -19,13 +19,13 @@
 import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=597';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=178';
-import { TEAMS } from './team.js?v=866';
+import { TEAMS } from './team.js?v=868';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { getSeasonStats, normName } from '../data/projections.js?v=635';
+import { getSeasonStats, getWeekStats, sommaGiornate, normName } from '../data/projections.js?v=637';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,
     hydrateImages, limitedRows, toggleExtraRows, playerSeasonDrill,
-} from './analysis.js?v=916';
+} from './analysis.js?v=918';
 import { getPlayerWeekly, statsSleeperALega } from '../data/player-full.js?v=674';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
@@ -38,6 +38,11 @@ let currentYear = CURRENT_SEASON;
 let attivi = new Set(['QB', 'RB', 'WR', 'TE', 'K']);
 let ordine = 'total';      // 'total' | 'perGame'
 let soloLiberi = false;    // filtro "Available": solo chi non e' in nessuna rosa
+// "Last N games": 0 = tutta la stagione, altrimenti punti e statistiche delle
+// sole ultime N partite GIOCATE da ciascuno (le bye e le assenze non contano:
+// chi e' stato fuori tre settimane ha come "ultime 2" le due prima dello stop).
+let ultime = 0;
+const ULTIME = [1, 2, 3, 4, 5];
 // Il confronto fra due giocatori: `a` e `b` sono chiavi di `stato.stats`
 // ("nome|ruolo"), `scegli` dice quale dei due posti si sta riempiendo.
 let confronto = { attivo: false, a: null, b: null, scegli: null, cerca: '' };
@@ -220,6 +225,17 @@ const chiave = (nome) => String(nome || '').toLowerCase().replace(/[.,']/g, '')
     .replace(/\s+(jr|sr|ii|iii|iv|v)\s*$/, '').replace(/\s+/g, ' ').trim();
 
 /**
+ * Chi ha chi, per le pagine sorelle (Trends): la stessa fonte e la stessa
+ * chiave di questa lista, cosi' targhetta e filtro "Available" dicono le
+ * stesse cose nelle due pagine. Ritorna nome → { finale, ultimo, nome } o null.
+ */
+export async function roseDellaLega(anno) {
+    const [model, vive] = await Promise.all([buildSeasonModel(anno).catch(() => null), roseVive(anno)]);
+    const idx = indiceRose(model, vive);
+    return (nome) => idx.get(chiave(nome)) || null;
+}
+
+/**
  * La targhetta dice CHI CE L'HA ADESSO, e solo quello.
  *
  * Chi e' stato tagliato non ne ha una: "Dropped by" rispondeva a una domanda
@@ -326,8 +342,11 @@ function pillsRuolo() {
         : (attivi.size === 2 && attivi.has('RB') && attivi.has('WR')) ? 'RB/WR' : 'all';
     const mostra = [{ value: 'all', label: 'All players' }, { value: 'available', label: 'Available' }];
     const ordina = [{ value: 'total', label: 'Total points' }, { value: 'perGame', label: 'Points per game' }];
+    const finestra = [{ value: '0', label: 'All games' },
+        ...ULTIME.map(n => ({ value: String(n), label: n === 1 ? 'Last game' : `Last ${n} games` }))];
     return `
     <div class="an-controls ld-controls">
+        ${pickDropdownHTML('games', finestra, ultime ? ULTIME.indexOf(ultime) + 1 : 0)}
         ${pickDropdownHTML('sort', ordina, ordine === 'perGame' ? 1 : 0)}
         ${pickDropdownHTML('show', mostra, soloLiberi ? 1 : 0)}
         ${pickDropdownHTML('pos', ruoli, ruoli.findIndex(r => r.value === ruolo))}
@@ -355,6 +374,48 @@ function classifica(stats, roseIdx) {
     }
     fuori.sort((a, b) => b.chiave - a.chiave);
     return fuori.slice(0, MASSIMO).map(x => x.e);
+}
+
+/**
+ * Le ultime N partite di ciascuno, sommate: Map con le stesse chiavi e la
+ * stessa forma di `stato.stats`, cosi' classifica, righe e confronto non
+ * sanno che stanno guardando una finestra.
+ *
+ * Le giornate si leggono una per una da Sleeper (getWeekStats) e restano in
+ * `stato.giornateStat`: cambiare N non richiede niente di nuovo. Nome, squadra
+ * e id restano quelli della voce di stagione — il dettaglio sotto la riga li
+ * usa per trovare il giocatore.
+ */
+async function caricaGiornate(anno) {
+    if (stato.giornateStat) return stato.giornateStat;
+    // Stagione in corso: fino all'ultima giornata cominciata. Chiusa: tutte e
+    // diciotto quelle di regular season (una 18 vuota non costa niente).
+    const fino = String(anno) === String(CURRENT_SEASON) ? (ultimaGiornata() || 1) : 18;
+    const settimane = Array.from({ length: fino }, (_, i) => i + 1);
+    const mappe = await Promise.all(settimane.map(w => getWeekStats(anno, w)));
+    return (stato.giornateStat = settimane.map((w, i) => [w, mappe[i]]));
+}
+
+function finestraUltime(n) {
+    const perGiocatore = new Map();
+    for (const [w, mappa] of stato.giornateStat || []) {
+        for (const [k, voce] of mappa) {
+            if (!perGiocatore.has(k)) perGiocatore.set(k, []);
+            perGiocatore.get(k).push({ w, voce });
+        }
+    }
+    const out = new Map();
+    for (const [k, lista] of perGiocatore) {
+        // in ordine di giornata: l'ultima somma porta la squadra di oggi
+        const prese = lista.sort((a, b) => a.w - b.w).slice(-n).map(x => x.voce);
+        const somma = sommaGiornate(prese);
+        if (!somma) continue;
+        const base = stato.stats.get(k);
+        out.set(k, base
+            ? { ...somma, name: base.name, playerId: base.playerId ?? somma.playerId, team: base.team || somma.team, gp: prese.length }
+            : { ...somma, gp: prese.length });
+    }
+    return out;
 }
 
 function listaHTML(lista, roseIdx) {
@@ -406,16 +467,24 @@ function render() {
     const wrap = document.getElementById('leaders-content');
     if (!wrap || !stato) return;
     if (confronto.attivo) { wrap.innerHTML = confrontoHTML(); dopoConfronto(wrap); return; }
-    const lista = classifica(stato.stats, stato.roseIdx);
+    // "Last N games": le giornate si scaricano alla prima scelta, intanto la
+    // lista dice che sta caricando invece di mostrare la stagione intera.
+    const inAttesa = ultime && !stato.giornateStat;
+    const fonte = ultime && stato.giornateStat ? finestraUltime(ultime) : stato.stats;
+    const lista = inAttesa ? [] : classifica(fonte, stato.roseIdx);
     stato.lista = lista;   // il data-ld-open della riga e' l'indice qui dentro
     wrap.innerHTML = `
     ${pillsRuolo()}
-    <div id="ld-list">${listaHTML(lista, stato.roseIdx)}</div>
+    <div id="ld-list">${inAttesa
+        ? '<div class="loading-state"><div class="spinner"></div><p>Loading game logs...</p></div>'
+        : listaHTML(lista, stato.roseIdx)}</div>
     <p class="an-footnote">Every NFL player, scored with the league's own rules — ${lista.length} shown for the
        selected positions. The badge on the right says whether one of the four teams has him now, or had him.
        "Available" keeps only players on none of the four latest rosters on file: dropped players included,
        the most recent pickups only once the league data is updated.
        "Points per game" is total points divided by games played, for everyone with at least one game.
+       "Last N games" counts each player's own last N games played — bye weeks and games missed don't count,
+       so the window can reach further back for someone who was out.
        Defenses are missing: the source doesn't publish the points/yards-allowed brackets our scoring needs.</p>
     <p class="an-footnote ld-legend">In the week-by-week detail, <sup>*</sup> marks weeks no team in the league
        had him: those points are calculated from real NFL stats with our scoring, not a league number.
@@ -427,9 +496,17 @@ function render() {
         if (id === 'pos') attivi = value === 'all' ? new Set(RUOLI) : new Set(value.split('/'));
         else if (id === 'show') soloLiberi = value === 'available';
         else if (id === 'sort') ordine = value;
+        else if (id === 'games') ultime = Number(value) || 0;
         render();
     });
     hydrateImages(wrap);
+    if (inAttesa) {
+        const s = stato, anno = currentYear;
+        caricaGiornate(anno).then(() => {
+            // anno cambiato o pagina ricaricata nel frattempo: niente da ridisegnare
+            if (stato === s && String(anno) === String(currentYear)) render();
+        });
+    }
 }
 
 /** Un solo ascoltatore sul contenitore: la lista si riscrive tutta a ogni filtro. */

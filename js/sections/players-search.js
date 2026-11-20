@@ -14,7 +14,7 @@ import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { getLeagueTeamsAdvanced } from '../data/context-score.js?v=684';
 import { canonAbbr, getWeekGames, getCurrentNflWeek } from '../data/nfl-schedule.js?v=557';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=635';
+import { getSeasonStats, getSeasonProjections } from '../data/projections.js?v=637';
 import { currentNflSeason } from '../data/nfl-team-extras.js?v=1003';
 
 /*

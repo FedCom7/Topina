@@ -50,7 +50,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1445">
+    <link rel="stylesheet" href="css/main.css?v=1447">
 </head>
 
 <body>
@@ -176,6 +176,7 @@
             <div class="nav-dp-sep"></div>
             <a href="#waivers" class="nav-dp-item" data-section="waivers">Waivers</a>
             <a href="#playerstats" class="nav-dp-item" data-section="playerstats">Player Stats</a>
+            <a href="#trends" class="nav-dp-item" data-section="trends">Trends</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="draft">
             <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
@@ -540,6 +541,25 @@
         </div>
     </section>
 
+    <!-- ====== TRENDS (sotto Players) ======
+         Chi sta salendo e chi sta calando, perche' (volume, efficienza,
+         calendario) e cosa aspettarsi: js/sections/player-trends.js. -->
+    <section class="page-section" id="trends">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Trends</h1>
+                <p class="section-subtitle">Who's heating up, who's cooling off — and why</p>
+            </div>
+            <div class="pick-row" id="tr-pick-row"></div>
+            <div id="trends-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading game logs...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== PLAYER STATS ======
          Il deep dive sui numeri: frequenze, tabella completa, il "1" di ogni
          squadra. La chiave e' `playerstats` perche' `stats` e' gia' All-Time
@@ -622,7 +642,7 @@
         // qui solo prima.
         startLoadingArt();
     </script>
-    <script type="module" src="js/app.js?v=1529"></script>
+    <script type="module" src="js/app.js?v=1536"></script>
 
 </body>
 

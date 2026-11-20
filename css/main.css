@@ -33725,3 +33725,403 @@ body.wr-open { overflow: hidden; }
 .pp-af-years { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 4px; }
 .pp-af-year { padding: 4px 12px; border: 1px solid var(--border-subtle); border-radius: var(--pill-radius); background: transparent; color: var(--text-secondary); font: inherit; font-size: 0.8rem; cursor: pointer; }
 .pp-af-year.is-active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+/* ── Trends (#trends, sotto Players) ─────────────────────────────
+   Una riga per giocatore: chi e', le barre partita per partita (prima spente,
+   le ultime N accese, con la media di ciascuna meta' sopra), punti a partita
+   prima → adesso, il motore del cambiamento (volume o efficienza) e le
+   prossime giornate. Il colore delle avversarie dice facile/duro; il numero
+   esatto sta nel title e nel dettaglio. */
+
+.tr-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 4px 0 12px;
+}
+
+.tr-controls {
+    margin: 0;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.tr-lede {
+    margin: 0 0 14px;
+    max-width: 70ch;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.tr-row {
+    display: grid;
+    grid-template-columns: 34px 40px minmax(150px, 1.2fr) 160px 100px 92px 120px minmax(170px, 1fr) 20px;
+    grid-template-areas: "rank img who spark ppg cons why out chev";
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.2s var(--ease);
+}
+
+.tr-row:hover,
+.tr-row:focus-visible {
+    background: var(--bg-glass);
+}
+
+.tr-row:focus-visible {
+    outline: 2px solid var(--text-muted);
+    outline-offset: -2px;
+}
+
+.tr-row > .ld-rank { grid-area: rank; }
+.tr-row > .an-headshot { grid-area: img; }
+.tr-row > .an-chevron { grid-area: chev; }
+.tr-row.expanded > .an-chevron { transform: rotate(90deg); }
+
+.tr-who {
+    grid-area: who;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.tr-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tr-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tr-meta .player-pos {
+    background: none;
+    padding: 0;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+.tr-spark {
+    grid-area: spark;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.tr-bar-e { fill: var(--text-muted); opacity: 0.35; }
+.tr-bar-r { fill: var(--text-primary); opacity: 0.8; }
+.tr-avg-e, .tr-avg-r { stroke-width: 2; stroke-linecap: round; }
+.tr-avg-e { stroke: var(--text-muted); }
+.tr-avg-r { stroke: var(--accent-amber); }
+
+.tr-ppg {
+    grid-area: ppg;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.tr-ppg-pair {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tr-ppg-pair b {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.tr-delta {
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tr-delta--up { color: var(--accent-green); }
+.tr-delta--down { color: var(--accent-red); }
+
+/* Quanto balla: fascia nel ruolo (parola + tre tacche) e scarto tipo, con
+   pavimento–tetto. Inchiostro neutro: ne' buono ne' cattivo, e' un carattere. */
+.tr-cons {
+    grid-area: cons;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.tr-cons-k {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.tr-cons-meter {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.tr-cons-meter i {
+    display: block;
+    width: 3px;
+    border-radius: 1px;
+    background: var(--text-muted);
+    opacity: 0.3;
+}
+
+.tr-cons-meter i:nth-child(1) { height: 5px; }
+.tr-cons-meter i:nth-child(2) { height: 8px; }
+.tr-cons-meter i:nth-child(3) { height: 11px; }
+.tr-cons-meter i.on { background: var(--text-primary); opacity: 1; }
+
+.tr-cons-n {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tr-why {
+    grid-area: why;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.tr-chip {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: var(--pill-radius);
+    border: 1px solid var(--border-card);
+    color: var(--text-secondary);
+}
+
+/* Volume pieno, efficienza vuota: il primo e' il cambiamento che dura (vedi la
+   taratura in js/data/player-trends.js), il secondo quello che di solito passa. */
+.tr-chip--volume {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+.tr-why-nums {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.tr-out {
+    grid-area: out;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas: "k proj" "opps opps";
+    justify-content: start;
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 4px;
+}
+
+.tr-k {
+    grid-area: k;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.tr-proj {
+    grid-area: proj;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.tr-proj small {
+    font-weight: 500;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.tr-opps {
+    grid-area: opps;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.tr-opp {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 2px 5px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.tr-opp--easy {
+    background: color-mix(in srgb, var(--accent-green) 16%, transparent);
+    border-color: color-mix(in srgb, var(--accent-green) 45%, transparent);
+    color: var(--text-primary);
+}
+
+.tr-opp--hard {
+    background: color-mix(in srgb, var(--accent-red) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-red) 50%, transparent);
+    color: var(--text-primary);
+}
+
+.tr-opp--bye {
+    border-style: dashed;
+    color: var(--text-muted);
+}
+
+/* Il dettaglio sotto la riga */
+.tr-detail {
+    padding: 6px 0 18px 86px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.tr-verdict {
+    max-width: 72ch;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.tr-verdict p { margin: 0 0 8px; }
+.tr-verdict b { color: var(--text-primary); }
+
+.tr-table-wrap {
+    overflow-x: auto;
+    margin: 12px 0 4px;
+}
+
+.tr-table {
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.tr-table th,
+.tr-table td {
+    padding: 6px 12px 6px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.tr-table thead th {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.tr-table thead small {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.tr-table tbody th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.tr-table td { color: var(--text-primary); }
+.tr-table td:last-child { color: var(--text-muted); }
+
+.tr-next {
+    margin-top: 14px;
+}
+
+.tr-next-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.tr-next-g {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.tr-next-g b { color: var(--text-primary); margin-right: 4px; }
+.tr-next-g small { color: var(--text-muted); margin-left: 4px; }
+
+.tr-next-note {
+    margin: 8px 0 0;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    max-width: 72ch;
+}
+
+@media (max-width: 1100px) {
+    .tr-row {
+        grid-template-columns: 30px 36px minmax(130px, 1fr) minmax(96px, 150px) 92px 88px minmax(140px, 1fr) 16px;
+        grid-template-areas: "rank img who spark ppg cons out chev";
+    }
+
+    .tr-why { display: none; }
+}
+
+/* Telefono: in alto chi e' e quanto e' cambiato, sotto le barre, il motore e
+   le prossime giornate. Tutto a schermo, niente scorrimento laterale. */
+@media (max-width: 768px) {
+    .tr-bar { flex-direction: column; align-items: stretch; }
+    .tr-controls { justify-content: flex-start; gap: 6px; }
+    .tr-controls .pick-dd-btn { padding: 7px 11px; font-size: 0.78rem; }
+
+    .tr-row {
+        grid-template-columns: 22px 34px minmax(0, 1fr) auto 14px;
+        grid-template-areas:
+            "rank img who ppg chev"
+            ".    .   spark cons ."
+            ".    .   why  out  out";
+        column-gap: 10px;
+        row-gap: 8px;
+    }
+
+    .tr-why { display: flex; }
+    .tr-cons { justify-self: end; align-items: flex-end; }
+    .tr-out { justify-self: end; justify-items: end; }
+    .tr-opps { justify-content: flex-end; }
+    .tr-detail { padding-left: 0; }
+}

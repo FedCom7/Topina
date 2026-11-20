@@ -855,6 +855,44 @@ partita NFL in corso della nostra stagione, l'apertura finisce su `#live`.
 4. Contano le partite di tutta la NFL, non solo quelle dei nostri: restano
    fuori preseason, playoff NFL e le settimane oltre il Super Bowl della lega.
 
+### Trends (#trends, sotto Players) — chi sale, chi cala, perché
+
+`js/data/player-trends.js` (conti puri) + `js/sections/player-trends.js`.
+Confronta le ultime N partite GIOCATE di ogni giocatore (3/4/5, bye e assenze
+escluse) con quelle di prima, dice perché è cambiato e cosa aspettarsi dalle
+prossime quattro giornate.
+
+1. **I dati sono i tabellini di giornata di Sleeper** (`getWeekStats` in
+   `projections.js`, gli stessi del filtro "Last N games" di Players):
+   avversario, target, portate, snap della squadra (`tm_off_snp`), air yards.
+   Restano in memoria, NON in localStorage (diciotto risposte da ~100 KB: vedi
+   la sezione su storage.js). Sulla stagione in corso entrano solo le
+   giornate prima della settimana corrente di Sleeper: una partita a metà
+   sporcherebbe proprio le "ultime partite".
+2. **Il calendario futuro viene da Sleeper** (`/schedule/nfl/regular/{anno}`),
+   non da `team_stats_{Y}.json`, che porta solo le partite giocate. Le sigle
+   combaciano con quelle dei tabellini.
+3. **Il perché è una scomposizione che torna**: Δ punti a partita = VOLUME
+   (occasioni × valore medio del ruolo, `tassiLega`) + EFFICIENZA (il resto,
+   TD compresi). Le quote (target, portate, snap, air yards) sono sulle somme
+   di squadra delle stesse giornate. Il calendario affrontato e quello futuro
+   si misurano coi punti concessi per ruolo calcolati dai tabellini stessi.
+4. **La previsione è TARATA** (`MODELLO`, 10.036 casi 2022-2025, fuori
+   campione): i punti delle ultime partite pesano quasi zero, il volume
+   recente sì, il calendario poco (RB +9% per un calendario facile del 20%,
+   gli altri +2-4%). La nota a fondo pagina riporta queste conclusioni: se si
+   cambiano i pesi si cambia anche la nota. Il banco di taratura non è nel
+   repo (gira nel browser coi moduli veri): rifarlo a fine stagione.
+5. Il chi-ha-chi viene da `roseDellaLega()` esportata da `leaders.js`: stessa
+   fonte e stessa chiave della lista Players.
+6. **Quanto balla** (Steady / Normal / Swingy, `assegnaFasce`): scarto tipo
+   delle partite attorno al livello, misurato DENTRO le due metà (chi ha solo
+   cambiato livello non è "ballerino"), terzi per ruolo su scarto/media. Misurato
+   su 2022-2025: la costanza di metà stagione non prevede l'altra metà
+   (correlazione ~0, RB ~0,4), quindi descrive e basta. Il suo uso vero è il
+   t delle due metà nel dettaglio: il cambio è dentro o fuori le oscillazioni
+   normali del giocatore.
+
 ### Area Draft — quattro sezioni sorelle
 
 Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:

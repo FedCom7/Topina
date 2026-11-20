@@ -12,7 +12,7 @@
 
 import { buildPlayerIndex, teamResults, playerResults, resultRow, teamLogoUrl, esc } from '../data/player-search-core.js?v=624';
 import { NFL_TEAMS } from '../data/nfl-teams.js?v=513';
-import { TEAMS } from '../sections/team.js?v=866';
+import { TEAMS } from '../sections/team.js?v=868';
 import { squadraPreferita, impostaSquadraPreferita } from '../utils/preferenze.js?v=1';
 import { TEAM_PALETTE } from '../data/team-config.js?v=538';
 
@@ -310,6 +310,19 @@ function initDropdowns(navbar) {
         }, 150); // 150ms di grazia per spostarsi sul pannello
     };
 
+    // Scelta una voce si chiude SUBITO, senza aspettare che il puntatore esca:
+    // il pannello si apre in hover, e dopo il click il puntatore e' ancora li'
+    // sopra — la pagina sotto cambiava e la tendina restava aperta. Si riapre
+    // solo rientrando con il mouse (mouseenter), non muovendolo sul posto.
+    const chiudiOra = () => {
+        clearTimeout(closeTimer);
+        navbar.classList.remove('dropdown-active');
+        navbar.querySelectorAll('.nav-dropdown-panel.panel-active')
+            .forEach(p => p.classList.remove('panel-active'));
+        document.body.classList.remove('nav-dd-open');
+        apertoOra = null;
+    };
+
     navbar.querySelectorAll('.nav-item.has-dropdown').forEach(item => {
         const panelName = item.dataset.dropdown;
         const panel = navbar.querySelector(`[data-panel="${panelName}"]`);
@@ -319,6 +332,8 @@ function initDropdowns(navbar) {
         item.addEventListener('mouseleave', scheduleClose);
         panel.addEventListener('mouseenter', () => open(panel));
         panel.addEventListener('mouseleave', scheduleClose);
+        panel.addEventListener('click', (e) => { if (e.target.closest('a')) chiudiOra(); });
+        item.querySelector('.nav-link')?.addEventListener('click', () => { if (!mq.matches) chiudiOra(); });
 
         // ── Mobile: apre il secondo livello invece di navigare ──
         item.querySelector('.nav-link')?.addEventListener('click', (e) => {
@@ -441,7 +456,7 @@ async function datiPeek(nome) {
     }
 
     if (nome === 'leaders') {
-        const { getSeasonStats } = await import('../data/projections.js?v=635');
+        const { getSeasonStats } = await import('../data/projections.js?v=637');
         const mappa = await getSeasonStats(CURRENT_SEASON);
         return [...mappa.values()]
             .filter(e => e.ptsLeague != null && e.pos !== 'DEF')

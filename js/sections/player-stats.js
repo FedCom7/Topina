@@ -35,13 +35,13 @@
 
 import { montaGhiera } from '../ui/ghiera.js?v=1';
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=597';
-import { getSeasonStats } from '../data/projections.js?v=635';
+import { getSeasonStats } from '../data/projections.js?v=637';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
 import { teamLogoUrl } from '../data/player-search-core.js?v=624';
 import { canonAbbr } from '../data/nfl-schedule.js?v=557';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
-import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=916';
+import { sottoTitolo, apriInfo, registraInfo, headshotImg, hydrateImages } from './analysis.js?v=918';
 import { LEAGUE_SCORING, scoreProjectedStats } from '../data/scoring.js?v=593';
 import {
     tassiLega, tdAttesi, puntiAttesi, costanza, lineaTitolare, calendario, alberi, MISURE_ALBERO,

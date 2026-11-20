@@ -1,39 +1,40 @@
 /**
  * Topina League — SPA Router & Init
  */
-import { initHome } from './sections/home.js?v=1115';
-import { initGameCenter } from './sections/game-center.js?v=865';
+import { initHome } from './sections/home.js?v=1117';
+import { initGameCenter } from './sections/game-center.js?v=867';
 
-import { initStandings, initPlayoffs } from './sections/standings.js?v=794';
-import { initDraft } from './sections/draft.js?v=831';
-import { initDraftGrades } from './sections/draftgrades.js?v=843';
-import { initProjections } from './sections/projections.js?v=644';
-import { initManagerDna } from './sections/managerdna.js?v=72';
-import { initManagerDnaTeam } from './sections/managerdna-team.js?v=839';
-import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=842';
-import { initPlayerPage } from './sections/player-page.js?v=1089';
-import { initNflTeamPage } from './sections/nfl-team-page.js?v=1144';
+import { initStandings, initPlayoffs } from './sections/standings.js?v=796';
+import { initDraft } from './sections/draft.js?v=833';
+import { initDraftGrades } from './sections/draftgrades.js?v=845';
+import { initProjections } from './sections/projections.js?v=646';
+import { initManagerDna } from './sections/managerdna.js?v=74';
+import { initManagerDnaTeam } from './sections/managerdna-team.js?v=841';
+import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=844';
+import { initPlayerPage } from './sections/player-page.js?v=1091';
+import { initNflTeamPage } from './sections/nfl-team-page.js?v=1146';
 import { initNflGames } from './sections/nfl-games.js?v=14';
 import { initNflTactics } from './sections/nfl-tactics.js?v=11';
-import { initPlayersSearch } from './sections/players-search.js?v=1012';
-import { initStats } from './sections/stats.js?v=943';
-import { initHistory } from './sections/history.js?v=777';
-import { initHonors } from './sections/honors.js?v=762';
-import { initAllPro } from './sections/allpro.js?v=775';
-import { initHallOfFame } from './sections/halloffame.js?v=789';
-import { initTeam } from './sections/team.js?v=866';
-import { initTeams } from './sections/teams.js?v=759';
-import { initGame } from './sections/game.js?v=847';
-import { initAnalysis } from './sections/analysis.js?v=916';
-import { initLeaders } from './sections/leaders.js?v=151';
-import { initWaivers } from './sections/waivers.js?v=148';
-import { initPlayerStats } from './sections/player-stats.js?v=37';
+import { initPlayersSearch } from './sections/players-search.js?v=1014';
+import { initStats } from './sections/stats.js?v=945';
+import { initHistory } from './sections/history.js?v=779';
+import { initHonors } from './sections/honors.js?v=764';
+import { initAllPro } from './sections/allpro.js?v=777';
+import { initHallOfFame } from './sections/halloffame.js?v=791';
+import { initTeam } from './sections/team.js?v=868';
+import { initTeams } from './sections/teams.js?v=761';
+import { initGame } from './sections/game.js?v=849';
+import { initAnalysis } from './sections/analysis.js?v=918';
+import { initLeaders } from './sections/leaders.js?v=153';
+import { initWaivers } from './sections/waivers.js?v=150';
+import { initPlayerStats } from './sections/player-stats.js?v=39';
+import { initPlayerTrends } from './sections/player-trends.js?v=7';
 
-import { initMagazine } from './sections/magazine.js?v=811';
-import { initLive } from './sections/live.js?v=1171';
+import { initMagazine } from './sections/magazine.js?v=813';
+import { initLive } from './sections/live.js?v=1173';
 import { avviaNightRecap } from './sections/night-recap.js?v=50';
 import { avviaEsitoSettimana } from './sections/week-result.js?v=12';
-import { initNavbar } from './ui/navbar.js?v=703';
+import { initNavbar } from './ui/navbar.js?v=705';
 import { startAutoAbbr } from './utils/team-abbr.js?v=502';
 import { startLoadingArt } from './ui/spinner.js?v=11';
 import { controllaApertura, siGiocaOra } from './utils/apertura-live.js?v=2';
@@ -49,6 +50,7 @@ const SECTIONS = {
     'leaders': initLeaders,
     'waivers': initWaivers,
     'playerstats': initPlayerStats,
+    'trends': initPlayerTrends,
     'draft': initDraft,
     'draftgrades': initDraftGrades,
     'projections': initProjections,
@@ -75,6 +77,7 @@ const NAV_PARENT = {
     'magazine': 'game-center',
     'waivers': 'leaders',
     'playerstats': 'leaders',
+    'trends': 'leaders',
     'stats': 'history',
 };
 

@@ -3,10 +3,10 @@ import { fetchLeagueWeek, fillMissingProjections } from '../data/espn-fantasy.js
 import { applyDraftLineups } from '../data/draft-lineups.js?v=48';
 import { getWeekSchedule } from '../data/nfl-schedule.js?v=557';
 import { TEAM_LOGOS, TEAM_KEYS } from '../data/team-config.js?v=538';
-import { TEAMS } from './team.js?v=866';
+import { TEAMS } from './team.js?v=868';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { prenotaEsitoPartita } from './week-result.js?v=12';
-import { initPlayerModal } from '../components/player-modal.js?v=802';
+import { initPlayerModal } from '../components/player-modal.js?v=804';
 import { playerImageService } from '../services/player-image-service.js?v=535';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';

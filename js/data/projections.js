@@ -328,6 +328,51 @@ function inizioPartita(e) {
     return Date.UTC(+m[1], +m[2] - 1, +m[3], 13);
 }
 
+/**
+ * Il tabellino di UNA giornata per tutti i giocatori: Map `${normName}|${POS}`
+ * → voce (stessa forma di getSeasonStats), solo chi ha giocato (gp > 0).
+ *
+ * Serve al filtro "Last N games" di Players, che somma le ultime partite di
+ * ciascuno. Resta in memoria e NON va in localStorage: sono diciotto risposte
+ * da ~100 KB compressi, si chiedono solo scegliendo quel filtro, e su disco
+ * sarebbero esattamente il tipo di peso che ha gia' spento il sito una volta
+ * (vedi storage.js). In memoria va la promessa, cosi' due richieste insieme
+ * ne fanno una; quella della stagione in corso scade come il totale.
+ */
+const _memWeek = {};
+export function getWeekStats(year, week) {
+    const k = `${year}/${week}`;
+    const ttl = stagioneInCorso(year) ? ttlStagioneInCorso() : Infinity;
+    const hit = _memWeek[k];
+    if (hit && Date.now() - hit.t < ttl) return hit.p;
+    const p = fetch(urlFor('stats', k))
+        .then(res => (res.ok ? res.json() : []))
+        .then(lista => {
+            const map = new Map();
+            for (const e of lista || []) {
+                if (!((e.stats?.gp || 0) > 0)) continue;
+                const voce = voceStat(e);
+                if (!voce) continue;
+                const key = `${normName(voce.name)}|${voce.pos}`;
+                // l'avversario serve all'analisi dei trend (calendario affrontato)
+                if (!map.has(key)) map.set(key, { ...voce, week: Number(week), opp: e.opponent || null });
+            }
+            return map;
+        })
+        .catch(() => { delete _memWeek[k]; return new Map(); });
+    _memWeek[k] = { t: Date.now(), p };
+    return p;
+}
+
+/** Somma di piu' giornate di uno stesso giocatore (voci di getWeekStats). */
+export function sommaGiornate(voci) {
+    if (!voci?.length) return null;
+    let out = { ...voci[0], raw: { ...(voci[0].raw || {}) } };
+    for (let i = 1; i < voci.length; i++) out = sommaVoci(out, voci[i], null);
+    delete out.liveWeeks;
+    return out;
+}
+
 /** Campi che NON si sommano: sono classifiche, primati o medie. */
 const NON_SOMMABILI = /(rank|lng|pct|rtg|adp|shard|_id)/;
 
