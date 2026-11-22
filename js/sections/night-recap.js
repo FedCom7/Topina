@@ -43,7 +43,7 @@ import { ESPN_TEAM_IDS } from '../data/player-map.js?v=513';
 import { statRingHTML } from '../ui/stat-ring.js?v=1';
 import { playerImageService } from '../services/player-image-service.js?v=535';
 import { montaLivello, effettoPer, sparaEffetto, fermaEffetti } from '../ui/live-fx.js?v=38';
-import { logoImg, pallaPossesso, campoHTML, tracceRecapSVG } from '../ui/field-strip.js?v=150';
+import { logoImg, pallaPossesso, campoHTML, tracceRecapSVG } from '../ui/field-strip.js?v=151';
 import { statoPartita } from '../data/campo-partita.js?v=4';
 import { raceRecapSVG, secondiGiocati } from '../ui/race-recap.js?v=3';
 import {

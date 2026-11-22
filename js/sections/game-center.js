@@ -8,7 +8,7 @@ import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { prenotaEsitoPartita } from './week-result.js?v=12';
 import { initPlayerModal } from '../components/player-modal.js?v=804';
 import { playerImageService } from '../services/player-image-service.js?v=535';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 import { gameCenterFieldSVG } from '../ui/field-gc-svg.js?v=15';
 import { superBowlLogoSVG, markSVG, leagueShieldSVG, LEAGUE_MARK, PLAYOFF_MARK, SB_LOGO_INK, sbEdition, faceFor, ensureFaceFont } from '../ui/sb-logo-svg.js?v=13';
 

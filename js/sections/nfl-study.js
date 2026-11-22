@@ -24,6 +24,7 @@
 
 import { DIMS } from '../data/tactics-catalog.js?v=1';
 import { getTeamIdentity, NFL_TEAMS } from '../data/nfl-teams.js?v=513';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 
 const LOGO = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -452,12 +453,20 @@ function disegna(corpo) {
             </aside>
         </div>`;
     if (scroll) root.querySelector('.st-side').scrollTop = scroll;
+    bindPickDropdown(root.querySelector('.st-teams'), (id, v) => {
+        if (id === 'st-off') S.attacco = v; else S.difesa = v;
+        S.pacchetto = null;
+        aggiornaIndirizzo();
+        caricaSquadre(corpo);
+    });
 }
 
+/** Stessa capsula della testata di Tactics: logo, nome, division. */
 function selSquadra(id, val) {
-    const perDiv = {};
-    for (const [a, t] of Object.entries(NFL_TEAMS)) (perDiv[t.division] ??= []).push([a, t.name]);
-    return `<select class="tx-select" id="${id}">${Object.keys(perDiv).sort().map(d => `<optgroup label="${esc(d)}">${perDiv[d].sort((a, b) => a[1].localeCompare(b[1])).map(([a, n]) => `<option value="${a}"${a === val ? ' selected' : ''}>${esc(n)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+    const voci = Object.entries(NFL_TEAMS)
+        .sort(([, a], [, b]) => a.division.localeCompare(b.division) || a.name.localeCompare(b.name))
+        .map(([abbr, t]) => ({ value: abbr, group: esc(t.division), label: `<img class="tx-dd-logo" src="${LOGO(abbr)}" alt="">${esc(t.name)}` }));
+    return pickDropdownHTML(id, voci, Math.max(0, voci.findIndex(v => v.value === val)));
 }
 
 function squadreHtml() {
@@ -660,11 +669,6 @@ function leghe(corpo) {
         else if (d.stLikely != null) { const p = piuProbabile(); if (p) { S.pacchetto = p.pkg; if (p.cov) S.cop = p.cov; } }
         else if (d.stSwap != null) { [S.attacco, S.difesa] = [S.difesa, S.attacco]; S.pacchetto = null; aggiornaIndirizzo(); caricaSquadre(corpo); return; }
         disegna(corpo);
-    });
-    corpo.addEventListener('change', (e) => {
-        if (!S) return;
-        if (e.target.id === 'st-off') { S.attacco = e.target.value; S.pacchetto = null; aggiornaIndirizzo(); caricaSquadre(corpo); }
-        if (e.target.id === 'st-def') { S.difesa = e.target.value; S.pacchetto = null; aggiornaIndirizzo(); caricaSquadre(corpo); }
     });
 }
 function aggiornaIndirizzo() {

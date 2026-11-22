@@ -20,7 +20,7 @@ import { SEASONS_DESC, CURRENT_SEASON, displayName } from '../data.js?v=597';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
 import { fetchLeagueWeek } from '../data/espn-fantasy.js?v=178';
 import { TEAMS } from './team.js?v=868';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 import { getSeasonStats, getWeekStats, sommaGiornate, normName } from '../data/projections.js?v=637';
 import {
     buildSeasonModel, fmt, headshotImg, posBadge,

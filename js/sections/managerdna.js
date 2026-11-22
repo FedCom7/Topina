@@ -22,7 +22,7 @@
 import { getManagerDNA, CONFIDENCE_LABEL, CONFIDENCE_NOTE } from '../data/manager-dna.js?v=2';
 import { stripPlot } from '../ui/strip-plot.js?v=1';
 import { dumbbell, scatter, multiLine, inkFor } from '../ui/charts.js?v=9';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 import { TEAMS } from './team.js?v=868';
 import { TEAM_LOGO_SCALE } from '../data/team-config.js?v=538';
 

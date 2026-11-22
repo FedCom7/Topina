@@ -9,7 +9,7 @@ import { playerImageService } from '../services/player-image-service.js?v=535';
 import { initPlayerModal, paniniCard, hydratePaniniBadges } from '../components/player-modal.js?v=804';
 import { db } from '../firebase-config.js?v=16';
 import { fetchDraftStatus } from '../data/espn-fantasy.js?v=178';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 
 let loaded = false;
 let currentPicks = [];

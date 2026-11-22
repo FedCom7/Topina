@@ -3,6 +3,9 @@
  * del Live (una capsula con la scelta corrente, il resto in una tendina che
  * si apre e chiude a clic), ma generico — qui serve per anno, week, round,
  * squadra in Game Center, Draft e Analysis.
+ *
+ * Una voce può avere `group`: quando cambia rispetto alla precedente, la
+ * tendina mette un'intestazione (le division delle 32 squadre in Tactics).
  */
 export function pickDropdownHTML(id, items, activeIdx) {
     const scelta = items[activeIdx] ?? items[0];
@@ -15,7 +18,8 @@ export function pickDropdownHTML(id, items, activeIdx) {
             <span class="pick-dd-caret" aria-hidden="true">▾</span>
         </button>
         <div class="pick-dd-menu" role="listbox" hidden>
-            ${items.map((it, i) => `
+            ${items.map((it, i) => `${it.group && it.group !== items[i - 1]?.group ? `
+            <span class="pick-dd-group" role="presentation">${it.group}</span>` : ''}
             <button class="pick-dd-item${i === activeIdx ? ' is-on' : ''}" type="button"
                     role="option" aria-selected="${i === activeIdx}" data-value="${it.value}">
                 ${it.label}

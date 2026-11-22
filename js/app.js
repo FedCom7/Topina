@@ -14,7 +14,7 @@ import { initDraftGradeTeam } from './sections/draftgrade-team.js?v=844';
 import { initPlayerPage } from './sections/player-page.js?v=1091';
 import { initNflTeamPage } from './sections/nfl-team-page.js?v=1146';
 import { initNflGames } from './sections/nfl-games.js?v=14';
-import { initNflTactics } from './sections/nfl-tactics.js?v=11';
+import { initNflTactics } from './sections/nfl-tactics.js?v=14';
 import { initPlayersSearch } from './sections/players-search.js?v=1014';
 import { initStats } from './sections/stats.js?v=945';
 import { initHistory } from './sections/history.js?v=779';
@@ -28,7 +28,7 @@ import { initAnalysis } from './sections/analysis.js?v=918';
 import { initLeaders } from './sections/leaders.js?v=153';
 import { initWaivers } from './sections/waivers.js?v=150';
 import { initPlayerStats } from './sections/player-stats.js?v=39';
-import { initPlayerTrends } from './sections/player-trends.js?v=7';
+import { initPlayerTrends } from './sections/player-trends.js?v=8';
 
 import { initMagazine } from './sections/magazine.js?v=813';
 import { initLive } from './sections/live.js?v=1173';

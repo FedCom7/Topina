@@ -7,7 +7,7 @@
 import { fetchFantasyData, processStandings, displayName, teamAbbr, teamNameHTML, CURRENT_SEASON, SEASONS, SEASONS_DESC, getPlayoffMatchups, getSuperBowlMatchup, getSeasonConfig } from '../data.js?v=597';
 import { TEAMS } from './team.js?v=868';
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 
 let loadedStandings = false;
 let loadedPlayoffs = false;

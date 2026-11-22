@@ -664,9 +664,45 @@ si tocca**.
    a partita, 45 KB compressi, ~120 MB a stagione nel repo — il sito
    pubblicato sta sui 500 MB, il limite di GitHub Pages è 1 GB. I filtri
    sono le dimensioni del catalogo applicate alla giocata, quindi le righe
-   decodificate restano STRINGHE come nel CSV. Il campo sotto la giocata è
-   uno schema (lunghezze e direzioni vere, forma disegnata) e la didascalia
-   lo dichiara. Sul kickoff `posteam` è chi riceve: il calcio va a sinistra.
+   decodificate restano STRINGHE come nel CSV. Sul kickoff `posteam` è chi
+   riceve: il calcio va a sinistra.
+
+   **In cima c'è il palco** (dal 2026-11-22): lo scorebug del Live
+   (`scorebugHTML`, esportato da field-strip.js apposta) sopra il campo
+   nella vista **All-22 dei coach** coi 22 in campo e l'azione animata —
+   `js/ui/film-field.js`, i conti in `scenaGiocata` (niente DOM), il disegno
+   in `filmSVG`, l'animazione in `montaFilm`. Due camere vere in prospettiva
+   (`camera()`): "Sideline" (tribuna stampa, dalla sinistra dell'attacco, di
+   base su desktop) e "End zone" (dietro l'attacco, di base sul telefono).
+   Camera LONTANA e ALTA (120 yard, ~40°) e inquadratura stretta sui
+   giocatori: vicina e bassa il campo davanti era enorme e i 22 finivano
+   schiacciati in fondo. Niente barra di avanzamento (tolta su richiesta):
+   play/pausa, giocata prima/dopo, velocità, tastiera. Sotto, filtri e lista
+   a sinistra e dettaglio a destra (sul telefono il foglio "Play details").
+   **"Coverage zones"** (`zoneCopertura`): le zone dello schema chiamato
+   (participation) assegnate da manuale ai difensori veri — profonde ai DB
+   per lato e profondità, sotto per ordine laterale, a uomo una linea al
+   ricevitore, frecce per chi va in pressione. Le stesse zone guidano dove
+   scende ogni difensore. Senza schema (corse, COMBO, BLOWN) il pulsante è
+   spento. Una stagione senza participation (quella in corso) lo dichiara in
+   testa con un rimando all'ultima completa, e la prima giocata scelta è la
+   prima coi 22, non il kickoff. Tre cose da non disfare:
+   - **cosa è vero e cosa è ricostruito lo dice `.fr-truth`**: veri i 22,
+     formazione, backfield, hash, copertura, rusher, tempo al lancio, il
+     TIPO di rotta del bersaglio (`part_route`), air yards, YAC, gap, punto
+     finale, chi placca; ricostruiti allineamenti e movimenti (il tracking
+     non è pubblico);
+   - **le rotte dei NON bersagli non esistono in nessuna fonte pubblica**
+     (cercato: nflverse/FTN no, NGS non scaricabile, PFF a pagamento, Big
+     Data Bowl solo 2022 o solo il bersaglio, e con licenza da competizione).
+     Deciso con l'utente: di base fanno solo il rilascio, sbiaditi;
+     l'interruttore "Drawn routes" mette un concetto plausibile tratteggiato;
+   - **chi fa la giocata copre il bersaglio**: placcatore, deviatore o
+     intercettore (CB o safety) si allinea su di lui, se no partiva
+     dall'altra parte del campo. La camera è ferma e taglia ai lati attorno
+     ai giocatori: con tutti i 53 yard il riquadro veniva alto mille pixel.
+   Special teams e giocate senza participation (la stagione in corso) hanno
+   solo la palla, con lunghezze vere.
 7. **Study of the Game** (`#nfl-tactics/{ATT}/{ANNO}/study/{DIF}`,
    `js/sections/nfl-study.js`, caricato solo quando lo si apre): due depth
    chart ESPN di OGGI (`getStudyDepth` in nfl-flip-card.js) uno contro

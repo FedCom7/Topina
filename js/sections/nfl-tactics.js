@@ -22,6 +22,7 @@
 
 import { DIMS, GRUPPI, FONTI, METRICHE } from '../data/tactics-catalog.js?v=1';
 import { NFL_TEAMS, getTeamIdentity } from '../data/nfl-teams.js?v=513';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 
 const PRIMO_ANNO = 2016;
 const MIN_PLAYS = 30;
@@ -56,17 +57,23 @@ export async function initNflTactics() {
 
 // ─── testata ─────────────────────────────────────────────────────────────
 
+/** Squadra e stagione con le capsule del sito (dropdown-pick), le stesse
+ *  di Standings e Analysis: la squadra col logo, divise per division. */
 function selettoreSquadre(team) {
-    const perDiv = {};
-    for (const [abbr, t] of Object.entries(NFL_TEAMS)) (perDiv[t.division] ??= []).push([abbr, t.name]);
-    const divs = Object.keys(perDiv).sort();
-    return `<select class="tx-select" id="tx-team" aria-label="Team">${divs.map(d => `<optgroup label="${esc(d)}">${perDiv[d].sort((a, b) => a[1].localeCompare(b[1])).map(([a, n]) => `<option value="${a}"${a === team ? ' selected' : ''}>${esc(n)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+    const voci = Object.entries(NFL_TEAMS)
+        .sort(([, a], [, b]) => a.division.localeCompare(b.division) || a.name.localeCompare(b.name))
+        .map(([abbr, t]) => ({ value: abbr, group: esc(t.division), label: `<img class="tx-dd-logo" src="${LOGO(abbr)}" alt="">${esc(t.name)}` }));
+    return pickDropdownHTML('team', voci, Math.max(0, voci.findIndex(v => v.value === team)));
+}
+
+function selettoreAnni(anno) {
+    const voci = [];
+    for (let y = annoCorrente(); y >= PRIMO_ANNO; y--) voci.push({ value: String(y), label: String(y) });
+    return pickDropdownHTML('year', voci, Math.max(0, voci.findIndex(v => +v.value === anno)));
 }
 
 function testata(team, anno) {
     const id = getTeamIdentity(team);
-    const anni = [];
-    for (let y = annoCorrente(); y >= PRIMO_ANNO; y--) anni.push(y);
     return `
     <header class="tx-head" style="--tx-team:${id?.color || '#888'}">
         <div class="tx-head-id">
@@ -78,7 +85,7 @@ function testata(team, anno) {
         </div>
         <div class="tx-controls">
             ${selettoreSquadre(team)}
-            <select class="tx-select" id="tx-year" aria-label="Season">${anni.map(y => `<option value="${y}"${y === anno ? ' selected' : ''}>${y}</option>`).join('')}</select>
+            ${selettoreAnni(anno)}
             <a class="tx-link" href="#nfl-team/${team}/${anno}">Team page ›</a>
         </div>
     </header>
@@ -91,7 +98,7 @@ function testata(team, anno) {
 
 function lega(sez) {
     // La sezione resta nel documento fra una visita e l'altra: il click
-    // delegato si aggancia una volta sola, i due select sono nuovi a ogni giro.
+    // delegato si aggancia una volta sola, le due capsule sono nuove a ogni giro.
     if (!sez.dataset.txBound) {
         sez.dataset.txBound = '1';
         sez.addEventListener('click', (e) => {
@@ -106,8 +113,9 @@ function lega(sez) {
             }
         });
     }
-    sez.querySelector('#tx-team')?.addEventListener('change', (e) => { location.hash = indirizzo(e.target.value, stato.anno); });
-    sez.querySelector('#tx-year')?.addEventListener('change', (e) => { location.hash = indirizzo(stato.team, e.target.value); });
+    bindPickDropdown(sez.querySelector('.tx-controls'), (id, v) => {
+        location.hash = id === 'team' ? indirizzo(v, stato.anno) : indirizzo(stato.team, v);
+    });
 }
 
 // ─── corpo ───────────────────────────────────────────────────────────────
@@ -117,7 +125,7 @@ async function disegna(sez) {
     const { team, anno, lato } = stato;
     // Sala video: modulo a parte, caricato solo quando la si apre.
     if (stato.vista === 'film') {
-        const m = _film = await import('./nfl-film.js?v=4').catch(() => null);
+        const m = _film = await import('./nfl-film.js?v=7').catch(() => null);
         if (!m) { corpo.innerHTML = '<p class="pm-note">The film room could not be loaded.</p>'; return; }
         await m.renderFilm(corpo, { team, anno, gid: stato.gid });
         return;
@@ -125,7 +133,7 @@ async function disegna(sez) {
     _film?.lasciaFilm();
     // Study of the Game: anche lui a parte, caricato solo quando lo si apre.
     if (stato.vista === 'study') {
-        const m = await import('./nfl-study.js?v=5').catch(() => null);
+        const m = await import('./nfl-study.js?v=6').catch(() => null);
         if (!m) { corpo.innerHTML = '<p class="pm-note">The lab could not be loaded.</p>'; return; }
         await m.renderStudy(corpo, { team, anno, avv: stato.gid });
         return;

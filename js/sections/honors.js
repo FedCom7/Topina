@@ -8,7 +8,7 @@
 import { CURRENT_SEASON } from '../data.js?v=597';
 import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
 import { TEAMS } from './team.js?v=868';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

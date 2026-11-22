@@ -1017,6 +1017,31 @@ export function tracceDrive(giocate, possesso) {
     }).join('');
 }
 
+/**
+ * Lo scorebug da solo: loghi, punteggi coi timeout, down & distance e
+ * orologio. Esportato perché la Film Room di Tactics mostra lo stesso
+ * tabellone sopra il suo campo; va dentro un contenitore `.fst` (le classi
+ * `fst-*` sono scritte lì).
+ */
+export function scorebugHTML(s) {
+    return `
+        <div class="fst-bug">
+            <div class="fst-lato">
+                ${logoImg(s.away)}
+                <span class="fst-abbr">${esc(s.away.abbr)}</span>
+                ${s.stato === 'in' && s.possesso === 'away' ? pallaPossesso() : ''}
+            </div>
+            ${punteggio(s.away, s.possesso === 'away')}
+            <div class="fst-mid">${situazione(s)}</div>
+            ${punteggio(s.home, s.possesso === 'home')}
+            <div class="fst-lato fst-lato--r">
+                ${logoImg(s.home)}
+                <span class="fst-abbr">${esc(s.home.abbr)}</span>
+                ${s.stato === 'in' && s.possesso === 'home' ? pallaPossesso() : ''}
+            </div>
+        </div>`;
+}
+
 export function fieldStripHTML(s) {
     ID = String(++nIstanza);
     /*
@@ -1046,21 +1071,7 @@ export function fieldStripHTML(s) {
     <div class="fst${s.statico ? ' fst--statico' : ''}" data-scena="${esc(s.scena || '')}"
          data-festa="${latoBug || ''}"
          style="--fst-casa:${cCasa};--fst-osp:${cOsp}">
-        <div class="fst-bug">
-            <div class="fst-lato">
-                ${logoImg(s.away)}
-                <span class="fst-abbr">${esc(s.away.abbr)}</span>
-                ${s.stato === 'in' && s.possesso === 'away' ? pallaPossesso() : ''}
-            </div>
-            ${punteggio(s.away, s.possesso === 'away')}
-            <div class="fst-mid">${situazione(s)}</div>
-            ${punteggio(s.home, s.possesso === 'home')}
-            <div class="fst-lato fst-lato--r">
-                ${logoImg(s.home)}
-                <span class="fst-abbr">${esc(s.home.abbr)}</span>
-                ${s.stato === 'in' && s.possesso === 'home' ? pallaPossesso() : ''}
-            </div>
-        </div>
+        ${scorebugHTML(s)}
 
         ${campoSVG(s, tracciaGiocate(s.giocate || (g ? [g] : []), s.giocataIdx ?? 0, s.possesso, g))}
 

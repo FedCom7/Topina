@@ -9,7 +9,7 @@ import { getHonorsBundle, honorsSeasons } from '../data/honors.js?v=724';
 import { TEAMS } from './team.js?v=868';
 import { paniniCard, initPlayerModal, hydratePaniniBadges } from '../components/player-modal.js?v=804';
 import { playerImageService } from '../services/player-image-service.js?v=535';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;

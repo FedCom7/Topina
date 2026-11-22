@@ -18,7 +18,7 @@
 
 import { SEASONS_DESC, CURRENT_SEASON } from '../data.js?v=597';
 import { TEAMS } from './team.js?v=868';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 import { getWeekStats } from '../data/projections.js?v=637';
 import { fmt, headshotImg, posBadge, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=918';
 import { roseDellaLega } from './leaders.js?v=153';

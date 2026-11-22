@@ -33192,15 +33192,6 @@ body.wr-open { overflow: hidden; }
 .tx-logo { width: 56px; height: 56px; object-fit: contain; }
 .tx-title { margin: 2px 0 0; font-family: var(--font-display); font-size: clamp(1.4rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -0.01em; }
 .tx-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.tx-select {
-    padding: 8px 12px;
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    color: var(--text-primary);
-    font: inherit;
-    font-size: 0.88rem;
-}
 .tx-link { font-size: 0.85rem; color: var(--text-secondary); text-decoration: none; padding: 8px 4px; }
 .tx-link:hover { color: var(--text-primary); }
 
@@ -33315,7 +33306,6 @@ body.wr-open { overflow: hidden; }
     .tx-wrap { padding: 18px 16px var(--section-pad); }
     .tx-logo { width: 44px; height: 44px; }
     .tx-controls { width: 100%; }
-    .tx-select { flex: 1 1 140px; }
     .tx-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tx-bar-cell { display: none; }
     .tx-table thead th:nth-child(2) { display: none; }
@@ -33502,35 +33492,7 @@ body.wr-open { overflow: hidden; }
     background: var(--bg-card);
 }
 .fr-close { display: none; }
-.fr-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.78rem; color: var(--text-muted); }
-.fr-nav button {
-    padding: 5px 12px;
-    border: 1px solid var(--border-card);
-    border-radius: var(--pill-radius);
-    background: transparent;
-    color: var(--text-primary);
-    font: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-.fr-nav button:disabled { opacity: 0.35; cursor: default; }
 .fr-dtitle { margin: 10px 0; font-size: 0.92rem; line-height: 1.4; color: var(--text-primary); }
-.fr-field { margin: 0 0 10px; }
-.fr-field svg { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); }
-.fr-field figcaption { margin-top: 4px; font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; }
-.fr-grass { fill: #1f4d2c; }
-.fr-ez { opacity: 0.55; }
-.fr-yl { stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; }
-.fr-yn { fill: rgba(255, 255, 255, 0.45); font-size: 10px; text-anchor: middle; font-family: var(--font-display); }
-.fr-los { stroke: #4f8cff; stroke-width: 2.5; }
-.fr-fd { stroke: #facc15; stroke-width: 2.5; }
-.fr-air { fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }
-.fr-air.is-inc { stroke-dasharray: 5 5; opacity: 0.7; }
-.fr-yac { stroke: #22c55e; stroke-width: 3; stroke-linecap: round; }
-.fr-run { fill: none; stroke: #f59e0b; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
-.fr-run.is-loss { stroke: #ef4444; }
-.fr-ball { fill: #f5f0e8; stroke: #000; stroke-width: 1; }
-.fr-ball.is-inc { fill: none; stroke: #fff; }
 
 .fr-sec { margin-top: 12px; }
 .fr-sec h4 { margin: 0 0 6px; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
@@ -33600,8 +33562,198 @@ body.wr-open { overflow: hidden; }
     .tx-view small { display: none; }
 }
 .fr-fmore[hidden] { display: none; }
-.fr-kick { fill: none; stroke: #c4b5fd; stroke-width: 2.5; stroke-dasharray: 2 4; stroke-linecap: round; }
-.fr-ret { stroke: #f472b6; stroke-width: 3; stroke-linecap: round; }
+
+/* ─── Film Room: il palco (#nfl-tactics/…/film) ─────────────────────────────
+   In cima lo scorebug del Live (stesse classi fst-*), sotto il campo visto
+   dall'alto coi 22 (js/ui/film-field.js), poi i comandi e la giocata. Il
+   campo resta verde in tutti e due i temi: è un campo. */
+.fr-stage {
+    scroll-margin-top: calc(var(--nav-height) + 8px);
+    margin: 0 0 18px;
+    padding: 4px 14px 14px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+}
+.fr-bug { margin: 0; }
+.fr-bug .fst-bug { padding: 10px 2px 22px; }
+.fr-bug .fst-score { font-size: 2.5rem; }
+.fr-bug .fst-logo { width: 42px; height: 42px; }
+
+.fr-pitch {
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: #173a22;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.fr-pitch-empty { margin: 0; padding: 60px 16px; text-align: center; color: rgba(255, 255, 255, 0.7); font-size: 0.86rem; }
+.ff { display: block; width: 100%; height: auto; }
+.ff-out { fill: #173a22; }
+.ff-grass { fill: #2b6837; }
+.ff-stripe { fill: rgba(255, 255, 255, 0.045); }
+.ff-ez { opacity: 0.9; }
+.ff-ez-txt { fill: rgba(255, 255, 255, 0.62); font-family: var(--font-display); font-weight: 800; font-size: 10px; letter-spacing: 0.18em; text-anchor: middle; dominant-baseline: central; }
+.ff-num-campo { fill: rgba(255, 255, 255, 0.45); font-family: var(--font-display); font-weight: 700; font-size: 10px; text-anchor: middle; dominant-baseline: central; }
+.ff-yl { stroke: rgba(255, 255, 255, 0.5); stroke-width: 1.6; }
+.ff-yl.is-goal { stroke: rgba(255, 255, 255, 0.9); stroke-width: 3; }
+.ff-hash { stroke: rgba(255, 255, 255, 0.45); stroke-width: 1.4; }
+.ff-side { stroke: rgba(255, 255, 255, 0.85); stroke-width: 4; }
+.ff-los { stroke: #4f8cff; stroke-width: 3; }
+.ff-fd { stroke: #facc15; stroke-width: 3; }
+/* La rotta prevista resta sotto, tenue; la scia di chi la corre la ripassa. */
+.ff-route { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.ff-route.is-real { opacity: 0.5; }
+.ff-route.is-drawn { opacity: 0.32; stroke-dasharray: 5 5; }
+.ff-arrowhead.is-real { fill: rgba(255, 255, 255, 0.75); }
+.ff-arrowhead.is-drawn { fill: rgba(255, 255, 255, 0.45); }
+.ff-trail { fill: none; stroke: #facc15; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; }
+.ff-flight { fill: none; stroke: #fff; stroke-width: 1.2; stroke-dasharray: 3 4; opacity: 0.85; }
+.ff-dot { stroke: #fff; stroke-width: 1; }
+.ff-pshadow { fill: rgba(0, 0, 0, 0.3); }
+.ff-pnum { fill: #fff; font-family: var(--font-display); font-weight: 800; font-size: 7px; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.35); stroke-width: 0.9px; }
+.ff-pname { fill: #fff; font-family: var(--font-body); font-weight: 600; font-size: 7.6px; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.75); stroke-width: 2.2px; pointer-events: none; }
+.ff-halo { fill: none; stroke-width: 1.8; }
+.ff-pname.is-extra { display: none; }
+.ff--nomi .ff-pname.is-extra { display: inline; }
+.ff-p { cursor: default; }
+.ff-p.is-faint { opacity: 0.5; }
+.ff-p.is-target .ff-halo, .ff-p.is-carrier .ff-halo { stroke: #facc15; }
+.ff-p.is-tackle .ff-halo, .ff-p.is-sack .ff-halo, .ff-p.is-int .ff-halo, .ff-p.is-pd .ff-halo { stroke: #ff6b5e; }
+.ff-ball-body { fill: #8a4a22; stroke: #fff; stroke-width: 0.8; }
+.ff-ball-lace { stroke: #fff; stroke-width: 0.9; }
+.ff-ball-shadow { fill: rgba(0, 0, 0, 0.35); }
+
+/* Il momento della giocata, in alto a sinistra sul campo. */
+.fr-ev {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-width: calc(100% - 20px);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(10, 12, 14, 0.72);
+    color: #fff;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+    pointer-events: none;
+}
+.fr-ev.is-on { opacity: 1; transform: none; }
+/* Lo schema di copertura, in alto a destra quando le zone sono accese. */
+.fr-cov {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    max-width: 45%;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(10, 12, 14, 0.72);
+    color: #fff;
+    text-align: right;
+    pointer-events: none;
+}
+.fr-cov b { font-family: var(--font-display); font-size: 0.82rem; font-weight: 800; }
+.fr-cov span { font-size: 0.68rem; color: rgba(255, 255, 255, 0.7); }
+/* Zone di responsabilità: profonde in azzurro, sotto in ambra. */
+.ff-zone { stroke-width: 1.2; stroke-dasharray: 4 3; }
+.ff-zone.is-deep { fill: rgba(96, 165, 250, 0.2); stroke: rgba(147, 197, 253, 0.85); }
+.ff-zone.is-under { fill: rgba(251, 191, 36, 0.2); stroke: rgba(253, 224, 71, 0.85); }
+.ff-zlabel { font-family: var(--font-display); font-weight: 800; font-size: 10px; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: rgba(0, 0, 0, 0.55); stroke-width: 2.5px; }
+.ff-zlabel.is-deep { fill: #dbeafe; }
+.ff-zlabel.is-under { fill: #fef3c7; }
+.ff-manline { stroke: #fca5a5; stroke-width: 1.4; stroke-dasharray: 3 2.5; }
+.ff-rusharrow { fill: none; stroke: rgba(255, 107, 94, 0.8); stroke-width: 1.4; }
+.ff-arrowhead.is-rush { fill: rgba(255, 107, 94, 0.9); }
+.fr-pill.is-off { opacity: 0.4; cursor: default; }
+.fr-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 4px 0 12px; padding: 10px 14px; border: 1px solid var(--border-card); border-radius: var(--radius-md); background: var(--bg-card); }
+.fr-banner p { margin: 0; flex: 1 1 320px; font-size: 0.82rem; color: var(--text-secondary); }
+.fr-banner b { color: var(--text-primary); }
+.fr-banner a { text-decoration: none; }
+.fr-group--view { margin-left: auto; }
+.fr-ev b { font-family: var(--font-display); font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.fr-ev span { font-size: 0.74rem; color: rgba(255, 255, 255, 0.75); }
+.fr-ev span:empty { display: none; }
+.fr-ev[data-k="touchdown"] { background: rgba(21, 128, 61, 0.88); }
+.fr-ev[data-k="intercepted"], .fr-ev[data-k="sack"], .fr-ev[data-k="fumble-lost"], .fr-ev[data-k="safety"] { background: rgba(185, 28, 28, 0.85); }
+
+.fr-ctrl { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.fr-ctrl-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fr-cbtn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-card);
+    border-radius: 50%;
+    background: var(--pill-surface, var(--bg-glass));
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.fr-cbtn svg { width: 14px; height: 14px; fill: currentColor; }
+.fr-cbtn:disabled { opacity: 0.35; cursor: default; }
+.fr-cbtn--main { width: 44px; height: 44px; background: var(--accent-gradient); border-color: transparent; color: #fff; }
+.fr-cbtn--main svg { width: 16px; height: 16px; }
+.fr-ctrl-opts { gap: 6px 10px; }
+.fr-count { font-size: 0.78rem; color: var(--text-muted); }
+.fr-group { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.fr-pill {
+    padding: 5px 11px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--pill-radius);
+    background: var(--pill-surface, var(--bg-glass));
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.fr-pill.is-on { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-primary); }
+.fr-open-detail { display: none; }
+.fr-caption { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-subtle); }
+.fr-caption .fr-dtitle { margin: 0 0 6px; font-size: 0.95rem; }
+.fr-capmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.fr-capmeta .fr-chips { margin: 0; }
+.fr-capmeta .is-good { color: var(--accent-green); }
+.fr-capmeta .is-bad { color: #e0675e; }
+.fr-truth { margin: 10px 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--text-muted); }
+.fr-truth b { color: var(--text-secondary); font-weight: 600; }
+.fr-dtitle--sheet { display: none; }
+.fr-sec--first { margin-top: 0; }
+
+/* Le capsule di squadra e stagione (dropdown-pick) in Tactics e Study. */
+.pick-dd .tx-dd-logo { width: 20px; height: 20px; object-fit: contain; flex: none; }
+.pick-dd-item:has(.tx-dd-logo), .pick-dd-btn:has(.tx-dd-logo) { display: flex; align-items: center; gap: 8px; }
+.pick-dd-group {
+    padding: 8px 14px 3px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.tx-controls .pick-dd-menu { max-height: 360px; }
+.tx-controls .pick-dd:not([data-pick-id="year"]) .pick-dd-menu { right: auto; }
+
+@media (max-width: 900px) {
+    .fr-open-detail { display: inline-block; }
+    .fr-dtitle--sheet { display: block; }
+}
+@media (max-width: 640px) {
+    .fr-stage { padding: 2px 10px 12px; margin-left: -6px; margin-right: -6px; }
+    .fr-bug .fst-score { font-size: 2.1rem; }
+    .fr-ev b { font-size: 0.82rem; }
+    .fr-cov { top: auto; bottom: 8px; right: 8px; max-width: 70%; }
+    .tx-controls .pick-dd-menu { left: auto; right: 0; }
+}
 
 /* ─── Study of the Game (#nfl-tactics/…/study) ─────────────────────────────
    Campo verticale (attacco in basso che sale), comandi sopra, a destra le
@@ -33697,7 +33849,6 @@ body.wr-open { overflow: hidden; }
     .st-lab { min-width: 100%; }
     .st-lab--in { margin-left: 0; margin-top: 4px; }
 }
-.st-team .tx-select { flex: none; }
 .fcz-field {
     margin-left: 12px;
     padding: 6px 12px;
@@ -34124,4 +34275,78 @@ body.wr-open { overflow: hidden; }
     .tr-out { justify-self: end; justify-items: end; }
     .tr-opps { justify-content: flex-end; }
     .tr-detail { padding-left: 0; }
+}
+
+/* ─── Tactics nello stile del sito (2026-11-22) ─────────────────────────────
+   Niente riquadri grigi: fondo della pagina, separatori sottili, titoli
+   piccoli in maiuscolo. Le tab e le pillole sono quelle della barra di
+   sezione della pagina squadra NFL (.nfl-secnav): trasparenti, accese con un
+   velo leggero, mai il bianco pieno. Vale per Season analysis, Film Room e
+   Study. Il riquadro "Play details" sul telefono resta un foglio pieno:
+   copre la pagina e senza fondo non si leggerebbe. */
+.tx-views { gap: 6px; padding: 9px 0; margin: 14px 0 6px; border-bottom: 1px solid var(--border-subtle); }
+.tx-view,
+.tx-side,
+.fr-side,
+.fr-pill,
+.fr-game,
+.st-pill,
+.pp-af-year {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.tx-view { padding: 6px 14px; font-size: 0.85rem; font-weight: 600; }
+.tx-view:hover, .tx-side:hover, .fr-side:hover, .fr-pill:hover, .fr-game:hover, .st-pill:hover, .pp-af-year:hover { color: var(--text-primary); background: var(--bg-glass); }
+.tx-view.is-active,
+.tx-side.is-active,
+.fr-side.is-active,
+.fr-pill.is-on,
+.fr-game.is-active,
+.st-pill.is-on,
+.pp-af-year.is-active {
+    color: var(--text-primary);
+    background: var(--bg-glass);
+    border-color: var(--border-subtle);
+}
+.tx-view.is-active small, .st-pill.is-on small { color: var(--text-muted); }
+.tx-sidebar { padding: 0; border: 0; background: transparent; gap: 6px; }
+.tx-side { padding: 6px 16px; font-size: 0.88rem; }
+.fr-pill.is-off, .fr-pill.is-off:hover { background: transparent; color: var(--text-muted); }
+.fr-games { gap: 2px; }
+.fr-game { border-radius: var(--radius-md); }
+
+/* Le carte diventano blocchi separati da una riga. */
+.tx-metrics { gap: 0 18px; }
+.tx-metric { padding: 10px 0; border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.tx-dims { gap: 8px 28px; }
+.tx-dim { padding: 14px 0 6px; border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.tx-players, .pp-af-box { border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.tx-players > summary, .pp-af-box > summary { padding: 10px 0; }
+.tx-players .tx-table-wrap { padding: 0 0 10px; }
+.pp-af-body { padding: 0 0 12px; }
+.pp-af-table td:first-child, .pp-af-table th:first-child { background: var(--bg-primary); }
+.st-box { padding: 12px 0 4px; border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.st-box--hi { border-top-color: color-mix(in srgb, var(--accent-amber) 60%, transparent); }
+.st-swap { background: transparent; border-color: var(--border-subtle); }
+
+/* Film Room */
+.fr-stage { padding: 0 0 16px; border: 0; border-bottom: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.fr-filters { padding: 0 0 12px; border: 0; border-bottom: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.fr-f select, .fr-f input { background: transparent; border-color: var(--border-subtle); }
+.fr-f select option { background: var(--bg-primary); }
+.fr-plays { border: 0; border-radius: 0; }
+.fr-plays li + li, .fr-plays li:first-child { border-top: 1px solid var(--border-subtle); }
+.fr-banner { padding: 10px 0; border: 0; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+.fr-raw { border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; }
+.fr-raw summary { padding: 6px 0; }
+.fr-cbtn { background: transparent; border-color: var(--border-subtle); }
+.fr-cbtn:hover:not(:disabled) { background: var(--bg-glass); }
+.fr-cbtn--main, .fr-cbtn--main:hover:not(:disabled) { background: var(--accent-gradient); border-color: transparent; }
+@media (min-width: 901px) {
+    .fr-detail { padding: 0 0 0 18px; border: 0; border-left: 1px solid var(--border-subtle); border-radius: 0; background: transparent; }
+}
+@media (max-width: 640px) {
+    .fr-stage { padding: 0 0 14px; margin-left: 0; margin-right: 0; }
 }

@@ -12,9 +12,14 @@
  * Per questo le righe si ricostruiscono coi valori in STRINGA, come escono
  * dal CSV: il catalogo confronta `r.pass === '1'`.
  *
- * Il campo disegnato sotto ogni giocata è uno schema: lunghezza vera (yard
- * del referto, air yards, YAC), direzione vera (left/middle/right, gap), ma
- * la traccia è disegnata — il tracking non è pubblico. La nota lo dice.
+ * In cima c'è il PALCO: lo scorebug del Live (`scorebugHTML` di
+ * field-strip.js) sopra un campo visto dall'alto con i 22 in campo, e
+ * l'azione animata (js/ui/film-field.js). Sotto, filtri e lista per drive a
+ * sinistra, tutti i dati della giocata a destra (sul telefono in un foglio).
+ * Cosa del campo è vero e cosa è ricostruito lo dice la nota sotto, e lo
+ * spiega film-field.js: il tracking non è pubblico, e le rotte dei
+ * ricevitori non bersaglio non esistono in nessuna fonte pubblica — per
+ * questo sono dietro l'interruttore "Drawn routes", spento di base.
  *
  * Modulo caricato a richiesta da nfl-tactics.js: chi non apre la sala video
  * non lo scarica.
@@ -22,6 +27,8 @@
 
 import { DIMS } from '../data/tactics-catalog.js?v=1';
 import { getTeamIdentity } from '../data/nfl-teams.js?v=513';
+import { scorebugHTML } from '../ui/field-strip.js?v=151';
+import { scenaGiocata, filmSVG, montaFilm, NOMI_COPERTURA } from '../ui/film-field.js?v=2';
 
 const LOGO = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr || '').toLowerCase()}.png`;
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -48,6 +55,12 @@ function decodifica(file, cols) {
 // ─── stato ───────────────────────────────────────────────────────────────
 
 let S = null; // { team, anno, gid, idx, rows, game, filtri, sel, lato }
+/** Preferenze del palco: restano cambiando partita e giocata. */
+const PREF = { rate: 1, disegnate: false, nomi: false, auto: false, zone: false, vista: null };
+let _film = null;      // controller dell'animazione in corso
+let _avanti = null;    // timer dell'avanzamento automatico
+const telefono = () => matchMedia('(max-width: 640px)').matches;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
 const FILTRI = ['down', 'playType', 'formation', 'personnel', 'defPackage', 'coverage', 'manZone', 'box', 'rushers', 'blitzers',
     'motion', 'playAction', 'rpo', 'screen', 'pressure', 'passDepth', 'passDir', 'runGap', 'route', 'readThrown', 'zone', 'quarter', 'thirdDown', 'score'];
@@ -72,7 +85,13 @@ export async function renderFilm(corpo, { team, anno, gid }) {
     if (!partite.length) { corpo.innerHTML = '<p class="pm-note">No games for this team in this season yet.</p>'; return; }
     const scelta = partite.find(g => g.id === gid) || partite[partite.length - 1];
     S = { team, anno, gid: scelta.id, idx, partite, rows: null, game: scelta, filtri: {}, esito: '', cerca: '', sel: null, lato: 'all' };
+    // La stagione in corso non ha ancora la participation (nflverse la
+    // pubblica a fine stagione): senza, non si sa chi era in campo e il
+    // campo mostra solo la palla. Lo si dice subito, con la strada per
+    // l'ultima stagione completa — se no la sala sembrava rotta.
+    const senza22 = !partite.some(g => g.part);
     corpo.innerHTML = `
+        ${senza22 ? `<div class="fr-banner"><p><b>No players on the field for ${anno} yet.</b> Who was on the field comes from nflverse participation data, published after the season: until then the film room shows only the ball, with real depth and yards.</p><a class="fr-pill is-on" href="#nfl-tactics/${team}/${anno - 1}/film">Watch ${anno - 1} with all 22 ›</a></div>` : ''}
         <div class="fr-games" role="tablist" aria-label="Games">${partite.map(g => pillola(g, team)).join('')}</div>
         <div id="fr-game"><div class="loading-state"><div class="spinner"></div></div></div>`;
     corpo.querySelector('.fr-games .is-active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -100,10 +119,12 @@ async function caricaPartita(corpo) {
     if (!file) { box.innerHTML = '<p class="pm-note">This game could not be loaded.</p>'; return; }
     S.rows = decodifica(file, S.idx.cols);
     S.sel = null;
-    box.innerHTML = `${testataPartita()}<div class="fr-layout"><div class="fr-left">${filtriHtml()}<div id="fr-list"></div></div><aside class="fr-detail" id="fr-detail"></aside></div>`;
+    box.innerHTML = `${testataPartita()}<section class="fr-stage" id="fr-stage" aria-label="Play on the field"></section>
+        <div class="fr-layout"><div class="fr-left">${filtriHtml()}<div id="fr-list"></div></div><aside class="fr-detail" id="fr-detail"></aside></div>`;
     disegnaLista(corpo);
-    const primo = visibili()[0];
-    if (primo) scegli(corpo, primo._i, false);
+    // Si parte dalla prima giocata coi 22 in campo, non dal kickoff.
+    const primo = visibili().find(r => r.part_offense_names && scrimmage(r)) || visibili()[0];
+    if (primo) scegli(corpo, primo._i, { scorri: false });
 }
 
 // ─── testata della partita ───────────────────────────────────────────────
@@ -269,17 +290,20 @@ function epaTono(r) {
 
 // ─── dettaglio della giocata ─────────────────────────────────────────────
 
-function scegli(corpo, i, scorri = true, apri = scorri) {
+/**
+ * Sceglie una giocata: palco e dettaglio. `parti` fa partire l'animazione
+ * (scegliendo dalla lista o con le frecce sì, al caricamento no).
+ */
+function scegli(corpo, i, { scorri = true, parti = false } = {}) {
     S.sel = i;
+    clearTimeout(_avanti);
     corpo.querySelectorAll('.fr-play.is-sel').forEach(b => b.classList.remove('is-sel'));
     const btn = corpo.querySelector(`.fr-play[data-fr-play="${i}"]`);
     btn?.classList.add('is-sel');
     if (scorri) btn?.scrollIntoView({ block: 'nearest' });
     const det = corpo.querySelector('#fr-detail');
     det.innerHTML = dettaglioHtml(S.rows[i]);
-    // Sul telefono il dettaglio è un foglio a tutto schermo: si apre quando
-    // si sceglie una giocata, non al caricamento.
-    if (apri) { det.classList.add('is-open'); det.scrollTop = 0; }
+    palco(corpo, { parti });
 }
 
 /** Valore di una dimensione del catalogo su una giocata, rispettandone il
@@ -292,7 +316,6 @@ function voce(label, v, cls = '') {
 }
 
 function dettaglioHtml(r) {
-    const vis = visibili(), pos = vis.findIndex(x => x._i === r._i);
     const pct = (x) => (x == null || x === '' ? null : `${(+x * 100).toFixed(1)}%`);
     const wpA = r.wp != null ? +r.wp : null, wpB = r.wpa != null && wpA != null ? wpA + +r.wpa : null;
     const situ = [
@@ -337,80 +360,159 @@ function dettaglioHtml(r) {
         voce('Penalty', r.penalty === '1' ? `${r.penalty_type || ''} on ${sito(r.penalty_team) || ''}${r.penalty_player_name ? ` (${r.penalty_player_name})` : ''}, ${r.penalty_yards || 0} yds` : null),
     ].join('');
     return `
-        <button type="button" class="fr-close" data-fr-close>✕ Back to the plays</button>
-        <div class="fr-nav">
-            <button type="button" data-fr-step="-1" ${pos <= 0 ? 'disabled' : ''} aria-label="Previous play">‹ Prev</button>
-            <span>${pos >= 0 ? `${pos + 1} / ${vis.length}` : 'Not in the current filter'}</span>
-            <button type="button" data-fr-step="1" ${pos < 0 || pos >= vis.length - 1 ? 'disabled' : ''} aria-label="Next play">Next ›</button>
-        </div>
-        <p class="fr-dtitle">${esc(r.desc || '')}</p>
-        ${campoHtml(r)}
-        <div class="fr-sec"><h4>Situation</h4><div class="fr-kvs">${situ}</div></div>
+        <button type="button" class="fr-close" data-fr-close>✕ Back to the field</button>
+        <p class="fr-dtitle fr-dtitle--sheet">${esc(r.desc || '')}</p>
+        <div class="fr-sec fr-sec--first"><h4>Situation</h4><div class="fr-kvs">${situ}</div></div>
         ${pre ? `<div class="fr-sec"><h4>Pre-snap</h4><div class="fr-kvs">${pre}</div></div>` : ''}
         ${dif ? `<div class="fr-sec"><h4>Defense & pressure</h4><div class="fr-kvs">${dif}</div></div>` : ''}
         <div class="fr-sec"><h4>Result</h4><div class="fr-kvs">${esito}</div></div>
         ${ventidueHtml(r)}
         ${grezziHtml(r)}
-        <p class="fr-hint">Keyboard: ← → previous / next play.</p>`;
+        <p class="fr-hint">Keyboard: ← → previous / next play · space play / pause.</p>`;
 }
 
-// ─── campo della giocata (schema) ────────────────────────────────────────
+// ─── il palco: scorebug, campo, comandi ─────────────────────────────────
 
-/**
- * Campo orizzontale dal punto di vista dell'attacco, che va verso destra.
- * VERI: linea di scrimmage, linea del primo down, lunghezza del passaggio
- * (air yards), YAC, yard della corsa, corsia (left/middle/right, gap).
- * DISEGNATA: la forma della traccia.
- */
-function campoHtml(r) {
-    const yl = r.yardline_100 != null ? +r.yardline_100 : null;
-    if (yl == null || !r.posteam) return '';
-    const W = 600, H = 150, M = 30; // 100 yard su W-2M, più due end zone da 10 yard
-    const X = (yd) => M + ((110 - yd) / 120) * (W - 2 * M) + 0; // yd = yard dalla end zone avversaria
-    const xEz = (d) => M + ((d + 10) / 120) * (W - 2 * M);
-    const los = X(yl);
-    const fd = r.ydstogo && r.down ? X(Math.max(0, yl - +r.ydstogo)) : null;
-    const corsia = (v) => ({ left: 0.25, middle: 0.5, right: 0.75 })[v] ?? 0.5;
-    const gapY = (loc, gap) => (loc === 'middle' ? 0.5 : loc === 'left' ? ({ guard: 0.42, tackle: 0.34, end: 0.2 })[gap] ?? 0.3 : ({ guard: 0.58, tackle: 0.66, end: 0.8 })[gap] ?? 0.7);
-    let traccia = '';
-    const yIn = (f) => 14 + f * (H - 28);
-    const y0 = yIn(0.5);
-    if (r.pass === '1' && r.sack !== '1' && r.air_yards != null) {
-        const ay = +r.air_yards, yy = yIn(corsia(r.pass_location));
-        const xC = X(yl - ay);
-        const ok = r.complete_pass === '1';
-        traccia += `<path d="M${los - 14},${y0} Q${(los + xC) / 2},${Math.min(y0, yy) - 34} ${xC},${yy}" class="fr-air${ok ? '' : ' is-inc'}"/>`;
-        if (ok && r.yards_after_catch != null) traccia += `<line x1="${xC}" y1="${yy}" x2="${X(yl - ay - +r.yards_after_catch)}" y2="${yy}" class="fr-yac"/>`;
-        traccia += `<circle cx="${ok && r.yards_after_catch != null ? X(yl - ay - +r.yards_after_catch) : xC}" cy="${yy}" r="5" class="fr-ball${ok ? '' : ' is-inc'}"/>`;
-    } else if (r.kick_distance != null && (r.punt_attempt === '1' || r.kickoff_attempt === '1' || r.field_goal_attempt === '1')) {
-        // Sul kickoff `posteam` è chi RICEVE: il calcio va verso la sua end
-        // zone (a sinistra), e il ritorno torna verso destra. Su punt e
-        // field goal calcia chi ha la palla, verso destra.
-        const ko = r.kickoff_attempt === '1', dir = ko ? -1 : 1;
-        const kd = +r.kick_distance, ret = +r.return_yards || 0;
-        const xK = X(yl - dir * kd);
-        traccia += `<path d="M${los},${y0} Q${(los + xK) / 2},${y0 - 52} ${xK},${y0}" class="fr-kick"/><circle cx="${xK}" cy="${y0}" r="5" class="fr-ball"/>`;
-        if (ret) traccia += `<line x1="${xK}" y1="${y0 + 8}" x2="${X(yl - dir * kd + dir * ret)}" y2="${y0 + 8}" class="fr-ret"/>`;
-    } else if (r.rush === '1' || r.sack === '1') {
-        const yy = r.sack === '1' ? y0 : yIn(gapY(r.run_location, r.run_gap));
-        const xF = X(yl - (+r.yards_gained || 0));
-        traccia += `<path d="M${los - 10},${y0} L${los + 2},${yy} L${xF},${yy}" class="fr-run${(+r.yards_gained || 0) < 0 ? ' is-loss' : ''}"/><circle cx="${xF}" cy="${yy}" r="5" class="fr-ball"/>`;
+const ICONA = {
+    play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg>',
+    pausa: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>',
+    prima: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h2v11H3zM14 2.5v11L6 8z"/></svg>',
+    dopo: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11 2.5h2v11h-2zM2 2.5v11L10 8z"/></svg>',
+    daCapo: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-4.9 6h1.6A3.4 3.4 0 1 0 8 4.6V7L4.5 3.8 8 .6z"/></svg>',
+};
+
+/** Lo stato che lo scorebug del Live si aspetta, preso dalla riga: il
+ *  punteggio è quello PRIMA della giocata, come lo si vedeva in TV. */
+function statoBug(r) {
+    const g = S.game;
+    const casa = r.posteam === g.home;
+    const n = (v) => (v == null || v === '' ? null : +v);
+    const pt = (lato) => {
+        const mio = lato === 'home' ? casa : !casa;
+        const v = r.posteam ? n(mio ? r.posteam_score : r.defteam_score) : null;
+        return v ?? n(lato === 'home' ? r.total_home_score : r.total_away_score) ?? 0;
+    };
+    const squadra = (lato) => {
+        const abbr = sito(g[lato]);
+        const id = getTeamIdentity(abbr);
+        return { abbr, logo: LOGO(abbr), color: id?.color, score: pt(lato), timeouts: n(r[`${lato}_timeouts_remaining`]) ?? undefined };
+    };
+    const ot = +r.qtr >= 5;
+    return {
+        home: squadra('home'), away: squadra('away'), stato: 'in',
+        periodo: ot ? null : +r.qtr || null, orologio: ot ? `OT ${r.time || ''}` : r.time || '',
+        down: r.down ? +r.down : null, distance: r.goal_to_go === '1' ? 'Goal' : r.ydstogo,
+        possesso: r.posteam ? (casa ? 'home' : 'away') : null, toEZ: r.yardline_100 != null ? +r.yardline_100 : null,
+    };
+}
+
+/** Due tinte troppo vicine non si distinguono sul campo: la difesa passa
+ *  al suo secondo colore. */
+function colori(r) {
+    const a = getTeamIdentity(sito(r.posteam)), b = getTeamIdentity(sito(r.defteam));
+    const hex = (c) => (c || '#888888').replace('#', '').match(/../g).map(x => parseInt(x, 16));
+    const dist = (x, y) => { const p = hex(x), q = hex(y); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+    const off = a?.color || '#4f8cff';
+    let def = b?.color || '#b8433a';
+    if (dist(off, def) < 90 && b?.color2) def = b.color2;
+    return { off, def };
+}
+
+function notaCampo(r, sc) {
+    if (sc.modo === 'vuoto') return 'No field position for this row.';
+    if (sc.modo === 'palla') {
+        if (sc.motivo === 'special') return 'Special teams: only the ball is drawn. Kick and return distances are real (play-by-play).';
+        if (sc.motivo === 'participation') return `Who was on the field comes from participation data, which nflverse publishes after the season${S.anno >= 2026 ? ` — not out yet for ${S.anno}` : ''}. Only the ball is drawn: depth, direction and yards are real.`;
+        return 'The players on the field could not be placed for this play. Only the ball is drawn: depth, direction and yards are real.';
     }
-    const tacche = [];
-    for (let d = 10; d <= 90; d += 10) tacche.push(`<line x1="${xEz(d)}" y1="0" x2="${xEz(d)}" y2="${H}" class="fr-yl"/><text x="${xEz(d)}" y="${H - 4}" class="fr-yn">${d <= 50 ? d : 100 - d}</text>`);
-    const pos = sito(r.posteam), def = sito(r.defteam);
-    return `<figure class="fr-field">
-        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Play diagram">
-            <rect x="${M}" y="0" width="${W - 2 * M}" height="${H}" class="fr-grass"/>
-            <rect x="${M}" y="0" width="${(W - 2 * M) / 12}" height="${H}" class="fr-ez" style="fill:${getTeamIdentity(pos)?.color || '#333'}"/>
-            <rect x="${W - M - (W - 2 * M) / 12}" y="0" width="${(W - 2 * M) / 12}" height="${H}" class="fr-ez" style="fill:${getTeamIdentity(def)?.color || '#333'}"/>
-            ${tacche.join('')}
-            <line x1="${los}" y1="0" x2="${los}" y2="${H}" class="fr-los"/>
-            ${fd != null ? `<line x1="${fd}" y1="0" x2="${fd}" y2="${H}" class="fr-fd"/>` : ''}
-            ${traccia}
-        </svg>
-        <figcaption>${esc(pos)} → attacking right. Blue = line of scrimmage, yellow = first down. Lengths and direction are real (air yards, YAC, yards, gap, kick and return distance); the shape of the path is drawn — tracking data is not public.</figcaption>
-    </figure>`;
+    const rotta = r.part_route ? `the target's route type (${et(r.part_route)}), ` : '';
+    return `<b>Real</b> (nflverse participation, FTN, play-by-play): who is on the field, QB alignment, players in the backfield, hash, coverage, pass rushers, time to throw, ${rotta}air yards, YAC, run gap, the spot where the play ended and who made the tackle.
+        <b>Reconstructed</b>: exact alignments and movement — player tracking is not public. ${PREF.disegnate
+        ? 'Dashed routes are <b>drawn</b>: a plausible concept, not data — no public source publishes the routes of receivers who were not targeted.'
+        : 'Receivers who were not targeted only show their release (faded): no public source publishes their routes. "Drawn routes" adds a plausible concept.'}${PREF.zone && sc.copertura
+        ? ' <b>Coverage zones</b>: the coverage call is real (participation); who takes which zone follows the textbook rules for that call, applied to the defenders actually on the field.' : ''}`;
+}
+
+/** Disegna il palco per la giocata scelta e ne monta l'animazione. */
+function palco(corpo, { parti = false, t = 0 } = {}) {
+    const box = corpo.querySelector('#fr-stage');
+    if (!box || S.sel == null) return;
+    _film?.distruggi();
+    _film = null;
+    const r = S.rows[S.sel];
+    const vis = visibili(), pos = vis.findIndex(x => x._i === r._i);
+    const sc = scenaGiocata(r, { disegnate: PREF.disegnate });
+    const col = colori(r);
+    const tel = telefono();
+    // Vista All-22: sul telefono di base quella dalla end zone, che è più
+    // alta che larga e ci sta; su desktop quella laterale. Si cambia coi
+    // due pulsanti e la scelta resta.
+    const vista = PREF.vista || (tel ? 'end' : 'side');
+    // Proporzioni del riquadro: largo quanto la pagina, alto al massimo due
+    // terzi dello schermo.
+    const w = box.clientWidth || 1000;
+    const aspetto = w / Math.min(innerHeight * (tel ? 0.56 : 0.66), w * (tel ? 1.3 : 0.62));
+    const zone = PREF.zone && !!sc.copertura;
+    const id = getTeamIdentity(sito(S.game.home)), ido = getTeamIdentity(sito(S.game.away));
+    const pill = (attr, v, on, label) => `<button type="button" class="fr-pill${on ? ' is-on' : ''}" ${attr}="${v}" aria-pressed="${on}">${label}</button>`;
+    const y = r.yards_gained;
+    box.innerHTML = `
+        <div class="fst fr-bug" style="--fst-casa:${id?.color || '#b8433a'};--fst-osp:${ido?.color2 || ido?.color || '#4f8cff'}">${scorebugHTML(statoBug(r))}</div>
+        <div class="fr-pitch${PREF.nomi ? ' ff--nomi' : ''}">
+            ${sc.modo === 'vuoto' ? '<p class="fr-pitch-empty">No field position for this play.</p>' : filmSVG(sc, { vista, aspetto, zone, colori: col, sigle: { off: sito(r.posteam), def: sito(r.defteam) } })}
+            <div class="fr-ev" aria-live="polite"><b></b><span></span></div>
+            ${zone ? `<div class="fr-cov"><b>${esc(NOMI_COPERTURA[r.part_defense_coverage_type] || '')}</b><span>${sc.copertura.some(z => z.uomo) ? 'Lines = man assignments · ' : ''}arrows = pass rush</span></div>` : ''}
+        </div>
+        <div class="fr-ctrl">
+            <div class="fr-ctrl-row">
+                <button type="button" class="fr-cbtn" data-fr-step="-1" ${pos <= 0 ? 'disabled' : ''} aria-label="Previous play" title="Previous play (←)">${ICONA.prima}</button>
+                <button type="button" class="fr-cbtn fr-cbtn--main" data-fr-pp aria-label="Play" title="Play / pause (space)">${ICONA.play}</button>
+                <button type="button" class="fr-cbtn" data-fr-step="1" ${pos < 0 || pos >= vis.length - 1 ? 'disabled' : ''} aria-label="Next play" title="Next play (→)">${ICONA.dopo}</button>
+                <span class="fr-count">${pos >= 0 ? `Play ${pos + 1} of ${vis.length}` : 'Not in the current filter'}</span>
+                <span class="fr-group fr-group--view" role="group" aria-label="Camera">${[['side', 'Sideline'], ['end', 'End zone']].map(([k, l]) => pill('data-fr-vista', k, vista === k, l)).join('')}</span>
+            </div>
+            <div class="fr-ctrl-row fr-ctrl-opts">
+                <span class="fr-group">${[0.5, 1, 2].map(v => pill('data-fr-rate', v, PREF.rate === v, `${v}×`)).join('')}</span>
+                <span class="fr-group">
+                    ${sc.copertura ? pill('data-fr-pref', 'zone', PREF.zone, 'Coverage zones') : sc.modo === 'giocatori' ? '<span class="fr-pill is-off" title="Participation charts the coverage on dropbacks only">Coverage zones</span>' : ''}
+                    ${sc.modo === 'giocatori' ? pill('data-fr-pref', 'disegnate', PREF.disegnate, 'Drawn routes') : ''}
+                    ${sc.modo === 'giocatori' ? pill('data-fr-pref', 'nomi', PREF.nomi, 'All names') : ''}
+                    ${pill('data-fr-pref', 'auto', PREF.auto, 'Auto-advance')}
+                </span>
+                <button type="button" class="fr-pill fr-open-detail" data-fr-open>Play details ›</button>
+            </div>
+        </div>
+        <div class="fr-caption">
+            <p class="fr-dtitle">${esc(r.desc || '')}</p>
+            <div class="fr-capmeta">
+                <span class="fr-chips">${chips(r).map(c => `<i>${esc(c)}</i>`).join('')}</span>
+                ${y != null && scrimmage(r) ? `<b>${+y > 0 ? '+' : ''}${y} yds</b>` : ''}
+                ${r.epa != null ? `<b class="${epaTono(r)}">EPA ${segno(r.epa)}</b>` : ''}
+            </div>
+        </div>
+        <p class="fr-truth">${notaCampo(r, sc)}</p>`;
+    if (sc.modo === 'vuoto') return;
+    const pp = box.querySelector('[data-fr-pp]');
+    const ev = box.querySelector('.fr-ev');
+    _film = montaFilm(box.querySelector('.fr-pitch'), sc, {
+        onTick(tt, T, gira) {
+            if (gira != null) { pp.innerHTML = gira ? ICONA.pausa : (tt >= T ? ICONA.daCapo : ICONA.play); pp.setAttribute('aria-label', gira ? 'Pause' : 'Play'); }
+        },
+        onEvento(e) {
+            ev.classList.toggle('is-on', !!e);
+            ev.querySelector('b').textContent = e?.txt || '';
+            ev.querySelector('span').textContent = e?.sub || '';
+            ev.dataset.k = e ? e.txt.toLowerCase().replace(/[^a-z]+/g, '-') : '';
+        },
+        onFine() {
+            if (!PREF.auto) return;
+            const sel = S?.sel;
+            _avanti = setTimeout(() => { if (S?.sel === sel && document.body.contains(box)) passo(corpo, 1, true); }, 1200);
+        },
+    });
+    _film?.velocita(PREF.rate);
+    if (t) _film?.vai(t);
+    if (parti) setTimeout(() => { if (_film && S?.sel === r._i) _film.play(); }, 120);
 }
 
 // ─── i 22 in campo ───────────────────────────────────────────────────────
@@ -452,12 +554,30 @@ function grezziHtml(r) {
 
 // ─── eventi ──────────────────────────────────────────────────────────────
 
-function passo(corpo, d) {
+function passo(corpo, d, parti = true) {
     const vis = visibili();
     const i = vis.findIndex(x => x._i === S.sel);
     const nx = vis[i + d];
-    if (nx) scegli(corpo, nx._i, true, corpo.querySelector('#fr-detail')?.classList.contains('is-open'));
+    // Avanti e indietro si guardano sul campo: la lista non si scorre (era
+    // la pagina intera a scorrere fino alla riga, e il campo usciva di vista).
+    if (!nx) return;
+    scegli(corpo, nx._i, { scorri: false, parti });
+    mostraPalco(corpo);
 }
+
+/** Scegliendo dalla lista, il palco torna in vista se non lo è. */
+function mostraPalco(corpo) {
+    const st = corpo.querySelector('#fr-stage');
+    const campo = st?.querySelector('.fr-pitch') || st;
+    if (!campo) return;
+    // Si muove solo se il CAMPO è in buona parte fuori vista: se si vede,
+    // la pagina resta ferma e si guarda la giocata dopo nello stesso posto.
+    const r = campo.getBoundingClientRect();
+    const visibile = Math.min(r.bottom, innerHeight) - Math.max(r.top, 0);
+    if (visibile < r.height * 0.6) st.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+let _mq = null;
 
 let _tasti = null;
 function leghe(corpo) {
@@ -475,10 +595,34 @@ function leghe(corpo) {
                 return;
             }
             const p = e.target.closest('[data-fr-play]');
-            if (p) { scegli(corpo, +p.dataset.frPlay, false, true); return; }
+            if (p) { scegli(corpo, +p.dataset.frPlay, { scorri: false, parti: true }); mostraPalco(corpo); return; }
             if (e.target.closest('[data-fr-close]')) { corpo.querySelector('#fr-detail')?.classList.remove('is-open'); return; }
+            if (e.target.closest('[data-fr-open]')) { const det = corpo.querySelector('#fr-detail'); det?.classList.add('is-open'); if (det) det.scrollTop = 0; return; }
             const st = e.target.closest('[data-fr-step]');
             if (st) { passo(corpo, +st.dataset.frStep); return; }
+            if (e.target.closest('[data-fr-pp]')) { if (_film) (_film.inCorso ? _film.pausa() : _film.play()); return; }
+            const vs = e.target.closest('[data-fr-vista]');
+            if (vs) { PREF.vista = vs.dataset.frVista; palco(corpo, { t: _film?.t || 0, parti: !!_film?.inCorso }); return; }
+            const rt = e.target.closest('[data-fr-rate]');
+            if (rt) {
+                PREF.rate = +rt.dataset.frRate;
+                _film?.velocita(PREF.rate);
+                corpo.querySelectorAll('[data-fr-rate]').forEach(b => { const on = b === rt; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); });
+                return;
+            }
+            const pr = e.target.closest('[data-fr-pref]');
+            if (pr) {
+                const k = pr.dataset.frPref;
+                PREF[k] = !PREF[k];
+                // Le rotte disegnate cambiano la scena; nomi e avanzamento no.
+                if (k === 'disegnate' || k === 'zone') palco(corpo, { t: _film?.t || 0, parti: !!_film?.inCorso });
+                else {
+                    pr.classList.toggle('is-on', PREF[k]); pr.setAttribute('aria-pressed', PREF[k]);
+                    if (k === 'nomi') corpo.querySelector('.fr-pitch')?.classList.toggle('ff--nomi', PREF.nomi);
+                    if (k === 'auto' && !PREF.auto) clearTimeout(_avanti);
+                }
+                return;
+            }
             const l = e.target.closest('[data-fr-lato]');
             if (l) { S.lato = l.dataset.frLato; S.filtri = {}; rifaiFiltri(corpo); return; }
             if (e.target.closest('[data-fr-altri]')) { S.altri = !(S.altri || Object.keys(S.filtri).some(k => S.filtri[k] && FILTRI.indexOf(k) >= 8)); rifaiFiltri(corpo); return; }
@@ -494,12 +638,19 @@ function leghe(corpo) {
             if (S && e.target.matches('[data-fr-cerca]')) { S.cerca = e.target.value; disegnaLista(corpo); aggiornaDettaglio(corpo); }
         });
     }
+    // Telefono ⇄ desktop: cambiano proporzioni e vista di base, l'istante resta.
+    if (!_mq) {
+        _mq = matchMedia('(max-width: 640px)');
+        _mq.addEventListener('change', () => { if (S && document.body.contains(corpo)) palco(corpo, { t: _film?.t || 0 }); });
+    }
     if (_tasti) document.removeEventListener('keydown', _tasti);
     _tasti = (e) => {
         if (!S || !document.body.contains(corpo) || !corpo.querySelector('#fr-list')) return;
         if (e.target.closest?.('input, select, textarea')) return;
+        if (e.target.closest?.('button') && e.key === ' ') return;
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); passo(corpo, 1); }
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); passo(corpo, -1); }
+        else if (e.key === ' ' && _film) { e.preventDefault(); _film.inCorso ? _film.pausa() : _film.play(); }
     };
     document.addEventListener('keydown', _tasti);
 }
@@ -516,12 +667,18 @@ function rifaiFiltri(corpo) {
 function aggiornaDettaglio(corpo) {
     const vis = visibili();
     if (!vis.length) { corpo.querySelector('#fr-detail').innerHTML = ''; return; }
-    scegli(corpo, vis.some(r => r._i === S.sel) ? S.sel : vis[0]._i, false);
+    // La giocata scelta è ancora nel taglio: si rifà solo il palco (cambiano
+    // il contatore e le frecce), senza perdere l'istante dell'animazione.
+    if (vis.some(r => r._i === S.sel)) { palco(corpo, { t: _film?.t || 0, parti: !!_film?.inCorso }); return; }
+    scegli(corpo, vis[0]._i, { scorri: false });
 }
 
 /** Da chiamare uscendo dalla vista: stacca le frecce della tastiera. */
 export function lasciaFilm() {
     if (_tasti) document.removeEventListener('keydown', _tasti);
     _tasti = null;
+    _film?.distruggi();
+    _film = null;
+    clearTimeout(_avanti);
     S = null;
 }

@@ -33,7 +33,7 @@
  */
 
 import { fetchDraftData, flattenDraft, displayName, SEASONS } from '../data.js?v=597';
-import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=1';
+import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 import { TEAM_KEYS } from '../data/team-config.js?v=538';
 import { TEAMS } from './team.js?v=868';
 import { getHonorsBundle } from '../data/honors.js?v=724';
