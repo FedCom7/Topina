@@ -25,10 +25,10 @@ import { initTeam } from './sections/team.js?v=868';
 import { initTeams } from './sections/teams.js?v=761';
 import { initGame } from './sections/game.js?v=849';
 import { initAnalysis } from './sections/analysis.js?v=918';
-import { initLeaders } from './sections/leaders.js?v=153';
+import { initLeaders } from './sections/leaders.js?v=157';
 import { initWaivers } from './sections/waivers.js?v=150';
 import { initPlayerStats } from './sections/player-stats.js?v=39';
-import { initPlayerTrends } from './sections/player-trends.js?v=8';
+import { initPlayerTrends } from './sections/player-trends.js?v=12';
 
 import { initMagazine } from './sections/magazine.js?v=813';
 import { initLive } from './sections/live.js?v=1173';

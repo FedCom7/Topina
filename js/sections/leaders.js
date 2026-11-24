@@ -30,6 +30,7 @@ import { getPlayerWeekly, statsSleeperALega } from '../data/player-full.js?v=674
 import { squadraPreferita } from '../utils/preferenze.js?v=1';
 import { getAdvancedPlayers } from '../data/context-score.js?v=684';
 import { getTeamStats } from '../data/nfl-team-stats.js?v=856';
+import { niceTicks } from '../ui/charts.js?v=9';
 
 let initialized = false;
 let currentYear = CURRENT_SEASON;
@@ -899,6 +900,10 @@ function confrontoHTML() {
         <div class="live-cmpteam-head"><span></span><span class="live-cmpteam-title">${currentYear} season</span><span></span></div>
         ${righeStatisticheHTML(a, b)}
     </section>
+    <section class="live-cmpteam ld-cmp-stats ld-forma" data-ld-forma>
+        <div class="live-cmpteam-head"><span></span><span class="live-cmpteam-title">Consistency &amp; trend</span><span></span></div>
+        <p class="an-footnote">Loading…</p>
+    </section>
     ${usoHTML(a, b)}
     ${squadraHTML(a, b)}
     <section class="live-cmpteam ld-cmp-weeks" data-ld-settimane>
@@ -915,6 +920,260 @@ function confrontoHTML() {
     ${corpo}`;
 }
 
+/* ============================================================
+   COSTANZA E TREND — media, varianza e andamento dei due
+   ============================================================ */
+
+/*
+ * Le partite sono quelle GIOCATE (getPlayerWeekly: Sleeper, punteggio della
+ * lega; bye e settimane da inattivo non ci sono): una media che contasse gli
+ * zeri delle assenze direbbe "incostante" di chi e' stato solo infortunato.
+ *
+ * Tre misure, tre domande:
+ *  - σ (e la varianza σ², chiesta esplicitamente) dice di quanti punti oscilla
+ *    di solito. E' in punti, quindi confrontabile solo a parita' di media;
+ *  - la volatilita' σ ÷ media e' la stessa oscillazione in proporzione: e' lei
+ *    a dire chi e' piu' affidabile fra uno da 20 e uno da 10;
+ *  - il trend e' la pendenza della retta dei minimi quadrati sui punti per
+ *    SETTIMANA (non per partita: un mese fermo e' tempo che passa), in punti
+ *    guadagnati o persi a settimana. Sotto le 3 partite non si calcola.
+ * Media mobile a 3 partite nel grafico, ultime 4 contro la stagione nei
+ * numeri: e' la versione "a occhio" della stessa domanda.
+ */
+const FINESTRA_MOBILE = 3;
+const ULTIME_FORMA = 4;
+
+function statForma(giochi) {
+    const g = (giochi || []).map(x => ({ w: x.week, p: Number(x.pts) || 0, x })).sort((a, z) => a.w - z.w);
+    const n = g.length;
+    if (!n) return null;
+    const pts = g.map(x => x.p);
+    const media = pts.reduce((s, v) => s + v, 0) / n;
+    const ord = [...pts].sort((a, z) => a - z);
+    const quantile = (q) => { const i = (n - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return ord[lo] + (ord[hi] - ord[lo]) * (i - lo); };
+    // Varianza campionaria (n − 1): sono le partite di una stagione, un campione.
+    const varianza = n > 1 ? pts.reduce((s, v) => s + (v - media) ** 2, 0) / (n - 1) : null;
+    const sd = varianza == null ? null : Math.sqrt(varianza);
+    let pendenza = null, intercetta = null;
+    if (n >= 3) {
+        const mw = g.reduce((s, x) => s + x.w, 0) / n;
+        const sxx = g.reduce((s, x) => s + (x.w - mw) ** 2, 0);
+        if (sxx > 0) {
+            pendenza = g.reduce((s, x) => s + (x.w - mw) * (x.p - media), 0) / sxx;
+            intercetta = media - pendenza * mw;
+        }
+    }
+    const ultime = pts.slice(-ULTIME_FORMA);
+    const mediaUltime = n >= ULTIME_FORMA + 1 ? ultime.reduce((s, v) => s + v, 0) / ultime.length : null;
+    const mobile = g.map((x, i) => {
+        const fin = pts.slice(Math.max(0, i - FINESTRA_MOBILE + 1), i + 1);
+        return { w: x.w, v: fin.reduce((s, v) => s + v, 0) / fin.length };
+    });
+    return {
+        n, g, media, mediana: quantile(0.5), sd, varianza, cv: sd != null && media > 0 ? sd / media : null,
+        p25: quantile(0.25), p75: quantile(0.75), min: ord[0], max: ord[n - 1],
+        pendenza, intercetta, mediaUltime, mobile,
+    };
+}
+
+const segnato = (v, d = 1) => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v), d)}`);
+const cognomeDi = (n) => { const p = String(n || '').replace(/ (Jr\.|Sr\.|II|III|IV|V)$/, '').split(' '); return p.length > 1 ? p.slice(1).join(' ') : p[0]; };
+const escF = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+/** I numeri a specchio, sullo stesso disegno delle altre sezioni del confronto. */
+function formaRigheHTML(sa, sb) {
+    const r = (label, va, vb, o = {}) => rigaSpecchio(label, va ?? null, vb ?? null, {
+        ...o,
+        scrivi: o.scrivi || ((v, lato) => { const x = lato === 'a' ? va : vb; return x == null ? '–' : fmt(x, o.dec ?? 1); }),
+    });
+    const ultime = (s, lato) => {
+        if (!s?.mediaUltime && s?.mediaUltime !== 0) return '–';
+        return `${fmt(s.mediaUltime, 1)}<small class="ld-cmp-opp">${segnato(s.mediaUltime - s.media)} vs season</small>`;
+    };
+    return [
+        r('Games played', sa?.n, sb?.n, { dec: 0, neutro: true }),
+        r('Mean (points per game)', sa?.media, sb?.media),
+        r('Median', sa?.mediana, sb?.mediana),
+        r('Standard deviation σ', sa?.sd, sb?.sd, { neutro: true }),
+        r('Variance σ²', sa?.varianza, sb?.varianza, { neutro: true, dec: 0 }),
+        r('Volatility (σ ÷ mean)', sa?.cv, sb?.cv, { basso: true, scrivi: (v, lato) => { const x = (lato === 'a' ? sa : sb)?.cv; return x == null ? '–' : `${Math.round(x * 100)}%`; } }),
+        r('Floor · 25th percentile', sa?.p25, sb?.p25),
+        r('Ceiling · 75th percentile', sa?.p75, sb?.p75),
+        r('Worst game', sa?.min, sb?.min),
+        r('Best game', sa?.max, sb?.max),
+        r('Trend (points per week)', sa?.pendenza, sb?.pendenza, { scrivi: (v, lato) => segnato((lato === 'a' ? sa : sb)?.pendenza, 2) }),
+        r(`Last ${ULTIME_FORMA} games`, sa?.mediaUltime, sb?.mediaUltime, { scrivi: (v, lato) => ultime(lato === 'a' ? sa : sb, lato) }),
+    ].join('');
+}
+
+/*
+ * I due grafici sono le forme di Analysis, con le sue classi: la dispersione
+ * è il dot plot dei margini (buildMarginDotPlot: puntini tenui, fascia ±1σ
+ * senza bordo, tacca della media col valore sopra nel colore della serie),
+ * l'andamento è il suo grafico a linee (buildLineChart: linee da 2px, pallino
+ * e nome a fine linea, crosshair, fumetto .an-chart-tooltip). Copiarne
+ * l'aspetto e non il codice: quelle funzioni sono locali ad analysis.js.
+ * I colori dei due giocatori sono le variabili --ld-a / --ld-b (validate per
+ * il daltonismo, vedi css), passate in `style` perché valgono anche in chiaro.
+ */
+const COLORE = { a: 'var(--ld-a)', b: 'var(--ld-b)' };
+
+/** Dispersione: una corsia per giocatore, come i margini di Analysis. */
+function grafDistribuzione(lati, stretto) {
+    // Sul telefono un riquadro più stretto, non lo stesso rimpicciolito: a
+    // 800 unità su 340 pixel le scritte scendevano sotto i 6 pixel.
+    const D = stretto ? { w: 420, l: 84, r: 10, t: 22, b: 26, lane: 70 } : { w: 800, l: 130, r: 16, t: 22, b: 28, lane: 78 };
+    const tuttiP = lati.flatMap(l => l.s.g.map(x => x.p));
+    const max = Math.max(1, ...tuttiP, ...lati.map(l => l.s.media + (l.s.sd || 0)));
+    const ticks = niceTicks(0, max, 5);
+    const hi = ticks[ticks.length - 1];
+    const plotW = D.w - D.l - D.r;
+    const h = D.t + D.b + lati.length * D.lane;
+    const x = (v) => D.l + (Math.max(0, v) / (hi || 1)) * plotW;
+    const griglia = ticks.map(v => `
+        <line x1="${x(v).toFixed(1)}" y1="${D.t}" x2="${x(v).toFixed(1)}" y2="${D.t + lati.length * D.lane}" class="an-gridline"/>
+        <text x="${x(v).toFixed(1)}" y="${h - 8}" class="an-tick" text-anchor="middle">${fmt(v, 0)}</text>`).join('');
+    // Stesso sfalsamento pseudo-casuale a seme fisso di Analysis: il disegno
+    // non cambia fra un giro e l'altro.
+    let seme = 7;
+    const rnd = () => { seme = (seme * 9301 + 49297) % 233280; return seme / 233280; };
+    const corsie = lati.map((l, i) => {
+        const cy = D.t + i * D.lane + D.lane / 2;
+        const jitH = D.lane * 0.6;
+        const { s } = l, c = COLORE[l.k];
+        const banda = s.sd != null
+            ? `<rect x="${x(s.media - s.sd).toFixed(1)}" y="${(cy - jitH / 2).toFixed(1)}" width="${(x(s.media + s.sd) - x(s.media - s.sd)).toFixed(1)}" height="${jitH.toFixed(1)}" rx="3" style="fill:${c}" opacity="0.12"
+                 data-tt="${escF(`${l.nome}|±1σ|${fmt(s.media - s.sd, 1)} – ${fmt(s.media + s.sd, 1)}|σ ${fmt(s.sd, 1)} · variance ${fmt(s.varianza, 0)}`)}" data-k="${l.k}"/>`
+            : '';
+        const punti = s.g.map(g => `<circle cx="${x(g.p).toFixed(1)}" cy="${(cy + (rnd() - 0.5) * jitH).toFixed(1)}" r="2.6" style="fill:${c}" opacity="0.45"
+            data-tt="${escF(`${l.nome}|Week ${g.w}|${fmt(g.p, 1)}|${g.x.opponent ? `${g.x.isAway ? '@' : 'vs'} ${g.x.opponent}` : ''}`)}" data-k="${l.k}"/>`).join('');
+        const mx = x(s.media);
+        return `${banda}${punti}
+            <line x1="${mx.toFixed(1)}" y1="${(cy - jitH / 2 - 3).toFixed(1)}" x2="${mx.toFixed(1)}" y2="${(cy + jitH / 2 + 3).toFixed(1)}" style="stroke:${c}" stroke-width="2.5"/>
+            <text x="${mx.toFixed(1)}" y="${(cy - jitH / 2 - 6).toFixed(1)}" class="an-tick" text-anchor="middle" style="fill:${c};font-weight:700">${fmt(s.media, 1)}</text>
+            <text x="${D.l - 10}" y="${(cy + 4).toFixed(1)}" class="st-role-label" text-anchor="end">${escF(l.nome)}</text>`;
+    }).join('');
+    return `<div class="an-chart ld-forma-chart"><svg viewBox="0 0 ${D.w} ${h}" class="an-svg" role="img" aria-label="Fantasy points per game: spread of each player">${griglia}${corsie}</svg><div class="an-chart-tooltip" hidden></div></div>`;
+}
+
+/** Andamento: il grafico a linee di Analysis, sulla media mobile. */
+function grafTrend(lati, ultima, stretto) {
+    const C = stretto ? { w: 420, h: 260, l: 30, r: 74, t: 14, b: 26 } : { w: 800, h: 300, l: 44, r: 120, t: 16, b: 30 };
+    const prima = Math.min(...lati.map(l => l.s.g[0].w));
+    const settimane = [];
+    for (let w = prima; w <= ultima; w++) settimane.push(w);
+    const tutti = lati.flatMap(l => l.s.g.map(g => g.p));
+    const ticks = niceTicks(0, Math.max(1, ...tutti));
+    const yMin = ticks[0], yMax = ticks[ticks.length - 1];
+    const plotW = C.w - C.l - C.r, plotH = C.h - C.t - C.b;
+    const x = (w) => C.l + (settimane.length > 1 ? ((w - prima) / (ultima - prima)) * plotW : plotW / 2);
+    const y = (v) => C.t + (1 - (v - yMin) / ((yMax - yMin) || 1)) * plotH;
+    const griglia = ticks.map(v => `
+        <line x1="${C.l}" y1="${y(v).toFixed(1)}" x2="${C.l + plotW}" y2="${y(v).toFixed(1)}" class="an-gridline"/>
+        <text x="${C.l - 8}" y="${(y(v) + 3).toFixed(1)}" class="an-tick" text-anchor="end">${fmt(v, 0)}</text>`).join('');
+    const passo = settimane.length > 1 ? plotW / (settimane.length - 1) : plotW;
+    const xTicks = settimane.map(w => `<text x="${x(w).toFixed(1)}" y="${C.h - 8}" class="an-tick" text-anchor="middle">${passo < 22 ? w : `W${w}`}</text>`).join('');
+    // Le partite vere: puntini tenui come nel dot plot; la linea è la media
+    // mobile, la retta del trend tratteggiata (come le proiezioni del sito).
+    const serie = lati.map(l => {
+        const { s } = l, c = COLORE[l.k];
+        const punti = s.g.map(g => `<circle cx="${x(g.w).toFixed(1)}" cy="${y(g.p).toFixed(1)}" r="2.6" style="fill:${c}" opacity="0.45"/>`).join('');
+        const w0 = s.g[0].w, w1 = s.g[s.n - 1].w;
+        const retta = s.pendenza != null ? `<line x1="${x(w0).toFixed(1)}" y1="${y(s.intercetta + s.pendenza * w0).toFixed(1)}" x2="${x(w1).toFixed(1)}" y2="${y(s.intercetta + s.pendenza * w1).toFixed(1)}" style="stroke:${c}" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.7"/>` : '';
+        const linea = `<polyline points="${s.mobile.map(m => `${x(m.w).toFixed(1)},${y(m.v).toFixed(1)}`).join(' ')}" fill="none" style="stroke:${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+        return punti + retta + linea;
+    }).join('');
+    // Pallino e nome a fine linea, con lo scostamento anti-collisione di Analysis.
+    const fini = lati.map(l => { const u = l.s.mobile[l.s.mobile.length - 1]; return { l, lx: x(u.w), ly: y(u.v), labelY: y(u.v) }; }).sort((a, z) => a.ly - z.ly);
+    for (let i = 1; i < fini.length; i++) if (fini[i].labelY - fini[i - 1].labelY < 15) fini[i].labelY = fini[i - 1].labelY + 15;
+    const capi = fini.map(({ l, lx, ly, labelY }) => `
+        ${Math.abs(labelY - ly) > 2 ? `<line x1="${lx + 5}" y1="${ly}" x2="${lx + 12}" y2="${labelY}" class="an-leader"/>` : ''}
+        <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="4.5" style="fill:${COLORE[l.k]}" stroke="#000" stroke-width="2"/>
+        <text x="${(lx + 14).toFixed(1)}" y="${(labelY + 3.5).toFixed(1)}" class="an-endlabel">${escF(l.nome)}</text>`).join('');
+    // Per il fumetto: ogni settimana con i due giocatori (punti, media mobile).
+    const dati = settimane.map(w => ({
+        w, x: +x(w).toFixed(1),
+        righe: lati.map(l => {
+            const g = l.s.g.find(q => q.w === w), m = l.s.mobile.find(q => q.w === w);
+            return { k: l.k, nome: l.nome, p: g ? g.p : null, m: m ? m.v : null, opp: g?.x.opponent ? `${g.x.isAway ? '@' : 'vs'} ${g.x.opponent}` : '' };
+        }),
+    }));
+    return `<div class="an-chart ld-forma-chart">
+        <svg viewBox="0 0 ${C.w} ${C.h}" class="an-svg" role="img" aria-label="Fantasy points week by week, with 3-game average and trend line" data-forma='${JSON.stringify({ C, dati }).replace(/'/g, '&#39;')}'>
+            ${griglia}${xTicks}${serie}${capi}
+            <line class="an-crosshair" x1="0" y1="${C.t}" x2="0" y2="${C.t + plotH}" visibility="hidden"/>
+            <rect class="an-hit" x="${C.l}" y="${C.t}" width="${plotW}" height="${plotH}" fill="transparent"/>
+        </svg>
+        <div class="an-chart-tooltip" hidden></div>
+    </div>`;
+}
+
+/** Fumetto e crosshair, col markup del tooltip di Analysis. */
+function bindForma(box) {
+    const piazza = (chart, tt, e) => {
+        const r = chart.getBoundingClientRect();
+        let tx = e.clientX - r.left + 14;
+        const tw = tt.offsetWidth || 140;
+        if (tx + tw > r.width - 4) tx = e.clientX - r.left - tw - 14;
+        // dentro i bordi: sul telefono, girato a sinistra, usciva dallo schermo
+        tx = Math.max(4, Math.min(tx, r.width - tw - 4));
+        tt.style.left = `${tx}px`;
+        tt.style.top = `${e.clientY - r.top - 10}px`;
+    };
+    const riga = (k, valore, nome) => `<div class="an-tt-row"><span class="an-tt-key" style="background:${COLORE[k]}"></span><b>${escF(valore)}</b><span class="an-tt-name">${escF(nome)}</span></div>`;
+    box.querySelectorAll('.ld-forma-chart').forEach(chart => {
+        const svg = chart.querySelector('svg'), tt = chart.querySelector('.an-chart-tooltip');
+        const cross = svg.querySelector('.an-crosshair');
+        if (svg.dataset.forma) {
+            const { C, dati } = JSON.parse(svg.dataset.forma);
+            const hit = svg.querySelector('.an-hit');
+            hit.addEventListener('pointermove', (e) => {
+                const r = svg.getBoundingClientRect();
+                const px = (e.clientX - r.left) * (C.w / r.width);
+                const d = dati.reduce((m, q) => (Math.abs(q.x - px) < Math.abs(m.x - px) ? q : m), dati[0]);
+                cross.setAttribute('x1', d.x); cross.setAttribute('x2', d.x); cross.setAttribute('visibility', 'visible');
+                tt.innerHTML = `<div class="an-tt-title">Week ${d.w}</div>${[...d.righe].sort((a, z) => (z.p ?? -1) - (a.p ?? -1)).map(q => riga(q.k,
+                    q.p == null ? '–' : fmt(q.p, 1),
+                    q.p == null ? `${q.nome} (did not play)` : `${q.nome} ${q.opp ? `${q.opp} ` : ''}· avg ${fmt(q.m, 1)}`)).join('')}`;
+                tt.hidden = false;
+                piazza(chart, tt, e);
+            });
+            hit.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); tt.hidden = true; });
+            return;
+        }
+        svg.addEventListener('pointermove', (e) => {
+            const el = e.target.closest('[data-tt]');
+            if (!el) { tt.hidden = true; return; }
+            const [nome, titolo, valore, nota] = el.dataset.tt.split('|');
+            tt.innerHTML = `<div class="an-tt-title">${escF(titolo)}</div>${riga(el.dataset.k, valore, [nome, nota].filter(Boolean).join(' · '))}`;
+            tt.hidden = false;
+            piazza(chart, tt, e);
+        });
+        svg.addEventListener('pointerleave', () => { tt.hidden = true; });
+    });
+}
+
+function formaHTML(a, b, ga, gb) {
+    const sa = statForma(ga), sb = statForma(gb);
+    const titolo = `<div class="live-cmpteam-head"><span></span><span class="live-cmpteam-title">Consistency &amp; trend</span><span></span></div>`;
+    if (!sa && !sb) return `${titolo}<p class="an-footnote">No games played yet.</p>`;
+    const lati = [
+        sa && { k: 'a', nome: cognomeDi(a.name), s: sa },
+        sb && { k: 'b', nome: cognomeDi(b.name), s: sb },
+    ].filter(Boolean);
+    const ultima = Math.max(...lati.map(l => l.s.g[l.s.n - 1].w));
+    const stretto = matchMedia('(max-width: 560px)').matches;
+    return `${titolo}
+        ${formaRigheHTML(sa, sb)}
+        <h3 class="an-sub-title ld-forma-sub">Points per game: mean and spread</h3>
+        ${grafDistribuzione(lati, stretto)}
+        <p class="an-footnote">Each dot is a game played. The vertical mark is the average, the band is ±1 standard deviation: the wider the band, the bigger the variance.</p>
+        <h3 class="an-sub-title ld-forma-sub">Week by week: average and trend</h3>
+        ${grafTrend(lati, ultima, stretto)}
+        <p class="an-footnote">The line is the ${FINESTRA_MOBILE}-game moving average, the dots are the single games, the dashed line is the trend (least-squares slope over the weeks).</p>
+        <p class="an-footnote ld-cmp-nota">Games actually played only — bye weeks and games missed are left out, so an injury does not count as a bad game. σ is in points, so it only compares players with a similar mean; volatility (σ ÷ mean) is the same swing in proportion, the fair way to say who is steadier. Trend from 3 games, in points gained or lost per week. Points with the league's scoring (Sleeper stats).</p>`;
+}
+
 /** Dopo il disegno: foto, fuoco sulla ricerca, e le settimane dei due. */
 function dopoConfronto(wrap) {
     hydrateImages(wrap);
@@ -926,6 +1185,8 @@ function dopoConfronto(wrap) {
     Promise.all([settimane(a), settimane(b)]).then(([ga, gb]) => {
         const box = wrap.querySelector('[data-ld-settimane]');
         if (!box || voce(confronto.a) !== a || voce(confronto.b) !== b) return;
+        const forma = wrap.querySelector('[data-ld-forma]');
+        if (forma) { forma.innerHTML = formaHTML(a, b, ga, gb); bindForma(forma); }
         const ma = new Map(ga.map(g => [g.week, g])), mb = new Map(gb.map(g => [g.week, g]));
         const ultima = Math.max(0, ...ga.map(g => g.week), ...gb.map(g => g.week));
         if (!ultima) { box.querySelector('.an-footnote').textContent = 'No games yet.'; return; }

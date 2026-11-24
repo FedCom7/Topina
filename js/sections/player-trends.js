@@ -21,7 +21,7 @@ import { TEAMS } from './team.js?v=868';
 import { pickDropdownHTML, bindPickDropdown } from '../ui/dropdown-pick.js?v=2';
 import { getWeekStats } from '../data/projections.js?v=637';
 import { fmt, headshotImg, posBadge, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=918';
-import { roseDellaLega } from './leaders.js?v=153';
+import { roseDellaLega } from './leaders.js?v=157';
 import { montaGhiera } from '../ui/ghiera.js?v=1';
 import { costruisciTrend, calendarioPerSquadra, RUOLI_TREND } from '../data/player-trends.js?v=6';
 

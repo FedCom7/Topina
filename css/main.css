@@ -34350,3 +34350,16 @@ body.wr-open { overflow: hidden; }
 @media (max-width: 640px) {
     .fr-stage { padding: 0 0 14px; margin-left: 0; margin-right: 0; }
 }
+
+/* ─── Compare (Players): costanza e trend ────────────────────────────────────
+   Due colori, uno per giocatore: A rosso (il lato acceso delle barre del
+   confronto), B blu. Coppia validata con lo script dataviz su entrambe le
+   superfici: CVD ΔE 22.8 sul nero, 23.9 sul bianco. Come in Analysis, il
+   valore della media si scrive nel colore della sua serie. */
+.ld-forma { --ld-a: #e0574c; --ld-b: #3987e5; }
+:root[data-theme="light"] .ld-forma { --ld-a: #c4433a; --ld-b: #2a78d6; }
+/* I grafici sono quelli di Analysis (an-chart, st-role-label, an-endlabel,
+   an-crosshair, an-chart-tooltip): qui solo lo spazio fra le parti dentro la
+   scheda del confronto. */
+.ld-forma-sub { margin-top: 22px; }
+.ld-forma .an-chart { margin-bottom: 6px; }
