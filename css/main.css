@@ -34363,3 +34363,237 @@ body.wr-open { overflow: hidden; }
    scheda del confronto. */
 .ld-forma-sub { margin-top: 22px; }
 .ld-forma .an-chart { margin-bottom: 6px; }
+
+/* ─── Depth Charts (#depth, sotto Players) ──────────────────────────────────
+   Una card per squadra NFL, raggruppate per division: titolari del depth
+   chart con la loro quota (barra + numero), sigla d'infortunio e, sotto chi e'
+   fuori, il primo sano dietro di lui. Il colore NFL sta solo nel filetto in
+   testa: midnight green o navy su nero non si leggono come testo.
+   Popup (du-dialog): riusa il vetro di .pm-overlay/.pm-dialog, piu' largo.
+   Palette categoriale delle barre impilate: le prime cinque della palette
+   dataviz validata (dark su #000, light su #fff), "Other" grigio. */
+.du-lede { margin: 0; max-width: 78ch; font-size: 0.85rem; color: var(--text-secondary); }
+.du-div { margin: 22px 0 6px; }
+.du-div-title {
+    margin: 0 0 10px; font: 700 0.72rem/1 var(--font-body); letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted);
+}
+.du-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 12px; }
+.du-card {
+    position: relative; padding: 12px 12px 8px; border-radius: var(--radius-lg);
+    border: 1px solid var(--bg-glass-border); background: var(--surface-card);
+    box-shadow: var(--glass-sheen); cursor: pointer; overflow: hidden;
+    transition: border-color .2s var(--ease), transform .2s var(--ease);
+}
+.du-card::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;
+    background: var(--nfl);
+}
+.du-card:hover, .du-card:focus-visible { border-color: color-mix(in srgb, var(--text-primary) 30%, transparent); }
+.du-card:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
+.du-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.du-logo { width: 28px; height: 28px; object-fit: contain; }
+.du-team { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.du-team b { font: 800 0.95rem/1.1 var(--font-display); color: var(--text-primary); }
+.du-team span { font-size: 0.7rem; color: var(--text-muted); }
+.du-next { margin-left: auto; font-size: 0.7rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.du-rows { list-style: none; margin: 0; padding: 0; }
+.du-row {
+    display: grid; grid-template-columns: 30px minmax(0, 1fr) 54px 74px 12px;
+    align-items: center; gap: 6px; padding: 3px 0; font-size: 0.78rem;
+    border-top: 1px solid var(--border-subtle);
+}
+.du-row:first-child { border-top: 0; }
+.du-slot { font: 700 0.62rem/1 var(--font-body); color: var(--text-muted); letter-spacing: 0.04em; }
+.du-nm {
+    display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.du-row--out .du-nm { color: var(--text-muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text-muted) 60%, transparent); }
+.du-row--out .du-inj { text-decoration: none; }
+.du-row--sub { border-top: 0; padding-top: 0; }
+.du-row--sub .du-slot { text-align: center; color: var(--accent-amber); font-size: 0.8rem; }
+.du-row--sub .du-nm { color: var(--text-secondary); }
+.du-row--empty .du-nm { color: var(--text-muted); }
+.du-bar { height: 5px; border-radius: 3px; background: var(--bg-glass); overflow: hidden; }
+.du-bar i { display: block; height: 100%; border-radius: 3px; background: var(--text-secondary); }
+.du-bar--txt { height: auto; background: none; font-size: 0.68rem; color: var(--text-muted); text-align: right; white-space: nowrap; }
+.du-val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.du-val small { font-weight: 400; font-size: 0.66rem; color: var(--text-muted); }
+.du-val--none { color: var(--text-muted); font-weight: 400; }
+.du-tr { font-size: 0.6rem; line-height: 1; text-align: center; }
+.du-tr--up { color: var(--accent-green); }
+.du-tr--down { color: var(--accent-red); }
+td .du-tr { margin-left: 3px; }
+.du-inj {
+    flex: none; padding: 1px 4px; border-radius: 4px; font: 700 0.58rem/1.3 var(--font-body);
+    letter-spacing: 0.03em; color: #fff; background: #6b6b6b;
+}
+.du-inj--q { color: #1a1300; background: var(--accent-amber); }
+.du-inj--d { background: #d9622b; }
+.du-inj--out, .du-inj--ir, .du-inj--sus, .du-inj--pup { background: var(--accent-red); }
+.du-own {
+    flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--c);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 40%, white 60%);
+}
+
+/* popup */
+body.du-lock { overflow: hidden; }
+.du-dialog { width: min(1080px, 100%); max-height: 90vh; padding: 22px 24px; }
+.du-dialog::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--nfl);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+.du-dlg-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; padding-right: 36px; }
+.du-dlg-logo { width: 54px; height: 54px; object-fit: contain; }
+.du-dlg-title { margin: 0; font: 800 1.45rem/1.15 var(--font-display); color: var(--text-primary); }
+.du-dlg-sub { margin: 3px 0 0; font-size: 0.8rem; color: var(--text-secondary); }
+.du-dlg-sub a { color: var(--text-primary); }
+.du-blk { margin-top: 22px; }
+.du-blk-title {
+    margin: 0 0 4px; font: 700 0.98rem/1.2 var(--font-display); color: var(--text-primary);
+}
+.du-blk-title small { margin-left: 6px; font: 400 0.74rem var(--font-body); color: var(--text-muted); }
+.du-blk-sub { margin: 0 0 10px; font-size: 0.78rem; color: var(--text-muted); }
+.du-starters { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.du-st {
+    display: grid; grid-template-columns: 30px 36px minmax(0, 1fr); gap: 8px; align-items: start;
+    padding: 9px 10px; border-radius: var(--radius-md); background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+}
+.du-st--out { border-color: color-mix(in srgb, var(--accent-red) 45%, transparent); }
+.du-st-slot { padding-top: 10px; font: 700 0.66rem/1 var(--font-body); color: var(--text-muted); }
+.du-st-img { width: 36px; height: 36px; }
+.du-st-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 0.76rem; }
+.du-st-name { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-weight: 600; font-size: 0.86rem; color: var(--text-primary); }
+.du-st--out .du-st-name { color: var(--text-secondary); }
+.du-st-nums { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.du-st-none { color: var(--text-muted); font-style: italic; }
+.du-st-note {
+    color: var(--text-muted); font-size: 0.72rem; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.du-tbl thead th:first-child { text-align: left; }
+.du-st-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; color: var(--text-secondary); }
+.du-st-sub b { color: var(--accent-amber); }
+.du-st-behind { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 0.72rem; color: var(--text-secondary); }
+.du-k { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.du-behind { display: inline-flex; align-items: center; gap: 3px; }
+.du-behind.is-out { color: var(--text-muted); text-decoration: line-through; }
+
+/* barre impilate al 100% */
+.du-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-secondary); }
+.du-leg { display: inline-flex; align-items: center; gap: 5px; }
+.du-leg small { color: var(--text-muted); font-size: 0.64rem; }
+.du-sw { width: 10px; height: 10px; border-radius: 3px; }
+.du-chart {
+    display: grid; grid-template-columns: repeat(var(--cols), minmax(22px, 1fr)); gap: 4px;
+    overflow-x: auto; padding-bottom: 2px;
+}
+.du-col { display: flex; flex-direction: column; align-items: stretch; min-width: 22px; }
+.du-stack {
+    display: flex; flex-direction: column-reverse; gap: 2px; height: 150px;
+}
+.du-seg { display: block; min-height: 2px; flex-basis: 0; border-radius: 2px; }
+.du-stack .du-seg:first-child { border-radius: 2px 2px 4px 4px; }
+.du-seg:hover { filter: brightness(1.25); outline: 1px solid var(--text-primary); }
+.du-col-w { margin-top: 4px; text-align: center; font-size: 0.62rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.du-col-o { text-align: center; font-size: 0.56rem; color: var(--text-muted); }
+.du-c1 { background: #338ced; } .du-c2 { background: #e76624; } .du-c3 { background: #00a888; }
+.du-c4 { background: #d28e05; } .du-c5 { background: #e24d8b; } .du-c0 { background: #4a4a4a; }
+:root[data-theme="light"] .du-c1 { background: #257de0; }
+:root[data-theme="light"] .du-c2 { background: #f47230; }
+:root[data-theme="light"] .du-c3 { background: #00b894; }
+:root[data-theme="light"] .du-c4 { background: #f2a600; }
+:root[data-theme="light"] .du-c5 { background: #ee7fac; }
+:root[data-theme="light"] .du-c0 { background: #c4c4c4; }
+
+/* tabelle */
+.du-tbl-wrap { overflow-x: auto; }
+.du-tbl, .du-hist, .du-log-tbl { width: 100%; border-collapse: collapse; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.du-tbl th, .du-tbl td, .du-hist th, .du-hist td, .du-log-tbl th, .du-log-tbl td {
+    padding: 6px 7px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border-subtle);
+}
+.du-tbl thead th, .du-hist thead th, .du-log-tbl thead th {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+}
+.du-tbl tbody th, .du-hist tbody th { text-align: left; font-weight: 500; color: var(--text-primary); }
+.du-tbl td { color: var(--text-secondary); }
+.du-tbl td b { color: var(--text-primary); font-weight: 600; }
+.du-tb-name { display: inline-flex; align-items: center; gap: 6px; }
+.du-gone { color: var(--text-muted); font-size: 0.64rem; }
+.du-tr-row { cursor: pointer; }
+.du-tr-row:hover, .du-tr-row:focus-visible { background: var(--bg-glass); }
+.du-chev { color: var(--text-muted); transition: transform .2s var(--ease); }
+.du-tr-row.expanded .du-chev { transform: rotate(90deg); }
+.du-log > td { padding: 4px 0 14px; text-align: left; white-space: normal; }
+.du-log-box { padding: 10px 12px; border-radius: var(--radius-md); background: var(--bg-glass); }
+.du-log-sum { margin: 0 0 8px; font-size: 0.76rem; color: var(--text-secondary); }
+.du-log-tbl td { color: var(--text-secondary); }
+.du-log-tbl td small { color: var(--text-muted); }
+.du-log-tbl td b { color: var(--text-primary); }
+.du-log-tbl tr.is-off td { color: var(--text-muted); font-style: italic; }
+.du-log-tbl th:first-child, .du-log-tbl td:first-child,
+.du-log-tbl th:nth-child(2), .du-log-tbl td:nth-child(2) { text-align: left; }
+.du-mini { display: inline-block; vertical-align: middle; width: 34px; height: 4px; margin-left: 6px; border-radius: 2px; background: var(--border-subtle); overflow: hidden; }
+.du-mini i { display: block; height: 100%; background: var(--accent-blue); }
+.du-log-link { display: inline-block; margin-top: 8px; font-size: 0.76rem; color: var(--text-primary); }
+.du-hist td { text-align: center; color: var(--text-secondary); font-size: 0.72rem; }
+.du-hist td.is-new { color: var(--text-primary); font-weight: 600; background: color-mix(in srgb, var(--accent-amber) 18%, transparent); }
+.du-hist th { position: sticky; left: 0; background: var(--surface-card); }
+
+@media (max-width: 640px) {
+    .du-dialog { padding: 18px 14px; max-height: 92vh; }
+    .du-starters { grid-template-columns: 1fr; }
+    .du-chart { grid-template-columns: repeat(var(--cols), 22px); }
+    .du-stack { height: 120px; }
+}
+.du-st-subn { flex-basis: 100%; color: var(--text-muted); font-size: 0.7rem; }
+
+/* Depth Charts — interruttore "Fantasy rosters": tinge le righe dei
+   giocatori in una rosa di lega col colore `bright` della squadra (--own,
+   messo sulla riga). Si accende con .du-show-own sul contenitore (griglia) o
+   sull'overlay (popup), quindi accendere/spegnere non ridisegna niente.
+   Il pallino resta: dice di chi e' anche a interruttore spento. */
+.du-own-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--pill-surface); color: var(--text-secondary);
+}
+.tr-controls .du-own-btn { padding: 7px 14px; font-size: 0.8rem; }
+.du-own-btn::before {
+    content: ''; width: 26px; height: 14px; border-radius: 7px; flex: none;
+    background: var(--border-card);
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+    transition: background var(--dur-med) var(--ease);
+}
+.du-own-btn.is-on {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--text-primary) 35%, transparent);
+}
+.du-own-btn.is-on::before {
+    background: linear-gradient(90deg, #FF6600, #D4AF37, #d4506a, #3FA6AE);
+}
+.du-own-legend {
+    display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 14px;
+    width: 100%; font-size: 0.74rem; color: var(--text-secondary);
+}
+.du-own-legend[hidden] { display: none; }
+
+.du-show-own .du-row.du-owned {
+    margin: 0 -6px; padding-left: 6px; padding-right: 6px;
+    border-radius: 6px; border-top-color: transparent;
+    background: color-mix(in srgb, var(--own) 24%, transparent);
+    box-shadow: inset 3px 0 0 var(--own);
+}
+.du-show-own .du-row.du-owned + .du-row { border-top-color: transparent; }
+.du-show-own .du-row.du-owned .du-nm { color: var(--text-primary); font-weight: 600; }
+.du-show-own .du-row.du-owned .du-bar i { background: var(--own); }
+.du-show-own .du-row.du-owned .du-own { display: none; }
+.du-show-own .du-st.du-owned {
+    background: color-mix(in srgb, var(--own) 18%, transparent);
+    border-color: color-mix(in srgb, var(--own) 55%, transparent);
+    box-shadow: inset 3px 0 0 var(--own);
+}
+.du-show-own .du-tr-row.du-owned { background: color-mix(in srgb, var(--own) 18%, transparent); }
+.du-show-own .du-tr-row.du-owned th { box-shadow: inset 3px 0 0 var(--own); }
+:root[data-theme="light"] .du-show-own .du-row.du-owned { background: color-mix(in srgb, var(--own) 18%, transparent); }

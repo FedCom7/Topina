@@ -23,7 +23,7 @@ import { getWeekStats } from '../data/projections.js?v=637';
 import { fmt, headshotImg, posBadge, hydrateImages, limitedRows, toggleExtraRows } from './analysis.js?v=918';
 import { roseDellaLega } from './leaders.js?v=157';
 import { montaGhiera } from '../ui/ghiera.js?v=1';
-import { costruisciTrend, calendarioPerSquadra, RUOLI_TREND } from '../data/player-trends.js?v=6';
+import { costruisciTrend, calendarioPerSquadra, RUOLI_TREND } from '../data/player-trends.js?v=7';
 
 let initialized = false;
 let anno = CURRENT_SEASON;
@@ -66,7 +66,7 @@ function renderPickRow() {
  * giornate prima della settimana di Sleeper — quella corrente si aggiunge
  * quando Sleeper passa alla successiva.
  */
-async function finestraStagione(y) {
+export async function finestraStagione(y) {
     if (String(y) !== String(CURRENT_SEASON)) return { fino: 18, prossima: null };
     try {
         const st = await (await fetch('https://api.sleeper.app/v1/state/nfl')).json();

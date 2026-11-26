@@ -28,7 +28,8 @@ import { initAnalysis } from './sections/analysis.js?v=918';
 import { initLeaders } from './sections/leaders.js?v=157';
 import { initWaivers } from './sections/waivers.js?v=150';
 import { initPlayerStats } from './sections/player-stats.js?v=39';
-import { initPlayerTrends } from './sections/player-trends.js?v=12';
+import { initPlayerTrends } from './sections/player-trends.js?v=13';
+import { initDepthCharts } from './sections/depth-charts.js?v=2';
 
 import { initMagazine } from './sections/magazine.js?v=813';
 import { initLive } from './sections/live.js?v=1173';
@@ -51,6 +52,7 @@ const SECTIONS = {
     'waivers': initWaivers,
     'playerstats': initPlayerStats,
     'trends': initPlayerTrends,
+    'depth': initDepthCharts,
     'draft': initDraft,
     'draftgrades': initDraftGrades,
     'projections': initProjections,
@@ -78,6 +80,7 @@ const NAV_PARENT = {
     'waivers': 'leaders',
     'playerstats': 'leaders',
     'trends': 'leaders',
+    'depth': 'leaders',
     'stats': 'history',
 };
 

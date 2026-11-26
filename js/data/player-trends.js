@@ -77,7 +77,7 @@ export const MODELLO = {
  * fullback mancano, e le quote risultano un filo piu' alte del vero — lo
  * stesso per tutti, quindi il confronto fra le due meta' non ne risente.
  */
-function partite(settimane) {
+export function partite(settimane) {
     const squadra = new Map();   // `${team}|${w}` → somme
     for (const [w, mappa] of settimane) {
         for (const v of mappa.values()) {

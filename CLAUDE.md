@@ -929,6 +929,29 @@ prossime quattro giornate.
    t delle due metà nel dettaglio: il cambio è dentro o fuori le oscillazioni
    normali del giocatore.
 
+### Depth Charts (#depth, sotto Players) — titolari, quote, infortuni
+
+`js/data/depth-usage.js` (conti puri) + `js/sections/depth-charts.js`. Una card
+per squadra NFL (per division): QB, RB1-2, WR1-3, TE dal depth chart, con la
+quota di target (WR/TE) o di portate (RB) e la freccia ultime 3 contro
+stagione; sotto un titolare fuori, il primo sano dietro di lui. Cliccando, un
+popup con titolari e riserve, barre impilate target/portate partita per
+partita, la tabella di chi ha toccato palla (col tabellino di ogni giornata) e
+la storia dei titolari.
+
+1. **Fonti**: depth chart = l'ultima foto pre-kickoff di
+   `data/nfl/depth/{Y}_{TEAM}.json` (esiste dal 2025, quindi la pagina parte
+   da li'); quote = tabellini Sleeper via `partite()` di player-trends.js,
+   SOLO giornate chiuse e SOLO partite con quella maglia; infortuni =
+   `injuries_{Y}.json`, campo `espn` (report di oggi), solo stagione in corso.
+2. **Depth (id ESPN) e tabellini (nome Sleeper) si agganciano per nome**
+   senza suffissi (`chiaveNome`: "James Cook III" = "James Cook").
+3. Le foto di regular season prendono il numero di giornata dal calendario
+   Sleeper SOLO se il conto delle partite giocate combacia; se no, la data.
+4. Colori delle barre impilate: palette dataviz validata (prime cinque, scale
+   dark/light) + "Other" grigio; l'ordine e' quello di stagione, cosi' il
+   colore segue il giocatore e non il rango della giornata.
+
 ### Area Draft — quattro sezioni sorelle
 
 Il dropdown "Draft" del nav ha quattro voci, tutte con `NAV_PARENT → 'draft'`:

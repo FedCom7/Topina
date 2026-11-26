@@ -50,7 +50,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bevan&family=Inter:wght@300;400;500;600;700;800;900&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=1453">
+    <link rel="stylesheet" href="css/main.css?v=1456">
 </head>
 
 <body>
@@ -177,6 +177,7 @@
             <a href="#waivers" class="nav-dp-item" data-section="waivers">Waivers</a>
             <a href="#playerstats" class="nav-dp-item" data-section="playerstats">Player Stats</a>
             <a href="#trends" class="nav-dp-item" data-section="trends">Trends</a>
+            <a href="#depth" class="nav-dp-item" data-section="depth">Depth Charts</a>
         </div>
         <div class="nav-dropdown-panel" data-panel="draft">
             <a href="#draft" class="nav-dp-item nav-dp-header" data-section="draft">Draft Recap</a>
@@ -560,6 +561,26 @@
         </div>
     </section>
 
+    <!-- ====== DEPTH CHARTS (sotto Players) ======
+         Le 32 squadre NFL: titolari del depth chart, quote di target e
+         portate, infortunati e chi ne prende il posto. La scheda di ogni
+         squadra si apre in un popup: js/sections/depth-charts.js. -->
+    <section class="page-section" id="depth">
+        <div class="section-inner">
+            <div class="section-header">
+                <h1 class="section-title">Depth Charts</h1>
+                <p class="section-subtitle">Every NFL team's starters — who gets the ball, who's hurt, who's next up</p>
+            </div>
+            <div class="pick-row" id="du-pick-row"></div>
+            <div id="depth-content">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading depth charts...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ====== PLAYER STATS ======
          Il deep dive sui numeri: frequenze, tabella completa, il "1" di ogni
          squadra. La chiave e' `playerstats` perche' `stats` e' gia' All-Time
@@ -642,7 +663,7 @@
         // qui solo prima.
         startLoadingArt();
     </script>
-    <script type="module" src="js/app.js?v=1541"></script>
+    <script type="module" src="js/app.js?v=1543"></script>
 
 </body>
 
